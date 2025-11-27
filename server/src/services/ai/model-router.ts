@@ -7,7 +7,7 @@
  * Uses OpenRouter for unified access to all models with automatic failover.
  */
 
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
