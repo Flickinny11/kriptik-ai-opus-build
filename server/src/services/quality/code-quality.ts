@@ -6,7 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import Anthropic from '@anthropic-ai/sdk';
+import AnthropicSDK from '@anthropic-ai/sdk';
 
 // ============================================================================
 // TYPES
@@ -111,12 +111,12 @@ export interface QualityConfig {
 // ============================================================================
 
 export class CodeQualityService {
-    private anthropicClient?: Anthropic;
+    private anthropicClient?: AnthropicSDK;
     private codeRabbitToken?: string;
     
     constructor() {
         if (process.env.ANTHROPIC_API_KEY) {
-            this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+            this.anthropicClient = new AnthropicSDK({ apiKey: process.env.ANTHROPIC_API_KEY });
         }
         this.codeRabbitToken = process.env.CODERABBIT_API_KEY;
     }
