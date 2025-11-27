@@ -4,6 +4,6 @@
  * Vercel and Netlify integration for static site deployment
  */
 
-export * from './vercel';
-export * from './netlify';
+export * from './vercel.js';
+export * from './netlify.js';
 

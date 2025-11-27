@@ -9,7 +9,7 @@
  * Reference: https://modelcontextprotocol.io/
  */
 
-import { getModelRouter } from '../ai/model-router';
+import { getModelRouter } from '../ai/model-router.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================

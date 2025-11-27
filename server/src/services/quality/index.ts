@@ -4,5 +4,5 @@
  * Linting, formatting, and code review services.
  */
 
-export * from './code-quality';
+export * from './code-quality.js';
 

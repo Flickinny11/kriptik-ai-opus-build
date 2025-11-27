@@ -9,11 +9,11 @@ import {
     getDatabaseProvisioningService,
     generateSchema,
     DatabaseProvider,
-} from '../services/provisioning/database';
+} from '../services/provisioning/database.js';
 import {
     getAuthProvisioningService,
     AuthProvider,
-} from '../services/provisioning/auth';
+} from '../services/provisioning/auth.js';
 
 const router = Router();
 

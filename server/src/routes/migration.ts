@@ -5,8 +5,8 @@
  */
 
 import { Router } from 'express';
-import { getMigrationService } from '../services/migration/migration-service';
-import { authMiddleware } from '../middleware/auth';
+import { getMigrationService } from '../services/migration/migration-service.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);

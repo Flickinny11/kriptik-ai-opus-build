@@ -10,7 +10,7 @@
  * Generates all necessary code, environment variables, and configurations.
  */
 
-import { getModelRouter } from '../ai/model-router';
+import { getModelRouter } from '../ai/model-router.js';
 
 // ============================================================================
 // TYPES
@@ -441,8 +441,8 @@ function generateBetterAuthCode(config: AuthConfig): AuthProvisionResult['genera
             description: 'Better-Auth server configuration',
             content: `import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { db } from './db';
-import * as schema from './schema';
+import { db } from './db.js';
+import * as schema from './schema.js';
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {

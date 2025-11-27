@@ -5,7 +5,7 @@
  * These prompts define agent capabilities, constraints, and output formats.
  */
 
-import { AgentType } from './types';
+import { AgentType } from './types.js';
 
 export const AGENT_SYSTEM_PROMPTS: Record<AgentType | 'orchestrator', string> = {
     // =========================================================================

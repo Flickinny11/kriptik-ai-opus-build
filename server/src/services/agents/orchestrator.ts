@@ -19,8 +19,8 @@ import {
     ImplementationPlan,
     WorkflowPlan,
     ModelRecommendation,
-} from './types';
-import { getContextStore, ContextStore } from './context-store';
+} from './types.js';
+import { getContextStore, ContextStore } from './context-store.js';
 
 // ============================================================================
 // AGENT EXECUTORS

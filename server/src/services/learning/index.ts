@@ -9,5 +9,5 @@ export {
     type InteractionPattern,
     type LearningInsight,
     type ModelPerformance,
-} from './interaction-tracker';
+} from './interaction-tracker.js';
 

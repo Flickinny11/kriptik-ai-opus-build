@@ -145,7 +145,7 @@ app.use(express.json({ limit: '10mb' }));
 // =============================================================================
 
 import { toNodeHandler } from "better-auth/node";
-import { auth } from "./auth";
+import { auth } from './auth.js';
 // Use :splat syntax for Express 5 compatibility with path-to-regexp
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
@@ -153,27 +153,27 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 // API ROUTES
 // =============================================================================
 
-import projectsRouter from "./routes/projects";
-import filesRouter from "./routes/files";
-import generateRouter from "./routes/generate";
-import cloudRouter from "./routes/cloud";
-import deployRouter from "./routes/deploy";
-import billingRouter from "./routes/billing";
-import orchestrateRouter from "./routes/orchestrate";
-import exportRouter from "./routes/export";
-import aiRouter from "./routes/ai";
-import mcpRouter from "./routes/mcp";
-import provisioningRouter from "./routes/provisioning";
-import securityRouter from "./routes/security";
-import templatesRouter from "./routes/templates";
-import credentialsRouter from "./routes/credentials";
-import oauthRouter from "./routes/oauth";
-import smartDeployRouter from "./routes/smart-deploy";
-import agentsRouter from "./routes/agents";
-import workflowsRouter from "./routes/workflows";
-import migrationRouter from "./routes/migration";
-import qualityRouter from "./routes/quality";
-import configRouter from "./routes/config";
+import projectsRouter from './routes/projects.js';
+import filesRouter from './routes/files.js';
+import generateRouter from './routes/generate.js';
+import cloudRouter from './routes/cloud.js';
+import deployRouter from './routes/deploy.js';
+import billingRouter from './routes/billing.js';
+import orchestrateRouter from './routes/orchestrate.js';
+import exportRouter from './routes/export.js';
+import aiRouter from './routes/ai.js';
+import mcpRouter from './routes/mcp.js';
+import provisioningRouter from './routes/provisioning.js';
+import securityRouter from './routes/security.js';
+import templatesRouter from './routes/templates.js';
+import credentialsRouter from './routes/credentials.js';
+import oauthRouter from './routes/oauth.js';
+import smartDeployRouter from './routes/smart-deploy.js';
+import agentsRouter from './routes/agents.js';
+import workflowsRouter from './routes/workflows.js';
+import migrationRouter from './routes/migration.js';
+import qualityRouter from './routes/quality.js';
+import configRouter from './routes/config.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);

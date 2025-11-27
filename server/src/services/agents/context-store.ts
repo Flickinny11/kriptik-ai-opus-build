@@ -26,7 +26,7 @@ import {
     UserPreferences,
     CredentialReference,
     WorkflowState,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // CONTEXT STORE

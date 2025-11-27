@@ -5,8 +5,8 @@
  */
 
 import { Router } from 'express';
-import { getCodeQualityService } from '../services/quality/code-quality';
-import { authMiddleware } from '../middleware/auth';
+import { getCodeQualityService } from '../services/quality/code-quality.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);

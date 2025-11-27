@@ -4,5 +4,5 @@
  * Platform migration and export services.
  */
 
-export * from './migration-service';
+export * from './migration-service.js';
 

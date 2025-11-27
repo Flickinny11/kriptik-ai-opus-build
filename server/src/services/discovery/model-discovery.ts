@@ -16,7 +16,7 @@ import {
     WorkflowPlan,
     WorkflowStep,
     CostEstimate,
-} from '../agents/types';
+} from '../agents/types.js';
 
 // ============================================================================
 // TYPES

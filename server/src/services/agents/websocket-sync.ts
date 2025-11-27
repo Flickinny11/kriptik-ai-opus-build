@@ -8,7 +8,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { Server } from 'http';
 import { v4 as uuidv4 } from 'uuid';
-import { getContextStore, ContextStore } from './context-store';
+import { getContextStore, ContextStore } from './context-store.js';
 import {
     SharedContext,
     ContextEvent,
@@ -16,7 +16,7 @@ import {
     Agent,
     Task,
     Message,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // TYPES

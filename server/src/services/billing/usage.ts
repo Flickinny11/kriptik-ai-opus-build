@@ -4,10 +4,10 @@
  * Track credit usage and enforce limits
  */
 
-import { db } from '../../db';
-import { users } from '../../schema';
+import { db } from '../../db.js';
+import { users } from '../../schema.js';
 import { eq } from 'drizzle-orm';
-import { BILLING_PLANS } from './stripe';
+import { BILLING_PLANS } from './stripe.js';
 
 export interface UsageRecord {
     userId: string;

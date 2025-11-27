@@ -9,14 +9,14 @@ import {
     CloudProvider,
     DeploymentConfig,
     ProviderCredentials,
-} from '../services/cloud/types';
-import { pricingCalculator } from '../services/cloud/pricing';
-import { createRunPodProvider } from '../services/cloud/runpod';
-import { createAWSProvider } from '../services/cloud/aws';
-import { createGCPProvider } from '../services/cloud/gcp';
-import { huggingFaceService } from '../services/ml/huggingface';
-import { comfyUIService } from '../services/ml/comfyui';
-import { dockerBuilder } from '../services/ml/docker-builder';
+} from '../services/cloud/types.js';
+import { pricingCalculator } from '../services/cloud/pricing.js';
+import { createRunPodProvider } from '../services/cloud/runpod.js';
+import { createAWSProvider } from '../services/cloud/aws.js';
+import { createGCPProvider } from '../services/cloud/gcp.js';
+import { huggingFaceService } from '../services/ml/huggingface.js';
+import { comfyUIService } from '../services/ml/comfyui.js';
+import { dockerBuilder } from '../services/ml/docker-builder.js';
 
 const router = Router();
 

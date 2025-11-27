@@ -6,9 +6,9 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
-import { getModelDiscoveryService } from '../services/discovery/model-discovery';
-import { getWorkflowBuilderService } from '../services/workflow/workflow-builder';
-import { authMiddleware } from '../middleware/auth';
+import { getModelDiscoveryService } from '../services/discovery/model-discovery.js';
+import { getWorkflowBuilderService } from '../services/workflow/workflow-builder.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);

@@ -7,5 +7,5 @@ export {
     optionalAuthMiddleware,
     requireRole,
     default
-} from './auth';
+} from './auth.js';
 

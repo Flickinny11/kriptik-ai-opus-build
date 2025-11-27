@@ -6,9 +6,9 @@
  * requirements into production-ready applications.
  */
 
-export * from './types';
-export * from './prompts';
-export * from './development-orchestrator';
-export * from './agents/queen-agent';
-export * from './agents/worker-agent';
+export * from './types.js';
+export * from './prompts.js';
+export * from './development-orchestrator.js';
+export * from './agents/queen-agent.js';
+export * from './agents/worker-agent.js';
 

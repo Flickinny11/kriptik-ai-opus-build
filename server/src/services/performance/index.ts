@@ -10,7 +10,7 @@ export {
     getAIResponseCache,
     getTemplateCache,
     getModelDiscoveryCache,
-} from './cache-service';
+} from './cache-service.js';
 
 export {
     ParallelExecutor,
@@ -21,5 +21,5 @@ export {
     type Task,
     type TaskResult,
     type TaskPriority,
-} from './parallel-executor';
+} from './parallel-executor.js';
 

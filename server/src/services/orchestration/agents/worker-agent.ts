@@ -13,9 +13,9 @@ import {
     AgentType,
     AgentId,
     SharedContext,
-} from '../types';
-import { getAgentPrompt, getContextInjectionPrompt } from '../prompts';
-import { ClaudeService } from '../../ai/claude-service';
+} from '../types.js';
+import { getAgentPrompt, getContextInjectionPrompt } from '../prompts.js';
+import { ClaudeService } from '../../ai/claude-service.js';
 
 export class WorkerAgent extends EventEmitter {
     private id: AgentId;

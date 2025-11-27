@@ -9,8 +9,8 @@
  * - Workflow-to-API endpoint generation
  */
 
-import { CloudProvider, DeploymentConfig, GPUType } from '../cloud/types';
-import { pricingCalculator } from '../cloud/pricing';
+import { CloudProvider, DeploymentConfig, GPUType } from '../cloud/types.js';
+import { pricingCalculator } from '../cloud/pricing.js';
 
 // ComfyUI Node Types
 export interface ComfyUINode {

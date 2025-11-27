@@ -5,9 +5,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createGitHubExportService, ExportConfig, ProjectFile } from '../services/export/github';
-import { db } from '../db';
-import { files as filesTable } from '../schema';
+import { createGitHubExportService, ExportConfig, ProjectFile } from '../services/export/github.js';
+import { db } from '../db.js';
+import { files as filesTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();

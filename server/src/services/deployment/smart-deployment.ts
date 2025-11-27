@@ -11,14 +11,14 @@
  * - Deployment orchestration
  */
 
-import { getCredentialVault } from '../security/credential-vault';
-import { RunPodProvider } from '../cloud/runpod';
+import { getCredentialVault } from '../security/credential-vault.js';
+import { RunPodProvider } from '../cloud/runpod.js';
 import {
     HuggingFaceService,
     HuggingFaceModel,
     ModelRequirements as HFModelRequirements,
     QuantizationType
-} from '../ml/huggingface';
+} from '../ml/huggingface.js';
 
 // ============================================================================
 // TYPES

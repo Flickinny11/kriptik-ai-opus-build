@@ -4,8 +4,8 @@
  * Creates a demo user for testing. Run with: npm run seed
  */
 
-import { db } from './db';
-import { users } from './schema';
+import { db } from './db.js';
+import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
 
 async function seedDemoUser() {

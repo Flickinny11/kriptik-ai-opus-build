@@ -5,7 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { auth } from '../auth';
+import { auth } from '../auth.js';
 
 // Extend Express Request type to include user
 declare global {

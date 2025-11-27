@@ -14,7 +14,7 @@ import {
     SharedContext,
     ContextCheckpoint,
     Message,
-} from './types';
+} from './types.js';
 
 // In-memory context cache
 const contextCache = new Map<string, SharedContext>();

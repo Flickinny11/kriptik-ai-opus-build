@@ -14,10 +14,10 @@ import {
     AgentId,
     SharedContext,
     Agent,
-} from '../types';
-import { getAgentPrompt, getContextInjectionPrompt } from '../prompts';
-import { ClaudeService } from '../../ai/claude-service';
-import { WorkerAgent } from './worker-agent';
+} from '../types.js';
+import { getAgentPrompt, getContextInjectionPrompt } from '../prompts.js';
+import { ClaudeService } from '../../ai/claude-service.js';
+import { WorkerAgent } from './worker-agent.js';
 
 export class QueenAgent extends EventEmitter {
     private id: AgentId;

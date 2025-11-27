@@ -11,7 +11,7 @@
  * database infrastructure automatically.
  */
 
-import { getModelRouter } from '../ai/model-router';
+import { getModelRouter } from '../ai/model-router.js';
 
 // ============================================================================
 // TYPES

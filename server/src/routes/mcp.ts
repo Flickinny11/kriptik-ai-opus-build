@@ -5,10 +5,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getMCPServerGeneratorService } from '../services/mcp/server-generator';
-import { getMCPClient, MCP_SERVER_PRESETS } from '../services/mcp/client';
-import { db } from '../db';
-import { files as filesTable } from '../schema';
+import { getMCPServerGeneratorService } from '../services/mcp/server-generator.js';
+import { getMCPClient, MCP_SERVER_PRESETS } from '../services/mcp/client.js';
+import { db } from '../db.js';
+import { files as filesTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();

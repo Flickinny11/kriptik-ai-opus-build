@@ -4,7 +4,7 @@
  * Build and deploy custom Docker containers for AI workloads
  */
 
-import { CloudProvider, GPUType } from '../cloud/types';
+import { CloudProvider, GPUType } from '../cloud/types.js';
 
 // Base images for different use cases
 export const BASE_IMAGES = {

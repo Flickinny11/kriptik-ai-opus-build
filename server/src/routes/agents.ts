@@ -5,9 +5,9 @@
  */
 
 import { Router, Request } from 'express';
-import { getContextStore } from '../services/agents/context-store';
-import { getAgentOrchestrator } from '../services/agents/orchestrator';
-import { authMiddleware } from '../middleware/auth';
+import { getContextStore } from '../services/agents/context-store.js';
+import { getAgentOrchestrator } from '../services/agents/orchestrator.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 // Use Express.Request which is augmented by authMiddleware
 type AuthenticatedRequest = Request;

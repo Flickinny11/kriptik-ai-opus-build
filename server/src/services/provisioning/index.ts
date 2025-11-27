@@ -9,6 +9,6 @@
  * automating infrastructure setup that typically takes hours.
  */
 
-export * from './database';
-export * from './auth';
+export * from './database.js';
+export * from './auth.js';
 

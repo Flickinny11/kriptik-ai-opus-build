@@ -6,10 +6,10 @@
 
 import { Router, Request, Response, raw } from 'express';
 import Stripe from 'stripe';
-import { createStripeBillingService, BILLING_PLANS } from '../services/billing/stripe';
-import { usageTracker } from '../services/billing/usage';
-import { db } from '../db';
-import { subscriptions, users } from '../schema';
+import { createStripeBillingService, BILLING_PLANS } from '../services/billing/stripe.js';
+import { usageTracker } from '../services/billing/usage.js';
+import { db } from '../db.js';
+import { subscriptions, users } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();

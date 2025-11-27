@@ -5,9 +5,9 @@
  * with shared context and real-time synchronization.
  */
 
-export * from './types';
-export * from './context-store';
-export * from './orchestrator';
-export * from './context-persistence';
-export * from './websocket-sync';
+export * from './types.js';
+export * from './context-store.js';
+export * from './orchestrator.js';
+export * from './context-persistence.js';
+export * from './websocket-sync.js';
 

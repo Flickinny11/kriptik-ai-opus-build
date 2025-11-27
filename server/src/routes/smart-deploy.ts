@@ -12,7 +12,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getSmartDeploymentService, DeploymentPlan } from '../services/deployment/smart-deployment';
+import { getSmartDeploymentService, DeploymentPlan } from '../services/deployment/smart-deployment.js';
 
 const router = Router();
 

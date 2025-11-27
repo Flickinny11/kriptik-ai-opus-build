@@ -5,12 +5,12 @@
  * Handles authorization, token exchange, refresh, and credential storage.
  */
 
-import { OAuthProvider, OAuthProviderId, OAuthTokens, OAuthUserInfo } from './types';
-import { createGitHubProvider } from './providers/github';
-import { createVercelProvider } from './providers/vercel';
-import { createNetlifyProvider } from './providers/netlify';
-import { createGoogleProvider } from './providers/google';
-import { getCredentialVault, generatePKCE } from '../security/credential-vault';
+import { OAuthProvider, OAuthProviderId, OAuthTokens, OAuthUserInfo } from './types.js';
+import { createGitHubProvider } from './providers/github.js';
+import { createVercelProvider } from './providers/vercel.js';
+import { createNetlifyProvider } from './providers/netlify.js';
+import { createGoogleProvider } from './providers/google.js';
+import { getCredentialVault, generatePKCE } from '../security/credential-vault.js';
 
 export interface OAuthFlowResult {
     success: boolean;

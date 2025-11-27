@@ -6,10 +6,10 @@
  */
 
 import { createHash } from 'crypto';
-import { db } from '../../db';
-import { interactionLogs } from '../../schema';
+import { db } from '../../db.js';
+import { interactionLogs } from '../../schema.js';
 import { desc, eq } from 'drizzle-orm';
-import { getAIResponseCache } from '../performance/cache-service';
+import { getAIResponseCache } from '../performance/cache-service.js';
 
 // ============================================================================
 // TYPES

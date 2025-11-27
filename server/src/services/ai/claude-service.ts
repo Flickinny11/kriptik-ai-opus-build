@@ -10,7 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
-import { getHeliconeClient } from './helicone-client';
+import { getHeliconeClient } from './helicone-client.js';
 
 // Claude model constants
 export const CLAUDE_MODELS = {

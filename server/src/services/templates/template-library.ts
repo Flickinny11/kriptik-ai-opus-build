@@ -17,7 +17,7 @@ import {
     TemplateLibrary,
     CategoryInfo,
     FrameworkInfo,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // BUILT-IN TEMPLATES
@@ -84,7 +84,7 @@ export default App`,
             path: 'src/main.tsx',
             content: `import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from './App.js';
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -420,7 +420,7 @@ export default function RootLayout({
             path: 'lib/db.ts',
             content: `import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import * as schema from './schema'
+import * as schema from './schema.js';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -553,9 +553,9 @@ const createAPITemplate = (): Template => ({
             content: `import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import { errorHandler } from './middleware/error'
-import { logger } from './middleware/logger'
-import routes from './routes'
+import { errorHandler } from './middleware/error.js';
+import { logger } from './middleware/logger.js';
+import routes from './routes.js';
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -722,7 +722,7 @@ const createAIAgentTemplate = (): Template => ({
         },
         {
             path: 'src/index.ts',
-            content: `import { createAgent } from './agent'
+            content: `import { createAgent } from './agent.js';
 import express from 'express'
 
 const app = express()
@@ -887,9 +887,9 @@ const createDashboardTemplate = (): Template => ({
         },
         {
             path: 'src/App.tsx',
-            content: `import { Sidebar } from './components/Sidebar'
-import { Dashboard } from './pages/Dashboard'
-import { ThemeProvider } from './components/ThemeProvider'
+            content: `import { Sidebar } from './components/Sidebar.js';
+import { Dashboard } from './pages/Dashboard.js';
+import { ThemeProvider } from './components/ThemeProvider.js';
 
 export default function App() {
   return (
@@ -1106,12 +1106,12 @@ const createLandingPageTemplate = (): Template => ({
         },
         {
             path: 'src/App.tsx',
-            content: `import { Hero } from './components/Hero'
-import { Features } from './components/Features'
-import { Testimonials } from './components/Testimonials'
-import { Pricing } from './components/Pricing'
-import { CTA } from './components/CTA'
-import { Footer } from './components/Footer'
+            content: `import { Hero } from './components/Hero.js';
+import { Features } from './components/Features.js';
+import { Testimonials } from './components/Testimonials.js';
+import { Pricing } from './components/Pricing.js';
+import { CTA } from './components/CTA.js';
+import { Footer } from './components/Footer.js';
 
 export default function App() {
   return (

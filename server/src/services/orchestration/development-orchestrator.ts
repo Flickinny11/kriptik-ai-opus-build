@@ -32,10 +32,10 @@ import {
     RecoveryAction,
     ErrorRecoveryConfig,
     QualityIssue,
-} from './types';
-import { getAgentPrompt, getContextInjectionPrompt } from './prompts';
-import { QueenAgent } from './agents/queen-agent';
-import { ClaudeService } from '../ai/claude-service';
+} from './types.js';
+import { getAgentPrompt, getContextInjectionPrompt } from './prompts.js';
+import { QueenAgent } from './agents/queen-agent.js';
+import { ClaudeService } from '../ai/claude-service.js';
 
 export interface OrchestratorConfig {
     maxConcurrentTasks: number;

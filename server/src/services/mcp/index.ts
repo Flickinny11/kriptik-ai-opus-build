@@ -7,6 +7,6 @@
  * - Client: Connect to external MCP servers (GitHub, Slack, etc.)
  */
 
-export * from './server-generator';
-export * from './client';
+export * from './server-generator.js';
+export * from './client.js';
 

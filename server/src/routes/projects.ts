@@ -5,8 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
-import { projects, files } from '../schema';
+import { db } from '../db.js';
+import { projects, files } from '../schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -275,7 +275,7 @@ function getInitialFiles(framework: string, projectName: string): Array<{ path: 
             path: 'src/main.tsx',
             content: `import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from './App.js';
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

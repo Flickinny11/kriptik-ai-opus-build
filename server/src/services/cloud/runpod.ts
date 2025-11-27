@@ -15,8 +15,8 @@ import {
     CostEstimate,
     DeploymentStatus,
     RunPodCredentials,
-} from './types';
-import { pricingCalculator } from './pricing';
+} from './types.js';
+import { pricingCalculator } from './pricing.js';
 
 const RUNPOD_API_BASE = 'https://api.runpod.io/graphql';
 

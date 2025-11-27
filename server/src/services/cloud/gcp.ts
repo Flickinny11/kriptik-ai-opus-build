@@ -14,8 +14,8 @@ import {
     CostEstimate,
     DeploymentStatus,
     GCPCredentials,
-} from './types';
-import { pricingCalculator } from './pricing';
+} from './types.js';
+import { pricingCalculator } from './pricing.js';
 
 // GCP API Base URLs
 const CLOUD_RUN_API = 'https://run.googleapis.com/v2';

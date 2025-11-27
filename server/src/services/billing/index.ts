@@ -4,6 +4,6 @@
  * Stripe integration and usage tracking
  */
 
-export * from './stripe';
-export * from './usage';
+export * from './stripe.js';
+export * from './usage.js';
 

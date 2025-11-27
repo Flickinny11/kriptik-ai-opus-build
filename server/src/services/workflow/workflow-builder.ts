@@ -16,8 +16,8 @@ import {
     ModelRecommendation,
     DataFlowEdge,
     DeploymentTarget,
-} from '../agents/types';
-import { getModelDiscoveryService } from '../discovery/model-discovery';
+} from '../agents/types.js';
+import { getModelDiscoveryService } from '../discovery/model-discovery.js';
 
 // ============================================================================
 // TYPES

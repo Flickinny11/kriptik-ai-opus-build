@@ -13,7 +13,7 @@ import {
     DeploymentConfig,
     CostEstimate,
     ResourceType,
-} from './types';
+} from './types.js';
 
 // GPU Pricing (as of 2024 - these should be updated from APIs)
 const GPU_PRICING: GPUPricing[] = [

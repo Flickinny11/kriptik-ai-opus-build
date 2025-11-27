@@ -4,6 +4,6 @@
  * Pre-deployment security analysis and credential management.
  */
 
-export * from './scanner';
-export * from './credential-vault';
+export * from './scanner.js';
+export * from './credential-vault.js';
 

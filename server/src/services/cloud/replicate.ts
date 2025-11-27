@@ -4,7 +4,7 @@
  * Integration with Replicate for AI model hosting and inference.
  */
 
-import { ServerlessConfig, ServerlessDeployment, DeploymentStatus } from './types';
+import { ServerlessConfig, ServerlessDeployment, DeploymentStatus } from './types.js';
 
 export interface ReplicatePrediction {
     id: string;

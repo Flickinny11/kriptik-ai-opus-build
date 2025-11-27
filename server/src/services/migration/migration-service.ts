@@ -17,7 +17,7 @@ import {
     BackendChange,
     IntegrationMigration,
     RollbackPlan,
-} from '../agents/types';
+} from '../agents/types.js';
 
 // ============================================================================
 // TYPES

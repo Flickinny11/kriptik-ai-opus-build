@@ -6,8 +6,8 @@
  */
 
 import { createHash } from 'crypto';
-import { db } from '../../db';
-import { userContextMemories } from '../../schema';
+import { db } from '../../db.js';
+import { userContextMemories } from '../../schema.js';
 import { eq, and, isNull } from 'drizzle-orm';
 
 // ============================================================================

@@ -8,11 +8,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getImageToCodeService } from '../services/ai/image-to-code';
-import { getSelfHealingService, detectErrors } from '../services/ai/self-healing';
-import { getTestGeneratorService } from '../services/ai/test-generator';
-import { db } from '../db';
-import { files as filesTable } from '../schema';
+import { getImageToCodeService } from '../services/ai/image-to-code.js';
+import { getSelfHealingService, detectErrors } from '../services/ai/self-healing.js';
+import { getTestGeneratorService } from '../services/ai/test-generator.js';
+import { db } from '../db.js';
+import { files as filesTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();

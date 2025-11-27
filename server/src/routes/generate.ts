@@ -5,10 +5,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
-import { projects, files, generations } from '../schema';
+import { db } from '../db.js';
+import { projects, files, generations } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
-import { createOrchestrator, AgentLog, AgentType, AgentState } from '../services/ai/agent-orchestrator';
+import { createOrchestrator, AgentLog, AgentType, AgentState } from '../services/ai/agent-orchestrator.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();

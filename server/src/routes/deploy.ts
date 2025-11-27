@@ -5,8 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createVercelService } from '../services/deployment/vercel';
-import { createNetlifyService } from '../services/deployment/netlify';
+import { createVercelService } from '../services/deployment/vercel.js';
+import { createNetlifyService } from '../services/deployment/netlify.js';
 
 const router = Router();
 

@@ -7,7 +7,7 @@
  * Documentation: https://docs.github.com/en/developers/apps/building-oauth-apps
  */
 
-import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types';
+import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types.js';
 
 const GITHUB_AUTH_URL = 'https://github.com/login/oauth/authorize';
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';

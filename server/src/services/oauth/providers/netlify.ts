@@ -7,7 +7,7 @@
  * Documentation: https://docs.netlify.com/api/get-started/#oauth2
  */
 
-import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types';
+import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types.js';
 
 const NETLIFY_AUTH_URL = 'https://app.netlify.com/authorize';
 const NETLIFY_TOKEN_URL = 'https://api.netlify.com/oauth/token';

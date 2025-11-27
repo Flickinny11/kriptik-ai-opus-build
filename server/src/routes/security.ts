@@ -5,9 +5,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getSecurityScannerService } from '../services/security/scanner';
-import { db } from '../db';
-import { files as filesTable } from '../schema';
+import { getSecurityScannerService } from '../services/security/scanner.js';
+import { db } from '../db.js';
+import { files as filesTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();

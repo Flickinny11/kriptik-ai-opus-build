@@ -6,11 +6,11 @@
  */
 
 import * as crypto from 'crypto';
-import { db } from '../../db';
-import { userCredentials, oauthStates, credentialAuditLogs } from '../../schema';
+import { db } from '../../db.js';
+import { userCredentials, oauthStates, credentialAuditLogs } from '../../schema.js';
 import { eq, and, lt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { nowSQLite, addMinutesSQLite } from '../../utils/dates';
+import { nowSQLite, addMinutesSQLite } from '../../utils/dates.js';
 
 // ============================================================================
 // TYPES

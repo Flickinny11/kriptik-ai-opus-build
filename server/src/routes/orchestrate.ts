@@ -9,8 +9,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { DevelopmentOrchestrator, ProjectRequest } from '../services/orchestration';
-import { createOrchestratorClaudeService } from '../services/ai/claude-service';
+import { DevelopmentOrchestrator, ProjectRequest } from '../services/orchestration.js';
+import { createOrchestratorClaudeService } from '../services/ai/claude-service.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();

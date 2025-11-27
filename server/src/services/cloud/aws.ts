@@ -54,8 +54,8 @@ import {
     CostEstimate,
     DeploymentStatus,
     AWSCredentials,
-} from './types';
-import { pricingCalculator } from './pricing';
+} from './types.js';
+import { pricingCalculator } from './pricing.js';
 
 /**
  * AWS Cloud Provider

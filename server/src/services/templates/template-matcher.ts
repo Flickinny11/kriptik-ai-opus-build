@@ -12,8 +12,8 @@ import {
     TemplateCategory,
     FrameworkType,
     UILibrary,
-} from './types';
-import { getTemplateLibrary } from './template-library';
+} from './types.js';
+import { getTemplateLibrary } from './template-library.js';
 
 // ============================================================================
 // KEYWORD MAPPINGS

@@ -9,8 +9,8 @@ import {
     TemplateFile,
     TemplateInstantiationRequest,
     TemplateInstantiationResult,
-} from './types';
-import { getTemplateLibrary } from './template-library';
+} from './types.js';
+import { getTemplateLibrary } from './template-library.js';
 
 export class TemplateInstantiator {
     private library = getTemplateLibrary();

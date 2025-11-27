@@ -5,8 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
-import { projects, files } from '../schema';
+import { db } from '../db.js';
+import { projects, files } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 
 const router = Router();

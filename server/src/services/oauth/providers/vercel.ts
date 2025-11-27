@@ -7,7 +7,7 @@
  * Documentation: https://vercel.com/docs/rest-api#oauth2
  */
 
-import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types';
+import { OAuthProvider, OAuthConfig, OAuthTokens, OAuthUserInfo } from '../types.js';
 
 const VERCEL_AUTH_URL = 'https://vercel.com/oauth/authorize';
 const VERCEL_TOKEN_URL = 'https://api.vercel.com/v2/oauth/access_token';

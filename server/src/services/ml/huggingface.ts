@@ -8,8 +8,8 @@
  * - Inference endpoint creation
  */
 
-import { CloudProvider, DeploymentConfig, GPUType } from '../cloud/types';
-import { pricingCalculator } from '../cloud/pricing';
+import { CloudProvider, DeploymentConfig, GPUType } from '../cloud/types.js';
+import { pricingCalculator } from '../cloud/pricing.js';
 
 // HuggingFace API
 const HF_API_BASE = 'https://huggingface.co/api';

@@ -10,7 +10,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { ClaudeService, createClaudeService, FileOperation, GenerationResponse, CLAUDE_MODELS } from './claude-service';
+import { ClaudeService, createClaudeService, FileOperation, GenerationResponse, CLAUDE_MODELS } from './claude-service.js';
 import { EventEmitter } from 'events';
 
 export type AgentType = 'planning' | 'generation' | 'testing' | 'refinement' | 'deployment';

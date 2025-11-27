@@ -4,7 +4,7 @@
  * Provides OAuth integration for third-party services.
  */
 
-export * from './types';
-export * from './oauth-manager';
-export * from './providers';
+export * from './types.js';
+export * from './oauth-manager.js';
+export * from './providers.js';
 

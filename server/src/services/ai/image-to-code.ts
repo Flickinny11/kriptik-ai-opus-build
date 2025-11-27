@@ -5,7 +5,7 @@
  * production-ready React/TypeScript code using vision models.
  */
 
-import { getModelRouter, GenerationResponse } from './model-router';
+import { getModelRouter, GenerationResponse } from './model-router.js';
 
 export type ImageSource =
     | { type: 'url'; url: string }

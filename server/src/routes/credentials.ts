@@ -14,7 +14,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getCredentialVault, CredentialData } from '../services/security/credential-vault';
+import { getCredentialVault, CredentialData } from '../services/security/credential-vault.js';
 
 // ============================================================================
 // INTEGRATION CATALOG (Server-side copy)

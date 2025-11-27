@@ -12,7 +12,7 @@
  * 5. Learns from past fixes to prevent similar issues
  */
 
-import { getModelRouter } from './model-router';
+import { getModelRouter } from './model-router.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================

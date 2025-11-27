@@ -7,5 +7,5 @@
  * - Vercel/Netlify deploy
  */
 
-export * from './github';
+export * from './github.js';
 

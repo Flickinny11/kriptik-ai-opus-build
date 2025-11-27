@@ -5,8 +5,8 @@
  */
 
 // Core AI services
-export * from './helicone-client';
-export * from './claude-service';
+export * from './helicone-client.js';
+export * from './claude-service.js';
 
 // Model routing (OpenRouter) - use explicit exports to avoid conflicts
 export {
@@ -21,10 +21,10 @@ export {
     type GenerationRequest,
     type GenerationResponse as RouterGenerationResponse,
     type TaskAnalysis,
-} from './model-router';
+} from './model-router.js';
 
 // Specialized AI capabilities
-export * from './image-to-code';
-export * from './self-healing';
-export * from './test-generator';
+export * from './image-to-code.js';
+export * from './self-healing.js';
+export * from './test-generator.js';
 

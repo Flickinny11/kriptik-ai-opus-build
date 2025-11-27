@@ -13,8 +13,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getOAuthManager } from '../services/oauth/oauth-manager';
-import { OAuthProviderId } from '../services/oauth/types';
+import { getOAuthManager } from '../services/oauth/oauth-manager.js';
+import { OAuthProviderId } from '../services/oauth/types.js';
 
 const router = Router();
 

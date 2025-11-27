@@ -12,5 +12,5 @@ export {
     type FeedbackRecord,
     type SessionSnapshot,
     type ContextSharingSettings,
-} from './user-context';
+} from './user-context.js';
 
