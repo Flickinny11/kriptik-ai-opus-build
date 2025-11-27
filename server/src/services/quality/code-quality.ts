@@ -1,6 +1,6 @@
 /**
  * Code Quality Service
- * 
+ *
  * Integrations for linting, formatting, and AI-powered code review.
  * Supports ESLint, Prettier, Biome, CodeRabbit, and more.
  */
@@ -113,18 +113,18 @@ export interface QualityConfig {
 export class CodeQualityService {
     private anthropicClient?: Anthropic;
     private codeRabbitToken?: string;
-    
+
     constructor() {
         if (process.env.ANTHROPIC_API_KEY) {
             this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         }
         this.codeRabbitToken = process.env.CODERABBIT_API_KEY;
     }
-    
+
     // ========================================================================
     // ESLINT
     // ========================================================================
-    
+
     /**
      * Run ESLint on code
      */
@@ -133,7 +133,7 @@ export class CodeQualityService {
         config?: Record<string, unknown>
     ): Promise<LintResult[]> {
         const results: LintResult[] = [];
-        
+
         // Default ESLint config
         const eslintConfig = config || {
             env: { browser: true, es2022: true, node: true },
@@ -146,12 +146,12 @@ export class CodeQualityService {
                 'no-var': 'error',
             },
         };
-        
+
         for (const [file, content] of Object.entries(files)) {
             if (!this.isJavaScriptOrTypeScript(file)) continue;
-            
+
             const issues = this.lintJavaScript(content, eslintConfig);
-            
+
             results.push({
                 file,
                 issues,
@@ -160,20 +160,20 @@ export class CodeQualityService {
                 warningCount: issues.filter(i => i.severity === 'warning').length,
             });
         }
-        
+
         return results;
     }
-    
+
     /**
      * Basic JavaScript linting (simplified - in production use actual ESLint)
      */
     private lintJavaScript(code: string, config: Record<string, unknown>): LintIssue[] {
         const issues: LintIssue[] = [];
         const lines = code.split('\n');
-        
+
         lines.forEach((line, lineIndex) => {
             const lineNum = lineIndex + 1;
-            
+
             // Check for console.log
             if (line.includes('console.log')) {
                 issues.push({
@@ -184,7 +184,7 @@ export class CodeQualityService {
                     ruleId: 'no-console',
                 });
             }
-            
+
             // Check for var
             const varMatch = line.match(/\bvar\s+/);
             if (varMatch) {
@@ -200,7 +200,7 @@ export class CodeQualityService {
                     },
                 });
             }
-            
+
             // Check for == instead of ===
             const eqMatch = line.match(/[^=!]==[^=]/);
             if (eqMatch) {
@@ -212,7 +212,7 @@ export class CodeQualityService {
                     ruleId: 'eqeqeq',
                 });
             }
-            
+
             // Check for debugger
             if (line.includes('debugger')) {
                 issues.push({
@@ -224,14 +224,14 @@ export class CodeQualityService {
                 });
             }
         });
-        
+
         return issues;
     }
-    
+
     // ========================================================================
     // PRETTIER
     // ========================================================================
-    
+
     /**
      * Format code with Prettier
      */
@@ -240,7 +240,7 @@ export class CodeQualityService {
         config?: Record<string, unknown>
     ): Promise<FormatResult[]> {
         const results: FormatResult[] = [];
-        
+
         // Default Prettier config
         const prettierConfig = config || {
             semi: true,
@@ -249,10 +249,10 @@ export class CodeQualityService {
             trailingComma: 'es5',
             printWidth: 100,
         };
-        
+
         for (const [file, content] of Object.entries(files)) {
             const formatted = this.formatCode(content, file, prettierConfig);
-            
+
             results.push({
                 file,
                 original: content,
@@ -260,37 +260,37 @@ export class CodeQualityService {
                 changed: content !== formatted,
             });
         }
-        
+
         return results;
     }
-    
+
     /**
      * Basic code formatting (simplified - in production use actual Prettier)
      */
     private formatCode(code: string, file: string, config: Record<string, unknown>): string {
         let formatted = code;
-        
+
         // Normalize line endings
         formatted = formatted.replace(/\r\n/g, '\n');
-        
+
         // Trim trailing whitespace
         formatted = formatted.split('\n').map(line => line.trimEnd()).join('\n');
-        
+
         // Ensure single newline at end
         formatted = formatted.trimEnd() + '\n';
-        
+
         // Basic indentation normalization (2 spaces)
         if (config.tabWidth === 2) {
             formatted = formatted.replace(/\t/g, '  ');
         }
-        
+
         return formatted;
     }
-    
+
     // ========================================================================
     // AI-POWERED CODE REVIEW
     // ========================================================================
-    
+
     /**
      * Run AI-powered code review using Claude
      */
@@ -301,11 +301,11 @@ export class CodeQualityService {
         if (!this.anthropicClient) {
             return this.createEmptyReviewResult();
         }
-        
+
         const filesContent = Object.entries(files)
             .map(([path, content]) => `### ${path}\n\`\`\`\n${content}\n\`\`\``)
             .join('\n\n');
-        
+
         const prompt = `You are a senior code reviewer. Analyze the following code and provide a comprehensive review.
 
 ${context ? `Context: ${context}\n\n` : ''}
@@ -365,18 +365,18 @@ Provide your review in the following JSON format:
                 max_tokens: 4096,
                 messages: [{ role: 'user', content: prompt }],
             });
-            
+
             const content = response.content[0];
             const text = content.type === 'text' ? content.text : '{}';
-            
+
             // Extract JSON from response
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
                 return this.createEmptyReviewResult();
             }
-            
+
             const parsed = JSON.parse(jsonMatch[0]);
-            
+
             return {
                 id: uuidv4(),
                 summary: parsed.summary || 'Review completed',
@@ -403,7 +403,7 @@ Provide your review in the following JSON format:
             return this.createEmptyReviewResult();
         }
     }
-    
+
     /**
      * Run CodeRabbit review (requires API key)
      */
@@ -415,22 +415,22 @@ Provide your review in the following JSON format:
             console.warn('CodeRabbit API key not configured');
             return this.createEmptyReviewResult();
         }
-        
+
         // CodeRabbit integration would go here
         // For now, fall back to AI review
         return this.runAICodeReview(files);
     }
-    
+
     // ========================================================================
     // SECURITY SCANNING
     // ========================================================================
-    
+
     /**
      * Run basic security scan
      */
     async runSecurityScan(files: Record<string, string>): Promise<SecurityFinding[]> {
         const findings: SecurityFinding[] = [];
-        
+
         for (const [file, content] of Object.entries(files)) {
             // Check for hardcoded secrets
             const secretPatterns = [
@@ -440,7 +440,7 @@ Provide your review in the following JSON format:
                 { pattern: /Bearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/g, type: 'Exposed JWT Token' },
                 { pattern: /-----BEGIN (RSA |EC |)PRIVATE KEY-----/g, type: 'Exposed Private Key' },
             ];
-            
+
             for (const { pattern, type } of secretPatterns) {
                 const matches = content.matchAll(pattern);
                 for (const match of matches) {
@@ -456,7 +456,7 @@ Provide your review in the following JSON format:
                     });
                 }
             }
-            
+
             // Check for SQL injection risks
             if (content.match(/\$\{.*\}.*(?:SELECT|INSERT|UPDATE|DELETE)/i) ||
                 content.match(/['"`]\s*\+\s*\w+\s*\+\s*['"`].*(?:SELECT|INSERT|UPDATE|DELETE)/i)) {
@@ -469,9 +469,9 @@ Provide your review in the following JSON format:
                     remediation: 'Use parameterized queries or an ORM',
                 });
             }
-            
+
             // Check for XSS risks
-            if (content.includes('dangerouslySetInnerHTML') || 
+            if (content.includes('dangerouslySetInnerHTML') ||
                 content.includes('innerHTML') ||
                 content.match(/document\.write\(/)) {
                 findings.push({
@@ -484,18 +484,18 @@ Provide your review in the following JSON format:
                 });
             }
         }
-        
+
         return findings;
     }
-    
+
     // ========================================================================
     // HELPERS
     // ========================================================================
-    
+
     private isJavaScriptOrTypeScript(file: string): boolean {
         return /\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file);
     }
-    
+
     private createEmptyReviewResult(): CodeReviewResult {
         return {
             id: uuidv4(),
@@ -507,11 +507,11 @@ Provide your review in the following JSON format:
             performance: [],
         };
     }
-    
+
     // ========================================================================
     // COMPREHENSIVE QUALITY CHECK
     // ========================================================================
-    
+
     /**
      * Run all quality checks on code
      */
@@ -525,18 +525,18 @@ Provide your review in the following JSON format:
         security: SecurityFinding[];
     }> {
         const results = await Promise.all([
-            config?.eslint?.enabled !== false 
-                ? this.runESLint(files, config?.eslint?.config) 
+            config?.eslint?.enabled !== false
+                ? this.runESLint(files, config?.eslint?.config)
                 : Promise.resolve([]),
-            config?.prettier?.enabled !== false 
-                ? this.formatWithPrettier(files, config?.prettier?.config) 
+            config?.prettier?.enabled !== false
+                ? this.formatWithPrettier(files, config?.prettier?.config)
                 : Promise.resolve([]),
-            config?.aiReview?.enabled !== false 
-                ? this.runAICodeReview(files) 
+            config?.aiReview?.enabled !== false
+                ? this.runAICodeReview(files)
                 : Promise.resolve(this.createEmptyReviewResult()),
             this.runSecurityScan(files),
         ]);
-        
+
         return {
             lint: results[0],
             format: results[1],
