@@ -6,7 +6,10 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import AnthropicSDK from '@anthropic-ai/sdk';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Type for the Anthropic client instance
+type AnthropicClient = InstanceType<typeof Anthropic>;
 
 // ============================================================================
 // TYPES
@@ -111,12 +114,12 @@ export interface QualityConfig {
 // ============================================================================
 
 export class CodeQualityService {
-    private anthropicClient?: AnthropicSDK;
+    private anthropicClient?: AnthropicClient;
     private codeRabbitToken?: string;
     
     constructor() {
         if (process.env.ANTHROPIC_API_KEY) {
-            this.anthropicClient = new AnthropicSDK({ apiKey: process.env.ANTHROPIC_API_KEY });
+            this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         }
         this.codeRabbitToken = process.env.CODERABBIT_API_KEY;
     }
