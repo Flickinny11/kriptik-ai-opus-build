@@ -1,6 +1,6 @@
 /**
  * Date Utilities for SQLite
- * 
+ *
  * SQLite stores dates as text strings. These utilities help convert
  * between JavaScript Date objects and SQLite-compatible strings.
  */

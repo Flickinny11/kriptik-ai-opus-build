@@ -247,7 +247,7 @@ router.get('/invoices', async (req: Request, res: Response) => {
  */
 router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, res: Response) => {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    
+
     if (!webhookSecret) {
         console.error('STRIPE_WEBHOOK_SECRET not configured');
         res.status(500).json({ error: 'Webhook not configured' });
@@ -255,7 +255,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
     }
 
     const signature = req.headers['stripe-signature'] as string;
-    
+
     if (!signature) {
         res.status(400).json({ error: 'Missing stripe-signature header' });
         return;
@@ -309,12 +309,12 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                 const customerId = subscription.customer as string;
 
                 // Update subscription status
-                const status = subscription.status === 'active' ? 'active' : 
-                              subscription.status === 'past_due' ? 'past_due' : 
+                const status = subscription.status === 'active' ? 'active' :
+                              subscription.status === 'past_due' ? 'past_due' :
                               subscription.status === 'canceled' ? 'cancelled' : 'inactive';
 
                 await db.update(subscriptions)
-                    .set({ 
+                    .set({
                         status,
                         updatedAt: new Date().toISOString(),
                     })
@@ -330,7 +330,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
 
                 // Mark subscription as cancelled and downgrade to free
                 await db.update(subscriptions)
-                    .set({ 
+                    .set({
                         status: 'cancelled',
                         plan: 'free',
                         creditsPerMonth: 100,
@@ -348,7 +348,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
 
                 // Mark subscription as past due
                 await db.update(subscriptions)
-                    .set({ 
+                    .set({
                         status: 'past_due',
                         updatedAt: new Date().toISOString(),
                     })
@@ -398,104 +398,213 @@ router.post('/setup-products', async (req: Request, res: Response) => {
     try {
         const { adminSecret } = req.body;
         
-        // Simple admin check (use proper auth in production)
+        // Simple admin check
         if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== 'setup') {
             res.status(403).json({ error: 'Unauthorized' });
             return;
         }
 
         const stripe = getStripe();
-        const products: Record<string, { product: Stripe.Product; prices: Stripe.Price[] }> = {};
+        const envVars: string[] = [];
 
-        // Create Pro plan
-        const proProduct = await stripe.products.create({
-            name: 'KripTik AI Pro',
-            description: 'Professional plan with 1000 credits/month, priority support, and advanced features',
-            metadata: {
-                plan: 'pro',
-            },
+        // ============================================
+        // STARTER - $19/month
+        // ============================================
+        const starterProduct = await stripe.products.create({
+            name: 'KripTik AI Starter',
+            description: 'Perfect for hobby projects - 200 credits/month',
+            metadata: { plan: 'starter' },
         });
 
-        const proMonthlyPrice = await stripe.prices.create({
+        const starterMonthly = await stripe.prices.create({
+            product: starterProduct.id,
+            unit_amount: 1900,
+            currency: 'usd',
+            recurring: { interval: 'month' },
+            metadata: { plan: 'starter', interval: 'monthly' },
+        });
+
+        const starterYearly = await stripe.prices.create({
+            product: starterProduct.id,
+            unit_amount: 19000,
+            currency: 'usd',
+            recurring: { interval: 'year' },
+            metadata: { plan: 'starter', interval: 'yearly' },
+        });
+
+        envVars.push(`STRIPE_PRICE_STARTER_MONTHLY=${starterMonthly.id}`);
+        envVars.push(`STRIPE_PRICE_STARTER_YEARLY=${starterYearly.id}`);
+
+        // ============================================
+        // BUILDER - $39/month
+        // ============================================
+        const builderProduct = await stripe.products.create({
+            name: 'KripTik AI Builder',
+            description: 'For serious builders - 500 credits/month',
+            metadata: { plan: 'builder' },
+        });
+
+        const builderMonthly = await stripe.prices.create({
+            product: builderProduct.id,
+            unit_amount: 3900,
+            currency: 'usd',
+            recurring: { interval: 'month' },
+            metadata: { plan: 'builder', interval: 'monthly' },
+        });
+
+        const builderYearly = await stripe.prices.create({
+            product: builderProduct.id,
+            unit_amount: 39000,
+            currency: 'usd',
+            recurring: { interval: 'year' },
+            metadata: { plan: 'builder', interval: 'yearly' },
+        });
+
+        envVars.push(`STRIPE_PRICE_BUILDER_MONTHLY=${builderMonthly.id}`);
+        envVars.push(`STRIPE_PRICE_BUILDER_YEARLY=${builderYearly.id}`);
+
+        // ============================================
+        // DEVELOPER - $59/month
+        // ============================================
+        const developerProduct = await stripe.products.create({
+            name: 'KripTik AI Developer',
+            description: 'Full-stack AI development - 1000 credits/month',
+            metadata: { plan: 'developer' },
+        });
+
+        const developerMonthly = await stripe.prices.create({
+            product: developerProduct.id,
+            unit_amount: 5900,
+            currency: 'usd',
+            recurring: { interval: 'month' },
+            metadata: { plan: 'developer', interval: 'monthly' },
+        });
+
+        const developerYearly = await stripe.prices.create({
+            product: developerProduct.id,
+            unit_amount: 59000,
+            currency: 'usd',
+            recurring: { interval: 'year' },
+            metadata: { plan: 'developer', interval: 'yearly' },
+        });
+
+        envVars.push(`STRIPE_PRICE_DEVELOPER_MONTHLY=${developerMonthly.id}`);
+        envVars.push(`STRIPE_PRICE_DEVELOPER_YEARLY=${developerYearly.id}`);
+
+        // ============================================
+        // PRO - $89/month
+        // ============================================
+        const proProduct = await stripe.products.create({
+            name: 'KripTik AI Pro',
+            description: 'For power users & teams - 2500 credits/month',
+            metadata: { plan: 'pro' },
+        });
+
+        const proMonthly = await stripe.prices.create({
             product: proProduct.id,
-            unit_amount: 2900, // $29.00
+            unit_amount: 8900,
             currency: 'usd',
             recurring: { interval: 'month' },
             metadata: { plan: 'pro', interval: 'monthly' },
         });
 
-        const proYearlyPrice = await stripe.prices.create({
+        const proYearly = await stripe.prices.create({
             product: proProduct.id,
-            unit_amount: 29000, // $290.00 (2 months free)
+            unit_amount: 89000,
             currency: 'usd',
             recurring: { interval: 'year' },
             metadata: { plan: 'pro', interval: 'yearly' },
         });
 
-        products.pro = {
-            product: proProduct,
-            prices: [proMonthlyPrice, proYearlyPrice],
-        };
+        envVars.push(`STRIPE_PRICE_PRO_MONTHLY=${proMonthly.id}`);
+        envVars.push(`STRIPE_PRICE_PRO_YEARLY=${proYearly.id}`);
 
-        // Create Enterprise plan
-        const enterpriseProduct = await stripe.products.create({
-            name: 'KripTik AI Enterprise',
-            description: 'Enterprise plan with unlimited credits, dedicated support, and custom integrations',
-            metadata: {
-                plan: 'enterprise',
-            },
-        });
-
-        const enterpriseMonthlyPrice = await stripe.prices.create({
-            product: enterpriseProduct.id,
-            unit_amount: 9900, // $99.00
-            currency: 'usd',
-            recurring: { interval: 'month' },
-            metadata: { plan: 'enterprise', interval: 'monthly' },
-        });
-
-        const enterpriseYearlyPrice = await stripe.prices.create({
-            product: enterpriseProduct.id,
-            unit_amount: 99000, // $990.00 (2 months free)
-            currency: 'usd',
-            recurring: { interval: 'year' },
-            metadata: { plan: 'enterprise', interval: 'yearly' },
-        });
-
-        products.enterprise = {
-            product: enterpriseProduct,
-            prices: [enterpriseMonthlyPrice, enterpriseYearlyPrice],
-        };
-
-        // Return the created products and prices
         res.json({
             success: true,
-            message: 'Products and prices created successfully',
+            message: 'All products and prices created successfully!',
             products: {
-                pro: {
-                    productId: proProduct.id,
-                    monthlyPriceId: proMonthlyPrice.id,
-                    yearlyPriceId: proYearlyPrice.id,
+                starter: { 
+                    productId: starterProduct.id, 
+                    monthlyPriceId: starterMonthly.id, 
+                    yearlyPriceId: starterYearly.id 
                 },
-                enterprise: {
-                    productId: enterpriseProduct.id,
-                    monthlyPriceId: enterpriseMonthlyPrice.id,
-                    yearlyPriceId: enterpriseYearlyPrice.id,
+                builder: { 
+                    productId: builderProduct.id, 
+                    monthlyPriceId: builderMonthly.id, 
+                    yearlyPriceId: builderYearly.id 
+                },
+                developer: { 
+                    productId: developerProduct.id, 
+                    monthlyPriceId: developerMonthly.id, 
+                    yearlyPriceId: developerYearly.id 
+                },
+                pro: { 
+                    productId: proProduct.id, 
+                    monthlyPriceId: proMonthly.id, 
+                    yearlyPriceId: proYearly.id 
                 },
             },
-            instructions: `
-Add these to your .env file:
-STRIPE_PRICE_PRO_MONTHLY=${proMonthlyPrice.id}
-STRIPE_PRICE_PRO_YEARLY=${proYearlyPrice.id}
-STRIPE_PRICE_ENTERPRISE_MONTHLY=${enterpriseMonthlyPrice.id}
-STRIPE_PRICE_ENTERPRISE_YEARLY=${enterpriseYearlyPrice.id}
-
-Then update BILLING_PLANS in server/src/services/billing/stripe.ts with these price IDs.
-            `.trim(),
+            envVariables: envVars,
+            instructions: `Add these to your .env file:\n\n${envVars.join('\n')}`,
         });
     } catch (error) {
         console.error('Error setting up products:', error);
         res.status(500).json({ error: 'Failed to setup products' });
+    }
+});
+
+/**
+ * POST /api/billing/topup
+ * Create a checkout session for credit top-up
+ */
+router.post('/topup', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const { topUpId } = req.body;
+
+        if (!topUpId) {
+            res.status(400).json({ error: 'topUpId is required' });
+            return;
+        }
+
+        const stripe = getStripeService();
+
+        // Get or create customer
+        const customer = await stripe.createCustomer({
+            email: `user-${userId}@example.com`,
+            metadata: { userId },
+        });
+
+        const session = await stripe.createTopUpSession({
+            customerId: customer.id,
+            topUpId,
+            successUrl: `${process.env.FRONTEND_URL}/dashboard?topup=success`,
+            cancelUrl: `${process.env.FRONTEND_URL}/dashboard?topup=cancelled`,
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error('Error creating top-up session:', error);
+        res.status(500).json({ error: 'Failed to create top-up session' });
+    }
+});
+
+/**
+ * GET /api/billing/topups
+ * Get available credit top-up packages
+ */
+router.get('/topups', async (req: Request, res: Response) => {
+    try {
+        const stripe = getStripeService();
+        res.json({ topups: stripe.getTopUps() });
+    } catch (error) {
+        console.error('Error fetching top-ups:', error);
+        res.status(500).json({ error: 'Failed to fetch top-ups' });
     }
 });
 

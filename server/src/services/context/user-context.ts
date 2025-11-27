@@ -1,6 +1,6 @@
 /**
  * User Context Memory Service
- * 
+ *
  * Provides persistent, user-specific AI context that remembers preferences,
  * past decisions, and project history across sessions and projects.
  */
@@ -17,25 +17,25 @@ import { eq, and, isNull } from 'drizzle-orm';
 export interface UserContextMemory {
     userId: string;
     projectId?: string;
-    
+
     // Preferences learned from interactions
     preferences: UserPreferences;
-    
+
     // Past decisions and their outcomes
     decisions: DecisionRecord[];
-    
+
     // Code patterns the user prefers
     codePatterns: CodePattern[];
-    
+
     // Feedback on AI suggestions
     feedback: FeedbackRecord[];
-    
+
     // Session continuity
     sessionHistory: SessionSnapshot[];
-    
+
     // Context sharing settings
     sharing: ContextSharingSettings;
-    
+
     // Metadata
     createdAt: Date;
     updatedAt: Date;
@@ -47,7 +47,7 @@ export interface UserPreferences {
     preferredFrameworks: string[];
     preferredUILibraries: string[];
     preferredLanguages: string[];
-    
+
     // Code style preferences
     codeStyle: {
         indentation: 'tabs' | 'spaces';
@@ -57,7 +57,7 @@ export interface UserPreferences {
         trailingCommas: 'none' | 'es5' | 'all';
         maxLineLength: number;
     };
-    
+
     // AI interaction preferences
     aiPreferences: {
         verbosity: 'concise' | 'detailed' | 'verbose';
@@ -67,7 +67,7 @@ export interface UserPreferences {
         confirmDeployments: boolean;
         showAlternatives: boolean;
     };
-    
+
     // Learned patterns
     commonImports: string[];
     preferredNamingConventions: Record<string, string>;
@@ -140,7 +140,7 @@ export class UserContextService {
      */
     async getContext(userId: string, projectId?: string): Promise<UserContextMemory> {
         const cacheKey = this.getCacheKey(userId, projectId);
-        
+
         // Check cache first
         const cached = this.contextCache.get(cacheKey);
         if (cached) {
@@ -149,7 +149,7 @@ export class UserContextService {
 
         // Try to load from database
         let context = await this.loadFromDatabase(userId, projectId);
-        
+
         if (!context) {
             // Create new context
             context = this.createDefaultContext(userId, projectId);
@@ -169,7 +169,7 @@ export class UserContextService {
         projectId?: string
     ): Promise<void> {
         const context = await this.getContext(userId, projectId);
-        
+
         context.preferences = {
             ...context.preferences,
             ...updates,
@@ -182,7 +182,7 @@ export class UserContextService {
                 ...(updates.aiPreferences || {}),
             },
         };
-        
+
         context.updatedAt = new Date();
         await this.saveToDatabase(context);
         this.contextCache.set(this.getCacheKey(userId, projectId), context);
@@ -197,23 +197,23 @@ export class UserContextService {
         projectId?: string
     ): Promise<void> {
         const context = await this.getContext(userId, projectId);
-        
+
         const record: DecisionRecord = {
             id: this.generateId(),
             timestamp: new Date(),
             ...decision,
         };
-        
+
         context.decisions.unshift(record);
-        
+
         // Keep only recent decisions
         if (context.decisions.length > this.MAX_DECISIONS) {
             context.decisions = context.decisions.slice(0, this.MAX_DECISIONS);
         }
-        
+
         context.totalInteractions++;
         context.updatedAt = new Date();
-        
+
         await this.saveToDatabase(context);
         this.contextCache.set(this.getCacheKey(userId, projectId), context);
     }
@@ -229,12 +229,12 @@ export class UserContextService {
         projectId?: string
     ): Promise<void> {
         const userContext = await this.getContext(userId, projectId);
-        
+
         // Check if pattern already exists
         const existing = userContext.codePatterns.find(
             p => this.hashPattern(p.pattern) === this.hashPattern(pattern)
         );
-        
+
         if (existing) {
             existing.frequency++;
             existing.lastUsed = new Date();
@@ -248,13 +248,13 @@ export class UserContextService {
                 category,
             });
         }
-        
+
         // Sort by frequency and trim
         userContext.codePatterns.sort((a, b) => b.frequency - a.frequency);
         if (userContext.codePatterns.length > this.MAX_PATTERNS) {
             userContext.codePatterns = userContext.codePatterns.slice(0, this.MAX_PATTERNS);
         }
-        
+
         userContext.updatedAt = new Date();
         await this.saveToDatabase(userContext);
         this.contextCache.set(this.getCacheKey(userId, projectId), userContext);
@@ -269,25 +269,25 @@ export class UserContextService {
         projectId?: string
     ): Promise<void> {
         const context = await this.getContext(userId, projectId);
-        
+
         const record: FeedbackRecord = {
             id: this.generateId(),
             timestamp: new Date(),
             ...feedback,
         };
-        
+
         context.feedback.unshift(record);
-        
+
         if (context.feedback.length > this.MAX_FEEDBACK) {
             context.feedback = context.feedback.slice(0, this.MAX_FEEDBACK);
         }
-        
+
         // Update preferences based on feedback
         if (feedback.rating === 'positive' && feedback.appliedChanges) {
             // This was a good suggestion - might want to learn from it
             context.totalInteractions++;
         }
-        
+
         context.updatedAt = new Date();
         await this.saveToDatabase(context);
         this.contextCache.set(this.getCacheKey(userId, projectId), context);
@@ -302,19 +302,19 @@ export class UserContextService {
         projectId?: string
     ): Promise<void> {
         const context = await this.getContext(userId, projectId);
-        
+
         const record: SessionSnapshot = {
             id: this.generateId(),
             timestamp: new Date(),
             ...snapshot,
         };
-        
+
         context.sessionHistory.unshift(record);
-        
+
         if (context.sessionHistory.length > this.MAX_SESSIONS) {
             context.sessionHistory = context.sessionHistory.slice(0, this.MAX_SESSIONS);
         }
-        
+
         context.updatedAt = new Date();
         await this.saveToDatabase(context);
         this.contextCache.set(this.getCacheKey(userId, projectId), context);
@@ -325,27 +325,27 @@ export class UserContextService {
      */
     async getContextForPrompt(userId: string, projectId?: string): Promise<string> {
         const context = await this.getContext(userId, projectId);
-        
+
         const parts: string[] = [];
-        
+
         // Add preferences
         if (context.preferences.preferredFrameworks.length > 0) {
             parts.push(`Preferred frameworks: ${context.preferences.preferredFrameworks.join(', ')}`);
         }
-        
+
         if (context.preferences.preferredUILibraries.length > 0) {
             parts.push(`Preferred UI libraries: ${context.preferences.preferredUILibraries.join(', ')}`);
         }
-        
+
         // Add code style
         const { codeStyle } = context.preferences;
         parts.push(`Code style: ${codeStyle.indentation} (${codeStyle.tabSize}), ${codeStyle.singleQuotes ? 'single' : 'double'} quotes, ${codeStyle.semicolons ? 'with' : 'no'} semicolons`);
-        
+
         // Add AI preferences
         const { aiPreferences } = context.preferences;
         parts.push(`Explanation style: ${aiPreferences.explanationStyle}`);
         parts.push(`Code comments: ${aiPreferences.codeCommentLevel}`);
-        
+
         // Add recent patterns
         const recentPatterns = context.codePatterns.slice(0, 5);
         if (recentPatterns.length > 0) {
@@ -354,7 +354,7 @@ export class UserContextService {
                 parts.push(`- ${p.category}: ${p.context}`);
             }
         }
-        
+
         // Add recent session context if available
         const lastSession = context.sessionHistory[0];
         if (lastSession) {
@@ -363,7 +363,7 @@ export class UserContextService {
                 parts.push(`Recent decisions: ${lastSession.keyDecisions.join('; ')}`);
             }
         }
-        
+
         return parts.join('\n');
     }
 
@@ -377,11 +377,11 @@ export class UserContextService {
     ): Promise<void> {
         const sourceContext = await this.getContext(userId, sourceProjectId);
         const targetContext = await this.getContext(userId, targetProjectId);
-        
+
         if (!targetContext.sharing.shareAcrossProjects) {
             return;
         }
-        
+
         // Merge preferences (target takes priority)
         if (sourceContext.sharing.sharePreferences) {
             targetContext.preferences.preferredFrameworks = [
@@ -397,7 +397,7 @@ export class UserContextService {
                 ]),
             ];
         }
-        
+
         // Merge patterns
         if (sourceContext.sharing.sharePatterns) {
             for (const pattern of sourceContext.codePatterns) {
@@ -409,7 +409,7 @@ export class UserContextService {
                 }
             }
         }
-        
+
         targetContext.updatedAt = new Date();
         await this.saveToDatabase(targetContext);
         this.contextCache.set(this.getCacheKey(userId, targetProjectId), targetContext);
@@ -506,15 +506,15 @@ export class UserContextService {
         projectId?: string
     ): Promise<UserContextMemory | null> {
         try {
-            const conditions = projectId 
+            const conditions = projectId
                 ? and(eq(userContextMemories.userId, userId), eq(userContextMemories.projectId, projectId))
                 : and(eq(userContextMemories.userId, userId), isNull(userContextMemories.projectId));
-            
+
             const [result] = await db.select()
                 .from(userContextMemories)
                 .where(conditions)
                 .limit(1);
-            
+
             if (result) {
                 return result.data as UserContextMemory;
             }
@@ -526,18 +526,18 @@ export class UserContextService {
 
     private async saveToDatabase(context: UserContextMemory): Promise<void> {
         try {
-            const conditions = context.projectId 
+            const conditions = context.projectId
                 ? and(eq(userContextMemories.userId, context.userId), eq(userContextMemories.projectId, context.projectId))
                 : and(eq(userContextMemories.userId, context.userId), isNull(userContextMemories.projectId));
-            
+
             const [existing] = await db.select()
                 .from(userContextMemories)
                 .where(conditions)
                 .limit(1);
-            
+
             if (existing) {
                 await db.update(userContextMemories)
-                    .set({ 
+                    .set({
                         data: context,
                         updatedAt: new Date().toISOString()
                     })

@@ -90,10 +90,10 @@ function encrypt(plaintext: string): { encrypted: string; iv: string; authTag: s
     const key = getEncryptionKey();
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-    
+
     let encrypted = cipher.update(plaintext, 'utf8', 'base64');
     encrypted += cipher.final('base64');
-    
+
     return {
         encrypted,
         iv: iv.toString('base64'),
@@ -105,10 +105,10 @@ function decrypt(encrypted: string, iv: string, authTag: string): string {
     const key = getEncryptionKey();
     const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'base64'));
     decipher.setAuthTag(Buffer.from(authTag, 'base64'));
-    
+
     let decrypted = decipher.update(encrypted, 'base64', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
 }
 
@@ -538,7 +538,7 @@ export class CredentialVault {
         try {
             const isValid = await validator(credential.data);
             await this.updateValidationStatus(userId, integrationId, isValid ? 'valid' : 'invalid');
-            
+
             await this.logAudit({
                 userId,
                 credentialId: credential.id,
@@ -546,7 +546,7 @@ export class CredentialVault {
                 action: 'validate',
                 status: isValid ? 'success' : 'failure',
             });
-            
+
             return isValid;
         } catch (error) {
             await this.updateValidationStatus(userId, integrationId, 'invalid');
@@ -578,11 +578,11 @@ export function generatePKCE(): { codeVerifier: string; codeChallenge: string } 
     const codeVerifier = crypto.randomBytes(32)
         .toString('base64url')
         .substring(0, 43);
-    
+
     // Generate SHA-256 hash as code challenge
     const codeChallenge = crypto.createHash('sha256')
         .update(codeVerifier)
         .digest('base64url');
-    
+
     return { codeVerifier, codeChallenge };
 }

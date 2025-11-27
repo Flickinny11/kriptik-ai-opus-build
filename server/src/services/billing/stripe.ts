@@ -44,82 +44,129 @@ export interface BillingPlan {
     features: string[];
     stripePriceIdMonthly: string;
     stripePriceIdYearly: string;
+    badge?: string;
+    highlighted?: boolean;
 }
 
-// KripTik AI Plans
+// KripTik AI Plans - Updated tiers
 export const BILLING_PLANS: BillingPlan[] = [
     {
         id: 'free',
         name: 'Free',
-        description: 'Get started with AI-powered development',
+        description: 'Explore AI-powered development',
         priceMonthly: 0,
         priceYearly: 0,
-        credits: 50,
+        credits: 25,
         features: [
-            '50 credits/month',
+            '25 credits to start',
             'Basic AI generation',
+            'Frontend builds only',
+            '1 active project',
             'Community support',
-            '1 project',
+            'Preview deployments',
         ],
         stripePriceIdMonthly: '',
         stripePriceIdYearly: '',
+    },
+    {
+        id: 'starter',
+        name: 'Starter',
+        description: 'Perfect for hobby projects',
+        priceMonthly: 19,
+        priceYearly: 190,
+        credits: 200,
+        features: [
+            '200 credits/month',
+            'AI code generation',
+            'Frontend + basic backend',
+            '3 active projects',
+            'Email support',
+            'Preview deployments',
+            'Basic integrations (auth, database)',
+            'Export to GitHub',
+        ],
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || '',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_STARTER_YEARLY || '',
+    },
+    {
+        id: 'builder',
+        name: 'Builder',
+        description: 'For serious builders',
+        priceMonthly: 39,
+        priceYearly: 390,
+        credits: 500,
+        features: [
+            '500 credits/month',
+            'Everything in Starter',
+            'Full backend development',
+            '10 active projects',
+            'Priority email support',
+            'Production deployments',
+            'Advanced integrations',
+            'Image-to-code generation',
+            'Custom themes',
+            'API access',
+        ],
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_BUILDER_MONTHLY || '',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_BUILDER_YEARLY || '',
+        badge: 'Popular',
+        highlighted: true,
+    },
+    {
+        id: 'developer',
+        name: 'Developer',
+        description: 'Full-stack AI development',
+        priceMonthly: 59,
+        priceYearly: 590,
+        credits: 1000,
+        features: [
+            '1,000 credits/month',
+            'Everything in Builder',
+            'GPU deployments (RunPod)',
+            'Unlimited projects',
+            'Priority support',
+            'Container orchestration',
+            'Multi-model workflows',
+            'Self-healing apps',
+            'Custom domains',
+            'Team sharing (up to 3)',
+        ],
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_DEVELOPER_MONTHLY || '',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_DEVELOPER_YEARLY || '',
     },
     {
         id: 'pro',
         name: 'Pro',
-        description: 'For individual developers',
-        priceMonthly: 29,
-        priceYearly: 290,
-        credits: 1000,
+        description: 'For power users & teams',
+        priceMonthly: 89,
+        priceYearly: 890,
+        credits: 2500,
         features: [
-            '1,000 credits/month',
-            'Advanced AI features',
-            'Priority support',
-            'Unlimited projects',
-            'Cloud deployments',
-            'Custom integrations',
-        ],
-        stripePriceIdMonthly: 'price_pro_monthly',
-        stripePriceIdYearly: 'price_pro_yearly',
-    },
-    {
-        id: 'team',
-        name: 'Team',
-        description: 'For teams and organizations',
-        priceMonthly: 99,
-        priceYearly: 990,
-        credits: 5000,
-        features: [
-            '5,000 credits/month',
-            'All Pro features',
-            'Team collaboration',
-            'Admin dashboard',
+            '2,500 credits/month',
+            'Everything in Developer',
+            'Dedicated GPU instances',
+            'White-label option',
+            '24/7 priority support',
+            'Custom AI training',
+            'Advanced analytics',
+            'Team collaboration (unlimited)',
             'SSO/SAML',
             'SLA guarantee',
-            'Dedicated support',
+            'Early access to features',
         ],
-        stripePriceIdMonthly: 'price_team_monthly',
-        stripePriceIdYearly: 'price_team_yearly',
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_PRO_YEARLY || '',
+        badge: 'Best Value',
     },
-    {
-        id: 'enterprise',
-        name: 'Enterprise',
-        description: 'Custom solutions for large organizations',
-        priceMonthly: 0, // Custom pricing
-        priceYearly: 0,
-        credits: -1, // Unlimited
-        features: [
-            'Unlimited credits',
-            'All Team features',
-            'On-premise deployment',
-            'Custom AI training',
-            'Dedicated infrastructure',
-            'White-label option',
-            '24/7 support',
-        ],
-        stripePriceIdMonthly: '',
-        stripePriceIdYearly: '',
-    },
+];
+
+// Top-up credit packages
+export const CREDIT_TOPUPS = [
+    { id: 'topup_5', credits: 25, price: 5, label: '$5 - 25 credits' },
+    { id: 'topup_10', credits: 55, price: 10, label: '$10 - 55 credits', badge: '+10% bonus' },
+    { id: 'topup_25', credits: 150, price: 25, label: '$25 - 150 credits', badge: '+20% bonus' },
+    { id: 'topup_50', credits: 325, price: 50, label: '$50 - 325 credits', badge: '+30% bonus' },
+    { id: 'topup_100', credits: 700, price: 100, label: '$100 - 700 credits', badge: '+40% bonus' },
 ];
 
 /**
@@ -234,7 +281,6 @@ export class StripeBillingService {
         subscriptionId: string,
         newPriceId: string
     ): Promise<StripeSubscription> {
-        // First get the subscription to find the item ID
         const sub = await this.getSubscription(subscriptionId);
         const itemId = (sub as any).items?.data?.[0]?.id;
 
@@ -249,6 +295,40 @@ export class StripeBillingService {
         });
 
         return this.request<StripeSubscription>(`/subscriptions/${subscriptionId}`, {
+            method: 'POST',
+            body: body.toString(),
+        });
+    }
+
+    /**
+     * Create one-time payment for credit top-up
+     */
+    async createTopUpSession(data: {
+        customerId: string;
+        topUpId: string;
+        successUrl: string;
+        cancelUrl: string;
+    }): Promise<{ id: string; url: string }> {
+        const topUp = CREDIT_TOPUPS.find(t => t.id === data.topUpId);
+        if (!topUp) {
+            throw new Error('Invalid top-up package');
+        }
+
+        const body = new URLSearchParams({
+            customer: data.customerId,
+            'line_items[0][price_data][currency]': 'usd',
+            'line_items[0][price_data][product_data][name]': `${topUp.credits} Credits`,
+            'line_items[0][price_data][product_data][description]': `Credit top-up for KripTik AI`,
+            'line_items[0][price_data][unit_amount]': (topUp.price * 100).toString(),
+            'line_items[0][quantity]': '1',
+            mode: 'payment',
+            success_url: data.successUrl,
+            cancel_url: data.cancelUrl,
+            [`metadata[topup_id]`]: data.topUpId,
+            [`metadata[credits]`]: topUp.credits.toString(),
+        });
+
+        return this.request<{ id: string; url: string }>('/checkout/sessions', {
             method: 'POST',
             body: body.toString(),
         });
@@ -358,6 +438,13 @@ export class StripeBillingService {
     getPlans(): BillingPlan[] {
         return BILLING_PLANS;
     }
+
+    /**
+     * Get credit top-up packages
+     */
+    getTopUps() {
+        return CREDIT_TOPUPS;
+    }
 }
 
 /**
@@ -366,4 +453,3 @@ export class StripeBillingService {
 export function createStripeBillingService(apiKey: string): StripeBillingService {
     return new StripeBillingService(apiKey);
 }
-

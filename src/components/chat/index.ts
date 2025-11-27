@@ -1,6 +1,6 @@
 /**
  * Chat Components
- * 
+ *
  * Interactive components for the streaming chat interface.
  */
 

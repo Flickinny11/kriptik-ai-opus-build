@@ -1,0 +1,500 @@
+/**
+ * Implementation Plan Component
+ * 
+ * Displays the AI-generated implementation plan with phase options
+ * for the user to customize before building begins.
+ */
+
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { 
+    Sparkles, 
+    Check, 
+    ChevronDown,
+    Code,
+    Database,
+    Shield,
+    Palette,
+    Server,
+    Package,
+    Zap,
+    Loader2,
+    Edit3,
+    ArrowRight,
+    AlertCircle
+} from 'lucide-react';
+
+// Types
+interface PlanOption {
+    id: string;
+    label: string;
+    description: string;
+    recommended?: boolean;
+}
+
+interface PlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    icon: any;
+    type: 'frontend' | 'backend';
+    options: PlanOption[];
+    selectedOption?: string;
+    customValue?: string;
+}
+
+interface ImplementationPlanProps {
+    prompt: string;
+    onApprove: (plan: PlanPhase[]) => void;
+    onCancel: () => void;
+}
+
+// Animated thinking indicator
+function ThinkingAnimation({ stage }: { stage: string }) {
+    const [dots, setDots] = useState('');
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? '' : prev + '.');
+        }, 400);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="flex items-center gap-3 text-amber-400">
+            <div className="relative">
+                <div className="absolute inset-0 bg-amber-400/20 rounded-full animate-ping" />
+                <Sparkles className="h-5 w-5 relative" />
+            </div>
+            <span className="font-medium">
+                {stage}{dots}
+            </span>
+        </div>
+    );
+}
+
+// Phase option selector
+function PhaseOption({ 
+    option, 
+    isSelected, 
+    onSelect 
+}: { 
+    option: PlanOption;
+    isSelected: boolean;
+    onSelect: () => void;
+}) {
+    return (
+        <button
+            onClick={onSelect}
+            className={cn(
+                "flex items-start gap-3 p-4 rounded-xl text-left w-full",
+                "border-2 transition-all duration-200",
+                isSelected 
+                    ? "border-amber-500 bg-amber-500/10" 
+                    : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600"
+            )}
+        >
+            <div className={cn(
+                "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                isSelected ? "border-amber-500 bg-amber-500" : "border-slate-600"
+            )}>
+                {isSelected && <Check className="h-3 w-3 text-black" />}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className={cn(
+                        "font-medium",
+                        isSelected ? "text-amber-400" : "text-white"
+                    )}>
+                        {option.label}
+                    </span>
+                    {option.recommended && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">
+                            Recommended
+                        </span>
+                    )}
+                </div>
+                <p className="text-sm text-slate-400 mt-0.5">{option.description}</p>
+            </div>
+        </button>
+    );
+}
+
+// Phase card component
+function PhaseCard({ 
+    phase, 
+    isExpanded,
+    onToggle,
+    onOptionSelect,
+    onCustomInput
+}: { 
+    phase: PlanPhase;
+    isExpanded: boolean;
+    onToggle: () => void;
+    onOptionSelect: (optionId: string) => void;
+    onCustomInput: (value: string) => void;
+}) {
+    const [showCustomInput, setShowCustomInput] = useState(false);
+    const Icon = phase.icon;
+
+    return (
+        <div className={cn(
+            "rounded-2xl border overflow-hidden transition-all duration-300",
+            phase.type === 'frontend' 
+                ? "border-cyan-500/30 bg-cyan-500/5" 
+                : "border-purple-500/30 bg-purple-500/5"
+        )}>
+            {/* Header */}
+            <button
+                onClick={onToggle}
+                className="w-full flex items-center justify-between p-4 text-left"
+            >
+                <div className="flex items-center gap-3">
+                    <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        phase.type === 'frontend' 
+                            ? "bg-cyan-500/20 text-cyan-400" 
+                            : "bg-purple-500/20 text-purple-400"
+                    )}>
+                        <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-white">{phase.title}</h3>
+                        <p className="text-sm text-slate-400">{phase.description}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    {phase.selectedOption && (
+                        <span className="text-sm text-emerald-400 flex items-center gap-1">
+                            <Check className="h-4 w-4" />
+                            Selected
+                        </span>
+                    )}
+                    <ChevronDown className={cn(
+                        "h-5 w-5 text-slate-400 transition-transform",
+                        isExpanded && "rotate-180"
+                    )} />
+                </div>
+            </button>
+
+            {/* Options */}
+            {isExpanded && (
+                <div className="p-4 pt-0 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid gap-2">
+                        {phase.options.map((option) => (
+                            <PhaseOption
+                                key={option.id}
+                                option={option}
+                                isSelected={phase.selectedOption === option.id}
+                                onSelect={() => {
+                                    onOptionSelect(option.id);
+                                    setShowCustomInput(false);
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Custom option */}
+                    <button
+                        onClick={() => setShowCustomInput(!showCustomInput)}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-3 rounded-xl w-full",
+                            "border border-dashed border-slate-600 hover:border-slate-500",
+                            "text-slate-400 hover:text-slate-300 transition-colors"
+                        )}
+                    >
+                        <Edit3 className="h-4 w-4" />
+                        <span className="text-sm">Modify with something else</span>
+                    </button>
+
+                    {showCustomInput && (
+                        <div className="animate-in slide-in-from-top-2 duration-200">
+                            <textarea
+                                placeholder="Describe your custom requirement..."
+                                value={phase.customValue || ''}
+                                onChange={(e) => onCustomInput(e.target.value)}
+                                className={cn(
+                                    "w-full p-3 rounded-xl resize-none",
+                                    "bg-slate-800/50 border border-slate-700",
+                                    "text-white placeholder:text-slate-500",
+                                    "focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                )}
+                                rows={3}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Main implementation plan component
+export function ImplementationPlan({ prompt, onApprove, onCancel }: ImplementationPlanProps) {
+    const [isLoading, setIsLoading] = useState(true);
+    const [thinkingStage, setThinkingStage] = useState('Analyzing your prompt');
+    const [phases, setPhases] = useState<PlanPhase[]>([]);
+    const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+
+    // Simulate AI thinking and plan generation
+    useEffect(() => {
+        const stages = [
+            'Analyzing your prompt',
+            'Identifying features',
+            'Planning architecture',
+            'Selecting technologies',
+            'Generating implementation plan'
+        ];
+
+        let stageIndex = 0;
+        const stageInterval = setInterval(() => {
+            stageIndex++;
+            if (stageIndex < stages.length) {
+                setThinkingStage(stages[stageIndex]);
+            }
+        }, 1500);
+
+        // Generate plan after thinking animation
+        const planTimeout = setTimeout(() => {
+            setIsLoading(false);
+            setPhases(generatePlan(prompt));
+            clearInterval(stageInterval);
+        }, stages.length * 1500);
+
+        return () => {
+            clearInterval(stageInterval);
+            clearTimeout(planTimeout);
+        };
+    }, [prompt]);
+
+    // Generate mock plan based on prompt
+    function generatePlan(_prompt: string): PlanPhase[] {
+        return [
+            {
+                id: 'framework',
+                title: 'Frontend Framework',
+                description: 'Choose your UI framework',
+                icon: Code,
+                type: 'frontend',
+                options: [
+                    { id: 'react-vite', label: 'React + Vite', description: 'Modern React with fast builds', recommended: true },
+                    { id: 'nextjs', label: 'Next.js', description: 'Full-stack React framework with SSR' },
+                    { id: 'vue', label: 'Vue 3', description: 'Progressive JavaScript framework' },
+                    { id: 'svelte', label: 'SvelteKit', description: 'Compiler-based framework' },
+                ],
+                selectedOption: 'react-vite'
+            },
+            {
+                id: 'styling',
+                title: 'Styling & UI',
+                description: 'Design system and components',
+                icon: Palette,
+                type: 'frontend',
+                options: [
+                    { id: 'tailwind-shadcn', label: 'Tailwind + shadcn/ui', description: 'Utility-first CSS with premium components', recommended: true },
+                    { id: 'chakra', label: 'Chakra UI', description: 'Component library with accessibility' },
+                    { id: 'mantine', label: 'Mantine', description: 'Feature-rich React components' },
+                    { id: 'custom', label: 'Custom CSS', description: 'Build from scratch' },
+                ],
+                selectedOption: 'tailwind-shadcn'
+            },
+            {
+                id: 'auth',
+                title: 'Authentication',
+                description: 'User authentication method',
+                icon: Shield,
+                type: 'frontend',
+                options: [
+                    { id: 'better-auth', label: 'Better Auth', description: 'Simple, secure authentication', recommended: true },
+                    { id: 'clerk', label: 'Clerk', description: 'Drop-in authentication' },
+                    { id: 'auth0', label: 'Auth0', description: 'Enterprise authentication' },
+                    { id: 'custom', label: 'Custom Auth', description: 'Build your own' },
+                ],
+                selectedOption: 'better-auth'
+            },
+            {
+                id: 'database',
+                title: 'Database',
+                description: 'Data persistence layer',
+                icon: Database,
+                type: 'backend',
+                options: [
+                    { id: 'turso', label: 'Turso (SQLite)', description: 'Edge database with libSQL', recommended: true },
+                    { id: 'postgres', label: 'PostgreSQL', description: 'Powerful relational database' },
+                    { id: 'mongodb', label: 'MongoDB', description: 'Document database' },
+                    { id: 'supabase', label: 'Supabase', description: 'Postgres with realtime' },
+                ],
+                selectedOption: 'turso'
+            },
+            {
+                id: 'api',
+                title: 'API Layer',
+                description: 'Backend API architecture',
+                icon: Server,
+                type: 'backend',
+                options: [
+                    { id: 'express', label: 'Express.js', description: 'Flexible Node.js framework', recommended: true },
+                    { id: 'fastify', label: 'Fastify', description: 'Fast and low overhead' },
+                    { id: 'trpc', label: 'tRPC', description: 'Type-safe API with TypeScript' },
+                    { id: 'graphql', label: 'GraphQL', description: 'Query language for APIs' },
+                ],
+                selectedOption: 'express'
+            },
+            {
+                id: 'deployment',
+                title: 'Deployment',
+                description: 'Hosting and deployment target',
+                icon: Package,
+                type: 'backend',
+                options: [
+                    { id: 'vercel', label: 'Vercel', description: 'Zero-config deployments', recommended: true },
+                    { id: 'netlify', label: 'Netlify', description: 'JAMstack deployments' },
+                    { id: 'railway', label: 'Railway', description: 'Infrastructure platform' },
+                    { id: 'docker', label: 'Docker', description: 'Container-based deployment' },
+                ],
+                selectedOption: 'vercel'
+            },
+        ];
+    }
+
+    const handleOptionSelect = (phaseId: string, optionId: string) => {
+        setPhases(prev => prev.map(phase => 
+            phase.id === phaseId 
+                ? { ...phase, selectedOption: optionId, customValue: undefined }
+                : phase
+        ));
+    };
+
+    const handleCustomInput = (phaseId: string, value: string) => {
+        setPhases(prev => prev.map(phase => 
+            phase.id === phaseId 
+                ? { ...phase, customValue: value, selectedOption: undefined }
+                : phase
+        ));
+    };
+
+    const allPhasesSelected = phases.every(p => p.selectedOption || p.customValue);
+    const frontendPhases = phases.filter(p => p.type === 'frontend');
+    const backendPhases = phases.filter(p => p.type === 'backend');
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-16">
+                <div className="relative mb-8">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                        <Loader2 className="h-10 w-10 text-black animate-spin" />
+                    </div>
+                    <div className="absolute -inset-2 bg-gradient-to-br from-amber-400/30 to-orange-500/30 rounded-2xl blur-xl animate-pulse" />
+                </div>
+                <ThinkingAnimation stage={thinkingStage} />
+                <p className="text-slate-500 mt-4 text-center max-w-md">
+                    Our AI is analyzing your prompt and creating a customized implementation plan...
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-black" />
+                </div>
+                <div>
+                    <h2 className="text-xl font-bold text-white">Implementation Plan</h2>
+                    <p className="text-sm text-slate-400">Select your preferences for each phase</p>
+                </div>
+            </div>
+
+            {/* Plan summary */}
+            <div className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm text-slate-300">
+                            Based on your prompt: <span className="text-white font-medium">"{prompt.slice(0, 100)}..."</span>
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                            We've pre-selected recommended options. Customize below or approve to start building.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Frontend phases */}
+            <div>
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                    <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide">
+                        Frontend UI
+                    </h3>
+                </div>
+                <div className="space-y-3">
+                    {frontendPhases.map((phase) => (
+                        <PhaseCard
+                            key={phase.id}
+                            phase={phase}
+                            isExpanded={expandedPhase === phase.id}
+                            onToggle={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
+                            onOptionSelect={(optionId) => handleOptionSelect(phase.id, optionId)}
+                            onCustomInput={(value) => handleCustomInput(phase.id, value)}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Backend phases */}
+            <div>
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-purple-400" />
+                    <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wide">
+                        Backend
+                    </h3>
+                </div>
+                <div className="space-y-3">
+                    {backendPhases.map((phase) => (
+                        <PhaseCard
+                            key={phase.id}
+                            phase={phase}
+                            isExpanded={expandedPhase === phase.id}
+                            onToggle={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
+                            onOptionSelect={(optionId) => handleOptionSelect(phase.id, optionId)}
+                            onCustomInput={(value) => handleCustomInput(phase.id, value)}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
+                <Button
+                    variant="ghost"
+                    onClick={onCancel}
+                    className="text-slate-400 hover:text-white"
+                >
+                    Cancel
+                </Button>
+                <Button
+                    onClick={() => onApprove(phases)}
+                    disabled={!allPhasesSelected}
+                    className={cn(
+                        "px-6 rounded-xl font-semibold",
+                        "bg-gradient-to-r from-amber-500 to-orange-500",
+                        "hover:from-amber-400 hover:to-orange-400",
+                        "text-black shadow-lg shadow-amber-500/25",
+                        "disabled:opacity-50"
+                    )}
+                >
+                    Approve & Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+export default ImplementationPlan;
+

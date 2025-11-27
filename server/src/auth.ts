@@ -14,23 +14,23 @@ export const auth = betterAuth({
             verification: schema.verifications,
         },
     }),
-    
+
     // Base path for auth routes
     basePath: "/api/auth",
-    
+
     // Secret for signing tokens (REQUIRED)
     secret: process.env.BETTER_AUTH_SECRET,
-    
+
     // Base URL for callbacks
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
-    
+
     // Email/Password authentication
     emailAndPassword: {
         enabled: true,
         // Add email verification in production
         // requireEmailVerification: process.env.NODE_ENV === "production",
     },
-    
+
     // Social providers
     socialProviders: {
         // GitHub OAuth
@@ -38,14 +38,14 @@ export const auth = betterAuth({
             clientId: process.env.GITHUB_CLIENT_ID || "",
             clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
         },
-        
+
         // Google OAuth with One Tap support
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID || "",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
         },
     },
-    
+
     // Session configuration
     session: {
         expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -55,7 +55,7 @@ export const auth = betterAuth({
             maxAge: 60 * 5, // 5 minutes
         },
     },
-    
+
     // Advanced configuration
     advanced: {
         // Use secure cookies in production
@@ -66,7 +66,7 @@ export const auth = betterAuth({
             domain: process.env.COOKIE_DOMAIN || undefined,
         },
     },
-    
+
     // Rate limiting (optional but recommended)
     rateLimit: {
         window: 60, // 1 minute

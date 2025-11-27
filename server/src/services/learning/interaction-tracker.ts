@@ -1,6 +1,6 @@
 /**
  * Interaction Tracker & Learning System
- * 
+ *
  * Tracks user interactions with AI suggestions to continuously improve
  * the platform's responses and recommendations.
  */
@@ -20,7 +20,7 @@ export interface Interaction {
     userId: string;
     projectId?: string;
     timestamp: Date;
-    
+
     // Request details
     request: {
         type: 'generation' | 'fix' | 'explanation' | 'template' | 'deployment';
@@ -29,7 +29,7 @@ export interface Interaction {
         context?: string;
         model?: string;
     };
-    
+
     // Response details
     response: {
         content: string;
@@ -38,7 +38,7 @@ export interface Interaction {
         latencyMs: number;
         model: string;
     };
-    
+
     // User feedback
     feedback?: {
         rating: 'positive' | 'negative' | 'neutral';
@@ -46,7 +46,7 @@ export interface Interaction {
         modified: boolean;
         comment?: string;
     };
-    
+
     // Outcome tracking
     outcome?: {
         successful: boolean;
@@ -94,13 +94,13 @@ export class InteractionTracker {
     private interactions: Map<string, Interaction> = new Map();
     private patterns: Map<string, InteractionPattern> = new Map();
     private modelPerformance: Map<string, ModelPerformance> = new Map();
-    
+
     /**
      * Record a new interaction
      */
     async recordInteraction(interaction: Omit<Interaction, 'id' | 'timestamp'>): Promise<string> {
         const id = this.generateId();
-        
+
         const fullInteraction: Interaction = {
             id,
             timestamp: new Date(),
@@ -114,15 +114,15 @@ export class InteractionTracker {
                 contentHash: this.hashText(interaction.response.content),
             },
         };
-        
+
         this.interactions.set(id, fullInteraction);
-        
+
         // Update patterns asynchronously
         this.updatePatterns(fullInteraction);
-        
+
         // Persist to database
         await this.persistInteraction(fullInteraction);
-        
+
         return id;
     }
 
@@ -135,15 +135,15 @@ export class InteractionTracker {
     ): Promise<void> {
         const interaction = this.interactions.get(interactionId);
         if (!interaction) return;
-        
+
         interaction.feedback = feedback;
-        
+
         // Update model performance based on feedback
         this.updateModelPerformance(interaction);
-        
+
         // Update patterns based on feedback
         this.updatePatterns(interaction);
-        
+
         // Persist update
         await this.persistInteraction(interaction);
     }
@@ -157,12 +157,12 @@ export class InteractionTracker {
     ): Promise<void> {
         const interaction = this.interactions.get(interactionId);
         if (!interaction) return;
-        
+
         interaction.outcome = outcome;
-        
+
         // Update success rates
         this.updateModelPerformance(interaction);
-        
+
         // Persist update
         await this.persistInteraction(interaction);
     }
@@ -172,14 +172,14 @@ export class InteractionTracker {
      */
     getInsights(): LearningInsight[] {
         const insights: LearningInsight[] = [];
-        
+
         // Analyze model performance
         const models = Array.from(this.modelPerformance.values());
         if (models.length > 0) {
-            const bestModel = models.reduce((a, b) => 
+            const bestModel = models.reduce((a, b) =>
                 a.successRate * a.costEfficiency > b.successRate * b.costEfficiency ? a : b
             );
-            
+
             insights.push({
                 category: 'model',
                 insight: `${bestModel.model} has the best success/cost ratio for ${bestModel.taskType}`,
@@ -189,7 +189,7 @@ export class InteractionTracker {
                 recommendation: `Consider defaulting to ${bestModel.model} for ${bestModel.taskType} tasks`,
             });
         }
-        
+
         // Analyze patterns
         for (const pattern of this.patterns.values()) {
             if (pattern.totalInteractions >= 5) {
@@ -203,7 +203,7 @@ export class InteractionTracker {
                         recommendation: 'Consider adding more context or examples for this type of request',
                     });
                 }
-                
+
                 if (pattern.commonModifications.length > 0) {
                     insights.push({
                         category: 'pattern',
@@ -216,7 +216,7 @@ export class InteractionTracker {
                 }
             }
         }
-        
+
         return insights;
     }
 
@@ -227,7 +227,7 @@ export class InteractionTracker {
         const performances = Array.from(this.modelPerformance.values())
             .filter(p => p.taskType === taskType && p.totalUsage >= 5)
             .sort((a, b) => (b.successRate * b.costEfficiency) - (a.successRate * a.costEfficiency));
-        
+
         return performances[0]?.model || null;
     }
 
@@ -251,15 +251,15 @@ export class InteractionTracker {
     async getCachedGoodResult(prompt: string, taskType: string): Promise<string | null> {
         const promptHash = this.hashText(prompt);
         const cache = getAIResponseCache();
-        
+
         // Check if we have a cached result with positive feedback
         const cacheKey = cache.aiKey(taskType, prompt);
         const cached = cache.get<{ content: string; rating: string }>(cacheKey);
-        
+
         if (cached && cached.rating === 'positive') {
             return cached.content;
         }
-        
+
         return null;
     }
 
@@ -299,7 +299,7 @@ export class InteractionTracker {
 
     private updatePatterns(interaction: Interaction): void {
         const pattern = this.extractPromptPattern(interaction.request.prompt);
-        
+
         const existing = this.patterns.get(pattern) || {
             promptPattern: pattern,
             successRate: 0,
@@ -309,23 +309,23 @@ export class InteractionTracker {
             commonModifications: [],
             lastUpdated: new Date(),
         };
-        
+
         existing.totalInteractions++;
         existing.lastUpdated = new Date();
-        
+
         // Update success rate if we have outcome data
         if (interaction.outcome) {
             const currentSuccess = existing.successRate * (existing.totalInteractions - 1);
             existing.successRate = (currentSuccess + (interaction.outcome.successful ? 1 : 0)) / existing.totalInteractions;
         }
-        
+
         // Update rating if we have feedback
         if (interaction.feedback) {
-            const ratingValue = interaction.feedback.rating === 'positive' ? 1 : 
+            const ratingValue = interaction.feedback.rating === 'positive' ? 1 :
                                interaction.feedback.rating === 'negative' ? 0 : 0.5;
             const currentRating = existing.avgRating * (existing.totalInteractions - 1);
             existing.avgRating = (currentRating + ratingValue) / existing.totalInteractions;
-            
+
             // Track modifications
             if (interaction.feedback.modified && interaction.feedback.comment) {
                 existing.commonModifications.push(interaction.feedback.comment);
@@ -333,13 +333,13 @@ export class InteractionTracker {
                 existing.commonModifications = existing.commonModifications.slice(-10);
             }
         }
-        
+
         this.patterns.set(pattern, existing);
     }
 
     private updateModelPerformance(interaction: Interaction): void {
         const key = `${interaction.response.model}:${interaction.request.type}`;
-        
+
         const existing = this.modelPerformance.get(key) || {
             model: interaction.response.model,
             taskType: interaction.request.type,
@@ -350,31 +350,31 @@ export class InteractionTracker {
             totalUsage: 0,
             costEfficiency: 1,
         };
-        
+
         existing.totalUsage++;
-        
+
         // Update latency and tokens
         existing.avgLatency = (existing.avgLatency * (existing.totalUsage - 1) + interaction.response.latencyMs) / existing.totalUsage;
         existing.avgTokens = (existing.avgTokens * (existing.totalUsage - 1) + interaction.response.tokensUsed) / existing.totalUsage;
-        
+
         // Update success rate from outcome
         if (interaction.outcome) {
             const currentSuccess = existing.successRate * (existing.totalUsage - 1);
             existing.successRate = (currentSuccess + (interaction.outcome.successful ? 1 : 0)) / existing.totalUsage;
         }
-        
+
         // Update rating from feedback
         if (interaction.feedback) {
-            const ratingValue = interaction.feedback.rating === 'positive' ? 1 : 
+            const ratingValue = interaction.feedback.rating === 'positive' ? 1 :
                                interaction.feedback.rating === 'negative' ? 0 : 0.5;
             const currentRating = existing.avgRating * (existing.totalUsage - 1);
             existing.avgRating = (currentRating + ratingValue) / existing.totalUsage;
         }
-        
+
         // Calculate cost efficiency (higher is better)
         // Based on success rate and inverse of token usage
         existing.costEfficiency = existing.successRate / (existing.avgTokens / 1000 + 0.1);
-        
+
         this.modelPerformance.set(key, existing);
     }
 
@@ -384,10 +384,10 @@ export class InteractionTracker {
                 .from(interactionLogs)
                 .where(eq(interactionLogs.id, interaction.id))
                 .limit(1);
-            
+
             if (existing) {
                 await db.update(interactionLogs)
-                    .set({ 
+                    .set({
                         data: interaction,
                         updatedAt: new Date().toISOString()
                     })
@@ -414,7 +414,7 @@ export class InteractionTracker {
                 .from(interactionLogs)
                 .orderBy(desc(interactionLogs.createdAt))
                 .limit(limit);
-            
+
             for (const row of results) {
                 const interaction = row.data as Interaction;
                 this.interactions.set(interaction.id, interaction);

@@ -1,6 +1,6 @@
 /**
  * Credential Request Component
- * 
+ *
  * Displays an inline credential request in the streaming chat when
  * the AI needs credentials to continue building the user's project.
  */
@@ -58,7 +58,7 @@ export function CredentialRequest({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validate required fields
         for (const field of fields) {
             if (field.required && !values[field.key]?.trim()) {
