@@ -8,7 +8,7 @@
  * - Specialized prompts for different agent types
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getHeliconeClient } from './helicone-client.js';
 

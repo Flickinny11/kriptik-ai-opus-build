@@ -6,10 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import Anthropic from '@anthropic-ai/sdk';
-
-// Type for the Anthropic client instance
-type AnthropicClient = InstanceType<typeof Anthropic>;
+import { Anthropic } from '@anthropic-ai/sdk';
 
 // ============================================================================
 // TYPES
@@ -114,7 +111,7 @@ export interface QualityConfig {
 // ============================================================================
 
 export class CodeQualityService {
-    private anthropicClient?: AnthropicClient;
+    private anthropicClient?: Anthropic;
     private codeRabbitToken?: string;
     
     constructor() {

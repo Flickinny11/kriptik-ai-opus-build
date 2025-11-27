@@ -11,7 +11,7 @@
  * All Claude API calls go through Helicone for observability.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { Anthropic } from '@anthropic-ai/sdk';
 
 export interface HeliconeConfig {
     apiKey: string;
