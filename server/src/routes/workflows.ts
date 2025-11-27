@@ -56,8 +56,10 @@ router.post('/models/search', async (req, res) => {
 });
 
 // Get model details from HuggingFace
-router.get('/models/huggingface/:modelId(*)', async (req, res) => {
-    const { modelId } = req.params;
+// Use *splat syntax for path-to-regexp v8+ (Express 5) to capture paths with slashes
+router.get('/models/huggingface/*modelId', async (req, res) => {
+    // In Express 5 with path-to-regexp v8, wildcard params are in req.params[0] or req.params.modelId
+    const modelId = req.params.modelId || req.params[0];
 
     try {
         const model = await discoveryService.getHuggingFaceModelInfo(modelId);
