@@ -240,6 +240,10 @@ app.get('/', (req, res) => {
     });
 });
 
+// Favicon handler - return 204 No Content (prevents 404 spam in logs)
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/favicon.png', (req, res) => res.status(204).end());
+
 // Detailed health check with service status
 app.get('/health', (req, res) => {
     const services = validateCredentials();

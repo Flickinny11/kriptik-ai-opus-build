@@ -1,10 +1,10 @@
 /**
  * Anthropic Client Factory
- * 
+ *
  * Creates an Anthropic SDK client that can use either:
  * 1. Direct Anthropic API (if ANTHROPIC_API_KEY is set)
  * 2. OpenRouter as a proxy (if only OPENROUTER_API_KEY is set)
- * 
+ *
  * This allows using the Anthropic SDK features through OpenRouter.
  */
 
@@ -55,7 +55,7 @@ export function isAnthropicAvailable(): boolean {
  */
 export function getClaudeModelId(model: 'opus' | 'sonnet' | 'haiku' = 'sonnet'): string {
     const isDirect = !!process.env.ANTHROPIC_API_KEY;
-    
+
     if (isDirect) {
         // Direct Anthropic API model names
         switch (model) {

@@ -1,6 +1,6 @@
 /**
  * Unified Model Discovery Service
- * 
+ *
  * Searches multiple model registries to find the best models for user requirements.
  * Supports HuggingFace, Replicate, Together AI, Ollama, and custom registries.
  */
@@ -76,12 +76,12 @@ export class ModelDiscoveryService {
     private replicateToken?: string;
     private togetherToken?: string;
     private anthropicClient?: Anthropic;
-    
+
     constructor() {
         this.hfToken = process.env.HF_TOKEN;
         this.replicateToken = process.env.REPLICATE_API_TOKEN;
         this.togetherToken = process.env.TOGETHER_API_KEY;
-        
+
         // Use the shared Anthropic client factory (supports OpenRouter)
         import('../../utils/anthropic-client.js').then(({ createAnthropicClient }) => {
             const client = createAnthropicClient();
@@ -90,7 +90,7 @@ export class ModelDiscoveryService {
             }
         });
     }
-    
+
     /**
      * Search for models across all sources
      */
@@ -98,42 +98,42 @@ export class ModelDiscoveryService {
         const startTime = Date.now();
         const sources = query.sources || ['huggingface', 'replicate', 'together'];
         const allRecommendations: ModelRecommendation[] = [];
-        
+
         // Search each source in parallel
         const searchPromises: Promise<ModelRecommendation[]>[] = [];
-        
+
         if (sources.includes('huggingface')) {
             searchPromises.push(this.searchHuggingFace(query));
         }
-        
+
         if (sources.includes('replicate')) {
             searchPromises.push(this.searchReplicate(query));
         }
-        
+
         if (sources.includes('together')) {
             searchPromises.push(this.searchTogether(query));
         }
-        
+
         const results = await Promise.allSettled(searchPromises);
-        
+
         for (const result of results) {
             if (result.status === 'fulfilled') {
                 allRecommendations.push(...result.value);
             }
         }
-        
+
         // Use AI to rank and filter recommendations if available
         let ranked = allRecommendations;
         if (this.anthropicClient && allRecommendations.length > 0) {
             ranked = await this.rankWithAI(query.requirement, allRecommendations);
         }
-        
+
         // Sort by popularity/downloads as fallback
         ranked.sort((a, b) => b.popularity.downloads - a.popularity.downloads);
-        
+
         // Apply max results limit
         const limited = ranked.slice(0, query.maxResults || 10);
-        
+
         return {
             recommendations: limited,
             searchTime: Date.now() - startTime,
@@ -141,7 +141,7 @@ export class ModelDiscoveryService {
             totalFound: allRecommendations.length,
         };
     }
-    
+
     /**
      * Search HuggingFace Hub
      */
@@ -153,22 +153,22 @@ export class ModelDiscoveryService {
                 sort: 'downloads',
                 direction: '-1',
             });
-            
+
             if (query.taskType) {
                 params.append('filter', query.taskType);
             }
-            
+
             const response = await fetch(`https://huggingface.co/api/models?${params}`, {
                 headers: this.hfToken ? { Authorization: `Bearer ${this.hfToken}` } : {},
             });
-            
+
             if (!response.ok) {
                 console.error('HuggingFace search failed:', response.status);
                 return [];
             }
-            
+
             const models: HuggingFaceModel[] = await response.json();
-            
+
             return models
                 .filter(m => !m.private && !m.gated)
                 .filter(m => !query.minDownloads || (m.downloads || 0) >= query.minDownloads)
@@ -178,7 +178,7 @@ export class ModelDiscoveryService {
             return [];
         }
     }
-    
+
     /**
      * Search Replicate
      */
@@ -186,7 +186,7 @@ export class ModelDiscoveryService {
         if (!this.replicateToken) {
             return [];
         }
-        
+
         try {
             // Replicate doesn't have a search API, so we use their collections
             const response = await fetch('https://api.replicate.com/v1/models', {
@@ -194,29 +194,29 @@ export class ModelDiscoveryService {
                     Authorization: `Token ${this.replicateToken}`,
                 },
             });
-            
+
             if (!response.ok) {
                 console.error('Replicate search failed:', response.status);
                 return [];
             }
-            
+
             const data = await response.json();
             const models: ReplicateModel[] = data.results || [];
-            
+
             // Filter by query (simple keyword match)
             const keywords = query.requirement.toLowerCase().split(/\s+/);
             const filtered = models.filter(m => {
                 const text = `${m.name} ${m.description}`.toLowerCase();
                 return keywords.some(k => text.includes(k));
             });
-            
+
             return filtered.slice(0, query.maxResults || 10).map(m => this.mapReplicateModel(m));
         } catch (error) {
             console.error('Error searching Replicate:', error);
             return [];
         }
     }
-    
+
     /**
      * Search Together AI
      */
@@ -224,35 +224,35 @@ export class ModelDiscoveryService {
         if (!this.togetherToken) {
             return [];
         }
-        
+
         try {
             const response = await fetch('https://api.together.xyz/v1/models', {
                 headers: {
                     Authorization: `Bearer ${this.togetherToken}`,
                 },
             });
-            
+
             if (!response.ok) {
                 console.error('Together AI search failed:', response.status);
                 return [];
             }
-            
+
             const models = await response.json();
-            
+
             // Filter by query
             const keywords = query.requirement.toLowerCase().split(/\s+/);
             const filtered = models.filter((m: any) => {
                 const text = `${m.id} ${m.display_name || ''} ${m.description || ''}`.toLowerCase();
                 return keywords.some(k => text.includes(k));
             });
-            
+
             return filtered.slice(0, query.maxResults || 10).map((m: any) => this.mapTogetherModel(m));
         } catch (error) {
             console.error('Error searching Together AI:', error);
             return [];
         }
     }
-    
+
     /**
      * Get detailed model info from HuggingFace
      */
@@ -261,11 +261,11 @@ export class ModelDiscoveryService {
             const response = await fetch(`https://huggingface.co/api/models/${modelId}`, {
                 headers: this.hfToken ? { Authorization: `Bearer ${this.hfToken}` } : {},
             });
-            
+
             if (!response.ok) {
                 return null;
             }
-            
+
             const model: HuggingFaceModel = await response.json();
             return this.mapHuggingFaceModel(model);
         } catch (error) {
@@ -273,7 +273,7 @@ export class ModelDiscoveryService {
             return null;
         }
     }
-    
+
     /**
      * Use AI to rank recommendations based on user requirement
      */
@@ -284,7 +284,7 @@ export class ModelDiscoveryService {
         if (!this.anthropicClient || recommendations.length <= 3) {
             return recommendations;
         }
-        
+
         try {
             const modelsInfo = recommendations.slice(0, 20).map(r => ({
                 id: r.modelId,
@@ -293,7 +293,7 @@ export class ModelDiscoveryService {
                 downloads: r.popularity.downloads,
                 vram: r.requirements.vram,
             }));
-            
+
             const response = await this.anthropicClient.messages.create({
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 1024,
@@ -310,44 +310,44 @@ Return format: ["model_id_1", "model_id_2", ...]`,
                     }
                 ],
             });
-            
+
             const content = response.content[0];
             const text = content.type === 'text' ? content.text : '[]';
-            
+
             // Extract JSON array
             const match = text.match(/\[[\s\S]*\]/);
             if (!match) return recommendations;
-            
+
             const rankedIds: string[] = JSON.parse(match[0]);
-            
+
             // Reorder recommendations based on AI ranking
             const ranked: ModelRecommendation[] = [];
             for (const id of rankedIds) {
                 const model = recommendations.find(r => r.modelId === id);
                 if (model) ranked.push(model);
             }
-            
+
             // Add any models not in ranking at the end
             for (const model of recommendations) {
                 if (!ranked.includes(model)) {
                     ranked.push(model);
                 }
             }
-            
+
             return ranked;
         } catch (error) {
             console.error('Error ranking with AI:', error);
             return recommendations;
         }
     }
-    
+
     // ========================================================================
     // MAPPING FUNCTIONS
     // ========================================================================
-    
+
     private mapHuggingFaceModel(model: HuggingFaceModel): ModelRecommendation {
         const vram = this.estimateVRAM(model);
-        
+
         return {
             modelId: model.modelId || model.id,
             source: 'huggingface',
@@ -370,7 +370,7 @@ Return format: ["model_id_1", "model_id_2", ...]`,
             },
         };
     }
-    
+
     private mapReplicateModel(model: ReplicateModel): ModelRecommendation {
         return {
             modelId: `${model.owner}/${model.name}`,
@@ -398,7 +398,7 @@ Return format: ["model_id_1", "model_id_2", ...]`,
             },
         };
     }
-    
+
     private mapTogetherModel(model: any): ModelRecommendation {
         return {
             modelId: model.id,
@@ -426,74 +426,74 @@ Return format: ["model_id_1", "model_id_2", ...]`,
             },
         };
     }
-    
+
     // ========================================================================
     // ESTIMATION HELPERS
     // ========================================================================
-    
+
     private estimateVRAM(model: HuggingFaceModel): number {
         // Estimate VRAM based on model name/tags
         const name = (model.modelId || model.id).toLowerCase();
-        
+
         if (name.includes('70b')) return 140;
         if (name.includes('34b') || name.includes('33b')) return 70;
         if (name.includes('13b')) return 28;
         if (name.includes('7b') || name.includes('8b')) return 16;
         if (name.includes('3b')) return 8;
         if (name.includes('1b')) return 4;
-        
+
         // Image models
         if (name.includes('xl')) return 12;
         if (name.includes('sdxl')) return 8;
         if (name.includes('flux')) return 24;
-        
+
         // Default
         return 8;
     }
-    
+
     private estimateLatency(model: HuggingFaceModel): number {
         const task = model.pipeline_tag || '';
-        
+
         if (task.includes('image')) return 10;
         if (task.includes('video')) return 30;
         if (task.includes('audio')) return 5;
         if (task.includes('text-generation')) return 2;
-        
+
         return 5;
     }
-    
+
     private getSupportedFormats(model: HuggingFaceModel): string[] {
         const formats: string[] = [];
         const tags = model.tags || [];
-        
+
         if (tags.includes('gguf') || tags.includes('ggml')) formats.push('gguf');
         if (tags.includes('gptq')) formats.push('gptq');
         if (tags.includes('awq')) formats.push('awq');
         if (tags.includes('safetensors')) formats.push('safetensors');
-        
+
         if (formats.length === 0) {
             formats.push('pytorch');
         }
-        
+
         return formats;
     }
-    
+
     private inferTaskFromDescription(description: string): string {
         const desc = description.toLowerCase();
-        
+
         if (desc.includes('image generation') || desc.includes('text to image')) return 'text-to-image';
         if (desc.includes('language model') || desc.includes('chat')) return 'text-generation';
         if (desc.includes('speech') || desc.includes('audio')) return 'audio';
         if (desc.includes('video')) return 'video-generation';
         if (desc.includes('embedding')) return 'embedding';
-        
+
         return 'unknown';
     }
-    
+
     // ========================================================================
     // WORKFLOW GENERATION
     // ========================================================================
-    
+
     /**
      * Generate a workflow plan from user requirement and discovered models
      */
@@ -509,11 +509,11 @@ Return format: ["model_id_1", "model_id_2", ...]`,
         if (this.anthropicClient && selectedModels.length > 0) {
             return this.generateWorkflowWithAI(requirement, selectedModels, options);
         }
-        
+
         // Fallback to simple workflow
         return this.generateSimpleWorkflow(requirement, selectedModels, options);
     }
-    
+
     private async generateWorkflowWithAI(
         requirement: string,
         models: ModelRecommendation[],
@@ -526,7 +526,7 @@ Return format: ["model_id_1", "model_id_2", ...]`,
             source: m.source,
             vram: m.requirements.vram,
         }));
-        
+
         const response = await this.anthropicClient!.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 2048,
@@ -561,19 +561,19 @@ Return a JSON object with this structure:
                 }
             ],
         });
-        
+
         const content = response.content[0];
         const text = content.type === 'text' ? content.text : '{}';
-        
+
         // Extract JSON
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) {
             return this.generateSimpleWorkflow(requirement, models, options);
         }
-        
+
         try {
             const parsed = JSON.parse(match[0]);
-            
+
             // Map to proper WorkflowPlan structure
             const steps: WorkflowStep[] = (parsed.steps || []).map((s: any, i: number) => ({
                 id: s.id || `step-${i + 1}`,
@@ -587,7 +587,7 @@ Return a JSON object with this structure:
                 dependencies: s.dependencies || [],
                 position: { x: i * 200, y: 100 },
             }));
-            
+
             return {
                 id: uuidv4(),
                 name: parsed.name || 'AI Workflow',
@@ -607,7 +607,7 @@ Return a JSON object with this structure:
             return this.generateSimpleWorkflow(requirement, models, options);
         }
     }
-    
+
     private generateSimpleWorkflow(
         requirement: string,
         models: ModelRecommendation[],
@@ -626,7 +626,7 @@ Return a JSON object with this structure:
             dependencies: i > 0 ? [`step-${i}`] : [],
             position: { x: i * 200, y: 100 },
         }));
-        
+
         return {
             id: uuidv4(),
             name: 'Generated Workflow',
@@ -649,11 +649,11 @@ Return a JSON object with this structure:
             })),
         };
     }
-    
+
     private estimateCost(steps: WorkflowStep[], models: ModelRecommendation[]): CostEstimate {
         let hourlyRunningCost = 0;
         const breakdown: { item: string; cost: number; unit: string }[] = [];
-        
+
         for (const step of steps) {
             if (step.model) {
                 const gpuCost = this.getGPUCost(step.model.requirements.gpu);
@@ -665,7 +665,7 @@ Return a JSON object with this structure:
                 });
             }
         }
-        
+
         return {
             setupCost: 0,
             hourlyRunningCost,
@@ -674,7 +674,7 @@ Return a JSON object with this structure:
             currency: 'USD',
         };
     }
-    
+
     private getGPUCost(gpu: string): number {
         const costs: Record<string, number> = {
             'T4': 0.20,
@@ -686,10 +686,10 @@ Return a JSON object with this structure:
         };
         return costs[gpu] || 0.30;
     }
-    
+
     private getRequiredCredentials(models: ModelRecommendation[]): string[] {
         const credentials = new Set<string>();
-        
+
         for (const model of models) {
             switch (model.source) {
                 case 'huggingface':
@@ -703,10 +703,10 @@ Return a JSON object with this structure:
                     break;
             }
         }
-        
+
         // Add deployment credential
         credentials.add('runpod');  // Default deployment target
-        
+
         return Array.from(credentials);
     }
 }

@@ -1,6 +1,6 @@
 /**
  * AI-Assisted Migration Service
- * 
+ *
  * Handles migrating projects between platforms with AI assistance.
  * Supports Vercel, Netlify, AWS, Railway, Fly.io, and self-hosted.
  */
@@ -168,7 +168,7 @@ const PLATFORM_CONFIGS: Record<MigrationTargetPlatform, {
 
 export class MigrationService {
     private anthropicClient?: Anthropic;
-    
+
     constructor() {
         // Use the shared Anthropic client factory (supports OpenRouter)
         import('../../utils/anthropic-client.js').then(({ createAnthropicClient }) => {
@@ -178,7 +178,7 @@ export class MigrationService {
             }
         });
     }
-    
+
     /**
      * Analyze a project for migration
      */
@@ -189,12 +189,12 @@ export class MigrationService {
         let dependencies: Record<string, string> = {};
         let buildCommand = 'npm run build';
         let outputDir = 'dist';
-        
+
         if (packageJson) {
             try {
                 const pkg = JSON.parse(packageJson);
                 dependencies = { ...pkg.dependencies, ...pkg.devDependencies };
-                
+
                 if (dependencies['next']) {
                     framework = 'next';
                     outputDir = '.next';
@@ -206,7 +206,7 @@ export class MigrationService {
                 } else if (dependencies['express'] || dependencies['fastify']) {
                     framework = 'node';
                 }
-                
+
                 // Get build command from scripts
                 if (pkg.scripts?.build) {
                     buildCommand = 'npm run build';
@@ -215,7 +215,7 @@ export class MigrationService {
                 console.error('Error parsing package.json:', e);
             }
         }
-        
+
         // Detect environment variables
         const envVars: string[] = [];
         const envFile = projectFiles['.env.example'] || projectFiles['.env.local.example'];
@@ -225,20 +225,20 @@ export class MigrationService {
                 envVars.push(...matches.map(m => m.replace('=', '')));
             }
         }
-        
+
         // Detect backend endpoints
         const backendEndpoints: string[] = [];
         const hasBackend = Object.keys(projectFiles).some(
             f => f.includes('server') || f.includes('api') || f.includes('backend')
         );
-        
+
         // Detect active integrations
         const activeIntegrations: string[] = [];
         if (dependencies['@supabase/supabase-js']) activeIntegrations.push('supabase');
         if (dependencies['stripe']) activeIntegrations.push('stripe');
         if (dependencies['@clerk/clerk-react']) activeIntegrations.push('clerk');
         if (dependencies['@auth0/auth0-react']) activeIntegrations.push('auth0');
-        
+
         return {
             framework,
             buildCommand,
@@ -251,13 +251,13 @@ export class MigrationService {
             estimatedBuildTime: 120,  // Default 2 minutes
         };
     }
-    
+
     /**
      * Create a migration plan
      */
     async createMigrationPlan(request: MigrationRequest): Promise<MigrationPlan> {
         const platformConfig = PLATFORM_CONFIGS[request.targetPlatform];
-        
+
         const steps: MigrationStep[] = [
             {
                 id: uuidv4(),
@@ -284,7 +284,7 @@ export class MigrationService {
                 logs: [],
             },
         ];
-        
+
         if (request.includeBackend) {
             steps.push({
                 id: uuidv4(),
@@ -295,7 +295,7 @@ export class MigrationService {
                 logs: [],
             });
         }
-        
+
         if (request.transferIntegrations) {
             steps.push({
                 id: uuidv4(),
@@ -306,7 +306,7 @@ export class MigrationService {
                 logs: [],
             });
         }
-        
+
         steps.push(
             {
                 id: uuidv4(),
@@ -333,10 +333,10 @@ export class MigrationService {
                 logs: [],
             }
         );
-        
+
         // User actions
         const requiredActions: UserAction[] = [];
-        
+
         if (request.targetPlatform !== 'self-hosted') {
             requiredActions.push({
                 id: uuidv4(),
@@ -347,7 +347,7 @@ export class MigrationService {
                 helpUrl: this.getAccountConnectUrl(request.targetPlatform),
             });
         }
-        
+
         // Backend changes
         const backendChanges: BackendChange[] = [];
         if (request.includeBackend && request.targetUrl) {
@@ -364,14 +364,14 @@ export class MigrationService {
                 after: `FRONTEND_URL=${request.targetUrl}`,
             });
         }
-        
+
         // Integration migrations
         const integrationMigrations: IntegrationMigration[] = [];
         if (request.transferIntegrations) {
             // These would be populated based on project analysis
             // For now, return empty array
         }
-        
+
         // Rollback plan
         const rollbackPlan: RollbackPlan = {
             available: true,
@@ -382,7 +382,7 @@ export class MigrationService {
                 'Restore integration webhooks',
             ],
         };
-        
+
         return {
             id: uuidv4(),
             request,
@@ -395,7 +395,7 @@ export class MigrationService {
             rollbackPlan,
         };
     }
-    
+
     /**
      * Execute a migration plan
      */
@@ -405,26 +405,26 @@ export class MigrationService {
         onProgress: (step: MigrationStep) => void
     ): Promise<MigrationResult> {
         const logs: string[] = [];
-        
+
         try {
             for (const step of plan.steps) {
                 // Update step to in_progress
                 step.status = 'in_progress';
                 onProgress(step);
                 logs.push(`Starting: ${step.name}`);
-                
+
                 // Execute step
                 await this.executeStep(step, plan.request, projectFiles);
-                
+
                 // Update step to completed
                 step.status = 'completed';
                 onProgress(step);
                 logs.push(`Completed: ${step.name}`);
             }
-            
+
             // Get new URL
             const newUrl = this.getDeploymentUrl(plan.request.targetPlatform, plan.request.sourceProject.name);
-            
+
             return {
                 success: true,
                 plan,
@@ -434,7 +434,7 @@ export class MigrationService {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             logs.push(`Error: ${errorMessage}`);
-            
+
             return {
                 success: false,
                 plan,
@@ -443,7 +443,7 @@ export class MigrationService {
             };
         }
     }
-    
+
     /**
      * Execute a single migration step
      */
@@ -454,10 +454,10 @@ export class MigrationService {
     ): Promise<void> {
         // Simulate step execution
         await this.sleep(1000);
-        
+
         step.logs.push(`Executed at ${new Date().toISOString()}`);
     }
-    
+
     /**
      * Generate platform-specific configuration files
      */
@@ -467,12 +467,12 @@ export class MigrationService {
     ): Record<string, string> {
         const config: Record<string, string> = {};
         const platformConfig = PLATFORM_CONFIGS[platform];
-        
+
         const buildSettings = platformConfig.buildSettings.framework[analysis.framework] || {
             buildCommand: analysis.buildCommand,
             outputDir: analysis.outputDir,
         };
-        
+
         switch (platform) {
             case 'vercel':
                 config['vercel.json'] = JSON.stringify({
@@ -481,7 +481,7 @@ export class MigrationService {
                     framework: analysis.framework === 'next' ? 'nextjs' : null,
                 }, null, 2);
                 break;
-                
+
             case 'netlify':
                 config['netlify.toml'] = `[build]
   command = "${buildSettings.buildCommand}"
@@ -493,7 +493,7 @@ export class MigrationService {
   status = 200
 `;
                 break;
-                
+
             case 'cloudflare':
                 config['wrangler.toml'] = `name = "kriptik-app"
 compatibility_date = "${new Date().toISOString().split('T')[0]}"
@@ -502,7 +502,7 @@ compatibility_date = "${new Date().toISOString().split('T')[0]}"
 bucket = "./${buildSettings.outputDir}"
 `;
                 break;
-                
+
             case 'railway':
                 config['railway.json'] = JSON.stringify({
                     build: {
@@ -513,7 +513,7 @@ bucket = "./${buildSettings.outputDir}"
                     },
                 }, null, 2);
                 break;
-                
+
             case 'fly':
                 config['fly.toml'] = `app = "kriptik-app"
 primary_region = "iad"
@@ -529,7 +529,7 @@ primary_region = "iad"
   min_machines_running = 0
 `;
                 break;
-                
+
             case 'self-hosted':
                 config['Dockerfile'] = `FROM node:20-alpine
 
@@ -556,7 +556,7 @@ services:
     restart: unless-stopped
 `;
                 break;
-                
+
             case 'aws-amplify':
                 config['amplify.yml'] = `version: 1
 frontend:
@@ -577,10 +577,10 @@ frontend:
 `;
                 break;
         }
-        
+
         return config;
     }
-    
+
     /**
      * Export project as downloadable archive
      */
@@ -590,31 +590,31 @@ frontend:
         analysis: ProjectAnalysis
     ): Promise<Blob> {
         const zip = new JSZip();
-        
+
         // Add all project files
         for (const [path, content] of Object.entries(projectFiles)) {
             zip.file(path, content);
         }
-        
+
         // Add platform configuration
         const platformConfig = this.generatePlatformConfig(platform, analysis);
         for (const [path, content] of Object.entries(platformConfig)) {
             zip.file(path, content);
         }
-        
+
         // Add .env.example if not present
         if (!projectFiles['.env.example'] && analysis.envVars.length > 0) {
             const envExample = analysis.envVars.map(v => `${v}=`).join('\n');
             zip.file('.env.example', envExample);
         }
-        
+
         // Add README
         const readme = this.generateMigrationReadme(platform, analysis);
         zip.file('MIGRATION_README.md', readme);
-        
+
         return zip.generateAsync({ type: 'blob' });
     }
-    
+
     /**
      * Generate migration readme
      */
@@ -623,7 +623,7 @@ frontend:
         analysis: ProjectAnalysis
     ): string {
         const platformConfig = PLATFORM_CONFIGS[platform];
-        
+
         return `# Migration to ${platformConfig.name}
 
 This project has been configured for deployment to ${platformConfig.name}.
@@ -666,28 +666,28 @@ If you encounter issues, visit the KripTik AI documentation or contact support.
 Generated by KripTik AI on ${new Date().toISOString()}
 `;
     }
-    
+
     /**
      * Generate warnings for migration
      */
     private generateWarnings(request: MigrationRequest): string[] {
         const warnings: string[] = [];
-        
+
         if (request.targetPlatform === 'self-hosted') {
             warnings.push('Self-hosted deployments require manual infrastructure management');
         }
-        
+
         if (!request.transferIntegrations) {
             warnings.push('Integrations will not be migrated - you may need to reconfigure them manually');
         }
-        
+
         if (!request.includeBackend) {
             warnings.push('Backend will not be updated - ensure it can handle the new frontend URL');
         }
-        
+
         return warnings;
     }
-    
+
     /**
      * Get account connection URL for a platform
      */
@@ -704,7 +704,7 @@ Generated by KripTik AI on ${new Date().toISOString()}
         };
         return urls[platform] || '';
     }
-    
+
     /**
      * Get deployment URL for a platform
      */
@@ -716,7 +716,7 @@ Generated by KripTik AI on ${new Date().toISOString()}
             .replace('{branch}', 'main')
             .replace('{appid}', 'xxx');
     }
-    
+
     private sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

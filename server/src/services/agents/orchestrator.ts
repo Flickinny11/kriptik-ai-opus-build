@@ -1,6 +1,6 @@
 /**
  * Multi-Agent Orchestrator
- * 
+ *
  * Coordinates multiple specialized AI agents working concurrently.
  * Manages task distribution, agent lifecycle, and result aggregation.
  */
@@ -124,19 +124,19 @@ export class AgentOrchestrator extends EventEmitter {
     private contextStore: ContextStore;
     private isRunning: Map<string, boolean> = new Map();
     private executionLoops: Map<string, NodeJS.Timeout> = new Map();
-    
+
     constructor() {
         super();
         this.contextStore = getContextStore();
         this.initializeClient();
     }
-    
+
     /**
      * Initialize Anthropic client (uses OpenRouter if direct key not available)
      */
     private initializeClient(): void {
         const client = createAnthropicClient();
-        
+
         if (client) {
             this.client = client;
             console.log('Agent orchestrator initialized with', process.env.ANTHROPIC_API_KEY ? 'direct Anthropic API' : 'OpenRouter');
@@ -144,7 +144,7 @@ export class AgentOrchestrator extends EventEmitter {
             console.warn('No AI API key configured. Agent orchestrator will not function.');
         }
     }
-    
+
     /**
      * Start orchestration for a context
      */
@@ -152,29 +152,29 @@ export class AgentOrchestrator extends EventEmitter {
         if (this.isRunning.get(contextId)) {
             return;  // Already running
         }
-        
+
         this.isRunning.set(contextId, true);
         this.emit('orchestration:started', { contextId });
-        
+
         // Start the execution loop
         this.runExecutionLoop(contextId);
     }
-    
+
     /**
      * Stop orchestration for a context
      */
     stopOrchestration(contextId: string): void {
         this.isRunning.set(contextId, false);
-        
+
         const loop = this.executionLoops.get(contextId);
         if (loop) {
             clearTimeout(loop);
             this.executionLoops.delete(contextId);
         }
-        
+
         this.emit('orchestration:stopped', { contextId });
     }
-    
+
     /**
      * Main execution loop
      */
@@ -186,38 +186,38 @@ export class AgentOrchestrator extends EventEmitter {
                     this.stopOrchestration(contextId);
                     break;
                 }
-                
+
                 // Check for pending tasks
                 const pendingTasks = context.taskQueue.filter(t => t.status === 'pending');
-                
+
                 if (pendingTasks.length === 0) {
                     // No tasks, wait and check again
                     await this.sleep(1000);
                     continue;
                 }
-                
+
                 // Find available agents and assign tasks
                 for (const agentType of Object.keys(AGENT_SYSTEM_PROMPTS) as AgentType[]) {
                     const agent = this.contextStore.getAvailableAgent(contextId, agentType);
                     if (!agent) continue;
-                    
+
                     const task = this.contextStore.getNextTask(contextId, agentType);
                     if (!task) continue;
-                    
+
                     // Execute task asynchronously
                     this.executeTask(contextId, agent.id, task.id);
                 }
-                
+
                 // Brief pause between iterations
                 await this.sleep(500);
-                
+
             } catch (error) {
                 console.error('Error in execution loop:', error);
                 await this.sleep(2000);  // Longer pause on error
             }
         }
     }
-    
+
     /**
      * Execute a single task with an agent
      */
@@ -228,30 +228,30 @@ export class AgentOrchestrator extends EventEmitter {
     ): Promise<void> {
         const context = this.contextStore.getContext(contextId);
         if (!context) return;
-        
+
         // Find the task and agent
         const task = context.taskQueue.find(t => t.id === taskId);
         const agent = context.activeAgents.find(a => a.id === agentId);
-        
+
         if (!task || !agent) return;
-        
+
         // Start the task
         this.contextStore.startTask(contextId, taskId, agentId);
-        
+
         this.emit('task:executing', { contextId, taskId, agentId });
-        
+
         try {
             // Execute based on agent type
             const result = await this.runAgentTask(agent.type, task, context);
-            
+
             if (result.success) {
                 this.contextStore.completeTask(
-                    contextId, 
-                    taskId, 
-                    result.output || {}, 
+                    contextId,
+                    taskId,
+                    result.output || {},
                     result.tokensUsed
                 );
-                
+
                 // Add agent message about completion
                 this.contextStore.addAgentMessage(
                     contextId,
@@ -259,11 +259,11 @@ export class AgentOrchestrator extends EventEmitter {
                     agent.type,
                     `Completed: ${task.title}`
                 );
-                
+
                 this.emit('task:completed', { contextId, taskId, result });
             } else {
                 this.contextStore.failTask(contextId, taskId, result.error || 'Unknown error');
-                
+
                 // Add agent message about failure
                 this.contextStore.addAgentMessage(
                     contextId,
@@ -271,7 +271,7 @@ export class AgentOrchestrator extends EventEmitter {
                     agent.type,
                     `Failed: ${task.title} - ${result.error}`
                 );
-                
+
                 this.emit('task:failed', { contextId, taskId, error: result.error });
             }
         } catch (error) {
@@ -280,7 +280,7 @@ export class AgentOrchestrator extends EventEmitter {
             this.emit('task:failed', { contextId, taskId, error: errorMessage });
         }
     }
-    
+
     /**
      * Run an agent task using Claude
      */
@@ -290,7 +290,7 @@ export class AgentOrchestrator extends EventEmitter {
         context: SharedContext
     ): Promise<TaskResult> {
         const startTime = Date.now();
-        
+
         if (!this.client) {
             // Fallback mode - return mock success
             return {
@@ -301,12 +301,12 @@ export class AgentOrchestrator extends EventEmitter {
                 tokensUsed: 0,
             };
         }
-        
+
         const systemPrompt = AGENT_SYSTEM_PROMPTS[agentType];
-        
+
         // Build context-aware prompt
         const contextSummary = this.contextStore.getContextSummary(context.id);
-        
+
         const userPrompt = `
 ## Current Context
 ${contextSummary}
@@ -332,13 +332,13 @@ Execute this task according to your role. Provide complete, production-ready out
                     { role: 'user', content: userPrompt }
                 ],
             });
-            
+
             const content = response.content[0];
             const outputText = content.type === 'text' ? content.text : '';
-            
+
             // Parse output based on task type
             const output = this.parseTaskOutput(task.type, outputText);
-            
+
             return {
                 taskId: task.id,
                 success: true,
@@ -356,7 +356,7 @@ Execute this task according to your role. Provide complete, production-ready out
             };
         }
     }
-    
+
     /**
      * Parse task output based on task type
      */
@@ -370,7 +370,7 @@ Execute this task according to your role. Provide complete, production-ready out
                 // Fall through to default
             }
         }
-        
+
         // Try to parse entire output as JSON
         try {
             return JSON.parse(rawOutput);
@@ -379,11 +379,11 @@ Execute this task according to your role. Provide complete, production-ready out
             return { text: rawOutput };
         }
     }
-    
+
     // ========================================================================
     // HIGH-LEVEL OPERATIONS
     // ========================================================================
-    
+
     /**
      * Create an implementation plan from user request
      */
@@ -393,14 +393,14 @@ Execute this task according to your role. Provide complete, production-ready out
     ): Promise<ImplementationPlan | null> {
         const context = this.contextStore.getContext(contextId);
         if (!context) return null;
-        
+
         // Ensure planning agent is available
         let planningAgent = this.contextStore.getAvailableAgent(contextId, 'planning');
         if (!planningAgent) {
             planningAgent = this.contextStore.registerAgent(contextId, 'planning');
         }
         if (!planningAgent) return null;
-        
+
         // Create planning task
         const task = this.contextStore.createTask(
             contextId,
@@ -410,12 +410,12 @@ Execute this task according to your role. Provide complete, production-ready out
             { userRequest },
             { priority: 'high' }
         );
-        
+
         if (!task) return null;
-        
+
         // Execute immediately (synchronous for planning)
         const result = await this.runAgentTask('planning', task, context);
-        
+
         if (result.success && result.output) {
             // Parse the plan from output
             const plan: ImplementationPlan = {
@@ -430,20 +430,20 @@ Execute this task according to your role. Provide complete, production-ready out
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
-            
+
             // Update context with plan
             this.contextStore.updateContext(contextId, { implementationPlan: plan }, 'plan:updated');
-            
+
             // Complete the task
             this.contextStore.completeTask(contextId, task.id, { plan }, result.tokensUsed);
-            
+
             return plan;
         }
-        
+
         this.contextStore.failTask(contextId, task.id, result.error || 'Failed to create plan');
         return null;
     }
-    
+
     /**
      * Discover models for a user request
      */
@@ -454,14 +454,14 @@ Execute this task according to your role. Provide complete, production-ready out
     ): Promise<ModelRecommendation[]> {
         const context = this.contextStore.getContext(contextId);
         if (!context) return [];
-        
+
         // Ensure research agent is available
         let researchAgent = this.contextStore.getAvailableAgent(contextId, 'research');
         if (!researchAgent) {
             researchAgent = this.contextStore.registerAgent(contextId, 'research');
         }
         if (!researchAgent) return [];
-        
+
         // Create research task
         const task = this.contextStore.createTask(
             contextId,
@@ -471,22 +471,22 @@ Execute this task according to your role. Provide complete, production-ready out
             { requirement, ...options },
             { priority: 'high' }
         );
-        
+
         if (!task) return [];
-        
+
         // Execute
         const result = await this.runAgentTask('research', task, context);
-        
+
         if (result.success && result.output) {
             const recommendations = (result.output as any).recommendations || [];
             this.contextStore.completeTask(contextId, task.id, { recommendations }, result.tokensUsed);
             return recommendations;
         }
-        
+
         this.contextStore.failTask(contextId, task.id, result.error || 'Failed to discover models');
         return [];
     }
-    
+
     /**
      * Generate code for a task
      */
@@ -498,14 +498,14 @@ Execute this task according to your role. Provide complete, production-ready out
     ): Promise<{ code: string; explanation: string } | null> {
         const context = this.contextStore.getContext(contextId);
         if (!context) return null;
-        
+
         // Ensure coding agent is available
         let codingAgent = this.contextStore.getAvailableAgent(contextId, 'coding');
         if (!codingAgent) {
             codingAgent = this.contextStore.registerAgent(contextId, 'coding');
         }
         if (!codingAgent) return null;
-        
+
         // Create coding task
         const task = this.contextStore.createTask(
             contextId,
@@ -515,23 +515,23 @@ Execute this task according to your role. Provide complete, production-ready out
             { description, fileType, ...additionalContext },
             { priority: 'medium' }
         );
-        
+
         if (!task) return null;
-        
+
         // Execute
         const result = await this.runAgentTask('coding', task, context);
-        
+
         if (result.success && result.output) {
             const code = (result.output as any).code || (result.output as any).text || '';
             const explanation = (result.output as any).explanation || '';
             this.contextStore.completeTask(contextId, task.id, { code, explanation }, result.tokensUsed);
             return { code, explanation };
         }
-        
+
         this.contextStore.failTask(contextId, task.id, result.error || 'Failed to generate code');
         return null;
     }
-    
+
     /**
      * Deploy with self-healing
      */
@@ -542,20 +542,20 @@ Execute this task according to your role. Provide complete, production-ready out
     ): Promise<{ success: boolean; endpoint?: string; error?: string }> {
         const context = this.contextStore.getContext(contextId);
         if (!context) return { success: false, error: 'Context not found' };
-        
+
         // Ensure deployment agent is available
         let deployAgent = this.contextStore.getAvailableAgent(contextId, 'deployment');
         if (!deployAgent) {
             deployAgent = this.contextStore.registerAgent(contextId, 'deployment');
         }
         if (!deployAgent) return { success: false, error: 'Deployment agent unavailable' };
-        
+
         // Ensure debug agent is available for self-healing
         let debugAgent = this.contextStore.getAvailableAgent(contextId, 'debug');
         if (!debugAgent) {
             debugAgent = this.contextStore.registerAgent(contextId, 'debug');
         }
-        
+
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             // Create deployment task
             const deployTask = this.contextStore.createTask(
@@ -566,26 +566,26 @@ Execute this task according to your role. Provide complete, production-ready out
                 { plan, attempt },
                 { priority: 'critical' }
             );
-            
+
             if (!deployTask) continue;
-            
+
             // Execute deployment
             const result = await this.runAgentTask('deployment', deployTask, context);
-            
+
             if (result.success) {
                 const endpoint = (result.output as any).endpoint;
-                
+
                 // Run health check
                 if (endpoint) {
                     const healthy = await this.checkEndpointHealth(endpoint);
-                    
+
                     if (healthy) {
                         this.contextStore.completeTask(contextId, deployTask.id, result.output || {}, result.tokensUsed);
                         return { success: true, endpoint };
                     }
                 }
             }
-            
+
             // Deployment failed or unhealthy - analyze and fix
             if (debugAgent) {
                 const diagnosis = await this.diagnoseFailure(
@@ -593,11 +593,11 @@ Execute this task according to your role. Provide complete, production-ready out
                     result.error || 'Deployment health check failed',
                     (result.output as any)?.logs || []
                 );
-                
+
                 if (diagnosis.fix) {
                     // Apply fix to plan
                     plan = this.applyFix(plan, diagnosis.fix);
-                    
+
                     this.contextStore.addAgentMessage(
                         contextId,
                         debugAgent.id,
@@ -606,9 +606,9 @@ Execute this task according to your role. Provide complete, production-ready out
                     );
                 }
             }
-            
+
             this.contextStore.failTask(contextId, deployTask.id, result.error || 'Health check failed');
-            
+
             // Add retry message
             this.contextStore.addMessage(
                 contextId,
@@ -616,10 +616,10 @@ Execute this task according to your role. Provide complete, production-ready out
                 `Deployment attempt ${attempt + 1} failed. ${attempt < maxRetries - 1 ? 'Retrying...' : 'Max retries reached.'}`
             );
         }
-        
+
         return { success: false, error: 'Max retries exceeded' };
     }
-    
+
     /**
      * Diagnose a failure using debug agent
      */
@@ -632,7 +632,7 @@ Execute this task according to your role. Provide complete, production-ready out
         if (!context) {
             return { summary: error };
         }
-        
+
         const task: Task = {
             id: uuidv4(),
             type: 'diagnose-issue',
@@ -646,19 +646,19 @@ Execute this task according to your role. Provide complete, production-ready out
             retryCount: 0,
             maxRetries: 1,
         };
-        
+
         const result = await this.runAgentTask('debug', task, context);
-        
+
         if (result.success && result.output) {
             return {
                 summary: (result.output as any).summary || error,
                 fix: (result.output as any).fix,
             };
         }
-        
+
         return { summary: error };
     }
-    
+
     /**
      * Apply a fix to a workflow plan
      */
@@ -668,18 +668,18 @@ Execute this task according to your role. Provide complete, production-ready out
     ): WorkflowPlan {
         // Apply changes to the plan
         const updatedPlan = { ...plan };
-        
+
         if (fix.changes.steps) {
             updatedPlan.steps = fix.changes.steps as typeof plan.steps;
         }
-        
+
         if (fix.changes.deploymentTargets) {
             updatedPlan.deploymentTargets = fix.changes.deploymentTargets as typeof plan.deploymentTargets;
         }
-        
+
         return updatedPlan;
     }
-    
+
     /**
      * Check endpoint health
      */
@@ -694,15 +694,15 @@ Execute this task according to your role. Provide complete, production-ready out
             return false;
         }
     }
-    
+
     // ========================================================================
     // UTILITIES
     // ========================================================================
-    
+
     private sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-    
+
     /**
      * Get orchestration status
      */
@@ -713,7 +713,7 @@ Execute this task according to your role. Provide complete, production-ready out
         completedTasks: number;
     } {
         const context = this.contextStore.getContext(contextId);
-        
+
         return {
             running: this.isRunning.get(contextId) || false,
             activeAgents: context?.activeAgents.filter(a => a.status === 'working').length || 0,
