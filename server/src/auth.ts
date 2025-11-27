@@ -3,6 +3,23 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from './db.js';
 import * as schema from './schema.js';
 
+// Build social providers conditionally - only include if credentials are set
+const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
+
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    socialProviders.github = {
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    };
+}
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    };
+}
+
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "sqlite", // Turso uses SQLite protocol
@@ -21,30 +38,16 @@ export const auth = betterAuth({
     // Secret for signing tokens (REQUIRED)
     secret: process.env.BETTER_AUTH_SECRET,
 
-    // Base URL for callbacks
-    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+    // Base URL for callbacks  
+    baseURL: process.env.BETTER_AUTH_URL || "https://kriptik-ai-opus-build-backend.vercel.app",
 
     // Email/Password authentication
     emailAndPassword: {
         enabled: true,
-        // Add email verification in production
-        // requireEmailVerification: process.env.NODE_ENV === "production",
     },
 
-    // Social providers
-    socialProviders: {
-        // GitHub OAuth
-        github: {
-            clientId: process.env.GITHUB_CLIENT_ID || "",
-            clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-        },
-
-        // Google OAuth with One Tap support
-        google: {
-            clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-        },
-    },
+    // Social providers (only those with credentials)
+    socialProviders,
 
     // Session configuration
     session: {

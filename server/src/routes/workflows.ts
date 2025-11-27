@@ -60,7 +60,7 @@ router.post('/models/search', async (req, res) => {
 router.get('/models/huggingface', async (req, res) => {
     // Model ID is passed as query parameter (e.g., ?id=org/model-name)
     const modelId = req.query.id as string;
-    
+
     if (!modelId) {
         return res.status(400).json({ message: 'Model ID is required (use ?id=org/model-name)' });
     }

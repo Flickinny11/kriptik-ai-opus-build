@@ -230,6 +230,16 @@ app.use("/api/config", configRouter);
 // HEALTH & STATUS
 // =============================================================================
 
+// Root path - API info
+app.get('/', (req, res) => {
+    res.json({
+        name: 'KripTik AI API',
+        version: '1.0.0',
+        status: 'running',
+        documentation: '/health for service status, /api/config/services for capabilities',
+    });
+});
+
 // Detailed health check with service status
 app.get('/health', (req, res) => {
     const services = validateCredentials();
