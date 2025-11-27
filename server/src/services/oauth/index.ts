@@ -6,5 +6,5 @@
 
 export * from './types.js';
 export * from './oauth-manager.js';
-export * from './providers.js';
+export * from './providers/index.js';
 

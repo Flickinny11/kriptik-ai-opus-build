@@ -231,7 +231,7 @@ router.post('/:projectId/chat', async (req: Request<{ projectId: string }, objec
         }
 
         // Import Claude service
-        const { createClaudeService } = await import('../services/ai/claude-service');
+        const { createClaudeService } = await import('../services/ai/claude-service.js');
 
         const claudeService = createClaudeService({
             projectId,

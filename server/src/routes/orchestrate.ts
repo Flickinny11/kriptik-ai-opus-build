@@ -9,7 +9,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { DevelopmentOrchestrator, ProjectRequest } from '../services/orchestration.js';
+import { DevelopmentOrchestrator, ProjectRequest } from '../services/orchestration/index.js';
 import { createOrchestratorClaudeService } from '../services/ai/claude-service.js';
 import { v4 as uuidv4 } from 'uuid';
 

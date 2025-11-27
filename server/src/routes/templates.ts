@@ -11,7 +11,7 @@ import {
     getTemplateInstantiator,
     TemplateSearchQuery,
     TemplateInstantiationRequest,
-} from '../services/templates.js';
+} from '../services/templates/index.js';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.js';
 
 const router = Router();

@@ -757,8 +757,8 @@ export class SmartDeploymentService {
     /**
      * Map internal GPU tier names to HuggingFace GPUType format
      */
-    private mapGPUToHuggingFace(gpuName: string): import('../cloud/types').GPUType {
-        const gpuMap: Record<string, import('../cloud/types').GPUType> = {
+    private mapGPUToHuggingFace(gpuName: string): import('../cloud/types.js').GPUType {
+        const gpuMap: Record<string, import('../cloud/types.js').GPUType> = {
             'T4': 'nvidia-t4',
             't4': 'nvidia-t4',
             'A10G': 'nvidia-a40',
