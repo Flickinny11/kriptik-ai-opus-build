@@ -248,7 +248,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
     const [thinkingStage, setThinkingStage] = useState('Analyzing your prompt');
     const [phases, setPhases] = useState<PlanPhase[]>([]);
     const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [_error, setError] = useState<string | null>(null);
 
     // Fetch AI-generated implementation plan from API
     const fetchPlan = useCallback(async () => {

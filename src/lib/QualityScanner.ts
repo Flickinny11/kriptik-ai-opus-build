@@ -10,7 +10,6 @@
  */
 
 import { QualityReport, QualityIssue } from './quality-types';
-import { apiClient } from './api-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -135,7 +134,7 @@ export class QualityScanner {
         } else if (overallScore >= 70) {
             status = 'needs_review';
         } else {
-            status = 'critical';
+            status = 'critical_issues';
         }
 
         return {
@@ -215,7 +214,7 @@ export class QualityScanner {
             id: Date.now().toString(),
             timestamp: new Date().toISOString(),
             overallScore: 0,
-            status: 'critical',
+            status: 'critical_issues',
             categories: {
                 security: { score: 0, issues: [] },
                 quality: {
