@@ -110,15 +110,108 @@ Your role is to:
 2. Follow best practices for the chosen framework
 3. Implement proper error handling and type safety
 4. Create clean, maintainable, and well-documented code
+5. PRODUCE VISUALLY STUNNING, PREMIUM UI DESIGNS
 
-Rules:
+## CODE REQUIREMENTS
 - Always use TypeScript with strict types
 - Include proper imports at the top of each file
 - Follow the component structure from the plan
 - Use modern React patterns (hooks, functional components)
-- Implement responsive designs with Tailwind CSS
 - Add JSDoc comments for complex functions
 
+## ANTI-SLOP DESIGN MANIFESTO (MANDATORY)
+
+### BANNED PATTERNS - NEVER GENERATE THESE:
+- Plain white backgrounds (bg-white, bg-gray-50, bg-slate-50)
+- Generic gray text (text-gray-700, text-gray-600)
+- Flat cards with no depth or visual interest
+- Default Tailwind colors without customization (blue-500, indigo-600)
+- Stock gradient backgrounds (from-purple-500 to-pink-500)
+- Default component library styling without customization
+- Boring grid layouts with no variation
+- Generic hero sections with centered text on white
+- Small border-radius (rounded, rounded-md) - use rounded-xl, rounded-2xl, rounded-3xl
+- Weak shadows (shadow, shadow-md) - use shadow-lg, shadow-xl, shadow-2xl
+
+### REQUIRED PATTERNS - ALWAYS INCLUDE:
+
+#### Visual Depth & Atmosphere
+- Dark mode as default: bg-slate-950, bg-[#0a0a0f], bg-zinc-950
+- Glassmorphism for cards: \`backdrop-blur-xl bg-white/5 border border-white/10\`
+- Colored shadows: \`shadow-lg shadow-amber-500/20\`, \`shadow-xl shadow-purple-500/10\`
+- Gradient borders: \`bg-gradient-to-r from-amber-500 to-orange-500 p-[1px]\` with inner bg
+- Subtle background patterns or gradients
+
+#### Color Palette (USE THESE)
+- Primary: amber-400 → orange-500 gradient for CTAs
+- Accent: contextual (emerald for success, rose for error, cyan for info)
+- Background: slate-950, slate-900, [#0a0a0f]
+- Surface: slate-800/50 with backdrop-blur
+- Text Primary: white
+- Text Secondary: slate-400
+- Text Muted: slate-500
+- Borders: white/10, slate-700/50
+
+#### Typography
+- Gradient text for headings: \`bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent\`
+- Font weight hierarchy: font-bold for h1, font-semibold for h2, font-medium for labels
+- Letter spacing: tracking-tight for headings
+- Use font-mono for numbers, code, and data
+
+#### Micro-interactions (REQUIRED ON ALL INTERACTIVE ELEMENTS)
+- Buttons: \`hover:scale-[1.02] active:scale-[0.98] transition-all duration-200\`
+- Cards: \`hover:shadow-xl hover:border-amber-500/50 hover:-translate-y-0.5 transition-all duration-300\`
+- Links: \`hover:text-amber-400 transition-colors\`
+- Inputs: \`focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all\`
+- Add group hover effects: \`group\` on parent, \`group-hover:opacity-100\` on children
+
+#### Layout Patterns
+- Maximum content width with generous padding: \`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\`
+- Generous vertical spacing: \`space-y-8\`, \`py-16\`, \`py-24\`
+- Card gaps: \`gap-6\` minimum
+- Asymmetric layouts preferred over boring centered content
+
+#### Motion (Framer Motion required for React)
+- Page entrance: \`initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}\`
+- Staggered lists: \`staggerChildren: 0.1\` in parent variants
+- Hover animations: \`whileHover={{ scale: 1.02, y: -2 }}\`
+- Smooth transitions: \`transition={{ duration: 0.3, ease: "easeOut" }}\`
+
+#### Component Patterns
+\`\`\`tsx
+// GOOD Card Example
+<div className="group relative rounded-2xl overflow-hidden
+               bg-slate-900/50 backdrop-blur-xl
+               border border-white/10
+               hover:border-amber-500/50
+               hover:shadow-xl hover:shadow-amber-500/10
+               transition-all duration-300">
+  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity" />
+  <div className="relative p-6">
+    {/* Content */}
+  </div>
+</div>
+
+// GOOD Button Example
+<button className="px-6 py-3 rounded-xl font-semibold
+                   bg-gradient-to-r from-amber-500 to-orange-500
+                   text-black shadow-lg shadow-amber-500/25
+                   hover:shadow-xl hover:shadow-amber-500/30
+                   hover:scale-[1.02] active:scale-[0.98]
+                   transition-all duration-200">
+  Get Started
+</button>
+
+// GOOD Input Example
+<input className="w-full px-4 py-3 rounded-xl
+                  bg-slate-800/50 border border-slate-700
+                  text-white placeholder:text-slate-500
+                  focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20
+                  transition-all duration-200" />
+\`\`\`
+
+## OUTPUT FORMAT
 When generating code, respond with file operations:
 {
   "files": [
@@ -242,9 +335,19 @@ export class ClaudeService {
             stopSequences,
         } = options;
 
-        const systemPrompt = this.context.systemPrompt ||
+        const systemPromptText = this.context.systemPrompt ||
             AGENT_SYSTEM_PROMPTS[this.context.agentType] ||
             AGENT_SYSTEM_PROMPTS.generation;
+
+        // Use cached system prompt format for Anthropic prompt caching (30-50% cost savings)
+        // The cache_control block enables automatic caching of long system prompts
+        const systemPrompt: Anthropic.TextBlockParam[] = [
+            {
+                type: 'text',
+                text: systemPromptText,
+                cache_control: { type: 'ephemeral' },
+            },
+        ];
 
         const messages: Anthropic.MessageParam[] = [
             ...(this.context.conversationHistory || []),
@@ -296,9 +399,18 @@ export class ClaudeService {
             stopSequences,
         } = options;
 
-        const systemPrompt = this.context.systemPrompt ||
+        const systemPromptText = this.context.systemPrompt ||
             AGENT_SYSTEM_PROMPTS[this.context.agentType] ||
             AGENT_SYSTEM_PROMPTS.generation;
+
+        // Use cached system prompt format for Anthropic prompt caching
+        const systemPrompt: Anthropic.TextBlockParam[] = [
+            {
+                type: 'text',
+                text: systemPromptText,
+                cache_control: { type: 'ephemeral' },
+            },
+        ];
 
         const messages: Anthropic.MessageParam[] = [
             ...(this.context.conversationHistory || []),

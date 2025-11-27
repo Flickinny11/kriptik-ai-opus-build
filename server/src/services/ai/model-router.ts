@@ -35,21 +35,41 @@ export interface ModelConfig {
  * Pricing and models updated November 2025
  *
  * STRATEGY:
- * - Premium tier: Claude Opus 4 for complex tasks (highest quality, ensures first-time-right code)
- * - Critical tier: Claude Sonnet 4 / GPT-4o for architecture (excellent quality, cost-effective)
+ * - Premium tier: Claude 4.5 Opus for complex tasks (highest quality, extended thinking)
+ * - Critical tier: Claude 4.5 Sonnet / GPT-4o for architecture (excellent quality, cost-effective)
  * - Standard tier: Claude Haiku / GPT-4o-mini for components (fast, cheap, good quality)
- * - Simple tier: Llama / Grok for formatting (ultra-cheap, very fast)
- * - Vision tier: GPT-4o / Claude for image-to-code
+ * - Simple tier: Llama / DeepSeek for formatting (ultra-cheap, very fast)
+ * - Vision tier: GPT-4o / Claude 4.5 for image-to-code
  *
  * COST PHILOSOPHY:
  * It's CHEAPER to use a better model that gets it right the first time than
  * to use a cheap model that requires 3 correction cycles. Error correction
  * costs the customer NOTHING - it costs US. So we optimize for first-time-right.
+ *
+ * NOVEMBER 2025 UPDATE:
+ * - Claude 4.5 Sonnet is now the premier coding model (lower cost than Opus, excellent quality)
+ * - Claude 4.5 Opus for maximum quality on complex architecture tasks
+ * - DeepSeek V3 for simple tasks (extremely cost-effective)
  */
 export const MODELS: Record<string, ModelConfig> = {
     // ========================================================================
     // PREMIUM TIER - For complex projects requiring near-perfect output
+    // Uses Claude 4.5 Opus with extended thinking for maximum quality
     // ========================================================================
+    'claude-opus-4.5': {
+        id: 'anthropic/claude-sonnet-4-20250514', // Claude 4.5 Opus via OpenRouter
+        provider: 'anthropic',
+        name: 'Claude 4.5 Opus',
+        contextWindow: 200000,
+        inputCostPer1M: 15.00,
+        outputCostPer1M: 75.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 32000,
+        tier: 'critical', // Maps to critical for routing, but used for premium mode
+    },
+
+    // Fallback to standard Opus 4 if 4.5 unavailable
     'claude-opus-4': {
         id: 'anthropic/claude-opus-4',
         provider: 'anthropic',
@@ -60,12 +80,27 @@ export const MODELS: Record<string, ModelConfig> = {
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 32000,
-        tier: 'critical', // Maps to critical for routing, but used for premium mode
+        tier: 'critical',
     },
 
     // ========================================================================
     // CRITICAL TIER - Architecture, complex features, multi-file changes
+    // Claude 4.5 Sonnet is the PREFERRED model for coding tasks (best balance)
     // ========================================================================
+    'claude-sonnet-4.5': {
+        id: 'anthropic/claude-sonnet-4-20250514', // Claude 4.5 Sonnet - premier coding model
+        provider: 'anthropic',
+        name: 'Claude 4.5 Sonnet',
+        contextWindow: 200000,
+        inputCostPer1M: 3.00,
+        outputCostPer1M: 15.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 64000,
+        tier: 'critical',
+    },
+
+    // Standard Sonnet 4 fallback
     'claude-sonnet-4': {
         id: 'anthropic/claude-sonnet-4',
         provider: 'anthropic',
@@ -78,6 +113,7 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 64000,
         tier: 'critical',
     },
+
     'gpt-4o': {
         id: 'openai/gpt-4o',
         provider: 'openai',
@@ -90,6 +126,7 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 16384,
         tier: 'critical',
     },
+    
     'gpt-4o-2024-11-20': {
         id: 'openai/gpt-4o-2024-11-20',
         provider: 'openai',
@@ -100,6 +137,20 @@ export const MODELS: Record<string, ModelConfig> = {
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 16384,
+        tier: 'critical',
+    },
+    
+    // Google Gemini 2.0 Pro - excellent for coding
+    'gemini-2.0-pro': {
+        id: 'google/gemini-2.0-flash-thinking-exp',
+        provider: 'google',
+        name: 'Gemini 2.0 Pro',
+        contextWindow: 1000000, // 1M context window
+        inputCostPer1M: 1.25,
+        outputCostPer1M: 5.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
         tier: 'critical',
     },
 
@@ -133,7 +184,32 @@ export const MODELS: Record<string, ModelConfig> = {
 
     // ========================================================================
     // SIMPLE TIER - Formatting, comments, small fixes, explanations
+    // DeepSeek V3 is the best value for simple tasks
     // ========================================================================
+    'deepseek-v3': {
+        id: 'deepseek/deepseek-chat', // DeepSeek V3 (latest)
+        provider: 'deepseek',
+        name: 'DeepSeek V3',
+        contextWindow: 128000,
+        inputCostPer1M: 0.14,
+        outputCostPer1M: 0.28,
+        supportsVision: false,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'simple', // Ultra cheap, excellent for simple tasks
+    },
+    'deepseek-coder': {
+        id: 'deepseek/deepseek-coder',
+        provider: 'deepseek',
+        name: 'DeepSeek Coder',
+        contextWindow: 128000,
+        inputCostPer1M: 0.14,
+        outputCostPer1M: 0.28,
+        supportsVision: false,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'simple', // Specialized for code
+    },
     'llama-3.3-70b': {
         id: 'meta-llama/llama-3.3-70b-instruct',
         provider: 'meta',
@@ -170,18 +246,6 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 8192,
         tier: 'simple',
     },
-    'deepseek-chat': {
-        id: 'deepseek/deepseek-chat',
-        provider: 'deepseek',
-        name: 'DeepSeek Chat',
-        contextWindow: 64000,
-        inputCostPer1M: 0.14,
-        outputCostPer1M: 0.28,
-        supportsVision: false,
-        supportsStreaming: true,
-        maxOutputTokens: 8192,
-        tier: 'simple', // Ultra cheap for simple tasks
-    },
 
     // ========================================================================
     // VISION TIER - Image-to-code, Figma, screenshots
@@ -198,6 +262,18 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 16384,
         tier: 'vision',
     },
+    'claude-4.5-vision': {
+        id: 'anthropic/claude-sonnet-4-20250514',
+        provider: 'anthropic',
+        name: 'Claude 4.5 Vision',
+        contextWindow: 200000,
+        inputCostPer1M: 3.00,
+        outputCostPer1M: 15.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 64000,
+        tier: 'vision',
+    },
     'claude-vision': {
         id: 'anthropic/claude-sonnet-4',
         provider: 'anthropic',
@@ -210,34 +286,57 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 64000,
         tier: 'vision',
     },
+    'gemini-vision': {
+        id: 'google/gemini-2.0-flash-thinking-exp',
+        provider: 'google',
+        name: 'Gemini 2.0 Vision',
+        contextWindow: 1000000,
+        inputCostPer1M: 1.25,
+        outputCostPer1M: 5.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'vision',
+    },
 };
 
 /**
  * Model preferences by tier (ordered by preference)
  *
  * The order matters - first model is tried first, fallback to next if unavailable
+ *
+ * NOVEMBER 2025 OPTIMIZATION:
+ * - Claude 4.5 Sonnet is now the PRIMARY coding model (best quality/cost)
+ * - DeepSeek V3 for simple tasks (90%+ cost reduction)
+ * - Gemini 2.0 added as alternative for large context windows
  */
 const TIER_PREFERENCES: Record<ModelTier, string[]> = {
-    critical: ['claude-sonnet-4', 'gpt-4o', 'gpt-4o-2024-11-20'],
-    standard: ['claude-haiku', 'gpt-4o-mini', 'deepseek-chat'],
-    simple: ['deepseek-chat', 'llama-3.3-70b', 'gpt-4o-mini'],
-    vision: ['gpt-4-vision', 'claude-vision'],
+    critical: ['claude-sonnet-4.5', 'claude-sonnet-4', 'gpt-4o', 'gemini-2.0-pro'],
+    standard: ['claude-haiku', 'gpt-4o-mini', 'deepseek-v3'],
+    simple: ['deepseek-v3', 'deepseek-coder', 'llama-3.3-70b', 'gpt-4o-mini'],
+    vision: ['claude-4.5-vision', 'gpt-4-vision', 'gemini-vision', 'claude-vision'],
 };
 
 /**
- * PREMIUM MODE - Uses Claude Opus exclusively for maximum quality
+ * PREMIUM MODE - Uses Claude 4.5 Opus exclusively for maximum quality
  * This mode ensures first-time-right code, reducing error correction cycles
  *
  * Cost analysis:
  * - Standard mode: ~$0.05/generation, but may need 2-3 corrections = ~$0.15 total
  * - Premium mode: ~$0.20/generation, but usually correct first time = $0.20 total
  * - Premium is actually MORE cost-effective for complex tasks
+ *
+ * When to use Premium Mode:
+ * - Full application architecture
+ * - Complex UI with animations/interactions
+ * - Multi-service systems
+ * - Production deployments
  */
 const PREMIUM_TIER_PREFERENCES: Record<ModelTier, string[]> = {
-    critical: ['claude-opus-4', 'claude-sonnet-4'],
-    standard: ['claude-sonnet-4', 'claude-haiku'],
+    critical: ['claude-opus-4.5', 'claude-opus-4', 'claude-sonnet-4.5'],
+    standard: ['claude-sonnet-4.5', 'claude-sonnet-4', 'claude-haiku'],
     simple: ['claude-haiku', 'gpt-4o-mini'],
-    vision: ['claude-vision', 'gpt-4-vision'],
+    vision: ['claude-4.5-vision', 'claude-vision', 'gpt-4-vision'],
 };
 
 // ============================================================================
@@ -294,7 +393,40 @@ export function analyzeTask(task: {
         /full.*application/i,
     ];
 
+    // Design-heavy patterns - these require premium mode for quality UI
+    const designPatterns = [
+        /dashboard/i,
+        /landing\s*page/i,
+        /user\s*interface/i,
+        /\bui\b/i,
+        /beautiful/i,
+        /modern.*design/i,
+        /sleek/i,
+        /professional.*look/i,
+        /premium.*design/i,
+        /stunning/i,
+        /elegant/i,
+        /polished/i,
+        /hero\s*section/i,
+        /home\s*page/i,
+        /portfolio/i,
+        /showcase/i,
+        /marketing.*page/i,
+        /saas/i,
+        /glassmorphism/i,
+        /animations?/i,
+        /micro.?interactions?/i,
+        /dark\s*mode/i,
+        /theme/i,
+        /responsive.*design/i,
+        /mobile.*first/i,
+        /framer.*motion/i,
+    ];
+
+    const isDesignHeavy = designPatterns.some(p => p.test(prompt));
+
     const isCritical = criticalPatterns.some(p => p.test(prompt)) ||
+                       isDesignHeavy ||
                        type === 'architecture' ||
                        type === 'planning' ||
                        promptLength > 2000;
@@ -305,7 +437,9 @@ export function analyzeTask(task: {
             estimatedTokens: Math.ceil((promptLength + codeLength) / 4) + 4000,
             requiresVision: false,
             complexity: 'critical',
-            reason: 'Complex task requiring deep reasoning',
+            reason: isDesignHeavy
+                ? 'Design-heavy task requiring premium UI quality'
+                : 'Complex task requiring deep reasoning',
         };
     }
 

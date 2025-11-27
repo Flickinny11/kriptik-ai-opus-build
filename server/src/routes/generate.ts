@@ -10,6 +10,8 @@ import { projects, files, generations } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { createOrchestrator, AgentLog, AgentType, AgentState } from '../services/ai/agent-orchestrator.js';
 import { v4 as uuidv4 } from 'uuid';
+import { getDesignTokensFile } from '../templates/design-tokens.js';
+import { getDesignValidator } from '../services/ai/design-validator.js';
 
 const router = Router();
 
@@ -107,6 +109,38 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
 
         // Run the orchestration
         const result = await orchestrator.run(prompt);
+
+        // Inject design tokens file into generated files
+        const designTokens = getDesignTokensFile();
+        result.files.set(designTokens.path, designTokens.content);
+        sendSSE(res, 'file', { path: designTokens.path, content: designTokens.content });
+
+        // Validate design quality
+        const validator = getDesignValidator();
+        const filesObject: Record<string, string> = {};
+        for (const [path, content] of result.files) {
+            filesObject[path] = content;
+        }
+        const validation = validator.validate(filesObject);
+
+        // Send validation result
+        sendSSE(res, 'validation', {
+            passed: validation.passed,
+            score: validation.score,
+            summary: validation.summary,
+            issueCount: validation.issues.length,
+        });
+
+        // Log validation issues if any
+        if (validation.issues.length > 0) {
+            sendSSE(res, 'log', {
+                id: uuidv4(),
+                agentType: 'refinement',
+                message: `Design quality score: ${validation.score}/100. ${validation.issues.filter(i => i.severity === 'critical').length} critical issues found.`,
+                type: validation.passed ? 'info' : 'warning',
+                timestamp: new Date().toISOString(),
+            });
+        }
 
         // Save generated files to database
         for (const [path, content] of result.files) {

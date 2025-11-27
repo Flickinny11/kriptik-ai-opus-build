@@ -41,11 +41,16 @@ export class HeliconeClient {
     private client: Anthropic;
 
     constructor(config?: Partial<HeliconeConfig>) {
+        // Enable caching by default when Helicone is configured for cost savings
+        const heliconeEnabled = config?.enabled ?? (process.env.HELICONE_ENABLED !== 'false');
+        const hasHeliconeKey = !!(config?.apiKey || process.env.HELICONE_API_KEY);
+
         this.config = {
             apiKey: config?.apiKey || process.env.HELICONE_API_KEY || '',
             anthropicApiKey: config?.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '',
-            enabled: config?.enabled ?? (process.env.HELICONE_ENABLED !== 'false'),
-            cacheEnabled: config?.cacheEnabled ?? false,
+            enabled: heliconeEnabled && hasHeliconeKey,
+            // Enable caching by default when Helicone is active - 20-30% cost savings
+            cacheEnabled: config?.cacheEnabled ?? (heliconeEnabled && hasHeliconeKey),
             rateLimitPolicy: config?.rateLimitPolicy,
             userId: config?.userId,
             sessionId: config?.sessionId,

@@ -17,6 +17,9 @@ import {
     RunPodCredentials,
 } from './types.js';
 import { pricingCalculator } from './pricing.js';
+import { db } from '../../db.js';
+import { deployments as deploymentsTable } from '../../schema.js';
+import { eq } from 'drizzle-orm';
 
 const RUNPOD_API_BASE = 'https://api.runpod.io/graphql';
 
@@ -164,15 +167,33 @@ export class RunPodProvider implements CloudProviderInterface {
             },
         });
 
+        const url = `https://api.runpod.ai/v2/${result.saveEndpoint.id}/runsync`;
+        const estimatedCost = await this.estimateCost(config);
+
+        // Save to database
+        await db.insert(deploymentsTable).values({
+            id: deploymentId,
+            projectId: config.projectId || '',
+            userId: config.userId || '',
+            provider: 'runpod',
+            resourceType: config.resourceType,
+            config: config as any,
+            status: 'deploying',
+            providerResourceId: result.saveEndpoint.id,
+            url,
+            estimatedMonthlyCost: Math.round(estimatedCost.estimatedMonthlyCost * 100),
+        });
+
         return {
             id: deploymentId,
-            projectId: '',
-            userId: '',
+            projectId: config.projectId || '',
+            userId: config.userId || '',
             provider: 'runpod',
             config,
             status: 'deploying',
             providerResourceId: result.saveEndpoint.id,
-            url: `https://api.runpod.ai/v2/${result.saveEndpoint.id}/runsync`,
+            url,
+            estimatedMonthlyCost: estimatedCost.estimatedMonthlyCost,
             createdAt: now,
             updatedAt: now,
         };
@@ -226,26 +247,122 @@ export class RunPodProvider implements CloudProviderInterface {
             })),
         });
 
+        const estimatedCost = await this.estimateCost(config);
+
+        // Save to database
+        await db.insert(deploymentsTable).values({
+            id: deploymentId,
+            projectId: config.projectId || '',
+            userId: config.userId || '',
+            provider: 'runpod',
+            resourceType: config.resourceType,
+            config: config as any,
+            status: 'deploying',
+            providerResourceId: result.podFindAndDeployOnDemand.id,
+            estimatedMonthlyCost: Math.round(estimatedCost.estimatedMonthlyCost * 100),
+        });
+
         return {
             id: deploymentId,
-            projectId: '',
-            userId: '',
+            projectId: config.projectId || '',
+            userId: config.userId || '',
             provider: 'runpod',
             config,
             status: 'deploying',
             providerResourceId: result.podFindAndDeployOnDemand.id,
+            estimatedMonthlyCost: estimatedCost.estimatedMonthlyCost,
             createdAt: now,
             updatedAt: now,
         };
     }
 
     /**
-     * Get deployment status
+     * Get deployment status from database and sync with RunPod
      */
     async getDeployment(deploymentId: string): Promise<Deployment | null> {
-        // This would need to be stored in our database
-        // For now, we return a placeholder
-        return null;
+        try {
+            // Fetch from database
+            const [dbDeployment] = await db
+                .select()
+                .from(deploymentsTable)
+                .where(eq(deploymentsTable.id, deploymentId));
+
+            if (!dbDeployment) {
+                return null;
+            }
+
+            const config = dbDeployment.config as DeploymentConfig;
+
+            // Try to get live status from RunPod if we have a provider resource ID
+            let liveStatus: DeploymentStatus = dbDeployment.status as DeploymentStatus;
+
+            if (dbDeployment.providerResourceId) {
+                try {
+                    // Check if it's an endpoint or pod
+                    const podResult = await this.graphql<{
+                        pod: { desiredStatus: string; lastStatusChange: string } | null;
+                    }>(`
+                        query GetPod($id: String!) {
+                            pod(input: { podId: $id }) {
+                                desiredStatus
+                                lastStatusChange
+                            }
+                        }
+                    `, { id: dbDeployment.providerResourceId });
+
+                    if (podResult.pod) {
+                        liveStatus = this.mapRunPodStatus(podResult.pod.desiredStatus);
+                    }
+                } catch {
+                    // Pod might be an endpoint, try endpoint query
+                    try {
+                        const endpointResult = await this.graphql<{
+                            endpoint: { id: string } | null;
+                        }>(`
+                            query GetEndpoint($id: String!) {
+                                endpoint(id: $id) {
+                                    id
+                                }
+                            }
+                        `, { id: dbDeployment.providerResourceId });
+
+                        if (endpointResult.endpoint) {
+                            liveStatus = 'running';
+                        }
+                    } catch {
+                        // Keep database status if API calls fail
+                    }
+                }
+
+                // Update database if status changed
+                if (liveStatus !== dbDeployment.status) {
+                    await db
+                        .update(deploymentsTable)
+                        .set({
+                            status: liveStatus,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(deploymentsTable.id, deploymentId));
+                }
+            }
+
+            return {
+                id: dbDeployment.id,
+                projectId: dbDeployment.projectId,
+                userId: dbDeployment.userId,
+                provider: 'runpod',
+                config,
+                status: liveStatus,
+                providerResourceId: dbDeployment.providerResourceId || undefined,
+                url: dbDeployment.url || undefined,
+                estimatedMonthlyCost: dbDeployment.estimatedMonthlyCost || undefined,
+                createdAt: new Date(dbDeployment.createdAt),
+                updatedAt: new Date(dbDeployment.updatedAt),
+            };
+        } catch (error) {
+            console.error('Error getting deployment:', error);
+            return null;
+        }
     }
 
     /**

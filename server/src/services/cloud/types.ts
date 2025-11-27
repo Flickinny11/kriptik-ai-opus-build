@@ -66,6 +66,10 @@ export interface DeploymentConfig {
     region: string;
     name: string;
 
+    // Context (for database storage)
+    projectId?: string;
+    userId?: string;
+
     // Container/Serverless settings
     containerImage?: string;
     dockerfile?: string;

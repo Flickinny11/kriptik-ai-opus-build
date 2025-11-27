@@ -5,7 +5,7 @@
  * for the user to customize before building begins.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +24,7 @@ import {
     ArrowRight,
     AlertCircle
 } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 
 // Types
 interface PlanOption {
@@ -230,46 +231,117 @@ function PhaseCard({
     );
 }
 
+// Icon mapping for phases received from API
+const ICON_MAP: Record<string, React.ElementType> = {
+    Code,
+    Database,
+    Shield,
+    Palette,
+    Server,
+    Package,
+    Zap,
+};
+
 // Main implementation plan component
 export function ImplementationPlan({ prompt, onApprove, onCancel }: ImplementationPlanProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [thinkingStage, setThinkingStage] = useState('Analyzing your prompt');
     const [phases, setPhases] = useState<PlanPhase[]>([]);
     const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Simulate AI thinking and plan generation
-    useEffect(() => {
-        const stages = [
-            'Analyzing your prompt',
-            'Identifying features',
-            'Planning architecture',
-            'Selecting technologies',
-            'Generating implementation plan'
-        ];
+    // Fetch AI-generated implementation plan from API
+    const fetchPlan = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
 
-        let stageIndex = 0;
-        const stageInterval = setInterval(() => {
-            stageIndex++;
-            if (stageIndex < stages.length) {
-                setThinkingStage(stages[stageIndex]);
+        try {
+            // Use SSE endpoint for streaming progress
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/plan/generate/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': apiClient.getUserId() || 'anonymous',
+                },
+                body: JSON.stringify({ prompt }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to generate plan: ${response.statusText}`);
             }
-        }, 1500);
 
-        // Generate plan after thinking animation
-        const planTimeout = setTimeout(() => {
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                // Process SSE events
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                let currentEvent = '';
+                let currentData = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEvent = line.slice(7);
+                    } else if (line.startsWith('data: ')) {
+                        currentData = line.slice(6);
+                    } else if (line === '' && currentEvent && currentData) {
+                        try {
+                            const parsedData = JSON.parse(currentData);
+
+                            if (currentEvent === 'progress') {
+                                setThinkingStage(parsedData.stage);
+                            } else if (currentEvent === 'complete') {
+                                // Transform API response to component format
+                                const apiPlan = parsedData.plan;
+                                const transformedPhases: PlanPhase[] = apiPlan.phases.map((phase: { id: string; title: string; description: string; icon: string; type: 'frontend' | 'backend'; options: PlanOption[]; selectedOption: string }) => ({
+                                    ...phase,
+                                    icon: ICON_MAP[phase.icon] || Code,
+                                }));
+                                setPhases(transformedPhases);
+                                setIsLoading(false);
+                            } else if (currentEvent === 'error') {
+                                setError(parsedData.message || 'Failed to generate plan');
+                                // Use fallback plan from error response
+                                if (parsedData.plan?.phases) {
+                                    const transformedPhases: PlanPhase[] = parsedData.plan.phases.map((phase: { id: string; title: string; description: string; icon: string; type: 'frontend' | 'backend'; options: PlanOption[]; selectedOption: string }) => ({
+                                        ...phase,
+                                        icon: ICON_MAP[phase.icon] || Code,
+                                    }));
+                                    setPhases(transformedPhases);
+                                }
+                                setIsLoading(false);
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse SSE data:', currentData);
+                        }
+                        currentEvent = '';
+                        currentData = '';
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Plan generation error:', err);
+            setError(err instanceof Error ? err.message : 'Failed to generate plan');
+            // Use fallback with common defaults
+            setPhases(getFallbackPhases());
             setIsLoading(false);
-            setPhases(generatePlan(prompt));
-            clearInterval(stageInterval);
-        }, stages.length * 1500);
-
-        return () => {
-            clearInterval(stageInterval);
-            clearTimeout(planTimeout);
-        };
+        }
     }, [prompt]);
 
-    // Generate mock plan based on prompt
-    function generatePlan(_prompt: string): PlanPhase[] {
+    // Fallback phases for when API fails
+    function getFallbackPhases(): PlanPhase[] {
         return [
             {
                 id: 'framework',
@@ -300,20 +372,6 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 selectedOption: 'tailwind-shadcn'
             },
             {
-                id: 'auth',
-                title: 'Authentication',
-                description: 'User authentication method',
-                icon: Shield,
-                type: 'frontend',
-                options: [
-                    { id: 'better-auth', label: 'Better Auth', description: 'Simple, secure authentication', recommended: true },
-                    { id: 'clerk', label: 'Clerk', description: 'Drop-in authentication' },
-                    { id: 'auth0', label: 'Auth0', description: 'Enterprise authentication' },
-                    { id: 'custom', label: 'Custom Auth', description: 'Build your own' },
-                ],
-                selectedOption: 'better-auth'
-            },
-            {
                 id: 'database',
                 title: 'Database',
                 description: 'Data persistence layer',
@@ -322,24 +380,9 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 options: [
                     { id: 'turso', label: 'Turso (SQLite)', description: 'Edge database with libSQL', recommended: true },
                     { id: 'postgres', label: 'PostgreSQL', description: 'Powerful relational database' },
-                    { id: 'mongodb', label: 'MongoDB', description: 'Document database' },
                     { id: 'supabase', label: 'Supabase', description: 'Postgres with realtime' },
                 ],
                 selectedOption: 'turso'
-            },
-            {
-                id: 'api',
-                title: 'API Layer',
-                description: 'Backend API architecture',
-                icon: Server,
-                type: 'backend',
-                options: [
-                    { id: 'express', label: 'Express.js', description: 'Flexible Node.js framework', recommended: true },
-                    { id: 'fastify', label: 'Fastify', description: 'Fast and low overhead' },
-                    { id: 'trpc', label: 'tRPC', description: 'Type-safe API with TypeScript' },
-                    { id: 'graphql', label: 'GraphQL', description: 'Query language for APIs' },
-                ],
-                selectedOption: 'express'
             },
             {
                 id: 'deployment',
@@ -351,12 +394,16 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                     { id: 'vercel', label: 'Vercel', description: 'Zero-config deployments', recommended: true },
                     { id: 'netlify', label: 'Netlify', description: 'JAMstack deployments' },
                     { id: 'railway', label: 'Railway', description: 'Infrastructure platform' },
-                    { id: 'docker', label: 'Docker', description: 'Container-based deployment' },
                 ],
                 selectedOption: 'vercel'
             },
         ];
     }
+
+    // Fetch plan on mount
+    useEffect(() => {
+        fetchPlan();
+    }, [fetchPlan]);
 
     const handleOptionSelect = (phaseId: string, optionId: string) => {
         setPhases(prev => prev.map(phase =>

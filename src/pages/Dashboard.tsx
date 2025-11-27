@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
@@ -7,6 +7,9 @@ import { useOnboardingStore } from '../store/useOnboardingStore';
 import TemplateGallery from '../components/templates/TemplateGallery';
 import TemplateCustomizationModal from '../components/templates/TemplateCustomizationModal';
 import WelcomeModal from '../components/onboarding/WelcomeModal';
+import ImageUploadModal from '../components/builder/ImageUploadModal';
+import GitHubImportModal from '../components/builder/GitHubImportModal';
+import { ImageToCodeResult } from '@/lib/api-client';
 import {
     Sparkles,
     Upload,
@@ -301,6 +304,13 @@ export default function Dashboard() {
     const { setGalleryOpen } = useTemplateStore();
     const { hasCompletedOnboarding, setWelcomeModalOpen } = useOnboardingStore();
 
+    // Image upload modal state
+    const [imageModalOpen, setImageModalOpen] = useState(false);
+    const [imageModalMode, setImageModalMode] = useState<'upload' | 'url' | 'figma' | 'clone'>('upload');
+
+    // GitHub import modal state
+    const [githubModalOpen, setGithubModalOpen] = useState(false);
+
     useEffect(() => {
         if (!hasCompletedOnboarding) {
             setTimeout(() => setWelcomeModalOpen(true), 500);
@@ -334,11 +344,89 @@ export default function Dashboard() {
         }
     };
 
+    // Handle action button clicks
+    const handleActionClick = useCallback((actionId: string) => {
+        switch (actionId) {
+            case 'upload':
+                setImageModalMode('upload');
+                setImageModalOpen(true);
+                break;
+            case 'image':
+                setImageModalMode('url');
+                setImageModalOpen(true);
+                break;
+            case 'figma':
+                setImageModalMode('figma');
+                setImageModalOpen(true);
+                break;
+            case 'clone':
+                setImageModalMode('clone');
+                setImageModalOpen(true);
+                break;
+            case 'github':
+                setGithubModalOpen(true);
+                break;
+        }
+    }, []);
+
+    // Handle image-to-code result
+    const handleImageToCodeComplete = useCallback((result: ImageToCodeResult) => {
+        // Create a new project with the generated components
+        const projectId = crypto.randomUUID();
+        const projectName = result.components[0]?.name || 'Design Import';
+
+        addProject({
+            id: projectId,
+            name: projectName,
+            description: `Generated from design - ${result.analysis.layout} layout with ${result.analysis.detectedElements.length} elements`,
+            framework: 'react',
+            createdAt: new Date(),
+            lastEdited: 'Just now',
+            status: 'development',
+        });
+
+        // Navigate to builder with the generated code
+        navigate(`/builder/${projectId}`, {
+            state: {
+                generatedComponents: result.components,
+                analysis: result.analysis,
+            },
+        });
+    }, [addProject, navigate]);
+
+    // Handle GitHub import result
+    const handleGitHubImportComplete = useCallback((result: { projectId: string; projectName: string; filesImported: number; framework: string; sourceRepo: string }) => {
+        // Add project to store
+        addProject({
+            id: result.projectId,
+            name: result.projectName,
+            description: `Imported from GitHub: ${result.sourceRepo}`,
+            framework: result.framework as 'react' | 'nextjs' | 'node' | 'vue' | 'svelte',
+            createdAt: new Date(),
+            lastEdited: 'Just now',
+            status: 'development',
+        });
+
+        // Navigate to builder
+        navigate(`/builder/${result.projectId}`);
+    }, [addProject, navigate]);
+
     return (
         <div className="min-h-screen bg-[#0a0a0f]">
             <WelcomeModal />
             <TemplateGallery />
             <TemplateCustomizationModal />
+            <ImageUploadModal
+                open={imageModalOpen}
+                onOpenChange={setImageModalOpen}
+                mode={imageModalMode}
+                onComplete={handleImageToCodeComplete}
+            />
+            <GitHubImportModal
+                open={githubModalOpen}
+                onOpenChange={setGithubModalOpen}
+                onComplete={handleGitHubImportComplete}
+            />
 
             {/* Header */}
             <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
@@ -429,11 +517,12 @@ export default function Dashboard() {
                                 {ACTION_BUTTONS.map((action) => (
                                     <button
                                         key={action.id}
-                                        onClick={() => console.log(action.id)}
+                                        onClick={() => handleActionClick(action.id)}
                                         className={cn(
                                             "flex items-center gap-2 px-3 py-1.5 rounded-lg",
                                             "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50",
                                             "text-sm text-slate-300 hover:text-white",
+                                            "hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5",
                                             "transition-all duration-200"
                                         )}
                                     >

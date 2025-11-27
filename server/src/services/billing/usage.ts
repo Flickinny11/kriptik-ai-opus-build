@@ -5,7 +5,7 @@
  */
 
 import { db } from '../../db.js';
-import { users } from '../../schema.js';
+import { users, subscriptions } from '../../schema.js';
 import { eq } from 'drizzle-orm';
 import { BILLING_PLANS } from './stripe.js';
 
@@ -59,8 +59,24 @@ export class UsageTrackingService {
      * Get usage summary for user
      */
     async getUsageSummary(userId: string): Promise<UsageSummary> {
-        // Get user plan (mock for now)
-        const plan = 'pro';
+        // Query actual user subscription from database
+        let plan = 'free'; // Default to free if no subscription
+
+        try {
+            const [subscription] = await db
+                .select()
+                .from(subscriptions)
+                .where(eq(subscriptions.userId, userId))
+                .limit(1);
+
+            if (subscription && subscription.status === 'active') {
+                plan = subscription.plan;
+            }
+        } catch (error) {
+            console.error('Error fetching user subscription:', error);
+            // Fall back to free plan on error
+        }
+
         const planDetails = BILLING_PLANS.find(p => p.id === plan);
 
         // Calculate period
@@ -74,7 +90,8 @@ export class UsageTrackingService {
         );
 
         const usedCredits = records.reduce((sum, r) => sum + r.credits, 0);
-        const totalCredits = planDetails?.credits || 0;
+        // Use plan credits or default to 100 for free tier
+        const totalCredits = planDetails?.credits || 100;
 
         return {
             currentCredits: Math.max(0, totalCredits - usedCredits),

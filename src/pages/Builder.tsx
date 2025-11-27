@@ -176,6 +176,12 @@ export default function Builder() {
     const handleProductionCheck = async () => {
         setShowQualityReport(true);
         setIsScanning(true);
+
+        // Set project context for the scanner
+        if (projectId) {
+            qualityScanner.setContext(projectId);
+        }
+
         const report = await qualityScanner.scan();
         setReport(report);
         setIsScanning(false);

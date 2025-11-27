@@ -81,6 +81,10 @@ class ApiClient {
         this.userId = userId;
     }
 
+    getUserId(): string | null {
+        return this.userId;
+    }
+
     private async fetch<T>(
         endpoint: string,
         options: RequestInit = {}
@@ -267,6 +271,193 @@ class ApiClient {
     async health(): Promise<{ status: string; timestamp: string; version: string }> {
         return this.fetch('/health');
     }
+
+    // =========================================================================
+    // IMAGE-TO-CODE API
+    // =========================================================================
+
+    /**
+     * Convert images to code with SSE streaming progress
+     */
+    async *imageToCode(
+        images: string[],
+        options?: {
+            framework?: 'react' | 'react-native' | 'vue' | 'html';
+            styling?: 'tailwind' | 'css-modules' | 'styled-components' | 'inline';
+            componentName?: string;
+            includeResponsive?: boolean;
+            includeAccessibility?: boolean;
+            includeInteractions?: boolean;
+            additionalInstructions?: string;
+        }
+    ): AsyncGenerator<
+        | { type: 'progress'; data: { stage: string; content: string } }
+        | { type: 'complete'; data: ImageToCodeResult }
+        | { type: 'error'; data: { error: string } }
+    > {
+        const response = await fetch(`${this.baseUrl}/api/ai/image-to-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(this.userId && { 'x-user-id': this.userId }),
+            },
+            body: JSON.stringify({
+                images,
+                framework: options?.framework || 'react',
+                styling: options?.styling || 'tailwind',
+                componentName: options?.componentName,
+                includeResponsive: options?.includeResponsive ?? true,
+                includeAccessibility: options?.includeAccessibility ?? true,
+                includeInteractions: options?.includeInteractions ?? true,
+                additionalInstructions: options?.additionalInstructions,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(error.error || `HTTP ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                let currentEvent = '';
+                let currentData = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEvent = line.slice(7);
+                    } else if (line.startsWith('data: ')) {
+                        currentData = line.slice(6);
+                    } else if (line === '' && currentEvent && currentData) {
+                        try {
+                            const data = JSON.parse(currentData);
+                            yield { type: currentEvent as 'progress' | 'complete' | 'error', data };
+                        } catch {
+                            console.error('Failed to parse SSE data:', currentData);
+                        }
+                        currentEvent = '';
+                        currentData = '';
+                    }
+                }
+            }
+        } finally {
+            reader.releaseLock();
+        }
+    }
+
+    /**
+     * Convert images to code (non-streaming, simpler)
+     */
+    async imageToCodeSimple(
+        images: string[],
+        options?: {
+            framework?: 'react' | 'react-native' | 'vue' | 'html';
+            styling?: 'tailwind' | 'css-modules' | 'styled-components' | 'inline';
+            componentName?: string;
+        }
+    ): Promise<ImageToCodeResult> {
+        return this.fetch('/api/ai/image-to-code/simple', {
+            method: 'POST',
+            body: JSON.stringify({
+                images,
+                framework: options?.framework || 'react',
+                styling: options?.styling || 'tailwind',
+                componentName: options?.componentName,
+            }),
+        });
+    }
+
+    // =========================================================================
+    // CODE QUALITY API
+    // =========================================================================
+
+    /**
+     * Run quality checks on project files
+     */
+    async runQualityCheck(projectId: string): Promise<QualityCheckResult> {
+        return this.fetch(`/api/quality/${projectId}/check`, {
+            method: 'POST',
+        });
+    }
+
+    /**
+     * Get quality report for a project
+     */
+    async getQualityReport(projectId: string): Promise<QualityCheckResult> {
+        return this.fetch(`/api/quality/${projectId}/report`);
+    }
+}
+
+// Image-to-Code result type
+export interface ImageToCodeResult {
+    components: Array<{
+        name: string;
+        code: string;
+        styles?: string;
+        path: string;
+        dependencies: string[];
+    }>;
+    entryPoint: string;
+    analysis: {
+        detectedElements: string[];
+        layout: string;
+        colorPalette: string[];
+        typography: string[];
+        interactions: string[];
+    };
+    usage: {
+        inputTokens: number;
+        outputTokens: number;
+        estimatedCost: number;
+    };
+}
+
+// Quality check result type
+export interface QualityCheckResult {
+    lint: Array<{
+        file: string;
+        issues: Array<{
+            line: number;
+            column: number;
+            severity: 'error' | 'warning' | 'info';
+            message: string;
+            ruleId: string;
+        }>;
+        errorCount: number;
+        warningCount: number;
+    }>;
+    review: {
+        id: string;
+        summary: string;
+        score: number;
+        issues: Array<{
+            severity: string;
+            type: string;
+            file: string;
+            message: string;
+        }>;
+    };
+    security: Array<{
+        severity: string;
+        type: string;
+        file: string;
+        description: string;
+        remediation: string;
+    }>;
 }
 
 // Singleton instance

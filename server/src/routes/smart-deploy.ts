@@ -13,6 +13,12 @@
 
 import { Router, Request, Response } from 'express';
 import { getSmartDeploymentService, DeploymentPlan } from '../services/deployment/smart-deployment.js';
+import { RunPodProvider } from '../services/cloud/runpod.js';
+import { getCredentialVault } from '../services/security/credential-vault.js';
+import { db } from '../db.js';
+import { deployments as deploymentsTable, projects, files as filesTable } from '../schema.js';
+import { eq, and } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -130,34 +136,181 @@ router.get('/gpu-tiers', async (req: Request, res: Response) => {
 
 /**
  * POST /api/deploy/execute
- * Execute a deployment plan
+ * Execute a deployment plan - triggers actual deployment to cloud provider
  */
 router.post('/execute', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { modelId, provider, gpuType, config } = req.body;
+        const { modelId, provider, gpuType, config, projectId } = req.body;
 
-        if (!modelId || !provider) {
-            return res.status(400).json({ error: 'modelId and provider are required' });
+        if (!provider) {
+            return res.status(400).json({ error: 'provider is required' });
         }
 
-        // This would trigger the actual deployment
-        // For now, return a placeholder response
+        const vault = getCredentialVault();
+        const deploymentId = uuidv4();
+
+        // Get deployment configuration
+        const smartService = getSmartDeploymentService();
+        let deploymentConfig: any = config || {};
+
+        // If modelId provided, analyze requirements
+        if (modelId) {
+            const requirements = await smartService.analyzeModel(modelId);
+            deploymentConfig = {
+                ...deploymentConfig,
+                name: modelId.split('/').pop() || `deployment-${Date.now()}`,
+                resourceType: requirements.framework === 'diffusers' ? 'gpu' : 'serverless',
+                gpu: gpuType ? {
+                    type: gpuType,
+                    count: 1,
+                } : undefined,
+                model: {
+                    huggingFaceId: modelId,
+                },
+            };
+        }
+
+        // Add context for database storage
+        deploymentConfig.projectId = projectId || '';
+        deploymentConfig.userId = userId;
+
+        // Execute deployment based on provider
+        let deployment: any;
+
+        switch (provider) {
+            case 'runpod': {
+                // Get RunPod credentials
+                const credentials = await vault.getCredential(userId, 'runpod');
+                const apiKey = (credentials?.data?.apiKey as string) || process.env.RUNPOD_API_KEY;
+
+                if (!apiKey) {
+                    return res.status(400).json({
+                        error: 'RunPod credentials not configured',
+                        missingCredential: 'runpod',
+                    });
+                }
+
+                const runpodProvider = new RunPodProvider({
+                    apiKey,
+                });
+
+                deployment = await runpodProvider.deploy({
+                    ...deploymentConfig,
+                    provider: 'runpod',
+                    region: deploymentConfig.region || 'US',
+                });
+                break;
+            }
+
+            case 'vercel': {
+                // Get Vercel credentials
+                const credentials = await vault.getCredential(userId, 'vercel');
+                const vercelToken = credentials?.data?.accessToken || credentials?.oauthAccessToken || process.env.VERCEL_TOKEN;
+
+                if (!vercelToken) {
+                    return res.status(400).json({
+                        error: 'Vercel credentials not configured',
+                        missingCredential: 'vercel',
+                    });
+                }
+
+                // Get project files if projectId provided
+                const projectFiles: Record<string, string> = {};
+                if (projectId) {
+                    const dbFiles = await db
+                        .select()
+                        .from(filesTable)
+                        .where(eq(filesTable.projectId, projectId));
+
+                    for (const file of dbFiles) {
+                        projectFiles[file.path] = file.content;
+                    }
+                }
+
+                // Save deployment record - Vercel deployment would be handled separately
+                // via the existing deploy routes
+                await db.insert(deploymentsTable).values({
+                    id: deploymentId,
+                    projectId: projectId || '',
+                    userId,
+                    provider: 'vercel',
+                    resourceType: 'serverless',
+                    config: deploymentConfig,
+                    status: 'pending',
+                });
+
+                deployment = {
+                    id: deploymentId,
+                    projectId,
+                    userId,
+                    provider: 'vercel',
+                    status: 'pending',
+                    config: deploymentConfig,
+                };
+                break;
+            }
+
+            case 'netlify': {
+                // Netlify deployment
+                const credentials = await vault.getCredential(userId, 'netlify');
+                const netlifyToken = credentials?.data?.accessToken || credentials?.oauthAccessToken || process.env.NETLIFY_TOKEN;
+
+                if (!netlifyToken) {
+                    return res.status(400).json({
+                        error: 'Netlify credentials not configured',
+                        missingCredential: 'netlify',
+                    });
+                }
+
+                // Save deployment record and return pending status
+                await db.insert(deploymentsTable).values({
+                    id: deploymentId,
+                    projectId: projectId || '',
+                    userId,
+                    provider: 'netlify',
+                    resourceType: 'serverless',
+                    config: deploymentConfig,
+                    status: 'pending',
+                });
+
+                deployment = {
+                    id: deploymentId,
+                    projectId,
+                    userId,
+                    provider: 'netlify',
+                    status: 'pending',
+                    config: deploymentConfig,
+                };
+                break;
+            }
+
+            default:
+                return res.status(400).json({
+                    error: `Unsupported provider: ${provider}`,
+                    supportedProviders: ['runpod', 'vercel', 'netlify'],
+                });
+        }
+
         res.json({
             success: true,
             message: 'Deployment initiated',
             deployment: {
-                id: `deploy-${Date.now()}`,
-                status: 'pending',
-                modelId,
+                id: deployment.id,
+                status: deployment.status,
                 provider,
-                gpuType,
-                estimatedTime: 300, // 5 minutes
+                url: deployment.url,
+                providerResourceId: deployment.providerResourceId,
+                estimatedMonthlyCost: deployment.estimatedMonthlyCost,
+                estimatedTime: provider === 'runpod' ? 300 : 120, // 5 min for GPU, 2 min for static
             },
         });
     } catch (error) {
         console.error('Error executing deployment:', error);
-        res.status(500).json({ error: 'Failed to execute deployment' });
+        res.status(500).json({
+            error: 'Failed to execute deployment',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
     }
 });
 

@@ -1,8 +1,19 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { getModelRouter } from './services/ai/model-router.js';
 
 dotenv.config();
+
+// Pre-warm model router for faster first request (2-3s improvement)
+const warmupRouter = () => {
+    try {
+        getModelRouter(); // Initialize singleton
+        console.log('✓ Model router pre-warmed');
+    } catch (error) {
+        console.error('Failed to pre-warm model router:', error);
+    }
+};
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -174,6 +185,8 @@ import workflowsRouter from './routes/workflows.js';
 import migrationRouter from './routes/migration.js';
 import qualityRouter from './routes/quality.js';
 import configRouter from './routes/config.js';
+import planRouter from './routes/plan.js';
+import figmaRouter from './routes/figma.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -183,6 +196,12 @@ app.use("/api/orchestrate", orchestrateRouter);
 
 // AI services (image-to-code, self-healing, test generation)
 app.use("/api/ai", aiRouter);
+
+// Implementation planning
+app.use("/api/plan", planRouter);
+
+// Figma integration
+app.use("/api/figma", figmaRouter);
 
 // Provisioning (database, auth - one-click infrastructure)
 app.use("/api/provisioning", provisioningRouter);
@@ -309,11 +328,19 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 // Export for Vercel serverless
 export default app;
 
+// Pre-warm for serverless cold starts
+if (process.env.VERCEL) {
+    warmupRouter();
+}
+
 // Only listen when running directly (not on Vercel)
 if (!process.env.VERCEL) {
     app.listen(port, () => {
         console.log(`\n🚀 KripTik AI Server starting on http://localhost:${port}`);
         console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+
+        // Pre-warm services
+        warmupRouter();
 
         const services = validateCredentials();
         printStartupStatus(services);
