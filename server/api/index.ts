@@ -6,8 +6,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ status: 'ok', message: 'Vercel serverless function working!' });
     }
     
-    // Try to import and use Express app dynamically
-    return import('../src/index').then(({ default: app }) => {
+    // Import compiled Express app from dist folder
+    return import('../dist/index.js').then(({ default: app }) => {
         return app(req, res);
     }).catch((error) => {
         return res.status(500).json({ 
