@@ -65,12 +65,12 @@ function validateCredentials(): ServiceStatus[] {
         });
     }
 
-    // Database
-    if (process.env.DATABASE_URL) {
+    // Database (Turso)
+    if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
         services.push({
             name: 'Database',
             status: 'ok',
-            message: 'PostgreSQL connected',
+            message: 'Turso (SQLite) connected',
         });
     } else {
         services.push({
