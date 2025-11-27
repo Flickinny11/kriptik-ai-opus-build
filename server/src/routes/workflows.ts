@@ -56,10 +56,14 @@ router.post('/models/search', async (req, res) => {
 });
 
 // Get model details from HuggingFace
-// Use wildcard to capture paths with slashes (org/model format)
-router.get('/models/huggingface/*', async (req, res) => {
-    // Extract modelId from the URL path after /models/huggingface/
-    const modelId = req.path.replace('/models/huggingface/', '');
+// Use query parameter to avoid path-to-regexp issues with slashes in model IDs
+router.get('/models/huggingface', async (req, res) => {
+    // Model ID is passed as query parameter (e.g., ?id=org/model-name)
+    const modelId = req.query.id as string;
+    
+    if (!modelId) {
+        return res.status(400).json({ message: 'Model ID is required (use ?id=org/model-name)' });
+    }
 
     try {
         const model = await discoveryService.getHuggingFaceModelInfo(modelId);
