@@ -126,7 +126,7 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 16384,
         tier: 'critical',
     },
-    
+
     'gpt-4o-2024-11-20': {
         id: 'openai/gpt-4o-2024-11-20',
         provider: 'openai',
@@ -139,7 +139,7 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 16384,
         tier: 'critical',
     },
-    
+
     // Google Gemini 2.0 Pro - excellent for coding
     'gemini-2.0-pro': {
         id: 'google/gemini-2.0-flash-thinking-exp',

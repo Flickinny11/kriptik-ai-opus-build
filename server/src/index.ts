@@ -187,6 +187,9 @@ import qualityRouter from './routes/quality.js';
 import configRouter from './routes/config.js';
 import planRouter from './routes/plan.js';
 import figmaRouter from './routes/figma.js';
+import modelDeployRouter from './routes/model-deploy.js';
+import stripeRouter from './routes/stripe.js';
+import infrastructureRouter from './routes/infrastructure.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -244,6 +247,15 @@ app.use("/api/quality", qualityRouter);
 
 // Configuration
 app.use("/api/config", configRouter);
+
+// Model Deployment (Replicate, Modal, Fal.ai)
+app.use("/api/model-deploy", modelDeployRouter);
+
+// Stripe Integration (for user's projects)
+app.use("/api/stripe", stripeRouter);
+
+// Infrastructure/IaC (Terraform, Docker, Kubernetes)
+app.use("/api/infrastructure", infrastructureRouter);
 
 // =============================================================================
 // HEALTH & STATUS
