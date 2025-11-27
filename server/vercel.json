@@ -5,7 +5,8 @@
   "outputDirectory": ".",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "@vercel/node@3"
+      "memory": 1024,
+      "maxDuration": 30
     }
   },
   "rewrites": [
