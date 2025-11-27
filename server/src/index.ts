@@ -289,24 +289,27 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 });
 
 // =============================================================================
-// START SERVER
+// START SERVER (only when not running as serverless)
 // =============================================================================
 
-app.listen(port, () => {
-    console.log(`\n🚀 KripTik AI Server starting on http://localhost:${port}`);
-    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+// Export for Vercel serverless
+export default app;
 
-    // Validate and display service status
-    const services = validateCredentials();
-    printStartupStatus(services);
+// Only listen when running directly (not on Vercel)
+if (!process.env.VERCEL) {
+    app.listen(port, () => {
+        console.log(`\n🚀 KripTik AI Server starting on http://localhost:${port}`);
+        console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
 
-    // Critical warning
-    if (!process.env.OPENROUTER_API_KEY) {
-        console.log('═══════════════════════════════════════════════════════════════');
-        console.log('  ❌ OPENROUTER_API_KEY is not set!');
-        console.log('  ❌ AI code generation WILL NOT WORK.');
-        console.log('  ❌ Get your API key from: https://openrouter.ai/keys');
-        console.log('  ❌ Add it to server/.env as: OPENROUTER_API_KEY=sk-or-...');
-        console.log('═══════════════════════════════════════════════════════════════\n');
-    }
-});
+        const services = validateCredentials();
+        printStartupStatus(services);
+
+        if (!process.env.OPENROUTER_API_KEY) {
+            console.log('═══════════════════════════════════════════════════════════════');
+            console.log('  ❌ OPENROUTER_API_KEY is not set!');
+            console.log('  ❌ AI code generation WILL NOT WORK.');
+            console.log('  ❌ Get your API key from: https://openrouter.ai/keys');
+            console.log('═══════════════════════════════════════════════════════════════\n');
+        }
+    });
+}

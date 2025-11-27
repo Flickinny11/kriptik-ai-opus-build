@@ -1,6 +1,6 @@
 /**
  * Implementation Plan Component
- * 
+ *
  * Displays the AI-generated implementation plan with phase options
  * for the user to customize before building begins.
  */
@@ -8,9 +8,9 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-    Sparkles, 
-    Check, 
+import {
+    Sparkles,
+    Check,
     ChevronDown,
     Code,
     Database,
@@ -75,11 +75,11 @@ function ThinkingAnimation({ stage }: { stage: string }) {
 }
 
 // Phase option selector
-function PhaseOption({ 
-    option, 
-    isSelected, 
-    onSelect 
-}: { 
+function PhaseOption({
+    option,
+    isSelected,
+    onSelect
+}: {
     option: PlanOption;
     isSelected: boolean;
     onSelect: () => void;
@@ -90,8 +90,8 @@ function PhaseOption({
             className={cn(
                 "flex items-start gap-3 p-4 rounded-xl text-left w-full",
                 "border-2 transition-all duration-200",
-                isSelected 
-                    ? "border-amber-500 bg-amber-500/10" 
+                isSelected
+                    ? "border-amber-500 bg-amber-500/10"
                     : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600"
             )}
         >
@@ -122,13 +122,13 @@ function PhaseOption({
 }
 
 // Phase card component
-function PhaseCard({ 
-    phase, 
+function PhaseCard({
+    phase,
     isExpanded,
     onToggle,
     onOptionSelect,
     onCustomInput
-}: { 
+}: {
     phase: PlanPhase;
     isExpanded: boolean;
     onToggle: () => void;
@@ -141,8 +141,8 @@ function PhaseCard({
     return (
         <div className={cn(
             "rounded-2xl border overflow-hidden transition-all duration-300",
-            phase.type === 'frontend' 
-                ? "border-cyan-500/30 bg-cyan-500/5" 
+            phase.type === 'frontend'
+                ? "border-cyan-500/30 bg-cyan-500/5"
                 : "border-purple-500/30 bg-purple-500/5"
         )}>
             {/* Header */}
@@ -153,8 +153,8 @@ function PhaseCard({
                 <div className="flex items-center gap-3">
                     <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
-                        phase.type === 'frontend' 
-                            ? "bg-cyan-500/20 text-cyan-400" 
+                        phase.type === 'frontend'
+                            ? "bg-cyan-500/20 text-cyan-400"
                             : "bg-purple-500/20 text-purple-400"
                     )}>
                         <Icon className="h-5 w-5" />
@@ -359,16 +359,16 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
     }
 
     const handleOptionSelect = (phaseId: string, optionId: string) => {
-        setPhases(prev => prev.map(phase => 
-            phase.id === phaseId 
+        setPhases(prev => prev.map(phase =>
+            phase.id === phaseId
                 ? { ...phase, selectedOption: optionId, customValue: undefined }
                 : phase
         ));
     };
 
     const handleCustomInput = (phaseId: string, value: string) => {
-        setPhases(prev => prev.map(phase => 
-            phase.id === phaseId 
+        setPhases(prev => prev.map(phase =>
+            phase.id === phaseId
                 ? { ...phase, customValue: value, selectedOption: undefined }
                 : phase
         ));

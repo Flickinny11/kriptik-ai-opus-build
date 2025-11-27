@@ -397,7 +397,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
 router.post('/setup-products', async (req: Request, res: Response) => {
     try {
         const { adminSecret } = req.body;
-        
+
         // Simple admin check
         if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== 'setup') {
             res.status(403).json({ error: 'Unauthorized' });
@@ -523,25 +523,25 @@ router.post('/setup-products', async (req: Request, res: Response) => {
             success: true,
             message: 'All products and prices created successfully!',
             products: {
-                starter: { 
-                    productId: starterProduct.id, 
-                    monthlyPriceId: starterMonthly.id, 
-                    yearlyPriceId: starterYearly.id 
+                starter: {
+                    productId: starterProduct.id,
+                    monthlyPriceId: starterMonthly.id,
+                    yearlyPriceId: starterYearly.id
                 },
-                builder: { 
-                    productId: builderProduct.id, 
-                    monthlyPriceId: builderMonthly.id, 
-                    yearlyPriceId: builderYearly.id 
+                builder: {
+                    productId: builderProduct.id,
+                    monthlyPriceId: builderMonthly.id,
+                    yearlyPriceId: builderYearly.id
                 },
-                developer: { 
-                    productId: developerProduct.id, 
-                    monthlyPriceId: developerMonthly.id, 
-                    yearlyPriceId: developerYearly.id 
+                developer: {
+                    productId: developerProduct.id,
+                    monthlyPriceId: developerMonthly.id,
+                    yearlyPriceId: developerYearly.id
                 },
-                pro: { 
-                    productId: proProduct.id, 
-                    monthlyPriceId: proMonthly.id, 
-                    yearlyPriceId: proYearly.id 
+                pro: {
+                    productId: proProduct.id,
+                    monthlyPriceId: proMonthly.id,
+                    yearlyPriceId: proYearly.id
                 },
             },
             envVariables: envVars,

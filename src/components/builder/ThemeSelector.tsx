@@ -1,6 +1,6 @@
 /**
  * Theme Selector Component
- * 
+ *
  * Comprehensive theme selection with:
  * - Pre-built theme options
  * - Color customization
@@ -10,9 +10,9 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-    Sparkles, 
-    Check, 
+import {
+    Sparkles,
+    Check,
     Palette,
     Image,
     ArrowRight,
@@ -137,11 +137,11 @@ const THEMES = [
 ];
 
 // Theme preview card
-function ThemeCard({ 
-    theme, 
-    isSelected, 
-    onSelect 
-}: { 
+function ThemeCard({
+    theme,
+    isSelected,
+    onSelect
+}: {
     theme: typeof THEMES[0];
     isSelected: boolean;
     onSelect: () => void;
@@ -152,18 +152,18 @@ function ThemeCard({
             className={cn(
                 "relative rounded-xl overflow-hidden",
                 "border-2 transition-all duration-200",
-                isSelected 
-                    ? "border-amber-500 ring-2 ring-amber-500/30" 
+                isSelected
+                    ? "border-amber-500 ring-2 ring-amber-500/30"
                     : "border-slate-700/50 hover:border-slate-600"
             )}
         >
             {/* Preview */}
-            <div 
+            <div
                 className="aspect-[4/3] p-3"
                 style={{ backgroundColor: theme.colors.background }}
             >
                 {/* Fake browser chrome */}
-                <div 
+                <div
                     className="h-5 rounded-t-lg flex items-center gap-1 px-2"
                     style={{ backgroundColor: theme.colors.surface }}
                 >
@@ -171,29 +171,29 @@ function ThemeCard({
                     <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
                 </div>
-                
+
                 {/* Content preview */}
-                <div 
+                <div
                     className="rounded-b-lg p-2 space-y-1.5"
                     style={{ backgroundColor: theme.colors.surface }}
                 >
-                    <div 
+                    <div
                         className={cn("h-2 w-16 rounded", `bg-gradient-to-r ${theme.gradient}`)}
                     />
-                    <div 
+                    <div
                         className="h-1.5 w-full rounded opacity-30"
                         style={{ backgroundColor: theme.colors.text }}
                     />
-                    <div 
+                    <div
                         className="h-1.5 w-3/4 rounded opacity-20"
                         style={{ backgroundColor: theme.colors.text }}
                     />
                     <div className="flex gap-1 pt-1">
-                        <div 
+                        <div
                             className="h-4 w-10 rounded-sm"
                             style={{ backgroundColor: theme.colors.primary }}
                         />
-                        <div 
+                        <div
                             className="h-4 w-10 rounded-sm opacity-30"
                             style={{ backgroundColor: theme.colors.text }}
                         />
@@ -227,10 +227,10 @@ function ThemeCard({
 }
 
 // Image-to-code UI generator
-function ImageToCodeGenerator({ 
-    onGenerate, 
-    onCancel 
-}: { 
+function ImageToCodeGenerator({
+    onGenerate,
+    onCancel
+}: {
     onGenerate: (imageUrl: string) => void;
     onCancel: () => void;
 }) {
@@ -240,12 +240,12 @@ function ImageToCodeGenerator({
 
     const handleGenerate = async () => {
         if (!prompt.trim()) return;
-        
+
         setIsGenerating(true);
-        
+
         // Simulate AI image generation
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
+
         // For demo, use a placeholder. In production, this would call an AI image generation API
         setGeneratedImage('/api/placeholder/ui-mockup.png');
         setIsGenerating(false);
@@ -407,7 +407,7 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
     if (showImageToCode) {
         return (
             <div className="p-6">
-                <ImageToCodeGenerator 
+                <ImageToCodeGenerator
                     onGenerate={handleImageGenerated}
                     onCancel={() => setShowImageToCode(false)}
                 />

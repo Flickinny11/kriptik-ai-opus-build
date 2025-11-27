@@ -7,11 +7,11 @@ import { useOnboardingStore } from '../store/useOnboardingStore';
 import TemplateGallery from '../components/templates/TemplateGallery';
 import TemplateCustomizationModal from '../components/templates/TemplateCustomizationModal';
 import WelcomeModal from '../components/onboarding/WelcomeModal';
-import { 
-    Sparkles, 
-    Upload, 
-    Figma, 
-    Github, 
+import {
+    Sparkles,
+    Upload,
+    Figma,
+    Github,
     Globe,
     Image,
     Zap,
@@ -61,7 +61,7 @@ function AnimatedPlaceholder() {
     useEffect(() => {
         const currentIdea = PROMPT_IDEAS[currentIndex];
         const speed = isDeleting ? 30 : 50;
-        
+
         const timeout = setTimeout(() => {
             if (!isDeleting) {
                 if (displayText.length < currentIdea.length) {
@@ -94,7 +94,7 @@ function AnimatedPlaceholder() {
 function CreditMeter({ used, total }: { used: number; total: number }) {
     const percentage = Math.min((used / total) * 100, 100);
     const remaining = total - used;
-    
+
     return (
         <div className="space-y-2">
             <div className="flex justify-between text-xs">
@@ -102,10 +102,10 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
                 <span className="font-mono text-amber-400">{remaining} left</span>
             </div>
             <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div 
+                <div
                     className={cn(
                         "h-full rounded-full transition-all duration-500",
-                        percentage > 80 ? "bg-red-500" : 
+                        percentage > 80 ? "bg-red-500" :
                         percentage > 50 ? "bg-amber-500" : "bg-emerald-500"
                     )}
                     style={{ width: `${percentage}%` }}
@@ -212,7 +212,7 @@ function UserMenu() {
 // Project thumbnail card
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
-    
+
     return (
         <button
             onClick={() => navigate(`/builder/${project.id}`)}
@@ -233,7 +233,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     <div className="w-2 h-2 rounded-full bg-green-400/60" />
                     <div className="flex-1 mx-3 h-3 bg-slate-700 rounded-full" />
                 </div>
-                
+
                 {/* Placeholder content lines */}
                 <div className="absolute inset-0 pt-10 p-4 space-y-2">
                     <div className="h-8 w-24 bg-slate-700/50 rounded" />
@@ -270,7 +270,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                             </span>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={(e) => { e.stopPropagation(); }}
                         className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
                     >
@@ -309,10 +309,10 @@ export default function Dashboard() {
 
     const handleGenerate = () => {
         if (!prompt.trim()) return;
-        
+
         // Auto-generate project name from prompt
         const projectName = prompt.slice(0, 50).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'New Project';
-        
+
         // Create project and navigate to builder
         addProject({
             id: crypto.randomUUID(),
@@ -323,7 +323,7 @@ export default function Dashboard() {
             lastEdited: 'Just now',
             status: 'development',
         });
-        
+
         navigate('/builder/new', { state: { prompt, projectName } });
     };
 
@@ -372,8 +372,8 @@ export default function Dashboard() {
                     {/* Prompt input */}
                     <div className={cn(
                         "relative rounded-2xl transition-all duration-300",
-                        isFocused 
-                            ? "shadow-xl shadow-amber-500/20" 
+                        isFocused
+                            ? "shadow-xl shadow-amber-500/20"
                             : "shadow-lg shadow-black/20"
                     )}>
                         <div className={cn(
@@ -397,7 +397,7 @@ export default function Dashboard() {
                                     )}
                                     rows={3}
                                 />
-                                
+
                                 {/* Animated placeholder */}
                                 {!prompt && !isFocused && (
                                     <div className="absolute inset-0 p-5 pointer-events-none text-lg">
@@ -485,7 +485,7 @@ export default function Dashboard() {
                                 View All
                             </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {projects.slice(0, 8).map((project) => (
                                 <ProjectThumbnail key={project.id} project={project} />
