@@ -174,15 +174,14 @@ export async function summarizeConversation(
     messages: Message[],
     maxLength: number = 2000
 ): Promise<string> {
-    // Use Anthropic for intelligent summarization
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Use Anthropic SDK (via OpenRouter or direct) for intelligent summarization
+    const { createAnthropicClient, getClaudeModelId } = await import('../../utils/anthropic-client.js');
+    const client = createAnthropicClient();
 
-    if (!apiKey || messages.length < 10) {
+    if (!client || messages.length < 10) {
         // Return simple summary for short conversations or no API key
         return createSimpleSummary(messages);
     }
-
-    const client = new Anthropic({ apiKey });
 
     const conversationText = messages.map(m =>
         `${m.role.toUpperCase()}${m.agentType ? ` (${m.agentType})` : ''}: ${m.content}`
@@ -190,7 +189,7 @@ export async function summarizeConversation(
 
     try {
         const response = await client.messages.create({
-            model: 'claude-sonnet-4-20250514',
+            model: getClaudeModelId('sonnet'),
             max_tokens: 1024,
             messages: [
                 {

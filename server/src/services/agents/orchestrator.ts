@@ -21,6 +21,7 @@ import {
     ModelRecommendation,
 } from './types.js';
 import { getContextStore, ContextStore } from './context-store.js';
+import { createAnthropicClient, getClaudeModelId } from '../../utils/anthropic-client.js';
 
 // ============================================================================
 // AGENT EXECUTORS
@@ -131,15 +132,16 @@ export class AgentOrchestrator extends EventEmitter {
     }
     
     /**
-     * Initialize Anthropic client
+     * Initialize Anthropic client (uses OpenRouter if direct key not available)
      */
     private initializeClient(): void {
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const client = createAnthropicClient();
         
-        if (apiKey) {
-            this.client = new Anthropic({ apiKey });
+        if (client) {
+            this.client = client;
+            console.log('Agent orchestrator initialized with', process.env.ANTHROPIC_API_KEY ? 'direct Anthropic API' : 'OpenRouter');
         } else {
-            console.warn('Anthropic API key not configured. Agent orchestrator will use fallback mode.');
+            console.warn('No AI API key configured. Agent orchestrator will not function.');
         }
     }
     

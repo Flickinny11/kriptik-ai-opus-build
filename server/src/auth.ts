@@ -38,7 +38,7 @@ export const auth = betterAuth({
     // Secret for signing tokens (REQUIRED)
     secret: process.env.BETTER_AUTH_SECRET,
 
-    // Base URL for callbacks  
+    // Base URL for callbacks
     baseURL: process.env.BETTER_AUTH_URL || "https://kriptik-ai-opus-build-backend.vercel.app",
 
     // Email/Password authentication

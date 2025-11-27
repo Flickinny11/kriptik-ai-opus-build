@@ -115,9 +115,13 @@ export class CodeQualityService {
     private codeRabbitToken?: string;
 
     constructor() {
-        if (process.env.ANTHROPIC_API_KEY) {
-            this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-        }
+        // Use the shared Anthropic client factory (supports OpenRouter)
+        import('../../utils/anthropic-client.js').then(({ createAnthropicClient }) => {
+            const client = createAnthropicClient();
+            if (client) {
+                this.anthropicClient = client;
+            }
+        });
         this.codeRabbitToken = process.env.CODERABBIT_API_KEY;
     }
 

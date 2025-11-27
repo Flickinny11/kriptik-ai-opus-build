@@ -82,9 +82,13 @@ export class ModelDiscoveryService {
         this.replicateToken = process.env.REPLICATE_API_TOKEN;
         this.togetherToken = process.env.TOGETHER_API_KEY;
         
-        if (process.env.ANTHROPIC_API_KEY) {
-            this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-        }
+        // Use the shared Anthropic client factory (supports OpenRouter)
+        import('../../utils/anthropic-client.js').then(({ createAnthropicClient }) => {
+            const client = createAnthropicClient();
+            if (client) {
+                this.anthropicClient = client;
+            }
+        });
     }
     
     /**
