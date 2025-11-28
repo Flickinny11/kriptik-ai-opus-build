@@ -220,8 +220,8 @@ app.use('/api', generalRateLimiter);
 import { toNodeHandler } from "better-auth/node";
 import { auth } from './auth.js';
 // Better Auth handler - catches all /api/auth/* routes
-// Express 5 uses different wildcard syntax
-app.all("/api/auth/*", toNodeHandler(auth));
+// Express 5 with path-to-regexp requires named wildcards
+app.all("/api/auth/{*path}", toNodeHandler(auth));
 
 // =============================================================================
 // API ROUTES
