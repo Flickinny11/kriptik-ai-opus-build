@@ -4,6 +4,7 @@ import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
 import { useTemplateStore } from '../store/useTemplateStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
+import { useCostStore } from '../store/useCostStore';
 import TemplateGallery from '../components/templates/TemplateGallery';
 import TemplateCustomizationModal from '../components/templates/TemplateCustomizationModal';
 import WelcomeModal from '../components/onboarding/WelcomeModal';
@@ -125,7 +126,15 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
 function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const { user } = useUserStore();
+    const { balance, fetchCredits, isLoading: creditsLoading } = useCostStore();
     const menuRef = useRef<HTMLDivElement>(null);
+    
+    // Fetch credits when menu opens
+    useEffect(() => {
+        if (isOpen) {
+            fetchCredits();
+        }
+    }, [isOpen, fetchCredits]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -180,14 +189,24 @@ function UserMenu() {
                             </div>
                             <div>
                                 <p className="font-semibold text-white">{user?.name || 'User'}</p>
-                                <p className="text-xs text-slate-400">{user?.email || 'user@email.com'}</p>
+                                <p className="text-xs text-slate-400">{user?.email}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Credit meter */}
                     <div className="p-4 border-b border-slate-700/50">
-                        <CreditMeter used={342} total={500} />
+                        {creditsLoading ? (
+                            <div className="text-xs text-slate-400 animate-pulse">Loading credits...</div>
+                        ) : (
+                            <CreditMeter 
+                                used={balance.totalUsedThisMonth} 
+                                total={balance.limit === Infinity ? balance.available + balance.totalUsedThisMonth : balance.limit} 
+                            />
+                        )}
+                        <p className="mt-2 text-xs text-emerald-400 font-mono">
+                            {balance.available.toLocaleString()} credits available
+                        </p>
                     </div>
 
                     {/* Menu items */}

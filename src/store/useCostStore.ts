@@ -38,14 +38,14 @@ export const useCostStore = create<CostStore>((set, get) => ({
     fetchCredits: async () => {
         try {
             set({ isLoading: true });
-            
+
             // Fetch credits from backend
             const { data } = await apiClient.get<{
                 credits: number;
                 tier: string;
                 usedThisMonth?: number;
             }>('/api/billing/credits');
-            
+
             set({
                 balance: {
                     available: data.credits || 0,

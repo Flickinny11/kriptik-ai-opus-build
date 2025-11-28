@@ -61,10 +61,10 @@ export const useUserStore = create<UserState>((set) => ({
     user: null,
     isAuthenticated: false,
     isLoading: true,
-    
+
     initialize: async () => {
         console.log('[UserStore] Initializing...');
-        
+
         // First, try to load from localStorage (for fast startup)
         const storedUser = loadUserFromStorage();
         if (storedUser) {
@@ -75,11 +75,11 @@ export const useUserStore = create<UserState>((set) => ({
                 isAuthenticated: true,
                 isLoading: false
             });
-            
+
             // Fetch credits in background
             useCostStore.getState().fetchCredits();
         }
-        
+
         // Then try to get session from Better Auth (validates it's still valid)
         try {
             const { data: session, error } = await authClient.getSession();
@@ -92,17 +92,17 @@ export const useUserStore = create<UserState>((set) => ({
                     name: session.user.name || '',
                     avatar: session.user.image || undefined
                 };
-                
+
                 // Update stored user and state
                 saveUserToStorage(user);
                 setApiUserId(session.user.id);
-                
+
                 set({
                     user,
                     isAuthenticated: true,
                     isLoading: false
                 });
-                
+
                 // Fetch credits
                 useCostStore.getState().fetchCredits();
             } else if (!storedUser) {
@@ -125,11 +125,11 @@ export const useUserStore = create<UserState>((set) => ({
             set({ isLoading: false });
         }
     },
-    
+
     login: async (email, password) => {
         set({ isLoading: true });
         console.log('[UserStore] Logging in with email:', email);
-        
+
         const { error } = await authClient.signIn.email({
             email,
             password,
@@ -144,7 +144,7 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-login session:', session);
-        
+
         if (session?.user) {
             const user = {
                 id: session.user.id,
@@ -152,7 +152,7 @@ export const useUserStore = create<UserState>((set) => ({
                 name: session.user.name || '',
                 avatar: session.user.image || undefined
             };
-            
+
             // Save to localStorage and set API user ID
             saveUserToStorage(user);
             setApiUserId(session.user.id);
@@ -162,16 +162,16 @@ export const useUserStore = create<UserState>((set) => ({
                 isAuthenticated: true,
                 isLoading: false
             });
-            
+
             // Fetch credits
             useCostStore.getState().fetchCredits();
         }
     },
-    
+
     signup: async (email, password, name) => {
         set({ isLoading: true });
         console.log('[UserStore] Signing up:', { email, name });
-        
+
         const { error } = await authClient.signUp.email({
             email,
             password,
@@ -187,7 +187,7 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-signup session:', session);
-        
+
         if (session?.user) {
             const user = {
                 id: session.user.id,
@@ -195,7 +195,7 @@ export const useUserStore = create<UserState>((set) => ({
                 name: session.user.name || '',
                 avatar: session.user.image || undefined
             };
-            
+
             // Save to localStorage and set API user ID
             saveUserToStorage(user);
             setApiUserId(session.user.id);
@@ -205,26 +205,26 @@ export const useUserStore = create<UserState>((set) => ({
                 isAuthenticated: true,
                 isLoading: false
             });
-            
+
             // Fetch credits
             useCostStore.getState().fetchCredits();
         }
     },
-    
+
     logout: async () => {
         set({ isLoading: true });
         console.log('[UserStore] Logging out...');
-        
+
         try {
             await authClient.signOut();
         } catch (e) {
             console.warn('[UserStore] Sign out error:', e);
         }
-        
+
         // Clear stored user
         clearUserFromStorage();
         setApiUserId(null);
-        
+
         set({ user: null, isAuthenticated: false, isLoading: false });
     },
 }));
