@@ -33,7 +33,7 @@ type ImportSource =
     // AI Assistants
     | 'claude' | 'chatgpt' | 'gemini' | 'copilot'
     // AI Editors
-    | 'cursor' | 'windsurf' | 'cody' | 'continue'
+    | 'cursor' | 'windsurf' | 'antigravity' | 'vscode' | 'cody' | 'continue'
     // Dev Platforms
     | 'replit' | 'codesandbox' | 'stackblitz'
     // Repositories
@@ -331,6 +331,38 @@ const sourceOptions: SourceConfig[] = [
             'Export or copy chat history',
             'Upload project folder as ZIP',
             'Paste Cascade conversation',
+        ],
+    },
+    {
+        id: 'antigravity',
+        name: 'Google Antigravity',
+        icon: '🌌',
+        description: 'Google\'s agentic AI platform',
+        category: 'ai_editor',
+        contextAvailable: true,
+        requiresUrl: false,
+        chatInstructions: [
+            'In Antigravity, open Agent panel',
+            'Click "Export Session" or copy chat',
+            'Include artifacts (plans, tasks)',
+            'Upload project as ZIP',
+            'Paste agent conversation',
+        ],
+    },
+    {
+        id: 'vscode',
+        name: 'VS Code',
+        icon: '💙',
+        description: 'VS Code + AI extensions',
+        category: 'ai_editor',
+        contextAvailable: true,
+        requiresUrl: false,
+        chatInstructions: [
+            'Open VS Code with your project',
+            'Open your AI extension chat panel',
+            'Copy the conversation history',
+            'Upload project as ZIP',
+            'Paste AI conversation',
         ],
     },
     {

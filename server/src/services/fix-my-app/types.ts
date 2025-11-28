@@ -38,6 +38,8 @@ export type ImportSource =
     // AI Code Editors (export project + chat history)
     | 'cursor'         // Cursor IDE - AI-first editor
     | 'windsurf'       // Windsurf - Codeium's AI IDE
+    | 'antigravity'    // Google Antigravity - Agentic AI platform
+    | 'vscode'         // VS Code with AI extensions
     | 'cody'           // Sourcegraph Cody
     | 'continue'       // Continue.dev
 
@@ -320,6 +322,42 @@ export const SOURCE_REGISTRY: Record<ImportSource, SourceMetadata> = {
             'Paste the Cascade conversation below',
         ],
         chatParserKey: 'windsurf',
+    },
+    antigravity: {
+        id: 'antigravity',
+        name: 'Google Antigravity',
+        icon: '🌌',
+        description: 'Google\'s agentic AI platform',
+        category: 'ai_editor',
+        contextAvailable: true,
+        requiresUrl: false,
+        requiresPaste: true,
+        chatInstructions: [
+            'In Antigravity, open the Agent panel',
+            'Click "Export Session" or copy agent conversation',
+            'Include any artifacts (task lists, plans)',
+            'Upload your project folder as ZIP',
+            'Paste the agent conversation below',
+        ],
+        chatParserKey: 'antigravity',
+    },
+    vscode: {
+        id: 'vscode',
+        name: 'VS Code',
+        icon: '💙',
+        description: 'VS Code with AI extensions',
+        category: 'ai_editor',
+        contextAvailable: true,
+        requiresUrl: false,
+        requiresPaste: true,
+        chatInstructions: [
+            'Open VS Code with your project',
+            'If using Copilot: Open Copilot Chat, copy history',
+            'If using other AI: Copy from that extension\'s panel',
+            'Upload your project folder as ZIP',
+            'Paste your AI conversation below',
+        ],
+        chatParserKey: 'vscode',
     },
     cody: {
         id: 'cody',

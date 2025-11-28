@@ -88,6 +88,12 @@ export class ChatParser {
             case 'windsurf':
                 messages = this.parseWindsurfFormat(normalizedText);
                 break;
+            case 'antigravity':
+                messages = this.parseAntigravityFormat(normalizedText);
+                break;
+            case 'vscode':
+                messages = this.parseVSCodeFormat(normalizedText);
+                break;
             case 'cody':
             case 'continue':
                 messages = this.parseGenericEditorFormat(normalizedText);
@@ -473,6 +479,184 @@ export class ChatParser {
             }
         }
 
+        if (messages.length === 0) {
+            return this.parseAlternatingPattern(text);
+        }
+
+        return messages;
+    }
+
+    /**
+     * Parse Google Antigravity format
+     * Antigravity has an agentic structure with task planning, execution, and verification
+     */
+    private parseAntigravityFormat(text: string): ChatMessage[] {
+        // Try JSON format first (exported sessions)
+        try {
+            const data = JSON.parse(text);
+            if (data.session || data.agents || data.tasks) {
+                return this.parseAntigravityJSON(data);
+            }
+            if (Array.isArray(data)) {
+                return this.parseJSONMessages(data);
+            }
+        } catch {
+            // Not JSON, parse as text
+        }
+
+        const messages: ChatMessage[] = [];
+        let messageNumber = 1;
+
+        // Antigravity format: Tasks, Agent responses, Artifacts
+        // Common patterns: "Task:", "Agent:", "Plan:", "Executing:", "Verified:", "Artifact:"
+        const blocks = text.split(/(?=(?:Task|User|Human|You|Request):\s*)|(?=(?:Agent|Antigravity|AI|Gemini|Claude|GPT|Plan|Executing|Verified|Artifact):\s*)/i);
+
+        for (const block of blocks) {
+            if (!block.trim()) continue;
+
+            // User/Task messages
+            const userMatch = block.match(/^(?:Task|User|Human|You|Request):\s*([\s\S]*)/i);
+            // Agent/AI responses
+            const aiMatch = block.match(/^(?:Agent|Antigravity|AI|Gemini|Claude|GPT|Plan|Executing|Verified|Artifact):\s*([\s\S]*)/i);
+
+            if (userMatch) {
+                messages.push(this.createMessage('user', userMatch[1].trim(), messageNumber++));
+            } else if (aiMatch) {
+                messages.push(this.createMessage('assistant', aiMatch[1].trim(), messageNumber++));
+            }
+        }
+
+        if (messages.length === 0) {
+            return this.parseAlternatingPattern(text);
+        }
+
+        return messages;
+    }
+
+    /**
+     * Parse Antigravity JSON export format
+     */
+    private parseAntigravityJSON(data: any): ChatMessage[] {
+        const messages: ChatMessage[] = [];
+        let messageNumber = 1;
+
+        // Handle session format
+        if (data.tasks) {
+            for (const task of data.tasks) {
+                // User request
+                if (task.request || task.description) {
+                    messages.push(this.createMessage('user', task.request || task.description, messageNumber++));
+                }
+
+                // Agent responses/plans
+                if (task.plan) {
+                    messages.push(this.createMessage('assistant', `Plan: ${task.plan}`, messageNumber++));
+                }
+
+                // Execution steps
+                if (task.steps) {
+                    for (const step of task.steps) {
+                        messages.push(this.createMessage('assistant', `${step.action}: ${step.result || step.description}`, messageNumber++));
+                    }
+                }
+
+                // Artifacts
+                if (task.artifacts) {
+                    for (const artifact of task.artifacts) {
+                        messages.push(this.createMessage('assistant', `Artifact: ${artifact.type} - ${artifact.content || artifact.path}`, messageNumber++));
+                    }
+                }
+
+                // Verification
+                if (task.verification) {
+                    messages.push(this.createMessage('assistant', `Verification: ${task.verification}`, messageNumber++));
+                }
+            }
+        }
+
+        // Handle agent messages directly
+        if (data.agents) {
+            for (const agent of data.agents) {
+                if (agent.messages) {
+                    for (const msg of agent.messages) {
+                        const role = msg.role === 'user' ? 'user' : 'assistant';
+                        messages.push(this.createMessage(role, msg.content, messageNumber++));
+                    }
+                }
+            }
+        }
+
+        // Handle simple messages array
+        if (data.messages) {
+            for (const msg of data.messages) {
+                const role = msg.role === 'user' || msg.role === 'human' ? 'user' : 'assistant';
+                messages.push(this.createMessage(role, msg.content || msg.text, messageNumber++));
+            }
+        }
+
+        return messages;
+    }
+
+    /**
+     * Parse VS Code format (with various AI extensions)
+     * Handles Copilot Chat, Cody, Continue, and other AI extensions
+     */
+    private parseVSCodeFormat(text: string): ChatMessage[] {
+        // Try JSON format first (some extensions export JSON)
+        try {
+            const data = JSON.parse(text);
+            if (Array.isArray(data)) {
+                return this.parseJSONMessages(data);
+            }
+            if (data.messages || data.conversation) {
+                return this.parseJSONMessages(data.messages || data.conversation);
+            }
+        } catch {
+            // Not JSON
+        }
+
+        const messages: ChatMessage[] = [];
+        let messageNumber = 1;
+
+        // VS Code with AI extensions has various formats depending on the extension
+        // Common patterns from Copilot, Cody, Continue, etc.
+        const blocks = text.split(/(?=(?:User|You|Human|Me|@user|Question|Q):\s*)|(?=(?:Copilot|Assistant|AI|Bot|Cody|Continue|@assistant|@copilot|GitHub Copilot|Answer|A):\s*)/i);
+
+        for (const block of blocks) {
+            if (!block.trim()) continue;
+
+            // User messages
+            const userMatch = block.match(/^(?:User|You|Human|Me|@user|Question|Q):\s*([\s\S]*)/i);
+            // AI responses
+            const aiMatch = block.match(/^(?:Copilot|Assistant|AI|Bot|Cody|Continue|@assistant|@copilot|GitHub Copilot|Answer|A):\s*([\s\S]*)/i);
+
+            if (userMatch) {
+                messages.push(this.createMessage('user', userMatch[1].trim(), messageNumber++));
+            } else if (aiMatch) {
+                messages.push(this.createMessage('assistant', aiMatch[1].trim(), messageNumber++));
+            }
+        }
+
+        // If no messages found with VS Code patterns, try generic patterns
+        if (messages.length === 0) {
+            // Try to detect VS Code inline chat format (// Chat: user message, // Response: ai response)
+            const inlineBlocks = text.split(/(?=\/\/\s*(?:Chat|Question|User):\s*)|(?=\/\/\s*(?:Response|Answer|Copilot):\s*)/i);
+
+            for (const block of inlineBlocks) {
+                if (!block.trim()) continue;
+
+                const userInline = block.match(/^\/\/\s*(?:Chat|Question|User):\s*([\s\S]*)/i);
+                const aiInline = block.match(/^\/\/\s*(?:Response|Answer|Copilot):\s*([\s\S]*)/i);
+
+                if (userInline) {
+                    messages.push(this.createMessage('user', userInline[1].trim(), messageNumber++));
+                } else if (aiInline) {
+                    messages.push(this.createMessage('assistant', aiInline[1].trim(), messageNumber++));
+                }
+            }
+        }
+
+        // Fall back to alternating pattern
         if (messages.length === 0) {
             return this.parseAlternatingPattern(text);
         }
