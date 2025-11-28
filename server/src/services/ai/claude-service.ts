@@ -312,7 +312,7 @@ When preparing deployment, respond with:
  */
 function buildEnhancedSystemPrompt(agentType: string, customSystemPrompt?: string): string {
     const basePrompt = customSystemPrompt || AGENT_SYSTEM_PROMPTS[agentType] || AGENT_SYSTEM_PROMPTS.generation;
-    
+
     // Only enhance generation and refinement agents with design tokens
     if (agentType === 'generation' || agentType === 'refinement') {
         return `${basePrompt}
@@ -321,7 +321,7 @@ ${getDesignTokenPrompt()}
 
 ${getIconSuggestionPrompt()}`;
     }
-    
+
     return basePrompt;
 }
 
@@ -332,7 +332,7 @@ function checkComponentCache(prompt: string): { found: boolean; component?: stri
     try {
         const registry = getComponentRegistry();
         const match = registry.find(prompt, { minQuality: 70 });
-        
+
         if (match && match.similarity >= 0.85) {
             // High confidence match - can reuse
             return {
@@ -341,7 +341,7 @@ function checkComponentCache(prompt: string): { found: boolean; component?: stri
                 similarity: match.similarity,
             };
         }
-        
+
         return { found: false };
     } catch {
         // Registry not available, continue with generation

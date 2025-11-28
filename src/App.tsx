@@ -10,6 +10,7 @@ import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import Builder from './pages/Builder';
 import UsageDashboard from './pages/UsageDashboard';
+import SettingsPage from './pages/SettingsPage';
 import { useUserStore } from './store/useUserStore';
 
 function App() {
@@ -55,6 +56,11 @@ function App() {
                     <Route path="/usage" element={
                         <PageErrorBoundary>
                             <UsageDashboard />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/settings" element={
+                        <PageErrorBoundary>
+                            <SettingsPage />
                         </PageErrorBoundary>
                     } />
                 </Route>

@@ -210,6 +210,8 @@ import modelDeployRouter from './routes/model-deploy.js';
 import stripeRouter from './routes/stripe.js';
 import infrastructureRouter from './routes/infrastructure.js';
 import autonomousRouter from './routes/autonomous.js';
+import hostingRouter from './routes/hosting.js';
+import userSettingsRouter from './routes/user-settings.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -284,6 +286,12 @@ app.use("/api/infrastructure", infrastructureRouter);
 // Autonomous Building ("Approve and Watch") - strictest rate limits, highest credit requirement
 // Autonomous building uses significant resources, require 200 credits
 app.use("/api/autonomous", autonomousRateLimiter, promptSanitizer, requireCredits(200), autonomousRouter);
+
+// Hosting (Cloudflare/Vercel managed deployments + IONOS domains)
+app.use("/api/hosting", hostingRouter);
+
+// User Settings (preferences, billing, notifications)
+app.use("/api/settings", userSettingsRouter);
 
 // =============================================================================
 // HEALTH & STATUS

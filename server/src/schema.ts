@@ -217,6 +217,147 @@ export const projectEnvVars = sqliteTable('project_env_vars', {
 });
 
 // ============================================================================
+// HOSTED DEPLOYMENTS - KripTik managed hosting (Cloudflare/Vercel)
+// ============================================================================
+
+export const hostedDeployments = sqliteTable('hosted_deployments', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    domainId: text('domain_id'),
+
+    // Hosting provider
+    provider: text('provider').notNull(), // 'cloudflare' | 'vercel'
+    providerProjectId: text('provider_project_id').notNull(),
+    providerProjectName: text('provider_project_name').notNull(),
+
+    // URLs
+    providerUrl: text('provider_url').notNull(), // *.pages.dev or *.vercel.app
+    customDomain: text('custom_domain'),
+    subdomain: text('subdomain'), // myapp (for myapp.kriptik.app)
+
+    // Deployment status
+    status: text('status').notNull().default('deploying'), // 'deploying', 'live', 'failed', 'stopped'
+    lastDeployedAt: text('last_deployed_at'),
+    deploymentCount: integer('deployment_count').default(1),
+
+    // App type detection
+    appType: text('app_type').notNull(), // 'static', 'fullstack', 'api'
+    framework: text('framework'),
+
+    // Logs and errors
+    buildLogs: text('build_logs', { mode: 'json' }),
+    errorLogs: text('error_logs', { mode: 'json' }),
+
+    // Metadata
+    buildOutput: text('build_output', { mode: 'json' }),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// ============================================================================
+// DOMAINS - User domain registrations via IONOS
+// ============================================================================
+
+export const domains = sqliteTable('domains', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+
+    // Domain info
+    domain: text('domain').notNull().unique(),
+    tld: text('tld').notNull(), // 'com', 'io', 'app', etc.
+
+    // Registration
+    registrar: text('registrar').notNull(), // 'ionos', 'external', 'subdomain'
+    registrationStatus: text('registration_status').notNull(), // 'pending', 'active', 'expired', 'transfer_out'
+    registeredAt: text('registered_at'),
+    expiresAt: text('expires_at'),
+    autoRenew: integer('auto_renew', { mode: 'boolean' }).default(true),
+
+    // IONOS specific
+    ionosDomainId: text('ionos_domain_id'),
+    ionosOrderId: text('ionos_order_id'),
+
+    // DNS
+    dnsConfigured: integer('dns_configured', { mode: 'boolean' }).default(false),
+    dnsTarget: text('dns_target'),
+    sslStatus: text('ssl_status').default('pending'),
+
+    // Billing
+    purchasePrice: integer('purchase_price'),
+    renewalPrice: integer('renewal_price'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+
+    // Metadata
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// ============================================================================
+// DOMAIN TRANSACTIONS - Billing history for domains
+// ============================================================================
+
+export const domainTransactions = sqliteTable('domain_transactions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    domainId: text('domain_id').notNull(),
+
+    type: text('type').notNull(), // 'registration', 'renewal', 'transfer'
+    amount: integer('amount').notNull(),
+    currency: text('currency').default('usd').notNull(),
+
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    stripeInvoiceId: text('stripe_invoice_id'),
+    status: text('status').notNull(), // 'pending', 'completed', 'failed', 'refunded'
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// ============================================================================
+// USER SETTINGS - Comprehensive user preferences
+// ============================================================================
+
+export const userSettings = sqliteTable('user_settings', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull().unique(),
+
+    // Billing preferences
+    spendingLimit: integer('spending_limit'), // monthly limit in cents
+    alertThreshold: integer('alert_threshold').default(80), // % of limit to alert
+    autoTopUp: integer('auto_top_up', { mode: 'boolean' }).default(false),
+    autoTopUpAmount: integer('auto_top_up_amount'), // in cents
+    autoTopUpThreshold: integer('auto_top_up_threshold'), // trigger when credits below this
+
+    // Default Stripe payment method
+    defaultPaymentMethodId: text('default_payment_method_id'),
+
+    // UI preferences
+    theme: text('theme').default('dark'),
+    editorTheme: text('editor_theme').default('vs-dark'),
+    fontSize: integer('font_size').default(14),
+    tabSize: integer('tab_size').default(2),
+
+    // AI preferences
+    preferredModel: text('preferred_model').default('claude-sonnet-4-5'),
+    autoSave: integer('auto_save', { mode: 'boolean' }).default(true),
+    streamingEnabled: integer('streaming_enabled', { mode: 'boolean' }).default(true),
+
+    // Notification preferences
+    emailNotifications: integer('email_notifications', { mode: 'boolean' }).default(true),
+    deploymentAlerts: integer('deployment_alerts', { mode: 'boolean' }).default(true),
+    billingAlerts: integer('billing_alerts', { mode: 'boolean' }).default(true),
+    weeklyDigest: integer('weekly_digest', { mode: 'boolean' }).default(false),
+
+    // Privacy
+    analyticsOptIn: integer('analytics_opt_in', { mode: 'boolean' }).default(true),
+    crashReports: integer('crash_reports', { mode: 'boolean' }).default(true),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// ============================================================================
 // User Context Memory - For persistent AI context
 // ============================================================================
 

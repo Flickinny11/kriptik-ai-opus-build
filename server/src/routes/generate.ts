@@ -124,10 +124,10 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
         for (const [path, content] of result.files) {
             filesObject[path] = content;
         }
-        
+
         // Initial quality evaluation
         let qualityResult = qualityGate.evaluate(filesObject);
-        
+
         sendSSE(res, 'log', {
             id: uuidv4(),
             agentType: 'refinement',
@@ -148,7 +148,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
 
             try {
                 const refinementResult = await qualityGate.refine(filesObject, prompt);
-                
+
                 if (refinementResult.success) {
                     // Update files with refined versions
                     for (const [path, content] of Object.entries(refinementResult.refinedFiles)) {
@@ -157,7 +157,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
                     }
                     filesObject = refinementResult.refinedFiles;
                     qualityResult = qualityGate.evaluate(filesObject);
-                    
+
                     sendSSE(res, 'log', {
                         id: uuidv4(),
                         agentType: 'refinement',
@@ -274,7 +274,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             result.usage.totalInputTokens,
             result.usage.totalOutputTokens
         );
-        
+
         try {
             const creditService = getCreditService();
             await creditService.deductCredits(
@@ -283,7 +283,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
                 `Code generation for project: ${project.name}`,
                 { projectId, generationId: sessionId, tokensUsed: result.usage.totalInputTokens + result.usage.totalOutputTokens }
             );
-            
+
             sendSSE(res, 'credits', {
                 deducted: actualCredits,
                 reason: 'AI code generation',

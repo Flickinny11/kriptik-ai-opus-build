@@ -27,16 +27,16 @@ const ALLOWED_REDIRECT_PATTERNS = [
  */
 export function isValidRedirectUrl(url: string | undefined | null): boolean {
     if (!url) return true; // No redirect, use default
-    
+
     try {
         const parsed = new URL(url);
-        
+
         // Block javascript: protocol (XSS)
         if (parsed.protocol === 'javascript:') return false;
-        
+
         // Block data: protocol
         if (parsed.protocol === 'data:') return false;
-        
+
         // Check against allowed patterns
         return ALLOWED_REDIRECT_PATTERNS.some(pattern => pattern.test(url));
     } catch {
@@ -50,10 +50,10 @@ export function isValidRedirectUrl(url: string | undefined | null): boolean {
  */
 export function sanitizeRedirectUrl(url: string | undefined | null): string {
     const defaultUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
-    
+
     if (!url) return defaultUrl;
     if (!isValidRedirectUrl(url)) return defaultUrl;
-    
+
     return url;
 }
 
@@ -140,12 +140,12 @@ export const auth = betterAuth({
         async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
             // If the URL is relative, allow it
             if (url.startsWith('/')) return url;
-            
+
             // Validate against allowed patterns
             if (isValidRedirectUrl(url)) {
                 return url;
             }
-            
+
             // Fall back to base URL for invalid redirects
             console.warn(`Blocked invalid redirect URL: ${url}`);
             return baseUrl;

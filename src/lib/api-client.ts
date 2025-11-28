@@ -272,6 +272,35 @@ class ApiClient {
         return this.fetch('/health');
     }
 
+    // Generic REST methods for new routes
+    async get<T = unknown>(endpoint: string): Promise<{ data: T }> {
+        const result = await this.fetch<T>(endpoint);
+        return { data: result };
+    }
+
+    async post<T = unknown>(endpoint: string, body?: unknown): Promise<{ data: T }> {
+        const result = await this.fetch<T>(endpoint, {
+            method: 'POST',
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        return { data: result };
+    }
+
+    async patch<T = unknown>(endpoint: string, body?: unknown): Promise<{ data: T }> {
+        const result = await this.fetch<T>(endpoint, {
+            method: 'PATCH',
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        return { data: result };
+    }
+
+    async delete<T = unknown>(endpoint: string): Promise<{ data: T }> {
+        const result = await this.fetch<T>(endpoint, {
+            method: 'DELETE',
+        });
+        return { data: result };
+    }
+
     // =========================================================================
     // IMAGE-TO-CODE API
     // =========================================================================

@@ -29,6 +29,7 @@ import QualityReportModal from '../components/builder/QualityReportModal';
 import CommandPalette from '../components/builder/CommandPalette';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import DeploymentModal from '../components/deployment/DeploymentModal';
+import { PublishButton } from '../components/deployment/PublishButton';
 import IntegrationMarketplace from '../components/integrations/IntegrationMarketplace';
 import ShareModal from '../components/collaboration/ShareModal';
 import CollaborationHeader from '../components/collaboration/CollaborationHeader';
@@ -155,6 +156,7 @@ export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
     const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
     const [showMemory, setShowMemory] = useState(false);
+    const [projectName, _setProjectName] = useState('Untitled Project');
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
     // Cloud panel state - prepared for future integration
@@ -356,9 +358,15 @@ export default function Builder() {
                                                 </TabsTrigger>
                                             </TabsList>
                                         </Tabs>
-                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                            <kbd className="px-2 py-1 bg-muted rounded border border-border text-[10px] font-mono">⌘K</kbd>
-                                            <span>Quick actions</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                <kbd className="px-2 py-1 bg-muted rounded border border-border text-[10px] font-mono">⌘K</kbd>
+                                                <span>Quick actions</span>
+                                            </div>
+                                            <PublishButton
+                                                projectId={projectId || 'new-project'}
+                                                projectName={projectName}
+                                            />
                                         </div>
                                     </div>
 
