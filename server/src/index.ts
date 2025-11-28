@@ -185,14 +185,14 @@ app.use((req, res, next) => {
     if (req.method !== 'OPTIONS') {
         return next();
     }
-    
+
     const origin = req.headers.origin as string;
-    
+
     // Check if origin is allowed
-    const isAllowed = !origin || 
+    const isAllowed = !origin ||
         allowedOrigins.includes(origin) ||
         allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
-    
+
     if (isAllowed) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -201,7 +201,7 @@ app.use((req, res, next) => {
         res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
         return res.status(204).end();
     }
-    
+
     res.status(403).json({ error: 'CORS not allowed' });
 });
 

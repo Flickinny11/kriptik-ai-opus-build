@@ -14,8 +14,23 @@ import { AgentType, AgentLog } from './agent-types';
 import { useAgentStore } from '../store/useAgentStore';
 import { useCostStore } from '../store/useCostStore';
 import { useEditorStore } from '../store/useEditorStore';
+import { apiClient } from './api-client';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Helper to get user ID for authenticated requests
+function getUserId(): string | null {
+    // First try from apiClient (set during login)
+    const fromClient = apiClient.getUserId();
+    if (fromClient) return fromClient;
+    
+    // Fallback to localStorage
+    try {
+        return localStorage.getItem('kriptik_user_id');
+    } catch {
+        return null;
+    }
+}
 
 export interface OrchestratorEvent {
     type: string;
@@ -73,11 +88,18 @@ export class AgentOrchestrator {
             store.setActiveAgent('planning');
             store.updateAgentStatus('planning', 'working');
 
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('Authentication required');
+            }
+            
             const analysisResponse = await fetch(`${API_BASE}/api/orchestrate/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-user-id': userId,
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     prompt,
                     projectId,
@@ -149,12 +171,20 @@ export class AgentOrchestrator {
         costStore: ReturnType<typeof useCostStore.getState>
     ): Promise<void> {
         return new Promise((resolve, reject) => {
+            const userId = getUserId();
+            if (!userId) {
+                reject(new Error('Authentication required'));
+                return;
+            }
+            
             // Use fetch with ReadableStream for SSE
             fetch(`${API_BASE}/api/orchestrate/${projectId}/execute`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-user-id': userId,
                 },
+                credentials: 'include',
             }).then(async (response) => {
                 if (!response.ok) {
                     const error = await response.json();

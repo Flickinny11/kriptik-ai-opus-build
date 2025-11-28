@@ -79,7 +79,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
         if (!projectId || projectId === 'new' || projectId.length < 5) {
             return;
         }
-        
+
         try {
             const response = await apiClient.get<{ deployment: DeploymentStatus | null }>(`/api/hosting/deployments/${projectId}`);
             if (response.data.deployment) {
