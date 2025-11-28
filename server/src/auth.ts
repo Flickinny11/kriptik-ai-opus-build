@@ -151,11 +151,18 @@ export const auth = betterAuth({
         generateState: true,
     },
 
-    // Trust proxy for Vercel
+    // Trust proxy for Vercel - include all allowed origins for callback URLs
     trustedOrigins: [
         "https://kriptik-ai-opus-build.vercel.app",
+        "https://kriptik-ai-opus-build.vercel.app/dashboard",
+        "https://kriptik-ai-opus-build.vercel.app/",
         "https://kriptik-ai-opus-build-backend.vercel.app",
         process.env.FRONTEND_URL || "",
+        `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/dashboard`,
+        "http://localhost:5173",
+        "http://localhost:5173/dashboard",
+        "http://localhost:3000",
+        "http://localhost:3000/dashboard",
     ].filter(Boolean),
 
     // Rate limiting (optional but recommended)
