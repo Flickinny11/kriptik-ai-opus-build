@@ -256,6 +256,7 @@ import autonomousRouter from './routes/autonomous.js';
 import hostingRouter from './routes/hosting.js';
 import userSettingsRouter from './routes/user-settings.js';
 import fixMyAppRouter from './routes/fix-my-app.js';
+import dbMigrateRouter from './routes/db-migrate.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -340,6 +341,9 @@ app.use("/api/settings", userSettingsRouter);
 // Fix My App - Import and fix broken apps from other AI builders
 // Uses significant resources for analysis and fixing, require 150 credits
 app.use("/api/fix-my-app", promptSanitizer, requireCredits(150), fixMyAppRouter);
+
+// Database migration (no auth required - protected by secret header)
+app.use("/api/db", dbMigrateRouter);
 
 // =============================================================================
 // HEALTH & STATUS

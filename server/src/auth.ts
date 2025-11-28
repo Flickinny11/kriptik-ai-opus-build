@@ -171,7 +171,7 @@ export const auth = betterAuth({
             // Always redirect to frontend dashboard after OAuth
             // This bypasses any encoding issues with callback URLs
             const dashboardUrl = `${frontendUrl}/dashboard`;
-            
+
             // If URL is relative path on our frontend, use it
             if (url.startsWith('/')) {
                 return `${frontendUrl}${url}`;
