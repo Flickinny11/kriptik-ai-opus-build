@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Builder from './pages/Builder';
 import UsageDashboard from './pages/UsageDashboard';
 import SettingsPage from './pages/SettingsPage';
+import FixMyApp from './pages/FixMyApp';
 import { useUserStore } from './store/useUserStore';
 
 function App() {
@@ -61,6 +62,11 @@ function App() {
                     <Route path="/settings" element={
                         <PageErrorBoundary>
                             <SettingsPage />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/fix-my-app" element={
+                        <PageErrorBoundary>
+                            <FixMyApp />
                         </PageErrorBoundary>
                     } />
                 </Route>

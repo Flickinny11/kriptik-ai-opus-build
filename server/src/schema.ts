@@ -414,3 +414,48 @@ export const publishedApps = sqliteTable('published_apps', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// FIX MY APP SESSIONS - Import and fix broken apps from other AI builders
+// =============================================================================
+
+export const fixSessions = sqliteTable('fix_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+    
+    // Source info
+    source: text('source').notNull(), // 'lovable', 'bolt', 'v0', 'github', 'zip'
+    sourceUrl: text('source_url'),
+    previewUrl: text('preview_url'),
+    
+    // Status tracking
+    status: text('status').default('initializing').notNull(),
+    progress: integer('progress').default(0).notNull(),
+    currentStep: text('current_step'),
+    
+    // Consent tracking
+    consentChatHistory: integer('consent_chat_history', { mode: 'boolean' }).default(false),
+    consentBuildLogs: integer('consent_build_logs', { mode: 'boolean' }).default(false),
+    consentErrorLogs: integer('consent_error_logs', { mode: 'boolean' }).default(false),
+    consentVersionHistory: integer('consent_version_history', { mode: 'boolean' }).default(false),
+    
+    // Context storage (JSON)
+    rawChatHistory: text('raw_chat_history', { mode: 'json' }),
+    intentSummary: text('intent_summary', { mode: 'json' }),
+    errorTimeline: text('error_timeline', { mode: 'json' }),
+    implementationGaps: text('implementation_gaps', { mode: 'json' }),
+    fixStrategy: text('fix_strategy', { mode: 'json' }),
+    
+    // Results
+    verificationReport: text('verification_report', { mode: 'json' }),
+    sarcasticNotification: text('sarcastic_notification', { mode: 'json' }),
+    
+    // Error tracking
+    error: text('error'),
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+});
