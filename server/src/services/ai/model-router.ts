@@ -55,9 +55,10 @@ export const MODELS: Record<string, ModelConfig> = {
     // ========================================================================
     // PREMIUM TIER - For complex projects requiring near-perfect output
     // Uses Claude 4.5 Opus with extended thinking for maximum quality
+    // Opus 4.5 supports: 200K context, 64K output, effort parameter (low/medium/high)
     // ========================================================================
     'claude-opus-4.5': {
-        id: 'anthropic/claude-sonnet-4-20250514', // Claude 4.5 Opus via OpenRouter
+        id: 'anthropic/claude-opus-4-5-20250514', // FIXED: Correct Opus 4.5 model ID
         provider: 'anthropic',
         name: 'Claude 4.5 Opus',
         contextWindow: 200000,
@@ -65,13 +66,13 @@ export const MODELS: Record<string, ModelConfig> = {
         outputCostPer1M: 75.00,
         supportsVision: true,
         supportsStreaming: true,
-        maxOutputTokens: 32000,
+        maxOutputTokens: 64000, // FIXED: Opus 4.5 supports 64K output tokens
         tier: 'critical', // Maps to critical for routing, but used for premium mode
     },
 
     // Fallback to standard Opus 4 if 4.5 unavailable
     'claude-opus-4': {
-        id: 'anthropic/claude-opus-4',
+        id: 'anthropic/claude-opus-4-20250514',
         provider: 'anthropic',
         name: 'Claude Opus 4',
         contextWindow: 200000,
@@ -79,7 +80,7 @@ export const MODELS: Record<string, ModelConfig> = {
         outputCostPer1M: 75.00,
         supportsVision: true,
         supportsStreaming: true,
-        maxOutputTokens: 32000,
+        maxOutputTokens: 64000, // Updated to 64K
         tier: 'critical',
     },
 

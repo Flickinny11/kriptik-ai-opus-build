@@ -422,10 +422,11 @@ IMPORTANT:
 - For env vars, provide reasonable placeholder values
 - Do NOT suggest fixes that were already tried and failed`;
 
+        // Error analysis and fix generation - increased for complex fixes
         const response = await this.claudeService.generate(prompt, {
-            maxTokens: 2000,
+            maxTokens: 16000,  // Increased from 2K - code fixes can be extensive
             useExtendedThinking: true,
-            thinkingBudgetTokens: 5000,
+            thinkingBudgetTokens: 10000,  // Increased from 5K for better reasoning
         });
 
         // Parse the fix from response

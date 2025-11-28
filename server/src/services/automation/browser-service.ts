@@ -230,8 +230,9 @@ Important:
 - For inputs, use placeholder text or label associations
 - Be precise with selectors to avoid ambiguity`;
 
+            // Browser action parsing - increased from 1K to allow for complex selectors
             const response = await this.claudeService!.generate(prompt, {
-                maxTokens: 1000,
+                maxTokens: 8000,  // Increased from 1K - complex actions need room
                 useExtendedThinking: false,
             });
 
@@ -339,8 +340,9 @@ ${schema ? `EXPECTED SCHEMA: ${JSON.stringify(schema)}` : ''}
 
 Respond with the extracted data as a JSON object.`;
 
+        // Data extraction - increased from 2K to handle large/complex extractions
         const response = await this.claudeService!.generate(prompt, {
-            maxTokens: 2000,
+            maxTokens: 16000,  // Increased from 2K - extracted data can be extensive
             useExtendedThinking: false,
         });
 

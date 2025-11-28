@@ -135,13 +135,16 @@ router.post('/generate', async (req: Request, res: Response) => {
             userId,
         });
 
-        // Generate the plan
+        // Generate the plan - CRITICAL: Use Opus 4.5 with full token capacity
+        // Plans are foundational - truncated plans cause incomplete implementations
         const result = await claude.generate(
             `Generate an implementation plan for the following project:\n\n${prompt}`,
             {
-                model: CLAUDE_MODELS.SONNET_4_5,
-                maxTokens: 4000,
-                useExtendedThinking: false, // Faster response for planning
+                model: CLAUDE_MODELS.OPUS_4_5,  // Use Opus 4.5 for critical planning
+                maxTokens: 64000,               // Full 64K output - plans can be extensive
+                useExtendedThinking: true,      // Enable deep reasoning for architecture
+                thinkingBudgetTokens: 16000,    // Generous thinking budget
+                effort: 'high',                 // Maximum effort for best quality plans
             }
         );
 
@@ -224,12 +227,15 @@ router.post('/generate/stream', async (req: Request, res: Response) => {
 
         sendSSE('progress', { stage: 'Identifying features', progress: 30 });
 
+        // CRITICAL: Use Opus 4.5 with full token capacity for streaming plan generation
         const result = await claude.generate(
             `Generate an implementation plan for the following project:\n\n${prompt}`,
             {
-                model: CLAUDE_MODELS.SONNET_4_5,
-                maxTokens: 4000,
-                useExtendedThinking: false,
+                model: CLAUDE_MODELS.OPUS_4_5,  // Use Opus 4.5 for critical planning
+                maxTokens: 64000,               // Full 64K output
+                useExtendedThinking: true,      // Enable deep reasoning
+                thinkingBudgetTokens: 16000,
+                effort: 'high',                 // Maximum effort
             }
         );
 

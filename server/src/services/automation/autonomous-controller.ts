@@ -366,11 +366,14 @@ Respond with JSON matching this structure:
 
 Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
+        // CRITICAL: Planning phase uses Opus 4.5 with maximum token limits
+        // Plans are foundational - truncated plans cause cascading failures
         const response = await this.claudeService.generate(planPrompt, {
-            model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 8000,
+            model: CLAUDE_MODELS.OPUS_4_5, // Use Opus 4.5 for critical planning
+            maxTokens: 64000,              // Full 64K output for complete plans
             useExtendedThinking: true,
-            thinkingBudgetTokens: 10000,
+            thinkingBudgetTokens: 20000,   // Increased for complex architecture reasoning
+            effort: 'high',                // Opus 4.5 effort parameter for best quality
         });
 
         // Parse plan
@@ -881,10 +884,12 @@ REQUIREMENTS:
 
 Generate ONLY the code, no explanations:`;
 
+        // Frontend files can be complex - use generous token limit
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 4000,
-            useExtendedThinking: false,
+            maxTokens: 32000,  // Increased from 4K - complex components need room
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 8000,
         });
 
         // Extract code from response
@@ -915,10 +920,12 @@ REQUIREMENTS:
 
 Generate ONLY the code, no explanations:`;
 
+        // Backend files often have complex logic - use generous limits
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 4000,
-            useExtendedThinking: false,
+            maxTokens: 32000,  // Increased from 4K - backend files can be extensive
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 8000,
         });
 
         const codeMatch = response.content.match(/```(?:tsx?|typescript)?\n([\s\S]*?)```/);
@@ -946,10 +953,12 @@ REQUIREMENTS:
 
 Generate ONLY the code:`;
 
+        // Database schemas with relations can be complex
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 3000,
-            useExtendedThinking: false,
+            maxTokens: 16000,  // Increased from 3K - complex schemas need room
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 6000,
         });
 
         const codeMatch = response.content.match(/```(?:tsx?|typescript)?\n([\s\S]*?)```/);

@@ -18,11 +18,19 @@ import { getIconSuggestionPrompt } from './icon-mapper.js';
 import { getComponentRegistry } from '../templates/component-registry.js';
 
 // Claude model constants
+// Both Sonnet 4.5 and Opus 4.5 support 64,000 output tokens
 export const CLAUDE_MODELS = {
-    SONNET_4_5: 'claude-sonnet-4-5-20250514',
+    OPUS_4_5: 'claude-opus-4-5-20250514',   // Premium: Complex architecture, critical planning (64K output)
+    SONNET_4_5: 'claude-sonnet-4-5-20250514', // Standard: Most coding tasks (64K output)
     SONNET_4: 'claude-sonnet-4-20250514',
     OPUS_4: 'claude-opus-4-20250514',
 } as const;
+
+// Model capabilities reference:
+// - Claude Opus 4.5: 200K context, 64K output, extended thinking, effort parameter (low/medium/high)
+// - Claude Sonnet 4.5: 200K context, 64K output, extended thinking
+// Use Opus 4.5 for critical tasks requiring near-perfect output (architecture, complex planning)
+// Use Sonnet 4.5 for most coding tasks (best balance of quality/cost)
 
 export type ClaudeModel = typeof CLAUDE_MODELS[keyof typeof CLAUDE_MODELS];
 
@@ -38,10 +46,11 @@ export interface GenerationContext {
 
 export interface GenerationOptions {
     model?: ClaudeModel;
-    maxTokens?: number;
+    maxTokens?: number;           // Default: 32000, Max: 64000 for Sonnet/Opus 4.5
     temperature?: number;
     useExtendedThinking?: boolean;
     thinkingBudgetTokens?: number;
+    effort?: 'low' | 'medium' | 'high'; // Opus 4.5 effort parameter for extended thinking
     stopSequences?: string[];
 }
 
@@ -400,10 +409,11 @@ export class ClaudeService {
     ): Promise<GenerationResponse> {
         const {
             model = CLAUDE_MODELS.SONNET_4_5,
-            maxTokens = 16000,
+            maxTokens = 32000,  // Increased from 16K - Both Sonnet 4.5 & Opus 4.5 support 64K output
             temperature = 1, // Required for extended thinking
             useExtendedThinking = true,
-            thinkingBudgetTokens = 10000,
+            thinkingBudgetTokens = 16000, // Increased from 10K for better reasoning
+            effort, // Opus 4.5 effort parameter
             stopSequences,
         } = options;
 

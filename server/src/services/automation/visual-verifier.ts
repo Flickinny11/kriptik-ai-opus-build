@@ -140,11 +140,12 @@ Respond with JSON:
     "recommendations": ["list of improvement suggestions"]
 }`;
 
+        // Visual verification is critical - use generous limits
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 4000,
+            maxTokens: 16000,  // Increased from 4K - comprehensive analysis needs room
             useExtendedThinking: true,
-            thinkingBudgetTokens: 8000,
+            thinkingBudgetTokens: 12000, // Increased for better visual reasoning
         });
 
         // Parse response
@@ -213,9 +214,10 @@ Respond with JSON array:
 
 If no slop is detected, return an empty array.`;
 
+        // Slop detection - increased for detailed issue lists
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 2000,
+            maxTokens: 8000,  // Increased from 2K - many issues to report
             useExtendedThinking: false,
         });
 
@@ -265,9 +267,10 @@ Respond with JSON:
     "analysis": "brief analysis"
 }`;
 
+        // Component verification - increased for detailed analysis
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 1500,
+            maxTokens: 8000,  // Increased from 1.5K - need room for issues
             useExtendedThinking: false,
         });
 
@@ -323,9 +326,10 @@ Respond with JSON:
     "analysis": "detailed comparison"
 }`;
 
+        // Screenshot comparison - increased for detailed analysis
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 2000,
+            maxTokens: 8000,  // Increased from 2K
             useExtendedThinking: false,
         });
 
@@ -371,9 +375,10 @@ Respond with JSON:
     "slopIndicators": ["any slop patterns found"]
 }`;
 
+        // Design analysis - increased for comprehensive extraction
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 1500,
+            maxTokens: 8000,  // Increased from 1.5K
             useExtendedThinking: false,
         });
 
@@ -409,11 +414,12 @@ Respond with JSON array of suggestions:
     ...
 ]`;
 
+        // Improvement suggestions - increased for detailed recommendations
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 2000,
+            maxTokens: 8000,  // Increased from 2K
             useExtendedThinking: true,
-            thinkingBudgetTokens: 5000,
+            thinkingBudgetTokens: 8000,  // Increased from 5K
         });
 
         const jsonMatch = response.content.match(/\[[\s\S]*\]/);
@@ -457,9 +463,10 @@ Respond with JSON:
     "confidence": number (0-100)
 }`;
 
+        // Journey step verification - increased for detailed analysis
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 1000,
+            maxTokens: 8000,  // Increased from 1K
             useExtendedThinking: false,
         });
 
@@ -511,9 +518,10 @@ Respond with JSON:
     "recommendations": ["list of a11y improvements"]
 }`;
 
+        // Accessibility check - increased for comprehensive issues list
         const response = await this.claudeService.generate(prompt, {
             model: CLAUDE_MODELS.SONNET_4_5,
-            maxTokens: 1500,
+            maxTokens: 8000,  // Increased from 1.5K
             useExtendedThinking: false,
         });
 
