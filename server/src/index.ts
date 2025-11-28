@@ -223,12 +223,39 @@ import { auth } from './auth.js';
 // Frontend URL for redirects after auth
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
 
+// Custom middleware to handle OAuth callback redirect
+// This intercepts the response from Better Auth and ensures proper redirect
+app.use("/api/auth/callback", (req, res, next) => {
+    console.log(`[OAuth Callback] ${req.method} ${req.path}`);
+    console.log(`[OAuth Callback] Query params:`, req.query);
+    
+    // Store original redirect method
+    const originalRedirect = res.redirect.bind(res);
+    
+    // Override redirect to ensure we go to frontend
+    res.redirect = function(statusOrUrl: number | string, url?: string) {
+        let targetUrl = typeof statusOrUrl === 'string' ? statusOrUrl : url;
+        let status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
+        
+        console.log(`[OAuth Callback] Redirect called with: ${targetUrl}`);
+        
+        // If redirect is to backend or root, redirect to frontend instead
+        if (!targetUrl || targetUrl === '/' || targetUrl.includes('kriptik-ai-opus-build-backend')) {
+            console.log(`[OAuth Callback] Overriding redirect to frontend dashboard`);
+            targetUrl = `${FRONTEND_URL}/dashboard`;
+        }
+        
+        return originalRedirect(status, targetUrl);
+    } as typeof res.redirect;
+    
+    next();
+});
+
 // Better Auth handler - catches all /api/auth/* routes
 // Express 5 with path-to-regexp requires named wildcards
 app.all("/api/auth/{*path}", toNodeHandler(auth));
 
 // Fallback redirect for any auth-related requests that land on backend root
-// This catches the case where OAuth callback redirects to backend instead of frontend
 app.get("/auth-redirect", (req, res) => {
     console.log('[Auth Redirect] Redirecting to frontend dashboard');
     res.redirect(`${FRONTEND_URL}/dashboard`);
