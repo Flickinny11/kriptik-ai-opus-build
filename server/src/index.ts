@@ -180,8 +180,13 @@ const allowedOrigins = [
 
 // CRITICAL: Handle ALL OPTIONS preflight requests FIRST
 // This ensures CORS headers are always sent, even if route doesn't exist
-app.options('*', (req, res) => {
-    const origin = req.headers.origin;
+// Using middleware instead of app.options('*') for Express 5 compatibility
+app.use((req, res, next) => {
+    if (req.method !== 'OPTIONS') {
+        return next();
+    }
+    
+    const origin = req.headers.origin as string;
     
     // Check if origin is allowed
     const isAllowed = !origin || 
@@ -275,7 +280,8 @@ app.use("/api/auth/callback", (req, res, next) => {
 });
 
 // Better Auth handler - catches all /api/auth/* routes
-app.all("/api/auth/*", toNodeHandler(auth));
+// Use middleware approach for Express 5 path-to-regexp compatibility
+app.use("/api/auth", toNodeHandler(auth));
 
 // Fallback redirect for any auth-related requests that land on backend root
 app.get("/auth-redirect", (req, res) => {
