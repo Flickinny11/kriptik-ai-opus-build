@@ -388,8 +388,25 @@ app.use("/api/db", dbMigrateRouter);
 // HEALTH & STATUS
 // =============================================================================
 
-// Root path - API info
+// Root path - redirect to frontend if coming from OAuth, otherwise show API info
 app.get('/', (req, res) => {
+    // Check if this is likely a redirect from OAuth (user has auth cookie or just completed OAuth)
+    const cookies = req.headers.cookie || '';
+    const hasAuthCookie = cookies.includes('kriptik_auth') || cookies.includes('better-auth');
+    const referer = req.headers.referer || '';
+    const fromGoogle = referer.includes('google.com') || referer.includes('accounts.google');
+    const fromGithub = referer.includes('github.com');
+    
+    console.log(`[Root] Request - hasAuthCookie: ${hasAuthCookie}, fromGoogle: ${fromGoogle}, fromGithub: ${fromGithub}`);
+    
+    // If user has auth cookie or coming from OAuth provider, redirect to frontend
+    if (hasAuthCookie || fromGoogle || fromGithub) {
+        const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+        console.log(`[Root] Redirecting to frontend dashboard: ${frontendUrl}/dashboard`);
+        return res.redirect(`${frontendUrl}/dashboard`);
+    }
+    
+    // Otherwise, show API info
     res.json({
         name: 'KripTik AI API',
         version: '1.0.0',
