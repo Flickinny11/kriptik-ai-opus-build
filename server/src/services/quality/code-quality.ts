@@ -410,19 +410,157 @@ Provide your review in the following JSON format:
 
     /**
      * Run CodeRabbit review (requires API key)
+     * 
+     * CodeRabbit provides AI-powered code reviews with:
+     * - Security vulnerability detection
+     * - Code quality analysis
+     * - Best practices enforcement
+     * - Performance suggestions
      */
     async runCodeRabbitReview(
         files: Record<string, string>,
-        pullRequestUrl?: string
+        options?: {
+            pullRequestUrl?: string;
+            repositoryContext?: string;
+            language?: string;
+        }
     ): Promise<CodeReviewResult> {
         if (!this.codeRabbitToken) {
-            console.warn('CodeRabbit API key not configured');
-            return this.createEmptyReviewResult();
+            console.warn('CodeRabbit API key not configured - falling back to AI review');
+            return this.runAICodeReview(files);
         }
 
-        // CodeRabbit integration would go here
-        // For now, fall back to AI review
-        return this.runAICodeReview(files);
+        try {
+            // CodeRabbit API endpoint for review
+            const response = await fetch('https://api.coderabbit.ai/v1/review', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.codeRabbitToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    files: Object.entries(files).map(([path, content]) => ({
+                        path,
+                        content,
+                    })),
+                    context: options?.repositoryContext,
+                    language: options?.language || 'typescript',
+                    options: {
+                        security: true,
+                        performance: true,
+                        style: true,
+                        bugs: true,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                console.error('CodeRabbit API error:', response.status, await response.text());
+                // Fall back to AI review on API error
+                return this.runAICodeReview(files);
+            }
+
+            const data = await response.json();
+
+            // Transform CodeRabbit response to our format
+            return {
+                id: uuidv4(),
+                summary: data.summary || 'CodeRabbit review completed',
+                score: data.score || this.calculateScoreFromFindings(data),
+                issues: (data.issues || []).map((i: any) => ({
+                    id: uuidv4(),
+                    severity: this.mapCodeRabbitSeverity(i.severity),
+                    type: i.category || 'maintainability',
+                    file: i.file_path || i.file,
+                    line: i.line_number || i.line,
+                    message: i.message || i.description,
+                    suggestion: i.fix_suggestion || i.suggestion,
+                })),
+                suggestions: (data.suggestions || data.improvements || []).map((s: any) => ({
+                    id: uuidv4(),
+                    file: s.file_path || s.file,
+                    line: s.line_number || s.line,
+                    current: s.current_code || s.current,
+                    suggested: s.suggested_code || s.suggested,
+                    reason: s.explanation || s.reason,
+                })),
+                security: (data.security_findings || data.security || []).map((s: any) => ({
+                    id: uuidv4(),
+                    severity: this.mapCodeRabbitSeverity(s.severity),
+                    type: s.vulnerability_type || s.type,
+                    file: s.file_path || s.file,
+                    line: s.line_number,
+                    description: s.description,
+                    remediation: s.remediation || s.fix,
+                })),
+                performance: (data.performance_findings || data.performance || []).map((p: any) => ({
+                    id: uuidv4(),
+                    impact: this.mapCodeRabbitImpact(p.impact || p.severity),
+                    type: p.issue_type || p.type,
+                    file: p.file_path || p.file,
+                    description: p.description,
+                    suggestion: p.suggestion || p.fix,
+                })),
+            };
+        } catch (error) {
+            console.error('CodeRabbit review error:', error);
+            // Fall back to AI review on error
+            return this.runAICodeReview(files);
+        }
+    }
+
+    /**
+     * Map CodeRabbit severity to our format
+     */
+    private mapCodeRabbitSeverity(severity: string): 'critical' | 'major' | 'minor' | 'suggestion' {
+        const severityMap: Record<string, 'critical' | 'major' | 'minor' | 'suggestion'> = {
+            'critical': 'critical',
+            'high': 'major',
+            'medium': 'minor',
+            'low': 'suggestion',
+            'error': 'major',
+            'warning': 'minor',
+            'info': 'suggestion',
+        };
+        return severityMap[severity?.toLowerCase()] || 'minor';
+    }
+
+    /**
+     * Map CodeRabbit impact to our format
+     */
+    private mapCodeRabbitImpact(impact: string): 'high' | 'medium' | 'low' {
+        const impactMap: Record<string, 'high' | 'medium' | 'low'> = {
+            'critical': 'high',
+            'high': 'high',
+            'medium': 'medium',
+            'low': 'low',
+            'minor': 'low',
+        };
+        return impactMap[impact?.toLowerCase()] || 'medium';
+    }
+
+    /**
+     * Calculate score from findings when not provided
+     */
+    private calculateScoreFromFindings(data: any): number {
+        let score = 100;
+        
+        // Deduct points for issues
+        const issues = data.issues || [];
+        const security = data.security_findings || data.security || [];
+        const performance = data.performance_findings || data.performance || [];
+        
+        score -= issues.filter((i: any) => i.severity === 'critical' || i.severity === 'high').length * 15;
+        score -= issues.filter((i: any) => i.severity === 'medium').length * 5;
+        score -= issues.filter((i: any) => i.severity === 'low' || i.severity === 'info').length * 2;
+        
+        score -= security.filter((s: any) => s.severity === 'critical').length * 20;
+        score -= security.filter((s: any) => s.severity === 'high').length * 10;
+        
+        score -= performance.filter((p: any) => p.impact === 'high').length * 8;
+        score -= performance.filter((p: any) => p.impact === 'medium').length * 4;
+        
+        return Math.max(0, Math.min(100, score));
     }
 
     // ========================================================================

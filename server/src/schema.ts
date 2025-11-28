@@ -11,7 +11,8 @@ export const users = sqliteTable('users', {
     name: text('name').notNull(),
     emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
     image: text('image'),
-    credits: integer('credits').default(100).notNull(),
+    credits: integer('credits').default(500).notNull(),
+    tier: text('tier').default('free').notNull(), // free, pro, enterprise
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -47,7 +48,9 @@ export const generations = sqliteTable('generations', {
     userId: text('user_id').references(() => users.id).notNull(),
     prompt: text('prompt').notNull(),
     output: text('output', { mode: 'json' }),
+    model: text('model').default('claude-sonnet-4'),
     tokensUsed: integer('tokens_used').default(0).notNull(),
+    creditsUsed: integer('credits_used').default(0).notNull(),
     cost: integer('cost').default(0).notNull(),
     status: text('status').default('completed').notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),

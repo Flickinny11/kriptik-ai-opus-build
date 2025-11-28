@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui/toaster';
+import { CriticalErrorBoundary, PageErrorBoundary } from './components/ui/error-boundary';
 import MainLayout from './components/layouts/MainLayout';
 import AuthLayout from './components/layouts/AuthLayout';
 import LandingPage from './pages/LandingPage';
@@ -19,35 +20,59 @@ function App() {
     }, [initialize]);
 
     return (
-        <>
+        <CriticalErrorBoundary>
             <Routes>
                 {/* Public Routes */}
                 <Route element={<MainLayout />}>
-                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/" element={
+                        <PageErrorBoundary>
+                            <LandingPage />
+                        </PageErrorBoundary>
+                    } />
                 </Route>
 
                 {/* Auth Routes */}
                 <Route element={<AuthLayout />}>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
+                    <Route path="/login" element={
+                        <PageErrorBoundary>
+                            <LoginPage />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/signup" element={
+                        <PageErrorBoundary>
+                            <SignupPage />
+                        </PageErrorBoundary>
+                    } />
                 </Route>
 
                 {/* Protected Routes */}
                 <Route element={<MainLayout />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/usage" element={<UsageDashboard />} />
+                    <Route path="/dashboard" element={
+                        <PageErrorBoundary>
+                            <Dashboard />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/usage" element={
+                        <PageErrorBoundary>
+                            <UsageDashboard />
+                        </PageErrorBoundary>
+                    } />
                 </Route>
 
                 {/* Builder Route */}
                 <Route element={<BuilderLayout />}>
-                    <Route path="/builder/:projectId" element={<Builder />} />
+                    <Route path="/builder/:projectId" element={
+                        <PageErrorBoundary>
+                            <Builder />
+                        </PageErrorBoundary>
+                    } />
                 </Route>
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Toaster />
-        </>
+        </CriticalErrorBoundary>
     );
 }
 

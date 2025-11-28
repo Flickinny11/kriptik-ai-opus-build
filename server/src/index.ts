@@ -145,11 +145,29 @@ function printStartupStatus(services: ServiceStatus[]) {
 // MIDDLEWARE
 // =============================================================================
 
+import {
+    generalRateLimiter,
+    aiRateLimiter,
+    orchestrationRateLimiter,
+    autonomousRateLimiter,
+} from './middleware/rate-limiter.js';
+import {
+    sanitizer,
+    promptSanitizer,
+    filePathSanitizer,
+} from './middleware/sanitizer.js';
+
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+
+// Apply input sanitization to all requests
+app.use(sanitizer);
+
+// Apply general rate limiting to all API routes
+app.use('/api', generalRateLimiter);
 
 // =============================================================================
 // AUTH ROUTES
@@ -194,12 +212,14 @@ import autonomousRouter from './routes/autonomous.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
-app.use("/api/projects", filesRouter);
-app.use("/api/projects", generateRouter);
-app.use("/api/orchestrate", orchestrateRouter);
+app.use("/api/projects", filePathSanitizer, filesRouter);
+app.use("/api/projects", promptSanitizer, generateRouter);
+
+// Apply stricter rate limits to expensive operations
+app.use("/api/orchestrate", orchestrationRateLimiter, promptSanitizer, orchestrateRouter);
 
 // AI services (image-to-code, self-healing, test generation)
-app.use("/api/ai", aiRouter);
+app.use("/api/ai", aiRateLimiter, promptSanitizer, aiRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
@@ -258,8 +278,8 @@ app.use("/api/stripe", stripeRouter);
 // Infrastructure/IaC (Terraform, Docker, Kubernetes)
 app.use("/api/infrastructure", infrastructureRouter);
 
-// Autonomous Building ("Approve and Watch")
-app.use("/api/autonomous", autonomousRouter);
+// Autonomous Building ("Approve and Watch") - strictest rate limits
+app.use("/api/autonomous", autonomousRateLimiter, promptSanitizer, autonomousRouter);
 
 // =============================================================================
 // HEALTH & STATUS
