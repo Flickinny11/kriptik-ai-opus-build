@@ -10,7 +10,7 @@ const router = Router();
  */
 router.post('/init', async (req, res) => {
     const secret = req.headers['x-migration-secret'];
-    
+
     // Require a secret to prevent unauthorized database modifications
     if (secret !== process.env.MIGRATION_SECRET && process.env.NODE_ENV === 'production') {
         return res.status(401).json({ error: 'Unauthorized - missing or invalid migration secret' });
@@ -18,7 +18,7 @@ router.post('/init', async (req, res) => {
 
     try {
         console.log('[DB Migration] Starting database initialization...');
-        
+
         // Create tables using raw SQL for SQLite
         const createTableQueries = [
             // Users table
@@ -33,7 +33,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Sessions table (for Better Auth)
             `CREATE TABLE IF NOT EXISTS session (
                 id TEXT PRIMARY KEY,
@@ -45,7 +45,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Accounts table (for Better Auth social providers)
             `CREATE TABLE IF NOT EXISTS account (
                 id TEXT PRIMARY KEY,
@@ -62,7 +62,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Verifications table (for Better Auth)
             `CREATE TABLE IF NOT EXISTS verification (
                 id TEXT PRIMARY KEY,
@@ -72,7 +72,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
             )`,
-            
+
             // Projects table
             `CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
@@ -84,7 +84,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Files table
             `CREATE TABLE IF NOT EXISTS files (
                 id TEXT PRIMARY KEY,
@@ -96,7 +96,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Generations table
             `CREATE TABLE IF NOT EXISTS generations (
                 id TEXT PRIMARY KEY,
@@ -111,7 +111,7 @@ router.post('/init', async (req, res) => {
                 status TEXT DEFAULT 'completed' NOT NULL,
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Deployments table
             `CREATE TABLE IF NOT EXISTS deployments (
                 id TEXT PRIMARY KEY,
@@ -128,7 +128,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Orchestration runs table
             `CREATE TABLE IF NOT EXISTS orchestration_runs (
                 id TEXT PRIMARY KEY,
@@ -145,7 +145,7 @@ router.post('/init', async (req, res) => {
                 completed_at TEXT,
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Subscriptions table
             `CREATE TABLE IF NOT EXISTS subscriptions (
                 id TEXT PRIMARY KEY,
@@ -160,7 +160,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Credentials table
             `CREATE TABLE IF NOT EXISTS credentials (
                 id TEXT PRIMARY KEY,
@@ -171,7 +171,7 @@ router.post('/init', async (req, res) => {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Fix sessions table
             `CREATE TABLE IF NOT EXISTS fix_sessions (
                 id TEXT PRIMARY KEY,
@@ -191,9 +191,9 @@ router.post('/init', async (req, res) => {
                 completed_at TEXT
             )`,
         ];
-        
+
         const results: { query: string; success: boolean; error?: string }[] = [];
-        
+
         for (const query of createTableQueries) {
             try {
                 await client.execute(query);
@@ -207,13 +207,13 @@ router.post('/init', async (req, res) => {
                 }
             }
         }
-        
+
         console.log('[DB Migration] Database initialization completed');
-        
+
         // Check which tables exist
         const tablesResult = await client.execute("SELECT name FROM sqlite_master WHERE type='table'");
         const tables = tablesResult.rows.map((row: any) => row.name);
-        
+
         res.json({
             success: true,
             message: 'Database initialized successfully',
@@ -237,7 +237,7 @@ router.get('/status', async (req, res) => {
         // Try a simple query
         const tablesResult = await client.execute("SELECT name FROM sqlite_master WHERE type='table'");
         const tables = tablesResult.rows.map((row: any) => row.name);
-        
+
         // Try to count users
         let userCount = 0;
         try {
@@ -246,7 +246,7 @@ router.get('/status', async (req, res) => {
         } catch {
             // Table might not exist
         }
-        
+
         res.json({
             connected: true,
             tables,

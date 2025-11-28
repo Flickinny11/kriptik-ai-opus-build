@@ -7,21 +7,13 @@ export const authClient = createAuthClient({
 })
 
 // Export convenience functions for social sign-in
-// Use Better Auth's proper redirect method
 export const signInWithGoogle = async () => {
-    // Use the client's built-in social sign-in which handles the redirect properly
     try {
-        const result = await authClient.signIn.social({
+        // Better Auth's social sign-in returns a redirect URL or handles the redirect
+        await authClient.signIn.social({
             provider: "google",
             callbackURL: "/dashboard",
         });
-        
-        // If we get a redirect URL, navigate to it
-        if (result?.data?.url) {
-            window.location.href = result.data.url;
-        }
-        
-        return result;
     } catch (error) {
         console.error('Google sign-in error:', error);
         throw error;
@@ -30,17 +22,10 @@ export const signInWithGoogle = async () => {
 
 export const signInWithGitHub = async () => {
     try {
-        const result = await authClient.signIn.social({
+        await authClient.signIn.social({
             provider: "github",
             callbackURL: "/dashboard",
         });
-        
-        // If we get a redirect URL, navigate to it
-        if (result?.data?.url) {
-            window.location.href = result.data.url;
-        }
-        
-        return result;
     } catch (error) {
         console.error('GitHub sign-in error:', error);
         throw error;

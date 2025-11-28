@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authClient } from '../lib/auth-client';
+import { setApiUserId } from '../lib/api-client';
 
 interface User {
     id: string;
@@ -27,6 +28,9 @@ export const useUserStore = create<UserState>((set) => ({
             const { data: session } = await authClient.getSession();
 
             if (session?.user) {
+                // Set the user ID in the API client for authenticated requests
+                setApiUserId(session.user.id);
+                
                 set({
                     user: {
                         id: session.user.id,
@@ -38,10 +42,12 @@ export const useUserStore = create<UserState>((set) => ({
                     isLoading: false
                 });
             } else {
+                setApiUserId(null);
                 set({ user: null, isAuthenticated: false, isLoading: false });
             }
         } catch (error) {
             console.error('Auth initialization failed:', error);
+            setApiUserId(null);
             set({ isLoading: false });
         }
     },
@@ -60,6 +66,9 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         if (session?.user) {
+            // Set the user ID in the API client for authenticated requests
+            setApiUserId(session.user.id);
+            
             set({
                 user: {
                     id: session.user.id,
@@ -88,6 +97,9 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         if (session?.user) {
+            // Set the user ID in the API client for authenticated requests
+            setApiUserId(session.user.id);
+            
             set({
                 user: {
                     id: session.user.id,
@@ -103,6 +115,7 @@ export const useUserStore = create<UserState>((set) => ({
     logout: async () => {
         set({ isLoading: true });
         await authClient.signOut();
+        setApiUserId(null);
         set({ user: null, isAuthenticated: false, isLoading: false });
     },
 }));
