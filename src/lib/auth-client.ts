@@ -6,36 +6,18 @@ export const authClient = createAuthClient({
     baseURL: API_URL,
 })
 
-// Get the frontend URL for callbacks
-const getFrontendUrl = () => {
-    // In production, use the known frontend URL
-    if (typeof window !== 'undefined') {
-        const origin = window.location.origin;
-        // Return just the path for relative redirect (safer)
-        return origin;
-    }
-    return "https://kriptik-ai-opus-build.vercel.app";
-};
-
 // Export convenience functions for social sign-in
+// Don't pass callbackURL - let the server use the default from trustedOrigins
 export const signInWithGoogle = async () => {
-    const callbackURL = `${getFrontendUrl()}/dashboard`;
-    console.log('Google OAuth callback URL:', callbackURL);
-    
-    return authClient.signIn.social({
-        provider: "google",
-        callbackURL: callbackURL,
-    });
+    // Redirect to auth endpoint and let server handle callback
+    const redirectUrl = `${API_URL}/api/auth/sign-in/social?provider=google`;
+    window.location.href = redirectUrl;
 };
 
 export const signInWithGitHub = async () => {
-    const callbackURL = `${getFrontendUrl()}/dashboard`;
-    console.log('GitHub OAuth callback URL:', callbackURL);
-    
-    return authClient.signIn.social({
-        provider: "github",
-        callbackURL: callbackURL,
-    });
+    // Redirect to auth endpoint and let server handle callback
+    const redirectUrl = `${API_URL}/api/auth/sign-in/social?provider=github`;
+    window.location.href = redirectUrl;
 };
 
 export const signInWithEmail = async (email: string, password: string) => {

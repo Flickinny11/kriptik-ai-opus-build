@@ -77,12 +77,16 @@ export function sanitizeRedirectUrl(url: string | undefined | null): string {
 // ============================================================================
 
 // Build social providers conditionally - only include if credentials are set
-const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
+const backendUrl = process.env.BETTER_AUTH_URL || 'https://kriptik-ai-opus-build-backend.vercel.app';
+const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+
+const socialProviders: Record<string, { clientId: string; clientSecret: string; redirectURI?: string }> = {};
 
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     socialProviders.github = {
         clientId: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        redirectURI: `${backendUrl}/api/auth/callback/github`,
     };
 }
 
@@ -90,6 +94,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     socialProviders.google = {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectURI: `${backendUrl}/api/auth/callback/google`,
     };
 }
 
@@ -161,33 +166,25 @@ export const auth = betterAuth({
 
     // Callbacks for security validation
     callbacks: {
-        // Validate redirect URLs before OAuth redirect
+        // Validate redirect URLs after OAuth - redirect to frontend
         async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-            // If the URL is relative, allow it
-            if (url.startsWith('/')) return url;
-
-            // Try to decode URL if it's encoded
-            let decodedUrl = url;
-            try {
-                decodedUrl = decodeURIComponent(url);
-            } catch {
-                // Use original if decode fails
+            // Always redirect to frontend dashboard after OAuth
+            // This bypasses any encoding issues with callback URLs
+            const dashboardUrl = `${frontendUrl}/dashboard`;
+            
+            // If URL is relative path on our frontend, use it
+            if (url.startsWith('/')) {
+                return `${frontendUrl}${url}`;
             }
 
-            // Validate against allowed patterns
-            if (isValidRedirectUrl(decodedUrl)) {
-                return decodedUrl;
+            // If URL is already our frontend, allow it
+            if (url.startsWith(frontendUrl)) {
+                return url;
             }
 
-            // Check if it's a valid URL from our frontend
-            const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
-            if (decodedUrl.startsWith(frontendUrl)) {
-                return decodedUrl;
-            }
-
-            // Fall back to frontend URL for invalid redirects
-            console.warn(`[Auth] Blocked invalid redirect URL: ${url}`);
-            return frontendUrl;
+            // For any other case, go to dashboard
+            console.log(`[Auth] OAuth redirect to: ${dashboardUrl} (original: ${url})`);
+            return dashboardUrl;
         },
     },
 });
