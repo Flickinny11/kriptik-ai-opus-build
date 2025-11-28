@@ -143,16 +143,23 @@ export const auth = betterAuth({
 
     // Advanced configuration
     advanced: {
-        // Use secure cookies in production
-        useSecureCookies: process.env.NODE_ENV === "production",
-        // Cross-site cookie settings for OAuth
+        // Use secure cookies in production (required for SameSite=None)
+        useSecureCookies: true,
+        // Cross-site cookie settings - MUST be enabled for cross-origin auth
         crossSubDomainCookies: {
-            enabled: false, // Disable since frontend/backend are different domains
+            enabled: false, // Different domains, not subdomains
         },
         // Cookie settings for cross-origin
         cookiePrefix: "kriptik_auth",
         // Generate unique state for each OAuth request
         generateState: true,
+        // Default cookie options for cross-origin
+        defaultCookieAttributes: {
+            sameSite: "none", // Required for cross-origin requests
+            secure: true, // Required when sameSite is "none"
+            httpOnly: true,
+            path: "/",
+        },
     },
 
     // Trust proxy for Vercel - include all allowed origins for callback URLs
