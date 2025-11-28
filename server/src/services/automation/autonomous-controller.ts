@@ -1,6 +1,6 @@
 /**
  * Autonomous Build Controller
- * 
+ *
  * The master orchestrator for "Approve and Watch" functionality:
  * - Manages the complete build lifecycle (Frontend → Backend → Integration → Testing)
  * - Handles user approval gates
@@ -20,7 +20,7 @@ import { DevelopmentOrchestrator, ProjectRequest } from '../orchestration/develo
 import { createVercelService, VercelService } from '../deployment/vercel.js';
 
 // Types
-export type BuildPhase = 
+export type BuildPhase =
     | 'planning'
     | 'frontend'
     | 'frontend_preview'
@@ -67,30 +67,30 @@ export interface ImplementationPlan {
     id: string;
     projectName: string;
     description: string;
-    
+
     frontend: {
         pages: Array<{ name: string; path: string; description: string }>;
         components: Array<{ name: string; purpose: string }>;
         styling: { framework: string; theme: string };
     };
-    
+
     backend: {
         routes: Array<{ method: string; path: string; description: string }>;
         services: Array<{ name: string; purpose: string }>;
         database: { type: string; tables: string[] };
     };
-    
+
     features: FeaturePlan[];
-    
+
     integrations: Array<{
         name: string;
         provider: string;
         purpose: string;
         credentialsRequired: CredentialRequest[];
     }>;
-    
+
     verificationSteps: VerificationStep[];
-    
+
     estimatedDuration: number; // minutes
 }
 
@@ -159,7 +159,7 @@ export class AutonomousBuildController extends EventEmitter {
         }
     ): Promise<string> {
         const buildId = uuidv4();
-        
+
         // Initialize state
         const state: AutonomousBuildState = {
             id: buildId,
@@ -180,7 +180,7 @@ export class AutonomousBuildController extends EventEmitter {
         };
 
         this.builds.set(buildId, state);
-        
+
         // Set Vercel token if provided
         if (options?.vercelToken) {
             this.vercelToken = options.vercelToken;
@@ -216,9 +216,9 @@ export class AutonomousBuildController extends EventEmitter {
 
             // Await backend approval (unless autoApprove)
             if (!options?.autoApprove) {
-                this.updateState(buildId, { 
-                    phase: 'backend_approval', 
-                    status: 'awaiting_approval' 
+                this.updateState(buildId, {
+                    phase: 'backend_approval',
+                    status: 'awaiting_approval'
                 });
                 this.emitEvent(buildId, 'approval_required', {
                     phase: 'backend',
@@ -348,10 +348,10 @@ Respond with JSON matching this structure:
         "name": "",
         "description": "",
         "category": "auth|payment|storage|analytics|custom",
-        "credentialsRequired": [{ 
-            "id": "uuid", 
-            "name": "", 
-            "description": "", 
+        "credentialsRequired": [{
+            "id": "uuid",
+            "name": "",
+            "description": "",
             "type": "api_key|secret|url|database",
             "required": true,
             "provided": false
@@ -451,7 +451,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
         // Deploy to Vercel for preview
         if (this.vercelToken) {
             const deploymentUrl = await this.deployToVercel(buildId, 'preview');
-            
+
             if (deploymentUrl) {
                 // Initialize browser for verification
                 this.browserService = createBrowserAutomationService({
@@ -463,7 +463,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
                 // Navigate and verify
                 const result = await this.browserService.navigateTo(deploymentUrl);
-                
+
                 if (result.success && result.screenshot) {
                     // Visual verification
                     const verification = await this.visualVerifier.verifyPage(
@@ -537,7 +537,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
         // Generate schema
         const schema = await this.generateDatabaseSchema(buildId);
         state.generatedFiles.set('server/src/schema.ts', schema);
-        
+
         this.updateState(buildId, { currentPhaseProgress: 100 });
         this.log(buildId, 'info', `Backend complete: ${filesGenerated} files generated`);
     }
@@ -558,7 +558,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         // Deploy and monitor
         const deploymentUrl = await this.deployToVercel(buildId, 'production');
-        
+
         if (deploymentUrl) {
             this.updateState(buildId, { deploymentUrl });
             this.log(buildId, 'info', `Deployed to: ${deploymentUrl}`);
@@ -593,7 +593,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         // Navigate to deployed app
         const result = await this.browserService.navigateTo(state.deploymentUrl);
-        
+
         if (result.success) {
             this.emitEvent(buildId, 'browser_action', {
                 action: 'Navigate to app',
@@ -629,7 +629,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         const state = this.getState(buildId);
         const features = state?.implementationPlan?.features || [];
-        
+
         if (features.length === 0) {
             this.log(buildId, 'info', 'No additional features to implement');
             this.updateState(buildId, { currentPhaseProgress: 100 });
@@ -643,7 +643,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         for (const feature of features) {
             this.emitEvent(buildId, 'feature_started', { feature: feature.name });
-            
+
             // Verify feature
             for (const step of feature.verificationSteps) {
                 this.emitEvent(buildId, 'verification_step', {
@@ -661,7 +661,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
             feature.status = 'complete';
             completed++;
             this.updateState(buildId, { currentPhaseProgress: (completed / totalFeatures) * 100 });
-            
+
             this.emitEvent(buildId, 'feature_completed', {
                 feature: feature.name,
                 passed: true,
@@ -701,7 +701,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         for (let i = 0; i < verificationSteps.length; i++) {
             const step = verificationSteps[i];
-            
+
             this.emitEvent(buildId, 'test_step_started', {
                 step: step.action,
                 index: i + 1,
@@ -711,7 +711,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
             try {
                 // Execute the action
                 const result = await this.browserService.executeAction(step.action);
-                
+
                 if (result.success) {
                     // Verify the expected result
                     const verification = await this.visualVerifier.verifyJourneyStep(
@@ -790,7 +790,7 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
 
         try {
             const vercel = createVercelService(this.vercelToken);
-            
+
             // Prepare files for deployment
             const files = Array.from(state.generatedFiles.entries()).map(([file, data]) => ({
                 file,
@@ -829,20 +829,20 @@ Make this a real, production-ready plan. NO PLACEHOLDERS.`;
                 // Try to auto-fix
                 const logs = await this.buildMonitor.getDeploymentLogs(deployment.id, this.vercelToken);
                 const errors = this.buildMonitor.parseErrors(logs);
-                
+
                 if (errors.length > 0) {
                     this.emitEvent(buildId, 'build_errors', { errors });
-                    
+
                     // Generate and apply fixes
                     for (const error of errors.slice(0, 3)) {
                         const fix = await this.buildMonitor.generateFix(error, state.generatedFiles);
                         this.emitEvent(buildId, 'fix_generated', { error, fix });
-                        
+
                         // Apply fix to generated files
                         if (fix.type === 'code_change' && fix.file && fix.fixedCode) {
                             state.generatedFiles.set(fix.file, fix.fixedCode);
                         }
-                        
+
                         state.fixesApplied.push(fix);
                     }
 
@@ -1045,7 +1045,7 @@ export default {
         }
 
         return {
-            duration: state.completedAt 
+            duration: state.completedAt
                 ? state.completedAt.getTime() - state.startedAt.getTime()
                 : Date.now() - state.startedAt.getTime(),
             filesGenerated: state.generatedFiles.size,
@@ -1082,7 +1082,7 @@ export default {
         }
 
         state.credentialsProvided = { ...state.credentialsProvided, ...credentials };
-        
+
         // Mark provided credentials
         for (const cred of state.credentialsRequired) {
             if (credentials[cred.name]) {
@@ -1091,7 +1091,7 @@ export default {
         }
 
         const remaining = state.credentialsRequired.filter(c => !c.provided && c.required);
-        
+
         if (remaining.length === 0) {
             this.log(buildId, 'info', 'All credentials provided, continuing...');
             await this.continueAfterCredentials(buildId);

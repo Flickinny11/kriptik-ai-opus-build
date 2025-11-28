@@ -1,6 +1,6 @@
 /**
  * Autonomous Build API Routes
- * 
+ *
  * Endpoints for the "Approve and Watch" autonomous building feature:
  * - Start autonomous builds
  * - Approve phases

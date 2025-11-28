@@ -1,6 +1,6 @@
 /**
  * Visual Verification Service
- * 
+ *
  * Uses AI vision models to verify UI quality and functionality:
  * - Screenshot analysis for design quality
  * - AI slop detection

@@ -1,12 +1,12 @@
 /**
  * Browser Automation Service
- * 
+ *
  * Provides AI-powered browser automation for:
  * - Visual demonstration to users
  * - E2E testing and verification
  * - Console log capture
  * - Screenshot capture for visual verification
- * 
+ *
  * Uses Playwright for browser control with AI-powered natural language actions
  */
 
@@ -211,7 +211,7 @@ CURRENT PAGE STATE:
 URL: ${pageState.url}
 Title: ${pageState.title}
 Visible Elements (interactive):
-${pageState.interactiveElements.map(el => 
+${pageState.interactiveElements.map(el =>
     `- ${el.tagName}${el.text ? `: "${el.text.substring(0, 50)}"` : ''} [${el.selector}]`
 ).join('\n')}
 

@@ -1,6 +1,6 @@
 /**
  * Build Monitor Service
- * 
+ *
  * Monitors deployment builds in real-time and provides auto-fix capabilities:
  * - Stream deployment logs from Vercel/Netlify
  * - Parse and categorize build errors
@@ -102,7 +102,7 @@ export class BuildMonitorService {
         token: string
     ): AsyncGenerator<BuildLog> {
         const url = `https://api.vercel.com/v2/deployments/${deploymentId}/events`;
-        
+
         try {
             const response = await fetch(url, {
                 headers: {
@@ -168,7 +168,7 @@ export class BuildMonitorService {
      */
     private determineLogLevel(event: any): BuildLog['level'] {
         const text = (event.text || event.payload?.text || '').toLowerCase();
-        
+
         if (text.includes('error') || event.type === 'error') {
             return 'error';
         }
@@ -191,7 +191,7 @@ export class BuildMonitorService {
         maxWait: number = 600000
     ): Promise<{ state: string; url?: string; error?: string }> {
         const startTime = Date.now();
-        
+
         while (Date.now() - startTime < maxWait) {
             try {
                 const response = await fetch(
@@ -208,11 +208,11 @@ export class BuildMonitorService {
                 }
 
                 const data = await response.json();
-                
+
                 if (data.readyState === 'READY') {
                     return { state: 'READY', url: `https://${data.url}` };
                 }
-                
+
                 if (data.readyState === 'ERROR') {
                     return { state: 'ERROR', error: data.errorMessage || 'Build failed' };
                 }
@@ -390,7 +390,7 @@ export class BuildMonitorService {
         projectFiles: Map<string, string>
     ): Promise<Fix> {
         const relevantFile = error.file ? projectFiles.get(error.file) : undefined;
-        
+
         const prompt = `You are an expert at fixing build errors. Generate a fix for this error.
 
 ERROR:
@@ -539,7 +539,7 @@ IMPORTANT:
 
                 // Try to fix errors
                 const nonLoopingErrors = errors.filter(e => !this.isInLoop(e));
-                
+
                 if (nonLoopingErrors.length === 0) {
                     onUpdate({ type: 'status', data: { message: 'Fix loop detected - escalating to user' } });
                     return {
@@ -571,7 +571,7 @@ IMPORTANT:
                 // Redeploy
                 const backoffIndex = Math.min(attempts - 1, this.config.backoffMs.length - 1);
                 const backoff = this.config.backoffMs[backoffIndex];
-                
+
                 onUpdate({ type: 'status', data: { message: `Redeploying in ${backoff / 1000}s...` } });
                 await new Promise(resolve => setTimeout(resolve, backoff));
 
