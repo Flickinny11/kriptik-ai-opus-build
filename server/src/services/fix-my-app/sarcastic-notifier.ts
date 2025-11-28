@@ -1,6 +1,6 @@
 /**
  * Sarcastic Notifier Service
- * 
+ *
  * Generates humorous, sarcastic notifications when apps are successfully fixed.
  * Uses a unique AI model (Mixtral/Mistral) for creative, witty responses.
  */

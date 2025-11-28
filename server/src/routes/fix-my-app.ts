@@ -1,14 +1,30 @@
 /**
  * Fix My App API Routes
- * 
+ *
  * Endpoints for the "Fix My App" feature - importing and fixing
  * broken apps from other AI builders.
  */
 
 import { Router, Request, Response } from 'express';
-import { createImportController, ImportController } from '../services/fix-my-app/index.js';
+import {
+    createImportController,
+    ImportController,
+    SOURCE_REGISTRY,
+    getSourcesByCategory,
+} from '../services/fix-my-app/index.js';
 
 const router = Router();
+
+/**
+ * GET /api/fix-my-app/sources
+ * Get all supported import sources and their metadata
+ */
+router.get('/sources', (req: Request, res: Response) => {
+    res.json({
+        sources: SOURCE_REGISTRY,
+        byCategory: getSourcesByCategory(),
+    });
+});
 
 // Store active controllers for SSE streaming
 const controllers = new Map<string, ImportController>();
@@ -73,7 +89,7 @@ router.post('/:sessionId/consent', async (req: Request, res: Response) => {
 
 /**
  * POST /api/fix-my-app/:sessionId/upload
- * Upload project files
+ * Upload project files or import from URL
  */
 router.post('/:sessionId/upload', async (req: Request, res: Response) => {
     try {
@@ -84,25 +100,61 @@ router.post('/:sessionId/upload', async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Session not found' });
         }
 
-        const { files, githubUrl } = req.body;
+        const { files, githubUrl, sourceUrl } = req.body;
+        const session = controller.getSession();
 
-        if (githubUrl) {
-            await controller.importFromGitHub(githubUrl);
-        } else if (files && Array.isArray(files)) {
+        // Handle different sources
+        const source = session.source;
+        const url = sourceUrl || githubUrl || session.sourceUrl;
+
+        // Repository sources - import from URL
+        if (['github', 'gitlab', 'bitbucket'].includes(source) && url) {
+            await controller.importFromRepository(url);
+        }
+        // Dev platform sources - import from URL
+        else if (source === 'codesandbox' && url) {
+            await controller.importFromCodeSandbox(url);
+        }
+        else if (source === 'stackblitz' && url) {
+            await controller.importFromStackBlitz(url);
+        }
+        else if (source === 'replit' && url) {
+            await controller.importFromReplit(url);
+        }
+        // AI builder URLs - try URL import then fallback to files
+        else if (['v0', 'create', 'tempo', 'gptengineer', 'databutton'].includes(source) && url) {
+            // For AI builders, we typically need manual file upload
+            // The URL is just for reference
+            if (files && Array.isArray(files)) {
+                await controller.importFiles(files);
+            } else {
+                return res.status(400).json({
+                    error: 'For AI builders, please upload your project files. URL is for reference only.',
+                });
+            }
+        }
+        // Direct file upload
+        else if (files && Array.isArray(files)) {
             await controller.importFiles(files);
-        } else {
-            return res.status(400).json({ error: 'Files or GitHub URL required' });
+        }
+        // Legacy GitHub URL support
+        else if (githubUrl) {
+            await controller.importFromGitHub(githubUrl);
+        }
+        else {
+            return res.status(400).json({ error: 'Files or source URL required' });
         }
 
-        const session = controller.getSession();
+        const updatedSession = controller.getSession();
         res.json({
             success: true,
             filesReceived: files?.length || 0,
-            projectId: session.projectId,
+            projectId: updatedSession.projectId,
+            source: source,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Upload error:', error);
-        res.status(500).json({ error: 'Failed to upload files' });
+        res.status(500).json({ error: error.message || 'Failed to upload files' });
     }
 });
 

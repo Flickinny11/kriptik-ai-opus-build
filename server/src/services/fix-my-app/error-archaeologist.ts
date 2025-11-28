@@ -1,6 +1,6 @@
 /**
  * Error Archaeologist Service
- * 
+ *
  * Builds a timeline of when errors first appeared, traces error cascades,
  * identifies "bad fixes", and finds the last known good state.
  */

@@ -1,6 +1,6 @@
 /**
  * Intent Verifier Service
- * 
+ *
  * Final verification against original user intent.
  * Ensures all requested features are implemented and working.
  */
@@ -74,14 +74,14 @@ Be thorough - check every detail.`,
         // Calculate overall score
         const featureScore = featureVerifications.filter(f => f.working).length / featureVerifications.length;
         const missedScore = missedRequests.length === 0 ? 1 : Math.max(0, 1 - missedRequests.length * 0.1);
-        const frustrationScore = frustrationResolutions.filter(f => f.resolved).length / 
+        const frustrationScore = frustrationResolutions.filter(f => f.resolved).length /
                                  Math.max(1, frustrationResolutions.length);
         const visualScore = visualVerification.designScore / 100;
 
         const overallScore = Math.round((featureScore * 0.4 + missedScore * 0.2 + frustrationScore * 0.2 + visualScore * 0.2) * 100);
 
         // Determine if passed
-        const passed = 
+        const passed =
             featureVerifications.every(f => f.implemented) &&
             missedRequests.filter(m => m.importance === 'critical').length === 0 &&
             frustrationResolutions.every(f => f.resolved) &&

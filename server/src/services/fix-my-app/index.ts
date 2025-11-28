@@ -1,10 +1,11 @@
 /**
  * Fix My App Services
- * 
+ *
  * Export all services for the "Fix My App" feature.
  */
 
 export * from './types.js';
+export { ChatParser, createChatParser, type ParseResult } from './chat-parser.js';
 export { IntentAnalyzer, createIntentAnalyzer } from './intent-analyzer.js';
 export { ErrorArchaeologist, createErrorArchaeologist } from './error-archaeologist.js';
 export { StrategyEngine, createStrategyEngine } from './strategy-engine.js';

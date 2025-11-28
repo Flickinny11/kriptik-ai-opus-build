@@ -1,6 +1,6 @@
 /**
  * Strategy Engine Service
- * 
+ *
  * Determines the optimal fix strategy based on intent analysis, error timeline,
  * and code quality. Decides between repair, partial rebuild, or full rebuild.
  */
@@ -151,7 +151,7 @@ Always preserve what's working when possible.`,
             startingPoint = 'current';
             confidence = 0.9;
             reasoning = 'Minor issues detected. Can be fixed by targeted repairs without major changes.';
-        } else if (hasGoodRollbackPoint && errorSeverity < 60 && 
+        } else if (hasGoodRollbackPoint && errorSeverity < 60 &&
                    errorTimeline.lastKnownGoodState!.messageNumber > 10) {
             // Moderate issues with good rollback point
             approach = 'rebuild_partial';

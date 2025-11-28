@@ -1,6 +1,6 @@
 /**
  * Import Controller - Fix My App Orchestrator
- * 
+ *
  * Orchestrates the entire "Fix My App" flow from import to verification.
  * Manages session state and coordinates all services.
  */
@@ -31,6 +31,8 @@ import type {
     CodeAnalysis,
     FixEvent,
 } from './types.js';
+import { SOURCE_REGISTRY, sourceHasContext } from './types.js';
+import { createChatParser, ChatParser } from './chat-parser.js';
 
 // In-memory session store (in production, use Redis)
 const sessions = new Map<string, FixSession>();
@@ -123,10 +125,12 @@ export class ImportController extends EventEmitter {
         this.session.previewUrl = previewUrl;
         this.session.status = 'awaiting_consent';
 
-        // Lovable/Bolt require consent for chat extraction
-        const consentRequired = source === 'lovable' || source === 'bolt' || source === 'v0';
+        // Check if this source supports context extraction
+        const sourceConfig = SOURCE_REGISTRY[source];
+        const consentRequired = sourceConfig?.contextAvailable ?? false;
 
-        this.log(`Session initialized for ${source} import`);
+        const sourceName = sourceConfig?.name || source;
+        this.log(`Session initialized for ${sourceName} import`);
         this.emitProgress(5, 'Session initialized');
 
         return { sessionId: this.sessionId, consentRequired };
@@ -186,6 +190,22 @@ export class ImportController extends EventEmitter {
     }
 
     /**
+     * Import from a repository URL (GitHub, GitLab, or Bitbucket)
+     */
+    async importFromRepository(url: string): Promise<void> {
+        // Detect repository type
+        if (url.includes('github.com')) {
+            await this.importFromGitHub(url);
+        } else if (url.includes('gitlab.com')) {
+            await this.importFromGitLab(url);
+        } else if (url.includes('bitbucket.org')) {
+            await this.importFromBitbucket(url);
+        } else {
+            throw new Error('Unsupported repository URL');
+        }
+    }
+
+    /**
      * Import from GitHub URL
      */
     async importFromGitHub(githubUrl: string): Promise<void> {
@@ -198,22 +218,30 @@ export class ImportController extends EventEmitter {
         }
 
         const [, owner, repo] = match;
+        const repoName = repo.replace(/\.git$/, '');
 
-        // Use GitHub API to fetch files
-        const response = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`,
-            {
-                headers: process.env.GITHUB_TOKEN
-                    ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-                    : {},
+        // Try main branch first, then master
+        let data: any;
+        for (const branch of ['main', 'master']) {
+            const response = await fetch(
+                `https://api.github.com/repos/${owner}/${repoName}/git/trees/${branch}?recursive=1`,
+                {
+                    headers: process.env.GITHUB_TOKEN
+                        ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+                        : {},
+                }
+            );
+
+            if (response.ok) {
+                data = await response.json();
+                break;
             }
-        );
-
-        if (!response.ok) {
-            throw new Error(`GitHub API error: ${response.status}`);
         }
 
-        const data = await response.json();
+        if (!data) {
+            throw new Error('Could not access GitHub repository');
+        }
+
         const files: { path: string; content: string }[] = [];
 
         // Fetch file contents
@@ -236,9 +264,280 @@ export class ImportController extends EventEmitter {
         await this.importFiles(files);
     }
 
+    /**
+     * Import from GitLab URL
+     */
+    async importFromGitLab(gitlabUrl: string): Promise<void> {
+        this.emitProgress(10, 'Cloning GitLab repository');
+
+        // Parse GitLab URL
+        const match = gitlabUrl.match(/gitlab\.com\/([^/]+(?:\/[^/]+)*)/);
+        if (!match) {
+            throw new Error('Invalid GitLab URL');
+        }
+
+        const projectPath = encodeURIComponent(match[1].replace(/\.git$/, ''));
+
+        // Use GitLab API to fetch repository tree
+        const response = await fetch(
+            `https://gitlab.com/api/v4/projects/${projectPath}/repository/tree?recursive=true&per_page=100`,
+            {
+                headers: process.env.GITLAB_TOKEN
+                    ? { 'PRIVATE-TOKEN': process.env.GITLAB_TOKEN }
+                    : {},
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`GitLab API error: ${response.status}`);
+        }
+
+        const tree = await response.json();
+        const files: { path: string; content: string }[] = [];
+
+        // Fetch file contents
+        for (const item of tree) {
+            if (item.type === 'blob' && this.isRelevantFile(item.path)) {
+                const fileResponse = await fetch(
+                    `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(item.path)}/raw?ref=main`,
+                    {
+                        headers: process.env.GITLAB_TOKEN
+                            ? { 'PRIVATE-TOKEN': process.env.GITLAB_TOKEN }
+                            : {},
+                    }
+                );
+
+                if (fileResponse.ok) {
+                    const content = await fileResponse.text();
+                    files.push({ path: item.path, content });
+                }
+            }
+        }
+
+        await this.importFiles(files);
+    }
+
+    /**
+     * Import from Bitbucket URL
+     */
+    async importFromBitbucket(bitbucketUrl: string): Promise<void> {
+        this.emitProgress(10, 'Cloning Bitbucket repository');
+
+        // Parse Bitbucket URL
+        const match = bitbucketUrl.match(/bitbucket\.org\/([^/]+)\/([^/]+)/);
+        if (!match) {
+            throw new Error('Invalid Bitbucket URL');
+        }
+
+        const [, workspace, repo] = match;
+        const repoSlug = repo.replace(/\.git$/, '');
+
+        // Use Bitbucket API to fetch repository
+        const response = await fetch(
+            `https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/src?pagelen=100`,
+            {
+                headers: process.env.BITBUCKET_TOKEN
+                    ? { Authorization: `Bearer ${process.env.BITBUCKET_TOKEN}` }
+                    : {},
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Bitbucket API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const files: { path: string; content: string }[] = [];
+
+        // Recursively fetch files
+        await this.fetchBitbucketFiles(workspace, repoSlug, data.values, files);
+
+        await this.importFiles(files);
+    }
+
+    private async fetchBitbucketFiles(
+        workspace: string,
+        repo: string,
+        items: any[],
+        files: { path: string; content: string }[]
+    ): Promise<void> {
+        for (const item of items) {
+            if (item.type === 'commit_file' && this.isRelevantFile(item.path)) {
+                const contentResponse = await fetch(
+                    `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src/HEAD/${item.path}`,
+                    {
+                        headers: process.env.BITBUCKET_TOKEN
+                            ? { Authorization: `Bearer ${process.env.BITBUCKET_TOKEN}` }
+                            : {},
+                    }
+                );
+
+                if (contentResponse.ok) {
+                    const content = await contentResponse.text();
+                    files.push({ path: item.path, content });
+                }
+            }
+        }
+    }
+
+    /**
+     * Import from CodeSandbox URL
+     */
+    async importFromCodeSandbox(sandboxUrl: string): Promise<void> {
+        this.emitProgress(10, 'Importing from CodeSandbox');
+
+        // Parse sandbox ID from URL
+        const match = sandboxUrl.match(/codesandbox\.io\/(?:s|p)\/([a-zA-Z0-9-]+)/);
+        if (!match) {
+            throw new Error('Invalid CodeSandbox URL');
+        }
+
+        const sandboxId = match[1];
+
+        // Use CodeSandbox API
+        const response = await fetch(`https://codesandbox.io/api/v1/sandboxes/${sandboxId}`);
+        if (!response.ok) {
+            throw new Error(`CodeSandbox API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const files: { path: string; content: string }[] = [];
+
+        // Extract files from sandbox
+        const extractFiles = (modules: any[], basePath = '') => {
+            for (const mod of modules) {
+                if (mod.type === 'file' && mod.code) {
+                    const path = basePath ? `${basePath}/${mod.title}` : mod.title;
+                    if (this.isRelevantFile(path)) {
+                        files.push({ path, content: mod.code });
+                    }
+                } else if (mod.type === 'directory' && mod.children) {
+                    const newBase = basePath ? `${basePath}/${mod.title}` : mod.title;
+                    extractFiles(mod.children, newBase);
+                }
+            }
+        };
+
+        if (data.data?.modules) {
+            extractFiles(data.data.modules);
+        }
+
+        await this.importFiles(files);
+    }
+
+    /**
+     * Import from StackBlitz URL
+     */
+    async importFromStackBlitz(stackblitzUrl: string): Promise<void> {
+        this.emitProgress(10, 'Importing from StackBlitz');
+
+        // Parse project ID from URL
+        const match = stackblitzUrl.match(/stackblitz\.com\/(?:edit|github)\/([a-zA-Z0-9-_/.]+)/);
+        if (!match) {
+            throw new Error('Invalid StackBlitz URL');
+        }
+
+        const projectId = match[1];
+
+        // StackBlitz doesn't have a public API, but we can try GitHub if it's a GitHub-based project
+        if (projectId.includes('/')) {
+            // It's a GitHub-based StackBlitz project
+            await this.importFromGitHub(`https://github.com/${projectId}`);
+            return;
+        }
+
+        // For non-GitHub StackBlitz projects, user needs to export manually
+        throw new Error('For non-GitHub StackBlitz projects, please export as ZIP and upload');
+    }
+
+    /**
+     * Import from Replit URL
+     */
+    async importFromReplit(replitUrl: string): Promise<void> {
+        this.emitProgress(10, 'Importing from Replit');
+
+        // Parse repl info from URL
+        const match = replitUrl.match(/replit\.com\/@([^/]+)\/([^/]+)/);
+        if (!match) {
+            throw new Error('Invalid Replit URL');
+        }
+
+        const [, username, replName] = match;
+
+        // Replit has a GraphQL API but requires authentication
+        // Try to fetch from the public endpoint
+        const response = await fetch(
+            `https://replit.com/data/repls/@${username}/${replName}`,
+            {
+                headers: process.env.REPLIT_TOKEN
+                    ? { Authorization: `Bearer ${process.env.REPLIT_TOKEN}` }
+                    : {},
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('Could not access Replit project. Please export as ZIP and upload.');
+        }
+
+        const data = await response.json();
+        const files: { path: string; content: string }[] = [];
+
+        // Extract files from repl
+        if (data.files) {
+            for (const file of data.files) {
+                if (this.isRelevantFile(file.path)) {
+                    files.push({ path: file.path, content: file.content });
+                }
+            }
+        }
+
+        if (files.length === 0) {
+            throw new Error('No files found. Please export as ZIP and upload.');
+        }
+
+        await this.importFiles(files);
+    }
+
+    /**
+     * Import based on source type
+     */
+    async importFromSource(url?: string): Promise<void> {
+        const source = this.session.source;
+
+        switch (source) {
+            case 'github':
+                if (!url) throw new Error('GitHub URL required');
+                await this.importFromGitHub(url);
+                break;
+            case 'gitlab':
+                if (!url) throw new Error('GitLab URL required');
+                await this.importFromGitLab(url);
+                break;
+            case 'bitbucket':
+                if (!url) throw new Error('Bitbucket URL required');
+                await this.importFromBitbucket(url);
+                break;
+            case 'codesandbox':
+                if (!url) throw new Error('CodeSandbox URL required');
+                await this.importFromCodeSandbox(url);
+                break;
+            case 'stackblitz':
+                if (!url) throw new Error('StackBlitz URL required');
+                await this.importFromStackBlitz(url);
+                break;
+            case 'replit':
+                if (!url) throw new Error('Replit URL required');
+                await this.importFromReplit(url);
+                break;
+            default:
+                // For other sources, files are uploaded directly
+                break;
+        }
+    }
+
     private isRelevantFile(path: string): boolean {
-        const relevantExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md'];
-        const excludedPaths = ['node_modules', '.git', 'dist', 'build', '.next'];
+        const relevantExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss', '.html', '.md', '.vue', '.svelte'];
+        const excludedPaths = ['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', '.svelte-kit', 'coverage', '__pycache__'];
 
         return (
             relevantExtensions.some(ext => path.endsWith(ext)) &&
@@ -257,81 +556,22 @@ export class ImportController extends EventEmitter {
         this.session.status = 'processing_context';
         this.emitProgress(25, 'Processing chat history');
 
-        // Parse chat text into structured messages
-        const messages = this.parseChatHistory(chatText);
-        this.session.context.raw.chatHistory = messages;
+        // Use source-specific chat parser
+        const parser = createChatParser(this.session.source);
+        const result = parser.parse(chatText);
 
-        this.log(`Parsed ${messages.length} chat messages`);
-    }
+        this.session.context.raw.chatHistory = result.messages;
 
-    /**
-     * Parse raw chat text into structured messages
-     */
-    private parseChatHistory(chatText: string): ChatMessage[] {
-        const messages: ChatMessage[] = [];
-        let messageNumber = 1;
+        const sourceName = SOURCE_REGISTRY[this.session.source]?.name || this.session.source;
+        this.log(`Parsed ${result.messages.length} chat messages from ${sourceName}`);
+        this.log(`Context quality: ${result.metadata.estimatedQuality}`);
 
-        // Split by common patterns
-        const lines = chatText.split('\n');
-        let currentRole: 'user' | 'assistant' = 'user';
-        let currentContent = '';
-
-        for (const line of lines) {
-            // Detect role changes
-            const userMatch = line.match(/^(User|You|Human|Me):/i);
-            const assistantMatch = line.match(/^(Assistant|AI|Bot|Lovable|Bolt):/i);
-
-            if (userMatch || assistantMatch) {
-                // Save previous message
-                if (currentContent.trim()) {
-                    messages.push({
-                        id: uuidv4(),
-                        role: currentRole,
-                        content: currentContent.trim(),
-                        messageNumber: messageNumber++,
-                        hasError: this.containsError(currentContent),
-                        hasCode: this.containsCode(currentContent),
-                    });
-                }
-
-                currentRole = userMatch ? 'user' : 'assistant';
-                currentContent = line.replace(/^(User|You|Human|Me|Assistant|AI|Bot|Lovable|Bolt):/i, '').trim();
-            } else {
-                currentContent += '\n' + line;
-            }
+        if (result.metadata.hasErrors) {
+            this.log('Detected error mentions in conversation');
         }
-
-        // Save last message
-        if (currentContent.trim()) {
-            messages.push({
-                id: uuidv4(),
-                role: currentRole,
-                content: currentContent.trim(),
-                messageNumber: messageNumber,
-                hasError: this.containsError(currentContent),
-                hasCode: this.containsCode(currentContent),
-            });
+        if (result.metadata.hasCodeBlocks) {
+            this.log('Detected code blocks in conversation');
         }
-
-        return messages;
-    }
-
-    private containsError(text: string): boolean {
-        const errorPatterns = [
-            /error/i,
-            /failed/i,
-            /broken/i,
-            /doesn't work/i,
-            /not working/i,
-            /crash/i,
-            /bug/i,
-            /issue/i,
-        ];
-        return errorPatterns.some(p => p.test(text));
-    }
-
-    private containsCode(text: string): boolean {
-        return /```/.test(text) || /<[a-zA-Z]/.test(text);
     }
 
     // ===========================================================================

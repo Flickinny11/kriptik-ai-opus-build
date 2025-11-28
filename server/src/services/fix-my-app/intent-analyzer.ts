@@ -1,6 +1,6 @@
 /**
  * Intent Analyzer Service
- * 
+ *
  * Analyzes chat history from other AI builders to extract user intent,
  * including core purpose, features requested, design preferences, and
  * frustration points.
@@ -59,7 +59,7 @@ ${formattedChat}
 
 Extract the following information:
 
-1. **CORE PURPOSE**: What is the main goal/purpose of this application? 
+1. **CORE PURPOSE**: What is the main goal/purpose of this application?
    Summarize in 1-2 sentences what the user is trying to build.
 
 2. **PRIMARY FEATURES**: What MUST this app do? List every feature the user explicitly requested.

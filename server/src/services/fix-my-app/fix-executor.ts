@@ -1,6 +1,6 @@
 /**
  * Fix Executor Service
- * 
+ *
  * Executes the chosen fix strategy - repairing, partially rebuilding,
  * or fully rebuilding the imported project based on intent analysis.
  */
@@ -431,7 +431,7 @@ Return JSON with file lists:
             return {
                 coreFiles: ['src/App.tsx', 'src/main.tsx', 'src/index.css'],
                 components: ['src/components/ui/Button.tsx', 'src/components/ui/Card.tsx'],
-                features: this.intent.primaryFeatures.map(f => 
+                features: this.intent.primaryFeatures.map(f =>
                     `src/features/${f.name.toLowerCase().replace(/\s+/g, '-')}/index.tsx`
                 ),
                 api: ['src/api/client.ts'],
