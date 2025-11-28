@@ -1,14 +1,14 @@
 /**
- * Helicone Client - LLM Observability & Proxy Layer
+ * AI Client Factory
  *
- * Helicone provides:
- * - Request/response logging
- * - Cost tracking
- * - Rate limiting
- * - Caching
- * - Analytics
+ * Creates Anthropic SDK clients configured for the available API:
+ * 
+ * Priority order:
+ * 1. OpenRouter (recommended - higher rate limits, no commercial account needed)
+ * 2. Direct Anthropic + Helicone (requires ANTHROPIC_API_KEY + commercial account)
+ * 3. Direct Anthropic (requires ANTHROPIC_API_KEY)
  *
- * All Claude API calls go through Helicone for observability.
+ * OpenRouter provides an Anthropic-compatible API, so the SDK works seamlessly.
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';
@@ -16,6 +16,7 @@ import { Anthropic } from '@anthropic-ai/sdk';
 export interface HeliconeConfig {
     apiKey: string;
     anthropicApiKey: string;
+    openRouterApiKey: string;
     enabled: boolean;
     cacheEnabled?: boolean;
     rateLimitPolicy?: string;
@@ -39,36 +40,68 @@ export interface HeliconeHeaders {
 export class HeliconeClient {
     private config: HeliconeConfig;
     private client: Anthropic;
+    private useOpenRouter: boolean = false;
+    private useHelicone: boolean = false;
 
     constructor(config?: Partial<HeliconeConfig>) {
-        // Enable caching by default when Helicone is configured for cost savings
+        const heliconeKey = config?.apiKey || process.env.HELICONE_API_KEY || '';
+        const anthropicKey = config?.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
+        const openRouterKey = config?.openRouterApiKey || process.env.OPENROUTER_API_KEY || '';
+        
         const heliconeEnabled = config?.enabled ?? (process.env.HELICONE_ENABLED !== 'false');
-        const hasHeliconeKey = !!(config?.apiKey || process.env.HELICONE_API_KEY);
 
         this.config = {
-            apiKey: config?.apiKey || process.env.HELICONE_API_KEY || '',
-            anthropicApiKey: config?.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '',
-            enabled: heliconeEnabled && hasHeliconeKey,
-            // Enable caching by default when Helicone is active - 20-30% cost savings
-            cacheEnabled: config?.cacheEnabled ?? (heliconeEnabled && hasHeliconeKey),
+            apiKey: heliconeKey,
+            anthropicApiKey: anthropicKey,
+            openRouterApiKey: openRouterKey,
+            enabled: heliconeEnabled && !!heliconeKey && !!anthropicKey,
+            cacheEnabled: config?.cacheEnabled ?? heliconeEnabled,
             rateLimitPolicy: config?.rateLimitPolicy,
             userId: config?.userId,
             sessionId: config?.sessionId,
             properties: config?.properties || {},
         };
 
-        // Initialize Anthropic client with Helicone proxy if enabled
-        if (this.config.enabled && this.config.apiKey) {
+        // Priority 1: OpenRouter (recommended - no rate limit concerns)
+        if (openRouterKey) {
+            this.useOpenRouter = true;
+            this.useHelicone = false;
             this.client = new Anthropic({
-                apiKey: this.config.anthropicApiKey,
+                apiKey: openRouterKey,
+                baseURL: 'https://openrouter.ai/api/v1',
+                defaultHeaders: {
+                    'HTTP-Referer': 'https://kriptik.ai',
+                    'X-Title': 'KripTik AI Builder',
+                },
+            });
+            console.log('[AIClient] Using OpenRouter (Anthropic SDK compatible)');
+        }
+        // Priority 2: Direct Anthropic + Helicone (requires commercial account for high usage)
+        else if (anthropicKey && heliconeKey && this.config.enabled) {
+            this.useOpenRouter = false;
+            this.useHelicone = true;
+            this.client = new Anthropic({
+                apiKey: anthropicKey,
                 baseURL: 'https://anthropic.helicone.ai',
                 defaultHeaders: this.buildHeaders(),
             });
-        } else {
-            // Direct Anthropic connection (no Helicone)
+            console.log('[AIClient] Using Anthropic API with Helicone proxy');
+        }
+        // Priority 3: Direct Anthropic (rate limit concerns without commercial account)
+        else if (anthropicKey) {
+            this.useOpenRouter = false;
+            this.useHelicone = false;
             this.client = new Anthropic({
-                apiKey: this.config.anthropicApiKey,
+                apiKey: anthropicKey,
             });
+            console.log('[AIClient] Using direct Anthropic API (watch rate limits!)');
+        }
+        // No API key available
+        else {
+            throw new Error(
+                'No AI API key configured. Set OPENROUTER_API_KEY (recommended) ' +
+                'or ANTHROPIC_API_KEY in your environment variables.'
+            );
         }
     }
 
@@ -96,7 +129,6 @@ export class HeliconeClient {
             headers['Helicone-Session-Id'] = this.config.sessionId;
         }
 
-        // Add custom properties
         for (const [key, value] of Object.entries(this.config.properties || {})) {
             headers[`Helicone-Property-${key}`] = value;
         }
@@ -112,8 +144,22 @@ export class HeliconeClient {
     }
 
     /**
+     * Check if using OpenRouter instead of direct Anthropic
+     */
+    isUsingOpenRouter(): boolean {
+        return this.useOpenRouter;
+    }
+
+    /**
+     * Check if Helicone observability is active
+     */
+    isUsingHelicone(): boolean {
+        return this.useHelicone;
+    }
+
+    /**
      * Create a new client instance with additional context
-     * Useful for per-request tracking (user, project, agent)
+     * Only adds Helicone tracking headers when using Helicone
      */
     withContext(context: {
         userId?: string;
@@ -122,10 +168,12 @@ export class HeliconeClient {
         sessionId?: string;
         feature?: string;
     }): Anthropic {
-        if (!this.config.enabled || !this.config.apiKey) {
+        // For OpenRouter or direct Anthropic (no Helicone), just return base client
+        if (this.useOpenRouter || !this.useHelicone) {
             return this.client;
         }
 
+        // For Helicone - add per-request context headers
         const additionalHeaders: Record<string, string> = {};
 
         if (context.userId) {
@@ -158,13 +206,13 @@ export class HeliconeClient {
      * Check if Helicone is enabled and configured
      */
     isEnabled(): boolean {
-        return this.config.enabled && !!this.config.apiKey;
+        return this.useHelicone;
     }
 
     /**
      * Get current configuration (without sensitive keys)
      */
-    getConfig(): Omit<HeliconeConfig, 'apiKey' | 'anthropicApiKey'> {
+    getConfig(): Omit<HeliconeConfig, 'apiKey' | 'anthropicApiKey' | 'openRouterApiKey'> {
         return {
             enabled: this.config.enabled,
             cacheEnabled: this.config.cacheEnabled,
@@ -173,6 +221,19 @@ export class HeliconeClient {
             sessionId: this.config.sessionId,
             properties: this.config.properties,
         };
+    }
+
+    /**
+     * Get info about which backend is being used
+     */
+    getBackendInfo(): { provider: string; helicone: boolean } {
+        if (this.useOpenRouter) {
+            return { provider: 'OpenRouter', helicone: false };
+        } else if (this.useHelicone) {
+            return { provider: 'Anthropic', helicone: true };
+        } else {
+            return { provider: 'Anthropic', helicone: false };
+        }
     }
 }
 
@@ -189,4 +250,3 @@ export function getHeliconeClient(config?: Partial<HeliconeConfig>): HeliconeCli
 export function resetHeliconeClient(): void {
     heliconeInstance = null;
 }
-

@@ -23,7 +23,7 @@ function getUserId(): string | null {
     // First try from apiClient (set during login)
     const fromClient = apiClient.getUserId();
     if (fromClient) return fromClient;
-    
+
     // Fallback to localStorage
     try {
         return localStorage.getItem('kriptik_user_id');
@@ -92,7 +92,7 @@ export class AgentOrchestrator {
             if (!userId) {
                 throw new Error('Authentication required');
             }
-            
+
             const analysisResponse = await fetch(`${API_BASE}/api/orchestrate/analyze`, {
                 method: 'POST',
                 headers: {
@@ -176,7 +176,7 @@ export class AgentOrchestrator {
                 reject(new Error('Authentication required'));
                 return;
             }
-            
+
             // Use fetch with ReadableStream for SSE
             fetch(`${API_BASE}/api/orchestrate/${projectId}/execute`, {
                 method: 'POST',
