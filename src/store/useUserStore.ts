@@ -30,7 +30,7 @@ export const useUserStore = create<UserState>((set) => ({
             if (session?.user) {
                 // Set the user ID in the API client for authenticated requests
                 setApiUserId(session.user.id);
-                
+
                 set({
                     user: {
                         id: session.user.id,
@@ -68,7 +68,7 @@ export const useUserStore = create<UserState>((set) => ({
         if (session?.user) {
             // Set the user ID in the API client for authenticated requests
             setApiUserId(session.user.id);
-            
+
             set({
                 user: {
                     id: session.user.id,
@@ -99,7 +99,7 @@ export const useUserStore = create<UserState>((set) => ({
         if (session?.user) {
             // Set the user ID in the API client for authenticated requests
             setApiUserId(session.user.id);
-            
+
             set({
                 user: {
                     id: session.user.id,

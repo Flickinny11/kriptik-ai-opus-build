@@ -98,6 +98,10 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     };
 }
 
+console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
+console.log('[Auth] Frontend URL:', frontendUrl);
+console.log('[Auth] Backend URL:', backendUrl);
+
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "sqlite", // Turso uses SQLite protocol
@@ -176,21 +180,31 @@ export const auth = betterAuth({
         // Validate redirect URLs after OAuth - redirect to frontend
         async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
             // Always redirect to frontend dashboard after OAuth
-            // This bypasses any encoding issues with callback URLs
             const dashboardUrl = `${frontendUrl}/dashboard`;
+            
+            console.log(`[Auth] Redirect callback called - url: ${url}, baseUrl: ${baseUrl}`);
 
-            // If URL is relative path on our frontend, use it
+            // If URL is relative path, prepend frontend URL
             if (url.startsWith('/')) {
-                return `${frontendUrl}${url}`;
+                const finalUrl = `${frontendUrl}${url}`;
+                console.log(`[Auth] Relative path, redirecting to: ${finalUrl}`);
+                return finalUrl;
             }
 
             // If URL is already our frontend, allow it
             if (url.startsWith(frontendUrl)) {
+                console.log(`[Auth] Frontend URL, allowing: ${url}`);
                 return url;
+            }
+            
+            // If URL is the backend (which happens after OAuth), redirect to frontend
+            if (url.startsWith(backendUrl) || url === baseUrl || url === '/') {
+                console.log(`[Auth] Backend URL detected, redirecting to dashboard: ${dashboardUrl}`);
+                return dashboardUrl;
             }
 
             // For any other case, go to dashboard
-            console.log(`[Auth] OAuth redirect to: ${dashboardUrl} (original: ${url})`);
+            console.log(`[Auth] Unknown URL pattern, redirecting to dashboard: ${dashboardUrl}`);
             return dashboardUrl;
         },
     },

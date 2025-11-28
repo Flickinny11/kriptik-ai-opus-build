@@ -11,7 +11,7 @@ export const authClient = createAuthClient({
 export const signInWithGoogle = async () => {
     try {
         console.log('[Auth] Starting Google sign-in...');
-        
+
         await authClient.signIn.social({
             provider: "google",
             // callbackURL is handled by the server's redirect callback
@@ -25,7 +25,7 @@ export const signInWithGoogle = async () => {
 export const signInWithGitHub = async () => {
     try {
         console.log('[Auth] Starting GitHub sign-in...');
-        
+
         await authClient.signIn.social({
             provider: "github",
             // callbackURL is handled by the server's redirect callback

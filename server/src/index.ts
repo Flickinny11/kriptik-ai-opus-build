@@ -219,9 +219,20 @@ app.use('/api', generalRateLimiter);
 
 import { toNodeHandler } from "better-auth/node";
 import { auth } from './auth.js';
+
+// Frontend URL for redirects after auth
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+
 // Better Auth handler - catches all /api/auth/* routes
 // Express 5 with path-to-regexp requires named wildcards
 app.all("/api/auth/{*path}", toNodeHandler(auth));
+
+// Fallback redirect for any auth-related requests that land on backend root
+// This catches the case where OAuth callback redirects to backend instead of frontend
+app.get("/auth-redirect", (req, res) => {
+    console.log('[Auth Redirect] Redirecting to frontend dashboard');
+    res.redirect(`${FRONTEND_URL}/dashboard`);
+});
 
 // =============================================================================
 // API ROUTES
