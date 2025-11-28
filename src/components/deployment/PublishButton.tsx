@@ -75,6 +75,11 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
     }, []);
 
     const loadDeployment = async () => {
+        // Don't fetch if projectId is invalid (e.g., "new" or empty)
+        if (!projectId || projectId === 'new' || projectId.length < 5) {
+            return;
+        }
+        
         try {
             const response = await apiClient.get<{ deployment: DeploymentStatus | null }>(`/api/hosting/deployments/${projectId}`);
             if (response.data.deployment) {

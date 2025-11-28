@@ -178,6 +178,28 @@ const allowedOrigins = [
     'http://127.0.0.1:3000',
 ].filter(Boolean);
 
+// CRITICAL: Handle ALL OPTIONS preflight requests FIRST
+// This ensures CORS headers are always sent, even if route doesn't exist
+app.options('*', (req, res) => {
+    const origin = req.headers.origin;
+    
+    // Check if origin is allowed
+    const isAllowed = !origin || 
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
+    
+    if (isAllowed) {
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, x-user-id, X-User-Id');
+        res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+        return res.status(204).end();
+    }
+    
+    res.status(403).json({ error: 'CORS not allowed' });
+});
+
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, curl, etc.)
