@@ -17,8 +17,10 @@ const checkAdminSecret = (req: Request, res: Response): boolean => {
     const secret = req.headers['x-admin-secret'];
     const adminSecret = process.env.ADMIN_SECRET;
     
-    // In development, allow without secret
-    if (process.env.NODE_ENV !== 'production' && !adminSecret) {
+    // If no admin secret is set in env, allow access (for initial setup)
+    // IMPORTANT: Set ADMIN_SECRET in production!
+    if (!adminSecret) {
+        console.warn('[Admin] No ADMIN_SECRET set - allowing access. Set ADMIN_SECRET for production!');
         return true;
     }
     
