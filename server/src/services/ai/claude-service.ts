@@ -1,48 +1,36 @@
 /**
- * Claude Service - AI Code Generation with Claude Sonnet 4.5 Extended Thinking
+ * Claude Service - AI Code Generation via OpenRouter
  *
- * This service handles all AI interactions for KripTik:
+ * This service handles all AI interactions for KripTik using OpenRouter:
  * - Code generation with extended thinking
  * - Streaming responses for real-time UI updates
  * - Context management for multi-turn conversations
  * - Specialized prompts for different agent types
  * - Integrated design tokens for premium UI quality
  * - Automatic icon selection for contextual icons
+ *
+ * OpenRouter provides full Claude capabilities:
+ * - Extended thinking
+ * - Effort/Verbosity parameter (Opus 4.5)
+ * - Tool calls
+ * - 200K context window
+ * - 64K output tokens
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
-import { getHeliconeClient } from './helicone-client.js';
+import { getOpenRouterClient, OPENROUTER_MODELS, type EffortLevel } from './openrouter-client.js';
 import { getDesignTokenPrompt } from './design-tokens.js';
 import { getIconSuggestionPrompt } from './icon-mapper.js';
 import { getComponentRegistry } from '../templates/component-registry.js';
 
-// Claude model constants for direct Anthropic API
-// Both Sonnet 4.5 and Opus 4.5 support 64,000 output tokens
+// Re-export OpenRouter models as CLAUDE_MODELS for backwards compatibility
 export const CLAUDE_MODELS = {
-    OPUS_4_5: 'claude-opus-4-5-20250514',   // Premium: Complex architecture, critical planning (64K output)
-    SONNET_4_5: 'claude-sonnet-4-5-20250514', // Standard: Most coding tasks (64K output)
-    SONNET_4: 'claude-sonnet-4-20250514',
-    OPUS_4: 'claude-opus-4-20250514',
+    OPUS_4_5: OPENROUTER_MODELS.OPUS_4_5,     // Critical tasks, deep analysis, effort parameter
+    SONNET_4_5: OPENROUTER_MODELS.SONNET_4_5, // Main coding, extended thinking
+    SONNET_4: OPENROUTER_MODELS.SONNET_4,     // Standard tasks
+    HAIKU_3_5: OPENROUTER_MODELS.HAIKU_3_5,   // Fast, simple tasks
 } as const;
-
-// OpenRouter model paths (used when ANTHROPIC_API_KEY is not set)
-const OPENROUTER_MODELS: Record<string, string> = {
-    'claude-opus-4-5-20250514': 'anthropic/claude-opus-4',
-    'claude-sonnet-4-5-20250514': 'anthropic/claude-sonnet-4',
-    'claude-sonnet-4-20250514': 'anthropic/claude-sonnet-4',
-    'claude-opus-4-20250514': 'anthropic/claude-opus-4',
-};
-
-/**
- * Get the appropriate model ID based on whether we're using OpenRouter or direct Anthropic
- */
-function getModelId(model: string, useOpenRouter: boolean): string {
-    if (!useOpenRouter) {
-        return model;
-    }
-    return OPENROUTER_MODELS[model] || 'anthropic/claude-sonnet-4';
-}
 
 // Model capabilities reference:
 // - Claude Opus 4.5: 200K context, 64K output, extended thinking, effort parameter (low/medium/high)
@@ -403,15 +391,13 @@ function cacheGeneratedComponent(params: {
 export class ClaudeService {
     private client: Anthropic;
     private context: GenerationContext;
-    private useOpenRouter: boolean;
 
     constructor(context: GenerationContext) {
         this.context = context;
 
-        // Get Anthropic client through Helicone for observability
-        const helicone = getHeliconeClient();
-        this.useOpenRouter = helicone.isUsingOpenRouter();
-        this.client = helicone.withContext({
+        // Get Anthropic SDK client via OpenRouter
+        const openRouter = getOpenRouterClient();
+        this.client = openRouter.withContext({
             userId: context.userId,
             projectId: context.projectId,
             agentType: context.agentType,
@@ -477,32 +463,40 @@ export class ClaudeService {
             { role: 'user', content: prompt },
         ];
 
-        // Get the appropriate model ID (OpenRouter uses different paths)
-        const modelId = getModelId(model, this.useOpenRouter);
-
-        // Build request parameters
+        // Build request parameters for OpenRouter
+        // OpenRouter uses the same model IDs we defined in CLAUDE_MODELS
         const requestParams: Anthropic.MessageCreateParams = {
-            model: modelId,
+            model,
             max_tokens: maxTokens,
             system: systemPrompt,
             messages,
         };
 
-        // Add extended thinking if enabled (not supported by OpenRouter)
-        if (useExtendedThinking && !this.useOpenRouter) {
+        // Add extended thinking if enabled
+        // OpenRouter DOES support extended thinking for Claude models
+        if (useExtendedThinking) {
             requestParams.thinking = {
                 type: 'enabled',
                 budget_tokens: thinkingBudgetTokens,
             };
             // Temperature must be 1 for extended thinking
             requestParams.temperature = 1;
+            console.log(`[ClaudeService] Extended thinking enabled (budget: ${thinkingBudgetTokens} tokens)`);
         } else if (temperature !== undefined) {
             requestParams.temperature = temperature;
         }
-        
-        // Log if OpenRouter disabled extended thinking
-        if (useExtendedThinking && this.useOpenRouter) {
-            console.log('[ClaudeService] Extended thinking disabled for OpenRouter');
+
+        // Add effort/verbosity parameter for Opus 4.5
+        // OpenRouter passes this through to Anthropic
+        if (effort && model === CLAUDE_MODELS.OPUS_4_5) {
+            // OpenRouter uses provider-specific parameters
+            // Cast to unknown first for type safety
+            (requestParams as unknown as { provider?: { anthropic?: { verbosity?: string } } }).provider = {
+                anthropic: {
+                    verbosity: effort,
+                },
+            };
+            console.log(`[ClaudeService] Opus 4.5 effort level: ${effort}`);
         }
 
         if (stopSequences) {

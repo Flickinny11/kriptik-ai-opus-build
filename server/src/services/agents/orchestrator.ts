@@ -139,7 +139,7 @@ export class AgentOrchestrator extends EventEmitter {
 
         if (client) {
             this.client = client;
-            console.log('Agent orchestrator initialized with', process.env.ANTHROPIC_API_KEY ? 'direct Anthropic API' : 'OpenRouter');
+            console.log('[AgentOrchestrator] Initialized with OpenRouter');
         } else {
             console.warn('No AI API key configured. Agent orchestrator will not function.');
         }
