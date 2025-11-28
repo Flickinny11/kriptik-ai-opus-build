@@ -190,6 +190,7 @@ import figmaRouter from './routes/figma.js';
 import modelDeployRouter from './routes/model-deploy.js';
 import stripeRouter from './routes/stripe.js';
 import infrastructureRouter from './routes/infrastructure.js';
+import autonomousRouter from './routes/autonomous.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -257,6 +258,9 @@ app.use("/api/stripe", stripeRouter);
 // Infrastructure/IaC (Terraform, Docker, Kubernetes)
 app.use("/api/infrastructure", infrastructureRouter);
 
+// Autonomous Building ("Approve and Watch")
+app.use("/api/autonomous", autonomousRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
@@ -317,6 +321,16 @@ app.get('/api/config/services', (req, res) => {
         },
         billing: {
             enabled: !!process.env.STRIPE_SECRET_KEY,
+        },
+        autonomous: {
+            enabled: true,
+            features: [
+                'autonomous_building',
+                'auto_fix',
+                'visual_verification',
+                'e2e_testing',
+                'browser_automation',
+            ],
         },
     });
 });

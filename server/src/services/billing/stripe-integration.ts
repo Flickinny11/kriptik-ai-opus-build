@@ -581,14 +581,14 @@ const stripePromise = loadStripe('${publishableKey}');
 export async function redirectToCheckout() {
   const stripe = await stripePromise;
   if (!stripe) throw new Error('Stripe not loaded');
-  
+
   const { error } = await stripe.redirectToCheckout({
     lineItems: [{ price: '${priceId}', quantity: 1 }],
     mode: 'payment',
     successUrl: window.location.origin + '/success',
     cancelUrl: window.location.origin + '/cancel',
   });
-  
+
   if (error) {
     console.error('Checkout error:', error);
     throw error;
@@ -615,13 +615,13 @@ export async function handleStripeWebhook(
   signature: string
 ): Promise<{ received: boolean; event?: string }> {
   let event: Stripe.Event;
-  
+
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     throw new Error(\`Webhook signature verification failed: \${err}\`);
   }
-  
+
   // Handle specific events
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -631,32 +631,32 @@ export async function handleStripeWebhook(
       // TODO: Fulfill order, update database, send confirmation
       break;
     }
-    
+
     case 'customer.subscription.created': {
       const subscription = event.data.object as Stripe.Subscription;
       // Handle new subscription
       console.log('Subscription created:', subscription.id);
       break;
     }
-    
+
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       // Handle subscription cancellation
       console.log('Subscription cancelled:', subscription.id);
       break;
     }
-    
+
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
       // Handle failed payment
       console.log('Payment failed:', invoice.id);
       break;
     }
-    
+
     default:
       console.log(\`Unhandled event type: \${event.type}\`);
   }
-  
+
   return { received: true, event: event.type };
 }
 `.trim();

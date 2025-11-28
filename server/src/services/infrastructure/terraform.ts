@@ -126,7 +126,7 @@ resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
-  
+
   tags = {
     Name = "\${var.app_name}-vpc"
     ManagedBy = "kriptik-ai"
@@ -140,7 +140,7 @@ resource "aws_subnet" "public" {
   cidr_block              = "10.0.\${count.index + 1}.0/24"
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "\${var.app_name}-public-\${count.index + 1}"
   }
@@ -153,7 +153,7 @@ data "aws_availability_zones" "available" {
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  
+
   tags = {
     Name = "\${var.app_name}-igw"
   }
@@ -162,12 +162,12 @@ resource "aws_internet_gateway" "main" {
 # Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
-  
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  
+
   tags = {
     Name = "\${var.app_name}-public-rt"
   }
@@ -184,21 +184,21 @@ resource "aws_security_group" "app" {
   name        = "\${var.app_name}-sg"
   description = "Security group for \${var.app_name}"
   vpc_id      = aws_vpc.main.id
-  
+
   ingress {
     from_port   = var.container_port
     to_port     = var.container_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -211,7 +211,7 @@ resource "aws_security_group" "app" {
 resource "aws_ecr_repository" "app" {
   name                 = var.app_name
   image_tag_mutability = "MUTABLE"
-  
+
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -220,7 +220,7 @@ resource "aws_ecr_repository" "app" {
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "\${var.app_name}-cluster"
-  
+
   setting {
     name  = "containerInsights"
     value = "enabled"
@@ -236,23 +236,23 @@ resource "aws_ecs_task_definition" "app" {
   memory                   = var.memory
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn           = aws_iam_role.ecs_task.arn
-  
+
   container_definitions = jsonencode([{
     name  = var.app_name
     image = "\${aws_ecr_repository.app.repository_url}:latest"
-    
+
     portMappings = [{
       containerPort = var.container_port
       protocol      = "tcp"
     }]
-    
+
     environment = [
       for k, v in var.environment_variables : {
         name  = k
         value = v
       }
     ]
-    
+
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -273,7 +273,7 @@ resource "aws_cloudwatch_log_group" "app" {
 # IAM Roles
 resource "aws_iam_role" "ecs_execution" {
   name = "\${var.app_name}-ecs-execution"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -293,7 +293,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 
 resource "aws_iam_role" "ecs_task" {
   name = "\${var.app_name}-ecs-task"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -313,19 +313,19 @@ resource "aws_ecs_service" "app" {
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = var.min_instances
   launch_type     = "FARGATE"
-  
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.app.id]
     assign_public_ip = true
   }
-  
+
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
     container_name   = var.app_name
     container_port   = var.container_port
   }
-  
+
   depends_on = [aws_lb_listener.app]
 }
 
@@ -344,7 +344,7 @@ resource "aws_lb_target_group" "app" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
-  
+
   health_check {
     path                = "/health"
     healthy_threshold   = 2
@@ -359,7 +359,7 @@ resource "aws_lb_listener" "app" {
   load_balancer_arn = aws_lb.app.arn
   port              = 80
   protocol          = "HTTP"
-  
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
@@ -381,12 +381,12 @@ resource "aws_appautoscaling_policy" "ecs_cpu" {
   resource_id        = aws_appautoscaling_target.ecs.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs.service_namespace
-  
+
   target_tracking_scaling_policy_configuration {
     target_value       = 70.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
-    
+
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
@@ -417,7 +417,7 @@ resource "google_artifact_registry_repository" "app" {
   location      = var.gcp_region
   repository_id = var.app_name
   format        = "DOCKER"
-  
+
   labels = {
     managed_by = "kriptik-ai"
   }
@@ -427,22 +427,22 @@ resource "google_artifact_registry_repository" "app" {
 resource "google_cloud_run_v2_service" "app" {
   name     = var.app_name
   location = var.gcp_region
-  
+
   template {
     containers {
       image = "\${var.gcp_region}-docker.pkg.dev/\${var.gcp_project_id}/\${var.app_name}/\${var.app_name}:latest"
-      
+
       ports {
         container_port = var.container_port
       }
-      
+
       resources {
         limits = {
           cpu    = var.cpu
           memory = var.memory
         }
       }
-      
+
       dynamic "env" {
         for_each = var.environment_variables
         content {
@@ -451,13 +451,13 @@ resource "google_cloud_run_v2_service" "app" {
         }
       }
     }
-    
+
     scaling {
       min_instance_count = var.min_instances
       max_instance_count = var.max_instances
     }
   }
-  
+
   traffic {
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
     percent = 100

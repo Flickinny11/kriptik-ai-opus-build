@@ -209,7 +209,7 @@ Respond with JSON:
 }`;
 
         const response = await claude.generate(analysisPrompt);
-        
+
         // Parse JSON from response
         const jsonMatch = response.content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
