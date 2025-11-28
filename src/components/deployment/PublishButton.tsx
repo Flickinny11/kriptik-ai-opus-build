@@ -423,7 +423,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                             )}
                         </AnimatePresence>
 
-                        {/* Custom Domain Panel */}
+                        {/* Custom Domain Panel - Domain purchase temporarily disabled */}
                         <AnimatePresence>
                             {showCustomDomain && (
                                 <motion.div
@@ -433,27 +433,20 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                     className="border-t border-slate-700/50 overflow-hidden"
                                 >
                                     <div className="p-4">
-                                        <p className="text-sm font-medium text-white mb-3">Connect Custom Domain</p>
-                                        <p className="text-xs text-slate-400 mb-4">
-                                            Purchase a domain through KripTik or connect your existing domain.
-                                        </p>
-                                        <div className="space-y-2">
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-start border-slate-700"
-                                                onClick={() => window.open('/settings?tab=domains', '_blank')}
-                                            >
-                                                <Globe className="w-4 h-4 mr-2" />
-                                                Search & Buy Domain
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-start border-slate-700"
-                                            >
-                                                <Link2 className="w-4 h-4 mr-2" />
-                                                Connect Existing Domain
-                                            </Button>
+                                        <p className="text-sm font-medium text-white mb-3">Custom Domain</p>
+                                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
+                                            <p className="text-xs text-amber-400">
+                                                🚧 Domain purchasing coming soon! For now, use a free .kriptik.app subdomain.
+                                            </p>
                                         </div>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start border-slate-700 opacity-50 cursor-not-allowed"
+                                            disabled
+                                        >
+                                            <Globe className="w-4 h-4 mr-2" />
+                                            Search & Buy Domain (Coming Soon)
+                                        </Button>
                                     </div>
                                 </motion.div>
                             )}
