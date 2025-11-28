@@ -93,28 +93,28 @@ export function KriptikLogo({
             <g filter="url(#shadow3d)" transform="skewX(-5) skewY(2) translate(5, -2)">
                 {/* Outer ring */}
                 <path
-                    d="M 15 50 
-                       A 35 35 0 0 1 85 50 
-                       A 8 8 0 0 1 85 58 
-                       A 27 27 0 0 0 23 58 
+                    d="M 15 50
+                       A 35 35 0 0 1 85 50
+                       A 8 8 0 0 1 85 58
+                       A 27 27 0 0 0 23 58
                        A 8 8 0 0 1 15 50 Z"
                     fill="url(#logoGradient)"
                 />
 
                 {/* Inner depth layer */}
                 <path
-                    d="M 20 50 
-                       A 30 30 0 0 1 80 50 
-                       A 6 6 0 0 1 80 56 
-                       A 24 24 0 0 0 26 56 
+                    d="M 20 50
+                       A 30 30 0 0 1 80 50
+                       A 6 6 0 0 1 80 56
+                       A 24 24 0 0 0 26 56
                        A 6 6 0 0 1 20 50 Z"
                     fill="url(#innerGradient)"
                 />
 
                 {/* Highlight overlay */}
                 <path
-                    d="M 20 48 
-                       A 30 30 0 0 1 65 35 
+                    d="M 20 48
+                       A 30 30 0 0 1 65 35
                        Q 50 42 25 48
                        A 8 8 0 0 1 20 48 Z"
                     fill="url(#highlightGradient)"

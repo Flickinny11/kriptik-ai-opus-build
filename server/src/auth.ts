@@ -31,7 +31,9 @@ export function isValidRedirectUrl(url: string | undefined | null): boolean {
     if (!url) return true; // No redirect, use default
 
     try {
-        const parsed = new URL(url);
+        // Decode URL if it's encoded
+        const decodedUrl = decodeURIComponent(url);
+        const parsed = new URL(decodedUrl);
 
         // Block javascript: protocol (XSS)
         if (parsed.protocol === 'javascript:') return false;
@@ -39,10 +41,21 @@ export function isValidRedirectUrl(url: string | undefined | null): boolean {
         // Block data: protocol
         if (parsed.protocol === 'data:') return false;
 
-        // Check against allowed patterns
-        return ALLOWED_REDIRECT_PATTERNS.some(pattern => pattern.test(url));
-    } catch {
-        // Invalid URL
+        // Check against allowed patterns (try both original and decoded)
+        const urlsToCheck = [url, decodedUrl];
+        for (const urlToCheck of urlsToCheck) {
+            if (ALLOWED_REDIRECT_PATTERNS.some(pattern => pattern.test(urlToCheck))) {
+                return true;
+            }
+        }
+
+        // Log for debugging
+        console.log('[Auth] Redirect URL validation failed:', url);
+        return false;
+    } catch (e) {
+        // Try without URL parsing for relative paths
+        if (url.startsWith('/')) return true;
+        console.log('[Auth] Invalid redirect URL:', url, e);
         return false;
     }
 }
@@ -123,12 +136,22 @@ export const auth = betterAuth({
     advanced: {
         // Use secure cookies in production
         useSecureCookies: process.env.NODE_ENV === "production",
-        // Cross-site cookie settings
+        // Cross-site cookie settings for OAuth
         crossSubDomainCookies: {
-            enabled: process.env.NODE_ENV === "production",
-            domain: process.env.COOKIE_DOMAIN || undefined,
+            enabled: false, // Disable since frontend/backend are different domains
         },
+        // Cookie settings for cross-origin
+        cookiePrefix: "kriptik_auth",
+        // Generate unique state for each OAuth request
+        generateState: true,
     },
+
+    // Trust proxy for Vercel
+    trustedOrigins: [
+        "https://kriptik-ai-opus-build.vercel.app",
+        "https://kriptik-ai-opus-build-backend.vercel.app",
+        process.env.FRONTEND_URL || "",
+    ].filter(Boolean),
 
     // Rate limiting (optional but recommended)
     rateLimit: {
@@ -143,14 +166,28 @@ export const auth = betterAuth({
             // If the URL is relative, allow it
             if (url.startsWith('/')) return url;
 
-            // Validate against allowed patterns
-            if (isValidRedirectUrl(url)) {
-                return url;
+            // Try to decode URL if it's encoded
+            let decodedUrl = url;
+            try {
+                decodedUrl = decodeURIComponent(url);
+            } catch {
+                // Use original if decode fails
             }
 
-            // Fall back to base URL for invalid redirects
-            console.warn(`Blocked invalid redirect URL: ${url}`);
-            return baseUrl;
+            // Validate against allowed patterns
+            if (isValidRedirectUrl(decodedUrl)) {
+                return decodedUrl;
+            }
+
+            // Check if it's a valid URL from our frontend
+            const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+            if (decodedUrl.startsWith(frontendUrl)) {
+                return decodedUrl;
+            }
+
+            // Fall back to frontend URL for invalid redirects
+            console.warn(`[Auth] Blocked invalid redirect URL: ${url}`);
+            return frontendUrl;
         },
     },
 });
