@@ -1,6 +1,6 @@
 /**
  * User Credit System
- * 
+ *
  * Manages user credits for AI operations:
  * - Track credit balance per user
  * - Deduct credits based on token usage
@@ -83,12 +83,12 @@ export function calculateCreditsForGeneration(
     outputTokens: number
 ): number {
     const costs = MODEL_COSTS[model] || MODEL_COSTS['default'];
-    
+
     // Calculate cost in dollars
     const inputCost = (inputTokens / 1_000_000) * costs.input;
     const outputCost = (outputTokens / 1_000_000) * costs.output;
     const totalCost = inputCost + outputCost;
-    
+
     // Convert to credits (with minimum of 1 credit)
     return Math.max(1, Math.ceil(totalCost * CREDITS_PER_DOLLAR));
 }
@@ -104,11 +104,11 @@ export function estimateCredits(
     // Rough token estimation: ~4 characters per token
     const inputTokens = Math.ceil(promptLength / 4);
     const outputTokens = Math.ceil(expectedOutputLength / 4);
-    
+
     const costs = MODEL_COSTS[model] || MODEL_COSTS['default'];
     const inputCost = (inputTokens / 1_000_000) * costs.input;
     const outputCost = (outputTokens / 1_000_000) * costs.output;
-    
+
     return {
         inputTokens,
         outputTokens,
@@ -266,7 +266,7 @@ export class CreditService {
         outputTokens: number
     ): Promise<{ creditsUsed: number; remainingBalance: number }> {
         const creditsUsed = calculateCreditsForGeneration(model, inputTokens, outputTokens);
-        
+
         const deductResult = await this.deductCredits(
             userId,
             creditsUsed,

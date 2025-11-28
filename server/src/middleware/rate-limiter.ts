@@ -1,6 +1,6 @@
 /**
  * Rate Limiter Middleware
- * 
+ *
  * Implements sliding window rate limiting for API endpoints.
  * Supports tiered limits based on user subscription level.
  */
@@ -122,7 +122,7 @@ const store = new RateLimitStore();
  */
 function getUserTier(req: Request): UserTier {
     const user = (req as Request & { user?: { tier?: UserTier; subscription?: string } }).user;
-    
+
     if (!user) {
         return 'free';
     }
@@ -146,18 +146,18 @@ function getUserTier(req: Request): UserTier {
  */
 function getUserIdentifier(req: Request): string {
     const user = (req as Request & { user?: { id?: string } }).user;
-    
+
     // Prefer user ID if authenticated
     if (user?.id) {
         return `user:${user.id}`;
     }
 
     // Fall back to IP address
-    const ip = req.ip || 
-               req.headers['x-forwarded-for']?.toString().split(',')[0] || 
-               req.socket.remoteAddress || 
+    const ip = req.ip ||
+               req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+               req.socket.remoteAddress ||
                'unknown';
-    
+
     return `ip:${ip}`;
 }
 
@@ -196,11 +196,11 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
         // Get applicable rate limit config
         const routeLimit = getRouteLimit(path);
         const tierLimit = TIER_LIMITS[tier];
-        
+
         // Route-specific limits multiply with tier limits
         const effectiveConfig: RateLimitConfig = {
             windowMs: options?.windowMs || routeLimit?.windowMs || tierLimit.windowMs,
-            maxRequests: options?.maxRequests || 
+            maxRequests: options?.maxRequests ||
                 (routeLimit ? Math.min(routeLimit.maxRequests * getTierMultiplier(tier), tierLimit.maxRequests) : tierLimit.maxRequests),
             message: routeLimit?.message || tierLimit.message,
         };
@@ -222,7 +222,7 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
                 firstRequest: now,
             };
             store.set(key, entry);
-            
+
             // Set rate limit headers
             setRateLimitHeaders(res, effectiveConfig, entry);
             return next();
@@ -238,7 +238,7 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
         // Check if over limit
         if (entry.count > effectiveConfig.maxRequests) {
             const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-            
+
             res.setHeader('Retry-After', retryAfter.toString());
             res.status(429).json({
                 error: 'Too Many Requests',
@@ -272,12 +272,12 @@ function getTierMultiplier(tier: UserTier): number {
  * Set standard rate limit headers
  */
 function setRateLimitHeaders(
-    res: Response, 
-    config: RateLimitConfig, 
+    res: Response,
+    config: RateLimitConfig,
     entry: RateLimitEntry
 ): void {
     const remaining = Math.max(0, config.maxRequests - entry.count);
-    
+
     res.setHeader('X-RateLimit-Limit', config.maxRequests.toString());
     res.setHeader('X-RateLimit-Remaining', remaining.toString());
     res.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000).toString());
@@ -343,10 +343,10 @@ export function createCostBasedLimiter(maxCostPerWindow: number, windowMs: numbe
     return (req: Request, res: Response, next: NextFunction): void => {
         const identifier = getUserIdentifier(req);
         const tier = getUserTier(req);
-        
+
         // Adjust max cost based on tier
         const adjustedMaxCost = maxCostPerWindow * getTierMultiplier(tier);
-        
+
         if (tier === 'unlimited') {
             return next();
         }
@@ -364,7 +364,7 @@ export function createCostBasedLimiter(maxCostPerWindow: number, windowMs: numbe
         // Check if over cost limit
         if (entry.totalCost >= adjustedMaxCost) {
             const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-            
+
             res.status(429).json({
                 error: 'Cost Limit Exceeded',
                 message: 'You have exceeded your usage limit for this period.',

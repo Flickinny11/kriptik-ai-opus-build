@@ -1,6 +1,6 @@
 /**
  * Icon Mapper Service
- * 
+ *
  * Automatically selects appropriate Lucide icons based on semantic content.
  * Used during code generation to add contextually appropriate icons.
  */

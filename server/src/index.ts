@@ -156,6 +156,7 @@ import {
     promptSanitizer,
     filePathSanitizer,
 } from './middleware/sanitizer.js';
+import { requireCredits } from './services/billing/credits.js';
 
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -213,13 +214,15 @@ import autonomousRouter from './routes/autonomous.js';
 // Core functionality
 app.use("/api/projects", projectsRouter);
 app.use("/api/projects", filePathSanitizer, filesRouter);
-app.use("/api/projects", promptSanitizer, generateRouter);
+// Generation routes require credits (estimated 50 credits per generation)
+app.use("/api/projects", promptSanitizer, requireCredits(50), generateRouter);
 
-// Apply stricter rate limits to expensive operations
-app.use("/api/orchestrate", orchestrationRateLimiter, promptSanitizer, orchestrateRouter);
+// Apply stricter rate limits and credit checks to expensive operations
+// Orchestration uses more tokens, require 100 credits
+app.use("/api/orchestrate", orchestrationRateLimiter, promptSanitizer, requireCredits(100), orchestrateRouter);
 
-// AI services (image-to-code, self-healing, test generation)
-app.use("/api/ai", aiRateLimiter, promptSanitizer, aiRouter);
+// AI services (image-to-code, self-healing, test generation) - 30 credits
+app.use("/api/ai", aiRateLimiter, promptSanitizer, requireCredits(30), aiRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
@@ -278,8 +281,9 @@ app.use("/api/stripe", stripeRouter);
 // Infrastructure/IaC (Terraform, Docker, Kubernetes)
 app.use("/api/infrastructure", infrastructureRouter);
 
-// Autonomous Building ("Approve and Watch") - strictest rate limits
-app.use("/api/autonomous", autonomousRateLimiter, promptSanitizer, autonomousRouter);
+// Autonomous Building ("Approve and Watch") - strictest rate limits, highest credit requirement
+// Autonomous building uses significant resources, require 200 credits
+app.use("/api/autonomous", autonomousRateLimiter, promptSanitizer, requireCredits(200), autonomousRouter);
 
 // =============================================================================
 // HEALTH & STATUS

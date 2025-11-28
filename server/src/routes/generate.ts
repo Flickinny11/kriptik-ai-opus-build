@@ -2,6 +2,7 @@
  * Generate API Routes
  *
  * Handles AI generation with Server-Sent Events (SSE) for streaming
+ * Includes Quality Gate integration for automatic refinement loops
  */
 
 import { Router, Request, Response } from 'express';
@@ -11,7 +12,9 @@ import { eq, and } from 'drizzle-orm';
 import { createOrchestrator, AgentLog, AgentType, AgentState } from '../services/ai/agent-orchestrator.js';
 import { v4 as uuidv4 } from 'uuid';
 import { getDesignTokensFile } from '../templates/design-tokens.js';
-import { getDesignValidator } from '../services/ai/design-validator.js';
+import { getQualityGateService } from '../services/ai/quality-gate.js';
+import { getComponentRegistry } from '../services/templates/component-registry.js';
+import { getCreditService, calculateCreditsForGeneration } from '../services/billing/credits.js';
 
 const router = Router();
 
@@ -115,29 +118,101 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
         result.files.set(designTokens.path, designTokens.content);
         sendSSE(res, 'file', { path: designTokens.path, content: designTokens.content });
 
-        // Validate design quality
-        const validator = getDesignValidator();
-        const filesObject: Record<string, string> = {};
+        // Quality Gate: Evaluate and auto-refine if needed
+        const qualityGate = getQualityGateService();
+        let filesObject: Record<string, string> = {};
         for (const [path, content] of result.files) {
             filesObject[path] = content;
         }
-        const validation = validator.validate(filesObject);
-
-        // Send validation result
-        sendSSE(res, 'validation', {
-            passed: validation.passed,
-            score: validation.score,
-            summary: validation.summary,
-            issueCount: validation.issues.length,
+        
+        // Initial quality evaluation
+        let qualityResult = qualityGate.evaluate(filesObject);
+        
+        sendSSE(res, 'log', {
+            id: uuidv4(),
+            agentType: 'refinement',
+            message: `Quality Gate: Design=${qualityResult.scores.design}%, Accessibility=${qualityResult.scores.accessibility}%, Code=${qualityResult.scores.codeQuality}%`,
+            type: 'info',
+            timestamp: new Date().toISOString(),
         });
 
-        // Log validation issues if any
-        if (validation.issues.length > 0) {
+        // Auto-refine if quality is below threshold
+        if (qualityResult.refinementNeeded) {
             sendSSE(res, 'log', {
                 id: uuidv4(),
                 agentType: 'refinement',
-                message: `Design quality score: ${validation.score}/100. ${validation.issues.filter(i => i.severity === 'critical').length} critical issues found.`,
-                type: validation.passed ? 'info' : 'warning',
+                message: `Quality below threshold. Starting automatic refinement...`,
+                type: 'warning',
+                timestamp: new Date().toISOString(),
+            });
+
+            try {
+                const refinementResult = await qualityGate.refine(filesObject, prompt);
+                
+                if (refinementResult.success) {
+                    // Update files with refined versions
+                    for (const [path, content] of Object.entries(refinementResult.refinedFiles)) {
+                        result.files.set(path, content);
+                        sendSSE(res, 'file', { path, content });
+                    }
+                    filesObject = refinementResult.refinedFiles;
+                    qualityResult = qualityGate.evaluate(filesObject);
+                    
+                    sendSSE(res, 'log', {
+                        id: uuidv4(),
+                        agentType: 'refinement',
+                        message: `Refinement complete! Score improved: ${refinementResult.originalScore}% → ${refinementResult.finalScore}% (${refinementResult.iterations} iterations)`,
+                        type: 'success',
+                        timestamp: new Date().toISOString(),
+                    });
+                }
+            } catch (refinementError) {
+                sendSSE(res, 'log', {
+                    id: uuidv4(),
+                    agentType: 'refinement',
+                    message: `Auto-refinement failed: ${refinementError instanceof Error ? refinementError.message : 'Unknown error'}`,
+                    type: 'error',
+                    timestamp: new Date().toISOString(),
+                });
+            }
+        }
+
+        // Cache high-quality components in the registry
+        if (qualityResult.scores.overall >= 70) {
+            const registry = getComponentRegistry();
+            for (const [path, content] of Object.entries(filesObject)) {
+                if (path.endsWith('.tsx') || path.endsWith('.jsx')) {
+                    registry.register({
+                        prompt: prompt,
+                        component: content,
+                        qualityScore: qualityResult.scores.overall,
+                        tokens: {
+                            input: result.usage.totalInputTokens,
+                            output: result.usage.totalOutputTokens,
+                        },
+                    });
+                }
+            }
+        }
+
+        // Send validation result
+        sendSSE(res, 'validation', {
+            passed: qualityResult.passed,
+            score: qualityResult.scores.overall,
+            scores: qualityResult.scores,
+            summary: `Design: ${qualityResult.scores.design}%, Accessibility: ${qualityResult.scores.accessibility}%, Code: ${qualityResult.scores.codeQuality}%`,
+            issueCount: qualityResult.issues.length,
+        });
+
+        // Log validation issues if any
+        if (qualityResult.issues.length > 0) {
+            const criticalCount = qualityResult.issues.filter(i => i.severity === 'critical').length;
+            const warningCount = qualityResult.issues.filter(i => i.severity === 'warning').length;
+            sendSSE(res, 'log', {
+                id: uuidv4(),
+                agentType: 'refinement',
+                message: `Quality Gate: ${criticalCount} critical, ${warningCount} warnings. Overall: ${qualityResult.scores.overall}/100`,
+                type: qualityResult.passed ? 'info' : 'warning',
                 timestamp: new Date().toISOString(),
             });
         }
@@ -193,12 +268,38 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             .set({ updatedAt: new Date().toISOString() })
             .where(eq(projects.id, projectId));
 
+        // Deduct credits based on actual usage
+        const actualCredits = calculateCreditsForGeneration(
+            'claude-sonnet-4-5', // Default model
+            result.usage.totalInputTokens,
+            result.usage.totalOutputTokens
+        );
+        
+        try {
+            const creditService = getCreditService();
+            await creditService.deductCredits(
+                userId,
+                actualCredits,
+                `Code generation for project: ${project.name}`,
+                { projectId, generationId: sessionId, tokensUsed: result.usage.totalInputTokens + result.usage.totalOutputTokens }
+            );
+            
+            sendSSE(res, 'credits', {
+                deducted: actualCredits,
+                reason: 'AI code generation',
+            });
+        } catch (creditError) {
+            // Log but don't fail the request
+            console.error('Credit deduction failed:', creditError);
+        }
+
         // Send completion event
         sendSSE(res, 'complete', {
             status: result.status,
             filesGenerated: result.files.size,
             usage: result.usage,
             timing: result.timing,
+            creditsUsed: actualCredits,
         });
 
         res.end();

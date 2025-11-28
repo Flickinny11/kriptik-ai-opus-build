@@ -6,11 +6,16 @@
  * - Streaming responses for real-time UI updates
  * - Context management for multi-turn conversations
  * - Specialized prompts for different agent types
+ * - Integrated design tokens for premium UI quality
+ * - Automatic icon selection for contextual icons
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getHeliconeClient } from './helicone-client.js';
+import { getDesignTokenPrompt } from './design-tokens.js';
+import { getIconSuggestionPrompt } from './icon-mapper.js';
+import { getComponentRegistry } from '../templates/component-registry.js';
 
 // Claude model constants
 export const CLAUDE_MODELS = {
@@ -302,6 +307,72 @@ When preparing deployment, respond with:
 }`,
 };
 
+/**
+ * Build enhanced system prompt with design tokens and icon guidelines
+ */
+function buildEnhancedSystemPrompt(agentType: string, customSystemPrompt?: string): string {
+    const basePrompt = customSystemPrompt || AGENT_SYSTEM_PROMPTS[agentType] || AGENT_SYSTEM_PROMPTS.generation;
+    
+    // Only enhance generation and refinement agents with design tokens
+    if (agentType === 'generation' || agentType === 'refinement') {
+        return `${basePrompt}
+
+${getDesignTokenPrompt()}
+
+${getIconSuggestionPrompt()}`;
+    }
+    
+    return basePrompt;
+}
+
+/**
+ * Check component registry for cached similar components
+ */
+function checkComponentCache(prompt: string): { found: boolean; component?: string; similarity?: number } {
+    try {
+        const registry = getComponentRegistry();
+        const match = registry.find(prompt, { minQuality: 70 });
+        
+        if (match && match.similarity >= 0.85) {
+            // High confidence match - can reuse
+            return {
+                found: true,
+                component: match.component.component,
+                similarity: match.similarity,
+            };
+        }
+        
+        return { found: false };
+    } catch {
+        // Registry not available, continue with generation
+        return { found: false };
+    }
+}
+
+/**
+ * Register a generated component in the cache
+ */
+function cacheGeneratedComponent(params: {
+    prompt: string;
+    component: string;
+    qualityScore: number;
+    tokens: { input: number; output: number };
+}): void {
+    try {
+        const registry = getComponentRegistry();
+        registry.register({
+            prompt: params.prompt,
+            component: params.component,
+            qualityScore: params.qualityScore,
+            tokens: params.tokens,
+            framework: 'react',
+            uiLibrary: 'tailwind',
+        });
+    } catch {
+        // Silently fail cache registration
+    }
+}
+
 export class ClaudeService {
     private client: Anthropic;
     private context: GenerationContext;
@@ -321,6 +392,7 @@ export class ClaudeService {
 
     /**
      * Generate a response using Claude with optional extended thinking
+     * Includes component caching for cost savings and speed
      */
     async generate(
         prompt: string,
@@ -335,9 +407,30 @@ export class ClaudeService {
             stopSequences,
         } = options;
 
-        const systemPromptText = this.context.systemPrompt ||
-            AGENT_SYSTEM_PROMPTS[this.context.agentType] ||
-            AGENT_SYSTEM_PROMPTS.generation;
+        // Check component cache for generation tasks (skip for other agent types)
+        if (this.context.agentType === 'generation') {
+            const cached = checkComponentCache(prompt);
+            if (cached.found && cached.component) {
+                console.log(`[Cache Hit] Reusing cached component (similarity: ${cached.similarity?.toFixed(2)})`);
+                return {
+                    id: uuidv4(),
+                    content: cached.component,
+                    usage: {
+                        inputTokens: 0,
+                        outputTokens: 0,
+                        cacheReadInputTokens: 1, // Mark as cache hit
+                    },
+                    stopReason: 'cache_hit',
+                    model: 'cache',
+                };
+            }
+        }
+
+        // Build enhanced system prompt with design tokens and icon guidelines
+        const systemPromptText = buildEnhancedSystemPrompt(
+            this.context.agentType,
+            this.context.systemPrompt
+        );
 
         // Use cached system prompt format for Anthropic prompt caching (30-50% cost savings)
         // The cache_control block enables automatic caching of long system prompts
@@ -379,12 +472,27 @@ export class ClaudeService {
         }
 
         const response = await this.client.messages.create(requestParams);
+        const parsed = this.parseResponse(response);
 
-        return this.parseResponse(response);
+        // Cache successful generations for future reuse
+        if (this.context.agentType === 'generation' && parsed.content) {
+            cacheGeneratedComponent({
+                prompt,
+                component: parsed.content,
+                qualityScore: 75, // Default score, will be updated by quality gate
+                tokens: {
+                    input: parsed.usage.inputTokens,
+                    output: parsed.usage.outputTokens,
+                },
+            });
+        }
+
+        return parsed;
     }
 
     /**
      * Generate a response with streaming for real-time UI updates
+     * Includes component caching for cost savings and speed
      */
     async generateStream(
         prompt: string,
@@ -399,9 +507,34 @@ export class ClaudeService {
             stopSequences,
         } = options;
 
-        const systemPromptText = this.context.systemPrompt ||
-            AGENT_SYSTEM_PROMPTS[this.context.agentType] ||
-            AGENT_SYSTEM_PROMPTS.generation;
+        // Check component cache for generation tasks
+        if (this.context.agentType === 'generation') {
+            const cached = checkComponentCache(prompt);
+            if (cached.found && cached.component) {
+                console.log(`[Cache Hit] Reusing cached component (similarity: ${cached.similarity?.toFixed(2)})`);
+                // Stream the cached content
+                callbacks.onText?.(cached.component);
+                const response: GenerationResponse = {
+                    id: uuidv4(),
+                    content: cached.component,
+                    usage: {
+                        inputTokens: 0,
+                        outputTokens: 0,
+                        cacheReadInputTokens: 1,
+                    },
+                    stopReason: 'cache_hit',
+                    model: 'cache',
+                };
+                callbacks.onComplete?.(response);
+                return response;
+            }
+        }
+
+        // Build enhanced system prompt with design tokens and icon guidelines
+        const systemPromptText = buildEnhancedSystemPrompt(
+            this.context.agentType,
+            this.context.systemPrompt
+        );
 
         // Use cached system prompt format for Anthropic prompt caching
         const systemPrompt: Anthropic.TextBlockParam[] = [
@@ -484,6 +617,16 @@ export class ClaudeService {
                 stopReason: stopReason || 'end_turn',
                 model,
             };
+
+            // Cache successful generations for future reuse
+            if (this.context.agentType === 'generation' && fullText) {
+                cacheGeneratedComponent({
+                    prompt,
+                    component: fullText,
+                    qualityScore: 75,
+                    tokens: { input: inputTokens, output: outputTokens },
+                });
+            }
 
             callbacks.onComplete?.(response);
             return response;

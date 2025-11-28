@@ -1,6 +1,6 @@
 /**
  * Error Boundary Component
- * 
+ *
  * Catches JavaScript errors anywhere in the child component tree,
  * logs errors, and displays a fallback UI instead of crashing.
  */
@@ -148,9 +148,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                 {/* Icon and Title */}
                                 <div className="flex items-start gap-4">
                                     <div className={`
-                                        p-3 rounded-xl 
-                                        ${isCritical 
-                                            ? 'bg-red-500/20 text-red-400' 
+                                        p-3 rounded-xl
+                                        ${isCritical
+                                            ? 'bg-red-500/20 text-red-400'
                                             : 'bg-amber-500/20 text-amber-400'
                                         }
                                     `}>
@@ -234,7 +234,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
                                 {/* Help Text */}
                                 <p className="text-xs text-slate-500">
-                                    If this error persists, please try clearing your browser cache or 
+                                    If this error persists, please try clearing your browser cache or
                                     contact support with the error details above.
                                 </p>
                             </div>
@@ -266,10 +266,10 @@ export function PageErrorBoundary({ children }: { children: ReactNode }) {
 /**
  * Component-level error boundary with inline fallback
  */
-export function ComponentErrorBoundary({ 
-    children, 
-    fallback 
-}: { 
+export function ComponentErrorBoundary({
+    children,
+    fallback
+}: {
     children: ReactNode;
     fallback?: ReactNode;
 }) {
@@ -315,10 +315,10 @@ export function useErrorHandler() {
 // SIMPLE FALLBACK COMPONENTS
 // ============================================================================
 
-export function ErrorFallback({ 
+export function ErrorFallback({
     message = 'Something went wrong',
-    onRetry 
-}: { 
+    onRetry
+}: {
     message?: string;
     onRetry?: () => void;
 }) {
@@ -353,11 +353,11 @@ export function LoadingFallback() {
 /**
  * Combined error boundary and suspense wrapper
  */
-export function AsyncBoundary({ 
+export function AsyncBoundary({
     children,
     loadingFallback,
     errorFallback,
-}: { 
+}: {
     children: ReactNode;
     loadingFallback?: ReactNode;
     errorFallback?: ReactNode;

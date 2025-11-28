@@ -410,7 +410,7 @@ Provide your review in the following JSON format:
 
     /**
      * Run CodeRabbit review (requires API key)
-     * 
+     *
      * CodeRabbit provides AI-powered code reviews with:
      * - Security vulnerability detection
      * - Code quality analysis
@@ -544,22 +544,22 @@ Provide your review in the following JSON format:
      */
     private calculateScoreFromFindings(data: any): number {
         let score = 100;
-        
+
         // Deduct points for issues
         const issues = data.issues || [];
         const security = data.security_findings || data.security || [];
         const performance = data.performance_findings || data.performance || [];
-        
+
         score -= issues.filter((i: any) => i.severity === 'critical' || i.severity === 'high').length * 15;
         score -= issues.filter((i: any) => i.severity === 'medium').length * 5;
         score -= issues.filter((i: any) => i.severity === 'low' || i.severity === 'info').length * 2;
-        
+
         score -= security.filter((s: any) => s.severity === 'critical').length * 20;
         score -= security.filter((s: any) => s.severity === 'high').length * 10;
-        
+
         score -= performance.filter((p: any) => p.impact === 'high').length * 8;
         score -= performance.filter((p: any) => p.impact === 'medium').length * 4;
-        
+
         return Math.max(0, Math.min(100, score));
     }
 

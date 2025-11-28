@@ -1,6 +1,6 @@
 /**
  * Component Registry
- * 
+ *
  * Caches previously generated components for instant reuse.
  * Reduces AI token costs and improves generation speed by
  * reusing high-quality components that match user requests.
@@ -402,16 +402,16 @@ export class ComponentRegistry {
         // Jaccard similarity of keywords/tags
         const set1 = new Set(keywords1);
         const set2 = new Set(tags2);
-        
+
         const intersection = new Set([...set1].filter(x => set2.has(x)));
         const union = new Set([...set1, ...set2]);
-        
+
         const jaccardSim = union.size > 0 ? intersection.size / union.size : 0;
 
         // Cosine similarity of character trigrams
         const trigrams1 = this.getTrigrams(prompt1);
         const trigrams2 = this.getTrigrams(prompt2);
-        
+
         let dotProduct = 0;
         let norm1 = 0;
         let norm2 = 0;
@@ -436,17 +436,17 @@ export class ComponentRegistry {
     private getTrigrams(text: string): Map<string, number> {
         const trigrams = new Map<string, number>();
         const padded = `  ${text}  `;
-        
+
         for (let i = 0; i < padded.length - 2; i++) {
             const trigram = padded.slice(i, i + 3);
             trigrams.set(trigram, (trigrams.get(trigram) || 0) + 1);
         }
-        
+
         return trigrams;
     }
 
     private explainMatch(prompt: string, component: RegisteredComponent): string {
-        const matchingTags = component.tags.filter(tag => 
+        const matchingTags = component.tags.filter(tag =>
             prompt.toLowerCase().includes(tag)
         );
 
@@ -490,7 +490,7 @@ export class ComponentRegistry {
         for (let i = 0; i < toRemove && i < components.length; i++) {
             const component = components[i];
             this.components.delete(component.id);
-            
+
             // Clean up indexes
             component.tags.forEach(tag => {
                 const ids = this.tagIndex.get(tag) || [];

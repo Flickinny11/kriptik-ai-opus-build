@@ -1,6 +1,6 @@
 /**
  * Input Sanitization Middleware
- * 
+ *
  * Sanitizes all user inputs for security:
  * - XSS prevention
  * - SQL injection prevention
@@ -132,7 +132,7 @@ function sanitizeEmail(email: string): string {
 function sanitizeUrl(url: string): string {
     try {
         const parsed = new URL(url);
-        
+
         // Only allow http and https protocols
         if (!['http:', 'https:'].includes(parsed.protocol)) {
             return '';
@@ -331,7 +331,7 @@ export function createSanitizer(options: SanitizerOptions = {}) {
 export function filePathSanitizer(req: Request, res: Response, next: NextFunction): void {
     // Check path parameters for file paths
     const pathParams = ['path', 'filePath', 'file', 'filename'];
-    
+
     for (const param of pathParams) {
         if (req.params[param]) {
             if (!isValidPath(req.params[param])) {
@@ -364,10 +364,10 @@ export function filePathSanitizer(req: Request, res: Response, next: NextFunctio
  */
 export function projectNameValidator(req: Request, res: Response, next: NextFunction): void {
     const nameParams = ['projectName', 'name', 'siteName'];
-    
+
     for (const param of nameParams) {
         const value = req.params[param] || req.body?.[param];
-        
+
         if (value && !isValidProjectName(value)) {
             res.status(400).json({
                 error: 'Invalid Project Name',
@@ -385,10 +385,10 @@ export function projectNameValidator(req: Request, res: Response, next: NextFunc
  */
 export function urlValidator(req: Request, res: Response, next: NextFunction): void {
     const urlParams = ['url', 'webhookUrl', 'callbackUrl', 'redirectUrl', 'figmaUrl', 'githubUrl'];
-    
+
     for (const param of urlParams) {
         const value = req.body?.[param];
-        
+
         if (value) {
             const sanitizedUrl = sanitizeUrl(value);
             if (!sanitizedUrl && value) {
@@ -412,21 +412,21 @@ export function promptSanitizer(req: Request, res: Response, next: NextFunction)
     if (req.body?.prompt) {
         // For prompts, we only strip truly dangerous patterns
         let prompt = req.body.prompt;
-        
+
         // Remove null bytes
         prompt = prompt.replace(/\0/g, '');
-        
+
         // Remove potential command injection
         prompt = prompt
             .replace(/\$\([^)]*\)/g, '')  // $(command)
             .replace(/`[^`]*`/g, '')      // `command`
             .replace(/\$\{[^}]*\}/g, ''); // ${var}
-        
+
         // Limit length to 100KB
         if (prompt.length > 100 * 1024) {
             prompt = prompt.slice(0, 100 * 1024);
         }
-        
+
         req.body.prompt = prompt;
     }
 

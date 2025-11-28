@@ -1,6 +1,6 @@
 /**
  * Quality Gate Service
- * 
+ *
  * Enforces quality thresholds on generated code.
  * Triggers automatic refinement when quality scores are below threshold.
  */
@@ -255,7 +255,7 @@ function assessCodeQuality(files: Record<string, string>): {
             const importedItems = importStmt.match(/\{([^}]+)\}/)?.[1].split(',').map(s => s.trim()) || [];
             for (const item of importedItems) {
                 const itemName = item.split(' as ').pop()?.trim() || item;
-                if (itemName && !content.includes(itemName + '(') && 
+                if (itemName && !content.includes(itemName + '(') &&
                     !content.includes(itemName + ' ') &&
                     !content.includes('<' + itemName) &&
                     !content.includes(itemName + '>')) {
@@ -334,7 +334,7 @@ export class QualityGateService {
         ];
 
         // Determine if refinement is needed
-        const refinementNeeded = 
+        const refinementNeeded =
             designScore < this.thresholds.designScore ||
             accessibilityScore < this.thresholds.accessibilityScore ||
             codeQualityScore < this.thresholds.codeQualityScore;
@@ -399,7 +399,7 @@ export class QualityGateService {
             }
 
             const newResult = this.evaluate(refinedFiles);
-            
+
             // Only accept refinement if it improves score
             if (newResult.scores.overall > currentScore) {
                 currentFiles = refinedFiles;

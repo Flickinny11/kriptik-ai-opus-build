@@ -3,6 +3,64 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from './db.js';
 import * as schema from './schema.js';
 
+// ============================================================================
+// REDIRECT URL VALIDATION
+// ============================================================================
+
+/**
+ * Allowed redirect URL patterns for OAuth callbacks
+ * Prevents open redirect vulnerabilities
+ */
+const ALLOWED_REDIRECT_PATTERNS = [
+    // Production frontend
+    /^https:\/\/kriptik-ai-opus-build\.vercel\.app(\/.*)?$/,
+    /^https:\/\/kriptik-ai\.vercel\.app(\/.*)?$/,
+    // Development
+    /^http:\/\/localhost:\d+(\/.*)?$/,
+    /^http:\/\/127\.0\.0\.1:\d+(\/.*)?$/,
+    // Custom domain (if configured)
+    ...(process.env.FRONTEND_URL ? [new RegExp(`^${process.env.FRONTEND_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\/.*)?$`)] : []),
+];
+
+/**
+ * Validate a redirect URL against allowed patterns
+ */
+export function isValidRedirectUrl(url: string | undefined | null): boolean {
+    if (!url) return true; // No redirect, use default
+    
+    try {
+        const parsed = new URL(url);
+        
+        // Block javascript: protocol (XSS)
+        if (parsed.protocol === 'javascript:') return false;
+        
+        // Block data: protocol
+        if (parsed.protocol === 'data:') return false;
+        
+        // Check against allowed patterns
+        return ALLOWED_REDIRECT_PATTERNS.some(pattern => pattern.test(url));
+    } catch {
+        // Invalid URL
+        return false;
+    }
+}
+
+/**
+ * Sanitize redirect URL - returns safe default if invalid
+ */
+export function sanitizeRedirectUrl(url: string | undefined | null): string {
+    const defaultUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+    
+    if (!url) return defaultUrl;
+    if (!isValidRedirectUrl(url)) return defaultUrl;
+    
+    return url;
+}
+
+// ============================================================================
+// SOCIAL PROVIDERS
+// ============================================================================
+
 // Build social providers conditionally - only include if credentials are set
 const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
 
@@ -74,5 +132,23 @@ export const auth = betterAuth({
     rateLimit: {
         window: 60, // 1 minute
         max: 100, // Max requests per window
+    },
+
+    // Callbacks for security validation
+    callbacks: {
+        // Validate redirect URLs before OAuth redirect
+        async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+            // If the URL is relative, allow it
+            if (url.startsWith('/')) return url;
+            
+            // Validate against allowed patterns
+            if (isValidRedirectUrl(url)) {
+                return url;
+            }
+            
+            // Fall back to base URL for invalid redirects
+            console.warn(`Blocked invalid redirect URL: ${url}`);
+            return baseUrl;
+        },
     },
 });

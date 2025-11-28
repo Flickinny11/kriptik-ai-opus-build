@@ -1,6 +1,6 @@
 /**
  * Enhanced Design Token System
- * 
+ *
  * Premium design patterns, color harmonies, typography rules,
  * and micro-interactions for high-quality UI generation.
  */
@@ -327,13 +327,13 @@ export const DEPTH_LAYERS = {
 /* Layer 1: Background ambient */
 <div className="relative">
   <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent rounded-2xl" />
-  
+
   /* Layer 2: Glass surface */
   <div className="relative backdrop-blur-xl bg-slate-800/50 border border-white/10 rounded-2xl">
-    
+
     /* Layer 3: Content with spacing */
     <div className="p-6 space-y-4">
-      
+
       /* Layer 4: Interactive elements with hover states */
       <button className="hover:shadow-xl hover:-translate-y-0.5 transition-all">
         ...
@@ -350,10 +350,10 @@ export const DEPTH_LAYERS = {
 /* Layer 1: Background gradient */
 <section className="relative overflow-hidden">
   <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-  
+
   /* Layer 2: Ambient glow effects */
   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-amber-500/10 blur-3xl" />
-  
+
   /* Layer 3: Content container */
   <div className="relative z-10 container mx-auto px-4 py-24">
     ...
