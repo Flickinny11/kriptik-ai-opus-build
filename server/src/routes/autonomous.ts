@@ -282,10 +282,12 @@ router.get('/:buildId/files', (req: Request, res: Response) => {
 /**
  * GET /api/autonomous/:buildId/files/:path
  * Get a specific generated file
+ * Note: Using *splat syntax for Express 5 compatibility with path-to-regexp
  */
-router.get('/:buildId/files/*', (req: Request, res: Response) => {
-    const { buildId } = req.params;
-    const filePath = req.params[0];
+router.get('/:buildId/files/*splat', (req: Request, res: Response) => {
+    const buildId = req.params.buildId;
+    const splat = req.params.splat;
+    const filePath = Array.isArray(splat) ? splat.join('/') : (splat || '');
 
     const controller = getAutonomousBuildController();
     const state = controller.getState(buildId);
