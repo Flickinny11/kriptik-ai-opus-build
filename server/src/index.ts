@@ -228,26 +228,26 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.
 app.use("/api/auth/callback", (req, res, next) => {
     console.log(`[OAuth Callback] ${req.method} ${req.path}`);
     console.log(`[OAuth Callback] Query params:`, req.query);
-    
+
     // Store original redirect method
     const originalRedirect = res.redirect.bind(res);
-    
+
     // Override redirect to ensure we go to frontend
     res.redirect = function(statusOrUrl: number | string, url?: string) {
         let targetUrl = typeof statusOrUrl === 'string' ? statusOrUrl : url;
         let status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
-        
+
         console.log(`[OAuth Callback] Redirect called with: ${targetUrl}`);
-        
+
         // If redirect is to backend or root, redirect to frontend instead
         if (!targetUrl || targetUrl === '/' || targetUrl.includes('kriptik-ai-opus-build-backend')) {
             console.log(`[OAuth Callback] Overriding redirect to frontend dashboard`);
             targetUrl = `${FRONTEND_URL}/dashboard`;
         }
-        
+
         return originalRedirect(status, targetUrl);
     } as typeof res.redirect;
-    
+
     next();
 });
 
@@ -396,16 +396,16 @@ app.get('/', (req, res) => {
     const referer = req.headers.referer || '';
     const fromGoogle = referer.includes('google.com') || referer.includes('accounts.google');
     const fromGithub = referer.includes('github.com');
-    
+
     console.log(`[Root] Request - hasAuthCookie: ${hasAuthCookie}, fromGoogle: ${fromGoogle}, fromGithub: ${fromGithub}`);
-    
+
     // If user has auth cookie or coming from OAuth provider, redirect to frontend
     if (hasAuthCookie || fromGoogle || fromGithub) {
         const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
         console.log(`[Root] Redirecting to frontend dashboard: ${frontendUrl}/dashboard`);
         return res.redirect(`${frontendUrl}/dashboard`);
     }
-    
+
     // Otherwise, show API info
     res.json({
         name: 'KripTik AI API',
