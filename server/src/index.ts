@@ -208,17 +208,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Apply input sanitization to all requests
-app.use(sanitizer);
-
-// Apply user context middleware - sets req.user from x-user-id header
-app.use(userContextMiddleware);
+// NOTE: Sanitizer is NOT applied globally anymore to avoid breaking OAuth
+// It's applied per-route where needed (see route definitions below)
 
 // Apply general rate limiting to all API routes
 app.use('/api', generalRateLimiter);
 
 // =============================================================================
-// AUTH ROUTES
+// AUTH ROUTES (Must be before userContextMiddleware - no sanitization!)
 // =============================================================================
 
 import { toNodeHandler } from "better-auth/node";
@@ -256,14 +253,21 @@ app.use("/api/auth/callback", (req, res, next) => {
 });
 
 // Better Auth handler - catches all /api/auth/* routes
-// Express 5 with path-to-regexp requires named wildcards
-app.all("/api/auth/{*path}", toNodeHandler(auth));
+app.all("/api/auth/*", toNodeHandler(auth));
 
 // Fallback redirect for any auth-related requests that land on backend root
 app.get("/auth-redirect", (req, res) => {
     console.log('[Auth Redirect] Redirecting to frontend dashboard');
     res.redirect(`${FRONTEND_URL}/dashboard`);
 });
+
+// =============================================================================
+// USER CONTEXT MIDDLEWARE (Applied after auth routes)
+// =============================================================================
+
+// Apply user context middleware - sets req.user from x-user-id header
+// This must come AFTER auth routes but BEFORE other API routes
+app.use('/api', userContextMiddleware);
 
 // =============================================================================
 // API ROUTES

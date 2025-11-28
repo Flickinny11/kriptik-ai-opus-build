@@ -128,7 +128,7 @@ function UserMenu() {
     const { user } = useUserStore();
     const { balance, fetchCredits, isLoading: creditsLoading } = useCostStore();
     const menuRef = useRef<HTMLDivElement>(null);
-    
+
     // Fetch credits when menu opens
     useEffect(() => {
         if (isOpen) {
@@ -199,9 +199,9 @@ function UserMenu() {
                         {creditsLoading ? (
                             <div className="text-xs text-slate-400 animate-pulse">Loading credits...</div>
                         ) : (
-                            <CreditMeter 
-                                used={balance.totalUsedThisMonth} 
-                                total={balance.limit === Infinity ? balance.available + balance.totalUsedThisMonth : balance.limit} 
+                            <CreditMeter
+                                used={balance.totalUsedThisMonth}
+                                total={balance.limit === Infinity ? balance.available + balance.totalUsedThisMonth : balance.limit}
                             />
                         )}
                         <p className="mt-2 text-xs text-emerald-400 font-mono">
