@@ -1,6 +1,6 @@
 /**
  * User Context Middleware
- * 
+ *
  * Sets req.user based on x-user-id header or session cookie.
  * This bridges the gap between how routes read user ID and how
  * requireCredits middleware expects it.
@@ -23,7 +23,7 @@ export async function userContextMiddleware(
     try {
         // Get user ID from header (primary method used by frontend)
         const userId = req.headers['x-user-id'] as string;
-        
+
         if (!userId) {
             // No user ID - continue without user context
             // Routes that need auth will handle this
@@ -39,7 +39,7 @@ export async function userContextMiddleware(
 
         if (userRecords.length > 0) {
             const userRecord = userRecords[0];
-            
+
             // Attach user to request
             (req as any).user = {
                 id: userRecord.id,

@@ -33,6 +33,45 @@ const getStripeService = () => {
 };
 
 /**
+ * GET /api/billing/credits
+ * Get current user's credit balance and tier
+ */
+router.get('/credits', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        // Get user from database
+        const userRecords = await db
+            .select({
+                credits: users.credits,
+                tier: users.tier,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        if (userRecords.length === 0) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const user = userRecords[0];
+        res.json({
+            credits: user.credits || 0,
+            tier: user.tier || 'free',
+            usedThisMonth: 0, // TODO: Track this in usage table
+        });
+    } catch (error) {
+        console.error('Error fetching credits:', error);
+        res.status(500).json({ error: 'Failed to fetch credits' });
+    }
+});
+
+/**
  * GET /api/billing/plans
  * List available plans
  */

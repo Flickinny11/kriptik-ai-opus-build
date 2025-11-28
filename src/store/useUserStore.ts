@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { authClient } from '../lib/auth-client';
 import { setApiUserId } from '../lib/api-client';
+import { useCostStore } from './useCostStore';
 
 interface User {
     id: string;
@@ -19,52 +20,116 @@ interface UserState {
     initialize: () => Promise<void>;
 }
 
+// Keys for localStorage
+const USER_STORAGE_KEY = 'kriptik_user';
+const USER_ID_STORAGE_KEY = 'kriptik_user_id';
+
+// Save user to localStorage
+const saveUserToStorage = (user: User) => {
+    try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+        localStorage.setItem(USER_ID_STORAGE_KEY, user.id);
+    } catch (e) {
+        console.warn('[UserStore] Failed to save user to localStorage:', e);
+    }
+};
+
+// Load user from localStorage
+const loadUserFromStorage = (): User | null => {
+    try {
+        const userStr = localStorage.getItem(USER_STORAGE_KEY);
+        if (userStr) {
+            return JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.warn('[UserStore] Failed to load user from localStorage:', e);
+    }
+    return null;
+};
+
+// Clear user from localStorage
+const clearUserFromStorage = () => {
+    try {
+        localStorage.removeItem(USER_STORAGE_KEY);
+        localStorage.removeItem(USER_ID_STORAGE_KEY);
+    } catch (e) {
+        console.warn('[UserStore] Failed to clear user from localStorage:', e);
+    }
+};
+
 export const useUserStore = create<UserState>((set) => ({
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    
     initialize: async () => {
+        console.log('[UserStore] Initializing...');
+        
+        // First, try to load from localStorage (for fast startup)
+        const storedUser = loadUserFromStorage();
+        if (storedUser) {
+            console.log('[UserStore] Found stored user:', storedUser.email);
+            setApiUserId(storedUser.id);
+            set({
+                user: storedUser,
+                isAuthenticated: true,
+                isLoading: false
+            });
+            
+            // Fetch credits in background
+            useCostStore.getState().fetchCredits();
+        }
+        
+        // Then try to get session from Better Auth (validates it's still valid)
         try {
-            console.log('[UserStore] Initializing - fetching session...');
             const { data: session, error } = await authClient.getSession();
-
-            console.log('[UserStore] Session response:', { session, error });
+            console.log('[UserStore] Session response:', { hasSession: !!session?.user, error });
 
             if (session?.user) {
-                console.log('[UserStore] User found:', {
+                const user = {
                     id: session.user.id,
-                    email: session.user.email,
-                    name: session.user.name,
-                });
-
-                // Set the user ID in the API client for authenticated requests
+                    email: session.user.email || '',
+                    name: session.user.name || '',
+                    avatar: session.user.image || undefined
+                };
+                
+                // Update stored user and state
+                saveUserToStorage(user);
                 setApiUserId(session.user.id);
-
+                
                 set({
-                    user: {
-                        id: session.user.id,
-                        email: session.user.email || '',
-                        name: session.user.name || '',
-                        avatar: session.user.image || undefined
-                    },
+                    user,
                     isAuthenticated: true,
                     isLoading: false
                 });
-            } else {
+                
+                // Fetch credits
+                useCostStore.getState().fetchCredits();
+            } else if (!storedUser) {
+                // No session and no stored user
                 console.log('[UserStore] No session found');
                 setApiUserId(null);
                 set({ user: null, isAuthenticated: false, isLoading: false });
+            } else {
+                // Session validation failed but we have stored user
+                // Keep the stored user (might work with x-user-id header)
+                console.log('[UserStore] Session invalid but keeping stored user');
+                set({ isLoading: false });
             }
         } catch (error) {
             console.error('[UserStore] Auth initialization failed:', error);
-            setApiUserId(null);
+            // If we have a stored user, keep them logged in
+            if (!storedUser) {
+                setApiUserId(null);
+            }
             set({ isLoading: false });
         }
     },
+    
     login: async (email, password) => {
         set({ isLoading: true });
         console.log('[UserStore] Logging in with email:', email);
-
+        
         const { error } = await authClient.signIn.email({
             email,
             password,
@@ -79,27 +144,34 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-login session:', session);
-
+        
         if (session?.user) {
-            // Set the user ID in the API client for authenticated requests
+            const user = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.name || '',
+                avatar: session.user.image || undefined
+            };
+            
+            // Save to localStorage and set API user ID
+            saveUserToStorage(user);
             setApiUserId(session.user.id);
 
             set({
-                user: {
-                    id: session.user.id,
-                    email: session.user.email || '',
-                    name: session.user.name || '',
-                    avatar: session.user.image || undefined
-                },
+                user,
                 isAuthenticated: true,
                 isLoading: false
             });
+            
+            // Fetch credits
+            useCostStore.getState().fetchCredits();
         }
     },
+    
     signup: async (email, password, name) => {
         set({ isLoading: true });
         console.log('[UserStore] Signing up:', { email, name });
-
+        
         const { error } = await authClient.signUp.email({
             email,
             password,
@@ -115,28 +187,44 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-signup session:', session);
-
+        
         if (session?.user) {
-            // Set the user ID in the API client for authenticated requests
+            const user = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.name || '',
+                avatar: session.user.image || undefined
+            };
+            
+            // Save to localStorage and set API user ID
+            saveUserToStorage(user);
             setApiUserId(session.user.id);
 
             set({
-                user: {
-                    id: session.user.id,
-                    email: session.user.email || '',
-                    name: session.user.name || '',
-                    avatar: session.user.image || undefined
-                },
+                user,
                 isAuthenticated: true,
                 isLoading: false
             });
+            
+            // Fetch credits
+            useCostStore.getState().fetchCredits();
         }
     },
+    
     logout: async () => {
         set({ isLoading: true });
         console.log('[UserStore] Logging out...');
-        await authClient.signOut();
+        
+        try {
+            await authClient.signOut();
+        } catch (e) {
+            console.warn('[UserStore] Sign out error:', e);
+        }
+        
+        // Clear stored user
+        clearUserFromStorage();
         setApiUserId(null);
+        
         set({ user: null, isAuthenticated: false, isLoading: false });
     },
 }));
