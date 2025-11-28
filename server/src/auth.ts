@@ -188,7 +188,7 @@ export const auth = betterAuth({
         async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
             // Always redirect to frontend dashboard after OAuth
             const dashboardUrl = `${frontendUrl}/dashboard`;
-            
+
             console.log(`[Auth] Redirect callback called - url: ${url}, baseUrl: ${baseUrl}`);
 
             // If URL is relative path, prepend frontend URL
@@ -203,7 +203,7 @@ export const auth = betterAuth({
                 console.log(`[Auth] Frontend URL, allowing: ${url}`);
                 return url;
             }
-            
+
             // If URL is the backend (which happens after OAuth), redirect to frontend
             if (url.startsWith(backendUrl) || url === baseUrl || url === '/') {
                 console.log(`[Auth] Backend URL detected, redirecting to dashboard: ${dashboardUrl}`);

@@ -44,3 +44,8 @@ export {
     validateRequestBody,
 } from './sanitizer.js';
 
+export {
+    userContextMiddleware,
+    default as userContextDefault,
+} from './user-context.js';
+

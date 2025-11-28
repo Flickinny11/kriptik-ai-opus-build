@@ -156,6 +156,7 @@ import {
     promptSanitizer,
     filePathSanitizer,
 } from './middleware/sanitizer.js';
+import { userContextMiddleware } from './middleware/user-context.js';
 import { requireCredits } from './services/billing/credits.js';
 
 // =============================================================================
@@ -209,6 +210,9 @@ app.use(express.json({ limit: '10mb' }));
 
 // Apply input sanitization to all requests
 app.use(sanitizer);
+
+// Apply user context middleware - sets req.user from x-user-id header
+app.use(userContextMiddleware);
 
 // Apply general rate limiting to all API routes
 app.use('/api', generalRateLimiter);
@@ -296,6 +300,7 @@ import hostingRouter from './routes/hosting.js';
 import userSettingsRouter from './routes/user-settings.js';
 import fixMyAppRouter from './routes/fix-my-app.js';
 import dbMigrateRouter from './routes/db-migrate.js';
+import adminRouter from './routes/admin.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -383,6 +388,9 @@ app.use("/api/fix-my-app", promptSanitizer, requireCredits(150), fixMyAppRouter)
 
 // Database migration (no auth required - protected by secret header)
 app.use("/api/db", dbMigrateRouter);
+
+// Admin routes (protected by admin secret header)
+app.use("/api/admin", adminRouter);
 
 // =============================================================================
 // HEALTH & STATUS

@@ -27,7 +27,7 @@ export const useUserStore = create<UserState>((set) => ({
         try {
             console.log('[UserStore] Initializing - fetching session...');
             const { data: session, error } = await authClient.getSession();
-            
+
             console.log('[UserStore] Session response:', { session, error });
 
             if (session?.user) {
@@ -36,7 +36,7 @@ export const useUserStore = create<UserState>((set) => ({
                     email: session.user.email,
                     name: session.user.name,
                 });
-                
+
                 // Set the user ID in the API client for authenticated requests
                 setApiUserId(session.user.id);
 
@@ -64,7 +64,7 @@ export const useUserStore = create<UserState>((set) => ({
     login: async (email, password) => {
         set({ isLoading: true });
         console.log('[UserStore] Logging in with email:', email);
-        
+
         const { error } = await authClient.signIn.email({
             email,
             password,
@@ -79,7 +79,7 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-login session:', session);
-        
+
         if (session?.user) {
             // Set the user ID in the API client for authenticated requests
             setApiUserId(session.user.id);
@@ -99,7 +99,7 @@ export const useUserStore = create<UserState>((set) => ({
     signup: async (email, password, name) => {
         set({ isLoading: true });
         console.log('[UserStore] Signing up:', { email, name });
-        
+
         const { error } = await authClient.signUp.email({
             email,
             password,
@@ -115,7 +115,7 @@ export const useUserStore = create<UserState>((set) => ({
         // Refresh session to get user data
         const { data: session } = await authClient.getSession();
         console.log('[UserStore] Post-signup session:', session);
-        
+
         if (session?.user) {
             // Set the user ID in the API client for authenticated requests
             setApiUserId(session.user.id);
