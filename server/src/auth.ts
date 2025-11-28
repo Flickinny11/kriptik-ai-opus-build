@@ -15,6 +15,8 @@ const ALLOWED_REDIRECT_PATTERNS = [
     // Production frontend
     /^https:\/\/kriptik-ai-opus-build\.vercel\.app(\/.*)?$/,
     /^https:\/\/kriptik-ai\.vercel\.app(\/.*)?$/,
+    // Vercel preview deployments
+    /^https:\/\/kriptik-ai-opus-build-[a-z0-9]+-logans-projects-[a-z0-9]+\.vercel\.app(\/.*)?$/,
     // Development
     /^http:\/\/localhost:\d+(\/.*)?$/,
     /^http:\/\/127\.0\.0\.1:\d+(\/.*)?$/,
