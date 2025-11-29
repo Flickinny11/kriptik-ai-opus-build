@@ -726,14 +726,36 @@ export default function FixMyApp() {
 
         setIsLoading(true);
         setCurrentPhase('Starting secure browser...');
-        setBrowserPhase('user_control');
 
         try {
-            const response = await apiClient.post<{ wsEndpoint: string; viewUrl: string }>(
+            const response = await apiClient.post<{ 
+                wsEndpoint: string; 
+                viewUrl: string;
+                serverless?: boolean;
+                message?: string;
+                instructions?: string[];
+            }>(
                 `/api/fix-my-app/${session.sessionId}/browser/start`,
                 { source }
             );
 
+            // Check if running in serverless mode (browser automation unavailable)
+            if (response.data.serverless) {
+                // Show manual upload flow instead
+                setBrowserPhase('idle');
+                toast({
+                    title: 'Manual Upload Required',
+                    description: response.data.message || 'Please export and upload your project files manually.',
+                });
+                
+                // Open the platform URL in a new tab for user convenience
+                if (response.data.viewUrl) {
+                    window.open(response.data.viewUrl, '_blank');
+                }
+                return;
+            }
+
+            setBrowserPhase('user_control');
             setBrowserUrl(response.data.viewUrl || getPlatformUrl());
 
             // Start polling for screenshots
@@ -745,9 +767,8 @@ export default function FixMyApp() {
             });
         } catch (error) {
             toast({
-                title: 'Error',
-                description: 'Failed to start browser session. You can still upload files manually.',
-                variant: 'destructive',
+                title: 'Manual Upload',
+                description: 'Browser automation is unavailable. Please upload your project files manually.',
             });
             setBrowserPhase('idle');
         } finally {

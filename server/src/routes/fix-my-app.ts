@@ -434,6 +434,9 @@ router.delete('/:sessionId', (req: Request, res: Response) => {
 /**
  * POST /api/fix-my-app/:sessionId/browser/start
  * Start embedded browser for user login
+ * 
+ * NOTE: Browser automation requires a persistent server with browser binaries.
+ * In serverless (Vercel), we return a fallback that guides users to manual upload.
  */
 router.post('/:sessionId/browser/start', async (req: Request, res: Response) => {
     try {
@@ -449,7 +452,43 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
             return res.status(404).json({ error: 'Session not found' });
         }
 
-        // Create browser extractor
+        // Check if we're in a serverless environment (Vercel)
+        const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+        
+        if (isServerless) {
+            // In serverless, browser automation isn't available
+            // Return a response that guides the user to manual upload
+            const platformUrls: Record<string, string> = {
+                lovable: 'https://lovable.dev',
+                bolt: 'https://bolt.new',
+                v0: 'https://v0.dev',
+                create: 'https://create.xyz',
+                tempo: 'https://tempo.new',
+                gptengineer: 'https://gptengineer.app',
+                replit: 'https://replit.com',
+                cursor: 'https://cursor.sh',
+                windsurf: 'https://codeium.com/windsurf',
+            };
+            
+            const session = controller.getSession();
+            const platformUrl = platformUrls[session.source] || 'https://lovable.dev';
+            
+            return res.json({
+                wsEndpoint: '',
+                viewUrl: platformUrl,
+                serverless: true,
+                message: 'Browser automation not available in serverless. Please manually export your project and upload the files.',
+                instructions: [
+                    `1. Go to ${platformUrl} and log in`,
+                    '2. Navigate to your project',
+                    '3. Export/download your project as a ZIP file',
+                    '4. Upload the ZIP file here',
+                    '5. Optionally, copy your chat history and paste it below',
+                ],
+            });
+        }
+
+        // Full browser automation (for non-serverless environments)
         const browserExtractor = createBrowserExtractor({
             source: source || controller.getSession().source,
             sessionId,
@@ -462,10 +501,25 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
         // Start the browser
         const { wsEndpoint, viewUrl } = await browserExtractor.startBrowser();
 
-        res.json({ wsEndpoint, viewUrl });
+        res.json({ wsEndpoint, viewUrl, serverless: false });
     } catch (error) {
         console.error('Browser start error:', error);
-        res.status(500).json({ error: 'Failed to start browser' });
+        
+        // Provide helpful error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isPlaywrightError = errorMessage.includes('playwright') || 
+                                   errorMessage.includes('chromium') || 
+                                   errorMessage.includes('browser');
+        
+        if (isPlaywrightError) {
+            return res.status(503).json({ 
+                error: 'Browser automation unavailable',
+                message: 'Please use manual file upload instead. Export your project as a ZIP and upload it.',
+                serverless: true,
+            });
+        }
+        
+        res.status(500).json({ error: 'Failed to start browser', details: errorMessage });
     }
 });
 
