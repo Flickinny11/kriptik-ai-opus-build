@@ -9,15 +9,16 @@
  * - Premium visual design with microanimations
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MoreVertical, Pencil, Trash2, Copy, Share2, Download,
     Plus, Search, Grid3X3, List, Calendar,
-    ExternalLink, Check, Wrench
+    ExternalLink, Wrench
 } from 'lucide-react';
-import { useProjectStore, Project } from '../store/useProjectStore';
+import { useProjectStore } from '../store/useProjectStore';
+import type { Project } from '../store/useProjectStore';
 import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';

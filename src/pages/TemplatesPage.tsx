@@ -10,11 +10,10 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-    Search, Filter, Layers, Component, Box, Layout,
-    Sparkles, Palette, Grid3X3, Code2, ExternalLink,
-    Download, Copy, ChevronRight, Play, Pause
+    Search, Layers, Component, Box, Layout,
+    Sparkles, Grid3X3, Download, Play
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
