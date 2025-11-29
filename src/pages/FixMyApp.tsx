@@ -729,12 +729,12 @@ export default function FixMyApp() {
         setBrowserPhase('user_control');
 
         try {
-            const response = await apiClient.post<{ data: { wsEndpoint: string; viewUrl: string } }>(
+            const response = await apiClient.post<{ wsEndpoint: string; viewUrl: string }>(
                 `/api/fix-my-app/${session.sessionId}/browser/start`,
                 { source }
             );
 
-            setBrowserUrl(response.data?.viewUrl || getPlatformUrl());
+            setBrowserUrl(response.data.viewUrl || getPlatformUrl());
 
             // Start polling for screenshots
             startScreenshotPolling();
@@ -765,15 +765,15 @@ export default function FixMyApp() {
             if (!session) return;
 
             try {
-                const response = await apiClient.get<{ data: { screenshot: string; progress?: { phase: string; progress: number; message: string } } }>(
+                const response = await apiClient.get<{ screenshot: string; progress?: { phase: string; progress: number; message: string } }>(
                     `/api/fix-my-app/${session.sessionId}/browser/screenshot`
                 );
 
-                if (response.data?.screenshot) {
+                if (response.data.screenshot) {
                     setBrowserScreenshot(response.data.screenshot);
                 }
 
-                if (response.data?.progress) {
+                if (response.data.progress) {
                     setExtractionProgress(response.data.progress);
 
                     // Handle phase transitions

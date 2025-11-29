@@ -10,7 +10,7 @@
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Send, Image, Wand2, Download, Trash2, Heart,
     FolderPlus, Code2, ZoomIn, ZoomOut,

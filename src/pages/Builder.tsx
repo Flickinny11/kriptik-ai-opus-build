@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Code2, Eye, Settings, Brain, Rocket, Blocks,
     Cloud, ChevronRight, X, Bot, Activity,
-    Database, Server, Workflow, LayoutDashboard, Home
+    Database, Server, Workflow, LayoutDashboard
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';

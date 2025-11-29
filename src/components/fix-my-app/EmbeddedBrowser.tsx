@@ -144,7 +144,6 @@ export default function EmbeddedBrowser({
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [showGlitch, setShowGlitch] = useState(false);
     const [showSmoke, setShowSmoke] = useState(false);
-    const iframeRef = useRef<HTMLIFrameElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
 
     // Connect to backend WebSocket for browser streaming
@@ -162,7 +161,9 @@ export default function EmbeddedBrowser({
                     throw new Error('Failed to start browser session');
                 }
 
-                const { wsEndpoint, viewUrl } = await response.json();
+                const data = await response.json();
+                // wsEndpoint and viewUrl available in data for production WebSocket streaming
+                void data; // Acknowledge the response data
 
                 // For development, we'll use screenshots instead of full WebSocket streaming
                 // In production, you'd use playwright's CDP or a VNC solution
@@ -239,7 +240,7 @@ export default function EmbeddedBrowser({
         }, 2500);
     };
 
-    // User confirms they've logged in
+    // User confirms they've logged in and triggers extraction
     const handleLoginConfirm = async () => {
         try {
             const response = await fetch(`/api/fix-my-app/${sessionId}/browser/confirm-login`, {
@@ -248,15 +249,18 @@ export default function EmbeddedBrowser({
 
             if (response.ok) {
                 onLoginComplete();
+                onWhitelist(); // Notify parent that user has whitelisted
                 triggerGlitchTransition();
+                // Start the extraction process
+                startExtraction();
             }
         } catch (error) {
             onError(`Login confirmation failed: ${error}`);
         }
     };
 
-    // Start extraction after user whitelists
-    const handleStartExtraction = async () => {
+    // Start extraction after user whitelists - called via onWhitelist callback
+    const startExtraction = async () => {
         try {
             const response = await fetch(`/api/fix-my-app/${sessionId}/browser/extract`, {
                 method: 'POST',

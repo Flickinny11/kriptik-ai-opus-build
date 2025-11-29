@@ -9,11 +9,10 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-    KeyRound, Plus, Eye, EyeOff, Trash2, RefreshCw,
-    Check, AlertCircle, Shield, Lock, Unlock, Copy,
-    ExternalLink, ChevronRight
+    Plus, Eye, EyeOff, Trash2, RefreshCw,
+    Shield, Lock, Copy
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
@@ -144,7 +143,6 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
 export default function CredentialVault() {
     const navigate = useNavigate();
     const [credentials, setCredentials] = useState(DEMO_CREDENTIALS);
-    const [addingNew, setAddingNew] = useState(false);
 
     return (
         <div className="min-h-screen bg-[#0a0a0f]">
