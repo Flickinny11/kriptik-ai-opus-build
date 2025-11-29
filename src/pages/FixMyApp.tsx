@@ -728,8 +728,8 @@ export default function FixMyApp() {
         setCurrentPhase('Starting secure browser...');
 
         try {
-            const response = await apiClient.post<{ 
-                wsEndpoint: string; 
+            const response = await apiClient.post<{
+                wsEndpoint: string;
                 viewUrl: string;
                 serverless?: boolean;
                 message?: string;
@@ -747,7 +747,7 @@ export default function FixMyApp() {
                     title: 'Manual Upload Required',
                     description: response.data.message || 'Please export and upload your project files manually.',
                 });
-                
+
                 // Open the platform URL in a new tab for user convenience
                 if (response.data.viewUrl) {
                     window.open(response.data.viewUrl, '_blank');

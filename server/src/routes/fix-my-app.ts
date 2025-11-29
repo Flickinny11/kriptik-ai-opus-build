@@ -446,32 +446,40 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        // Get source from request body (required for serverless mode where session might not exist)
         const { source } = req.body;
-        const controller = controllers.get(sessionId);
-        if (!controller) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
+        
+        // Platform URLs for all supported sources
+        const platformUrls: Record<string, string> = {
+            lovable: 'https://lovable.dev',
+            bolt: 'https://bolt.new',
+            v0: 'https://v0.dev',
+            create: 'https://create.xyz',
+            tempo: 'https://tempo.new',
+            gptengineer: 'https://gptengineer.app',
+            replit: 'https://replit.com',
+            cursor: 'https://cursor.sh',
+            windsurf: 'https://codeium.com/windsurf',
+            claude: 'https://claude.ai',
+            chatgpt: 'https://chat.openai.com',
+            gemini: 'https://gemini.google.com',
+            copilot: 'https://github.com/features/copilot',
+            github: 'https://github.com',
+            gitlab: 'https://gitlab.com',
+            bitbucket: 'https://bitbucket.org',
+            codesandbox: 'https://codesandbox.io',
+            stackblitz: 'https://stackblitz.com',
+        };
 
-        // Check if we're in a serverless environment (Vercel)
+        // Check if we're in a serverless environment (Vercel) - CHECK THIS FIRST
         const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
         
         if (isServerless) {
-            // In serverless, browser automation isn't available
+            // In serverless, browser automation isn't available AND sessions don't persist
             // Return a response that guides the user to manual upload
-            const platformUrls: Record<string, string> = {
-                lovable: 'https://lovable.dev',
-                bolt: 'https://bolt.new',
-                v0: 'https://v0.dev',
-                create: 'https://create.xyz',
-                tempo: 'https://tempo.new',
-                gptengineer: 'https://gptengineer.app',
-                replit: 'https://replit.com',
-                cursor: 'https://cursor.sh',
-                windsurf: 'https://codeium.com/windsurf',
-            };
+            const platformUrl = source ? (platformUrls[source] || 'https://lovable.dev') : 'https://lovable.dev';
             
-            const session = controller.getSession();
-            const platformUrl = platformUrls[session.source] || 'https://lovable.dev';
+            console.log(`[Fix My App] Serverless mode: returning manual upload instructions for ${source || 'unknown'} source`);
             
             return res.json({
                 wsEndpoint: '',
@@ -486,6 +494,12 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
                     '5. Optionally, copy your chat history and paste it below',
                 ],
             });
+        }
+
+        // Non-serverless: check for session in memory
+        const controller = controllers.get(sessionId);
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
         }
 
         // Full browser automation (for non-serverless environments)
@@ -511,11 +525,19 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
                                    errorMessage.includes('chromium') || 
                                    errorMessage.includes('browser');
         
+        // In case of any browser-related error, fall back to serverless mode response
         if (isPlaywrightError) {
-            return res.status(503).json({ 
-                error: 'Browser automation unavailable',
-                message: 'Please use manual file upload instead. Export your project as a ZIP and upload it.',
+            return res.status(200).json({ 
+                wsEndpoint: '',
+                viewUrl: 'https://lovable.dev',
                 serverless: true,
+                message: 'Browser automation unavailable. Please use manual file upload instead.',
+                instructions: [
+                    '1. Go to your AI builder platform and log in',
+                    '2. Navigate to your project',
+                    '3. Export/download your project as a ZIP file',
+                    '4. Upload the ZIP file here',
+                ],
             });
         }
         
