@@ -24,6 +24,7 @@ interface EmbeddedBrowserProps {
     sessionId: string;
     source: string;
     onLoginComplete: () => void;
+    onWhitelist: () => void;
     onExtractionComplete: (data: ExtractedData) => void;
     onError: (error: string) => void;
 }
@@ -136,6 +137,7 @@ export default function EmbeddedBrowser({
     sessionId,
     source,
     onLoginComplete,
+    onWhitelist,
     onExtractionComplete,
     onError,
 }: EmbeddedBrowserProps) {
@@ -215,6 +217,12 @@ export default function EmbeddedBrowser({
                 break;
             case 'complete':
                 setPhase('complete');
+                // Notify parent that extraction is complete with extracted data
+                onExtractionComplete({
+                    chatHistory: [], // Will be populated from the extraction results
+                    errorCount: 0,
+                    fileCount: 0,
+                });
                 break;
             case 'error':
                 onError(prog.message);
