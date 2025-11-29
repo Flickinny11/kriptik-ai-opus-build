@@ -18,7 +18,6 @@ import {
     Github,
     Globe,
     Image,
-    Zap,
     ArrowRight,
     Clock,
     MoreHorizontal,
@@ -28,10 +27,14 @@ import {
     ChevronDown,
     Palette,
     Code,
-    Rocket
+    Layers
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { cn } from '@/lib/utils';
+import { KriptikLogo } from '../components/ui/KriptikLogo';
+import { GlitchText } from '../components/ui/GlitchText';
+import { HoverSidebar } from '../components/navigation/HoverSidebar';
+import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 
 // Animated prompt suggestions
 const PROMPT_IDEAS = [
@@ -432,6 +435,9 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0f]">
+            {/* Hover Sidebar */}
+            <HoverSidebar />
+
             <WelcomeModal />
             <TemplateGallery />
             <TemplateCustomizationModal />
@@ -448,15 +454,24 @@ export default function Dashboard() {
             />
 
             {/* Header */}
-            <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                            <Zap className="h-5 w-5 text-black" />
+                    {/* Hand-drawn arrow hint + Logo + Title */}
+                    <div className="flex items-center gap-2">
+                        {/* Hover hint arrow */}
+                        <HandDrawnArrow className="mr-2" />
+
+                        {/* Logo + Title - clicking navigates to dashboard */}
+                        <div
+                            className="flex items-center gap-4 cursor-pointer group"
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            <KriptikLogo size="sm" animated />
+                            <GlitchText
+                                text="KripTik AI"
+                                className="text-2xl group-hover:opacity-90 transition-opacity"
+                            />
                         </div>
-                        <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-                            KripTik AI
-                        </span>
                     </div>
                     <UserMenu />
                 </div>
@@ -559,7 +574,7 @@ export default function Dashboard() {
                         {[
                             { icon: Palette, label: 'Landing Page' },
                             { icon: Code, label: 'Dashboard' },
-                            { icon: Rocket, label: 'SaaS App' },
+                            { icon: Layers, label: 'SaaS App' },
                         ].map((template) => (
                             <button
                                 key={template.label}
@@ -606,7 +621,7 @@ export default function Dashboard() {
                 {projects.length === 0 && (
                     <div className="mt-16 text-center">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/50 mb-4">
-                            <Rocket className="h-8 w-8 text-slate-600" />
+                            <Layers className="h-8 w-8 text-slate-600" />
                         </div>
                         <h3 className="text-xl font-semibold text-white mb-2">Ready to build something amazing?</h3>
                         <p className="text-slate-400 max-w-md mx-auto">

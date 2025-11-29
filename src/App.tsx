@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Toaster } from './components/ui/toaster';
 import { CriticalErrorBoundary, PageErrorBoundary } from './components/ui/error-boundary';
 import MainLayout from './components/layouts/MainLayout';
@@ -12,7 +12,22 @@ import Builder from './pages/Builder';
 import UsageDashboard from './pages/UsageDashboard';
 import SettingsPage from './pages/SettingsPage';
 import FixMyApp from './pages/FixMyApp';
+import MyStuff from './pages/MyStuff';
 import { useUserStore } from './store/useUserStore';
+
+// Lazy load new pages (will be created)
+const TemplatesPage = lazy(() => import('./pages/TemplatesPage'));
+const DesignRoom = lazy(() => import('./pages/DesignRoom'));
+const CredentialVault = lazy(() => import('./pages/CredentialVault'));
+const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
+const MyAccount = lazy(() => import('./pages/MyAccount'));
+
+// Loading fallback
+const PageLoader = () => (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+);
 
 function App() {
     const { initialize } = useUserStore();
@@ -52,6 +67,46 @@ function App() {
                     <Route path="/dashboard" element={
                         <PageErrorBoundary>
                             <Dashboard />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/my-stuff" element={
+                        <PageErrorBoundary>
+                            <MyStuff />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/templates" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <TemplatesPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/design-room" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <DesignRoom />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/vault" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <CredentialVault />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/integrations" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <IntegrationsPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/account" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <MyAccount />
+                            </Suspense>
                         </PageErrorBoundary>
                     } />
                     <Route path="/usage" element={

@@ -5,13 +5,14 @@
  * Flow: Source Selection → Consent → Upload → Analysis → Strategy → Fix → Verify → Builder
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Upload, Github, Code, FileArchive, Sparkles, AlertCircle,
     CheckCircle2, ArrowRight, ArrowLeft, Loader2, Bug,
-    Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper
+    Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper,
+    Lock, Download, Monitor, Play, Pause, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -41,7 +42,9 @@ type ImportSource =
     // File Upload
     | 'zip';
 
-type Step = 'source' | 'consent' | 'upload' | 'context' | 'analysis' | 'strategy' | 'fix' | 'verify' | 'complete';
+type Step = 'source' | 'consent' | 'upload' | 'context' | 'analysis' | 'preferences' | 'strategy' | 'fix' | 'verify' | 'complete';
+
+type UIPreference = 'keep_ui' | 'improve_ui' | 'rebuild_ui';
 
 type SourceCategory = 'ai_builder' | 'ai_assistant' | 'ai_editor' | 'dev_platform' | 'repository' | 'file_upload';
 
@@ -542,6 +545,7 @@ const steps: { id: Step; label: string; icon: React.ElementType }[] = [
     { id: 'upload', label: 'Import', icon: Code },
     { id: 'context', label: 'Context', icon: MessageSquare },
     { id: 'analysis', label: 'Analysis', icon: Brain },
+    { id: 'preferences', label: 'UI Pref', icon: Eye },
     { id: 'strategy', label: 'Strategy', icon: Target },
     { id: 'fix', label: 'Fix', icon: Wrench },
     { id: 'complete', label: 'Done', icon: PartyPopper },
@@ -561,7 +565,7 @@ export default function FixMyApp() {
         chatHistory: true,
         buildLogs: true,
         errorLogs: true,
-        versionHistory: false,
+        versionHistory: true, // Auto-selected for maximum context
     });
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
@@ -578,6 +582,18 @@ export default function FixMyApp() {
     const [recommendedStrategy, setRecommendedStrategy] = useState<FixStrategy | null>(null);
     const [alternativeStrategies, setAlternativeStrategies] = useState<FixStrategy[]>([]);
     const [selectedStrategy, setSelectedStrategy] = useState<FixStrategy | null>(null);
+
+    // UI Preferences
+    const [uiPreference, setUiPreference] = useState<UIPreference>('improve_ui');
+    const [additionalInstructions, setAdditionalInstructions] = useState('');
+
+    // Embedded Browser State
+    const [browserPhase, setBrowserPhase] = useState<'idle' | 'user_control' | 'takeover' | 'extracting' | 'analyzing' | 'complete'>('idle');
+    const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null);
+    const [browserUrl, setBrowserUrl] = useState('');
+    const [extractionProgress, setExtractionProgress] = useState({ phase: '', progress: 0, message: '' });
+    const [showGlitchTransition, setShowGlitchTransition] = useState(false);
+    const browserPollRef = useRef<NodeJS.Timeout | null>(null);
 
     // Completion
     const [verificationReport, setVerificationReport] = useState<any>(null);
@@ -678,6 +694,158 @@ export default function FixMyApp() {
         }
     };
 
+    // =========================================================================
+    // EMBEDDED BROWSER FUNCTIONS
+    // =========================================================================
+
+    // Check if source requires browser login (AI builders with context)
+    const requiresBrowserLogin = useCallback(() => {
+        const browserSources: ImportSource[] = ['lovable', 'bolt', 'v0', 'create', 'tempo', 'gptengineer', 'databutton', 'magic_patterns', 'replit'];
+        return source && browserSources.includes(source);
+    }, [source]);
+
+    // Get platform URL based on source
+    const getPlatformUrl = useCallback(() => {
+        const urls: Record<string, string> = {
+            lovable: 'https://lovable.dev/projects',
+            bolt: 'https://bolt.new',
+            v0: 'https://v0.dev',
+            create: 'https://create.xyz',
+            tempo: 'https://tempo.new',
+            gptengineer: 'https://gptengineer.app',
+            databutton: 'https://databutton.com',
+            magic_patterns: 'https://magicpatterns.com',
+            replit: 'https://replit.com',
+        };
+        return source ? urls[source] || '' : '';
+    }, [source]);
+
+    // Start browser session for user login
+    const startBrowserSession = async () => {
+        if (!session) return;
+
+        setIsLoading(true);
+        setCurrentPhase('Starting secure browser...');
+        setBrowserPhase('user_control');
+
+        try {
+            const response = await apiClient.post<{ wsEndpoint: string; viewUrl: string }>(
+                `/api/fix-my-app/${session.sessionId}/browser/start`,
+                { source }
+            );
+
+            setBrowserUrl(response.viewUrl || getPlatformUrl());
+
+            // Start polling for screenshots
+            startScreenshotPolling();
+
+            toast({
+                title: 'Browser Ready',
+                description: 'Log in to your account, then navigate to your project.',
+            });
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to start browser session. You can still upload files manually.',
+                variant: 'destructive',
+            });
+            setBrowserPhase('idle');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Poll for browser screenshots
+    const startScreenshotPolling = () => {
+        if (browserPollRef.current) {
+            clearInterval(browserPollRef.current);
+        }
+
+        browserPollRef.current = setInterval(async () => {
+            if (!session) return;
+
+            try {
+                const response = await apiClient.get<{ screenshot: string; progress?: { phase: string; progress: number; message: string } }>(
+                    `/api/fix-my-app/${session.sessionId}/browser/screenshot`
+                );
+
+                if (response.screenshot) {
+                    setBrowserScreenshot(response.screenshot);
+                }
+
+                if (response.progress) {
+                    setExtractionProgress(response.progress);
+
+                    // Handle phase transitions
+                    if (response.progress.phase === 'complete') {
+                        handleExtractionComplete();
+                    }
+                }
+            } catch {
+                // Ignore polling errors
+            }
+        }, 1000);
+    };
+
+    // User confirms they've navigated to their project
+    const confirmProjectReached = async () => {
+        if (!session) return;
+
+        setIsLoading(true);
+        setCurrentPhase('Starting extraction...');
+
+        // Trigger glitch transition
+        setShowGlitchTransition(true);
+        setBrowserPhase('takeover');
+
+        setTimeout(() => {
+            setShowGlitchTransition(false);
+            setBrowserPhase('extracting');
+        }, 2500);
+
+        try {
+            // Tell backend to start automated extraction
+            await apiClient.post(`/api/fix-my-app/${session.sessionId}/browser/extract`);
+
+            toast({
+                title: 'KripTik AI Taking Over',
+                description: 'Sit back and relax. We\'re extracting everything now.',
+            });
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to start extraction',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle extraction complete
+    const handleExtractionComplete = () => {
+        if (browserPollRef.current) {
+            clearInterval(browserPollRef.current);
+        }
+
+        setBrowserPhase('analyzing');
+        setCurrentPhase('Analyzing your project...');
+
+        // Auto-proceed to analysis after brief delay
+        setTimeout(() => {
+            runAnalysis();
+        }, 2000);
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (browserPollRef.current) {
+                clearInterval(browserPollRef.current);
+            }
+        };
+    }, []);
+
     // Submit chat context
     const submitContext = async () => {
         if (!session) return;
@@ -724,11 +892,35 @@ export default function FixMyApp() {
             setAlternativeStrategies(response.data.alternativeStrategies);
             setSelectedStrategy(response.data.recommendedStrategy);
 
-            setStep('strategy');
+            // Go to preferences step first
+            setStep('preferences');
         } catch (error) {
             toast({
                 title: 'Analysis Failed',
                 description: 'Failed to analyze project',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Submit UI preferences
+    const submitPreferences = async () => {
+        if (!session) return;
+
+        setIsLoading(true);
+        try {
+            await apiClient.post(`/api/fix-my-app/${session.sessionId}/preferences`, {
+                uiPreference,
+                additionalInstructions: additionalInstructions || undefined,
+            });
+
+            setStep('strategy');
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to save preferences',
                 variant: 'destructive',
             });
         } finally {
@@ -763,10 +955,14 @@ export default function FixMyApp() {
             });
         };
 
-        // Start the fix
+        // Start the fix with preferences
         try {
             await apiClient.post(`/api/fix-my-app/${session.sessionId}/fix`, {
                 strategy: selectedStrategy,
+                preferences: {
+                    uiPreference,
+                    additionalInstructions: additionalInstructions || undefined,
+                },
             });
         } catch (error) {
             toast({
@@ -1091,24 +1287,292 @@ export default function FixMyApp() {
                             </Card>
                         )}
 
-                        {/* Step 3: Upload */}
+                        {/* Step 3: Upload - With Embedded Browser for AI Builders */}
                         {step === 'upload' && (
                             <Card className="p-8 bg-slate-900/50 border-slate-800">
                                 <h2 className="text-2xl font-bold mb-2">Import Your Project</h2>
-                                <p className="text-slate-400 mb-8">
-                                    Upload your project files or paste your code.
+                                <p className="text-slate-400 mb-6">
+                                    {requiresBrowserLogin()
+                                        ? `Log in to ${sourceOptions.find(s => s.id === source)?.name} and navigate to your project.`
+                                        : 'Upload your project files or paste your code.'}
                                 </p>
 
-                                {source === 'github' ? (
-                                    <div className="text-center py-8">
+                                {/* GitHub - Direct URL */}
+                                {source === 'github' && (
+                                    <div className="text-center py-8 mb-6">
                                         <Github className="w-16 h-16 mx-auto mb-4 text-slate-400" />
                                         <p className="text-slate-300 mb-2">Repository: <code className="text-amber-400">{githubUrl}</code></p>
                                         <p className="text-sm text-slate-500">Click continue to clone this repository</p>
                                     </div>
-                                ) : (
+                                )}
+
+                                {/* AI Builders - Embedded Browser */}
+                                {requiresBrowserLogin() && (
+                                    <div className="mb-6">
+                                        {/* Browser Phase: Idle - Show start button */}
+                                        {browserPhase === 'idle' && (
+                                            <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-xl mb-4">
+                                                <Monitor className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+                                                <h3 className="text-lg font-semibold text-white mb-2">Secure Browser Login</h3>
+                                                <p className="text-slate-400 text-sm max-w-md mx-auto mb-6">
+                                                    We'll open a secure browser window where you can log in to {sourceOptions.find(s => s.id === source)?.name}.
+                                                    Navigate to your project, and we'll handle the rest.
+                                                </p>
+                                                <Button
+                                                    onClick={startBrowserSession}
+                                                    disabled={isLoading}
+                                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                                >
+                                                    {isLoading ? (
+                                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting Browser...</>
+                                                    ) : (
+                                                        <><Play className="mr-2 h-4 w-4" /> Open Secure Browser</>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Browser Phase: User Control - Show browser screenshot */}
+                                        {browserPhase === 'user_control' && (
+                                            <div className="space-y-4">
+                                                {/* Browser Chrome */}
+                                                <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900/80">
+                                                    {/* Browser Header */}
+                                                    <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/50 bg-slate-800/50">
+                                                        <div className="flex gap-1.5">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                                                            <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                                                        </div>
+                                                        <div className="flex-1 mx-4">
+                                                            <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-slate-700/50 border border-slate-600/30">
+                                                                <Lock className="w-3 h-3 text-green-400" />
+                                                                <span className="text-xs text-slate-400 font-mono truncate">{browserUrl || getPlatformUrl()}</span>
+                                                            </div>
+                                                        </div>
+                                                        <motion.div
+                                                            className="w-2 h-2 rounded-full bg-emerald-500"
+                                                            animate={{ opacity: [1, 0.3, 1] }}
+                                                            transition={{ duration: 1, repeat: Infinity }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Browser Content */}
+                                                    <div className="relative h-[400px] bg-slate-950">
+                                                        {browserScreenshot ? (
+                                                            <img
+                                                                src={`data:image/png;base64,${browserScreenshot}`}
+                                                                alt="Browser view"
+                                                                className="w-full h-full object-contain"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex items-center justify-center h-full">
+                                                                <div className="text-center">
+                                                                    <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
+                                                                    <p className="text-slate-500 text-sm">Loading browser view...</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Instructions */}
+                                                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+                                                    <h4 className="font-medium text-amber-400 mb-2 flex items-center gap-2">
+                                                        <Eye className="w-4 h-4" /> You're in Control
+                                                    </h4>
+                                                    <ol className="text-sm text-slate-300 space-y-1">
+                                                        <li>1. Log in to your {sourceOptions.find(s => s.id === source)?.name} account</li>
+                                                        <li>2. Navigate to the project you want to fix</li>
+                                                        <li>3. Click "I'm at my project" when ready</li>
+                                                    </ol>
+                                                </div>
+
+                                                {/* Action Button */}
+                                                <Button
+                                                    onClick={confirmProjectReached}
+                                                    disabled={isLoading}
+                                                    className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-black font-semibold"
+                                                >
+                                                    <CheckCircle2 className="mr-2 h-4 w-4" /> I'm at my project - Extract Everything
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Browser Phase: Takeover/Extracting - Glitch transition */}
+                                        {(browserPhase === 'takeover' || browserPhase === 'extracting') && (
+                                            <div className="relative rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px]">
+                                                <AnimatePresence>
+                                                    {showGlitchTransition && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            exit={{ opacity: 0 }}
+                                                            className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950"
+                                                        >
+                                                            {/* Glitch effect */}
+                                                            <motion.div
+                                                                className="text-4xl font-bold"
+                                                                animate={{
+                                                                    opacity: [1, 0, 1, 0.5, 1],
+                                                                    scale: [1, 1.05, 0.95, 1.02, 1],
+                                                                    x: [0, -3, 3, -2, 0],
+                                                                }}
+                                                                transition={{ duration: 0.8 }}
+                                                            >
+                                                                <span className="bg-gradient-to-r from-white via-amber-200 to-white bg-clip-text text-transparent">
+                                                                    KRIPTIK AI
+                                                                </span>
+                                                            </motion.div>
+
+                                                            {/* Scan lines */}
+                                                            <motion.div
+                                                                className="absolute inset-0 pointer-events-none"
+                                                                style={{
+                                                                    background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)`,
+                                                                }}
+                                                                animate={{ opacity: [0.5, 0.8, 0.5] }}
+                                                                transition={{ duration: 0.2, repeat: Infinity }}
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+
+                                                {!showGlitchTransition && (
+                                                    <div className="flex flex-col items-center justify-center h-full p-8">
+                                                        {/* Animated KripTik AI Logo */}
+                                                        <motion.div
+                                                            className="mb-8"
+                                                            animate={{
+                                                                scale: [1, 1.02, 1],
+                                                                filter: [
+                                                                    'drop-shadow(0 0 20px rgba(251, 191, 36, 0.3))',
+                                                                    'drop-shadow(0 0 40px rgba(251, 191, 36, 0.5))',
+                                                                    'drop-shadow(0 0 20px rgba(251, 191, 36, 0.3))',
+                                                                ],
+                                                            }}
+                                                            transition={{ duration: 2, repeat: Infinity }}
+                                                        >
+                                                            <div className="text-4xl font-bold bg-gradient-to-r from-white via-amber-200 to-white bg-clip-text text-transparent">
+                                                                KRIPTIK AI
+                                                            </div>
+                                                            <motion.div
+                                                                className="h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent"
+                                                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                                                transition={{ duration: 1.5, repeat: Infinity }}
+                                                            />
+                                                        </motion.div>
+
+                                                        {/* Working indicator */}
+                                                        <div className="flex items-center gap-3 mb-6">
+                                                            <motion.div
+                                                                className="w-3 h-3 rounded-full bg-amber-500"
+                                                                animate={{
+                                                                    scale: [1, 1.2, 1],
+                                                                    boxShadow: [
+                                                                        '0 0 0 0 rgba(251, 191, 36, 0.4)',
+                                                                        '0 0 0 10px rgba(251, 191, 36, 0)',
+                                                                        '0 0 0 0 rgba(251, 191, 36, 0.4)',
+                                                                    ],
+                                                                }}
+                                                                transition={{ duration: 1.5, repeat: Infinity }}
+                                                            />
+                                                            <span className="text-amber-400 font-medium">Extracting...</span>
+                                                        </div>
+
+                                                        {/* Progress */}
+                                                        <div className="w-full max-w-sm mb-4">
+                                                            <Progress value={extractionProgress.progress} className="h-2 bg-slate-800" />
+                                                        </div>
+
+                                                        <p className="text-slate-400 text-sm text-center mb-6">
+                                                            {extractionProgress.message || 'Downloading project, extracting chat history, capturing logs...'}
+                                                        </p>
+
+                                                        {/* Extraction Status */}
+                                                        <div className="flex gap-6">
+                                                            <ExtractionStatusIcon
+                                                                icon={Download}
+                                                                label="Project Files"
+                                                                active={extractionProgress.phase === 'downloading'}
+                                                                complete={['extracting_chat', 'extracting_logs', 'complete'].includes(extractionProgress.phase)}
+                                                            />
+                                                            <ExtractionStatusIcon
+                                                                icon={MessageSquare}
+                                                                label="Chat History"
+                                                                active={extractionProgress.phase === 'extracting_chat'}
+                                                                complete={['extracting_logs', 'complete'].includes(extractionProgress.phase)}
+                                                            />
+                                                            <ExtractionStatusIcon
+                                                                icon={Bug}
+                                                                label="Error Logs"
+                                                                active={extractionProgress.phase === 'extracting_logs'}
+                                                                complete={extractionProgress.phase === 'complete'}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Browser Phase: Analyzing */}
+                                        {browserPhase === 'analyzing' && (
+                                            <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px] flex flex-col items-center justify-center p-8">
+                                                <motion.div
+                                                    className="mb-8"
+                                                    animate={{
+                                                        scale: [1, 1.02, 1],
+                                                    }}
+                                                    transition={{ duration: 2, repeat: Infinity }}
+                                                >
+                                                    <Brain className="w-20 h-20 text-amber-500" />
+                                                </motion.div>
+
+                                                <h3 className="text-2xl font-bold text-white mb-4">
+                                                    Analyzing Your Project
+                                                </h3>
+                                                <p className="text-slate-400 text-center max-w-md mb-6">
+                                                    KripTik AI is now studying your chat history, build logs, and code to understand what went wrong and how to fix it.
+                                                </p>
+
+                                                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                                                    <p className="text-slate-300 text-sm mb-2">
+                                                        <strong className="text-amber-400">This may take a few minutes.</strong>
+                                                    </p>
+                                                    <p className="text-slate-500 text-xs">
+                                                        Feel free to leave and come back - we'll notify you when it's ready.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Fallback: Manual Upload */}
+                                        <div className="mt-4 pt-4 border-t border-slate-800">
+                                            <p className="text-xs text-slate-500 text-center mb-3">Or upload your project manually</p>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="file"
+                                                    webkitdirectory=""
+                                                    multiple
+                                                    onChange={handleFileUpload}
+                                                    className="hidden"
+                                                    id="file-upload-fallback"
+                                                />
+                                                <label htmlFor="file-upload-fallback" className="flex-1">
+                                                    <Button variant="outline" className="w-full cursor-pointer border-slate-700" asChild>
+                                                        <span><Upload className="mr-2 h-4 w-4" /> Upload Folder</span>
+                                                    </Button>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ZIP Upload - Manual file upload */}
+                                {source === 'zip' && (
                                     <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center mb-6">
-                                        <Upload className="w-12 h-12 mx-auto mb-4 text-slate-500" />
-                                        <p className="text-slate-300 mb-4">Drag & drop your project folder or click to browse</p>
+                                        <FileArchive className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                                        <p className="text-slate-300 mb-4">Drag & drop your project ZIP or folder</p>
                                         <input
                                             type="file"
                                             webkitdirectory=""
@@ -1119,7 +1583,7 @@ export default function FixMyApp() {
                                         />
                                         <label htmlFor="file-upload">
                                             <Button variant="outline" className="cursor-pointer border-slate-700" asChild>
-                                                <span>Select Folder</span>
+                                                <span>Select Files</span>
                                             </Button>
                                         </label>
 
@@ -1139,26 +1603,29 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                <div className="flex gap-4">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setStep('consent')}
-                                        className="border-slate-700"
-                                    >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                    <Button
-                                        onClick={uploadFiles}
-                                        disabled={isLoading || (source !== 'github' && files.length === 0)}
-                                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
-                                    >
-                                        {isLoading ? (
-                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentPhase}</>
-                                        ) : (
-                                            <>Import Files <ArrowRight className="ml-2 h-4 w-4" /></>
-                                        )}
-                                    </Button>
-                                </div>
+                                {/* Footer Buttons - Only show for non-browser sources or when browser is idle */}
+                                {(!requiresBrowserLogin() || browserPhase === 'idle') && (
+                                    <div className="flex gap-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setStep('consent')}
+                                            className="border-slate-700"
+                                        >
+                                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                        </Button>
+                                        <Button
+                                            onClick={uploadFiles}
+                                            disabled={isLoading || (source !== 'github' && files.length === 0)}
+                                            className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                        >
+                                            {isLoading ? (
+                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentPhase}</>
+                                            ) : (
+                                                <>Import Files <ArrowRight className="ml-2 h-4 w-4" /></>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
                             </Card>
                         )}
 
@@ -1264,6 +1731,139 @@ export default function FixMyApp() {
                                     <h2 className="text-2xl font-bold mb-2">Analyzing Your Project</h2>
                                     <p className="text-slate-400 mb-8">{currentPhase || 'Extracting intent and building error timeline...'}</p>
                                     <Progress value={progress} className="w-full max-w-md" />
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* Step 5.5: UI Preferences */}
+                        {step === 'preferences' && intentSummary && (
+                            <Card className="p-8 bg-slate-900/50 border-slate-800">
+                                <h2 className="text-2xl font-bold mb-2">How Should We Handle Your UI?</h2>
+                                <p className="text-slate-400 mb-8">
+                                    We found your existing design. Do you want to keep it or start fresh?
+                                </p>
+
+                                <div className="space-y-4 mb-8">
+                                    {/* Keep UI Option */}
+                                    <button
+                                        onClick={() => setUiPreference('keep_ui')}
+                                        className={cn(
+                                            "w-full p-6 rounded-xl border-2 text-left transition-all",
+                                            uiPreference === 'keep_ui'
+                                                ? "border-emerald-500 bg-emerald-500/10"
+                                                : "border-slate-700 hover:border-slate-600"
+                                        )}
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
+                                                uiPreference === 'keep_ui' ? "bg-emerald-500/20" : "bg-slate-800"
+                                            )}>
+                                                🎨
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white mb-1">Keep My UI</div>
+                                                <p className="text-sm text-slate-400">
+                                                    Preserve your existing design exactly. We'll clone your UI components and only fix the broken functions/logic underneath.
+                                                </p>
+                                                <div className="mt-2 text-xs text-emerald-400">
+                                                    Best for: "I love my design, just make it work"
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {/* Improve UI Option */}
+                                    <button
+                                        onClick={() => setUiPreference('improve_ui')}
+                                        className={cn(
+                                            "w-full p-6 rounded-xl border-2 text-left transition-all",
+                                            uiPreference === 'improve_ui'
+                                                ? "border-amber-500 bg-amber-500/10"
+                                                : "border-slate-700 hover:border-slate-600"
+                                        )}
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
+                                                uiPreference === 'improve_ui' ? "bg-amber-500/20" : "bg-slate-800"
+                                            )}>
+                                                ✨
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white mb-1">Improve If Needed</div>
+                                                <p className="text-sm text-slate-400">
+                                                    Keep your general design direction and colors, but allow improvements to component structure for better UX.
+                                                </p>
+                                                <div className="mt-2 text-xs text-amber-400">
+                                                    Best for: "Make it work, and make it better"
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {/* Rebuild UI Option */}
+                                    <button
+                                        onClick={() => setUiPreference('rebuild_ui')}
+                                        className={cn(
+                                            "w-full p-6 rounded-xl border-2 text-left transition-all",
+                                            uiPreference === 'rebuild_ui'
+                                                ? "border-blue-500 bg-blue-500/10"
+                                                : "border-slate-700 hover:border-slate-600"
+                                        )}
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
+                                                uiPreference === 'rebuild_ui' ? "bg-blue-500/20" : "bg-slate-800"
+                                            )}>
+                                                🚀
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white mb-1">Rebuild From Scratch</div>
+                                                <p className="text-sm text-slate-400">
+                                                    Don't worry about the existing UI. Build a fresh, premium design based on your original requirements.
+                                                </p>
+                                                <div className="mt-2 text-xs text-blue-400">
+                                                    Best for: "Start over with a better design"
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Additional instructions */}
+                                <div className="mb-8">
+                                    <Label className="text-slate-300 mb-2 block">
+                                        Any specific instructions? (optional)
+                                    </Label>
+                                    <Textarea
+                                        value={additionalInstructions}
+                                        onChange={(e) => setAdditionalInstructions(e.target.value)}
+                                        placeholder="e.g., 'Keep the dark theme but improve the button animations' or 'Make sure the sidebar navigation works exactly as I designed it'"
+                                        className="bg-slate-800 border-slate-700 min-h-[100px]"
+                                    />
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setStep('analysis')}
+                                        className="border-slate-700"
+                                    >
+                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                    </Button>
+                                    <Button
+                                        onClick={submitPreferences}
+                                        disabled={isLoading}
+                                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                    >
+                                        {isLoading ? (
+                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                        ) : (
+                                            <>Continue to Strategy <ArrowRight className="ml-2 h-4 w-4" /></>
+                                        )}
+                                    </Button>
                                 </div>
                             </Card>
                         )}
@@ -1510,6 +2110,61 @@ export default function FixMyApp() {
                     </motion.div>
                 </AnimatePresence>
             </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+// Extraction status icon for the browser extraction phase
+function ExtractionStatusIcon({
+    icon: Icon,
+    label,
+    active,
+    complete,
+}: {
+    icon: React.ElementType;
+    label: string;
+    active: boolean;
+    complete: boolean;
+}) {
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <motion.div
+                className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
+                    complete ? "bg-emerald-500/20 text-emerald-400" :
+                    active ? "bg-amber-500/20 text-amber-400" :
+                    "bg-slate-800 text-slate-500"
+                )}
+                animate={active ? {
+                    scale: [1, 1.1, 1],
+                    boxShadow: [
+                        '0 0 0 0 rgba(251, 191, 36, 0)',
+                        '0 0 0 8px rgba(251, 191, 36, 0.2)',
+                        '0 0 0 0 rgba(251, 191, 36, 0)',
+                    ],
+                } : {}}
+                transition={{ duration: 1.5, repeat: active ? Infinity : 0 }}
+            >
+                {complete ? (
+                    <CheckCircle2 className="w-6 h-6" />
+                ) : active ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                    <Icon className="w-6 h-6" />
+                )}
+            </motion.div>
+            <span className={cn(
+                "text-xs font-medium",
+                complete ? "text-emerald-400" :
+                active ? "text-amber-400" :
+                "text-slate-500"
+            )}>
+                {label}
+            </span>
         </div>
     );
 }

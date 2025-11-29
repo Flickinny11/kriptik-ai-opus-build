@@ -30,6 +30,7 @@ import type {
     IntentVerificationReport,
     CodeAnalysis,
     FixEvent,
+    FixPreferences,
 } from './types.js';
 import { SOURCE_REGISTRY, sourceHasContext } from './types.js';
 import { createChatParser, ChatParser } from './chat-parser.js';
@@ -143,6 +144,18 @@ export class ImportController extends EventEmitter {
         this.session.consent = consent;
         this.session.status = 'importing';
         this.log('Consent recorded');
+    }
+
+    /**
+     * Set user preferences for UI and fix behavior
+     */
+    setPreferences(preferences: FixPreferences): void {
+        this.session.preferences = preferences;
+        this.log(`UI preference set: ${preferences.uiPreference}`);
+
+        if (preferences.additionalInstructions) {
+            this.log(`Additional instructions: ${preferences.additionalInstructions.substring(0, 100)}...`);
+        }
     }
 
     // ===========================================================================
@@ -683,6 +696,60 @@ export class ImportController extends EventEmitter {
         return files;
     }
 
+    /**
+     * Apply user's UI preference to the fix strategy
+     */
+    private applyUIPreference(strategy: FixStrategy): FixStrategy {
+        const prefs = this.session.preferences;
+        if (!prefs) return strategy;
+
+        const updatedStrategy = { ...strategy };
+
+        switch (prefs.uiPreference) {
+            case 'keep_ui':
+                // User wants to preserve their UI exactly
+                updatedStrategy.preserve = {
+                    ...updatedStrategy.preserve,
+                    uiDesign: true,
+                    componentStructure: true,
+                    styling: true,
+                };
+                // If they want to keep UI, prefer repair over rebuild
+                if (updatedStrategy.approach === 'rebuild_full') {
+                    updatedStrategy.approach = 'rebuild_partial';
+                    updatedStrategy.reasoning += ' (Modified: Preserving user UI as requested)';
+                }
+                this.log('Strategy modified to preserve existing UI');
+                break;
+
+            case 'improve_ui':
+                // User is open to UI improvements
+                updatedStrategy.preserve = {
+                    ...updatedStrategy.preserve,
+                    uiDesign: true,      // Keep general design
+                    componentStructure: false,  // Allow restructuring
+                    styling: true,       // Keep color scheme/theme
+                };
+                this.log('Strategy allows UI improvements while preserving design');
+                break;
+
+            case 'rebuild_ui':
+                // User doesn't care about existing UI
+                updatedStrategy.preserve = {
+                    ...updatedStrategy.preserve,
+                    uiDesign: false,
+                    componentStructure: false,
+                    styling: false,
+                };
+                // Increase confidence since we have more freedom
+                updatedStrategy.confidence = Math.min(updatedStrategy.confidence + 0.1, 1.0);
+                this.log('Strategy will rebuild UI from scratch based on intent');
+                break;
+        }
+
+        return updatedStrategy;
+    }
+
     private async analyzeCodeQuality(files: Map<string, string>): Promise<CodeAnalysis> {
         let hasTypeErrors = false;
         let hasSyntaxErrors = false;
@@ -739,28 +806,37 @@ export class ImportController extends EventEmitter {
     /**
      * Execute the fix with selected strategy
      */
-    async executeFix(strategy?: FixStrategy): Promise<void> {
+    async executeFix(strategy?: FixStrategy, preferences?: FixPreferences): Promise<void> {
         const selectedStrategy = strategy || this.session.selectedStrategy;
         if (!selectedStrategy) {
             throw new Error('No strategy selected');
         }
 
+        // Apply preferences if provided
+        if (preferences) {
+            this.setPreferences(preferences);
+        }
+
+        // Merge user UI preference into strategy
+        const finalStrategy = this.applyUIPreference(selectedStrategy);
+
         this.session.status = 'fixing';
-        this.session.selectedStrategy = selectedStrategy;
+        this.session.selectedStrategy = finalStrategy;
         this.session.startedAt = new Date();
 
         const projectFiles = await this.getProjectFiles();
         const intent = this.session.context.processed.intentSummary!;
         const gaps = this.session.context.processed.implementationGaps;
 
-        // Create fix executor
+        // Create fix executor with preferences
         this.fixExecutor = createFixExecutor(
             this.userId,
             this.session.projectId!,
             projectFiles,
-            selectedStrategy,
+            finalStrategy,
             intent,
-            gaps
+            gaps,
+            this.session.preferences
         );
 
         // Forward events

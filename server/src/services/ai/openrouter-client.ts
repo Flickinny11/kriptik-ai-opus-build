@@ -19,19 +19,19 @@ export const OPENROUTER_MODELS = {
     // Claude Opus 4.5 - For critical tasks, infrastructure, deep analysis
     // Supports effort/verbosity parameter
     OPUS_4_5: 'anthropic/claude-opus-4.5',
-    
+
     // Claude Sonnet 4.5 - Main coding model, extended thinking
     SONNET_4_5: 'anthropic/claude-sonnet-4.5',
-    
+
     // Claude Sonnet 4 - Standard tasks
     SONNET_4: 'anthropic/claude-sonnet-4',
-    
+
     // Claude Haiku 3.5 - Fast, cost-effective for simple tasks
     HAIKU_3_5: 'anthropic/claude-3.5-haiku',
-    
+
     // DeepSeek V3 - Cost-effective for bulk operations
     DEEPSEEK_V3: 'deepseek/deepseek-chat-v3-0324',
-    
+
     // GPT-4o - Alternative for certain tasks
     GPT_4O: 'openai/gpt-4o',
 } as const;
@@ -177,7 +177,7 @@ export class OpenRouterClient {
     /**
      * Get recommended model for a task type
      */
-    getModelForTask(taskType: 
+    getModelForTask(taskType:
         | 'planning'
         | 'architecture'
         | 'critical'
@@ -196,7 +196,7 @@ export class OpenRouterClient {
                     effort: 'high',
                     useThinking: true,
                 };
-            
+
             case 'coding':
             case 'testing':
                 // Use Sonnet 4.5 with extended thinking for main coding
@@ -204,21 +204,21 @@ export class OpenRouterClient {
                     model: OPENROUTER_MODELS.SONNET_4_5,
                     useThinking: true,
                 };
-            
+
             case 'simple':
                 // Use Haiku for simple, fast tasks
                 return {
                     model: OPENROUTER_MODELS.HAIKU_3_5,
                     useThinking: false,
                 };
-            
+
             case 'bulk':
                 // Use DeepSeek for cost-effective bulk operations
                 return {
                     model: OPENROUTER_MODELS.DEEPSEEK_V3,
                     useThinking: false,
                 };
-            
+
             default:
                 return {
                     model: OPENROUTER_MODELS.SONNET_4_5,

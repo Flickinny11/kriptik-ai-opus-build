@@ -17,8 +17,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Code2, Eye, Settings, Brain, Rocket, Blocks,
     Cloud, ChevronRight, X, Bot, Activity,
-    Database, Server, Workflow
+    Database, Server, Workflow, LayoutDashboard, Home
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
 import ChatInterface from '../components/builder/ChatInterface';
 import SandpackFileExplorer from '../components/builder/SandpackFileExplorer';
@@ -154,6 +155,7 @@ const quickActions = [
 
 export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
     const [showMemory, setShowMemory] = useState(false);
     const [projectName, _setProjectName] = useState('Untitled Project');
@@ -210,9 +212,23 @@ export default function Builder() {
                 {/* Premium Header */}
                 <header className="h-14 border-b border-border/50 flex items-center justify-between px-4 bg-card/80 backdrop-blur-md z-20 shrink-0">
                     <div className="flex items-center gap-4">
+                        {/* Dashboard Button */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate('/dashboard')}
+                            className="gap-2 hover:bg-primary/10"
+                        >
+                            <LayoutDashboard className="h-4 w-4" />
+                            <span className="hidden sm:inline">Dashboard</span>
+                        </Button>
+
+                        <div className="h-6 w-px bg-border/50" />
+
                         <div
-                            className="font-bold text-xl text-gradient"
+                            className="font-bold text-xl text-gradient cursor-pointer hover:opacity-80 transition-opacity"
                             style={{ fontFamily: 'var(--font-display)' }}
+                            onClick={() => navigate('/dashboard')}
                         >
                             KripTik AI
                         </div>

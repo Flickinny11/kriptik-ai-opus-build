@@ -11,6 +11,9 @@ import {
     ImportController,
     SOURCE_REGISTRY,
     getSourcesByCategory,
+    createBrowserExtractor,
+    createContextStore,
+    BrowserExtractorService,
 } from '../services/fix-my-app/index.js';
 
 const router = Router();
@@ -28,6 +31,7 @@ router.get('/sources', (req: Request, res: Response) => {
 
 // Store active controllers for SSE streaming
 const controllers = new Map<string, ImportController>();
+const browserSessions = new Map<string, BrowserExtractorService>();
 
 /**
  * POST /api/fix-my-app/init
@@ -236,6 +240,44 @@ router.get('/:sessionId/analysis', (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/fix-my-app/:sessionId/preferences
+ * Set user preferences for the fix (UI preservation, etc.)
+ */
+router.post('/:sessionId/preferences', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const controller = controllers.get(sessionId);
+
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const { uiPreference, priorityFeatures, skipFeatures, additionalInstructions } = req.body;
+
+        if (!uiPreference || !['keep_ui', 'improve_ui', 'rebuild_ui'].includes(uiPreference)) {
+            return res.status(400).json({
+                error: 'Valid uiPreference required: keep_ui, improve_ui, or rebuild_ui'
+            });
+        }
+
+        controller.setPreferences({
+            uiPreference,
+            priorityFeatures,
+            skipFeatures,
+            additionalInstructions,
+        });
+
+        res.json({
+            success: true,
+            message: `UI preference set to: ${uiPreference}`
+        });
+    } catch (error) {
+        console.error('Preferences error:', error);
+        res.status(500).json({ error: 'Failed to set preferences' });
+    }
+});
+
+/**
  * POST /api/fix-my-app/:sessionId/fix
  * Start the fix process
  */
@@ -248,10 +290,10 @@ router.post('/:sessionId/fix', async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Session not found' });
         }
 
-        const { strategy } = req.body;
+        const { strategy, preferences } = req.body;
 
         // Start fix in background, response will come via SSE
-        controller.executeFix(strategy).catch(error => {
+        controller.executeFix(strategy, preferences).catch(error => {
             console.error('Fix execution error:', error);
         });
 
@@ -375,7 +417,209 @@ router.delete('/:sessionId', (req: Request, res: Response) => {
     controllers.delete(sessionId);
     ImportController.deleteSession(sessionId);
 
+    // Clean up browser session if exists
+    const browserSession = browserSessions.get(sessionId);
+    if (browserSession) {
+        browserSession.close().catch(() => {});
+        browserSessions.delete(sessionId);
+    }
+
     res.json({ success: true });
+});
+
+// =============================================================================
+// BROWSER AUTOMATION ROUTES
+// =============================================================================
+
+/**
+ * POST /api/fix-my-app/:sessionId/browser/start
+ * Start embedded browser for user login
+ */
+router.post('/:sessionId/browser/start', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { source } = req.body;
+        const controller = controllers.get(sessionId);
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        // Create browser extractor
+        const browserExtractor = createBrowserExtractor({
+            source: source || controller.getSession().source,
+            sessionId,
+            userId,
+            projectUrl: controller.getSession().sourceUrl,
+        });
+
+        browserSessions.set(sessionId, browserExtractor);
+
+        // Start the browser
+        const { wsEndpoint, viewUrl } = await browserExtractor.startBrowser();
+
+        res.json({ wsEndpoint, viewUrl });
+    } catch (error) {
+        console.error('Browser start error:', error);
+        res.status(500).json({ error: 'Failed to start browser' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/:sessionId/browser/confirm-login
+ * Confirm user has logged in
+ */
+router.post('/:sessionId/browser/confirm-login', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const browserSession = browserSessions.get(sessionId);
+
+        if (!browserSession) {
+            return res.status(404).json({ error: 'Browser session not found' });
+        }
+
+        const success = await browserSession.waitForLogin(30000); // 30 second timeout
+
+        res.json({ success });
+    } catch (error) {
+        console.error('Login confirmation error:', error);
+        res.status(500).json({ error: 'Failed to confirm login' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/:sessionId/browser/navigate
+ * Navigate to a specific project URL
+ */
+router.post('/:sessionId/browser/navigate', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const { projectUrl } = req.body;
+        const browserSession = browserSessions.get(sessionId);
+
+        if (!browserSession) {
+            return res.status(404).json({ error: 'Browser session not found' });
+        }
+
+        const success = await browserSession.navigateToProject(projectUrl);
+
+        res.json({ success });
+    } catch (error) {
+        console.error('Navigation error:', error);
+        res.status(500).json({ error: 'Failed to navigate' });
+    }
+});
+
+/**
+ * POST /api/fix-my-app/:sessionId/browser/extract
+ * Start automatic extraction
+ */
+router.post('/:sessionId/browser/extract', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const browserSession = browserSessions.get(sessionId);
+        const controller = controllers.get(sessionId);
+
+        if (!browserSession || !controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        // Start extraction in background
+        browserSession.extractAll()
+            .then(async (extractedData) => {
+                // Ingest extracted data into the import controller
+                if (extractedData.chatHistory.length > 0) {
+                    await controller.submitChatHistory(
+                        extractedData.chatHistory.map(m => `[${m.role}]: ${m.content}`).join('\n\n')
+                    );
+                }
+
+                // Import extracted files
+                if (extractedData.files.size > 0) {
+                    const filesArray = Array.from(extractedData.files.entries()).map(([path, content]) => ({
+                        path,
+                        content,
+                    }));
+                    await controller.importFiles(filesArray);
+                }
+
+                // Close browser
+                await browserSession.close();
+                browserSessions.delete(sessionId);
+            })
+            .catch((error) => {
+                console.error('Extraction error:', error);
+            });
+
+        res.json({ success: true, message: 'Extraction started' });
+    } catch (error) {
+        console.error('Extract start error:', error);
+        res.status(500).json({ error: 'Failed to start extraction' });
+    }
+});
+
+/**
+ * GET /api/fix-my-app/:sessionId/browser/screenshot
+ * Get current browser screenshot
+ */
+router.get('/:sessionId/browser/screenshot', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const browserSession = browserSessions.get(sessionId);
+
+        if (!browserSession) {
+            return res.status(404).json({ error: 'Browser session not found' });
+        }
+
+        const screenshot = await browserSession.screenshot();
+
+        res.json({ screenshot });
+    } catch (error) {
+        console.error('Screenshot error:', error);
+        res.status(500).json({ error: 'Failed to capture screenshot' });
+    }
+});
+
+/**
+ * GET /api/fix-my-app/:sessionId/browser/stream
+ * SSE stream for browser progress
+ */
+router.get('/:sessionId/browser/stream', (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+    const browserSession = browserSessions.get(sessionId);
+
+    if (!browserSession) {
+        return res.status(404).json({ error: 'Browser session not found' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const sendEvent = (event: string, data: unknown) => {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Listen for events
+    const onProgress = (event: any) => sendEvent('progress', event);
+    const onScreenshot = (screenshot: string) => sendEvent('screenshot', { screenshot });
+
+    browserSession.on('progress', onProgress);
+    browserSession.on('screenshot', onScreenshot);
+
+    // Send initial state
+    sendEvent('init', { sessionId, status: 'connected' });
+
+    // Cleanup on disconnect
+    req.on('close', () => {
+        browserSession.off('progress', onProgress);
+        browserSession.off('screenshot', onScreenshot);
+    });
 });
 
 export default router;

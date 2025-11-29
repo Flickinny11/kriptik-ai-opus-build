@@ -13,4 +13,6 @@ export { FixExecutor, createFixExecutor } from './fix-executor.js';
 export { IntentVerifier, createIntentVerifier } from './intent-verifier.js';
 export { SarcasticNotifier, createSarcasticNotifier } from './sarcastic-notifier.js';
 export { ImportController, createImportController } from './import-controller.js';
+export { ContextStore, createContextStore } from './context-store.js';
+export { BrowserExtractorService, createBrowserExtractor } from './browser-extractor.js';
 

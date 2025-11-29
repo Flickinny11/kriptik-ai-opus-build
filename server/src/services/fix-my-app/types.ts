@@ -678,11 +678,33 @@ export interface ImplementationGap {
 export type FixApproach = 'repair' | 'rebuild_partial' | 'rebuild_full';
 export type StartingPoint = 'current' | 'rollback_version' | 'clean_slate';
 
+/**
+ * User's preference for UI preservation
+ * - 'keep_ui': Preserve the existing UI exactly, only fix functions/logic
+ * - 'improve_ui': Allow UI improvements if needed
+ * - 'rebuild_ui': Don't care about existing UI, rebuild from scratch
+ */
+export type UIPreference = 'keep_ui' | 'improve_ui' | 'rebuild_ui';
+
 export interface PreserveConfig {
     uiDesign: boolean;
     componentStructure: boolean;
     styling: boolean;
     workingFeatures: string[];
+}
+
+/**
+ * User's explicit UI and feature preferences for the fix
+ */
+export interface FixPreferences {
+    /** How to handle the existing UI */
+    uiPreference: UIPreference;
+    /** Specific features to prioritize */
+    priorityFeatures?: string[];
+    /** Features to skip/deprioritize */
+    skipFeatures?: string[];
+    /** Additional instructions from user */
+    additionalInstructions?: string;
 }
 
 export interface FeatureFix {
@@ -818,6 +840,9 @@ export interface FixSession {
     // Consent
     consent: ConsentPermissions;
 
+    // User preferences for the fix
+    preferences?: FixPreferences;
+
     // Context
     context: ImportedProjectContext;
 
@@ -886,6 +911,7 @@ export interface AnalysisResponse {
 
 export interface StartFixRequest {
     strategy: FixStrategy;
+    preferences?: FixPreferences;
     modifications?: string[];
 }
 
