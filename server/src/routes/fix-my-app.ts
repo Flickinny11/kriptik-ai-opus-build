@@ -434,7 +434,7 @@ router.delete('/:sessionId', (req: Request, res: Response) => {
 /**
  * POST /api/fix-my-app/:sessionId/browser/start
  * Start embedded browser for user login
- * 
+ *
  * NOTE: Browser automation requires a persistent server with browser binaries.
  * In serverless (Vercel), we return a fallback that guides users to manual upload.
  */
@@ -448,7 +448,7 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
 
         // Get source from request body (required for serverless mode where session might not exist)
         const { source } = req.body;
-        
+
         // Platform URLs for all supported sources
         const platformUrls: Record<string, string> = {
             lovable: 'https://lovable.dev',
@@ -473,14 +473,14 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
 
         // Check if we're in a serverless environment (Vercel) - CHECK THIS FIRST
         const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
-        
+
         if (isServerless) {
             // In serverless, browser automation isn't available AND sessions don't persist
             // Return a response that guides the user to manual upload
             const platformUrl = source ? (platformUrls[source] || 'https://lovable.dev') : 'https://lovable.dev';
-            
+
             console.log(`[Fix My App] Serverless mode: returning manual upload instructions for ${source || 'unknown'} source`);
-            
+
             return res.json({
                 wsEndpoint: '',
                 viewUrl: platformUrl,
@@ -518,16 +518,16 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
         res.json({ wsEndpoint, viewUrl, serverless: false });
     } catch (error) {
         console.error('Browser start error:', error);
-        
+
         // Provide helpful error message
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const isPlaywrightError = errorMessage.includes('playwright') || 
-                                   errorMessage.includes('chromium') || 
+        const isPlaywrightError = errorMessage.includes('playwright') ||
+                                   errorMessage.includes('chromium') ||
                                    errorMessage.includes('browser');
-        
+
         // In case of any browser-related error, fall back to serverless mode response
         if (isPlaywrightError) {
-            return res.status(200).json({ 
+            return res.status(200).json({
                 wsEndpoint: '',
                 viewUrl: 'https://lovable.dev',
                 serverless: true,
@@ -540,7 +540,7 @@ router.post('/:sessionId/browser/start', async (req: Request, res: Response) => 
                 ],
             });
         }
-        
+
         res.status(500).json({ error: 'Failed to start browser', details: errorMessage });
     }
 });

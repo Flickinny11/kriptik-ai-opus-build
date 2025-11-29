@@ -26,6 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+import { EmbeddedBrowserFrame } from '@/components/fix-my-app/EmbeddedBrowserFrame';
 
 // Types - All supported AI builders and platforms
 type ImportSource =
@@ -589,10 +590,13 @@ export default function FixMyApp() {
 
     // Embedded Browser State
     const [browserPhase, setBrowserPhase] = useState<'idle' | 'user_control' | 'takeover' | 'extracting' | 'analyzing' | 'complete'>('idle');
-    const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [browserScreenshot, _setBrowserScreenshot] = useState<string | null>(null);
     const [browserUrl, setBrowserUrl] = useState('');
-    const [extractionProgress, setExtractionProgress] = useState({ phase: '', progress: 0, message: '' });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [extractionProgress, _setExtractionProgress] = useState({ phase: '', progress: 0, message: '' });
     const [showGlitchTransition, setShowGlitchTransition] = useState(false);
+    const [showEmbeddedBrowser, setShowEmbeddedBrowser] = useState(false);
     const browserPollRef = useRef<NodeJS.Timeout | null>(null);
 
     // Completion
@@ -649,7 +653,15 @@ export default function FixMyApp() {
         setIsLoading(true);
         try {
             await apiClient.post(`/api/fix-my-app/${session.sessionId}/consent`, consent);
-            setStep('upload');
+            
+            // For AI builders that require login, show embedded browser directly
+            if (requiresBrowserLogin()) {
+                setShowEmbeddedBrowser(true);
+                setStep('upload');
+            } else {
+                // For other sources (GitHub, ZIP), go to standard upload
+                setStep('upload');
+            }
         } catch (error) {
             toast({
                 title: 'Error',
@@ -724,89 +736,19 @@ export default function FixMyApp() {
     const startBrowserSession = async () => {
         if (!session) return;
 
-        setIsLoading(true);
-        setCurrentPhase('Starting secure browser...');
-
-        try {
-            const response = await apiClient.post<{
-                wsEndpoint: string;
-                viewUrl: string;
-                serverless?: boolean;
-                message?: string;
-                instructions?: string[];
-            }>(
-                `/api/fix-my-app/${session.sessionId}/browser/start`,
-                { source }
-            );
-
-            // Check if running in serverless mode (browser automation unavailable)
-            if (response.data.serverless) {
-                // Show manual upload flow instead
-                setBrowserPhase('idle');
-                toast({
-                    title: 'Manual Upload Required',
-                    description: response.data.message || 'Please export and upload your project files manually.',
-                });
-
-                // Open the platform URL in a new tab for user convenience
-                if (response.data.viewUrl) {
-                    window.open(response.data.viewUrl, '_blank');
-                }
-                return;
-            }
-
-            setBrowserPhase('user_control');
-            setBrowserUrl(response.data.viewUrl || getPlatformUrl());
-
-            // Start polling for screenshots
-            startScreenshotPolling();
-
-            toast({
-                title: 'Browser Ready',
-                description: 'Log in to your account, then navigate to your project.',
-            });
-        } catch (error) {
-            toast({
-                title: 'Manual Upload',
-                description: 'Browser automation is unavailable. Please upload your project files manually.',
-            });
-            setBrowserPhase('idle');
-        } finally {
-            setIsLoading(false);
-        }
+        // Simply show the embedded browser - no backend call needed
+        // The browser is an iframe that loads the target platform
+        setShowEmbeddedBrowser(true);
+        setBrowserPhase('user_control');
+        setBrowserUrl(getPlatformUrl());
+        
+        toast({
+            title: 'Browser Ready',
+            description: 'Log in to your account, then navigate to your project.',
+        });
     };
 
-    // Poll for browser screenshots
-    const startScreenshotPolling = () => {
-        if (browserPollRef.current) {
-            clearInterval(browserPollRef.current);
-        }
-
-        browserPollRef.current = setInterval(async () => {
-            if (!session) return;
-
-            try {
-                const response = await apiClient.get<{ screenshot: string; progress?: { phase: string; progress: number; message: string } }>(
-                    `/api/fix-my-app/${session.sessionId}/browser/screenshot`
-                );
-
-                if (response.data.screenshot) {
-                    setBrowserScreenshot(response.data.screenshot);
-                }
-
-                if (response.data.progress) {
-                    setExtractionProgress(response.data.progress);
-
-                    // Handle phase transitions
-                    if (response.data.progress.phase === 'complete') {
-                        handleExtractionComplete();
-                    }
-                }
-            } catch {
-                // Ignore polling errors
-            }
-        }, 1000);
-    };
+    // Note: Screenshot polling moved to EmbeddedBrowserFrame component
 
     // User confirms they've navigated to their project
     const confirmProjectReached = async () => {
@@ -841,21 +783,6 @@ export default function FixMyApp() {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    // Handle extraction complete
-    const handleExtractionComplete = () => {
-        if (browserPollRef.current) {
-            clearInterval(browserPollRef.current);
-        }
-
-        setBrowserPhase('analyzing');
-        setCurrentPhase('Analyzing your project...');
-
-        // Auto-proceed to analysis after brief delay
-        setTimeout(() => {
-            runAnalysis();
-        }, 2000);
     };
 
     // Cleanup on unmount
@@ -1327,11 +1254,43 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                {/* AI Builders - Embedded Browser */}
+                                {/* AI Builders - Embedded Browser Frame */}
                                 {requiresBrowserLogin() && (
                                     <div className="mb-6">
-                                        {/* Browser Phase: Idle - Show start button */}
-                                        {browserPhase === 'idle' && (
+                                        {/* Show embedded browser frame when active */}
+                                        {showEmbeddedBrowser && session && source ? (
+                                            <EmbeddedBrowserFrame
+                                                sessionId={session.sessionId}
+                                                sourceUrl={getPlatformUrl()}
+                                                sourcePlatform={source}
+                                                onSyncStart={() => {
+                                                    setBrowserPhase('takeover');
+                                                    setShowGlitchTransition(true);
+                                                }}
+                                                onExtractionComplete={(data) => {
+                                                    console.log('Extraction complete:', data);
+                                                    setBrowserPhase('analyzing');
+                                                    setShowEmbeddedBrowser(false);
+                                                    // Move to analysis step
+                                                    setStep('analysis');
+                                                    runAnalysis();
+                                                }}
+                                                onClose={() => {
+                                                    setShowEmbeddedBrowser(false);
+                                                    setBrowserPhase('idle');
+                                                }}
+                                                onError={(error) => {
+                                                    toast({
+                                                        title: 'Error',
+                                                        description: error,
+                                                        variant: 'destructive',
+                                                    });
+                                                    setShowEmbeddedBrowser(false);
+                                                    setBrowserPhase('idle');
+                                                }}
+                                            />
+                                        ) : (
+                                            /* Browser Phase: Idle - Show start button */
                                             <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-xl mb-4">
                                                 <Monitor className="w-16 h-16 mx-auto mb-4 text-slate-400" />
                                                 <h3 className="text-lg font-semibold text-white mb-2">Secure Browser Login</h3>
@@ -1353,8 +1312,8 @@ export default function FixMyApp() {
                                             </div>
                                         )}
 
-                                        {/* Browser Phase: User Control - Show browser screenshot */}
-                                        {browserPhase === 'user_control' && (
+                                        {/* Browser Phase: User Control - Show browser screenshot (legacy - hidden when using EmbeddedBrowserFrame) */}
+                                        {!showEmbeddedBrowser && browserPhase === 'user_control' && (
                                             <div className="space-y-4">
                                                 {/* Browser Chrome */}
                                                 <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900/80">
@@ -1420,8 +1379,8 @@ export default function FixMyApp() {
                                             </div>
                                         )}
 
-                                        {/* Browser Phase: Takeover/Extracting - Glitch transition */}
-                                        {(browserPhase === 'takeover' || browserPhase === 'extracting') && (
+                                        {/* Browser Phase: Takeover/Extracting - Glitch transition (legacy - hidden when using EmbeddedBrowserFrame) */}
+                                        {!showEmbeddedBrowser && (browserPhase === 'takeover' || browserPhase === 'extracting') && (
                                             <div className="relative rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px]">
                                                 <AnimatePresence>
                                                     {showGlitchTransition && (
@@ -1536,8 +1495,8 @@ export default function FixMyApp() {
                                             </div>
                                         )}
 
-                                        {/* Browser Phase: Analyzing */}
-                                        {browserPhase === 'analyzing' && (
+                                        {/* Browser Phase: Analyzing (legacy - hidden when using EmbeddedBrowserFrame) */}
+                                        {!showEmbeddedBrowser && browserPhase === 'analyzing' && (
                                             <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px] flex flex-col items-center justify-center p-8">
                                                 <motion.div
                                                     className="mb-8"
@@ -1567,8 +1526,8 @@ export default function FixMyApp() {
                                             </div>
                                         )}
 
-                                        {/* Fallback: Manual Upload */}
-                                        <div className="mt-4 pt-4 border-t border-slate-800">
+                                        {/* Fallback: Manual Upload (only show when browser not active) */}
+                                        {!showEmbeddedBrowser && <div className="mt-4 pt-4 border-t border-slate-800">
                                             <p className="text-xs text-slate-500 text-center mb-3">Or upload your project manually</p>
                                             <div className="flex gap-2">
                                                 <input
@@ -1585,7 +1544,7 @@ export default function FixMyApp() {
                                                     </Button>
                                                 </label>
                                             </div>
-                                        </div>
+                                        </div>}
                                     </div>
                                 )}
 
