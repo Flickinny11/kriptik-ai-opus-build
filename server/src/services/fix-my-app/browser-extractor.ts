@@ -165,17 +165,19 @@ export class BrowserExtractorService extends EventEmitter {
 
         this.page = await this.context.newPage();
 
-        // Get WebSocket endpoint for remote view
-        const wsEndpoint = this.browser.wsEndpoint();
-
         // Navigate to the platform login
         const platformUrl = this.getPlatformUrl();
         await this.page.goto(platformUrl);
 
         this.emitProgress('waiting_login', 0, 'Please log in to your account');
 
+        // Generate initial screenshot for the frontend
+        const screenshot = await this.screenshot();
+        this.emit('screenshot', screenshot);
+
         return {
-            wsEndpoint,
+            // No wsEndpoint in serverless - use screenshot-based viewing
+            wsEndpoint: '',
             viewUrl: platformUrl,
         };
     }

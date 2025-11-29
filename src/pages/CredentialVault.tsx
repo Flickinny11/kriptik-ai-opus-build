@@ -144,7 +144,7 @@ export default function CredentialVault() {
     const navigate = useNavigate();
     const [credentials, setCredentials] = useState(DEMO_CREDENTIALS);
     const [addingNew, setAddingNew] = useState(false);
-    
+
     // Use addingNew to prevent unused variable warning
     void addingNew;
 
