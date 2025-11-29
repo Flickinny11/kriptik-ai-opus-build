@@ -12,7 +12,7 @@ import {
     Upload, Github, Code, FileArchive, Sparkles, AlertCircle,
     CheckCircle2, ArrowRight, ArrowLeft, Loader2, Bug,
     Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper,
-    Lock, Download, Monitor, Play, Pause, RefreshCw
+    Lock, Download, Monitor, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -729,12 +729,12 @@ export default function FixMyApp() {
         setBrowserPhase('user_control');
 
         try {
-            const response = await apiClient.post<{ wsEndpoint: string; viewUrl: string }>(
+            const response = await apiClient.post<{ data: { wsEndpoint: string; viewUrl: string } }>(
                 `/api/fix-my-app/${session.sessionId}/browser/start`,
                 { source }
             );
 
-            setBrowserUrl(response.viewUrl || getPlatformUrl());
+            setBrowserUrl(response.data?.viewUrl || getPlatformUrl());
 
             // Start polling for screenshots
             startScreenshotPolling();
@@ -765,19 +765,19 @@ export default function FixMyApp() {
             if (!session) return;
 
             try {
-                const response = await apiClient.get<{ screenshot: string; progress?: { phase: string; progress: number; message: string } }>(
+                const response = await apiClient.get<{ data: { screenshot: string; progress?: { phase: string; progress: number; message: string } } }>(
                     `/api/fix-my-app/${session.sessionId}/browser/screenshot`
                 );
 
-                if (response.screenshot) {
-                    setBrowserScreenshot(response.screenshot);
+                if (response.data?.screenshot) {
+                    setBrowserScreenshot(response.data.screenshot);
                 }
 
-                if (response.progress) {
-                    setExtractionProgress(response.progress);
+                if (response.data?.progress) {
+                    setExtractionProgress(response.data.progress);
 
                     // Handle phase transitions
-                    if (response.progress.phase === 'complete') {
+                    if (response.data.progress.phase === 'complete') {
                         handleExtractionComplete();
                     }
                 }

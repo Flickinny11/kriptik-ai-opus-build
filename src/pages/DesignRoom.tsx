@@ -13,8 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send, Image, Wand2, Download, Trash2, Heart,
-    FolderPlus, Code2, ZoomIn, ZoomOut, Move,
-    Palette, Sliders, Check, ChevronRight, Sparkles
+    FolderPlus, Code2, ZoomIn, ZoomOut,
+    Palette, Sliders, Check, Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';

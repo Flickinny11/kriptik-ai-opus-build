@@ -11,11 +11,9 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
     User, CreditCard, Coins, Cloud, Shield, Bell,
-    ChevronRight, Plus, Check, AlertCircle, Settings, Key,
-    Smartphone, Globe
+    Plus, Check, Settings, Key, Smartphone, Globe
 } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
 import { useCostStore } from '../store/useCostStore';

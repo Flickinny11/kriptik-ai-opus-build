@@ -11,8 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    Plug, Check, ExternalLink, Settings, RefreshCw,
-    Search, Filter, ChevronRight
+    Plug, Check, Settings, RefreshCw, Search
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
@@ -59,15 +58,11 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
     onConnect: () => void;
     onSettings: () => void;
 }) {
-    const [isHovered, setIsHovered] = useState(false);
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             className={cn(
                 "relative p-5 rounded-2xl",
                 "bg-slate-800/30 border",

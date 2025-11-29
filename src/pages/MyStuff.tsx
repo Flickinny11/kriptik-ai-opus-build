@@ -218,11 +218,11 @@ function ProjectCard({
                         </span>
                         <span className={cn(
                             "px-2.5 py-1 text-xs rounded-full font-medium",
-                            project.status === 'deployed'
+                            project.status === 'live'
                                 ? "bg-emerald-500/20 text-emerald-400"
                                 : "bg-amber-500/20 text-amber-400"
                         )}>
-                            {project.status === 'deployed' ? 'Live' : 'In Progress'}
+                            {project.status === 'live' ? 'Live' : 'In Progress'}
                         </span>
                     </div>
                 </div>
