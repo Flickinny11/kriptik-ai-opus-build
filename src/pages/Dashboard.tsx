@@ -255,7 +255,7 @@ function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
     return (
-        <div 
+        <div
             className="glass-card-3d group"
             style={{ perspective: '1000px' }}
         >
@@ -265,17 +265,17 @@ function ProjectThumbnail({ project }: { project: any }) {
             >
                 {/* Right edge - glass thickness */}
                 <div className="glass-card-3d__edge-right" />
-                
+
                 {/* Bottom edge - glass thickness */}
                 <div className="glass-card-3d__edge-bottom" />
 
                 {/* Thumbnail preview */}
-                <div 
+                <div
                     className="aspect-[16/10] relative overflow-hidden rounded-t-[20px]"
                     style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(248,248,250,0.2) 100%)' }}
                 >
                     {/* Browser chrome */}
-                    <div 
+                    <div
                         className="absolute top-0 left-0 right-0 h-7 flex items-center gap-2 px-4"
                         style={{ background: 'rgba(255,255,255,0.4)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}
                     >
@@ -298,7 +298,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
 
                     {/* Hover overlay */}
-                    <div 
+                    <div
                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }}
                     >
@@ -309,7 +309,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                 </div>
 
                 {/* Project info */}
-                <div 
+                <div
                     className="p-4 rounded-b-[20px]"
                     style={{ background: 'rgba(255,255,255,0.3)', borderTop: '1px solid rgba(255,255,255,0.5)' }}
                 >
@@ -334,14 +334,14 @@ function ProjectThumbnail({ project }: { project: any }) {
 
                     {/* Tags */}
                     <div className="flex gap-2 mt-3">
-                        <span 
-                            className="px-2 py-0.5 text-xs rounded-full" 
+                        <span
+                            className="px-2 py-0.5 text-xs rounded-full"
                             style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}
                         >
                             {project.framework || 'React'}
                         </span>
-                        <span 
-                            className="px-2 py-0.5 text-xs rounded-full" 
+                        <span
+                            className="px-2 py-0.5 text-xs rounded-full"
                             style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}
                         >
                             Active
@@ -510,10 +510,29 @@ export default function Dashboard() {
                 onComplete={handleGitHubImportComplete}
             />
 
-            {/* Header - Realistic Glass */}
+            {/* Header - 3D Glass with visible edges */}
             <header 
-                className="glass-header sticky top-0 z-30"
+                className="sticky top-0 z-40"
+                style={{
+                    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.45) 100%)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    boxShadow: `
+                        0 4px 20px rgba(0, 0, 0, 0.06),
+                        0 1px 0 rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.9)
+                    `,
+                }}
             >
+                {/* Bottom edge - visible glass thickness */}
+                <div
+                    className="absolute bottom-0 left-0 right-0 h-1 pointer-events-none"
+                    style={{
+                        background: 'linear-gradient(180deg, rgba(200,200,205,0.4) 0%, rgba(180,180,185,0.3) 100%)',
+                        transform: 'translateY(100%)',
+                    }}
+                />
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     {/* Hand-drawn arrow hint + Logo + Title */}
                     <div className="flex items-center gap-2">
@@ -540,9 +559,9 @@ export default function Dashboard() {
             <main className="container mx-auto px-4 py-8 md:py-16">
                 {/* Hero section with prompt */}
                 <div className="max-w-4xl mx-auto text-center mb-12">
-                    <h1 
+                    <h1
                         className="text-4xl md:text-5xl font-bold mb-4"
-                        style={{ 
+                        style={{
                             fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif',
                             color: '#1a1a1a',
                         }}
@@ -554,7 +573,7 @@ export default function Dashboard() {
                     </p>
 
                     {/* Prompt input - Realistic Glass */}
-                    <div 
+                    <div
                         className={cn("glass-input relative transition-all duration-500", isFocused && "focused")}
                     >
                         <div className="relative">
@@ -650,10 +669,10 @@ export default function Dashboard() {
                     {/* Section Header with Actions */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h2 
+                            <h2
                                 className="text-2xl font-bold"
-                                style={{ 
-                                    color: '#1a1a1a', 
+                                style={{
+                                    color: '#1a1a1a',
                                     fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif',
                                 }}
                             >

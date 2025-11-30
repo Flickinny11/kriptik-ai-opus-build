@@ -26,12 +26,12 @@ export function HandDrawnArrow({ className }: HandDrawnArrowProps) {
                 height="20"
                 viewBox="0 0 32 20"
                 fill="none"
-                className="opacity-60"
+                className="opacity-70"
             >
                 {/* Crooked line */}
                 <path
                     d="M28 11 C22 9, 18 13, 12 10 C8 8, 6 11, 4 10"
-                    stroke="white"
+                    stroke="#1a1a1a"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -44,7 +44,7 @@ export function HandDrawnArrow({ className }: HandDrawnArrowProps) {
                 {/* Arrow head - hand drawn style */}
                 <path
                     d="M8 6 L4 10 L7 14"
-                    stroke="white"
+                    stroke="#1a1a1a"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -54,11 +54,13 @@ export function HandDrawnArrow({ className }: HandDrawnArrowProps) {
 
             {/* Hand-written "huvr" text */}
             <span
-                className="text-[10px] text-white/50 tracking-wider"
+                className="text-[10px] tracking-wider"
                 style={{
                     fontFamily: "'Caveat', 'Segoe Script', cursive",
                     transform: 'rotate(-3deg)',
                     letterSpacing: '0.1em',
+                    color: '#1a1a1a',
+                    opacity: 0.6,
                 }}
             >
                 huvr

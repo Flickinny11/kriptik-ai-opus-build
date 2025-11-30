@@ -20,10 +20,19 @@ export function GlitchText({ text, className, as: Component = 'span' }: GlitchTe
             className={cn(
                 "glitch-text relative inline-block",
                 "font-black tracking-tighter",
-                "text-white",
                 className
             )}
             data-text={text}
+            style={{
+                color: '#1a1a1a',
+                textShadow: `
+                    -1px -1px 0 rgba(0,0,0,0.1),
+                    1px -1px 0 rgba(0,0,0,0.1),
+                    -1px 1px 0 rgba(0,0,0,0.1),
+                    1px 1px 0 rgba(0,0,0,0.1),
+                    0 2px 4px rgba(0,0,0,0.1)
+                `,
+            }}
         >
             {text}
         </Component>

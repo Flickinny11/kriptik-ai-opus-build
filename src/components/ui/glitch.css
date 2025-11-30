@@ -93,9 +93,12 @@
 .glitch-text {
     position: relative;
     animation: glitch-flicker 8s infinite, glitch-skew 12s infinite;
+    color: #1a1a1a;
     text-shadow:
-        0 0 2px rgba(255, 255, 255, 0.3),
-        0 0 10px rgba(255, 255, 255, 0.1);
+        -1px -1px 0 rgba(0,0,0,0.1),
+        1px -1px 0 rgba(0,0,0,0.1),
+        -1px 1px 0 rgba(0,0,0,0.1),
+        1px 1px 0 rgba(0,0,0,0.1);
 }
 
 .glitch-text::before,
@@ -110,16 +113,16 @@
 }
 
 .glitch-text::before {
-    color: #ff6b35;
+    color: rgba(200, 100, 50, 0.5);
     animation: glitch-anim-1 6s infinite linear alternate-reverse;
-    text-shadow: 2px 0 #ff6b35;
+    text-shadow: 2px 0 rgba(200, 100, 50, 0.3);
 }
 
 .glitch-text::after {
-    color: #00d9ff;
+    color: rgba(50, 100, 150, 0.5);
     animation: glitch-anim-2 6s infinite linear alternate-reverse;
     animation-delay: 0.3s;
-    text-shadow: -2px 0 #00d9ff;
+    text-shadow: -2px 0 rgba(50, 100, 150, 0.3);
 }
 
 /* Hover intensifies the glitch */

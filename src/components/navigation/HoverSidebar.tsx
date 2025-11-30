@@ -1,18 +1,18 @@
 /**
  * Hover Sidebar Component
  *
- * A futuristic, semi-translucent sidebar that appears on hover.
- * Features 3D edges, glitch microanimations, and cyberpunk styling.
+ * Realistic frosted glass sidebar with 3D glass button items.
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    Folder, LayoutTemplate, Palette, KeyRound,
-    Settings, Plug, User, ChevronRight
+    LayoutDashboard, Blocks, Paintbrush, ShieldCheck,
+    SlidersHorizontal, Cable, CircleUser
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import '../../styles/realistic-glass.css';
 
 interface NavItem {
     id: string;
@@ -26,49 +26,49 @@ const NAV_ITEMS: NavItem[] = [
     {
         id: 'dashboard',
         label: 'Dashboard',
-        icon: Folder,
+        icon: LayoutDashboard,
         path: '/dashboard',
         description: 'Your projects & builds',
     },
     {
         id: 'templates',
         label: 'Templates',
-        icon: LayoutTemplate,
+        icon: Blocks,
         path: '/templates',
         description: 'Ready-to-use starters',
     },
     {
         id: 'design-room',
         label: 'Design Room',
-        icon: Palette,
+        icon: Paintbrush,
         path: '/design-room',
         description: 'UI/UX workspace',
     },
     {
         id: 'vault',
         label: 'Credential Vault',
-        icon: KeyRound,
+        icon: ShieldCheck,
         path: '/vault',
         description: 'Secure key storage',
     },
     {
         id: 'settings',
         label: 'Settings',
-        icon: Settings,
+        icon: SlidersHorizontal,
         path: '/settings',
         description: 'App preferences',
     },
     {
         id: 'integrations',
         label: 'Integrations',
-        icon: Plug,
+        icon: Cable,
         path: '/integrations',
         description: 'Connected services',
     },
     {
         id: 'account',
         label: 'My Account',
-        icon: User,
+        icon: CircleUser,
         path: '/account',
         description: 'Profile & billing',
     },
@@ -98,7 +98,7 @@ export function HoverSidebar() {
         <>
             {/* Visible trigger zone with subtle indicator */}
             <div
-                className="fixed left-0 top-0 w-2 h-full z-40 group cursor-pointer"
+                className="fixed left-0 top-0 w-2 h-full z-[100] group cursor-pointer"
                 onMouseEnter={() => setIsOpen(true)}
             >
                 {/* Subtle line that hints at the sidebar */}
@@ -115,11 +115,11 @@ export function HoverSidebar() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-[100]"
                             onClick={() => setIsOpen(false)}
                         />
 
-                        {/* Sidebar - Realistic Glass */}
+                        {/* Sidebar - Realistic 3D Glass */}
                         <motion.aside
                             initial={{ x: -280, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
@@ -131,18 +131,19 @@ export function HoverSidebar() {
                             }}
                             onMouseLeave={() => setIsOpen(false)}
                             className={cn(
-                                "fixed left-0 top-0 h-full w-64 z-50",
+                                "fixed left-0 top-0 h-full w-72 z-[110]",
                                 "flex flex-col"
                             )}
                             style={{
-                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
+                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(248, 248, 250, 0.45) 100%)',
                                 backdropFilter: 'blur(30px) saturate(180%)',
                                 WebkitBackdropFilter: 'blur(30px) saturate(180%)',
                                 boxShadow: `
-                                    inset -1px 0 0 rgba(255, 255, 255, 0.8),
-                                    4px 0 24px rgba(0, 0, 0, 0.06),
-                                    1px 0 0 rgba(0, 0, 0, 0.03),
-                                    inset 0 1px 1px rgba(255, 255, 255, 0.9)
+                                    0 20px 60px rgba(0, 0, 0, 0.1),
+                                    0 8px 24px rgba(0, 0, 0, 0.06),
+                                    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+                                    inset 0 -1px 1px rgba(0, 0, 0, 0.02),
+                                    0 0 0 1px rgba(255, 255, 255, 0.5)
                                 `,
                             }}
                         >
@@ -168,8 +169,8 @@ export function HoverSidebar() {
                                 </motion.div>
                             </div>
 
-                            {/* Navigation Items */}
-                            <nav className="flex-1 py-4 overflow-y-auto">
+                            {/* Navigation Items - Individual 3D Glass Buttons */}
+                            <nav className="flex-1 py-4 px-4 overflow-y-auto space-y-2">
                                 {NAV_ITEMS.map((item, index) => {
                                     const isActive = location.pathname === item.path;
                                     const isHovered = hoveredItem === item.id;
@@ -186,62 +187,63 @@ export function HoverSidebar() {
                                             }}
                                             onMouseEnter={() => setHoveredItem(item.id)}
                                             onMouseLeave={() => setHoveredItem(null)}
-                                            className={cn(
-                                                "w-full flex items-center gap-3 px-6 py-3",
-                                                "transition-all duration-300 relative",
-                                                "group cursor-pointer rounded-xl mx-2",
-                                                isActive && "bg-white/40"
-                                            )}
+                                            className="w-full flex items-center gap-3 cursor-pointer"
                                             style={{
-                                                background: isActive ? 'rgba(255,255,255,0.4)' : 'transparent',
-                                                boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)' : 'none',
+                                                padding: '12px 16px',
+                                                borderRadius: '50px',
+                                                background: isActive 
+                                                    ? 'linear-gradient(135deg, rgba(255, 200, 170, 0.6) 0%, rgba(255, 180, 150, 0.45) 50%, rgba(255, 160, 130, 0.35) 100%)'
+                                                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
+                                                backdropFilter: 'blur(20px) saturate(180%)',
+                                                boxShadow: isActive
+                                                    ? `
+                                                        0 8px 32px rgba(255, 150, 100, 0.2),
+                                                        0 4px 16px rgba(255, 130, 80, 0.15),
+                                                        0 2px 8px rgba(0, 0, 0, 0.04),
+                                                        inset 0 1px 1px rgba(255, 255, 255, 0.9),
+                                                        inset 0 -1px 1px rgba(0, 0, 0, 0.02),
+                                                        0 0 0 1px rgba(255, 200, 170, 0.5)
+                                                    `
+                                                    : `
+                                                        0 8px 32px rgba(0, 0, 0, 0.08),
+                                                        0 2px 8px rgba(0, 0, 0, 0.04),
+                                                        inset 0 1px 1px rgba(255, 255, 255, 0.9),
+                                                        inset 0 -1px 1px rgba(0, 0, 0, 0.03),
+                                                        0 0 0 1px rgba(255, 255, 255, 0.5)
+                                                    `,
+                                                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+                                                transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
                                             }}
                                         >
-                                            {/* Hover/Active indicator */}
-                                            <motion.div
-                                                className="absolute left-0 top-2 bottom-2 w-1 rounded-full"
-                                                style={{ background: 'rgba(0,0,0,0.3)' }}
-                                                initial={{ scaleY: 0 }}
-                                                animate={{ scaleY: isActive || isHovered ? 1 : 0 }}
-                                                transition={{ duration: 0.2 }}
-                                            />
-
-                                            {/* Icon */}
+                                            {/* Icon in glass container */}
                                             <div 
-                                                className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
-                                                style={{ background: 'rgba(0,0,0,0.06)' }}
+                                                className="relative w-9 h-9 flex items-center justify-center rounded-xl"
+                                                style={{ 
+                                                    background: 'rgba(0, 0, 0, 0.06)',
+                                                }}
                                             >
-                                                <item.icon className="w-4 h-4 text-neutral-800" />
+                                                <item.icon className="w-[18px] h-[18px] text-neutral-800" />
                                             </div>
 
                                             {/* Label */}
                                             <div className="flex-1 text-left">
                                                 <div 
-                                                    className="text-sm font-medium transition-colors duration-200"
+                                                    className="text-sm font-medium"
                                                     style={{ 
                                                         color: '#1a1a1a',
-                                                        fontFamily: '-apple-system, sans-serif' 
+                                                        fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif',
                                                     }}
                                                 >
                                                     {item.label}
                                                 </div>
-                                                <div className={cn(
-                                                    "text-[10px] mt-0.5",
-                                                    "transition-opacity duration-200",
-                                                    isHovered ? "opacity-100" : "opacity-0"
-                                                )}
-                                                style={{ color: '#666' }}>
-                                                    {item.description}
-                                                </div>
                                             </div>
 
-                                            {/* Arrow indicator */}
-                                            <ChevronRight 
-                                                className={cn(
-                                                    "w-4 h-4 transition-all duration-200",
-                                                    isHovered ? "translate-x-1 text-neutral-800" : "text-neutral-400"
-                                                )}
-                                            />
+                                            {/* Three dots indicator */}
+                                            <div className="flex gap-1">
+                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                                            </div>
                                         </motion.button>
                                     );
                                 })}
