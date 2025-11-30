@@ -126,6 +126,16 @@ export const auth = betterAuth({
     // Email/Password authentication
     emailAndPassword: {
         enabled: true,
+        // Add password requirements
+        minPasswordLength: 8,
+        // Enable signup
+        requireEmailVerification: false,
+    },
+    
+    // Logging for debugging
+    logger: {
+        disabled: false,
+        verboseLogging: true,
     },
 
     // Social providers (only those with credentials)

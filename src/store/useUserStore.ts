@@ -130,41 +130,56 @@ export const useUserStore = create<UserState>((set) => ({
         set({ isLoading: true });
         console.log('[UserStore] Logging in with email:', email);
 
-        const { error } = await authClient.signIn.email({
-            email,
-            password,
-        });
-
-        if (error) {
-            console.error('[UserStore] Login error:', error);
-            set({ isLoading: false });
-            throw error;
-        }
-
-        // Refresh session to get user data
-        const { data: session } = await authClient.getSession();
-        console.log('[UserStore] Post-login session:', session);
-
-        if (session?.user) {
-            const user = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.name || '',
-                avatar: session.user.image || undefined
-            };
-
-            // Save to localStorage and set API user ID
-            saveUserToStorage(user);
-            setApiUserId(session.user.id);
-
-            set({
-                user,
-                isAuthenticated: true,
-                isLoading: false
+        try {
+            const result = await authClient.signIn.email({
+                email,
+                password,
             });
 
-            // Fetch credits
-            useCostStore.getState().fetchCredits();
+            console.log('[UserStore] Login result:', result);
+
+            if (result.error) {
+                console.error('[UserStore] Login error:', result.error);
+                set({ isLoading: false });
+                throw new Error(result.error.message || 'Invalid credentials');
+            }
+
+            // Refresh session to get user data
+            const { data: session, error: sessionError } = await authClient.getSession();
+            console.log('[UserStore] Post-login session:', session, sessionError);
+
+            if (session?.user) {
+                const user = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.name || '',
+                    avatar: session.user.image || undefined
+                };
+
+                // Save to localStorage and set API user ID
+                saveUserToStorage(user);
+                setApiUserId(session.user.id);
+
+                set({
+                    user,
+                    isAuthenticated: true,
+                    isLoading: false
+                });
+
+                // Fetch credits
+                useCostStore.getState().fetchCredits();
+            } else {
+                console.warn('[UserStore] Login succeeded but no session found');
+                set({ isLoading: false });
+                throw new Error('Login succeeded but session not established. Please try again.');
+            }
+        } catch (error: unknown) {
+            console.error('[UserStore] Login exception:', error);
+            set({ isLoading: false });
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('An unexpected error occurred during login');
         }
     },
 
@@ -172,42 +187,60 @@ export const useUserStore = create<UserState>((set) => ({
         set({ isLoading: true });
         console.log('[UserStore] Signing up:', { email, name });
 
-        const { error } = await authClient.signUp.email({
-            email,
-            password,
-            name,
-        });
-
-        if (error) {
-            console.error('[UserStore] Signup error:', error);
-            set({ isLoading: false });
-            throw error;
-        }
-
-        // Refresh session to get user data
-        const { data: session } = await authClient.getSession();
-        console.log('[UserStore] Post-signup session:', session);
-
-        if (session?.user) {
-            const user = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.name || '',
-                avatar: session.user.image || undefined
-            };
-
-            // Save to localStorage and set API user ID
-            saveUserToStorage(user);
-            setApiUserId(session.user.id);
-
-            set({
-                user,
-                isAuthenticated: true,
-                isLoading: false
+        try {
+            const result = await authClient.signUp.email({
+                email,
+                password,
+                name,
             });
 
-            // Fetch credits
-            useCostStore.getState().fetchCredits();
+            console.log('[UserStore] Signup result:', result);
+
+            if (result.error) {
+                console.error('[UserStore] Signup error:', result.error);
+                set({ isLoading: false });
+                throw new Error(result.error.message || 'Failed to create account');
+            }
+
+            // Small delay to ensure session is created
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Refresh session to get user data
+            const { data: session, error: sessionError } = await authClient.getSession();
+            console.log('[UserStore] Post-signup session:', session, sessionError);
+
+            if (session?.user) {
+                const user = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.name || '',
+                    avatar: session.user.image || undefined
+                };
+
+                // Save to localStorage and set API user ID
+                saveUserToStorage(user);
+                setApiUserId(session.user.id);
+
+                set({
+                    user,
+                    isAuthenticated: true,
+                    isLoading: false
+                });
+
+                // Fetch credits
+                useCostStore.getState().fetchCredits();
+            } else {
+                console.warn('[UserStore] Signup succeeded but no session found');
+                set({ isLoading: false });
+                throw new Error('Account created but session not established. Please try logging in.');
+            }
+        } catch (error: unknown) {
+            console.error('[UserStore] Signup exception:', error);
+            set({ isLoading: false });
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('An unexpected error occurred during signup');
         }
     },
 

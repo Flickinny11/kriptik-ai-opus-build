@@ -281,7 +281,19 @@ app.use("/api/auth/callback", (req, res, next) => {
 
 // Better Auth handler - catches all /api/auth/* routes
 // Use middleware approach for Express 5 path-to-regexp compatibility
-app.use("/api/auth", toNodeHandler(auth));
+// Add logging middleware before Better Auth
+app.use("/api/auth", (req, res, next) => {
+    console.log(`[Auth] ${req.method} ${req.path} - Body keys: ${req.body ? Object.keys(req.body).join(', ') : 'none'}`);
+    
+    // Capture response for logging
+    const originalSend = res.send.bind(res);
+    res.send = ((body: any) => {
+        console.log(`[Auth] Response ${res.statusCode} for ${req.method} ${req.path}`);
+        return originalSend(body);
+    }) as typeof res.send;
+    
+    next();
+}, toNodeHandler(auth));
 
 // Fallback redirect for any auth-related requests that land on backend root
 app.get("/auth-redirect", (req, res) => {
