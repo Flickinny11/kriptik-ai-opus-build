@@ -169,8 +169,8 @@ export function HoverSidebar() {
                                 </motion.div>
                             </div>
 
-                            {/* Navigation Items - Individual 3D Glass Buttons */}
-                            <nav className="flex-1 py-4 px-4 overflow-y-auto space-y-2">
+                            {/* Navigation Items - Photorealistic 3D Glass Buttons */}
+                            <nav className="flex-1 py-4 px-4 overflow-y-auto space-y-3">
                                 {NAV_ITEMS.map((item, index) => {
                                     const isActive = location.pathname === item.path;
                                     const isHovered = hoveredItem === item.id;
@@ -187,42 +187,94 @@ export function HoverSidebar() {
                                             }}
                                             onMouseEnter={() => setHoveredItem(item.id)}
                                             onMouseLeave={() => setHoveredItem(null)}
-                                            className="w-full flex items-center gap-3 cursor-pointer"
+                                            className="w-full flex items-center gap-3 cursor-pointer relative overflow-hidden"
                                             style={{
-                                                padding: '12px 16px',
+                                                padding: '14px 18px',
                                                 borderRadius: '50px',
                                                 background: isActive 
-                                                    ? 'linear-gradient(135deg, rgba(255, 200, 170, 0.6) 0%, rgba(255, 180, 150, 0.45) 50%, rgba(255, 160, 130, 0.35) 100%)'
-                                                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
-                                                backdropFilter: 'blur(20px) saturate(180%)',
+                                                    ? 'linear-gradient(145deg, rgba(255, 210, 180, 0.7) 0%, rgba(255, 190, 160, 0.55) 40%, rgba(255, 170, 140, 0.45) 100%)'
+                                                    : isHovered
+                                                        ? 'linear-gradient(145deg, rgba(255, 240, 230, 0.7) 0%, rgba(255, 230, 215, 0.55) 40%, rgba(255, 220, 200, 0.5) 100%)'
+                                                        : 'linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(248, 248, 250, 0.45) 100%)',
+                                                backdropFilter: 'blur(24px) saturate(200%)',
+                                                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                                                 boxShadow: isActive
                                                     ? `
-                                                        0 8px 32px rgba(255, 150, 100, 0.2),
-                                                        0 4px 16px rgba(255, 130, 80, 0.15),
-                                                        0 2px 8px rgba(0, 0, 0, 0.04),
-                                                        inset 0 1px 1px rgba(255, 255, 255, 0.9),
-                                                        inset 0 -1px 1px rgba(0, 0, 0, 0.02),
-                                                        0 0 0 1px rgba(255, 200, 170, 0.5)
+                                                        0 4px 0 rgba(220, 160, 120, 0.5),
+                                                        0 12px 40px rgba(255, 150, 100, 0.3),
+                                                        0 6px 20px rgba(255, 130, 80, 0.2),
+                                                        0 0 30px rgba(255, 160, 120, 0.25),
+                                                        inset 0 2px 2px rgba(255, 255, 255, 0.95),
+                                                        inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+                                                        0 0 0 1px rgba(255, 200, 170, 0.6)
                                                     `
-                                                    : `
-                                                        0 8px 32px rgba(0, 0, 0, 0.08),
-                                                        0 2px 8px rgba(0, 0, 0, 0.04),
-                                                        inset 0 1px 1px rgba(255, 255, 255, 0.9),
-                                                        inset 0 -1px 1px rgba(0, 0, 0, 0.03),
-                                                        0 0 0 1px rgba(255, 255, 255, 0.5)
-                                                    `,
-                                                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+                                                    : isHovered
+                                                        ? `
+                                                            0 6px 0 rgba(200, 180, 160, 0.5),
+                                                            0 16px 50px rgba(255, 150, 100, 0.2),
+                                                            0 8px 25px rgba(255, 130, 80, 0.15),
+                                                            0 0 20px rgba(255, 180, 140, 0.3),
+                                                            inset 0 2px 2px rgba(255, 255, 255, 1),
+                                                            inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+                                                            0 0 0 1px rgba(255, 220, 200, 0.7)
+                                                        `
+                                                        : `
+                                                            0 4px 0 rgba(200, 195, 190, 0.5),
+                                                            0 12px 40px rgba(0, 0, 0, 0.08),
+                                                            0 4px 12px rgba(0, 0, 0, 0.05),
+                                                            inset 0 2px 2px rgba(255, 255, 255, 0.95),
+                                                            inset 0 -2px 2px rgba(0, 0, 0, 0.03),
+                                                            0 0 0 1px rgba(255, 255, 255, 0.6)
+                                                        `,
+                                                transform: isHovered 
+                                                    ? 'translateY(-4px) translateZ(10px)' 
+                                                    : 'translateY(0) translateZ(0)',
                                                 transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
                                             }}
                                         >
+                                            {/* Shine effect overlay */}
+                                            <div
+                                                className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                                                style={{
+                                                    background: isHovered
+                                                        ? 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)'
+                                                        : 'none',
+                                                    transform: isHovered ? 'translateX(100%) skewX(-15deg)' : 'translateX(-100%) skewX(-15deg)',
+                                                    transition: 'transform 0.6s ease',
+                                                }}
+                                            />
+
+                                            {/* Right edge - visible 3D glass thickness */}
+                                            <div
+                                                className="absolute top-1 right-0 w-[3px] rounded-r-full pointer-events-none"
+                                                style={{
+                                                    height: 'calc(100% - 8px)',
+                                                    background: 'linear-gradient(90deg, rgba(220, 215, 210, 0.6) 0%, rgba(200, 195, 190, 0.4) 100%)',
+                                                    opacity: 0.8,
+                                                }}
+                                            />
+
                                             {/* Icon in glass container */}
                                             <div 
-                                                className="relative w-9 h-9 flex items-center justify-center rounded-xl"
+                                                className="relative w-10 h-10 flex items-center justify-center rounded-xl"
                                                 style={{ 
-                                                    background: 'rgba(0, 0, 0, 0.06)',
+                                                    background: isActive
+                                                        ? 'rgba(255, 160, 120, 0.2)'
+                                                        : 'rgba(0, 0, 0, 0.05)',
+                                                    boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.5)',
                                                 }}
                                             >
-                                                <item.icon className="w-[18px] h-[18px] text-neutral-800" />
+                                                <span
+                                                    style={{ 
+                                                        color: isActive ? '#c45020' : '#1a1a1a',
+                                                        filter: isActive ? 'drop-shadow(0 0 4px rgba(255,140,80,0.5))' : 'none',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <item.icon className="w-5 h-5" />
+                                                </span>
                                             </div>
 
                                             {/* Label */}
@@ -230,19 +282,34 @@ export function HoverSidebar() {
                                                 <div 
                                                     className="text-sm font-medium"
                                                     style={{ 
-                                                        color: '#1a1a1a',
+                                                        color: isActive ? '#a03810' : '#1a1a1a',
                                                         fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif',
+                                                        fontWeight: isActive ? 600 : 500,
+                                                        textShadow: isActive ? '0 1px 2px rgba(255,140,80,0.2)' : 'none',
                                                     }}
                                                 >
                                                     {item.label}
                                                 </div>
                                             </div>
 
-                                            {/* Three dots indicator */}
-                                            <div className="flex gap-1">
-                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
-                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
-                                                <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.3)' }} />
+                                            {/* Arrow indicator */}
+                                            <div 
+                                                className="w-5 h-5 flex items-center justify-center rounded-full"
+                                                style={{
+                                                    background: isActive ? 'rgba(255,160,120,0.3)' : 'rgba(0,0,0,0.06)',
+                                                    opacity: isHovered || isActive ? 1 : 0.5,
+                                                    transition: 'all 0.3s ease',
+                                                }}
+                                            >
+                                                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                                    <path 
+                                                        d="M2 1L5 4L2 7" 
+                                                        stroke={isActive ? '#c45020' : '#1a1a1a'}
+                                                        strokeWidth="1.5" 
+                                                        strokeLinecap="round" 
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </svg>
                                             </div>
                                         </motion.button>
                                     );

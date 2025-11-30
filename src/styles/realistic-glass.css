@@ -1,6 +1,7 @@
 /* =============================================================================
    REALISTIC GLASS EFFECTS - Premium Frosted Glass UI
    Based on physical glass properties: refraction, diffusion, soft shadows
+   Enhanced with photorealistic glow and shine effects
    ============================================================================= */
 
 :root {
@@ -10,21 +11,63 @@
   --glass-highlight: rgba(255, 255, 255, 0.8);
   --glass-shadow: rgba(0, 0, 0, 0.08);
   --glass-edge: rgba(255, 255, 255, 0.9);
-
-  /* Active/Glow State */
+  
+  /* Active/Glow State - Warm photorealistic glow */
   --glass-glow: rgba(255, 180, 140, 0.4);
   --glass-glow-intense: rgba(255, 160, 120, 0.6);
-
+  --glass-glow-warm: rgba(255, 200, 170, 0.5);
+  --glass-glow-hot: rgba(255, 140, 90, 0.35);
+  
   /* Text */
   --glass-text: #1a1a1a;
   --glass-text-muted: #404040;
-
+  
   /* Background */
   --surface-bg: linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%);
 }
 
 /* =============================================================================
-   GLASS BUTTON BASE
+   SHINE ANIMATION - Photorealistic light sweep
+   ============================================================================= */
+
+@keyframes glass-shine {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes glass-glow-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 8px 32px rgba(255, 150, 100, 0.15),
+      0 4px 16px rgba(255, 130, 80, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 12px 40px rgba(255, 150, 100, 0.25),
+      0 6px 20px rgba(255, 130, 80, 0.15);
+  }
+}
+
+@keyframes glass-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* =============================================================================
+   GLASS BUTTON BASE - Photorealistic 3D Glass
    ============================================================================= */
 
 .glass-button {
@@ -41,84 +84,217 @@
   font-weight: 500;
   color: var(--glass-text);
   letter-spacing: 0.01em;
-
-  /* Realistic frosted glass */
+  overflow: hidden;
+  
+  /* Photorealistic frosted glass with depth */
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(248, 248, 250, 0.4) 100%
+    145deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.4) 40%,
+    rgba(248, 248, 250, 0.45) 100%
   );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-
-  /* Multi-layer realistic shadow */
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  
+  /* Multi-layer photorealistic shadow for 3D depth */
   box-shadow:
+    /* Bottom edge - visible 3D thickness */
+    0 4px 0 rgba(200, 195, 190, 0.5),
     /* Soft ambient shadow */
-    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.08),
     /* Contact shadow */
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    /* Inner highlight - top edge light */
-    inset 0 1px 1px rgba(255, 255, 255, 0.9),
-    /* Inner shadow - bottom edge */
-    inset 0 -1px 1px rgba(0, 0, 0, 0.03),
-    /* Subtle border simulation */
-    0 0 0 1px rgba(255, 255, 255, 0.5);
-
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    /* Inner highlight - top edge light refraction */
+    inset 0 2px 2px rgba(255, 255, 255, 0.95),
+    /* Inner shadow - bottom edge depth */
+    inset 0 -2px 2px rgba(0, 0, 0, 0.03),
+    /* Glass edge highlight */
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+  
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   transform-style: preserve-3d;
+  transform: translateY(0) translateZ(0);
 }
 
+/* Shine overlay element */
+.glass-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  transform: skewX(-15deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+/* Right edge - visible 3D glass thickness */
+.glass-button::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: -3px;
+  width: 3px;
+  height: calc(100% - 8px);
+  background: linear-gradient(
+    90deg,
+    rgba(220, 215, 210, 0.6) 0%,
+    rgba(200, 195, 190, 0.4) 100%
+  );
+  border-radius: 0 4px 4px 0;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+/* Hover state - Warm photorealistic glow */
 .glass-button:hover {
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    rgba(248, 248, 250, 0.5) 100%
+    145deg,
+    rgba(255, 240, 230, 0.7) 0%,
+    rgba(255, 230, 215, 0.55) 40%,
+    rgba(255, 220, 200, 0.5) 100%
   );
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.06),
-    inset 0 1px 1px rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.03),
-    0 0 0 1px rgba(255, 255, 255, 0.6);
-  transform: translateY(-2px);
+    /* Bottom edge - raised */
+    0 6px 0 rgba(200, 180, 160, 0.5),
+    /* Warm glow */
+    0 16px 50px rgba(255, 150, 100, 0.2),
+    0 8px 25px rgba(255, 130, 80, 0.15),
+    /* Ambient shadow */
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    /* Inner highlights */
+    inset 0 2px 2px rgba(255, 255, 255, 1),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+    /* Warm edge glow */
+    0 0 20px rgba(255, 180, 140, 0.3),
+    0 0 0 1px rgba(255, 220, 200, 0.7);
+  transform: translateY(-4px) translateZ(10px);
+}
+
+/* Shine animation on hover */
+.glass-button:hover::before {
+  left: 150%;
 }
 
 .glass-button:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(-1px) translateZ(0) scale(0.98);
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.06),
-    0 1px 4px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(255, 255, 255, 0.4);
+    0 2px 0 rgba(200, 195, 190, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
-/* Active/Glowing state */
+/* Active/Glowing state - Warm photorealistic glow */
 .glass-button.active,
 .glass-button--glow {
   background: linear-gradient(
-    135deg,
-    rgba(255, 200, 170, 0.6) 0%,
-    rgba(255, 180, 150, 0.45) 50%,
-    rgba(255, 160, 130, 0.35) 100%
+    145deg,
+    rgba(255, 210, 180, 0.7) 0%,
+    rgba(255, 190, 160, 0.55) 40%,
+    rgba(255, 170, 140, 0.45) 100%
   );
   box-shadow:
-    0 8px 32px rgba(255, 150, 100, 0.2),
-    0 4px 16px rgba(255, 130, 80, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px rgba(255, 255, 255, 0.9),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.02),
-    0 0 0 1px rgba(255, 200, 170, 0.5);
+    /* Bottom edge */
+    0 4px 0 rgba(220, 160, 120, 0.5),
+    /* Warm photorealistic glow */
+    0 12px 40px rgba(255, 150, 100, 0.3),
+    0 6px 20px rgba(255, 130, 80, 0.2),
+    0 2px 10px rgba(255, 110, 60, 0.15),
+    /* Inner highlights */
+    inset 0 2px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+    /* Outer glow */
+    0 0 30px rgba(255, 160, 120, 0.25),
+    0 0 0 1px rgba(255, 200, 170, 0.6);
+  animation: glass-glow-pulse 3s ease-in-out infinite;
+}
+
+.glass-button--glow:hover {
+  box-shadow:
+    0 6px 0 rgba(220, 160, 120, 0.5),
+    0 16px 50px rgba(255, 150, 100, 0.35),
+    0 8px 25px rgba(255, 130, 80, 0.25),
+    0 4px 12px rgba(255, 110, 60, 0.2),
+    inset 0 2px 2px rgba(255, 255, 255, 1),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+    0 0 40px rgba(255, 160, 120, 0.35),
+    0 0 0 1px rgba(255, 200, 170, 0.7);
+  transform: translateY(-4px) translateZ(10px);
 }
 
 /* Small variant */
 .glass-button--small {
-  padding: 8px 16px;
+  padding: 10px 18px;
   font-size: 12px;
   gap: 8px;
   border-radius: 30px;
+}
+
+.glass-button--small::after {
+  width: 2px;
+  right: -2px;
+}
+
+/* Three dots indicator */
+.glass-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.glass-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover .glass-dots span {
+  background: rgba(200, 100, 50, 0.6);
+}
+
+.glass-button:hover .glass-dots span:nth-child(1) {
+  animation: dot-pulse 0.6s ease infinite;
+}
+
+.glass-button:hover .glass-dots span:nth-child(2) {
+  animation: dot-pulse 0.6s ease 0.1s infinite;
+}
+
+.glass-button:hover .glass-dots span:nth-child(3) {
+  animation: dot-pulse 0.6s ease 0.2s infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Icon styling inside glass buttons */
+.glass-button svg {
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover svg {
+  filter: drop-shadow(0 2px 4px rgba(255, 140, 80, 0.3));
+  transform: scale(1.05);
 }
 
 /* =============================================================================

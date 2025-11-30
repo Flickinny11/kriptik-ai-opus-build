@@ -37,7 +37,6 @@ import {
     SaasAppIcon,
     FixBrokenAppIcon
 } from '../components/ui/AbstractIcons';
-import { Layers } from 'lucide-react';
 import { GenerateButton3D } from '../components/ui/GenerateButton3D';
 import '../components/ui/premium-buttons/Premium3DButtons.css';
 import '../styles/realistic-glass.css';
@@ -511,7 +510,7 @@ export default function Dashboard() {
             />
 
             {/* Header - 3D Glass with visible edges */}
-            <header 
+            <header
                 className="sticky top-0 z-40"
                 style={{
                     background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.45) 100%)',
@@ -726,7 +725,7 @@ export default function Dashboard() {
                                     className="glass-button inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
                                     style={{ padding: 0 }}
                                 >
-                                    <Layers className="h-10 w-10" style={{ color: '#1a1a1a' }} />
+                                    <DashboardAbstractIcon size={40} />
                                 </div>
 
                                 <h3 className="text-2xl font-bold mb-3" style={{ color: '#1a1a1a' }}>
