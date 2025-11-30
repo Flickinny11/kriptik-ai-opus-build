@@ -49,14 +49,14 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
   // Shatter into particles effect
   const createParticles = useCallback(() => {
     if (!buttonRef.current) return;
-    
+
     const rect = buttonRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    
+
     const colors = ['#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fee2e2', '#991b1b'];
     const newParticles: Particle[] = [];
-    
+
     for (let i = 0; i < 30; i++) {
       const angle = (Math.PI * 2 * i) / 30 + Math.random() * 0.5;
       const velocity = 3 + Math.random() * 5;
@@ -72,10 +72,10 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
         color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
-    
+
     setParticles(newParticles);
     setIsClicked(true);
-    
+
     // Animate particles
     const animateParticles = () => {
       setParticles(prev => {
@@ -87,14 +87,14 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
           opacity: p.opacity - 0.025,
           rotation: p.rotation + 5,
         })).filter(p => p.opacity > 0);
-        
+
         if (updated.length === 0) {
           setIsClicked(false);
         }
         return updated;
       });
     };
-    
+
     const interval = setInterval(animateParticles, 16);
     setTimeout(() => {
       clearInterval(interval);
@@ -133,7 +133,7 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
           }}
         />
       ))}
-      
+
       <button
         ref={buttonRef}
         onClick={handleClick}
@@ -160,8 +160,8 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
           textTransform: 'uppercase',
           color: '#fff',
           background: `linear-gradient(
-            145deg, 
-            rgba(220, 38, 38, ${0.7 + heatLevel * 0.2}) 0%, 
+            145deg,
+            rgba(220, 38, 38, ${0.7 + heatLevel * 0.2}) 0%,
             rgba(185, 28, 28, ${0.8 + heatLevel * 0.15}) 50%,
             rgba(153, 27, 27, ${0.85 + heatLevel * 0.1}) 100%
           )`,
@@ -174,15 +174,15 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
             0 0 ${heatLevel * 30}px ${heatGlow}
           `,
           transform: `
-            perspective(800px) 
-            rotateX(${isHovered ? 0 : 3}deg) 
-            rotateY(${isHovered ? 0 : -2}deg) 
+            perspective(800px)
+            rotateX(${isHovered ? 0 : 3}deg)
+            rotateY(${isHovered ? 0 : -2}deg)
             translateY(${isHovered ? -4 : 0}px)
             scale(${isClicked ? 0.95 : 1})
           `,
           transformStyle: 'preserve-3d',
-          transition: isClicked 
-            ? 'transform 0.1s ease-out' 
+          transition: isClicked
+            ? 'transform 0.1s ease-out'
             : 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
         }}
       >
@@ -191,18 +191,18 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
           className="absolute inset-0 pointer-events-none overflow-hidden rounded-[14px]"
           style={{
             background: `linear-gradient(
-              105deg, 
-              transparent 20%, 
-              rgba(255, 255, 255, ${0.15 + heatLevel * 0.1}) 45%, 
-              rgba(255, 255, 255, ${0.25 + heatLevel * 0.15}) 50%, 
-              rgba(255, 255, 255, ${0.15 + heatLevel * 0.1}) 55%, 
+              105deg,
+              transparent 20%,
+              rgba(255, 255, 255, ${0.15 + heatLevel * 0.1}) 45%,
+              rgba(255, 255, 255, ${0.25 + heatLevel * 0.15}) 50%,
+              rgba(255, 255, 255, ${0.15 + heatLevel * 0.1}) 55%,
               transparent 80%
             )`,
             transform: `translateX(${isHovered ? '100%' : '-100%'})`,
             transition: 'transform 0.8s ease-in-out',
           }}
         />
-        
+
         {/* Heat glow overlay */}
         {heatLevel > 0 && (
           <div
@@ -217,19 +217,19 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
             }}
           />
         )}
-        
+
         {/* 3D Edge - Top */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px] rounded-t-[14px] pointer-events-none"
           style={{
-            background: `linear-gradient(90deg, 
-              rgba(255,255,255,0.1) 0%, 
-              rgba(255,255,255,${0.3 + heatLevel * 0.2}) 50%, 
+            background: `linear-gradient(90deg,
+              rgba(255,255,255,0.1) 0%,
+              rgba(255,255,255,${0.3 + heatLevel * 0.2}) 50%,
               rgba(255,255,255,0.1) 100%
             )`,
           }}
         />
-        
+
         {/* 3D Edge - Bottom (depth) */}
         <div
           className="absolute -bottom-[6px] left-[4px] right-[4px] h-[8px] rounded-b-[12px] pointer-events-none"
@@ -239,13 +239,13 @@ export const GenerateButton3D = ({ onClick, disabled, className }: GenerateButto
             transformOrigin: 'top center',
           }}
         />
-        
+
         {/* Button text */}
         <span className="relative z-10" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
           Generate
         </span>
       </button>
-      
+
       {/* Keyframes for animations */}
       <style>{`
         @keyframes pulse {
