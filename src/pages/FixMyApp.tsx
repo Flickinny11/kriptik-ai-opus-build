@@ -27,76 +27,87 @@ import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
-// MODERN 3D BUTTON STYLES
+// MODERN 3D BUTTON STYLES (React CSSProperties)
 // =============================================================================
 
 // Primary action button - semi-translucent with 3D edges
-const primaryButtonStyle = `
-    relative overflow-hidden
-    px-6 py-3 rounded-xl
-    font-semibold tracking-wide
-    bg-gradient-to-br from-amber-500/90 via-orange-500/90 to-red-500/80
-    text-white
-    backdrop-blur-sm
-    border border-white/20
-    shadow-[0_4px_0_rgba(0,0,0,0.3),0_8px_20px_rgba(251,146,60,0.3),inset_0_1px_0_rgba(255,255,255,0.3)]
-    hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_12px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.4)]
-    hover:translate-y-[2px]
-    active:shadow-[0_0px_0_rgba(0,0,0,0.3),0_2px_8px_rgba(251,146,60,0.3),inset_0_2px_4px_rgba(0,0,0,0.2)]
-    active:translate-y-[4px]
-    transition-all duration-150 ease-out
-    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
-`;
+const primaryButtonStyles: React.CSSProperties = {
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '14px 28px',
+    borderRadius: '16px',
+    fontWeight: 600,
+    letterSpacing: '0.025em',
+    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    background: 'linear-gradient(135deg, rgba(251,191,36,0.95) 0%, rgba(249,115,22,0.95) 50%, rgba(239,68,68,0.9) 100%)',
+    color: 'white',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    boxShadow: '0 4px 0 rgba(0,0,0,0.3), 0 8px 24px rgba(251,146,60,0.4), inset 0 1px 0 rgba(255,255,255,0.35)',
+    transform: 'translateY(-2px)',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease-out',
+};
 
 // Secondary/outline button - glass morphism with visible edges
-const secondaryButtonStyle = `
-    relative overflow-hidden
-    px-5 py-2.5 rounded-xl
-    font-medium tracking-wide
-    bg-slate-800/40
-    text-slate-200
-    backdrop-blur-md
-    border border-slate-500/30
-    shadow-[0_3px_0_rgba(0,0,0,0.2),0_6px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]
-    hover:bg-slate-700/50 hover:border-slate-400/40
-    hover:shadow-[0_2px_0_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)]
-    hover:translate-y-[1px]
-    active:shadow-[0_0px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.2),inset_0_2px_4px_rgba(0,0,0,0.15)]
-    active:translate-y-[3px]
-    transition-all duration-150 ease-out
-`;
+const secondaryButtonStyles: React.CSSProperties = {
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '12px 24px',
+    borderRadius: '14px',
+    fontWeight: 500,
+    letterSpacing: '0.02em',
+    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    background: 'rgba(30, 41, 59, 0.5)',
+    color: '#e2e8f0',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(100, 116, 139, 0.4)',
+    boxShadow: '0 3px 0 rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
+    transform: 'translateY(-1px)',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease-out',
+};
 
 // Large CTA button - for major actions
-const ctaButtonStyle = `
-    relative overflow-hidden
-    px-8 py-4 rounded-2xl
-    text-lg font-bold tracking-wide uppercase
-    bg-gradient-to-br from-amber-400/95 via-orange-500/95 to-rose-500/90
-    text-white
-    backdrop-blur-sm
-    border border-white/25
-    shadow-[0_6px_0_rgba(0,0,0,0.25),0_12px_30px_rgba(251,146,60,0.35),inset_0_2px_0_rgba(255,255,255,0.35)]
-    hover:shadow-[0_3px_0_rgba(0,0,0,0.25),0_8px_20px_rgba(251,146,60,0.45),inset_0_2px_0_rgba(255,255,255,0.4)]
-    hover:translate-y-[3px]
-    active:shadow-[0_0px_0_rgba(0,0,0,0.25),0_4px_12px_rgba(251,146,60,0.3),inset_0_3px_6px_rgba(0,0,0,0.2)]
-    active:translate-y-[6px]
-    transition-all duration-150 ease-out
-    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
-`;
+const ctaButtonStyles: React.CSSProperties = {
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '18px 36px',
+    borderRadius: '20px',
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase' as const,
+    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    background: 'linear-gradient(135deg, rgba(251,191,36,0.98) 0%, rgba(249,115,22,0.98) 40%, rgba(244,63,94,0.95) 100%)',
+    color: 'white',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    boxShadow: '0 6px 0 rgba(0,0,0,0.3), 0 14px 35px rgba(251,146,60,0.45), inset 0 2px 0 rgba(255,255,255,0.4)',
+    transform: 'translateY(-3px) scale(1.01)',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease-out',
+};
 
 // Subtle ghost button with glass effect
-const ghostButtonStyle = `
-    relative
-    px-4 py-2 rounded-lg
-    font-medium
-    bg-white/5
-    text-slate-300
-    backdrop-blur-sm
-    border border-white/10
-    shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
-    hover:bg-white/10 hover:text-white hover:border-white/20
-    transition-all duration-200
-`;
+const ghostButtonStyles: React.CSSProperties = {
+    position: 'relative',
+    padding: '10px 18px',
+    borderRadius: '10px',
+    fontWeight: 500,
+    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    background: 'rgba(255,255,255,0.06)',
+    color: '#cbd5e1',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease-out',
+};
 
 // Types - All supported AI builders and platforms
 type ImportSource =
@@ -1006,7 +1017,8 @@ export default function FixMyApp() {
                     </div>
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className={ghostButtonStyle}
+                        style={ghostButtonStyles}
+                        className="hover:bg-white/10 hover:text-white"
                     >
                         Cancel
                     </button>
@@ -1174,7 +1186,8 @@ export default function FixMyApp() {
                                 <button
                                     onClick={initSession}
                                     disabled={!source || isLoading || (sourceOptions.find(s => s.id === source)?.requiresUrl && !githubUrl)}
-                                    className={cn("w-full flex items-center justify-center gap-2", primaryButtonStyle)}
+                                    style={{...primaryButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                    className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] active:shadow-[0_0px_0_rgba(0,0,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     {isLoading ? (
                                         <><Loader2 className="h-4 w-4 animate-spin" /> Initializing...</>
@@ -1224,14 +1237,16 @@ export default function FixMyApp() {
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => setStep('source')}
-                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
+                                        style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
+                                        className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
                                         <ArrowLeft className="h-4 w-4" /> Back
                                     </button>
                                     <button
                                         onClick={submitConsent}
                                         disabled={isLoading}
-                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
+                                        style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                        className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
                                             <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
@@ -1301,7 +1316,8 @@ export default function FixMyApp() {
 
                                             <button
                                                 onClick={() => window.open(getPlatformUrl(), '_blank')}
-                                                className={cn("w-full flex items-center justify-center gap-2", secondaryButtonStyle)}
+                                                style={{...secondaryButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                                className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                             >
                                                 <Monitor className="h-4 w-4" /> Open {sourceOptions.find(s => s.id === source)?.name} Again
                                             </button>
@@ -1320,7 +1336,7 @@ export default function FixMyApp() {
                                                 id="file-upload-ai-builder"
                                             />
                                             <label htmlFor="file-upload-ai-builder" className="cursor-pointer">
-                                                <span className={cn("inline-block", secondaryButtonStyle)}>Select Files</span>
+                                                <span style={{...secondaryButtonStyles, display: 'inline-block'}} className="hover:bg-slate-600/60">Select Files</span>
                                             </label>
 
                                             {files.length > 0 && (
@@ -1348,7 +1364,7 @@ export default function FixMyApp() {
                                             id="file-upload"
                                         />
                                         <label htmlFor="file-upload" className="cursor-pointer">
-                                            <span className={cn("inline-block", secondaryButtonStyle)}>Select Files</span>
+                                            <span style={{...secondaryButtonStyles, display: 'inline-block'}} className="hover:bg-slate-600/60">Select Files</span>
                                         </label>
 
                                         {files.length > 0 && (
@@ -1372,14 +1388,16 @@ export default function FixMyApp() {
                                     <div className="flex gap-4">
                                         <button
                                             onClick={() => setStep('consent')}
-                                            className={cn("flex items-center gap-2", secondaryButtonStyle)}
+                                            style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
+                                            className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                         >
                                             <ArrowLeft className="h-4 w-4" /> Back
                                         </button>
                                         <button
                                             onClick={uploadFiles}
                                             disabled={isLoading || (source !== 'github' && files.length === 0)}
-                                            className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
+                                            style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                            className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isLoading ? (
                                                 <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
@@ -1458,13 +1476,15 @@ export default function FixMyApp() {
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => setStep('upload')}
-                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
+                                        style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
+                                        className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
                                         <ArrowLeft className="h-4 w-4" /> Back
                                     </button>
                                     <button
                                         onClick={runAnalysis}
-                                        className={cn("flex items-center gap-2", ghostButtonStyle)}
+                                        style={{...ghostButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
+                                        className="hover:bg-white/10 hover:text-white"
                                     >
                                         Skip Context
                                         <span className="text-xs opacity-60">(~60%)</span>
@@ -1472,7 +1492,8 @@ export default function FixMyApp() {
                                     <button
                                         onClick={submitContext}
                                         disabled={isLoading || !chatHistory.trim()}
-                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
+                                        style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                        className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
                                             <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
@@ -1609,14 +1630,16 @@ export default function FixMyApp() {
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => setStep('analysis')}
-                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
+                                        style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
+                                        className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
                                         <ArrowLeft className="h-4 w-4" /> Back
                                     </button>
                                     <button
                                         onClick={submitPreferences}
                                         disabled={isLoading}
-                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
+                                        style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                                        className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
                                             <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
@@ -1769,7 +1792,8 @@ export default function FixMyApp() {
                                     <button
                                         onClick={startFix}
                                         disabled={!selectedStrategy}
-                                        className={cn("w-full mt-6 flex items-center justify-center gap-3", ctaButtonStyle)}
+                                        style={{...ctaButtonStyles, width: '100%', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'}}
+                                        className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         <Rocket className="h-5 w-5" />
                                         Start Fixing
@@ -1860,7 +1884,8 @@ export default function FixMyApp() {
 
                                 <button
                                     onClick={goToBuilder}
-                                    className={cn("w-full flex items-center justify-center gap-3", ctaButtonStyle)}
+                                    style={{...ctaButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'}}
+                                    className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px]"
                                 >
                                     <Rocket className="h-5 w-5" />
                                     Open in Builder
