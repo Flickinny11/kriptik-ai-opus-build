@@ -24,10 +24,10 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     {
-        id: 'projects',
-        label: 'My Stuff',
+        id: 'dashboard',
+        label: 'Dashboard',
         icon: Folder,
-        path: '/my-stuff',
+        path: '/dashboard',
         description: 'Your projects & builds',
     },
     {

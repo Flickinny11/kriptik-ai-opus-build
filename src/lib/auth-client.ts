@@ -45,10 +45,10 @@ interface AuthResponse {
 async function authFetch(endpoint: string, body?: object): Promise<AuthResponse> {
     const url = `${API_URL}/api/auth${endpoint}`;
     console.log(`[Auth] Fetching ${url}`, { isMobile: isMobile() });
-    
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-    
+
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -60,22 +60,22 @@ async function authFetch(endpoint: string, body?: object): Promise<AuthResponse>
             body: body ? JSON.stringify(body) : undefined,
             signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         console.log(`[Auth] Response status: ${response.status}`);
-        
+
         const data = await response.json();
         console.log(`[Auth] Response data:`, data);
-        
+
         if (!response.ok) {
             throw new Error(data.message || data.error?.message || `HTTP ${response.status}`);
         }
-        
+
         return data;
     } catch (error: unknown) {
         clearTimeout(timeoutId);
-        
+
         if (error instanceof Error) {
             if (error.name === 'AbortError') {
                 console.error('[Auth] Request timed out');
@@ -84,7 +84,7 @@ async function authFetch(endpoint: string, body?: object): Promise<AuthResponse>
             console.error('[Auth] Fetch error:', error.message);
             throw error;
         }
-        
+
         console.error('[Auth] Unknown error:', error);
         throw new Error('An unexpected error occurred');
     }
@@ -96,14 +96,14 @@ async function authFetch(endpoint: string, body?: object): Promise<AuthResponse>
 
 export const signInWithGoogle = async () => {
     console.log('[Auth] Starting Google sign-in...', { isMobile: isMobile() });
-    
+
     try {
         // Get the OAuth URL from the server
         const response = await authFetch('/sign-in/social', {
             provider: 'google',
             callbackURL: window.location.origin + '/dashboard',
         });
-        
+
         // Redirect to the OAuth URL
         if (response.url) {
             console.log('[Auth] Redirecting to OAuth URL:', response.url);
@@ -119,14 +119,14 @@ export const signInWithGoogle = async () => {
 
 export const signInWithGitHub = async () => {
     console.log('[Auth] Starting GitHub sign-in...', { isMobile: isMobile() });
-    
+
     try {
         // Get the OAuth URL from the server
         const response = await authFetch('/sign-in/social', {
             provider: 'github',
             callbackURL: window.location.origin + '/dashboard',
         });
-        
+
         // Redirect to the OAuth URL
         if (response.url) {
             console.log('[Auth] Redirecting to OAuth URL:', response.url);
@@ -146,32 +146,32 @@ export const signInWithGitHub = async () => {
 
 export const signInWithEmail = async (email: string, password: string) => {
     console.log('[Auth] Signing in with email:', email);
-    
+
     const response = await authFetch('/sign-in/email', {
         email,
         password,
     });
-    
+
     if (response.error) {
         throw new Error(response.error.message || 'Login failed');
     }
-    
+
     return { data: response, error: null };
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
     console.log('[Auth] Signing up:', email, name);
-    
+
     const response = await authFetch('/sign-up/email', {
         email,
         password,
         name,
     });
-    
+
     if (response.error) {
         throw new Error(response.error.message || 'Signup failed');
     }
-    
+
     return { data: response, error: null };
 };
 
@@ -181,13 +181,13 @@ export const signUp = async (email: string, password: string, name: string) => {
 
 export const signOut = async () => {
     console.log('[Auth] Signing out...');
-    
+
     try {
         await authFetch('/sign-out', {});
     } catch (error) {
         console.warn('[Auth] Sign out error (continuing anyway):', error);
     }
-    
+
     // Clear any local storage
     try {
         localStorage.removeItem('kriptik_user');
@@ -195,16 +195,16 @@ export const signOut = async () => {
     } catch (e) {
         console.warn('[Auth] Failed to clear local storage:', e);
     }
-    
+
     return { error: null };
 };
 
 export const getSession = async () => {
     console.log('[Auth] Getting session...');
-    
+
     try {
         const url = `${API_URL}/api/auth/get-session`;
-        
+
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -212,15 +212,15 @@ export const getSession = async () => {
             },
             credentials: 'include',
         });
-        
+
         if (!response.ok) {
             console.log('[Auth] No active session');
             return { data: null, error: null };
         }
-        
+
         const data = await response.json();
         console.log('[Auth] Session data:', data);
-        
+
         return { data, error: null };
     } catch (error) {
         console.error('[Auth] Get session error:', error);

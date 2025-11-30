@@ -10,6 +10,8 @@ import TemplateCustomizationModal from '../components/templates/TemplateCustomiz
 import WelcomeModal from '../components/onboarding/WelcomeModal';
 import ImageUploadModal from '../components/builder/ImageUploadModal';
 import GitHubImportModal from '../components/builder/GitHubImportModal';
+import NewProjectModal from '../components/dashboard/NewProjectModal';
+import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
     Sparkles,
@@ -27,7 +29,9 @@ import {
     ChevronDown,
     Palette,
     Code,
-    Layers
+    Layers,
+    Wrench,
+    Loader2
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { cn } from '@/lib/utils';
@@ -322,7 +326,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const [prompt, setPrompt] = useState('');
     const [isFocused, setIsFocused] = useState(false);
-    const { projects, addProject } = useProjectStore();
+    const { projects, addProject, fetchProjects, isLoading: projectsLoading } = useProjectStore();
     const { setGalleryOpen } = useTemplateStore();
     const { hasCompletedOnboarding, setWelcomeModalOpen } = useOnboardingStore();
 
@@ -332,6 +336,14 @@ export default function Dashboard() {
 
     // GitHub import modal state
     const [githubModalOpen, setGithubModalOpen] = useState(false);
+    
+    // Fix My App intro state
+    const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
+
+    // Fetch projects on mount
+    useEffect(() => {
+        fetchProjects();
+    }, [fetchProjects]);
 
     useEffect(() => {
         if (!hasCompletedOnboarding) {
@@ -599,35 +611,140 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Projects section */}
-                {projects.length > 0 && (
-                    <div className="mt-16">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold text-white">Your Projects</h2>
-                            <Button variant="outline" size="sm" className="border-slate-700 text-slate-400">
-                                View All
-                            </Button>
+                {/* My Stuff Section */}
+                <div className="mt-16">
+                    {/* Section Header with Actions */}
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                                My Stuff
+                            </h2>
+                            <p className="text-sm text-slate-400 mt-1">
+                                {projects.length} project{projects.length !== 1 ? 's' : ''} • Build something new or fix an existing app
+                            </p>
                         </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-3">
+                            {/* Fix Broken App Button */}
+                            <button
+                                onClick={() => setShowFixMyAppIntro(true)}
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.85) 0%, rgba(249, 115, 22, 0.85) 50%, rgba(245, 158, 11, 0.85) 100%)',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: `
+                                        0 5px 0 rgba(0,0,0,0.3),
+                                        0 10px 25px rgba(239, 68, 68, 0.3),
+                                        inset 0 1px 0 rgba(255,255,255,0.3),
+                                        inset 0 -1px 0 rgba(0,0,0,0.2)
+                                    `,
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    fontFamily: 'JetBrains Mono, monospace',
+                                }}
+                                className={cn(
+                                    "px-5 py-2.5 rounded-xl font-semibold text-white",
+                                    "flex items-center gap-2",
+                                    "hover:translate-y-[2px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_6px_20px_rgba(239,68,68,0.4)]",
+                                    "active:translate-y-[4px] active:shadow-[0_1px_0_rgba(0,0,0,0.3)]",
+                                    "transition-all duration-150"
+                                )}
+                            >
+                                <Wrench className="h-4 w-4" />
+                                Fix Broken App
+                            </button>
+                            
+                            {/* Create New Button */}
+                            <NewProjectModal />
+                        </div>
+                    </div>
+                    
+                    {/* Loading State */}
+                    {projectsLoading && (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <Loader2 className="h-10 w-10 animate-spin text-amber-400 mb-4" />
+                            <p className="text-slate-400">Loading your projects...</p>
+                        </div>
+                    )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {projects.slice(0, 8).map((project) => (
+                    {/* Projects Grid */}
+                    {!projectsLoading && projects.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {projects.map((project) => (
                                 <ProjectThumbnail key={project.id} project={project} />
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Empty state for new users */}
-                {projects.length === 0 && (
-                    <div className="mt-16 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/50 mb-4">
-                            <Layers className="h-8 w-8 text-slate-600" />
+                    {/* Empty State */}
+                    {!projectsLoading && projects.length === 0 && (
+                        <div className="relative rounded-3xl overflow-hidden">
+                            {/* Background gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/50 to-slate-900/80" />
+                            
+                            <div className="relative py-16 px-8 text-center">
+                                {/* 3D Icon Container */}
+                                <div 
+                                    className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)',
+                                        boxShadow: `
+                                            0 8px 0 rgba(0,0,0,0.2),
+                                            0 16px 40px rgba(0,0,0,0.3),
+                                            inset 0 1px 0 rgba(255,255,255,0.1)
+                                        `,
+                                        border: '1px solid rgba(251, 191, 36, 0.2)',
+                                    }}
+                                >
+                                    <Layers className="h-10 w-10 text-amber-400" />
+                                </div>
+                                
+                                <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: 'Syne, sans-serif' }}>
+                                    Ready to build something amazing?
+                                </h3>
+                                <p className="text-slate-400 max-w-md mx-auto mb-8">
+                                    Enter a prompt above to generate your first app, browse our templates, or import an existing project.
+                                </p>
+                                
+                                {/* Empty State Actions */}
+                                <div className="flex items-center justify-center gap-4 flex-wrap">
+                                    <button
+                                        onClick={() => setShowFixMyAppIntro(true)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(249, 115, 22, 0.9) 50%, rgba(245, 158, 11, 0.9) 100%)',
+                                            backdropFilter: 'blur(10px)',
+                                            boxShadow: `
+                                                0 5px 0 rgba(0,0,0,0.3),
+                                                0 10px 25px rgba(239, 68, 68, 0.3),
+                                                inset 0 1px 0 rgba(255,255,255,0.3)
+                                            `,
+                                            border: '1px solid rgba(255,255,255,0.15)',
+                                            fontFamily: 'JetBrains Mono, monospace',
+                                        }}
+                                        className={cn(
+                                            "px-6 py-3 rounded-xl font-semibold text-white",
+                                            "flex items-center gap-2",
+                                            "hover:translate-y-[2px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_6px_20px_rgba(239,68,68,0.4)]",
+                                            "active:translate-y-[4px]",
+                                            "transition-all duration-150"
+                                        )}
+                                    >
+                                        <Wrench className="h-5 w-5" />
+                                        Fix Broken App
+                                    </button>
+                                    
+                                    <NewProjectModal />
+                                </div>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">Ready to build something amazing?</h3>
-                        <p className="text-slate-400 max-w-md mx-auto">
-                            Enter a prompt above to generate your first app, or browse our templates for inspiration.
-                        </p>
-                    </div>
+                    )}
+                </div>
+                
+                {/* Fix My App Intro Modal */}
+                {showFixMyAppIntro && (
+                    <FixMyAppIntro onComplete={() => {
+                        setShowFixMyAppIntro(false);
+                        navigate('/fix-my-app');
+                    }} />
                 )}
             </main>
         </div>
