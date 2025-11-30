@@ -336,14 +336,20 @@ export default function Dashboard() {
 
     // GitHub import modal state
     const [githubModalOpen, setGithubModalOpen] = useState(false);
-    
+
     // Fix My App intro state
     const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
+    
+    // Get user auth state
+    const { user, isAuthenticated, isLoading: authLoading } = useUserStore();
 
-    // Fetch projects on mount
+    // Fetch projects only when user is authenticated
     useEffect(() => {
-        fetchProjects();
-    }, [fetchProjects]);
+        if (isAuthenticated && user?.id) {
+            console.log('[Dashboard] User authenticated, fetching projects...');
+            fetchProjects();
+        }
+    }, [isAuthenticated, user?.id, fetchProjects]);
 
     useEffect(() => {
         if (!hasCompletedOnboarding) {
@@ -623,7 +629,7 @@ export default function Dashboard() {
                                 {projects.length} project{projects.length !== 1 ? 's' : ''} • Build something new or fix an existing app
                             </p>
                         </div>
-                        
+
                         {/* Action Buttons */}
                         <div className="flex items-center gap-3">
                             {/* Fix Broken App Button */}
@@ -652,14 +658,14 @@ export default function Dashboard() {
                                 <Wrench className="h-4 w-4" />
                                 Fix Broken App
                             </button>
-                            
+
                             {/* Create New Button */}
                             <NewProjectModal />
                         </div>
                     </div>
-                    
-                    {/* Loading State */}
-                    {projectsLoading && (
+
+                    {/* Loading State - only show when authenticated and loading */}
+                    {(projectsLoading || authLoading) && isAuthenticated && (
                         <div className="flex flex-col items-center justify-center py-16">
                             <Loader2 className="h-10 w-10 animate-spin text-amber-400 mb-4" />
                             <p className="text-slate-400">Loading your projects...</p>
@@ -667,7 +673,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Projects Grid */}
-                    {!projectsLoading && projects.length > 0 && (
+                    {!projectsLoading && !authLoading && projects.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {projects.map((project) => (
                                 <ProjectThumbnail key={project.id} project={project} />
@@ -676,14 +682,14 @@ export default function Dashboard() {
                     )}
 
                     {/* Empty State */}
-                    {!projectsLoading && projects.length === 0 && (
+                    {!projectsLoading && !authLoading && projects.length === 0 && (
                         <div className="relative rounded-3xl overflow-hidden">
                             {/* Background gradient */}
                             <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/50 to-slate-900/80" />
-                            
+
                             <div className="relative py-16 px-8 text-center">
                                 {/* 3D Icon Container */}
-                                <div 
+                                <div
                                     className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
                                     style={{
                                         background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)',
@@ -697,14 +703,14 @@ export default function Dashboard() {
                                 >
                                     <Layers className="h-10 w-10 text-amber-400" />
                                 </div>
-                                
+
                                 <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: 'Syne, sans-serif' }}>
                                     Ready to build something amazing?
                                 </h3>
                                 <p className="text-slate-400 max-w-md mx-auto mb-8">
                                     Enter a prompt above to generate your first app, browse our templates, or import an existing project.
                                 </p>
-                                
+
                                 {/* Empty State Actions */}
                                 <div className="flex items-center justify-center gap-4 flex-wrap">
                                     <button
@@ -731,14 +737,14 @@ export default function Dashboard() {
                                         <Wrench className="h-5 w-5" />
                                         Fix Broken App
                                     </button>
-                                    
+
                                     <NewProjectModal />
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
-                
+
                 {/* Fix My App Intro Modal */}
                 {showFixMyAppIntro && (
                     <FixMyAppIntro onComplete={() => {
