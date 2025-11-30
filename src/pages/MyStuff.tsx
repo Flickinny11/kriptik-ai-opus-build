@@ -390,64 +390,62 @@ export default function MyStuff() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* Fix My App Button - Premium 3D */}
+                    <div className="flex items-center gap-4">
+                        {/* Fix My App Button - Modern 3D Glass */}
                         <motion.button
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={{ y: 2 }}
+                            whileTap={{ y: 4 }}
                             onClick={() => setShowFixMyAppIntro(true)}
-                            className={cn(
-                                "relative px-5 py-3 rounded-xl font-semibold",
-                                "bg-gradient-to-br from-red-500 via-orange-500 to-amber-500",
-                                "text-white shadow-lg",
-                                "overflow-hidden group"
-                            )}
                             style={{
-                                boxShadow: `
-                                    0 4px 0 rgba(0,0,0,0.3),
-                                    0 8px 20px rgba(239,68,68,0.3),
-                                    inset 0 1px 0 rgba(255,255,255,0.3)
-                                `,
+                                position: 'relative',
+                                padding: '14px 26px',
+                                borderRadius: '16px',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                letterSpacing: '0.025em',
+                                fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+                                background: 'linear-gradient(135deg, rgba(239,68,68,0.85) 0%, rgba(249,115,22,0.9) 50%, rgba(251,191,36,0.85) 100%)',
+                                color: 'white',
+                                backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                boxShadow: '0 5px 0 rgba(180,50,30,0.5), 0 10px 28px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)',
+                                transform: 'translateY(-3px)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease-out',
                             }}
                         >
-                            {/* Glowing edge effect */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-white/0 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                            {/* 3D depth indicator */}
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20" />
-
-                            <span className="relative flex items-center gap-2">
+                            <span className="flex items-center gap-2">
                                 <Wrench className="h-4 w-4" />
                                 Fix My App
                             </span>
                         </motion.button>
 
-                        {/* New Project Button - Premium 3D */}
+                        {/* New Project Button - Modern 3D Glass */}
                         <motion.button
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={{ y: 2 }}
+                            whileTap={{ y: 4 }}
                             onClick={() => navigate('/dashboard')}
-                            className={cn(
-                                "relative px-5 py-3 rounded-xl font-semibold",
-                                "bg-gradient-to-br from-amber-400 to-orange-500",
-                                "text-black shadow-lg",
-                                "overflow-hidden group"
-                            )}
                             style={{
-                                boxShadow: `
-                                    0 4px 0 rgba(0,0,0,0.2),
-                                    0 8px 20px rgba(251,191,36,0.3),
-                                    inset 0 1px 0 rgba(255,255,255,0.4)
-                                `,
+                                position: 'relative',
+                                padding: '14px 26px',
+                                borderRadius: '16px',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                letterSpacing: '0.025em',
+                                fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+                                background: 'linear-gradient(135deg, rgba(251,191,36,0.9) 0%, rgba(249,115,22,0.95) 60%, rgba(234,88,12,0.9) 100%)',
+                                color: 'rgba(0,0,0,0.85)',
+                                backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.35)',
+                                boxShadow: '0 5px 0 rgba(180,100,20,0.4), 0 10px 28px rgba(251,191,36,0.35), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.05)',
+                                transform: 'translateY(-3px)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease-out',
                             }}
                         >
-                            {/* Glowing edge effect */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                            {/* 3D depth indicator */}
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10" />
-
-                            <span className="relative flex items-center gap-2">
+                            <span className="flex items-center gap-2">
                                 <Plus className="h-4 w-4" />
                                 New Project
                             </span>
@@ -567,49 +565,63 @@ export default function MyStuff() {
                         </p>
 
                         {!searchQuery && (
-                            <div className="flex items-center justify-center gap-4">
+                            <div className="flex items-center justify-center gap-5">
+                                {/* Fix Broken App Button - Modern 3D Glass */}
                                 <motion.button
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    whileHover={{ y: 2 }}
+                                    whileTap={{ y: 4 }}
                                     onClick={() => setShowFixMyAppIntro(true)}
-                                    className={cn(
-                                        "px-6 py-3 rounded-xl font-semibold",
-                                        "bg-gradient-to-br from-red-500 via-orange-500 to-amber-500",
-                                        "text-white"
-                                    )}
                                     style={{
-                                        boxShadow: `
-                                            0 4px 0 rgba(0,0,0,0.3),
-                                            0 8px 20px rgba(239,68,68,0.3),
-                                            inset 0 1px 0 rgba(255,255,255,0.3)
-                                        `,
+                                        position: 'relative',
+                                        padding: '16px 32px',
+                                        borderRadius: '18px',
+                                        fontWeight: 600,
+                                        fontSize: '0.95rem',
+                                        letterSpacing: '0.03em',
+                                        fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+                                        background: 'linear-gradient(135deg, rgba(239,68,68,0.85) 0%, rgba(249,115,22,0.9) 50%, rgba(251,191,36,0.85) 100%)',
+                                        color: 'white',
+                                        backdropFilter: 'blur(12px)',
+                                        WebkitBackdropFilter: 'blur(12px)',
+                                        border: '1px solid rgba(255,255,255,0.25)',
+                                        boxShadow: '0 5px 0 rgba(180,50,30,0.5), 0 10px 30px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.1)',
+                                        transform: 'translateY(-3px)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease-out',
                                     }}
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <Wrench className="h-4 w-4" />
+                                    <span className="flex items-center gap-3">
+                                        <Wrench className="h-5 w-5" />
                                         Fix Broken App
                                     </span>
                                 </motion.button>
 
+                                {/* Create New Button - Modern 3D Glass */}
                                 <motion.button
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    whileHover={{ y: 2 }}
+                                    whileTap={{ y: 4 }}
                                     onClick={() => navigate('/dashboard')}
-                                    className={cn(
-                                        "px-6 py-3 rounded-xl font-semibold",
-                                        "bg-gradient-to-br from-amber-400 to-orange-500",
-                                        "text-black"
-                                    )}
                                     style={{
-                                        boxShadow: `
-                                            0 4px 0 rgba(0,0,0,0.2),
-                                            0 8px 20px rgba(251,191,36,0.3),
-                                            inset 0 1px 0 rgba(255,255,255,0.4)
-                                        `,
+                                        position: 'relative',
+                                        padding: '16px 32px',
+                                        borderRadius: '18px',
+                                        fontWeight: 600,
+                                        fontSize: '0.95rem',
+                                        letterSpacing: '0.03em',
+                                        fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+                                        background: 'linear-gradient(135deg, rgba(251,191,36,0.9) 0%, rgba(249,115,22,0.95) 60%, rgba(234,88,12,0.9) 100%)',
+                                        color: 'rgba(0,0,0,0.85)',
+                                        backdropFilter: 'blur(12px)',
+                                        WebkitBackdropFilter: 'blur(12px)',
+                                        border: '1px solid rgba(255,255,255,0.35)',
+                                        boxShadow: '0 5px 0 rgba(180,100,20,0.4), 0 10px 30px rgba(251,191,36,0.35), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.05)',
+                                        transform: 'translateY(-3px)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease-out',
                                     }}
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <Plus className="h-4 w-4" />
+                                    <span className="flex items-center gap-3">
+                                        <Plus className="h-5 w-5" />
                                         Create New
                                     </span>
                                 </motion.button>

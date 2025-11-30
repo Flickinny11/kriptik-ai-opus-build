@@ -720,37 +720,27 @@ export default function FixMyApp() {
         }
     };
 
-    // Submit consent
+    // Submit consent - just open the URL in a new tab and proceed
     const submitConsent = async () => {
-        if (!session) return;
-
-        setIsLoading(true);
-        try {
-            await apiClient.post(`/api/fix-my-app/${session.sessionId}/consent`, consent);
-
-            // For AI builders, open the platform URL in a new tab
-            if (requiresBrowserLogin()) {
-                const platformUrl = getPlatformUrl();
-                if (platformUrl) {
-                    window.open(platformUrl, '_blank');
-                    toast({
-                        title: 'Browser Opened',
-                        description: 'Log in, navigate to your project, export it as a ZIP, and upload it here.',
-                    });
-                }
-            }
-
-            // Go to upload step for all sources
-            setStep('upload');
-        } catch (error) {
+        // Open the platform URL in a new browser tab
+        const platformUrl = getPlatformUrl();
+        if (platformUrl) {
+            window.open(platformUrl, '_blank');
             toast({
-                title: 'Error',
-                description: 'Failed to record consent',
-                variant: 'destructive',
+                title: 'Browser Tab Opened',
+                description: 'Your app URL has been opened in a new tab.',
             });
-        } finally {
-            setIsLoading(false);
+        } else if (githubUrl) {
+            // For GitHub or direct URLs, open the entered URL
+            window.open(githubUrl, '_blank');
+            toast({
+                title: 'Browser Tab Opened',
+                description: 'Your URL has been opened in a new tab.',
+            });
         }
+
+        // Go to upload step
+        setStep('upload');
     };
 
     // Upload files
