@@ -96,14 +96,14 @@ export function HoverSidebar() {
 
     return (
         <>
-            {/* Visible trigger zone with subtle glow indicator */}
+            {/* Visible trigger zone with subtle indicator */}
             <div
                 className="fixed left-0 top-0 w-2 h-full z-40 group cursor-pointer"
                 onMouseEnter={() => setIsOpen(true)}
             >
-                {/* Subtle glow line that hints at the sidebar */}
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-16 bg-gradient-to-b from-transparent via-amber-500/40 to-transparent rounded-full" />
+                {/* Subtle line that hints at the sidebar */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-16 bg-gradient-to-b from-transparent via-black/20 to-transparent rounded-full" />
             </div>
 
             <AnimatePresence>
@@ -119,7 +119,7 @@ export function HoverSidebar() {
                             onClick={() => setIsOpen(false)}
                         />
 
-                        {/* Sidebar */}
+                        {/* Sidebar - Realistic Glass */}
                         <motion.aside
                             initial={{ x: -280, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
@@ -135,31 +135,34 @@ export function HoverSidebar() {
                                 "flex flex-col"
                             )}
                             style={{
-                                background: 'linear-gradient(135deg, rgba(250, 250, 250, 0.08) 0%, rgba(200, 200, 200, 0.04) 100%)',
-                                backdropFilter: 'blur(20px)',
-                                borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
+                                backdropFilter: 'blur(30px) saturate(180%)',
+                                WebkitBackdropFilter: 'blur(30px) saturate(180%)',
                                 boxShadow: `
-                                    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-                                    4px 0 24px rgba(0, 0, 0, 0.4),
-                                    8px 0 48px rgba(0, 0, 0, 0.2)
+                                    inset -1px 0 0 rgba(255, 255, 255, 0.8),
+                                    4px 0 24px rgba(0, 0, 0, 0.06),
+                                    1px 0 0 rgba(0, 0, 0, 0.03),
+                                    inset 0 1px 1px rgba(255, 255, 255, 0.9)
                                 `,
                             }}
                         >
-                            {/* 3D Edge effect */}
+                            {/* 3D Edge effect - right side glass thickness */}
                             <div
-                                className="absolute right-0 top-0 bottom-0 w-1"
+                                className="absolute right-0 top-0 bottom-0 w-2"
                                 style={{
-                                    background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.1) 100%)',
+                                    background: 'linear-gradient(90deg, rgba(200,200,205,0.4) 0%, rgba(180,180,185,0.3) 100%)',
+                                    boxShadow: 'inset 0 0 10px rgba(0,0,0,0.03)',
                                 }}
                             />
 
                             {/* Header */}
-                            <div className="p-6 border-b border-white/5">
+                            <div className="p-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                                 <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 }}
-                                    className="text-xs font-mono uppercase tracking-[0.3em] text-zinc-500"
+                                    className="text-xs uppercase tracking-[0.2em]"
+                                    style={{ color: '#404040', fontFamily: '-apple-system, sans-serif' }}
                                 >
                                     Navigation
                                 </motion.div>
@@ -185,67 +188,70 @@ export function HoverSidebar() {
                                             onMouseLeave={() => setHoveredItem(null)}
                                             className={cn(
                                                 "w-full flex items-center gap-3 px-6 py-3",
-                                                "transition-all duration-200 relative",
-                                                "group cursor-pointer",
-                                                isActive && "bg-white/5"
+                                                "transition-all duration-300 relative",
+                                                "group cursor-pointer rounded-xl mx-2",
+                                                isActive && "bg-white/40"
                                             )}
+                                            style={{
+                                                background: isActive ? 'rgba(255,255,255,0.4)' : 'transparent',
+                                                boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)' : 'none',
+                                            }}
                                         >
                                             {/* Hover/Active indicator */}
                                             <motion.div
-                                                className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500"
+                                                className="absolute left-0 top-2 bottom-2 w-1 rounded-full"
+                                                style={{ background: 'rgba(0,0,0,0.3)' }}
                                                 initial={{ scaleY: 0 }}
                                                 animate={{ scaleY: isActive || isHovered ? 1 : 0 }}
                                                 transition={{ duration: 0.2 }}
                                             />
 
-                                            {/* Icon with glitch effect on hover */}
-                                            <div className={cn(
-                                                "relative w-8 h-8 flex items-center justify-center",
-                                                "rounded-lg transition-all duration-200",
-                                                isHovered && "nav-icon-glitch"
-                                            )}>
-                                                <item.icon className={cn(
-                                                    "w-4 h-4 transition-colors duration-200",
-                                                    isActive ? "text-amber-400" : "text-zinc-400",
-                                                    isHovered && "text-white"
-                                                )} />
+                                            {/* Icon */}
+                                            <div 
+                                                className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
+                                                style={{ background: 'rgba(0,0,0,0.06)' }}
+                                            >
+                                                <item.icon className="w-4 h-4 text-neutral-800" />
                                             </div>
 
                                             {/* Label */}
                                             <div className="flex-1 text-left">
-                                                <div className={cn(
-                                                    "text-sm font-medium transition-colors duration-200",
-                                                    "font-mono tracking-wide",
-                                                    isActive ? "text-white" : "text-zinc-300",
-                                                    isHovered && "text-white nav-text-glitch"
-                                                )}>
+                                                <div 
+                                                    className="text-sm font-medium transition-colors duration-200"
+                                                    style={{ 
+                                                        color: '#1a1a1a',
+                                                        fontFamily: '-apple-system, sans-serif' 
+                                                    }}
+                                                >
                                                     {item.label}
                                                 </div>
                                                 <div className={cn(
-                                                    "text-[10px] text-zinc-500 mt-0.5",
+                                                    "text-[10px] mt-0.5",
                                                     "transition-opacity duration-200",
                                                     isHovered ? "opacity-100" : "opacity-0"
-                                                )}>
+                                                )}
+                                                style={{ color: '#666' }}>
                                                     {item.description}
                                                 </div>
                                             </div>
 
                                             {/* Arrow indicator */}
-                                            <ChevronRight className={cn(
-                                                "w-4 h-4 text-zinc-600 transition-all duration-200",
-                                                isHovered && "text-amber-400 translate-x-1"
-                                            )} />
+                                            <ChevronRight 
+                                                className={cn(
+                                                    "w-4 h-4 transition-all duration-200",
+                                                    isHovered ? "translate-x-1 text-neutral-800" : "text-neutral-400"
+                                                )}
+                                            />
                                         </motion.button>
                                     );
                                 })}
                             </nav>
 
                             {/* Footer */}
-                            <div className="p-6 border-t border-white/5">
-                                <div className="text-[10px] font-mono text-zinc-600 text-center">
-                                    <span className="text-zinc-500">SYS://</span>
-                                    <span className="text-amber-500/50">KRIPTIK.AI</span>
-                                    <span className="text-zinc-600">/v2.0</span>
+                            <div className="p-6" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                                <div className="text-[10px] text-center" style={{ color: '#666' }}>
+                                    <span>KripTik AI</span>
+                                    <span style={{ color: '#999' }}> • v2.0</span>
                                 </div>
                             </div>
                         </motion.aside>

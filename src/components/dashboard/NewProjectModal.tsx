@@ -20,6 +20,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { apiClient } from '../../lib/api-client';
 import { toast } from 'sonner';
+import '../../styles/realistic-glass.css';
 
 const formSchema = z.object({
     name: z.string().min(1, "Project name is required"),
@@ -79,72 +80,10 @@ export default function NewProjectModal() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <button
-                    className="group"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 20px',
-                        borderRadius: '14px',
-                        background: 'linear-gradient(145deg, rgba(35,35,40,0.9) 0%, rgba(22,22,28,0.95) 100%)',
-                        backdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(80,80,90,0.4)',
-                        boxShadow: `
-                            0 4px 0 rgba(0,0,0,0.5),
-                            0 8px 20px rgba(0,0,0,0.35),
-                            0 16px 40px rgba(0,0,0,0.2),
-                            inset 0 1px 0 rgba(255,255,255,0.06)
-                        `,
-                        transform: 'perspective(600px) rotateX(2deg) rotateY(1deg)',
-                        transformStyle: 'preserve-3d',
-                        transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: '#d4d4d4',
-                        cursor: 'pointer',
-                        letterSpacing: '0.02em',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) translateY(-4px) scale(1.02)';
-                        e.currentTarget.style.boxShadow = `
-                            0 8px 0 rgba(0,0,0,0.5),
-                            0 16px 32px rgba(0,0,0,0.4),
-                            0 24px 56px rgba(0,0,0,0.25),
-                            0 4px 20px rgba(220,38,38,0.12),
-                            inset 0 1px 0 rgba(255,255,255,0.1)
-                        `;
-                        e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)';
-                        e.currentTarget.style.color = '#ffffff';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'perspective(600px) rotateX(2deg) rotateY(1deg)';
-                        e.currentTarget.style.boxShadow = `
-                            0 4px 0 rgba(0,0,0,0.5),
-                            0 8px 20px rgba(0,0,0,0.35),
-                            0 16px 40px rgba(0,0,0,0.2),
-                            inset 0 1px 0 rgba(255,255,255,0.06)
-                        `;
-                        e.currentTarget.style.borderColor = 'rgba(80,80,90,0.4)';
-                        e.currentTarget.style.color = '#d4d4d4';
-                    }}
+                    className="glass-button"
+                    style={{ color: '#1a1a1a' }}
                 >
-                    {/* Plus icon container with 3D effect */}
-                    <span
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(145deg, rgba(220,38,38,0.15) 0%, rgba(185,28,28,0.2) 100%)',
-                            border: '1px solid rgba(220,38,38,0.2)',
-                            transition: 'all 0.3s ease',
-                        }}
-                    >
-                        <Plus className="h-3.5 w-3.5" style={{ color: '#dc2626' }} />
-                    </span>
+                    <Plus className="h-4 w-4" />
                     <span>New Project</span>
                 </button>
             </DialogTrigger>
