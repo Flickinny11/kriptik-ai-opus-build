@@ -8,18 +8,14 @@ import { useCostStore } from '../store/useCostStore';
 import TemplateGallery from '../components/templates/TemplateGallery';
 import TemplateCustomizationModal from '../components/templates/TemplateCustomizationModal';
 import WelcomeModal from '../components/onboarding/WelcomeModal';
-import ImageUploadModal from '../components/builder/ImageUploadModal';
-import GitHubImportModal from '../components/builder/GitHubImportModal';
+import UploadDesignModal from '../components/builder/UploadDesignModal';
+import FigmaImportModal from '../components/builder/FigmaImportModal';
+import GitHubCloneModal from '../components/builder/GitHubCloneModal';
 import NewProjectModal from '../components/dashboard/NewProjectModal';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
     Sparkles,
-    Upload,
-    Figma,
-    Github,
-    Globe,
-    Image,
     ArrowRight,
     Clock,
     MoreHorizontal,
@@ -27,18 +23,40 @@ import {
     CreditCard,
     LogOut,
     ChevronDown,
-    Palette,
-    Code,
-    Layers,
-    Wrench,
     Loader2
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { cn } from '@/lib/utils';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
+import {
+    UploadDesignIcon,
+    ImageToCodeIcon,
+    LandingPageIcon,
+    DashboardIcon,
+    SaasAppIcon,
+    FixBrokenAppIcon
+} from '../components/ui/AbstractIcons';
+import { Layers } from 'lucide-react';
+
+// Figma Logo SVG (from Simple Icons)
+const FigmaLogo = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 38 57" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z" fill="#1ABCFE"/>
+    <path d="M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z" fill="#0ACF83"/>
+    <path d="M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z" fill="#FF7262"/>
+    <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z" fill="#F24E1E"/>
+    <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z" fill="#A259FF"/>
+  </svg>
+);
+
+// GitHub Logo SVG (from Simple Icons)
+const GitHubLogo = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+  </svg>
+);
 
 // Animated prompt suggestions
 const PROMPT_IDEAS = [
@@ -54,14 +72,21 @@ const PROMPT_IDEAS = [
     "Make a personal finance tracker...",
 ];
 
-// Action buttons for project creation
+// Action buttons for project creation - styled with glass morphism
 const ACTION_BUTTONS = [
-    { id: 'upload', icon: Upload, label: 'Upload Design', color: 'text-amber-400' },
-    { id: 'figma', icon: Figma, label: 'Import from Figma', color: 'text-purple-400' },
-    { id: 'github', icon: Github, label: 'Clone from GitHub', color: 'text-slate-300' },
-    { id: 'clone', icon: Globe, label: 'Clone Website', color: 'text-cyan-400' },
-    { id: 'image', icon: Image, label: 'Image to Code', color: 'text-pink-400' },
+    { id: 'upload', label: 'Upload Design', type: 'abstract' as const },
+    { id: 'figma', label: 'Import from Figma', type: 'figma' as const },
+    { id: 'github', label: 'Clone from GitHub', type: 'github' as const },
+    { id: 'image', label: 'Image to Code', type: 'abstract' as const },
 ];
+
+// Shine animation keyframes (for CSS-in-JS)
+const shineKeyframes = `
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(15deg); }
+  100% { transform: translateX(200%) rotate(15deg); }
+}
+`;
 
 // Animated typing placeholder
 function AnimatedPlaceholder() {
@@ -330,16 +355,14 @@ export default function Dashboard() {
     const { setGalleryOpen } = useTemplateStore();
     const { hasCompletedOnboarding, setWelcomeModalOpen } = useOnboardingStore();
 
-    // Image upload modal state
-    const [imageModalOpen, setImageModalOpen] = useState(false);
-    const [imageModalMode, setImageModalMode] = useState<'upload' | 'url' | 'figma' | 'clone'>('upload');
-
-    // GitHub import modal state
+    // Modal states
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [figmaModalOpen, setFigmaModalOpen] = useState(false);
     const [githubModalOpen, setGithubModalOpen] = useState(false);
 
     // Fix My App intro state
     const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
-    
+
     // Get user auth state
     const { user, isAuthenticated, isLoading: authLoading } = useUserStore();
 
@@ -388,26 +411,20 @@ export default function Dashboard() {
     const handleActionClick = useCallback((actionId: string) => {
         switch (actionId) {
             case 'upload':
-                setImageModalMode('upload');
-                setImageModalOpen(true);
-                break;
-            case 'image':
-                setImageModalMode('url');
-                setImageModalOpen(true);
+                setUploadModalOpen(true);
                 break;
             case 'figma':
-                setImageModalMode('figma');
-                setImageModalOpen(true);
-                break;
-            case 'clone':
-                setImageModalMode('clone');
-                setImageModalOpen(true);
+                setFigmaModalOpen(true);
                 break;
             case 'github':
                 setGithubModalOpen(true);
                 break;
+            case 'image':
+                // Redirect to Design Room for Image to Code
+                navigate('/design-room');
+                break;
         }
-    }, []);
+    }, [navigate]);
 
     // Handle image-to-code result
     const handleImageToCodeComplete = useCallback((result: ImageToCodeResult) => {
@@ -459,17 +476,35 @@ export default function Dashboard() {
             <WelcomeModal />
             <TemplateGallery />
             <TemplateCustomizationModal />
-            <ImageUploadModal
-                open={imageModalOpen}
-                onOpenChange={setImageModalOpen}
-                mode={imageModalMode}
+            <UploadDesignModal
+                open={uploadModalOpen}
+                onOpenChange={setUploadModalOpen}
                 onComplete={handleImageToCodeComplete}
             />
-            <GitHubImportModal
+            <FigmaImportModal
+                open={figmaModalOpen}
+                onOpenChange={setFigmaModalOpen}
+                onComplete={(result) => {
+                    addProject({
+                        id: result.projectId,
+                        name: result.projectName,
+                        description: 'Imported from Figma',
+                        framework: 'react',
+                        createdAt: new Date(),
+                        lastEdited: 'Just now',
+                        status: 'development',
+                    });
+                    navigate(`/builder/${result.projectId}`);
+                }}
+            />
+            <GitHubCloneModal
                 open={githubModalOpen}
                 onOpenChange={setGithubModalOpen}
                 onComplete={handleGitHubImportComplete}
             />
+            
+            {/* Inject shine animation styles */}
+            <style>{shineKeyframes}</style>
 
             {/* Header */}
             <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
@@ -545,72 +580,175 @@ export default function Dashboard() {
                                     </div>
                                 )}
 
-                                {/* Generate button */}
-                                <Button
+                                {/* Generate button with 3D glass morphism */}
+                                <button
                                     onClick={handleGenerate}
                                     disabled={!prompt.trim()}
-                                    className={cn(
-                                        "absolute bottom-4 right-4",
-                                        "h-12 px-6 rounded-xl font-semibold",
-                                        "bg-gradient-to-r from-amber-500 to-orange-500",
-                                        "hover:from-amber-400 hover:to-orange-400",
-                                        "text-black shadow-lg shadow-amber-500/25",
-                                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                                        "transition-all duration-200"
-                                    )}
+                                    className="absolute bottom-4 right-4 group overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{
+                                        background: prompt.trim()
+                                            ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.95) 0%, rgba(249, 115, 22, 0.95) 100%)'
+                                            : 'linear-gradient(135deg, rgba(100, 100, 110, 0.4) 0%, rgba(80, 80, 90, 0.4) 100%)',
+                                        backdropFilter: 'blur(8px)',
+                                        boxShadow: prompt.trim()
+                                            ? `
+                                                0 4px 0 rgba(180, 100, 0, 0.5),
+                                                0 8px 20px rgba(251, 191, 36, 0.4),
+                                                inset 0 1px 0 rgba(255,255,255,0.3),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `
+                                            : 'none',
+                                        border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: '14px',
+                                        padding: '12px 24px',
+                                        fontFamily: 'Syne, sans-serif',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (prompt.trim()) {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = `
+                                                0 6px 0 rgba(180, 100, 0, 0.5),
+                                                0 12px 28px rgba(251, 191, 36, 0.5),
+                                                inset 0 1px 0 rgba(255,255,255,0.4),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `;
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        if (prompt.trim()) {
+                                            e.currentTarget.style.boxShadow = `
+                                                0 4px 0 rgba(180, 100, 0, 0.5),
+                                                0 8px 20px rgba(251, 191, 36, 0.4),
+                                                inset 0 1px 0 rgba(255,255,255,0.3),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `;
+                                        }
+                                    }}
                                 >
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    Generate
-                                </Button>
+                                    {/* Shine effect */}
+                                    <div
+                                        className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                                        style={{
+                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                                            animation: 'shine 1.5s ease-in-out infinite',
+                                        }}
+                                    />
+                                    
+                                    <div className="flex items-center gap-2 relative z-10">
+                                        <Sparkles className="h-4 w-4 text-black" />
+                                        <span className="font-semibold text-black">Generate</span>
+                                    </div>
+                                </button>
                             </div>
 
-                            {/* Action buttons */}
-                            <div className="border-t border-slate-800 px-4 py-3 flex items-center gap-2 flex-wrap">
+                            {/* Action buttons with glass morphism */}
+                            <div className="border-t border-slate-800 px-4 py-3 flex items-center gap-3 flex-wrap">
                                 {ACTION_BUTTONS.map((action) => (
                                     <button
                                         key={action.id}
                                         onClick={() => handleActionClick(action.id)}
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg",
-                                            "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50",
-                                            "text-sm text-slate-300 hover:text-white",
-                                            "hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5",
-                                            "transition-all duration-200"
-                                        )}
+                                        className="group relative overflow-hidden"
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%)',
+                                            backdropFilter: 'blur(10px)',
+                                            boxShadow: `
+                                                0 2px 0 rgba(0,0,0,0.3),
+                                                0 4px 12px rgba(0, 0, 0, 0.4),
+                                                inset 0 1px 0 rgba(255,255,255,0.08),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `,
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                            borderRadius: '12px',
+                                            padding: '8px 14px',
+                                            fontFamily: 'Syne, sans-serif',
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = `
+                                                0 4px 0 rgba(0,0,0,0.3),
+                                                0 8px 20px rgba(0, 0, 0, 0.5),
+                                                inset 0 1px 0 rgba(255,255,255,0.12),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = `
+                                                0 2px 0 rgba(0,0,0,0.3),
+                                                0 4px 12px rgba(0, 0, 0, 0.4),
+                                                inset 0 1px 0 rgba(255,255,255,0.08),
+                                                inset 0 -1px 0 rgba(0,0,0,0.2)
+                                            `;
+                                        }}
                                     >
-                                        <action.icon className={cn("h-4 w-4", action.color)} />
-                                        <span className="hidden sm:inline">{action.label}</span>
+                                        {/* Shine effect */}
+                                        <div
+                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                                            style={{
+                                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+                                                animation: 'shine 1.5s ease-in-out infinite',
+                                                animationPlayState: 'paused',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.animationPlayState = 'running';
+                                            }}
+                                        />
+                                        
+                                        <div className="flex items-center gap-2 relative z-10">
+                                            {/* Render appropriate icon based on type */}
+                                            {action.type === 'figma' && <FigmaLogo size={18} />}
+                                            {action.type === 'github' && <GitHubLogo size={18} />}
+                                            {action.id === 'upload' && <UploadDesignIcon size={22} />}
+                                            {action.id === 'image' && <ImageToCodeIcon size={22} />}
+                                            <span className="text-sm text-white font-medium hidden sm:inline">
+                                                {action.label}
+                                            </span>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Quick templates */}
+                    {/* Quick templates with abstract icons */}
                     <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
-                        <span className="text-sm text-slate-500">Quick start:</span>
+                        <span className="text-sm text-slate-500" style={{ fontFamily: 'Syne, sans-serif' }}>Quick start:</span>
                         {[
-                            { icon: Palette, label: 'Landing Page' },
-                            { icon: Code, label: 'Dashboard' },
-                            { icon: Layers, label: 'SaaS App' },
+                            { icon: LandingPageIcon, label: 'Landing Page' },
+                            { icon: DashboardIcon, label: 'Dashboard' },
+                            { icon: SaasAppIcon, label: 'SaaS App' },
                         ].map((template) => (
                             <button
                                 key={template.label}
                                 onClick={() => setPrompt(`Build a ${template.label.toLowerCase()} with modern design...`)}
-                                className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-full",
-                                    "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50",
-                                    "text-sm text-slate-400 hover:text-white",
-                                    "transition-all duration-200"
-                                )}
+                                className="group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-200"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.6) 0%, rgba(20, 20, 30, 0.7) 100%)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    fontFamily: 'Syne, sans-serif',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(40, 40, 50, 0.8) 0%, rgba(30, 30, 40, 0.9) 100%)';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30, 30, 40, 0.6) 0%, rgba(20, 20, 30, 0.7) 100%)';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                                }}
                             >
-                                <template.icon className="h-3.5 w-3.5" />
-                                {template.label}
+                                <template.icon size={20} />
+                                <span className="text-sm text-slate-400 group-hover:text-white transition-colors">
+                                    {template.label}
+                                </span>
                             </button>
                         ))}
                         <button
                             onClick={() => setGalleryOpen(true)}
                             className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+                            style={{ fontFamily: 'Syne, sans-serif' }}
                         >
                             View all templates →
                         </button>
@@ -632,31 +770,65 @@ export default function Dashboard() {
 
                         {/* Action Buttons */}
                         <div className="flex items-center gap-3">
-                            {/* Fix Broken App Button */}
+                            {/* Fix Broken App Button - Off-white frosted glass */}
                             <button
                                 onClick={() => setShowFixMyAppIntro(true)}
+                                className="group relative overflow-hidden"
                                 style={{
-                                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.85) 0%, rgba(249, 115, 22, 0.85) 50%, rgba(245, 158, 11, 0.85) 100%)',
-                                    backdropFilter: 'blur(10px)',
+                                    background: 'linear-gradient(135deg, rgba(255, 250, 245, 0.12) 0%, rgba(240, 235, 230, 0.08) 100%)',
+                                    backdropFilter: 'blur(12px)',
                                     boxShadow: `
-                                        0 5px 0 rgba(0,0,0,0.3),
-                                        0 10px 25px rgba(239, 68, 68, 0.3),
-                                        inset 0 1px 0 rgba(255,255,255,0.3),
-                                        inset 0 -1px 0 rgba(0,0,0,0.2)
+                                        0 4px 0 rgba(0,0,0,0.2),
+                                        0 8px 24px rgba(0, 0, 0, 0.3),
+                                        inset 0 1px 0 rgba(255,255,255,0.2),
+                                        inset 0 -1px 0 rgba(0,0,0,0.1)
                                     `,
                                     border: '1px solid rgba(255,255,255,0.15)',
-                                    fontFamily: 'JetBrains Mono, monospace',
+                                    borderRadius: '14px',
+                                    padding: '10px 20px',
+                                    fontFamily: 'Syne, sans-serif',
+                                    transition: 'all 0.2s ease',
                                 }}
-                                className={cn(
-                                    "px-5 py-2.5 rounded-xl font-semibold text-white",
-                                    "flex items-center gap-2",
-                                    "hover:translate-y-[2px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_6px_20px_rgba(239,68,68,0.4)]",
-                                    "active:translate-y-[4px] active:shadow-[0_1px_0_rgba(0,0,0,0.3)]",
-                                    "transition-all duration-150"
-                                )}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = `
+                                        0 6px 0 rgba(0,0,0,0.2),
+                                        0 12px 30px rgba(0, 0, 0, 0.4),
+                                        inset 0 1px 0 rgba(255,255,255,0.25),
+                                        inset 0 -1px 0 rgba(0,0,0,0.1)
+                                    `;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = `
+                                        0 4px 0 rgba(0,0,0,0.2),
+                                        0 8px 24px rgba(0, 0, 0, 0.3),
+                                        inset 0 1px 0 rgba(255,255,255,0.2),
+                                        inset 0 -1px 0 rgba(0,0,0,0.1)
+                                    `;
+                                }}
                             >
-                                <Wrench className="h-4 w-4" />
-                                Fix Broken App
+                                {/* Shine effect */}
+                                <div
+                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                                    style={{
+                                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+                                        animation: 'shine 1.5s ease-in-out infinite',
+                                    }}
+                                />
+                                
+                                <div className="flex items-center gap-2 relative z-10">
+                                    <FixBrokenAppIcon size={24} />
+                                    <span 
+                                        className="font-semibold"
+                                        style={{
+                                            color: 'rgba(234, 88, 12, 0.9)',
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                                        }}
+                                    >
+                                        Fix Broken App
+                                    </span>
+                                </div>
                             </button>
 
                             {/* Create New Button */}
@@ -715,27 +887,62 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-center gap-4 flex-wrap">
                                     <button
                                         onClick={() => setShowFixMyAppIntro(true)}
+                                        className="group relative overflow-hidden"
                                         style={{
-                                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(249, 115, 22, 0.9) 50%, rgba(245, 158, 11, 0.9) 100%)',
-                                            backdropFilter: 'blur(10px)',
+                                            background: 'linear-gradient(135deg, rgba(255, 250, 245, 0.12) 0%, rgba(240, 235, 230, 0.08) 100%)',
+                                            backdropFilter: 'blur(12px)',
                                             boxShadow: `
-                                                0 5px 0 rgba(0,0,0,0.3),
-                                                0 10px 25px rgba(239, 68, 68, 0.3),
-                                                inset 0 1px 0 rgba(255,255,255,0.3)
+                                                0 4px 0 rgba(0,0,0,0.2),
+                                                0 8px 24px rgba(0, 0, 0, 0.3),
+                                                inset 0 1px 0 rgba(255,255,255,0.2),
+                                                inset 0 -1px 0 rgba(0,0,0,0.1)
                                             `,
                                             border: '1px solid rgba(255,255,255,0.15)',
-                                            fontFamily: 'JetBrains Mono, monospace',
+                                            borderRadius: '14px',
+                                            padding: '12px 24px',
+                                            fontFamily: 'Syne, sans-serif',
+                                            transition: 'all 0.2s ease',
                                         }}
-                                        className={cn(
-                                            "px-6 py-3 rounded-xl font-semibold text-white",
-                                            "flex items-center gap-2",
-                                            "hover:translate-y-[2px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_6px_20px_rgba(239,68,68,0.4)]",
-                                            "active:translate-y-[4px]",
-                                            "transition-all duration-150"
-                                        )}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = `
+                                                0 6px 0 rgba(0,0,0,0.2),
+                                                0 12px 30px rgba(0, 0, 0, 0.4),
+                                                inset 0 1px 0 rgba(255,255,255,0.25),
+                                                inset 0 -1px 0 rgba(0,0,0,0.1)
+                                            `;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = `
+                                                0 4px 0 rgba(0,0,0,0.2),
+                                                0 8px 24px rgba(0, 0, 0, 0.3),
+                                                inset 0 1px 0 rgba(255,255,255,0.2),
+                                                inset 0 -1px 0 rgba(0,0,0,0.1)
+                                            `;
+                                        }}
                                     >
-                                        <Wrench className="h-5 w-5" />
-                                        Fix Broken App
+                                        {/* Shine effect */}
+                                        <div
+                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                                            style={{
+                                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+                                                animation: 'shine 1.5s ease-in-out infinite',
+                                            }}
+                                        />
+                                        
+                                        <div className="flex items-center gap-2 relative z-10">
+                                            <FixBrokenAppIcon size={28} />
+                                            <span 
+                                                className="font-semibold"
+                                                style={{
+                                                    color: 'rgba(234, 88, 12, 0.9)',
+                                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                                                }}
+                                            >
+                                                Fix Broken App
+                                            </span>
+                                        </div>
                                     </button>
 
                                     <NewProjectModal />
