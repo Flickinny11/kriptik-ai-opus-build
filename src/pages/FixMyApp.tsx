@@ -14,7 +14,6 @@ import {
     Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper,
     Download, Monitor
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +25,78 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+
+// =============================================================================
+// MODERN 3D BUTTON STYLES
+// =============================================================================
+
+// Primary action button - semi-translucent with 3D edges
+const primaryButtonStyle = `
+    relative overflow-hidden
+    px-6 py-3 rounded-xl
+    font-semibold tracking-wide
+    bg-gradient-to-br from-amber-500/90 via-orange-500/90 to-red-500/80
+    text-white
+    backdrop-blur-sm
+    border border-white/20
+    shadow-[0_4px_0_rgba(0,0,0,0.3),0_8px_20px_rgba(251,146,60,0.3),inset_0_1px_0_rgba(255,255,255,0.3)]
+    hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_12px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.4)]
+    hover:translate-y-[2px]
+    active:shadow-[0_0px_0_rgba(0,0,0,0.3),0_2px_8px_rgba(251,146,60,0.3),inset_0_2px_4px_rgba(0,0,0,0.2)]
+    active:translate-y-[4px]
+    transition-all duration-150 ease-out
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+`;
+
+// Secondary/outline button - glass morphism with visible edges
+const secondaryButtonStyle = `
+    relative overflow-hidden
+    px-5 py-2.5 rounded-xl
+    font-medium tracking-wide
+    bg-slate-800/40
+    text-slate-200
+    backdrop-blur-md
+    border border-slate-500/30
+    shadow-[0_3px_0_rgba(0,0,0,0.2),0_6px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]
+    hover:bg-slate-700/50 hover:border-slate-400/40
+    hover:shadow-[0_2px_0_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)]
+    hover:translate-y-[1px]
+    active:shadow-[0_0px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.2),inset_0_2px_4px_rgba(0,0,0,0.15)]
+    active:translate-y-[3px]
+    transition-all duration-150 ease-out
+`;
+
+// Large CTA button - for major actions
+const ctaButtonStyle = `
+    relative overflow-hidden
+    px-8 py-4 rounded-2xl
+    text-lg font-bold tracking-wide uppercase
+    bg-gradient-to-br from-amber-400/95 via-orange-500/95 to-rose-500/90
+    text-white
+    backdrop-blur-sm
+    border border-white/25
+    shadow-[0_6px_0_rgba(0,0,0,0.25),0_12px_30px_rgba(251,146,60,0.35),inset_0_2px_0_rgba(255,255,255,0.35)]
+    hover:shadow-[0_3px_0_rgba(0,0,0,0.25),0_8px_20px_rgba(251,146,60,0.45),inset_0_2px_0_rgba(255,255,255,0.4)]
+    hover:translate-y-[3px]
+    active:shadow-[0_0px_0_rgba(0,0,0,0.25),0_4px_12px_rgba(251,146,60,0.3),inset_0_3px_6px_rgba(0,0,0,0.2)]
+    active:translate-y-[6px]
+    transition-all duration-150 ease-out
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+`;
+
+// Subtle ghost button with glass effect
+const ghostButtonStyle = `
+    relative
+    px-4 py-2 rounded-lg
+    font-medium
+    bg-white/5
+    text-slate-300
+    backdrop-blur-sm
+    border border-white/10
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
+    hover:bg-white/10 hover:text-white hover:border-white/20
+    transition-all duration-200
+`;
 
 // Types - All supported AI builders and platforms
 type ImportSource =
@@ -645,7 +716,7 @@ export default function FixMyApp() {
         setIsLoading(true);
         try {
             await apiClient.post(`/api/fix-my-app/${session.sessionId}/consent`, consent);
-            
+
             // For AI builders, open the platform URL in a new tab
             if (requiresBrowserLogin()) {
                 const platformUrl = getPlatformUrl();
@@ -657,7 +728,7 @@ export default function FixMyApp() {
                     });
                 }
             }
-            
+
             // Go to upload step for all sources
             setStep('upload');
         } catch (error) {
@@ -933,13 +1004,12 @@ export default function FixMyApp() {
                             <p className="text-xs text-slate-400">Import & fix broken AI-built apps</p>
                         </div>
                     </div>
-                    <Button
-                        variant="ghost"
+                    <button
                         onClick={() => navigate('/dashboard')}
-                        className="text-slate-400 hover:text-white"
+                        className={ghostButtonStyle}
                     >
                         Cancel
-                    </Button>
+                    </button>
                 </div>
             </header>
 
@@ -1101,17 +1171,17 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                <Button
+                                <button
                                     onClick={initSession}
                                     disabled={!source || isLoading || (sourceOptions.find(s => s.id === source)?.requiresUrl && !githubUrl)}
-                                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                    className={cn("w-full flex items-center justify-center gap-2", primaryButtonStyle)}
                                 >
                                     {isLoading ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Initializing...</>
+                                        <><Loader2 className="h-4 w-4 animate-spin" /> Initializing...</>
                                     ) : (
-                                        <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>
+                                        <>Continue <ArrowRight className="h-4 w-4" /></>
                                     )}
-                                </Button>
+                                </button>
                             </Card>
                         )}
 
@@ -1152,24 +1222,23 @@ export default function FixMyApp() {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <Button
-                                        variant="outline"
+                                    <button
                                         onClick={() => setStep('source')}
-                                        className="border-slate-700"
+                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
                                     >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                    <Button
+                                        <ArrowLeft className="h-4 w-4" /> Back
+                                    </button>
+                                    <button
                                         onClick={submitConsent}
                                         disabled={isLoading}
-                                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
                                         ) : (
-                                            <>Grant Access & Continue <ArrowRight className="ml-2 h-4 w-4" /></>
+                                            <>Grant Access & Continue <ArrowRight className="h-4 w-4" /></>
                                         )}
-                                    </Button>
+                                    </button>
                                 </div>
                             </Card>
                         )}
@@ -1205,12 +1274,12 @@ export default function FixMyApp() {
                                                 <div>
                                                     <h3 className="text-lg font-semibold text-white mb-2">Export Your Project</h3>
                                                     <p className="text-slate-400 text-sm">
-                                                        We've opened {sourceOptions.find(s => s.id === source)?.name} in a new tab. 
+                                                        We've opened {sourceOptions.find(s => s.id === source)?.name} in a new tab.
                                                         Follow these steps:
                                                     </p>
                                                 </div>
                                             </div>
-                                            
+
                                             <ol className="space-y-3 mb-6">
                                                 <li className="flex items-start gap-3">
                                                     <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">1</span>
@@ -1230,13 +1299,12 @@ export default function FixMyApp() {
                                                 </li>
                                             </ol>
 
-                                            <Button
+                                            <button
                                                 onClick={() => window.open(getPlatformUrl(), '_blank')}
-                                                variant="outline"
-                                                className="w-full border-slate-600 hover:bg-slate-800"
+                                                className={cn("w-full flex items-center justify-center gap-2", secondaryButtonStyle)}
                                             >
-                                                <Monitor className="mr-2 h-4 w-4" /> Open {sourceOptions.find(s => s.id === source)?.name} Again
-                                            </Button>
+                                                <Monitor className="h-4 w-4" /> Open {sourceOptions.find(s => s.id === source)?.name} Again
+                                            </button>
                                         </div>
 
                                         {/* Upload Section */}
@@ -1251,10 +1319,8 @@ export default function FixMyApp() {
                                                 className="hidden"
                                                 id="file-upload-ai-builder"
                                             />
-                                            <label htmlFor="file-upload-ai-builder">
-                                                <Button variant="outline" className="cursor-pointer border-slate-700" asChild>
-                                                    <span>Select Files</span>
-                                                </Button>
+                                            <label htmlFor="file-upload-ai-builder" className="cursor-pointer">
+                                                <span className={cn("inline-block", secondaryButtonStyle)}>Select Files</span>
                                             </label>
 
                                             {files.length > 0 && (
@@ -1281,10 +1347,8 @@ export default function FixMyApp() {
                                             className="hidden"
                                             id="file-upload"
                                         />
-                                        <label htmlFor="file-upload">
-                                            <Button variant="outline" className="cursor-pointer border-slate-700" asChild>
-                                                <span>Select Files</span>
-                                            </Button>
+                                        <label htmlFor="file-upload" className="cursor-pointer">
+                                            <span className={cn("inline-block", secondaryButtonStyle)}>Select Files</span>
                                         </label>
 
                                         {files.length > 0 && (
@@ -1306,24 +1370,23 @@ export default function FixMyApp() {
                                 {/* Footer Buttons */}
                                 {(
                                     <div className="flex gap-4">
-                                        <Button
-                                            variant="outline"
+                                        <button
                                             onClick={() => setStep('consent')}
-                                            className="border-slate-700"
+                                            className={cn("flex items-center gap-2", secondaryButtonStyle)}
                                         >
-                                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                        </Button>
-                                        <Button
+                                            <ArrowLeft className="h-4 w-4" /> Back
+                                        </button>
+                                        <button
                                             onClick={uploadFiles}
                                             disabled={isLoading || (source !== 'github' && files.length === 0)}
-                                            className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                            className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
                                         >
                                             {isLoading ? (
-                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentPhase}</>
+                                                <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
                                             ) : (
-                                                <>Import Files <ArrowRight className="ml-2 h-4 w-4" /></>
+                                                <>Import Files <ArrowRight className="h-4 w-4" /></>
                                             )}
-                                        </Button>
+                                        </button>
                                     </div>
                                 )}
                             </Card>
@@ -1393,32 +1456,30 @@ export default function FixMyApp() {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <Button
-                                        variant="outline"
+                                    <button
                                         onClick={() => setStep('upload')}
-                                        className="border-slate-700"
+                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
                                     >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                    <Button
-                                        variant="outline"
+                                        <ArrowLeft className="h-4 w-4" /> Back
+                                    </button>
+                                    <button
                                         onClick={runAnalysis}
-                                        className="border-slate-700 text-slate-400"
+                                        className={cn("flex items-center gap-2", ghostButtonStyle)}
                                     >
                                         Skip Context
-                                        <span className="ml-2 text-xs text-slate-500">(~60% success)</span>
-                                    </Button>
-                                    <Button
+                                        <span className="text-xs opacity-60">(~60%)</span>
+                                    </button>
+                                    <button
                                         onClick={submitContext}
                                         disabled={isLoading || !chatHistory.trim()}
-                                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentPhase}</>
+                                            <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
                                         ) : (
-                                            <>Analyze Context <ArrowRight className="ml-2 h-4 w-4" /></>
+                                            <>Analyze Context <ArrowRight className="h-4 w-4" /></>
                                         )}
-                                    </Button>
+                                    </button>
                                 </div>
                             </Card>
                         )}
@@ -1546,24 +1607,23 @@ export default function FixMyApp() {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <Button
-                                        variant="outline"
+                                    <button
                                         onClick={() => setStep('analysis')}
-                                        className="border-slate-700"
+                                        className={cn("flex items-center gap-2", secondaryButtonStyle)}
                                     >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                    <Button
+                                        <ArrowLeft className="h-4 w-4" /> Back
+                                    </button>
+                                    <button
                                         onClick={submitPreferences}
                                         disabled={isLoading}
-                                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                        className={cn("flex-1 flex items-center justify-center gap-2", primaryButtonStyle)}
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
                                         ) : (
-                                            <>Continue to Strategy <ArrowRight className="ml-2 h-4 w-4" /></>
+                                            <>Continue to Strategy <ArrowRight className="h-4 w-4" /></>
                                         )}
-                                    </Button>
+                                    </button>
                                 </div>
                             </Card>
                         )}
@@ -1706,14 +1766,14 @@ export default function FixMyApp() {
                                         </div>
                                     )}
 
-                                    <Button
+                                    <button
                                         onClick={startFix}
                                         disabled={!selectedStrategy}
-                                        className="w-full mt-6 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                        className={cn("w-full mt-6 flex items-center justify-center gap-3", ctaButtonStyle)}
                                     >
-                                        <Rocket className="mr-2 h-4 w-4" />
+                                        <Rocket className="h-5 w-5" />
                                         Start Fixing
-                                    </Button>
+                                    </button>
                                 </Card>
                             </div>
                         )}
@@ -1798,13 +1858,13 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                <Button
+                                <button
                                     onClick={goToBuilder}
-                                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold text-lg py-6"
+                                    className={cn("w-full flex items-center justify-center gap-3", ctaButtonStyle)}
                                 >
-                                    <Rocket className="mr-2 h-5 w-5" />
+                                    <Rocket className="h-5 w-5" />
                                     Open in Builder
-                                </Button>
+                                </button>
                             </Card>
                         )}
                     </motion.div>
