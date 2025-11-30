@@ -131,12 +131,7 @@ export const auth = betterAuth({
         // Enable signup
         requireEmailVerification: false,
     },
-    
-    // Logging for debugging
-    logger: {
-        disabled: false,
-        verboseLogging: true,
-    },
+
 
     // Social providers (only those with credentials)
     socialProviders,
@@ -154,37 +149,40 @@ export const auth = betterAuth({
     // Advanced configuration
     advanced: {
         // Use secure cookies in production (required for SameSite=None)
-        useSecureCookies: true,
+        useSecureCookies: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
         // Cross-site cookie settings - MUST be enabled for cross-origin auth
         crossSubDomainCookies: {
             enabled: false, // Different domains, not subdomains
         },
         // Cookie settings for cross-origin
         cookiePrefix: "kriptik_auth",
-        // Generate unique state for each OAuth request
-        generateState: true,
-        // Default cookie options for cross-origin
+        // Default cookie options for cross-origin (mobile compatible)
         defaultCookieAttributes: {
-            sameSite: "none", // Required for cross-origin requests
+            sameSite: "none" as const, // Required for cross-origin requests
             secure: true, // Required when sameSite is "none"
             httpOnly: true,
             path: "/",
+            // maxAge for better mobile compatibility
+            maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
         },
     },
 
     // Trust proxy for Vercel - include all allowed origins for callback URLs
     trustedOrigins: [
+        // Production
         "https://kriptik-ai-opus-build.vercel.app",
         "https://kriptik-ai-opus-build.vercel.app/dashboard",
         "https://kriptik-ai-opus-build.vercel.app/",
         "https://kriptik-ai-opus-build-backend.vercel.app",
+        // Custom URL from env
         process.env.FRONTEND_URL || "",
         `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/dashboard`,
+        // Development
         "http://localhost:5173",
         "http://localhost:5173/dashboard",
         "http://localhost:3000",
         "http://localhost:3000/dashboard",
-    ].filter(Boolean),
+    ].filter(Boolean) as string[],
 
     // Rate limiting (optional but recommended)
     rateLimit: {

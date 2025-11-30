@@ -273,7 +273,7 @@ router.get('/debug/auth', async (req: Request, res: Response) => {
             const userAccounts = allAccounts.filter(a => a.userId === user.id);
             const userSessions = allSessions.filter(s => s.userId === user.id);
             const userProjects = allProjects.filter(p => p.ownerId === user.id);
-            
+
             return {
                 ...user,
                 accounts: userAccounts,
@@ -458,7 +458,7 @@ router.post('/fix/cleanup-sessions', async (req: Request, res: Response) => {
 
     try {
         const now = new Date().toISOString();
-        
+
         // Delete expired sessions
         const result = await db
             .delete(sessions)

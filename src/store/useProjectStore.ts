@@ -43,7 +43,7 @@ function formatLastEdited(dateStr: string): string {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
@@ -55,20 +55,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     projects: [],
     currentProject: null,
     isLoading: false,
-    
-    addProject: (project) => set((state) => ({ 
-        projects: [...state.projects, project] 
+
+    addProject: (project) => set((state) => ({
+        projects: [...state.projects, project]
     })),
-    
+
     setCurrentProject: (project) => set({ currentProject: project }),
-    
+
     removeProject: async (id) => {
         try {
             // Delete from backend
             await apiClient.deleteProject(id);
-            
+
             // Remove from local state
-            set((state) => ({ 
+            set((state) => ({
                 projects: state.projects.filter(p => p.id !== id),
                 currentProject: state.currentProject?.id === id ? null : state.currentProject
             }));
@@ -77,33 +77,33 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             throw error;
         }
     },
-    
+
     updateProject: (id, updates) => set((state) => ({
         projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p),
-        currentProject: state.currentProject?.id === id 
-            ? { ...state.currentProject, ...updates } 
+        currentProject: state.currentProject?.id === id
+            ? { ...state.currentProject, ...updates }
             : state.currentProject
     })),
-    
+
     fetchProjects: async () => {
         // Don't fetch if already loading
         if (get().isLoading) return;
-        
+
         set({ isLoading: true });
-        
+
         try {
             console.log('[ProjectStore] Fetching projects from backend...');
             const result = await apiClient.getProjects();
-            
+
             const projects = result.projects.map(mapApiProject);
             console.log(`[ProjectStore] Loaded ${projects.length} projects`);
-            
+
             set({ projects, isLoading: false });
         } catch (error) {
             console.error('[ProjectStore] Failed to fetch projects:', error);
             set({ isLoading: false });
         }
     },
-    
+
     setProjects: (projects) => set({ projects }),
 }));

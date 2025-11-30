@@ -320,7 +320,7 @@ export default function MyStuff() {
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
-    
+
     // Fetch projects from backend on mount
     useEffect(() => {
         fetchProjects();

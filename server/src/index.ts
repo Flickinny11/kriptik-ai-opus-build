@@ -167,8 +167,9 @@ import { requireCredits } from './services/billing/credits.js';
 const allowedOrigins = [
     // Production frontend
     'https://kriptik-ai-opus-build.vercel.app',
-    // Vercel preview deployments (pattern matching)
-    /^https:\/\/kriptik-ai-opus-build-[a-z0-9]+-logans-projects-[a-z0-9]+\.vercel\.app$/,
+    // Vercel preview deployments - multiple patterns to catch all variations
+    /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app$/,
+    /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app$/,
     // Custom frontend URL from env
     process.env.FRONTEND_URL,
     // Development
@@ -177,6 +178,9 @@ const allowedOrigins = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
 ].filter(Boolean);
+
+// Log allowed origins for debugging
+console.log('[CORS] Allowed origins configured:', allowedOrigins.map(o => o instanceof RegExp ? o.toString() : o));
 
 // CRITICAL: Handle ALL OPTIONS preflight requests FIRST
 // This ensures CORS headers are always sent, even if route doesn't exist
@@ -197,7 +201,8 @@ app.use((req, res, next) => {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, x-user-id, X-User-Id');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, x-user-id, X-User-Id, Cookie, Set-Cookie');
+        res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
         res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
         return res.status(204).end();
     }
@@ -231,7 +236,8 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-user-id', 'X-User-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-user-id', 'X-User-Id', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
 }));
 app.use(express.json({ limit: '10mb' }));
 
@@ -284,14 +290,14 @@ app.use("/api/auth/callback", (req, res, next) => {
 // Add logging middleware before Better Auth
 app.use("/api/auth", (req, res, next) => {
     console.log(`[Auth] ${req.method} ${req.path} - Body keys: ${req.body ? Object.keys(req.body).join(', ') : 'none'}`);
-    
+
     // Capture response for logging
     const originalSend = res.send.bind(res);
     res.send = ((body: any) => {
         console.log(`[Auth] Response ${res.statusCode} for ${req.method} ${req.path}`);
         return originalSend(body);
     }) as typeof res.send;
-    
+
     next();
 }, toNodeHandler(auth));
 

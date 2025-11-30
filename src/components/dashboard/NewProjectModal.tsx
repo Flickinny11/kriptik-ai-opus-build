@@ -42,7 +42,7 @@ export default function NewProjectModal() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
-        
+
         try {
             // Create project via backend API (persists to database)
             const result = await apiClient.createProject({
@@ -50,9 +50,9 @@ export default function NewProjectModal() {
                 description: values.description || undefined,
                 framework: 'react',
             });
-            
+
             console.log('[NewProjectModal] Created project:', result.project);
-            
+
             // Also add to local store for immediate UI update
             addProject({
                 id: result.project.id,
@@ -63,7 +63,7 @@ export default function NewProjectModal() {
                 framework: result.project.framework,
                 status: "development" as const
             });
-            
+
             toast.success('Project created!');
             setOpen(false);
             navigate(`/builder/${result.project.id}`);
