@@ -21,7 +21,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +40,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
       setError('Please select an image file');
       return;
     }
-    
+
     if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
       setError('File size must be less than 10MB');
       return;
@@ -48,7 +48,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
 
     setFile(selectedFile);
     setError('');
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreview(e.target?.result as string);
@@ -70,7 +70,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
@@ -82,7 +82,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
 
     try {
       const imageSource = method === 'url' && imageUrl ? imageUrl : preview;
-      
+
       if (!imageSource) {
         throw new Error('No image to convert');
       }
@@ -260,7 +260,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                   >
                     ← Back to options
                   </button>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300">Image URL</label>
                     <input

@@ -66,7 +66,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
         framework: 'react',
         sourceRepo: repoUrl
       };
-      
+
       onComplete(result);
       handleClose();
     } catch (err) {
@@ -365,7 +365,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-800/50 bg-slate-900/50">
               <p className="text-xs text-slate-500 text-center">
-                {tab === 'clone' 
+                {tab === 'clone'
                   ? "Public repositories can be cloned without authentication."
                   : "GitHub sync requires OAuth connection for push access."}
               </p>

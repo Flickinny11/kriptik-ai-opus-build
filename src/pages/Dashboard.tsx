@@ -502,7 +502,7 @@ export default function Dashboard() {
                 onOpenChange={setGithubModalOpen}
                 onComplete={handleGitHubImportComplete}
             />
-            
+
             {/* Inject shine animation styles */}
             <style>{shineKeyframes}</style>
 
@@ -635,7 +635,7 @@ export default function Dashboard() {
                                             animation: 'shine 1.5s ease-in-out infinite',
                                         }}
                                     />
-                                    
+
                                     <div className="flex items-center gap-2 relative z-10">
                                         <Sparkles className="h-4 w-4 text-black" />
                                         <span className="font-semibold text-black">Generate</span>
@@ -696,7 +696,7 @@ export default function Dashboard() {
                                                 e.currentTarget.style.animationPlayState = 'running';
                                             }}
                                         />
-                                        
+
                                         <div className="flex items-center gap-2 relative z-10">
                                             {/* Render appropriate icon based on type */}
                                             {action.type === 'figma' && <FigmaLogo size={18} />}
@@ -816,10 +816,10 @@ export default function Dashboard() {
                                         animation: 'shine 1.5s ease-in-out infinite',
                                     }}
                                 />
-                                
+
                                 <div className="flex items-center gap-2 relative z-10">
                                     <FixBrokenAppIcon size={24} />
-                                    <span 
+                                    <span
                                         className="font-semibold"
                                         style={{
                                             color: 'rgba(234, 88, 12, 0.9)',
@@ -930,10 +930,10 @@ export default function Dashboard() {
                                                 animation: 'shine 1.5s ease-in-out infinite',
                                             }}
                                         />
-                                        
+
                                         <div className="flex items-center gap-2 relative z-10">
                                             <FixBrokenAppIcon size={28} />
-                                            <span 
+                                            <span
                                                 className="font-semibold"
                                                 style={{
                                                     color: 'rgba(234, 88, 12, 0.9)',
