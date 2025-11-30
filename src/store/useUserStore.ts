@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { authClient } from '../lib/auth-client';
+import { signInWithEmail, signUp as authSignUp, getSession, signOut as authSignOut } from '../lib/auth-client';
 import { setApiUserId } from '../lib/api-client';
 import { useCostStore } from './useCostStore';
 import { useProjectStore } from './useProjectStore';
@@ -82,9 +82,9 @@ export const useUserStore = create<UserState>((set) => ({
             useProjectStore.getState().fetchProjects();
         }
 
-        // Then try to get session from Better Auth (validates it's still valid)
+        // Then try to get session from auth API (validates it's still valid)
         try {
-            const { data: session, error } = await authClient.getSession();
+            const { data: session, error } = await getSession();
             console.log('[UserStore] Session response:', { hasSession: !!session?.user, error });
 
             if (session?.user) {
@@ -134,22 +134,17 @@ export const useUserStore = create<UserState>((set) => ({
         console.log('[UserStore] Logging in with email:', email);
 
         try {
-            const result = await authClient.signIn.email({
-                email,
-                password,
-            });
+            // Use direct auth function for better mobile compatibility
+            await signInWithEmail(email, password);
 
-            console.log('[UserStore] Login result:', result);
+            console.log('[UserStore] Login successful, fetching session...');
 
-            if (result.error) {
-                console.error('[UserStore] Login error:', result.error);
-                set({ isLoading: false });
-                throw new Error(result.error.message || 'Invalid credentials');
-            }
+            // Small delay to ensure cookie is set
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Refresh session to get user data
-            const { data: session, error: sessionError } = await authClient.getSession();
-            console.log('[UserStore] Post-login session:', session, sessionError);
+            const { data: session } = await getSession();
+            console.log('[UserStore] Post-login session:', session);
 
             if (session?.user) {
                 const user = {
@@ -192,26 +187,17 @@ export const useUserStore = create<UserState>((set) => ({
         console.log('[UserStore] Signing up:', { email, name });
 
         try {
-            const result = await authClient.signUp.email({
-                email,
-                password,
-                name,
-            });
+            // Use direct auth function for better mobile compatibility
+            await authSignUp(email, password, name);
 
-            console.log('[UserStore] Signup result:', result);
+            console.log('[UserStore] Signup successful, fetching session...');
 
-            if (result.error) {
-                console.error('[UserStore] Signup error:', result.error);
-                set({ isLoading: false });
-                throw new Error(result.error.message || 'Failed to create account');
-            }
-
-            // Small delay to ensure session is created
+            // Small delay to ensure cookie is set
             await new Promise(resolve => setTimeout(resolve, 500));
 
             // Refresh session to get user data
-            const { data: session, error: sessionError } = await authClient.getSession();
-            console.log('[UserStore] Post-signup session:', session, sessionError);
+            const { data: session } = await getSession();
+            console.log('[UserStore] Post-signup session:', session);
 
             if (session?.user) {
                 const user = {
@@ -254,7 +240,7 @@ export const useUserStore = create<UserState>((set) => ({
         console.log('[UserStore] Logging out...');
 
         try {
-            await authClient.signOut();
+            await authSignOut();
         } catch (e) {
             console.warn('[UserStore] Sign out error:', e);
         }
