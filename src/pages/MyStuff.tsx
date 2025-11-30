@@ -9,13 +9,13 @@
  * - Premium visual design with microanimations
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MoreVertical, Pencil, Trash2, Copy, Share2, Download,
     Plus, Search, Grid3X3, List, Calendar,
-    ExternalLink, Wrench
+    ExternalLink, Wrench, Loader2
 } from 'lucide-react';
 import { useProjectStore } from '../store/useProjectStore';
 import type { Project } from '../store/useProjectStore';
@@ -314,12 +314,17 @@ function ImportModal({
 // Main component
 export default function MyStuff() {
     const navigate = useNavigate();
-    const { projects, addProject, removeProject } = useProjectStore();
+    const { projects, addProject, removeProject, fetchProjects, isLoading } = useProjectStore();
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchQuery, setSearchQuery] = useState('');
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const [showFixMyAppIntro, setShowFixMyAppIntro] = useState(false);
+    
+    // Fetch projects from backend on mount
+    useEffect(() => {
+        fetchProjects();
+    }, [fetchProjects]);
 
     // Filter projects by search
     const filteredProjects = projects.filter((p) =>
@@ -498,7 +503,12 @@ export default function MyStuff() {
                 </div>
 
                 {/* Projects grid */}
-                {filteredProjects.length > 0 ? (
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="h-12 w-12 animate-spin text-amber-400 mb-4" />
+                        <p className="text-slate-400">Loading your projects...</p>
+                    </div>
+                ) : filteredProjects.length > 0 ? (
                     <div className={cn(
                         viewMode === 'grid'
                             ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"

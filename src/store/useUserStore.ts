@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { authClient } from '../lib/auth-client';
 import { setApiUserId } from '../lib/api-client';
 import { useCostStore } from './useCostStore';
+import { useProjectStore } from './useProjectStore';
 
 interface User {
     id: string;
@@ -76,8 +77,9 @@ export const useUserStore = create<UserState>((set) => ({
                 isLoading: false
             });
 
-            // Fetch credits in background
+            // Fetch credits and projects in background
             useCostStore.getState().fetchCredits();
+            useProjectStore.getState().fetchProjects();
         }
 
         // Then try to get session from Better Auth (validates it's still valid)
@@ -103,8 +105,9 @@ export const useUserStore = create<UserState>((set) => ({
                     isLoading: false
                 });
 
-                // Fetch credits
+                // Fetch credits and projects
                 useCostStore.getState().fetchCredits();
+                useProjectStore.getState().fetchProjects();
             } else if (!storedUser) {
                 // No session and no stored user
                 console.log('[UserStore] No session found');
@@ -166,8 +169,9 @@ export const useUserStore = create<UserState>((set) => ({
                     isLoading: false
                 });
 
-                // Fetch credits
+                // Fetch credits and projects
                 useCostStore.getState().fetchCredits();
+                useProjectStore.getState().fetchProjects();
             } else {
                 console.warn('[UserStore] Login succeeded but no session found');
                 set({ isLoading: false });
@@ -227,8 +231,9 @@ export const useUserStore = create<UserState>((set) => ({
                     isLoading: false
                 });
 
-                // Fetch credits
+                // Fetch credits and projects
                 useCostStore.getState().fetchCredits();
+                useProjectStore.getState().fetchProjects();
             } else {
                 console.warn('[UserStore] Signup succeeded but no session found');
                 set({ isLoading: false });

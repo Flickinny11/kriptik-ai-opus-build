@@ -18,6 +18,8 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Plus, Loader2 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
+import { apiClient } from '../../lib/api-client';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
     name: z.string().min(1, "Project name is required"),
@@ -40,23 +42,37 @@ export default function NewProjectModal() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
-        // Simulate creation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const newProject = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: values.name,
-            description: values.description || "",
-            createdAt: new Date(),
-            lastEdited: "Just now",
-            framework: "React + Vite",
-            status: "development" as const
-        };
-
-        addProject(newProject);
-        setIsLoading(false);
-        setOpen(false);
-        navigate(`/builder/${newProject.id}`);
+        
+        try {
+            // Create project via backend API (persists to database)
+            const result = await apiClient.createProject({
+                name: values.name,
+                description: values.description || undefined,
+                framework: 'react',
+            });
+            
+            console.log('[NewProjectModal] Created project:', result.project);
+            
+            // Also add to local store for immediate UI update
+            addProject({
+                id: result.project.id,
+                name: result.project.name,
+                description: result.project.description || "",
+                createdAt: new Date(result.project.createdAt),
+                lastEdited: "Just now",
+                framework: result.project.framework,
+                status: "development" as const
+            });
+            
+            toast.success('Project created!');
+            setOpen(false);
+            navigate(`/builder/${result.project.id}`);
+        } catch (error: unknown) {
+            console.error('[NewProjectModal] Failed to create project:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to create project');
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
