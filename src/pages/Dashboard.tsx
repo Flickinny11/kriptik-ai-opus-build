@@ -15,7 +15,6 @@ import NewProjectModal from '../components/dashboard/NewProjectModal';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
-    Sparkles,
     ArrowRight,
     Clock,
     MoreHorizontal,
@@ -34,11 +33,13 @@ import {
     UploadDesignIcon,
     ImageToCodeIcon,
     LandingPageIcon,
-    DashboardIcon,
+    DashboardIcon as DashboardAbstractIcon,
     SaasAppIcon,
     FixBrokenAppIcon
 } from '../components/ui/AbstractIcons';
 import { Layers } from 'lucide-react';
+import { GenerateButton3D } from '../components/ui/GenerateButton3D';
+import '../components/ui/premium-buttons/Premium3DButtons.css';
 
 // Figma Logo SVG (from Simple Icons)
 const FigmaLogo = ({ size = 20 }: { size?: number }) => (
@@ -72,21 +73,6 @@ const PROMPT_IDEAS = [
     "Make a personal finance tracker...",
 ];
 
-// Action buttons for project creation - styled with glass morphism
-const ACTION_BUTTONS = [
-    { id: 'upload', label: 'Upload Design', type: 'abstract' as const },
-    { id: 'figma', label: 'Import from Figma', type: 'figma' as const },
-    { id: 'github', label: 'Clone from GitHub', type: 'github' as const },
-    { id: 'image', label: 'Image to Code', type: 'abstract' as const },
-];
-
-// Shine animation keyframes (for CSS-in-JS)
-const shineKeyframes = `
-@keyframes shine {
-  0% { transform: translateX(-100%) rotate(15deg); }
-  100% { transform: translateX(200%) rotate(15deg); }
-}
-`;
 
 // Animated typing placeholder
 function AnimatedPlaceholder() {
@@ -270,42 +256,50 @@ function ProjectThumbnail({ project }: { project: any }) {
     return (
         <button
             onClick={() => navigate(`/builder/${project.id}`)}
-            className={cn(
-                "group relative rounded-2xl overflow-hidden",
-                "bg-slate-900 border border-slate-800",
-                "hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10",
-                "transition-all duration-300",
-                "text-left"
-            )}
+            className="group relative rounded-2xl overflow-hidden text-left transition-all duration-300"
+            style={{
+                background: 'linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%)',
+                border: '1px solid #2a2a2a',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1)',
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.5)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(220, 38, 38, 0.15), 0 4px 12px rgba(0,0,0,0.15)';
+                e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#2a2a2a';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+            }}
         >
             {/* Thumbnail preview */}
-            <div className="aspect-[16/10] bg-gradient-to-br from-slate-800 to-slate-900 relative overflow-hidden">
+            <div className="aspect-[16/10] relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1f1f1f 0%, #141414 100%)' }}>
                 {/* Fake browser chrome */}
-                <div className="absolute top-0 left-0 right-0 h-6 bg-slate-800/80 backdrop-blur flex items-center gap-1.5 px-3">
-                    <div className="w-2 h-2 rounded-full bg-red-400/60" />
-                    <div className="w-2 h-2 rounded-full bg-yellow-400/60" />
-                    <div className="w-2 h-2 rounded-full bg-green-400/60" />
-                    <div className="flex-1 mx-3 h-3 bg-slate-700 rounded-full" />
+                <div className="absolute top-0 left-0 right-0 h-6 backdrop-blur flex items-center gap-1.5 px-3" style={{ background: 'rgba(30, 30, 30, 0.9)' }}>
+                    <div className="w-2 h-2 rounded-full" style={{ background: '#dc2626' }} />
+                    <div className="w-2 h-2 rounded-full" style={{ background: '#525252' }} />
+                    <div className="w-2 h-2 rounded-full" style={{ background: '#525252' }} />
+                    <div className="flex-1 mx-3 h-3 rounded-full" style={{ background: '#2a2a2a' }} />
                 </div>
 
                 {/* Placeholder content lines */}
                 <div className="absolute inset-0 pt-10 p-4 space-y-2">
-                    <div className="h-8 w-24 bg-slate-700/50 rounded" />
-                    <div className="h-3 w-full bg-slate-700/30 rounded" />
-                    <div className="h-3 w-3/4 bg-slate-700/30 rounded" />
+                    <div className="h-8 w-24 rounded" style={{ background: '#2a2a2a' }} />
+                    <div className="h-3 w-full rounded" style={{ background: 'rgba(42, 42, 42, 0.5)' }} />
+                    <div className="h-3 w-3/4 rounded" style={{ background: 'rgba(42, 42, 42, 0.5)' }} />
                     <div className="grid grid-cols-3 gap-2 mt-4">
-                        <div className="h-16 bg-slate-700/30 rounded" />
-                        <div className="h-16 bg-slate-700/30 rounded" />
-                        <div className="h-16 bg-slate-700/30 rounded" />
+                        <div className="h-16 rounded" style={{ background: 'rgba(42, 42, 42, 0.5)' }} />
+                        <div className="h-16 rounded" style={{ background: 'rgba(42, 42, 42, 0.5)' }} />
+                        <div className="h-16 rounded" style={{ background: 'rgba(42, 42, 42, 0.5)' }} />
                     </div>
                 </div>
 
                 {/* Hover overlay */}
-                <div className={cn(
-                    "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent",
-                    "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                    "flex items-end justify-center pb-4"
-                )}>
+                <div 
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4"
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}
+                >
                     <span className="flex items-center gap-2 text-sm text-white font-medium">
                         Continue Building <ArrowRight className="h-4 w-4" />
                     </span>
@@ -316,17 +310,20 @@ function ProjectThumbnail({ project }: { project: any }) {
             <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                        <h3 className="font-semibold text-white truncate">{project.name}</h3>
+                        <h3 className="font-semibold truncate" style={{ color: '#e5e5e5' }}>{project.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                            <Clock className="h-3 w-3 text-slate-500" />
-                            <span className="text-xs text-slate-500">
+                            <Clock className="h-3 w-3" style={{ color: '#525252' }} />
+                            <span className="text-xs" style={{ color: '#525252' }}>
                                 Updated 2h ago
                             </span>
                         </div>
                     </div>
                     <button
                         onClick={(e) => { e.stopPropagation(); }}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: '#737373' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.color = '#e5e5e5'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#737373'; }}
                     >
                         <MoreHorizontal className="h-4 w-4" />
                     </button>
@@ -334,10 +331,10 @@ function ProjectThumbnail({ project }: { project: any }) {
 
                 {/* Tags */}
                 <div className="flex gap-2 mt-3">
-                    <span className="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-400">
+                    <span className="px-2 py-0.5 text-xs rounded-full" style={{ background: '#2a2a2a', color: '#a3a3a3' }}>
                         {project.framework || 'React'}
                     </span>
-                    <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">
+                    <span className="px-2 py-0.5 text-xs rounded-full" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}>
                         Active
                     </span>
                 </div>
@@ -469,7 +466,7 @@ export default function Dashboard() {
     }, [addProject, navigate]);
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8f7f4 0%, #f0ede8 50%, #e8e4dd 100%)' }}>
             {/* Hover Sidebar */}
             <HoverSidebar />
 
@@ -503,11 +500,8 @@ export default function Dashboard() {
                 onComplete={handleGitHubImportComplete}
             />
 
-            {/* Inject shine animation styles */}
-            <style>{shineKeyframes}</style>
-
             {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'rgba(248, 247, 244, 0.85)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     {/* Hand-drawn arrow hint + Logo + Title */}
                     <div className="flex items-center gap-2">
@@ -535,12 +529,12 @@ export default function Dashboard() {
                 {/* Hero section with prompt */}
                 <div className="max-w-4xl mx-auto text-center mb-12">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                        <span className="text-white">What do you want to</span>{' '}
-                        <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                        <span style={{ color: '#1a1a1a' }}>What do you want to</span>{' '}
+                        <span className="bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
                             build today?
                         </span>
                     </h1>
-                    <p className="text-slate-400 text-lg mb-8">
+                    <p className="text-lg mb-8" style={{ color: '#525252' }}>
                         Describe your app and let AI bring it to life in minutes
                     </p>
 
@@ -548,14 +542,20 @@ export default function Dashboard() {
                     <div className={cn(
                         "relative rounded-2xl transition-all duration-300",
                         isFocused
-                            ? "shadow-xl shadow-amber-500/20"
-                            : "shadow-lg shadow-black/20"
-                    )}>
-                        <div className={cn(
-                            "relative rounded-2xl overflow-hidden",
-                            "bg-slate-900 border-2",
-                            isFocused ? "border-amber-500/50" : "border-slate-800"
-                        )}>
+                            ? "shadow-xl"
+                            : "shadow-lg"
+                    )}
+                    style={{
+                        boxShadow: isFocused 
+                            ? '0 20px 50px rgba(220, 38, 38, 0.15), 0 10px 20px rgba(0,0,0,0.1)' 
+                            : '0 10px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)'
+                    }}>
+                        <div 
+                            className="relative rounded-2xl overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%)',
+                                border: isFocused ? '2px solid rgba(220, 38, 38, 0.5)' : '2px solid #2a2a2a'
+                            }}>
                             <div className="relative">
                                 <textarea
                                     value={prompt}
@@ -564,12 +564,8 @@ export default function Dashboard() {
                                     onFocus={() => setIsFocused(true)}
                                     onBlur={() => setIsFocused(false)}
                                     placeholder=""
-                                    className={cn(
-                                        "w-full min-h-[120px] p-5 pr-24 resize-none",
-                                        "bg-transparent text-white text-lg",
-                                        "placeholder:text-slate-500",
-                                        "focus:outline-none"
-                                    )}
+                                    className="w-full min-h-[120px] p-5 pr-40 resize-none bg-transparent text-lg focus:outline-none"
+                                    style={{ color: '#e5e5e5', fontFamily: 'Inter, sans-serif' }}
                                     rows={3}
                                 />
 
@@ -580,175 +576,105 @@ export default function Dashboard() {
                                     </div>
                                 )}
 
-                                {/* Generate button with 3D glass morphism */}
-                                <button
-                                    onClick={handleGenerate}
-                                    disabled={!prompt.trim()}
-                                    className="absolute bottom-4 right-4 group overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{
-                                        background: prompt.trim()
-                                            ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.95) 0%, rgba(249, 115, 22, 0.95) 100%)'
-                                            : 'linear-gradient(135deg, rgba(100, 100, 110, 0.4) 0%, rgba(80, 80, 90, 0.4) 100%)',
-                                        backdropFilter: 'blur(8px)',
-                                        boxShadow: prompt.trim()
-                                            ? `
-                                                0 4px 0 rgba(180, 100, 0, 0.5),
-                                                0 8px 20px rgba(251, 191, 36, 0.4),
-                                                inset 0 1px 0 rgba(255,255,255,0.3),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `
-                                            : 'none',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        borderRadius: '14px',
-                                        padding: '12px 24px',
-                                        fontFamily: 'Syne, sans-serif',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (prompt.trim()) {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = `
-                                                0 6px 0 rgba(180, 100, 0, 0.5),
-                                                0 12px 28px rgba(251, 191, 36, 0.5),
-                                                inset 0 1px 0 rgba(255,255,255,0.4),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `;
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        if (prompt.trim()) {
-                                            e.currentTarget.style.boxShadow = `
-                                                0 4px 0 rgba(180, 100, 0, 0.5),
-                                                0 8px 20px rgba(251, 191, 36, 0.4),
-                                                inset 0 1px 0 rgba(255,255,255,0.3),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `;
-                                        }
-                                    }}
-                                >
-                                    {/* Shine effect */}
-                                    <div
-                                        className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
-                                        style={{
-                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                                            animation: 'shine 1.5s ease-in-out infinite',
-                                        }}
+                                {/* Generate button with 3D effects */}
+                                <div className="absolute bottom-4 right-4">
+                                    <GenerateButton3D
+                                        onClick={handleGenerate}
+                                        disabled={!prompt.trim()}
                                     />
-
-                                    <div className="flex items-center gap-2 relative z-10">
-                                        <Sparkles className="h-4 w-4 text-black" />
-                                        <span className="font-semibold text-black">Generate</span>
-                                    </div>
-                                </button>
+                                </div>
                             </div>
 
-                            {/* Action buttons with glass morphism */}
-                            <div className="border-t border-slate-800 px-4 py-3 flex items-center gap-3 flex-wrap">
-                                {ACTION_BUTTONS.map((action) => (
-                                    <button
-                                        key={action.id}
-                                        onClick={() => handleActionClick(action.id)}
-                                        className="group relative overflow-hidden"
-                                        style={{
-                                            background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%)',
-                                            backdropFilter: 'blur(10px)',
-                                            boxShadow: `
-                                                0 2px 0 rgba(0,0,0,0.3),
-                                                0 4px 12px rgba(0, 0, 0, 0.4),
-                                                inset 0 1px 0 rgba(255,255,255,0.08),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `,
-                                            border: '1px solid rgba(255,255,255,0.08)',
-                                            borderRadius: '12px',
-                                            padding: '8px 14px',
-                                            fontFamily: 'Syne, sans-serif',
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = `
-                                                0 4px 0 rgba(0,0,0,0.3),
-                                                0 8px 20px rgba(0, 0, 0, 0.5),
-                                                inset 0 1px 0 rgba(255,255,255,0.12),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = `
-                                                0 2px 0 rgba(0,0,0,0.3),
-                                                0 4px 12px rgba(0, 0, 0, 0.4),
-                                                inset 0 1px 0 rgba(255,255,255,0.08),
-                                                inset 0 -1px 0 rgba(0,0,0,0.2)
-                                            `;
-                                        }}
-                                    >
-                                        {/* Shine effect */}
-                                        <div
-                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
-                                            style={{
-                                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
-                                                animation: 'shine 1.5s ease-in-out infinite',
-                                                animationPlayState: 'paused',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.animationPlayState = 'running';
-                                            }}
-                                        />
-
-                                        <div className="flex items-center gap-2 relative z-10">
-                                            {/* Render appropriate icon based on type */}
-                                            {action.type === 'figma' && <FigmaLogo size={18} />}
-                                            {action.type === 'github' && <GitHubLogo size={18} />}
-                                            {action.id === 'upload' && <UploadDesignIcon size={22} />}
-                                            {action.id === 'image' && <ImageToCodeIcon size={22} />}
-                                            <span className="text-sm text-white font-medium hidden sm:inline">
-                                                {action.label}
-                                            </span>
-                                        </div>
-                                    </button>
-                                ))}
+                            {/* Action buttons with premium 3D styling */}
+                            <div className="px-4 py-3 flex items-center gap-3 flex-wrap" style={{ borderTop: '1px solid #2a2a2a' }}>
+                                {/* Upload Design */}
+                                <button
+                                    onClick={() => handleActionClick('upload')}
+                                    className="btn-3d btn-upload"
+                                    style={{ padding: '12px 20px', gap: '10px' }}
+                                >
+                                    <div className="btn-icon" style={{ width: '36px', height: '36px' }}>
+                                        <UploadDesignIcon size={28} />
+                                    </div>
+                                    <span className="btn-text hidden sm:inline">Upload Design</span>
+                                </button>
+                                
+                                {/* Import from Figma */}
+                                <button
+                                    onClick={() => handleActionClick('figma')}
+                                    className="btn-3d btn-new-project"
+                                    style={{ padding: '12px 20px', gap: '10px' }}
+                                >
+                                    <div className="btn-icon" style={{ width: '36px', height: '36px', background: 'transparent' }}>
+                                        <FigmaLogo size={24} />
+                                    </div>
+                                    <span className="btn-text hidden sm:inline">Import from Figma</span>
+                                </button>
+                                
+                                {/* Clone from GitHub */}
+                                <button
+                                    onClick={() => handleActionClick('github')}
+                                    className="btn-3d btn-new-project"
+                                    style={{ padding: '12px 20px', gap: '10px' }}
+                                >
+                                    <div className="btn-icon" style={{ width: '36px', height: '36px', background: 'transparent' }}>
+                                        <GitHubLogo size={22} />
+                                    </div>
+                                    <span className="btn-text hidden sm:inline">Clone from GitHub</span>
+                                </button>
+                                
+                                {/* Image to Code */}
+                                <button
+                                    onClick={() => handleActionClick('image')}
+                                    className="btn-3d btn-image-to-code"
+                                    style={{ padding: '12px 20px' }}
+                                >
+                                    <div className="btn-icon" style={{ width: '60px' }}>
+                                        <ImageToCodeIcon size={40} />
+                                    </div>
+                                    <span className="btn-text hidden sm:inline">Image to Code</span>
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Quick templates with abstract icons */}
-                    <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
-                        <span className="text-sm text-slate-500" style={{ fontFamily: 'Syne, sans-serif' }}>Quick start:</span>
+                    {/* Quick templates with premium 3D styling */}
+                    <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
+                        <span className="text-sm" style={{ color: '#737373', fontFamily: 'Space Grotesk, sans-serif' }}>Quick start:</span>
                         {[
                             { icon: LandingPageIcon, label: 'Landing Page' },
-                            { icon: DashboardIcon, label: 'Dashboard' },
+                            { icon: DashboardAbstractIcon, label: 'Dashboard' },
                             { icon: SaasAppIcon, label: 'SaaS App' },
                         ].map((template) => (
                             <button
                                 key={template.label}
                                 onClick={() => setPrompt(`Build a ${template.label.toLowerCase()} with modern design...`)}
-                                className="group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-200"
+                                className="btn-3d"
                                 style={{
-                                    background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.6) 0%, rgba(20, 20, 30, 0.7) 100%)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                    fontFamily: 'Syne, sans-serif',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(40, 40, 50, 0.8) 0%, rgba(30, 30, 40, 0.9) 100%)';
-                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30, 30, 40, 0.6) 0%, rgba(20, 20, 30, 0.7) 100%)';
-                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                                    padding: '10px 18px',
+                                    gap: '10px',
+                                    background: 'linear-gradient(145deg, #262626 0%, #171717 100%)',
+                                    animation: 'none',
                                 }}
                             >
-                                <template.icon size={20} />
-                                <span className="text-sm text-slate-400 group-hover:text-white transition-colors">
+                                <div className="btn-icon" style={{ width: '32px', height: '32px', background: 'transparent' }}>
+                                    <template.icon size={28} />
+                                </div>
+                                <span className="btn-text" style={{ fontSize: '13px', fontFamily: 'Inter, sans-serif' }}>
                                     {template.label}
                                 </span>
                             </button>
                         ))}
                         <button
                             onClick={() => setGalleryOpen(true)}
-                            className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
-                            style={{ fontFamily: 'Syne, sans-serif' }}
+                            className="text-sm transition-colors"
+                            style={{ 
+                                color: '#dc2626', 
+                                fontFamily: 'Space Grotesk, sans-serif',
+                                fontWeight: 600,
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#dc2626'}
                         >
                             View all templates →
                         </button>
@@ -760,75 +686,26 @@ export default function Dashboard() {
                     {/* Section Header with Actions */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                            <h2 className="text-2xl font-bold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
                                 My Stuff
                             </h2>
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-sm mt-1" style={{ color: '#737373' }}>
                                 {projects.length} project{projects.length !== 1 ? 's' : ''} • Build something new or fix an existing app
                             </p>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-3">
-                            {/* Fix Broken App Button - Off-white frosted glass */}
+                        <div className="flex items-center gap-4">
+                            {/* Fix Broken App Button - Premium 3D */}
                             <button
                                 onClick={() => setShowFixMyAppIntro(true)}
-                                className="group relative overflow-hidden"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(255, 250, 245, 0.12) 0%, rgba(240, 235, 230, 0.08) 100%)',
-                                    backdropFilter: 'blur(12px)',
-                                    boxShadow: `
-                                        0 4px 0 rgba(0,0,0,0.2),
-                                        0 8px 24px rgba(0, 0, 0, 0.3),
-                                        inset 0 1px 0 rgba(255,255,255,0.2),
-                                        inset 0 -1px 0 rgba(0,0,0,0.1)
-                                    `,
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    borderRadius: '14px',
-                                    padding: '10px 20px',
-                                    fontFamily: 'Syne, sans-serif',
-                                    transition: 'all 0.2s ease',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = `
-                                        0 6px 0 rgba(0,0,0,0.2),
-                                        0 12px 30px rgba(0, 0, 0, 0.4),
-                                        inset 0 1px 0 rgba(255,255,255,0.25),
-                                        inset 0 -1px 0 rgba(0,0,0,0.1)
-                                    `;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = `
-                                        0 4px 0 rgba(0,0,0,0.2),
-                                        0 8px 24px rgba(0, 0, 0, 0.3),
-                                        inset 0 1px 0 rgba(255,255,255,0.2),
-                                        inset 0 -1px 0 rgba(0,0,0,0.1)
-                                    `;
-                                }}
+                                className="btn-3d btn-fix"
+                                style={{ padding: '14px 24px', gap: '12px' }}
                             >
-                                {/* Shine effect */}
-                                <div
-                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
-                                    style={{
-                                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
-                                        animation: 'shine 1.5s ease-in-out infinite',
-                                    }}
-                                />
-
-                                <div className="flex items-center gap-2 relative z-10">
-                                    <FixBrokenAppIcon size={24} />
-                                    <span
-                                        className="font-semibold"
-                                        style={{
-                                            color: 'rgba(234, 88, 12, 0.9)',
-                                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                                        }}
-                                    >
-                                        Fix Broken App
-                                    </span>
+                                <div className="btn-icon" style={{ width: '40px', height: '40px' }}>
+                                    <FixBrokenAppIcon size={32} />
                                 </div>
+                                <span className="btn-text">Fix Broken App</span>
                             </button>
 
                             {/* Create New Button */}
@@ -839,8 +716,8 @@ export default function Dashboard() {
                     {/* Loading State - only show when authenticated and loading */}
                     {(projectsLoading || authLoading) && isAuthenticated && (
                         <div className="flex flex-col items-center justify-center py-16">
-                            <Loader2 className="h-10 w-10 animate-spin text-amber-400 mb-4" />
-                            <p className="text-slate-400">Loading your projects...</p>
+                            <Loader2 className="h-10 w-10 animate-spin mb-4" style={{ color: '#dc2626' }} />
+                            <p style={{ color: '#737373' }}>Loading your projects...</p>
                         </div>
                     )}
 
@@ -855,31 +732,34 @@ export default function Dashboard() {
 
                     {/* Empty State */}
                     {!projectsLoading && !authLoading && projects.length === 0 && (
-                        <div className="relative rounded-3xl overflow-hidden">
-                            {/* Background gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/50 to-slate-900/80" />
-
+                        <div 
+                            className="relative rounded-3xl overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%)',
+                                boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
+                            }}
+                        >
                             <div className="relative py-16 px-8 text-center">
                                 {/* 3D Icon Container */}
                                 <div
                                     className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
                                     style={{
-                                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)',
+                                        background: 'linear-gradient(145deg, #262626 0%, #1a1a1a 100%)',
                                         boxShadow: `
-                                            0 8px 0 rgba(0,0,0,0.2),
-                                            0 16px 40px rgba(0,0,0,0.3),
-                                            inset 0 1px 0 rgba(255,255,255,0.1)
+                                            0 8px 0 rgba(0,0,0,0.3),
+                                            0 16px 40px rgba(0,0,0,0.4),
+                                            inset 0 1px 0 rgba(255,255,255,0.08)
                                         `,
-                                        border: '1px solid rgba(251, 191, 36, 0.2)',
+                                        border: '1px solid #2a2a2a',
                                     }}
                                 >
-                                    <Layers className="h-10 w-10 text-amber-400" />
+                                    <Layers className="h-10 w-10" style={{ color: '#dc2626' }} />
                                 </div>
 
-                                <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: 'Syne, sans-serif' }}>
+                                <h3 className="text-2xl font-bold mb-3" style={{ color: '#e5e5e5', fontFamily: 'Syne, sans-serif' }}>
                                     Ready to build something amazing?
                                 </h3>
-                                <p className="text-slate-400 max-w-md mx-auto mb-8">
+                                <p className="max-w-md mx-auto mb-8" style={{ color: '#737373' }}>
                                     Enter a prompt above to generate your first app, browse our templates, or import an existing project.
                                 </p>
 
@@ -887,62 +767,13 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-center gap-4 flex-wrap">
                                     <button
                                         onClick={() => setShowFixMyAppIntro(true)}
-                                        className="group relative overflow-hidden"
-                                        style={{
-                                            background: 'linear-gradient(135deg, rgba(255, 250, 245, 0.12) 0%, rgba(240, 235, 230, 0.08) 100%)',
-                                            backdropFilter: 'blur(12px)',
-                                            boxShadow: `
-                                                0 4px 0 rgba(0,0,0,0.2),
-                                                0 8px 24px rgba(0, 0, 0, 0.3),
-                                                inset 0 1px 0 rgba(255,255,255,0.2),
-                                                inset 0 -1px 0 rgba(0,0,0,0.1)
-                                            `,
-                                            border: '1px solid rgba(255,255,255,0.15)',
-                                            borderRadius: '14px',
-                                            padding: '12px 24px',
-                                            fontFamily: 'Syne, sans-serif',
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = `
-                                                0 6px 0 rgba(0,0,0,0.2),
-                                                0 12px 30px rgba(0, 0, 0, 0.4),
-                                                inset 0 1px 0 rgba(255,255,255,0.25),
-                                                inset 0 -1px 0 rgba(0,0,0,0.1)
-                                            `;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = `
-                                                0 4px 0 rgba(0,0,0,0.2),
-                                                0 8px 24px rgba(0, 0, 0, 0.3),
-                                                inset 0 1px 0 rgba(255,255,255,0.2),
-                                                inset 0 -1px 0 rgba(0,0,0,0.1)
-                                            `;
-                                        }}
+                                        className="btn-3d btn-fix"
+                                        style={{ padding: '14px 24px', gap: '12px' }}
                                     >
-                                        {/* Shine effect */}
-                                        <div
-                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
-                                            style={{
-                                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
-                                                animation: 'shine 1.5s ease-in-out infinite',
-                                            }}
-                                        />
-
-                                        <div className="flex items-center gap-2 relative z-10">
-                                            <FixBrokenAppIcon size={28} />
-                                            <span
-                                                className="font-semibold"
-                                                style={{
-                                                    color: 'rgba(234, 88, 12, 0.9)',
-                                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                                                }}
-                                            >
-                                                Fix Broken App
-                                            </span>
+                                        <div className="btn-icon" style={{ width: '40px', height: '40px' }}>
+                                            <FixBrokenAppIcon size={32} />
                                         </div>
+                                        <span className="btn-text">Fix Broken App</span>
                                     </button>
 
                                     <NewProjectModal />
