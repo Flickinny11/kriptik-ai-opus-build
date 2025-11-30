@@ -12,7 +12,7 @@ import {
     Upload, Github, Code, FileArchive, Sparkles, AlertCircle,
     CheckCircle2, ArrowRight, ArrowLeft, Loader2, Bug,
     Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper,
-    Lock, Download, Monitor, Play
+    Download, Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -26,7 +26,6 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
-import { EmbeddedBrowserFrame } from '@/components/fix-my-app/EmbeddedBrowserFrame';
 
 // Types - All supported AI builders and platforms
 type ImportSource =
@@ -588,16 +587,9 @@ export default function FixMyApp() {
     const [uiPreference, setUiPreference] = useState<UIPreference>('improve_ui');
     const [additionalInstructions, setAdditionalInstructions] = useState('');
 
-    // Embedded Browser State
-    const [browserPhase, setBrowserPhase] = useState<'idle' | 'user_control' | 'takeover' | 'extracting' | 'analyzing' | 'complete'>('idle');
+    // Browser state (simplified - just for opening new tabs)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [browserScreenshot, _setBrowserScreenshot] = useState<string | null>(null);
-    const [browserUrl, setBrowserUrl] = useState('');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [extractionProgress, _setExtractionProgress] = useState({ phase: '', progress: 0, message: '' });
-    const [showGlitchTransition, setShowGlitchTransition] = useState(false);
-    const [showEmbeddedBrowser, setShowEmbeddedBrowser] = useState(false);
-    const browserPollRef = useRef<NodeJS.Timeout | null>(null);
+    const [_browserPhase, _setBrowserPhase] = useState<'idle' | 'user_control' | 'complete'>('idle');
 
     // Completion
     const [verificationReport, setVerificationReport] = useState<any>(null);
@@ -654,14 +646,20 @@ export default function FixMyApp() {
         try {
             await apiClient.post(`/api/fix-my-app/${session.sessionId}/consent`, consent);
             
-            // For AI builders that require login, show embedded browser directly
+            // For AI builders, open the platform URL in a new tab
             if (requiresBrowserLogin()) {
-                setShowEmbeddedBrowser(true);
-                setStep('upload');
-            } else {
-                // For other sources (GitHub, ZIP), go to standard upload
-                setStep('upload');
+                const platformUrl = getPlatformUrl();
+                if (platformUrl) {
+                    window.open(platformUrl, '_blank');
+                    toast({
+                        title: 'Browser Opened',
+                        description: 'Log in, navigate to your project, export it as a ZIP, and upload it here.',
+                    });
+                }
             }
+            
+            // Go to upload step for all sources
+            setStep('upload');
         } catch (error) {
             toast({
                 title: 'Error',
@@ -732,67 +730,8 @@ export default function FixMyApp() {
         return source ? urls[source] || '' : '';
     }, [source]);
 
-    // Start browser session for user login
-    const startBrowserSession = async () => {
-        if (!session) return;
+    // Note: Browser automation removed - users now export and upload manually
 
-        // Simply show the embedded browser - no backend call needed
-        // The browser is an iframe that loads the target platform
-        setShowEmbeddedBrowser(true);
-        setBrowserPhase('user_control');
-        setBrowserUrl(getPlatformUrl());
-        
-        toast({
-            title: 'Browser Ready',
-            description: 'Log in to your account, then navigate to your project.',
-        });
-    };
-
-    // Note: Screenshot polling moved to EmbeddedBrowserFrame component
-
-    // User confirms they've navigated to their project
-    const confirmProjectReached = async () => {
-        if (!session) return;
-
-        setIsLoading(true);
-        setCurrentPhase('Starting extraction...');
-
-        // Trigger glitch transition
-        setShowGlitchTransition(true);
-        setBrowserPhase('takeover');
-
-        setTimeout(() => {
-            setShowGlitchTransition(false);
-            setBrowserPhase('extracting');
-        }, 2500);
-
-        try {
-            // Tell backend to start automated extraction
-            await apiClient.post(`/api/fix-my-app/${session.sessionId}/browser/extract`);
-
-            toast({
-                title: 'KripTik AI Taking Over',
-                description: 'Sit back and relax. We\'re extracting everything now.',
-            });
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to start extraction',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (browserPollRef.current) {
-                clearInterval(browserPollRef.current);
-            }
-        };
-    }, []);
 
     // Submit chat context
     const submitContext = async () => {
@@ -1254,297 +1193,78 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                {/* AI Builders - Embedded Browser Frame */}
+                                {/* AI Builders - Manual Upload Instructions */}
                                 {requiresBrowserLogin() && (
                                     <div className="mb-6">
-                                        {/* Show embedded browser frame when active */}
-                                        {showEmbeddedBrowser && session && source ? (
-                                            <EmbeddedBrowserFrame
-                                                sessionId={session.sessionId}
-                                                sourceUrl={getPlatformUrl()}
-                                                sourcePlatform={source}
-                                                onSyncStart={() => {
-                                                    setBrowserPhase('takeover');
-                                                    setShowGlitchTransition(true);
-                                                }}
-                                                onExtractionComplete={(data) => {
-                                                    console.log('Extraction complete:', data);
-                                                    setBrowserPhase('analyzing');
-                                                    setShowEmbeddedBrowser(false);
-                                                    // Move to analysis step
-                                                    setStep('analysis');
-                                                    runAnalysis();
-                                                }}
-                                                onClose={() => {
-                                                    setShowEmbeddedBrowser(false);
-                                                    setBrowserPhase('idle');
-                                                }}
-                                                onError={(error) => {
-                                                    toast({
-                                                        title: 'Error',
-                                                        description: error,
-                                                        variant: 'destructive',
-                                                    });
-                                                    setShowEmbeddedBrowser(false);
-                                                    setBrowserPhase('idle');
-                                                }}
+                                        {/* Instructions for manual export and upload */}
+                                        <div className="p-6 border-2 border-dashed border-slate-700 rounded-xl mb-4">
+                                            <div className="flex items-start gap-4 mb-6">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
+                                                    <Download className="w-6 h-6 text-amber-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-white mb-2">Export Your Project</h3>
+                                                    <p className="text-slate-400 text-sm">
+                                                        We've opened {sourceOptions.find(s => s.id === source)?.name} in a new tab. 
+                                                        Follow these steps:
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <ol className="space-y-3 mb-6">
+                                                <li className="flex items-start gap-3">
+                                                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">1</span>
+                                                    <span className="text-slate-300">Log in to your account in the new tab</span>
+                                                </li>
+                                                <li className="flex items-start gap-3">
+                                                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">2</span>
+                                                    <span className="text-slate-300">Navigate to the project you want to fix</span>
+                                                </li>
+                                                <li className="flex items-start gap-3">
+                                                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">3</span>
+                                                    <span className="text-slate-300">Export/download your project as a ZIP file</span>
+                                                </li>
+                                                <li className="flex items-start gap-3">
+                                                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">4</span>
+                                                    <span className="text-slate-300">Upload the ZIP file below</span>
+                                                </li>
+                                            </ol>
+
+                                            <Button
+                                                onClick={() => window.open(getPlatformUrl(), '_blank')}
+                                                variant="outline"
+                                                className="w-full border-slate-600 hover:bg-slate-800"
+                                            >
+                                                <Monitor className="mr-2 h-4 w-4" /> Open {sourceOptions.find(s => s.id === source)?.name} Again
+                                            </Button>
+                                        </div>
+
+                                        {/* Upload Section */}
+                                        <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center">
+                                            <Upload className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                                            <p className="text-slate-300 mb-4">Upload your exported project ZIP or folder</p>
+                                            <input
+                                                type="file"
+                                                webkitdirectory=""
+                                                multiple
+                                                onChange={handleFileUpload}
+                                                className="hidden"
+                                                id="file-upload-ai-builder"
                                             />
-                                        ) : (
-                                            /* Browser Phase: Idle - Show start button */
-                                            <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-xl mb-4">
-                                                <Monitor className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-                                                <h3 className="text-lg font-semibold text-white mb-2">Secure Browser Login</h3>
-                                                <p className="text-slate-400 text-sm max-w-md mx-auto mb-6">
-                                                    We'll open a secure browser window where you can log in to {sourceOptions.find(s => s.id === source)?.name}.
-                                                    Navigate to your project, and we'll handle the rest.
-                                                </p>
-                                                <Button
-                                                    onClick={startBrowserSession}
-                                                    disabled={isLoading}
-                                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
-                                                >
-                                                    {isLoading ? (
-                                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting Browser...</>
-                                                    ) : (
-                                                        <><Play className="mr-2 h-4 w-4" /> Open Secure Browser</>
-                                                    )}
+                                            <label htmlFor="file-upload-ai-builder">
+                                                <Button variant="outline" className="cursor-pointer border-slate-700" asChild>
+                                                    <span>Select Files</span>
                                                 </Button>
-                                            </div>
-                                        )}
+                                            </label>
 
-                                        {/* Browser Phase: User Control - Show browser screenshot (legacy - hidden when using EmbeddedBrowserFrame) */}
-                                        {!showEmbeddedBrowser && browserPhase === 'user_control' && (
-                                            <div className="space-y-4">
-                                                {/* Browser Chrome */}
-                                                <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900/80">
-                                                    {/* Browser Header */}
-                                                    <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/50 bg-slate-800/50">
-                                                        <div className="flex gap-1.5">
-                                                            <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                                                            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                                                            <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                                                        </div>
-                                                        <div className="flex-1 mx-4">
-                                                            <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-slate-700/50 border border-slate-600/30">
-                                                                <Lock className="w-3 h-3 text-green-400" />
-                                                                <span className="text-xs text-slate-400 font-mono truncate">{browserUrl || getPlatformUrl()}</span>
-                                                            </div>
-                                                        </div>
-                                                        <motion.div
-                                                            className="w-2 h-2 rounded-full bg-emerald-500"
-                                                            animate={{ opacity: [1, 0.3, 1] }}
-                                                            transition={{ duration: 1, repeat: Infinity }}
-                                                        />
-                                                    </div>
-
-                                                    {/* Browser Content */}
-                                                    <div className="relative h-[400px] bg-slate-950">
-                                                        {browserScreenshot ? (
-                                                            <img
-                                                                src={`data:image/png;base64,${browserScreenshot}`}
-                                                                alt="Browser view"
-                                                                className="w-full h-full object-contain"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex items-center justify-center h-full">
-                                                                <div className="text-center">
-                                                                    <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
-                                                                    <p className="text-slate-500 text-sm">Loading browser view...</p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Instructions */}
-                                                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-                                                    <h4 className="font-medium text-amber-400 mb-2 flex items-center gap-2">
-                                                        <Eye className="w-4 h-4" /> You're in Control
-                                                    </h4>
-                                                    <ol className="text-sm text-slate-300 space-y-1">
-                                                        <li>1. Log in to your {sourceOptions.find(s => s.id === source)?.name} account</li>
-                                                        <li>2. Navigate to the project you want to fix</li>
-                                                        <li>3. Click "I'm at my project" when ready</li>
-                                                    </ol>
-                                                </div>
-
-                                                {/* Action Button */}
-                                                <Button
-                                                    onClick={confirmProjectReached}
-                                                    disabled={isLoading}
-                                                    className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-black font-semibold"
-                                                >
-                                                    <CheckCircle2 className="mr-2 h-4 w-4" /> I'm at my project - Extract Everything
-                                                </Button>
-                                            </div>
-                                        )}
-
-                                        {/* Browser Phase: Takeover/Extracting - Glitch transition (legacy - hidden when using EmbeddedBrowserFrame) */}
-                                        {!showEmbeddedBrowser && (browserPhase === 'takeover' || browserPhase === 'extracting') && (
-                                            <div className="relative rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px]">
-                                                <AnimatePresence>
-                                                    {showGlitchTransition && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950"
-                                                        >
-                                                            {/* Glitch effect */}
-                                                            <motion.div
-                                                                className="text-4xl font-bold"
-                                                                animate={{
-                                                                    opacity: [1, 0, 1, 0.5, 1],
-                                                                    scale: [1, 1.05, 0.95, 1.02, 1],
-                                                                    x: [0, -3, 3, -2, 0],
-                                                                }}
-                                                                transition={{ duration: 0.8 }}
-                                                            >
-                                                                <span className="bg-gradient-to-r from-white via-amber-200 to-white bg-clip-text text-transparent">
-                                                                    KRIPTIK AI
-                                                                </span>
-                                                            </motion.div>
-
-                                                            {/* Scan lines */}
-                                                            <motion.div
-                                                                className="absolute inset-0 pointer-events-none"
-                                                                style={{
-                                                                    background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)`,
-                                                                }}
-                                                                animate={{ opacity: [0.5, 0.8, 0.5] }}
-                                                                transition={{ duration: 0.2, repeat: Infinity }}
-                                                            />
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-
-                                                {!showGlitchTransition && (
-                                                    <div className="flex flex-col items-center justify-center h-full p-8">
-                                                        {/* Animated KripTik AI Logo */}
-                                                        <motion.div
-                                                            className="mb-8"
-                                                            animate={{
-                                                                scale: [1, 1.02, 1],
-                                                                filter: [
-                                                                    'drop-shadow(0 0 20px rgba(251, 191, 36, 0.3))',
-                                                                    'drop-shadow(0 0 40px rgba(251, 191, 36, 0.5))',
-                                                                    'drop-shadow(0 0 20px rgba(251, 191, 36, 0.3))',
-                                                                ],
-                                                            }}
-                                                            transition={{ duration: 2, repeat: Infinity }}
-                                                        >
-                                                            <div className="text-4xl font-bold bg-gradient-to-r from-white via-amber-200 to-white bg-clip-text text-transparent">
-                                                                KRIPTIK AI
-                                                            </div>
-                                                            <motion.div
-                                                                className="h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent"
-                                                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                                                transition={{ duration: 1.5, repeat: Infinity }}
-                                                            />
-                                                        </motion.div>
-
-                                                        {/* Working indicator */}
-                                                        <div className="flex items-center gap-3 mb-6">
-                                                            <motion.div
-                                                                className="w-3 h-3 rounded-full bg-amber-500"
-                                                                animate={{
-                                                                    scale: [1, 1.2, 1],
-                                                                    boxShadow: [
-                                                                        '0 0 0 0 rgba(251, 191, 36, 0.4)',
-                                                                        '0 0 0 10px rgba(251, 191, 36, 0)',
-                                                                        '0 0 0 0 rgba(251, 191, 36, 0.4)',
-                                                                    ],
-                                                                }}
-                                                                transition={{ duration: 1.5, repeat: Infinity }}
-                                                            />
-                                                            <span className="text-amber-400 font-medium">Extracting...</span>
-                                                        </div>
-
-                                                        {/* Progress */}
-                                                        <div className="w-full max-w-sm mb-4">
-                                                            <Progress value={extractionProgress.progress} className="h-2 bg-slate-800" />
-                                                        </div>
-
-                                                        <p className="text-slate-400 text-sm text-center mb-6">
-                                                            {extractionProgress.message || 'Downloading project, extracting chat history, capturing logs...'}
-                                                        </p>
-
-                                                        {/* Extraction Status */}
-                                                        <div className="flex gap-6">
-                                                            <ExtractionStatusIcon
-                                                                icon={Download}
-                                                                label="Project Files"
-                                                                active={extractionProgress.phase === 'downloading'}
-                                                                complete={['extracting_chat', 'extracting_logs', 'complete'].includes(extractionProgress.phase)}
-                                                            />
-                                                            <ExtractionStatusIcon
-                                                                icon={MessageSquare}
-                                                                label="Chat History"
-                                                                active={extractionProgress.phase === 'extracting_chat'}
-                                                                complete={['extracting_logs', 'complete'].includes(extractionProgress.phase)}
-                                                            />
-                                                            <ExtractionStatusIcon
-                                                                icon={Bug}
-                                                                label="Error Logs"
-                                                                active={extractionProgress.phase === 'extracting_logs'}
-                                                                complete={extractionProgress.phase === 'complete'}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Browser Phase: Analyzing (legacy - hidden when using EmbeddedBrowserFrame) */}
-                                        {!showEmbeddedBrowser && browserPhase === 'analyzing' && (
-                                            <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-slate-950 h-[450px] flex flex-col items-center justify-center p-8">
-                                                <motion.div
-                                                    className="mb-8"
-                                                    animate={{
-                                                        scale: [1, 1.02, 1],
-                                                    }}
-                                                    transition={{ duration: 2, repeat: Infinity }}
-                                                >
-                                                    <Brain className="w-20 h-20 text-amber-500" />
-                                                </motion.div>
-
-                                                <h3 className="text-2xl font-bold text-white mb-4">
-                                                    Analyzing Your Project
-                                                </h3>
-                                                <p className="text-slate-400 text-center max-w-md mb-6">
-                                                    KripTik AI is now studying your chat history, build logs, and code to understand what went wrong and how to fix it.
-                                                </p>
-
-                                                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
-                                                    <p className="text-slate-300 text-sm mb-2">
-                                                        <strong className="text-amber-400">This may take a few minutes.</strong>
-                                                    </p>
-                                                    <p className="text-slate-500 text-xs">
-                                                        Feel free to leave and come back - we'll notify you when it's ready.
+                                            {files.length > 0 && (
+                                                <div className="mt-4 text-left">
+                                                    <p className="text-sm text-emerald-400 mb-2">
+                                                        ✓ {files.length} files selected
                                                     </p>
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {/* Fallback: Manual Upload (only show when browser not active) */}
-                                        {!showEmbeddedBrowser && <div className="mt-4 pt-4 border-t border-slate-800">
-                                            <p className="text-xs text-slate-500 text-center mb-3">Or upload your project manually</p>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="file"
-                                                    webkitdirectory=""
-                                                    multiple
-                                                    onChange={handleFileUpload}
-                                                    className="hidden"
-                                                    id="file-upload-fallback"
-                                                />
-                                                <label htmlFor="file-upload-fallback" className="flex-1">
-                                                    <Button variant="outline" className="w-full cursor-pointer border-slate-700" asChild>
-                                                        <span><Upload className="mr-2 h-4 w-4" /> Upload Folder</span>
-                                                    </Button>
-                                                </label>
-                                            </div>
-                                        </div>}
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
@@ -1583,8 +1303,8 @@ export default function FixMyApp() {
                                     </div>
                                 )}
 
-                                {/* Footer Buttons - Only show for non-browser sources or when browser is idle */}
-                                {(!requiresBrowserLogin() || browserPhase === 'idle') && (
+                                {/* Footer Buttons */}
+                                {(
                                     <div className="flex gap-4">
                                         <Button
                                             variant="outline"
@@ -2098,56 +1818,6 @@ export default function FixMyApp() {
 // HELPER COMPONENTS
 // ============================================================================
 
-// Extraction status icon for the browser extraction phase
-function ExtractionStatusIcon({
-    icon: Icon,
-    label,
-    active,
-    complete,
-}: {
-    icon: React.ElementType;
-    label: string;
-    active: boolean;
-    complete: boolean;
-}) {
-    return (
-        <div className="flex flex-col items-center gap-2">
-            <motion.div
-                className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
-                    complete ? "bg-emerald-500/20 text-emerald-400" :
-                    active ? "bg-amber-500/20 text-amber-400" :
-                    "bg-slate-800 text-slate-500"
-                )}
-                animate={active ? {
-                    scale: [1, 1.1, 1],
-                    boxShadow: [
-                        '0 0 0 0 rgba(251, 191, 36, 0)',
-                        '0 0 0 8px rgba(251, 191, 36, 0.2)',
-                        '0 0 0 0 rgba(251, 191, 36, 0)',
-                    ],
-                } : {}}
-                transition={{ duration: 1.5, repeat: active ? Infinity : 0 }}
-            >
-                {complete ? (
-                    <CheckCircle2 className="w-6 h-6" />
-                ) : active ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                    <Icon className="w-6 h-6" />
-                )}
-            </motion.div>
-            <span className={cn(
-                "text-xs font-medium",
-                complete ? "text-emerald-400" :
-                active ? "text-amber-400" :
-                "text-slate-500"
-            )}>
-                {label}
-            </span>
-        </div>
-    );
-}
 
 // Declare webkitdirectory for TypeScript
 declare module 'react' {

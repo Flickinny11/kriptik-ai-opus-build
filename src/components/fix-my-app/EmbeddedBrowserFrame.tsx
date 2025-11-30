@@ -1,6 +1,6 @@
 /**
  * EmbeddedBrowserFrame - Embedded browser window for Fix My App
- * 
+ *
  * This component displays a small browser window WITHIN the KripTik AI UI,
  * allowing users to log in and navigate to their project while receiving
  * real-time guidance. When ready, AI agent takes control.
@@ -8,11 +8,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    X, 
-    Loader2, 
-    MousePointer2, 
-    ArrowUp, 
+import {
+    X,
+    Loader2,
+    MousePointer2,
+    ArrowUp,
     RefreshCw,
     Maximize2,
     Minimize2,
@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 // TYPES
 // =============================================================================
 
-export type BrowserPhase = 
+export type BrowserPhase =
     | 'initializing'      // Browser starting up
     | 'user_control'      // User can interact
     | 'awaiting_sync'     // User at project, ready to sync
@@ -141,7 +141,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
     });
     const [showCursor, setShowCursor] = useState(false);
     const [cursorPosition, setCursorPosition] = useState({ x: 50, y: 50 });
-    
+
     // Refs
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -210,7 +210,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
             // In production, this would connect to a Playwright browser service
             setPhase('user_control');
             setGuidance(platformConfig.loginPrompt);
-            
+
             // Start screenshot polling for visual feedback
             startScreenshotPolling();
         } catch (error) {
@@ -247,7 +247,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
     const handleBeginSync = async () => {
         setPhase('agent_control');
         onSyncStart();
-        
+
         try {
             // Notify backend to take control
             const response = await fetch(
@@ -258,15 +258,15 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                     credentials: 'include'
                 }
             );
-            
+
             if (!response.ok) throw new Error('Failed to start sync');
-            
+
             // Connect to WebSocket for real-time updates
             connectToAgentStream();
-            
+
             // Simulate agent actions for visual feedback
             await simulateAgentActions();
-            
+
         } catch (error) {
             console.error('Sync failed:', error);
             setPhase('error');
@@ -276,15 +276,15 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
 
     const connectToAgentStream = () => {
         const wsUrl = `${(import.meta.env.VITE_API_URL || '').replace('http', 'ws')}/api/fix-my-app/${sessionId}/browser/stream`;
-        
+
         try {
             wsRef.current = new WebSocket(wsUrl);
-            
+
             wsRef.current.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 handleAgentUpdate(data);
             };
-            
+
             wsRef.current.onerror = () => {
                 console.log('WebSocket not available, using polling');
             };
@@ -324,44 +324,44 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
     const simulateAgentActions = async () => {
         // This simulates the visual agent actions
         // In production, this would be driven by actual Playwright actions
-        
+
         // Step 1: Move to download button
         setAgentMessage('Locating download option...');
         await animateCursor(80, 20);
         await delay(500);
-        
+
         // Step 2: Click download
         setPhase('downloading');
         setAgentMessage('Downloading your project...');
         await animateCursor(85, 25);
         await delay(2000);
-        
+
         // Step 3: Report download complete
         setExtractionProgress(prev => ({ ...prev, zipDownloaded: true }));
         setAgentMessage('ZIP file downloaded and extracted!');
         await delay(1000);
-        
+
         // Step 4: Transition
         setPhase('transitioning');
         setAgentMessage("We'll take it from here! As soon as your app is ready, we'll let you know!");
         await delay(2000);
-        
+
         // Step 5: Background work
         setPhase('background');
-        
+
         // Background extraction simulation
         await delay(1000);
         setExtractionProgress(prev => ({ ...prev, chatHistoryExtracted: true }));
-        
+
         await delay(800);
         setExtractionProgress(prev => ({ ...prev, buildLogsExtracted: true }));
-        
+
         await delay(600);
         setExtractionProgress(prev => ({ ...prev, runtimeLogsExtracted: true }));
-        
+
         await delay(500);
         setExtractionProgress(prev => ({ ...prev, analysisStarted: true }));
-        
+
         // Complete
         setPhase('complete');
         onExtractionComplete({
@@ -376,7 +376,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
         const steps = 20;
         const startX = cursorPosition.x;
         const startY = cursorPosition.y;
-        
+
         for (let i = 0; i <= steps; i++) {
             const progress = i / steps;
             const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
@@ -407,12 +407,12 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                     {/* Animated background */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,140,50,0.1),transparent_50%)]" />
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(255,100,50,0.05),transparent_50%)]" />
-                    
+
                     <div className="relative p-8">
                         {/* KripTik AI Logo Animation */}
-                        <motion.div 
+                        <motion.div
                             className="flex justify-center mb-6"
-                            animate={{ 
+                            animate={{
                                 scale: [1, 1.05, 1],
                                 opacity: [0.8, 1, 0.8]
                             }}
@@ -422,48 +422,48 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                                 <Sparkles className="w-12 h-12 text-white" />
                             </div>
                         </motion.div>
-                        
+
                         {/* Status message */}
-                        <motion.h3 
+                        <motion.h3
                             className="text-2xl font-bold text-center text-white mb-2"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
                             {phase === 'complete' ? 'All Done!' : 'Working on your app...'}
                         </motion.h3>
-                        
+
                         <p className="text-center text-white/60 mb-8">
-                            {phase === 'complete' 
+                            {phase === 'complete'
                                 ? 'Check your dashboard to see your fixed project!'
                                 : "We'll notify you when your app is ready."
                             }
                         </p>
-                        
+
                         {/* Extraction progress */}
                         <div className="space-y-3">
-                            <ProgressItem 
+                            <ProgressItem
                                 icon={<Download className="w-4 h-4" />}
                                 label="Project files"
                                 done={extractionProgress.zipDownloaded}
                             />
-                            <ProgressItem 
+                            <ProgressItem
                                 icon={<MessageSquare className="w-4 h-4" />}
                                 label="Chat history"
                                 done={extractionProgress.chatHistoryExtracted}
                             />
-                            <ProgressItem 
+                            <ProgressItem
                                 icon={<FileCode className="w-4 h-4" />}
                                 label="Build & runtime logs"
                                 done={extractionProgress.buildLogsExtracted && extractionProgress.runtimeLogsExtracted}
                             />
-                            <ProgressItem 
+                            <ProgressItem
                                 icon={<Sparkles className="w-4 h-4" />}
                                 label="Analysis & planning"
                                 done={extractionProgress.analysisStarted}
                                 active={!extractionProgress.analysisStarted && extractionProgress.runtimeLogsExtracted}
                             />
                         </div>
-                        
+
                         {phase === 'complete' && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -488,8 +488,8 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
         <AnimatePresence mode="wait">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ 
-                    opacity: phase === 'transitioning' ? 0 : 1, 
+                animate={{
+                    opacity: phase === 'transitioning' ? 0 : 1,
                     scale: phase === 'transitioning' ? 0.9 : 1,
                     y: 0
                 }}
@@ -517,7 +517,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                         <div className="flex-1">
                             <p className="text-white font-medium">{guidance}</p>
                             {agentMessage && phase !== 'user_control' && (
-                                <motion.p 
+                                <motion.p
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     className="text-orange-300 text-sm mt-1"
@@ -544,7 +544,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                                 {sourceUrl}
                             </div>
                         </div>
-                        
+
                         {/* Controls */}
                         <div className="flex items-center gap-2">
                             <button
@@ -592,9 +592,9 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                         {(phase === 'agent_control' || phase === 'downloading' || phase === 'extracting') && (
                             <div className="relative w-full h-full">
                                 {screenshot ? (
-                                    <img 
-                                        src={screenshot} 
-                                        alt="Browser view" 
+                                    <img
+                                        src={screenshot}
+                                        alt="Browser view"
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
@@ -602,7 +602,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                                         <RefreshCw className="w-8 h-8 text-slate-400 animate-spin" />
                                     </div>
                                 )}
-                                
+
                                 {/* Animated cursor */}
                                 {showCursor && (
                                     <motion.div
@@ -617,14 +617,14 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
                                         }}
                                     >
                                         <MousePointer2 className="w-6 h-6 text-orange-500 drop-shadow-lg" />
-                                        <motion.div 
+                                        <motion.div
                                             className="absolute top-0 left-0 w-3 h-3 rounded-full bg-orange-500"
                                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
                                             transition={{ duration: 0.5, repeat: Infinity }}
                                         />
                                     </motion.div>
                                 )}
-                                
+
                                 {/* Agent status overlay */}
                                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                                     <div className="flex items-center gap-2 text-white">
@@ -637,7 +637,7 @@ export const EmbeddedBrowserFrame: React.FC<EmbeddedBrowserFrameProps> = ({
 
                         {/* Transition smoke effect */}
                         {phase === 'transitioning' && (
-                            <motion.div 
+                            <motion.div
                                 className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/90 to-transparent"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
