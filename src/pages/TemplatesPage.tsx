@@ -15,12 +15,12 @@ import {
     Search, Layers, Component, Box, Layout,
     Sparkles, Grid3X3, Download, Play
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // Template categories
 const CATEGORIES = [
@@ -166,26 +166,27 @@ function TemplateCard({
             className="group relative"
         >
             <div
-                className={cn(
-                    "relative rounded-2xl overflow-hidden",
-                    "border border-slate-700/50",
-                    "hover:border-amber-500/30",
-                    "transition-all duration-500"
-                )}
+                className="glass-panel relative rounded-2xl overflow-hidden transition-all duration-500"
                 style={{
                     boxShadow: isHovered
-                        ? '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 30px -5px rgba(251,191,36,0.1)'
-                        : '0 10px 40px -10px rgba(0,0,0,0.3)',
+                        ? '0 25px 50px -12px rgba(0,0,0,0.2), 0 0 30px -5px rgba(255,180,140,0.15)'
+                        : '0 10px 40px -10px rgba(0,0,0,0.15)',
                 }}
             >
                 {/* Preview area */}
                 <div
-                    className="aspect-[4/3] relative overflow-hidden"
+                    className="aspect-[4/3] relative overflow-hidden rounded-t-2xl"
                     style={{ background: template.preview }}
                 >
                     {/* Animated indicator */}
                     {template.animated && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm">
+                        <div 
+                            className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full"
+                            style={{ 
+                                background: 'rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(8px)',
+                            }}
+                        >
                             <motion.div
                                 animate={{ scale: [1, 1.2, 1] }}
                                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -198,7 +199,13 @@ function TemplateCard({
                     {/* Simulated content */}
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center p-6">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 backdrop-blur flex items-center justify-center">
+                            <div 
+                                className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                                style={{ 
+                                    background: 'rgba(255,255,255,0.1)',
+                                    backdropFilter: 'blur(8px)',
+                                }}
+                            >
                                 {template.category === 'apps' && <Layers className="w-8 h-8 text-amber-400" />}
                                 {template.category === 'pages' && <Layout className="w-8 h-8 text-cyan-400" />}
                                 {template.category === 'components' && <Component className="w-8 h-8 text-emerald-400" />}
@@ -212,36 +219,40 @@ function TemplateCard({
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: isHovered ? 1 : 0 }}
-                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-center pb-4 gap-3"
+                        className="absolute inset-0 flex items-end justify-center pb-4 gap-3"
+                        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)' }}
                     >
-                        <Button
-                            size="sm"
+                        <button
                             onClick={(e) => { e.stopPropagation(); onPreview(); }}
-                            className="bg-slate-700 hover:bg-slate-600 text-white"
+                            className="glass-button glass-button--small"
+                            style={{ background: 'rgba(255,255,255,0.9)' }}
                         >
-                            <Play className="h-4 w-4 mr-1" />
+                            <Play className="h-4 w-4" />
                             Preview
-                        </Button>
-                        <Button
-                            size="sm"
+                        </button>
+                        <button
                             onClick={(e) => { e.stopPropagation(); onUse(); }}
-                            className="bg-amber-500 hover:bg-amber-400 text-black"
+                            className="glass-button glass-button--small glass-button--glow"
                         >
-                            <Download className="h-4 w-4 mr-1" />
+                            <Download className="h-4 w-4" />
                             Use
-                        </Button>
+                        </button>
                     </motion.div>
                 </div>
 
                 {/* Info */}
-                <div className="p-4 bg-slate-900/80">
-                    <h3 className="font-semibold text-white mb-1">{template.name}</h3>
-                    <p className="text-sm text-slate-400 mb-3 line-clamp-2">{template.description}</p>
+                <div className="p-4">
+                    <h3 className="font-semibold mb-1" style={{ color: '#1a1a1a' }}>{template.name}</h3>
+                    <p className="text-sm mb-3 line-clamp-2" style={{ color: '#666' }}>{template.description}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {template.tags.slice(0, 3).map((tag) => (
                             <span
                                 key={tag}
-                                className="px-2 py-0.5 text-[10px] rounded-full bg-slate-800 text-slate-400 font-mono uppercase"
+                                className="px-2 py-0.5 text-[10px] rounded-full font-mono uppercase"
+                                style={{ 
+                                    background: 'rgba(0,0,0,0.06)',
+                                    color: '#666',
+                                }}
                             >
                                 {tag}
                             </span>
@@ -267,11 +278,14 @@ export default function TemplatesPage() {
     });
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div 
+            className="min-h-screen"
+            style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+        >
             <HoverSidebar />
 
-            {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            {/* Header - Glass Style */}
+            <header className="glass-header sticky top-0 z-30">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <HandDrawnArrow className="mr-2" />
@@ -292,29 +306,31 @@ export default function TemplatesPage() {
             <main className="container mx-auto px-4 py-8">
                 {/* Page header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    <h1 
+                        className="text-3xl font-bold mb-2" 
+                        style={{ 
+                            fontFamily: 'Syne, sans-serif',
+                            color: '#1a1a1a',
+                        }}
+                    >
                         Templates
                     </h1>
-                    <p className="text-slate-400">
+                    <p style={{ color: '#666' }}>
                         Premium animated templates, components, and elements
                     </p>
                 </div>
 
-                {/* Search and categories */}
+                {/* Search and categories - Glass Style */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <div className="glass-input relative flex-1 max-w-md">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#666' }} />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search templates..."
-                            className={cn(
-                                "w-full pl-10 pr-4 py-2.5 rounded-xl",
-                                "bg-slate-800/50 border border-slate-700/50",
-                                "text-white placeholder:text-slate-500",
-                                "focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                            )}
+                            className="w-full pl-11 pr-4 py-3 bg-transparent border-none outline-none"
+                            style={{ color: '#1a1a1a' }}
                         />
                     </div>
 
@@ -324,12 +340,13 @@ export default function TemplatesPage() {
                                 key={cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap",
-                                    "transition-all duration-200",
-                                    activeCategory === cat.id
-                                        ? "bg-amber-500 text-black font-medium"
-                                        : "bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800"
+                                    "glass-button flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap",
+                                    activeCategory === cat.id && "glass-button--glow"
                                 )}
+                                style={{ 
+                                    padding: '10px 18px',
+                                    fontSize: '13px',
+                                }}
                             >
                                 <cat.icon className="h-4 w-4" />
                                 {cat.label}
@@ -357,8 +374,8 @@ export default function TemplatesPage() {
                 </div>
 
                 {filteredTemplates.length === 0 && (
-                    <div className="text-center py-16">
-                        <p className="text-slate-400">No templates found matching your criteria</p>
+                    <div className="glass-panel text-center py-16">
+                        <p style={{ color: '#666' }}>No templates found matching your criteria</p>
                     </div>
                 )}
             </main>

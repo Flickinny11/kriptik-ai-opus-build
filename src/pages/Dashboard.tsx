@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
@@ -249,7 +249,7 @@ function UserMenu() {
     );
 }
 
-// Project thumbnail card - 3D Angled Tablet with thick visible edges
+// Project thumbnail card - 3D Glass Card
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
@@ -257,18 +257,16 @@ function ProjectThumbnail({ project }: { project: any }) {
     const frameworks = project.framework || 'React';
 
     return (
-        <div className="group cursor-pointer" style={{ marginBottom: '40px' }}>
-            {/* 3D Card using Three.js */}
-            <Suspense fallback={
-                <div className="w-full aspect-[4/3] bg-gray-800 rounded-lg animate-pulse" />
-            }>
-                <ProjectCard3D
-                    onClick={() => navigate(`/builder/${project.id}`)}
-                />
-            </Suspense>
+        <div className="group" style={{ marginBottom: '24px' }}>
+            {/* 3D Glass Card */}
+            <ProjectCard3D
+                onClick={() => navigate(`/builder/${project.id}`)}
+                thumbnail={project.thumbnail}
+                projectName={project.name}
+            />
 
             {/* Project Info */}
-            <div className="mt-4 px-1">
+            <div className="mt-3 px-1">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>

@@ -22,6 +22,7 @@ import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // Design themes
 const DESIGN_THEMES = [
@@ -125,11 +126,14 @@ export default function DesignRoom() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+        <div 
+            className="min-h-screen flex flex-col"
+            style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+        >
             <HoverSidebar />
 
-            {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            {/* Header - Glass Style */}
+            <header className="glass-header sticky top-0 z-30">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <HandDrawnArrow className="mr-2" />
@@ -145,16 +149,17 @@ export default function DesignRoom() {
                         </div>
                     </div>
 
-                    {/* Tab switcher */}
-                    <div className="flex gap-2 bg-slate-800/50 rounded-xl p-1">
+                    {/* Tab switcher - Glass Style */}
+                    <div className="glass-panel flex gap-2 rounded-full p-1">
                         <button
                             onClick={() => setActiveTab('generate')}
                             className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-all",
                                 activeTab === 'generate'
-                                    ? "bg-amber-500 text-black font-medium"
-                                    : "text-slate-400 hover:text-white"
+                                    ? "glass-button glass-button--glow"
+                                    : "hover:bg-black/5"
                             )}
+                            style={{ color: '#1a1a1a' }}
                         >
                             <Wand2 className="h-4 w-4" />
                             Generate
@@ -162,11 +167,12 @@ export default function DesignRoom() {
                         <button
                             onClick={() => setActiveTab('themes')}
                             className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-all",
                                 activeTab === 'themes'
-                                    ? "bg-amber-500 text-black font-medium"
-                                    : "text-slate-400 hover:text-white"
+                                    ? "glass-button glass-button--glow"
+                                    : "hover:bg-black/5"
                             )}
+                            style={{ color: '#1a1a1a' }}
                         >
                             <Palette className="h-4 w-4" />
                             Themes
