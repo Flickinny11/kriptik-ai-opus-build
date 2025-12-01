@@ -249,105 +249,178 @@ function UserMenu() {
     );
 }
 
-// Project thumbnail card - Realistic Glass 3D with visible edges
+// Project thumbnail card - 3D Angled Box like code editor
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
     return (
-        <div
-            className="glass-card-3d group"
-            style={{ perspective: '1000px' }}
-        >
-            <button
-                onClick={() => navigate(`/builder/${project.id}`)}
-                className="glass-card-3d__inner relative w-full text-left"
+        <div className="group cursor-pointer" style={{ perspective: '1200px' }}>
+            {/* 3D Container with angle/skew */}
+            <div
+                className="relative transition-all duration-500 ease-out"
+                style={{
+                    transformStyle: 'preserve-3d',
+                    transform: 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)',
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'rotateX(8deg) rotateY(-4deg) rotateZ(1deg) translateY(-8px)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)';
+                }}
             >
-                {/* Right edge - glass thickness */}
-                <div className="glass-card-3d__edge-right" />
-
-                {/* Bottom edge - glass thickness */}
-                <div className="glass-card-3d__edge-bottom" />
-
-                {/* Thumbnail preview */}
-                <div
-                    className="aspect-[16/10] relative overflow-hidden rounded-t-[20px]"
-                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(248,248,250,0.2) 100%)' }}
+                {/* Main face - the screen/thumbnail */}
+                <button
+                    onClick={() => navigate(`/builder/${project.id}`)}
+                    className="relative w-full text-left rounded-lg overflow-hidden"
+                    style={{
+                        background: '#1e2028',
+                        boxShadow: `
+                            0 25px 50px rgba(0, 0, 0, 0.3),
+                            0 15px 30px rgba(0, 0, 0, 0.2),
+                            inset 0 1px 0 rgba(255,255,255,0.1)
+                        `,
+                        transform: 'translateZ(0)',
+                    }}
                 >
-                    {/* Browser chrome */}
+                    {/* Thumbnail preview area - dark code editor style */}
                     <div
-                        className="absolute top-0 left-0 right-0 h-7 flex items-center gap-2 px-4"
-                        style={{ background: 'rgba(255,255,255,0.4)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}
+                        className="aspect-[4/3] relative overflow-hidden"
+                        style={{ 
+                            background: 'linear-gradient(145deg, #252830 0%, #1a1d24 100%)',
+                        }}
                     >
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(0,0,0,0.15)' }} />
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(0,0,0,0.1)' }} />
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(0,0,0,0.1)' }} />
-                        <div className="flex-1 mx-3 h-3.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }} />
-                    </div>
-
-                    {/* Content preview */}
-                    <div className="absolute inset-0 pt-11 p-4 space-y-2">
-                        <div className="h-5 w-20 rounded" style={{ background: 'rgba(0,0,0,0.1)' }} />
-                        <div className="h-2 w-full rounded" style={{ background: 'rgba(0,0,0,0.06)' }} />
-                        <div className="h-2 w-3/4 rounded" style={{ background: 'rgba(0,0,0,0.05)' }} />
-                        <div className="grid grid-cols-3 gap-2 mt-3">
-                            <div className="h-10 rounded" style={{ background: 'rgba(0,0,0,0.05)' }} />
-                            <div className="h-10 rounded" style={{ background: 'rgba(0,0,0,0.05)' }} />
-                            <div className="h-10 rounded" style={{ background: 'rgba(0,0,0,0.05)' }} />
-                        </div>
-                    </div>
-
-                    {/* Hover overlay */}
-                    <div
-                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4"
-                        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }}
-                    >
-                        <span className="flex items-center gap-2 text-sm text-white font-medium">
-                            Continue Building <ArrowRight className="h-4 w-4" />
-                        </span>
-                    </div>
-                </div>
-
-                {/* Project info */}
-                <div
-                    className="p-4 rounded-b-[20px]"
-                    style={{ background: 'rgba(255,255,255,0.3)', borderTop: '1px solid rgba(255,255,255,0.5)' }}
-                >
-                    <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                            <h3 className="font-semibold truncate" style={{ color: '#1a1a1a' }}>{project.name}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Clock className="h-3 w-3" style={{ color: '#666' }} />
-                                <span className="text-xs" style={{ color: '#666' }}>Updated 2h ago</span>
+                        {/* Code/content lines - simulating code editor */}
+                        <div className="absolute inset-0 p-4 space-y-2">
+                            {/* Code line 1 */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono" style={{ color: '#c792ea' }}>const</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#82aaff' }}>{project.name?.split(' ')[0] || 'MyApp'}</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>=</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>{'() => {'}</span>
                             </div>
+                            {/* Code line 2 */}
+                            <div className="flex items-center gap-2 pl-4">
+                                <span className="text-[10px] font-mono" style={{ color: '#c792ea' }}>return</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>(</span>
+                            </div>
+                            {/* Code line 3 */}
+                            <div className="flex items-center gap-2 pl-6">
+                                <span className="text-[10px] font-mono" style={{ color: '#f07178' }}>{'<App'}</span>
+                            </div>
+                            {/* Code line 4 */}
+                            <div className="flex items-center gap-2 pl-8">
+                                <span className="text-[10px] font-mono" style={{ color: '#ffcb6b' }}>status</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>=</span>
+                                <span className="text-[10px] font-mono" style={{ color: '#c3e88d' }}>"{project.status || 'ready'}"</span>
+                            </div>
+                            {/* Code line 5 */}
+                            <div className="flex items-center gap-2 pl-6">
+                                <span className="text-[10px] font-mono" style={{ color: '#f07178' }}>{'/>'}</span>
+                            </div>
+                            {/* More faded lines */}
+                            <div className="h-2 w-16 rounded mt-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                            <div className="h-2 w-24 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                            <div className="h-2 w-20 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
                         </div>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); }}
-                            className="p-1.5 rounded-lg transition-all"
-                            style={{ color: '#666' }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)'; e.currentTarget.style.color = '#1a1a1a'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; }}
-                        >
-                            <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                    </div>
 
-                    {/* Tags */}
-                    <div className="flex gap-2 mt-3">
-                        <span
-                            className="px-2 py-0.5 text-xs rounded-full"
-                            style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}
+                        {/* Subtle screen glare */}
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(255,255,255,0.01) 100%)',
+                            }}
+                        />
+
+                        {/* Hover overlay */}
+                        <div
+                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                            style={{ background: 'rgba(0,0,0,0.5)' }}
                         >
-                            {project.framework || 'React'}
-                        </span>
-                        <span
-                            className="px-2 py-0.5 text-xs rounded-full"
-                            style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}
-                        >
-                            Active
-                        </span>
+                            <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
+                                style={{ background: 'rgba(220, 38, 38, 0.8)' }}>
+                                Open Project <ArrowRight className="h-4 w-4" />
+                            </span>
+                        </div>
                     </div>
+                </button>
+
+                {/* Bottom edge - 3D thickness */}
+                <div
+                    className="absolute left-0 right-0 rounded-b-lg"
+                    style={{
+                        height: '12px',
+                        bottom: '-12px',
+                        background: 'linear-gradient(180deg, #15171c 0%, #0d0f12 100%)',
+                        transform: 'rotateX(-90deg)',
+                        transformOrigin: 'top',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    }}
+                />
+
+                {/* Right edge - 3D thickness */}
+                <div
+                    className="absolute top-0 bottom-0 rounded-r-lg"
+                    style={{
+                        width: '10px',
+                        right: '-10px',
+                        background: 'linear-gradient(90deg, #1a1d24 0%, #12141a 100%)',
+                        transform: 'rotateY(90deg)',
+                        transformOrigin: 'left',
+                    }}
+                />
+
+                {/* Bottom-right corner piece */}
+                <div
+                    className="absolute"
+                    style={{
+                        width: '10px',
+                        height: '12px',
+                        right: '-10px',
+                        bottom: '-12px',
+                        background: '#0a0c0f',
+                        transform: 'rotateY(90deg) rotateX(-90deg)',
+                        transformOrigin: 'top left',
+                    }}
+                />
+            </div>
+
+            {/* Project info - below the 3D card */}
+            <div className="mt-6 px-2">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Clock className="h-3 w-3" style={{ color: '#666' }} />
+                            <span className="text-xs" style={{ color: '#666' }}>Updated 2h ago</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); }}
+                        className="p-1.5 rounded-lg transition-all"
+                        style={{ color: '#666' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)'; e.currentTarget.style.color = '#1a1a1a'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; }}
+                    >
+                        <MoreHorizontal className="h-4 w-4" />
+                    </button>
                 </div>
-            </button>
+                {/* Tags */}
+                <div className="flex gap-2 mt-2">
+                    <span
+                        className="px-2 py-0.5 text-[10px] rounded-full"
+                        style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}
+                    >
+                        {project.framework || 'React'}
+                    </span>
+                    <span
+                        className="px-2 py-0.5 text-[10px] rounded-full"
+                        style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}
+                    >
+                        Active
+                    </span>
+                </div>
+            </div>
         </div>
     );
 }
