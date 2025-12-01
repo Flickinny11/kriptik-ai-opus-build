@@ -399,7 +399,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
                 </button>
 
-                {/* BOTTOM EDGE - 2x thicker (32px) */}
+                {/* BOTTOM EDGE - thickness */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
@@ -409,10 +409,13 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
+                        borderLeft: '1px solid rgba(255,255,255,0.35)',
+                        borderRight: '1px solid rgba(255,255,255,0.35)',
+                        borderBottom: '1px solid rgba(255,255,255,0.35)',
                     }}
                 />
 
-                {/* LEFT EDGE - 2x thicker (32px) - most visible */}
+                {/* LEFT EDGE - thickness */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
@@ -422,6 +425,9 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
+                        borderLeft: '1px solid rgba(255,255,255,0.35)',
+                        borderTop: '1px solid rgba(255,255,255,0.35)',
+                        borderBottom: '1px solid rgba(255,255,255,0.35)',
                     }}
                 />
 
@@ -435,6 +441,9 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
+                        borderLeft: '1px solid rgba(255,255,255,0.25)',
+                        borderRight: '1px solid rgba(255,255,255,0.25)',
+                        borderTop: '1px solid rgba(255,255,255,0.25)',
                     }}
                 />
 
@@ -448,82 +457,19 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
+                        borderRight: '1px solid rgba(255,255,255,0.25)',
+                        borderTop: '1px solid rgba(255,255,255,0.25)',
+                        borderBottom: '1px solid rgba(255,255,255,0.25)',
                     }}
                 />
 
-                {/* OUTER WIREFRAME - White outline on the outside edges only */}
-                {/* Front face outline */}
+                {/* FRONT FACE OUTLINE */}
                 <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
                         borderRadius: '6px',
                         transform: 'translateZ(16px)',
-                        border: '1.5px solid rgba(255,255,255,0.5)',
-                    }}
-                />
-                {/* Bottom front edge line */}
-                <div
-                    className="absolute left-0 right-0 pointer-events-none"
-                    style={{
-                        height: '1.5px',
-                        bottom: '0',
-                        background: 'rgba(255,255,255,0.5)',
-                        transform: 'translateZ(16px)',
-                    }}
-                />
-                {/* Left front edge line */}
-                <div
-                    className="absolute top-0 bottom-0 pointer-events-none"
-                    style={{
-                        width: '1.5px',
-                        left: '0',
-                        background: 'rgba(255,255,255,0.5)',
-                        transform: 'translateZ(16px)',
-                    }}
-                />
-                {/* Bottom back edge line */}
-                <div
-                    className="absolute left-0 right-0 pointer-events-none"
-                    style={{
-                        height: '1.5px',
-                        bottom: '-32px',
-                        background: 'rgba(255,255,255,0.4)',
-                        transform: 'translateZ(0)',
-                        borderRadius: '0 0 6px 6px',
-                    }}
-                />
-                {/* Left back edge line */}
-                <div
-                    className="absolute top-0 bottom-0 pointer-events-none"
-                    style={{
-                        width: '1.5px',
-                        left: '-32px',
-                        background: 'rgba(255,255,255,0.4)',
-                        transform: 'translateZ(0)',
-                    }}
-                />
-                {/* Bottom-left corner vertical edge */}
-                <div
-                    className="absolute pointer-events-none"
-                    style={{
-                        width: '1.5px',
-                        height: '32px',
-                        left: '0',
-                        bottom: '-32px',
-                        background: 'rgba(255,255,255,0.45)',
-                        transform: 'translateZ(0)',
-                    }}
-                />
-                {/* Top-left corner edge (front to back) */}
-                <div
-                    className="absolute pointer-events-none"
-                    style={{
-                        width: '32px',
-                        height: '1.5px',
-                        left: '-32px',
-                        top: '0',
-                        background: 'rgba(255,255,255,0.4)',
-                        transform: 'translateZ(16px)',
+                        border: '1px solid rgba(255,255,255,0.4)',
                     }}
                 />
             </div>
