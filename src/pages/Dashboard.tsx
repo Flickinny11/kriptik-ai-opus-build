@@ -252,186 +252,126 @@ function UserMenu() {
 // Project thumbnail card - 3D Angled Tablet with thick visible edges
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
-    const [typedText, setTypedText] = useState('');
-    const [currentLine, setCurrentLine] = useState(0);
 
     // Format dates
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
-    const lastOpened = project.lastOpened ? new Date(project.lastOpened).toLocaleDateString() : 'Just now';
-    const frameworks = project.framework || 'React, Node.js';
+    const frameworks = project.framework || 'React';
 
-    // Typing animation showing project details
+    // Simple code display
     const codeLines = [
-        { text: `// ${project.name || 'My Project'}`, color: '#6A9955' },
-        { text: ``, color: '' },
-        { text: `const project = {`, color: '#c792ea' },
-        { text: `  name: "${project.name || 'Untitled'}"`, color: '#c3e88d' },
-        { text: `  modified: "${lastModified}"`, color: '#c3e88d' },
-        { text: `  opened: "${lastOpened}"`, color: '#c3e88d' },
-        { text: `  stack: ["${frameworks.split(',')[0] || 'React'}"]`, color: '#c3e88d' },
-        { text: `  status: "active"`, color: '#c3e88d' },
-        { text: `}`, color: '#c792ea' },
-        { text: ``, color: '' },
-        { text: `export default project`, color: '#c792ea' },
+        { text: `const MyVideo = () => {`, color: '#c792ea' },
+        { text: `  return (`, color: '#c792ea' },
+        { text: `    <AbsoluteFill>`, color: '#4fc1ff' },
+        { text: `      <Video`, color: '#4fc1ff' },
+        { text: `        src={staticFile('video.mp4')}`, color: '#ce9178' },
+        { text: `      />`, color: '#4fc1ff' },
+        { text: `      <Sequence from={60}>`, color: '#4fc1ff' },
+        { text: `        <BRoll`, color: '#4fc1ff' },
+        { text: `      </Sequence>`, color: '#4fc1ff' },
+        { text: `      <AbsoluteFill>`, color: '#4fc1ff' },
+        { text: `        <Captions />`, color: '#4fc1ff' },
+        { text: `      </AbsoluteFill>`, color: '#4fc1ff' },
     ];
 
-    useEffect(() => {
-        const typeNextChar = () => {
-            if (currentLine < codeLines.length) {
-                const line = codeLines[currentLine];
-                if (typedText.length < line.text.length) {
-                    setTypedText(prev => line.text.slice(0, prev.length + 1));
-                } else {
-                    setTimeout(() => {
-                        setCurrentLine(prev => prev + 1);
-                        setTypedText('');
-                    }, 150);
-                }
-            } else {
-                // Reset and loop
-                setTimeout(() => {
-                    setCurrentLine(0);
-                    setTypedText('');
-                }, 2000);
-            }
-        };
-
-        const timer = setTimeout(typeNextChar, 40 + Math.random() * 20);
-        return () => clearTimeout(timer);
-    }, [typedText, currentLine, codeLines.length]);
-
-    // Color coding for syntax
-    const colorize = (text: string) => {
-        return text
-            .replace(/(\/\/.*)/g, '<span style="color:#6A9955">$1</span>')
-            .replace(/(const|export|default|import|from)/g, '<span style="color:#c792ea">$1</span>')
-            .replace(/(\w+)(?=:)/g, '<span style="color:#9cdcfe">$1</span>')
-            .replace(/(=|{|}|\[|\])/g, '<span style="color:#d4d4d4">$1</span>')
-            .replace(/("[^"]*")/g, '<span style="color:#ce9178">$1</span>');
-    };
-
     return (
-        <div className="group cursor-pointer pb-12" style={{ perspective: '1000px' }}>
-            {/* Ground shadow - larger and softer */}
+        <div className="group cursor-pointer" style={{ marginBottom: '60px' }}>
+            {/* 3D Card Container */}
             <div
-                className="absolute left-1/2 w-[90%] h-6 rounded-[50%] blur-lg pointer-events-none"
+                className="relative transition-transform duration-300 ease-out"
                 style={{
-                    background: 'radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%)',
-                    transform: 'translateX(-50%)',
-                    bottom: '20px',
-                }}
-            />
-
-            {/* 3D Container - adjusted angle: less tilt back, rotated on all axes */}
-            <div
-                className="relative transition-all duration-500 ease-out"
-                style={{
+                    width: '100%',
+                    transform: 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)',
                     transformStyle: 'preserve-3d',
-                    // Less rotateX (more upright), rotateY to turn left side forward, slight rotateZ
-                    transform: 'rotateX(28deg) rotateY(12deg) rotateZ(-3deg) scale(0.95)',
+                    perspective: '800px',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(22deg) rotateY(8deg) rotateZ(-2deg) scale(0.98) translateY(-8px)';
+                    e.currentTarget.style.transform = 'rotateX(8deg) rotateY(-5deg) rotateZ(1deg) translateY(-4px)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(28deg) rotateY(12deg) rotateZ(-3deg) scale(0.95)';
+                    e.currentTarget.style.transform = 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)';
                 }}
             >
-                {/* Main face - the screen surface */}
+                {/* Main Screen Face */}
                 <button
                     onClick={() => navigate(`/builder/${project.id}`)}
-                    className="relative w-full text-left overflow-hidden"
+                    className="relative w-full text-left block"
                     style={{
-                        background: '#1e222a',
-                        borderRadius: '4px',
-                        transform: 'translateZ(20px)',
-                        border: '1px solid rgba(255,255,255,0.45)',
+                        background: '#282c34',
+                        borderRadius: '8px',
+                        aspectRatio: '4/3',
+                        transformStyle: 'preserve-3d',
                     }}
                 >
-                    {/* Screen content - dark editor with typing animation */}
-                    <div
-                        className="aspect-[4/3] relative overflow-hidden p-4"
-                        style={{
-                            background: 'linear-gradient(180deg, #1e1e1e 0%, #252526 100%)',
-                            borderRadius: '6px',
-                        }}
-                    >
-                        {/* Code lines with syntax highlighting and typing effect */}
-                        <div className="font-mono text-[10px] leading-[1.6] space-y-0">
-                            {codeLines.slice(0, currentLine).map((line, i) => (
-                                <div
-                                    key={i}
-                                    className="whitespace-pre"
-                                    style={{ minHeight: '14px' }}
-                                    dangerouslySetInnerHTML={{ __html: colorize(line.text) }}
-                                />
-                            ))}
-                            {currentLine < codeLines.length && (
-                                <div className="whitespace-pre" style={{ minHeight: '14px' }}>
-                                    <span dangerouslySetInnerHTML={{ __html: colorize(typedText) }} />
-                                    <span
-                                        className="inline-block w-[6px] h-[13px] ml-0.5 animate-pulse"
-                                        style={{ background: '#528bff', verticalAlign: 'text-bottom' }}
-                                    />
+                    {/* Code Content */}
+                    <div className="absolute inset-0 p-4 overflow-hidden" style={{ borderRadius: '8px' }}>
+                        <div className="font-mono text-[9px] leading-relaxed">
+                            {codeLines.map((line, i) => (
+                                <div key={i} style={{ color: line.color, whiteSpace: 'pre' }}>
+                                    {line.text}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Screen glare effect */}
-                        <div
-                            className="absolute inset-0 pointer-events-none"
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)',
-                                borderRadius: '6px',
-                            }}
-                        />
-
-                        {/* Hover overlay */}
-                        <div
-                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                            style={{ background: 'rgba(0,0,0,0.7)', borderRadius: '6px' }}
-                        >
-                            <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
-                                style={{ background: 'rgba(220, 38, 38, 0.9)' }}>
-                                Open Project <ArrowRight className="h-4 w-4" />
-                            </span>
+                            ))}
                         </div>
                     </div>
+
+                    {/* Hover overlay */}
+                    <div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.75)', borderRadius: '8px' }}
+                    >
+                        <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
+                            style={{ background: '#dc2626' }}>
+                            Open Project <ArrowRight className="h-4 w-4" />
+                        </span>
+                    </div>
+
+                    {/* BOTTOM EDGE - visible thickness */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: '14px',
+                            background: '#1a1c20',
+                            borderRadius: '0 0 8px 8px',
+                            transform: 'translateY(100%) rotateX(-90deg)',
+                            transformOrigin: 'top',
+                        }}
+                    />
+
+                    {/* LEFT EDGE - visible thickness */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '14px',
+                            background: '#15171a',
+                            borderRadius: '8px 0 0 8px',
+                            transform: 'translateX(-100%) rotateY(90deg)',
+                            transformOrigin: 'right',
+                        }}
+                    />
                 </button>
 
-                {/* BOTTOM THICKNESS - lighter grey */}
+                {/* Ground Shadow */}
                 <div
-                    className="absolute left-0 right-0"
                     style={{
+                        position: 'absolute',
+                        left: '10%',
+                        right: '10%',
+                        bottom: '-30px',
                         height: '20px',
-                        bottom: '0',
-                        background: '#3a3d45',
-                        transform: 'rotateX(-90deg)',
-                        transformOrigin: 'bottom',
-                        borderBottom: '1px solid rgba(255,255,255,0.4)',
-                        borderLeft: '1px solid rgba(255,255,255,0.3)',
-                        borderRight: '1px solid rgba(255,255,255,0.3)',
-                    }}
-                />
-
-                {/* LEFT THICKNESS - lighter grey */}
-                <div
-                    className="absolute top-0 bottom-0"
-                    style={{
-                        width: '20px',
-                        left: '0',
-                        background: '#2d3038',
-                        transform: 'rotateY(90deg)',
-                        transformOrigin: 'left',
-                        borderLeft: '1px solid rgba(255,255,255,0.4)',
-                        borderTop: '1px solid rgba(255,255,255,0.3)',
-                        borderBottom: '1px solid rgba(255,255,255,0.3)',
+                        background: 'radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%)',
+                        filter: 'blur(8px)',
+                        transform: 'translateZ(-20px)',
                     }}
                 />
             </div>
 
-            {/* Project info - below the 3D card */}
-            <div className="mt-6 px-1">
+            {/* Project Info */}
+            <div className="mt-8 px-1">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
@@ -442,26 +382,17 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
                     <button
                         onClick={(e) => { e.stopPropagation(); }}
-                        className="p-1.5 rounded-lg transition-all"
+                        className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
                         style={{ color: '#666' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)'; e.currentTarget.style.color = '#1a1a1a'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; }}
                     >
                         <MoreHorizontal className="h-4 w-4" />
                     </button>
                 </div>
-                {/* Tags */}
                 <div className="flex gap-2 mt-2">
-                    <span
-                        className="px-2 py-0.5 text-[10px] rounded-full"
-                        style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}
-                    >
-                        {project.framework || 'React'}
+                    <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}>
+                        {frameworks}
                     </span>
-                    <span
-                        className="px-2 py-0.5 text-[10px] rounded-full"
-                        style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}
-                    >
+                    <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
                         Active
                     </span>
                 </div>
