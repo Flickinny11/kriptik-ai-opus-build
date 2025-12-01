@@ -191,7 +191,7 @@ export function HoverSidebar() {
                                             style={{
                                                 padding: '14px 18px',
                                                 borderRadius: '50px',
-                                                background: isActive 
+                                                background: isActive
                                                     ? 'linear-gradient(145deg, rgba(255, 210, 180, 0.7) 0%, rgba(255, 190, 160, 0.55) 40%, rgba(255, 170, 140, 0.45) 100%)'
                                                     : isHovered
                                                         ? 'linear-gradient(145deg, rgba(255, 240, 230, 0.7) 0%, rgba(255, 230, 215, 0.55) 40%, rgba(255, 220, 200, 0.5) 100%)'
@@ -226,8 +226,8 @@ export function HoverSidebar() {
                                                             inset 0 -2px 2px rgba(0, 0, 0, 0.03),
                                                             0 0 0 1px rgba(255, 255, 255, 0.6)
                                                         `,
-                                                transform: isHovered 
-                                                    ? 'translateY(-4px) translateZ(10px)' 
+                                                transform: isHovered
+                                                    ? 'translateY(-4px) translateZ(10px)'
                                                     : 'translateY(0) translateZ(0)',
                                                 transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
                                             }}
@@ -255,9 +255,9 @@ export function HoverSidebar() {
                                             />
 
                                             {/* Icon in glass container */}
-                                            <div 
+                                            <div
                                                 className="relative w-10 h-10 flex items-center justify-center rounded-xl"
-                                                style={{ 
+                                                style={{
                                                     background: isActive
                                                         ? 'rgba(255, 160, 120, 0.2)'
                                                         : 'rgba(0, 0, 0, 0.05)',
@@ -265,7 +265,7 @@ export function HoverSidebar() {
                                                 }}
                                             >
                                                 <span
-                                                    style={{ 
+                                                    style={{
                                                         color: isActive ? '#c45020' : '#1a1a1a',
                                                         filter: isActive ? 'drop-shadow(0 0 4px rgba(255,140,80,0.5))' : 'none',
                                                         display: 'flex',
@@ -279,9 +279,9 @@ export function HoverSidebar() {
 
                                             {/* Label */}
                                             <div className="flex-1 text-left">
-                                                <div 
+                                                <div
                                                     className="text-sm font-medium"
-                                                    style={{ 
+                                                    style={{
                                                         color: isActive ? '#a03810' : '#1a1a1a',
                                                         fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif',
                                                         fontWeight: isActive ? 600 : 500,
@@ -293,7 +293,7 @@ export function HoverSidebar() {
                                             </div>
 
                                             {/* Arrow indicator */}
-                                            <div 
+                                            <div
                                                 className="w-5 h-5 flex items-center justify-center rounded-full"
                                                 style={{
                                                     background: isActive ? 'rgba(255,160,120,0.3)' : 'rgba(0,0,0,0.06)',
@@ -302,11 +302,11 @@ export function HoverSidebar() {
                                                 }}
                                             >
                                                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                                    <path 
-                                                        d="M2 1L5 4L2 7" 
+                                                    <path
+                                                        d="M2 1L5 4L2 7"
                                                         stroke={isActive ? '#c45020' : '#1a1a1a'}
-                                                        strokeWidth="1.5" 
-                                                        strokeLinecap="round" 
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                     />
                                                 </svg>
