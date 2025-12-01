@@ -14,12 +14,11 @@ import {
     Plus, Eye, EyeOff, Trash2, RefreshCw,
     Shield, Lock, Copy
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
-import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // Credential types
 const CREDENTIAL_TYPES = [
@@ -62,53 +61,57 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn(
-                "relative p-4 rounded-2xl",
-                "bg-slate-800/50 border border-slate-700/50",
-                "hover:border-slate-600 transition-all"
-            )}
+            className="glass-panel relative p-4 rounded-2xl transition-all"
         >
             {/* Status indicator */}
-            <div className={cn(
-                "absolute top-4 right-4 w-2.5 h-2.5 rounded-full",
-                credential.status === 'active' && "bg-emerald-500",
-                credential.status === 'expired' && "bg-amber-500",
-                credential.status === 'invalid' && "bg-red-500",
-            )} />
+            <div
+                className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full"
+                style={{
+                    background: credential.status === 'active' ? '#22c55e' :
+                        credential.status === 'expired' ? '#eab308' : '#ef4444'
+                }}
+            />
 
             <div className="flex items-start gap-4">
                 {/* Icon */}
-                <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
-                    "bg-gradient-to-br",
-                    typeInfo?.color || 'from-slate-600 to-slate-700'
-                )}>
+                <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                    style={{ background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.08)' }}
+                >
                     {typeInfo?.icon || '🔑'}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white">{credential.name}</h3>
-                    <p className="text-sm text-slate-400">{typeInfo?.name}</p>
+                    <h3 className="font-semibold" style={{ color: '#1a1a1a' }}>{credential.name}</h3>
+                    <p className="text-sm" style={{ color: '#666' }}>{typeInfo?.name}</p>
 
                     {/* Masked key */}
                     <div className="mt-3 flex items-center gap-2">
-                        <code className="text-xs text-slate-500 font-mono bg-slate-900/50 px-2 py-1 rounded">
+                        <code className="text-xs font-mono px-2 py-1 rounded" style={{ background: 'rgba(0,0,0,0.05)', color: '#888' }}>
                             {showKey ? 'sk-xxxx...xxxx' : '••••••••••••••••'}
                         </code>
                         <button
                             onClick={() => setShowKey(!showKey)}
-                            className="p-1 rounded hover:bg-slate-700 text-slate-400"
+                            className="p-1 rounded transition-colors"
+                            style={{ color: '#666' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                             {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
-                        <button className="p-1 rounded hover:bg-slate-700 text-slate-400">
+                        <button
+                            className="p-1 rounded transition-colors"
+                            style={{ color: '#666' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
                             <Copy className="h-3.5 w-3.5" />
                         </button>
                     </div>
 
                     {/* Last used */}
                     {credential.lastUsed && (
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs mt-2" style={{ color: '#888' }}>
                             Last used: {credential.lastUsed.toLocaleDateString()}
                         </p>
                     )}
@@ -116,25 +119,23 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-                <Button
-                    size="sm"
-                    variant="ghost"
+            <div className="flex gap-2 mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                <button
                     onClick={onRefresh}
-                    className="text-slate-400 hover:text-white"
+                    className="glass-button glass-button--small"
+                    style={{ color: '#1a1a1a' }}
                 >
-                    <RefreshCw className="h-4 w-4 mr-1" />
+                    <RefreshCw className="h-4 w-4 mr-1 inline" />
                     Validate
-                </Button>
-                <Button
-                    size="sm"
-                    variant="ghost"
+                </button>
+                <button
                     onClick={onDelete}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    className="glass-button glass-button--small"
+                    style={{ color: '#dc2626' }}
                 >
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    <Trash2 className="h-4 w-4 mr-1 inline" />
                     Remove
-                </Button>
+                </button>
             </div>
         </motion.div>
     );
@@ -149,11 +150,24 @@ export default function CredentialVault() {
     void addingNew;
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div className="min-h-screen" style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}>
             <HoverSidebar />
 
-            {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            {/* Header - 3D Glass */}
+            <header
+                className="sticky top-0 z-40"
+                style={{
+                    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.45) 100%)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    boxShadow: `
+                        0 4px 20px rgba(0, 0, 0, 0.06),
+                        0 1px 0 rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.9)
+                    `,
+                }}
+            >
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <HandDrawnArrow className="mr-2" />
@@ -173,11 +187,11 @@ export default function CredentialVault() {
 
             <main className="container mx-auto px-4 py-8">
                 {/* Security banner */}
-                <div className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-4">
-                    <Shield className="h-8 w-8 text-emerald-500" />
+                <div className="mb-8 p-4 rounded-2xl glass-panel flex items-center gap-4" style={{ border: '1px solid rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.08)' }}>
+                    <Shield className="h-8 w-8" style={{ color: '#22c55e' }} />
                     <div>
-                        <h3 className="font-semibold text-emerald-400">Enterprise-Grade Security</h3>
-                        <p className="text-sm text-slate-400">
+                        <h3 className="font-semibold" style={{ color: '#15803d' }}>Enterprise-Grade Security</h3>
+                        <p className="text-sm" style={{ color: '#666' }}>
                             All credentials are encrypted with AES-256-GCM and never leave your vault
                         </p>
                     </div>
@@ -186,21 +200,22 @@ export default function CredentialVault() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif' }}>
                             Credential Vault
                         </h1>
-                        <p className="text-slate-400">
+                        <p style={{ color: '#666' }}>
                             {credentials.length} credential{credentials.length !== 1 ? 's' : ''} stored
                         </p>
                     </div>
 
-                    <Button
+                    <button
                         onClick={() => setAddingNew(true)}
-                        className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
+                        className="glass-button glass-button--glow"
+                        style={{ color: '#a03810', fontWeight: 600 }}
                     >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-4 w-4 mr-1 inline" />
                         Add Credential
-                    </Button>
+                    </button>
                 </div>
 
                 {/* Credentials grid */}
@@ -217,35 +232,34 @@ export default function CredentialVault() {
 
                 {credentials.length === 0 && (
                     <div className="text-center py-16">
-                        <Lock className="h-16 w-16 mx-auto text-slate-700 mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">No credentials stored</h3>
-                        <p className="text-slate-400 mb-6">Add your first API key to get started</p>
-                        <Button
+                        <Lock className="h-16 w-16 mx-auto mb-4" style={{ color: '#888' }} />
+                        <h3 className="text-xl font-semibold mb-2" style={{ color: '#1a1a1a' }}>No credentials stored</h3>
+                        <p className="mb-6" style={{ color: '#666' }}>Add your first API key to get started</p>
+                        <button
                             onClick={() => setAddingNew(true)}
-                            className="bg-amber-500 hover:bg-amber-400 text-black"
+                            className="glass-button glass-button--glow"
+                            style={{ color: '#a03810' }}
                         >
                             Add Credential
-                        </Button>
+                        </button>
                     </div>
                 )}
 
                 {/* Available integrations */}
                 <div className="mt-12">
-                    <h2 className="text-xl font-semibold text-white mb-4">Available Integrations</h2>
+                    <h2 className="text-xl font-semibold mb-4" style={{ color: '#1a1a1a' }}>Available Integrations</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         {CREDENTIAL_TYPES.map((type) => (
                             <button
                                 key={type.id}
                                 onClick={() => setAddingNew(true)}
-                                className={cn(
-                                    "p-4 rounded-xl text-center",
-                                    "bg-slate-800/30 border border-slate-700/50",
-                                    "hover:border-amber-500/30 hover:bg-slate-800/50",
-                                    "transition-all"
-                                )}
+                                className="glass-panel p-4 rounded-xl text-center transition-all"
+                                style={{ border: '1px solid rgba(0,0,0,0.08)' }}
+                                onMouseEnter={(e) => e.currentTarget.style.border = '1px solid rgba(160,56,16,0.3)'}
+                                onMouseLeave={(e) => e.currentTarget.style.border = '1px solid rgba(0,0,0,0.08)'}
                             >
                                 <span className="text-2xl block mb-2">{type.icon}</span>
-                                <span className="text-sm text-slate-300">{type.name}</span>
+                                <span className="text-sm" style={{ color: '#1a1a1a' }}>{type.name}</span>
                             </button>
                         ))}
                     </div>

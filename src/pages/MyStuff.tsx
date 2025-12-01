@@ -19,13 +19,13 @@ import {
 } from 'lucide-react';
 import { useProjectStore } from '../store/useProjectStore';
 import type { Project } from '../store/useProjectStore';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // Project thumbnail card with 3D effects
 function ProjectCard({
@@ -73,47 +73,41 @@ function ProjectCard({
                     rotateY: isHovered ? -2 : 0,
                 }}
                 transition={{ duration: 0.3 }}
-                className={cn(
-                    "relative rounded-2xl overflow-hidden cursor-pointer",
-                    "bg-gradient-to-br from-slate-800/80 to-slate-900/80",
-                    "border border-slate-700/50",
-                    "shadow-xl shadow-black/20",
-                    "hover:border-amber-500/30 hover:shadow-amber-500/10",
-                    "transition-all duration-300"
-                )}
+                className="glass-panel relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
                 style={{
                     transformStyle: 'preserve-3d',
                     boxShadow: isHovered
-                        ? '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(251,191,36,0.1)'
-                        : '0 10px 40px -10px rgba(0,0,0,0.3)',
+                        ? '0 25px 50px -12px rgba(0,0,0,0.15), 0 0 0 1px rgba(160,56,16,0.2)'
+                        : '0 10px 40px -10px rgba(0,0,0,0.1)',
+                    border: isHovered ? '1px solid rgba(160,56,16,0.3)' : undefined,
                 }}
                 onClick={onOpen}
             >
                 {/* Thumbnail preview */}
                 <div className="aspect-[16/10] relative overflow-hidden">
                     {/* Fake browser chrome */}
-                    <div className="absolute top-0 left-0 right-0 h-7 bg-slate-800/90 backdrop-blur flex items-center gap-1.5 px-3 z-10">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-                        <div className="flex-1 mx-4 h-4 bg-slate-700/50 rounded-full flex items-center px-2">
-                            <span className="text-[8px] text-slate-500 font-mono truncate">
+                    <div className="absolute top-0 left-0 right-0 h-7 backdrop-blur flex items-center gap-1.5 px-3 z-10" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#ff5f56' }} />
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#ffbd2e' }} />
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#27ca40' }} />
+                        <div className="flex-1 mx-4 h-4 rounded-full flex items-center px-2" style={{ background: 'rgba(0,0,0,0.05)' }}>
+                            <span className="text-[8px] font-mono truncate" style={{ color: '#666' }}>
                                 {project.name.toLowerCase().replace(/\s+/g, '-')}.kriptik.app
                             </span>
                         </div>
                     </div>
 
                     {/* Gradient preview placeholder */}
-                    <div className="absolute inset-0 pt-7 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                    <div className="absolute inset-0 pt-7" style={{ background: 'linear-gradient(145deg, #e8e4df, #d8d4cf)' }}>
                         {/* Simulated content lines */}
                         <div className="p-4 space-y-3">
-                            <div className="h-6 w-32 bg-gradient-to-r from-amber-500/30 to-orange-500/20 rounded" />
-                            <div className="h-3 w-full bg-slate-700/40 rounded" />
-                            <div className="h-3 w-4/5 bg-slate-700/30 rounded" />
+                            <div className="h-6 w-32 rounded" style={{ background: 'linear-gradient(90deg, rgba(160,56,16,0.3), rgba(234,88,12,0.2))' }} />
+                            <div className="h-3 w-full rounded" style={{ background: 'rgba(0,0,0,0.08)' }} />
+                            <div className="h-3 w-4/5 rounded" style={{ background: 'rgba(0,0,0,0.06)' }} />
                             <div className="grid grid-cols-3 gap-2 mt-4">
-                                <div className="h-12 bg-slate-700/30 rounded-lg" />
-                                <div className="h-12 bg-slate-700/30 rounded-lg" />
-                                <div className="h-12 bg-slate-700/30 rounded-lg" />
+                                <div className="h-12 rounded-lg" style={{ background: 'rgba(255,255,255,0.5)' }} />
+                                <div className="h-12 rounded-lg" style={{ background: 'rgba(255,255,255,0.5)' }} />
+                                <div className="h-12 rounded-lg" style={{ background: 'rgba(255,255,255,0.5)' }} />
                             </div>
                         </div>
                     </div>
@@ -122,15 +116,13 @@ function ProjectCard({
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: isHovered ? 1 : 0 }}
-                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-center pb-4"
+                        className="absolute inset-0 flex items-end justify-center pb-4"
+                        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3), transparent)' }}
                     >
-                        <Button
-                            size="sm"
-                            className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
-                        >
-                            <ExternalLink className="h-4 w-4" />
+                        <button className="glass-button glass-button--small" style={{ padding: '8px 16px', color: '#1a1a1a', fontWeight: 600 }}>
+                            <ExternalLink className="h-4 w-4 mr-2 inline" />
                             Open Project
-                        </Button>
+                        </button>
                     </motion.div>
                 </div>
 
@@ -138,12 +130,12 @@ function ProjectCard({
                 <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-white truncate text-lg">
+                            <h3 className="font-semibold truncate text-lg" style={{ color: '#1a1a1a' }}>
                                 {project.name}
                             </h3>
                             <div className="flex items-center gap-2 mt-1.5">
-                                <Calendar className="h-3 w-3 text-slate-500" />
-                                <span className="text-xs text-slate-500 font-mono">
+                                <Calendar className="h-3 w-3" style={{ color: '#888' }} />
+                                <span className="text-xs font-mono" style={{ color: '#888' }}>
                                     {new Date(project.createdAt).toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric',
@@ -160,11 +152,11 @@ function ProjectCard({
                                     e.stopPropagation();
                                     setMenuOpen(!menuOpen);
                                 }}
-                                className={cn(
-                                    "p-2 rounded-lg transition-all",
-                                    "hover:bg-slate-700/50 text-slate-400 hover:text-white",
-                                    menuOpen && "bg-slate-700/50 text-white"
-                                )}
+                                className="p-2 rounded-lg transition-all"
+                                style={{
+                                    color: menuOpen ? '#1a1a1a' : '#666',
+                                    background: menuOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
+                                }}
                             >
                                 <MoreVertical className="h-5 w-5" />
                             </button>
@@ -176,11 +168,7 @@ function ProjectCard({
                                         initial={{ opacity: 0, scale: 0.95, y: -10 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                        className={cn(
-                                            "absolute right-0 top-full mt-2 w-48 z-50",
-                                            "bg-slate-800 border border-slate-700 rounded-xl",
-                                            "shadow-2xl shadow-black/50 overflow-hidden"
-                                        )}
+                                        className="absolute right-0 top-full mt-2 w-48 z-50 glass-panel rounded-xl overflow-hidden"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         {menuItems.map((item) => (
@@ -190,13 +178,13 @@ function ProjectCard({
                                                     item.action();
                                                     setMenuOpen(false);
                                                 }}
-                                                className={cn(
-                                                    "w-full flex items-center gap-3 px-4 py-2.5",
-                                                    "text-sm text-left transition-colors",
-                                                    item.danger
-                                                        ? "text-red-400 hover:bg-red-500/10"
-                                                        : "text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                                                )}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors"
+                                                style={{
+                                                    color: item.danger ? '#dc2626' : '#1a1a1a',
+                                                    background: 'transparent',
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = item.danger ? 'rgba(220,38,38,0.1)' : 'rgba(0,0,0,0.05)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <item.icon className="h-4 w-4" />
                                                 {item.label}
@@ -210,18 +198,16 @@ function ProjectCard({
 
                     {/* Status badge */}
                     <div className="flex gap-2 mt-3">
-                        <span className={cn(
-                            "px-2.5 py-1 text-xs rounded-full font-medium",
-                            "bg-slate-700/50 text-slate-400"
-                        )}>
+                        <span className="px-2.5 py-1 text-xs rounded-full font-medium" style={{ background: 'rgba(0,0,0,0.05)', color: '#666' }}>
                             {project.framework || 'React'}
                         </span>
-                        <span className={cn(
-                            "px-2.5 py-1 text-xs rounded-full font-medium",
-                            project.status === 'live'
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-amber-500/20 text-amber-400"
-                        )}>
+                        <span
+                            className="px-2.5 py-1 text-xs rounded-full font-medium"
+                            style={{
+                                background: project.status === 'live' ? 'rgba(34,197,94,0.15)' : 'rgba(160,56,16,0.15)',
+                                color: project.status === 'live' ? '#15803d' : '#a03810',
+                            }}
+                        >
                             {project.status === 'live' ? 'Live' : 'In Progress'}
                         </span>
                     </div>
@@ -260,23 +246,20 @@ function ImportModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
             onClick={onClose}
         >
             <motion.div
                 initial={{ scale: 0.95, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
-                className={cn(
-                    "w-full max-w-md bg-slate-900 rounded-2xl",
-                    "border border-slate-700 shadow-2xl shadow-black/50",
-                    "overflow-hidden"
-                )}
+                className="w-full max-w-md glass-panel rounded-2xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-6 border-b border-slate-800">
-                    <h3 className="text-xl font-bold text-white">Import to Project</h3>
-                    <p className="text-sm text-slate-400 mt-1">
+                <div className="p-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                    <h3 className="text-xl font-bold" style={{ color: '#1a1a1a' }}>Import to Project</h3>
+                    <p className="text-sm mt-1" style={{ color: '#666' }}>
                         Select a project to import this component into
                     </p>
                 </div>
@@ -286,25 +269,27 @@ function ImportModal({
                         <button
                             key={project.id}
                             onClick={() => onSelect(project.id)}
-                            className={cn(
-                                "w-full flex items-center gap-3 p-3 rounded-xl",
-                                "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50",
-                                "transition-all duration-200 text-left"
-                            )}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
+                            style={{
+                                background: 'rgba(255,255,255,0.5)',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.7)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.5)'}
                         >
-                            <div className="w-12 h-8 rounded bg-slate-700 flex-shrink-0" />
+                            <div className="w-12 h-8 rounded flex-shrink-0" style={{ background: 'linear-gradient(145deg, #e8e4df, #d8d4cf)' }} />
                             <div className="min-w-0 flex-1">
-                                <p className="font-medium text-white truncate">{project.name}</p>
-                                <p className="text-xs text-slate-500">{project.framework}</p>
+                                <p className="font-medium truncate" style={{ color: '#1a1a1a' }}>{project.name}</p>
+                                <p className="text-xs" style={{ color: '#888' }}>{project.framework}</p>
                             </div>
                         </button>
                     ))}
                 </div>
 
-                <div className="p-4 border-t border-slate-800 flex justify-end">
-                    <Button variant="ghost" onClick={onClose}>
+                <div className="p-4 flex justify-end" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                    <button className="glass-button glass-button--small" onClick={onClose} style={{ color: '#1a1a1a' }}>
                         Cancel
-                    </Button>
+                    </button>
                 </div>
             </motion.div>
         </motion.div>
@@ -353,7 +338,7 @@ export default function MyStuff() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div className="min-h-screen" style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}>
             {/* Fix My App Immersive Intro */}
             <AnimatePresence>
                 {showFixMyAppIntro && (
@@ -363,8 +348,21 @@ export default function MyStuff() {
 
             <HoverSidebar />
 
-            {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            {/* Header - 3D Glass */}
+            <header
+                className="sticky top-0 z-40"
+                style={{
+                    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.45) 100%)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    boxShadow: `
+                        0 4px 20px rgba(0, 0, 0, 0.06),
+                        0 1px 0 rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.9)
+                    `,
+                }}
+            >
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <HandDrawnArrow className="mr-2" />
@@ -387,10 +385,10 @@ export default function MyStuff() {
                 {/* Page header with premium 3D styling */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif' }}>
                             My Stuff
                         </h1>
-                        <p className="text-slate-400">
+                        <p style={{ color: '#666' }}>
                             {projects.length} project{projects.length !== 1 ? 's' : ''}
                         </p>
                     </div>
@@ -461,41 +459,35 @@ export default function MyStuff() {
                 {/* Search and filters */}
                 <div className="flex items-center gap-4 mb-6">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#888' }} />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search projects..."
-                            className={cn(
-                                "w-full pl-10 pr-4 py-2.5 rounded-xl",
-                                "bg-slate-800/50 border border-slate-700/50",
-                                "text-white placeholder:text-slate-500",
-                                "focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
-                            )}
+                            className="glass-input w-full"
+                            style={{ paddingLeft: '40px', color: '#1a1a1a' }}
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-800/50 rounded-xl p-1">
+                    <div className="flex items-center gap-2 glass-panel rounded-xl p-1">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={cn(
-                                "p-2 rounded-lg transition-colors",
-                                viewMode === 'grid'
-                                    ? "bg-amber-500 text-black"
-                                    : "text-slate-400 hover:text-white"
-                            )}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{
+                                background: viewMode === 'grid' ? 'rgba(160,56,16,0.9)' : 'transparent',
+                                color: viewMode === 'grid' ? 'white' : '#666',
+                            }}
                         >
                             <Grid3X3 className="h-4 w-4" />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={cn(
-                                "p-2 rounded-lg transition-colors",
-                                viewMode === 'list'
-                                    ? "bg-amber-500 text-black"
-                                    : "text-slate-400 hover:text-white"
-                            )}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{
+                                background: viewMode === 'list' ? 'rgba(160,56,16,0.9)' : 'transparent',
+                                color: viewMode === 'list' ? 'white' : '#666',
+                            }}
                         >
                             <List className="h-4 w-4" />
                         </button>
@@ -505,8 +497,8 @@ export default function MyStuff() {
                 {/* Projects grid */}
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
-                        <Loader2 className="h-12 w-12 animate-spin text-amber-400 mb-4" />
-                        <p className="text-slate-400">Loading your projects...</p>
+                        <Loader2 className="h-12 w-12 animate-spin mb-4" style={{ color: '#a03810' }} />
+                        <p style={{ color: '#666' }}>Loading your projects...</p>
                     </div>
                 ) : filteredProjects.length > 0 ? (
                     <div className={cn(
@@ -549,25 +541,25 @@ export default function MyStuff() {
                             className="relative inline-block mb-6"
                         >
                             <div
-                                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center"
+                                className="w-20 h-20 rounded-2xl glass-panel flex items-center justify-center"
                                 style={{
                                     boxShadow: `
-                                        0 4px 0 rgba(0,0,0,0.3),
-                                        0 8px 20px rgba(0,0,0,0.4),
-                                        inset 0 1px 0 rgba(255,255,255,0.1)
+                                        0 4px 0 rgba(0,0,0,0.08),
+                                        0 8px 20px rgba(0,0,0,0.1),
+                                        inset 0 1px 0 rgba(255,255,255,0.8)
                                     `,
                                 }}
                             >
-                                <Layers className="h-10 w-10 text-slate-400" />
+                                <Layers className="h-10 w-10" style={{ color: '#a03810' }} />
                             </div>
                             {/* 3D depth */}
-                            <div className="absolute -bottom-1 left-2 right-2 h-1 bg-slate-900 rounded-b-lg" />
+                            <div className="absolute -bottom-1 left-2 right-2 h-1 rounded-b-lg" style={{ background: 'rgba(0,0,0,0.1)' }} />
                         </motion.div>
 
-                        <h3 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h3 className="text-2xl font-bold mb-3" style={{ color: '#1a1a1a', fontFamily: '-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif' }}>
                             {searchQuery ? 'No projects found' : 'No projects yet'}
                         </h3>
-                        <p className="text-slate-400 max-w-md mx-auto mb-8">
+                        <p className="max-w-md mx-auto mb-8" style={{ color: '#666' }}>
                             {searchQuery
                                 ? 'Try a different search term'
                                 : 'Create your first project or fix a broken one from another platform'

@@ -25,6 +25,11 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+import { KriptikLogo } from '@/components/ui/KriptikLogo';
+import { GlitchText } from '@/components/ui/GlitchText';
+import { HoverSidebar } from '@/components/navigation/HoverSidebar';
+import { HandDrawnArrow } from '@/components/ui/HandDrawnArrow';
+import '@/styles/realistic-glass.css';
 
 // =============================================================================
 // MODERN 3D BUTTON STYLES (React CSSProperties)
@@ -992,23 +997,45 @@ export default function FixMyApp() {
     const currentStepIndex = steps.findIndex(s => s.id === step);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-            {/* Header */}
-            <header className="border-b border-white/10 bg-slate-900/50 backdrop-blur-xl">
+        <div className="min-h-screen" style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}>
+            <HoverSidebar />
+            
+            {/* Header - 3D Glass */}
+            <header
+                className="sticky top-0 z-40"
+                style={{
+                    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.45) 100%)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    boxShadow: `
+                        0 4px 20px rgba(0, 0, 0, 0.06),
+                        0 1px 0 rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.9)
+                    `,
+                }}
+            >
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                            <Wrench className="w-5 h-5 text-black" />
+                        <HandDrawnArrow className="mr-2" />
+                        <div
+                            className="flex items-center gap-4 cursor-pointer group"
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            <KriptikLogo size="sm" animated />
+                            <GlitchText
+                                text="KripTik AI"
+                                className="text-2xl group-hover:opacity-90 transition-opacity"
+                            />
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold">Fix My App</h1>
-                            <p className="text-xs text-slate-400">Import & fix broken AI-built apps</p>
-                        </div>
+                        <span className="ml-4 px-3 py-1 rounded-full text-sm font-medium" style={{ background: 'rgba(160,56,16,0.15)', color: '#a03810' }}>
+                            Fix My App
+                        </span>
                     </div>
                     <button
                         onClick={() => navigate('/dashboard')}
-                        style={ghostButtonStyles}
-                        className="hover:bg-white/10 hover:text-white"
+                        className="glass-button glass-button--small"
+                        style={{ color: '#666' }}
                     >
                         Cancel
                     </button>
@@ -1026,34 +1053,32 @@ export default function FixMyApp() {
                         return (
                             <div key={s.id} className="flex items-center">
                                 <motion.div
-                                    className={cn(
-                                        "flex items-center gap-2 px-4 py-2 rounded-full transition-all",
-                                        isActive && "bg-amber-500/20 border border-amber-500/50",
-                                        isComplete && "bg-emerald-500/20 border border-emerald-500/50",
-                                        !isActive && !isComplete && "bg-slate-800/50 border border-slate-700/50"
-                                    )}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-full transition-all glass-panel"
+                                    style={{
+                                        border: isActive ? '1px solid rgba(160,56,16,0.5)' : 
+                                               isComplete ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(0,0,0,0.1)',
+                                        background: isActive ? 'rgba(160,56,16,0.1)' :
+                                                   isComplete ? 'rgba(34,197,94,0.1)' : undefined,
+                                    }}
                                     animate={{ scale: isActive ? 1.05 : 1 }}
                                 >
                                     <Icon className={cn(
                                         "w-4 h-4",
-                                        isActive && "text-amber-400",
-                                        isComplete && "text-emerald-400",
-                                        !isActive && !isComplete && "text-slate-500"
-                                    ) as string} />
-                                    <span className={cn(
-                                        "text-sm font-medium hidden sm:block",
-                                        isActive && "text-amber-400",
-                                        isComplete && "text-emerald-400",
-                                        !isActive && !isComplete && "text-slate-500"
-                                    )}>
+                                        isActive && "text-[#a03810]",
+                                        isComplete && "text-[#22c55e]",
+                                        !isActive && !isComplete && "text-[#888]"
+                                    )} />
+                                    <span className="text-sm font-medium hidden sm:block" style={{
+                                        color: isActive ? '#a03810' : isComplete ? '#15803d' : '#888',
+                                    }}>
                                         {s.label}
                                     </span>
                                 </motion.div>
                                 {index < steps.length - 1 && (
-                                    <div className={cn(
-                                        "w-8 h-0.5 mx-2",
-                                        isComplete ? "bg-emerald-500/50" : "bg-slate-700/50"
-                                    )} />
+                                    <div
+                                        className="w-8 h-0.5 mx-2"
+                                        style={{ background: isComplete ? 'rgba(34,197,94,0.5)' : 'rgba(0,0,0,0.1)' }}
+                                    />
                                 )}
                             </div>
                         );
