@@ -249,144 +249,226 @@ function UserMenu() {
     );
 }
 
-// Project thumbnail card - 3D Angled Box like code editor
+// Project thumbnail card - 3D Angled Tablet with thick visible edges
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
+    const [typedText, setTypedText] = useState('');
+    const [currentLine, setCurrentLine] = useState(0);
+    
+    // Typing animation for project info
+    const codeLines = [
+        { text: `const ${project.name?.replace(/\s+/g, '') || 'MyVideo'} = () => {`, delay: 0 },
+        { text: '  return (', delay: 100 },
+        { text: '    <AbsoluteFill>', delay: 200 },
+        { text: '      <Video', delay: 300 },
+        { text: `        src={staticFile('${project.name || 'video'}.mp4')}`, delay: 400 },
+        { text: '      />', delay: 500 },
+        { text: `      <Sequence from={60}>`, delay: 600 },
+        { text: '        <BRoll', delay: 700 },
+        { text: '      </Sequence>', delay: 800 },
+        { text: '      <AbsoluteFill>', delay: 900 },
+        { text: '        <Captions />', delay: 1000 },
+        { text: '      </AbsoluteFill>', delay: 1100 },
+    ];
+
+    useEffect(() => {
+        const typeNextChar = () => {
+            if (currentLine < codeLines.length) {
+                const line = codeLines[currentLine];
+                if (typedText.length < line.text.length) {
+                    setTypedText(prev => line.text.slice(0, prev.length + 1));
+                } else {
+                    setTimeout(() => {
+                        setCurrentLine(prev => prev + 1);
+                        setTypedText('');
+                    }, 200);
+                }
+            }
+        };
+        
+        const timer = setTimeout(typeNextChar, 50 + Math.random() * 30);
+        return () => clearTimeout(timer);
+    }, [typedText, currentLine]);
+
+    // Color coding for syntax
+    const colorize = (text: string) => {
+        return text
+            .replace(/(const|return|from)/g, '<span style="color:#c792ea">$1</span>')
+            .replace(/(\w+)(?=\s*=\s*\()/g, '<span style="color:#82aaff">$1</span>')
+            .replace(/(=>|=|\{|\}|\(|\))/g, '<span style="color:#89ddff">$1</span>')
+            .replace(/(<\/?[\w]+)/g, '<span style="color:#f07178">$1</span>')
+            .replace(/(src|from)(?==)/g, '<span style="color:#ffcb6b">$1</span>')
+            .replace(/('[^']*'|"[^"]*")/g, '<span style="color:#c3e88d">$1</span>')
+            .replace(/(\/>)/g, '<span style="color:#f07178">$1</span>');
+    };
 
     return (
-        <div className="group cursor-pointer" style={{ perspective: '1200px' }}>
-            {/* 3D Container with angle/skew */}
+        <div className="group cursor-pointer pb-8" style={{ perspective: '800px' }}>
+            {/* Ground shadow */}
+            <div 
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[85%] h-4 rounded-[50%] blur-md"
+                style={{ 
+                    background: 'radial-gradient(ellipse, rgba(0,0,0,0.35) 0%, transparent 70%)',
+                    transform: 'translateX(-50%) translateY(20px)',
+                }}
+            />
+            
+            {/* 3D Container - more pronounced angle like the reference image */}
             <div
                 className="relative transition-all duration-500 ease-out"
                 style={{
                     transformStyle: 'preserve-3d',
-                    transform: 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)',
+                    transform: 'rotateX(55deg) rotateZ(-2deg) scale(0.9)',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(8deg) rotateY(-4deg) rotateZ(1deg) translateY(-8px)';
+                    e.currentTarget.style.transform = 'rotateX(50deg) rotateZ(-1deg) scale(0.92) translateY(-5px)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)';
+                    e.currentTarget.style.transform = 'rotateX(55deg) rotateZ(-2deg) scale(0.9)';
                 }}
             >
-                {/* Main face - the screen/thumbnail */}
+                {/* Main face - the screen surface */}
                 <button
                     onClick={() => navigate(`/builder/${project.id}`)}
-                    className="relative w-full text-left rounded-lg overflow-hidden"
+                    className="relative w-full text-left overflow-hidden"
                     style={{
-                        background: '#1e2028',
-                        boxShadow: `
-                            0 25px 50px rgba(0, 0, 0, 0.3),
-                            0 15px 30px rgba(0, 0, 0, 0.2),
-                            inset 0 1px 0 rgba(255,255,255,0.1)
-                        `,
-                        transform: 'translateZ(0)',
+                        background: '#1e222a',
+                        borderRadius: '8px',
+                        transform: 'translateZ(8px)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
                     }}
                 >
-                    {/* Thumbnail preview area - dark code editor style */}
+                    {/* Screen content - dark editor with typing animation */}
                     <div
-                        className="aspect-[4/3] relative overflow-hidden"
+                        className="aspect-[5/4] relative overflow-hidden p-3"
                         style={{ 
-                            background: 'linear-gradient(145deg, #252830 0%, #1a1d24 100%)',
+                            background: 'linear-gradient(180deg, #282c34 0%, #21252b 100%)',
+                            borderRadius: '8px',
                         }}
                     >
-                        {/* Code/content lines - simulating code editor */}
-                        <div className="absolute inset-0 p-4 space-y-2">
-                            {/* Code line 1 */}
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono" style={{ color: '#c792ea' }}>const</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#82aaff' }}>{project.name?.split(' ')[0] || 'MyApp'}</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>=</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>{'() => {'}</span>
-                            </div>
-                            {/* Code line 2 */}
-                            <div className="flex items-center gap-2 pl-4">
-                                <span className="text-[10px] font-mono" style={{ color: '#c792ea' }}>return</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>(</span>
-                            </div>
-                            {/* Code line 3 */}
-                            <div className="flex items-center gap-2 pl-6">
-                                <span className="text-[10px] font-mono" style={{ color: '#f07178' }}>{'<App'}</span>
-                            </div>
-                            {/* Code line 4 */}
-                            <div className="flex items-center gap-2 pl-8">
-                                <span className="text-[10px] font-mono" style={{ color: '#ffcb6b' }}>status</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#89ddff' }}>=</span>
-                                <span className="text-[10px] font-mono" style={{ color: '#c3e88d' }}>"{project.status || 'ready'}"</span>
-                            </div>
-                            {/* Code line 5 */}
-                            <div className="flex items-center gap-2 pl-6">
-                                <span className="text-[10px] font-mono" style={{ color: '#f07178' }}>{'/>'}</span>
-                            </div>
-                            {/* More faded lines */}
-                            <div className="h-2 w-16 rounded mt-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
-                            <div className="h-2 w-24 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
-                            <div className="h-2 w-20 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                        {/* Code lines with syntax highlighting and typing effect */}
+                        <div className="font-mono text-[9px] leading-relaxed space-y-0.5">
+                            {codeLines.slice(0, currentLine).map((line, i) => (
+                                <div 
+                                    key={i} 
+                                    className="whitespace-pre"
+                                    dangerouslySetInnerHTML={{ __html: colorize(line.text) }}
+                                />
+                            ))}
+                            {currentLine < codeLines.length && (
+                                <div className="whitespace-pre">
+                                    <span dangerouslySetInnerHTML={{ __html: colorize(typedText) }} />
+                                    <span 
+                                        className="inline-block w-[5px] h-[12px] ml-0.5 animate-pulse"
+                                        style={{ background: '#528bff', verticalAlign: 'text-bottom' }}
+                                    />
+                                </div>
+                            )}
                         </div>
 
-                        {/* Subtle screen glare */}
+                        {/* Screen glare effect */}
                         <div
                             className="absolute inset-0 pointer-events-none"
                             style={{
-                                background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(255,255,255,0.01) 100%)',
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%)',
+                                borderRadius: '8px',
                             }}
                         />
 
                         {/* Hover overlay */}
                         <div
                             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                            style={{ background: 'rgba(0,0,0,0.5)' }}
+                            style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '8px' }}
                         >
-                            <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
-                                style={{ background: 'rgba(220, 38, 38, 0.8)' }}>
-                                Open Project <ArrowRight className="h-4 w-4" />
+                            <span className="flex items-center gap-2 text-xs text-white font-medium px-3 py-1.5 rounded-full"
+                                style={{ background: 'rgba(220, 38, 38, 0.9)' }}>
+                                Open <ArrowRight className="h-3 w-3" />
                             </span>
                         </div>
                     </div>
                 </button>
 
-                {/* Bottom edge - 3D thickness */}
+                {/* BOTTOM EDGE - Very thick and visible */}
                 <div
-                    className="absolute left-0 right-0 rounded-b-lg"
+                    className="absolute left-0 right-0"
                     style={{
-                        height: '12px',
-                        bottom: '-12px',
-                        background: 'linear-gradient(180deg, #15171c 0%, #0d0f12 100%)',
-                        transform: 'rotateX(-90deg)',
-                        transformOrigin: 'top',
-                        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                        height: '16px',
+                        bottom: '0',
+                        background: 'linear-gradient(180deg, #15181e 0%, #0c0e12 50%, #080a0d 100%)',
+                        borderRadius: '0 0 8px 8px',
+                        transform: 'translateZ(0) rotateX(-90deg)',
+                        transformOrigin: 'bottom',
                     }}
-                />
+                >
+                    {/* Edge highlight */}
+                    <div 
+                        className="absolute top-0 left-0 right-0 h-[1px]"
+                        style={{ background: 'rgba(255,255,255,0.05)' }}
+                    />
+                </div>
 
-                {/* Right edge - 3D thickness */}
+                {/* LEFT EDGE - Thick visible side */}
                 <div
-                    className="absolute top-0 bottom-0 rounded-r-lg"
+                    className="absolute top-0 bottom-0"
                     style={{
-                        width: '10px',
-                        right: '-10px',
-                        background: 'linear-gradient(90deg, #1a1d24 0%, #12141a 100%)',
-                        transform: 'rotateY(90deg)',
+                        width: '16px',
+                        left: '0',
+                        background: 'linear-gradient(90deg, #0a0c0f 0%, #12151a 50%, #1a1d24 100%)',
+                        borderRadius: '8px 0 0 8px',
+                        transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
                     }}
+                >
+                    {/* Edge highlight */}
+                    <div 
+                        className="absolute top-0 right-0 bottom-0 w-[1px]"
+                        style={{ background: 'rgba(255,255,255,0.03)' }}
+                    />
+                </div>
+
+                {/* TOP EDGE - Thin visible edge */}
+                <div
+                    className="absolute left-0 right-0"
+                    style={{
+                        height: '8px',
+                        top: '0',
+                        background: 'linear-gradient(0deg, #1a1d24 0%, #25292f 100%)',
+                        borderRadius: '8px 8px 0 0',
+                        transform: 'translateZ(8px) rotateX(90deg)',
+                        transformOrigin: 'top',
+                    }}
                 />
 
-                {/* Bottom-right corner piece */}
+                {/* RIGHT EDGE - Thin visible side */}
+                <div
+                    className="absolute top-0 bottom-0"
+                    style={{
+                        width: '8px',
+                        right: '0',
+                        background: 'linear-gradient(270deg, #1a1d24 0%, #22262e 100%)',
+                        borderRadius: '0 8px 8px 0',
+                        transform: 'translateZ(8px) rotateY(90deg)',
+                        transformOrigin: 'right',
+                    }}
+                />
+
+                {/* Corner pieces to complete the 3D box */}
                 <div
                     className="absolute"
                     style={{
-                        width: '10px',
-                        height: '12px',
-                        right: '-10px',
-                        bottom: '-12px',
-                        background: '#0a0c0f',
-                        transform: 'rotateY(90deg) rotateX(-90deg)',
-                        transformOrigin: 'top left',
+                        width: '16px',
+                        height: '16px',
+                        left: '0',
+                        bottom: '0',
+                        background: '#080a0d',
+                        transform: 'rotateY(-90deg) rotateX(-90deg)',
+                        transformOrigin: 'bottom left',
                     }}
                 />
             </div>
 
             {/* Project info - below the 3D card */}
-            <div className="mt-6 px-2">
+            <div className="mt-4 px-1">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
