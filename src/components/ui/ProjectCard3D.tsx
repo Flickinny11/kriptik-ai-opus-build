@@ -16,7 +16,6 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
 
     useEffect(() => {
         if (currentLineIndex >= lines.length) {
-            // Reset after a pause
             const resetTimer = setTimeout(() => {
                 setDisplayedLines([]);
                 setCurrentLineIndex(0);
@@ -26,7 +25,7 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
         }
 
         const currentLine = lines[currentLineIndex];
-
+        
         if (currentCharIndex < currentLine.length) {
             const timer = setTimeout(() => {
                 setDisplayedLines(prev => {
@@ -38,7 +37,6 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
             }, speed + Math.random() * 30);
             return () => clearTimeout(timer);
         } else {
-            // Move to next line
             const timer = setTimeout(() => {
                 setCurrentLineIndex(prev => prev + 1);
                 setCurrentCharIndex(0);
@@ -50,11 +48,17 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
     return { displayedLines, isTyping: currentLineIndex < lines.length };
 }
 
-// The 3D Card mesh
-function Card3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => void }) {
-    const meshRef = useRef<THREE.Group>(null);
+// The 3D Tablet Card - matches Remotion reference exactly
+function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => void }) {
+    const groupRef = useRef<THREE.Group>(null);
+    
+    // Dimensions matching reference image proportions
+    const width = 3.6;
+    const height = 2.7;
+    const depth = 0.18; // Visible thickness for the edges
+    const cornerRadius = 0.08;
 
-    // Code lines for typing animation
+    // Code lines matching the reference image
     const codeLines = useMemo(() => [
         'const MyVideo = () => {',
         '  return (',
@@ -70,97 +74,121 @@ function Card3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => voi
         '      </AbsoluteFill>',
     ], []);
 
-    const { displayedLines, isTyping } = useTypingAnimation(codeLines, 40);
+    const { displayedLines, isTyping } = useTypingAnimation(codeLines, 35);
 
-    // Smooth rotation animation
+    // Rotation matching reference: tilted back, rotated left showing bottom+left edges
+    // Reference shows: looking down at ~30deg, slight left rotation
     useFrame((state) => {
-        if (meshRef.current) {
-            const target = isHovered
-                ? { x: 0.15, y: -0.08, z: 0.02 }
-                : { x: 0.25, y: -0.15, z: 0.03 };
-
-            meshRef.current.rotation.x += (target.x - meshRef.current.rotation.x) * 0.1;
-            meshRef.current.rotation.y += (target.y - meshRef.current.rotation.y) * 0.1;
-            meshRef.current.rotation.z += (target.z - meshRef.current.rotation.z) * 0.1;
-
-            // Subtle floating animation
-            meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
+        if (groupRef.current) {
+            // Target rotation: X tilts back (positive = top away), Y rotates (negative = left side forward)
+            const baseX = 0.45; // ~26 degrees tilt back
+            const baseY = -0.25; // ~14 degrees rotation showing left edge
+            const baseZ = 0.05; // slight roll
+            
+            const targetX = isHovered ? baseX - 0.1 : baseX;
+            const targetY = isHovered ? baseY + 0.08 : baseY;
+            const targetZ = isHovered ? baseZ - 0.02 : baseZ;
+            
+            groupRef.current.rotation.x += (targetX - groupRef.current.rotation.x) * 0.08;
+            groupRef.current.rotation.y += (targetY - groupRef.current.rotation.y) * 0.08;
+            groupRef.current.rotation.z += (targetZ - groupRef.current.rotation.z) * 0.08;
+            
+            // Subtle float
+            groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.015;
         }
     });
 
-    // Get syntax color for a line
     const getLineColor = (text: string) => {
         if (text.includes('const') || text.includes('return')) return '#c792ea';
-        if (text.includes('<')) return '#4fc1ff';
-        if (text.includes("'")) return '#c3e88d';
+        if (text.includes('<') || text.includes('>') || text.includes('/')) return '#89ddff';
+        if (text.includes("'") || text.includes('"')) return '#c3e88d';
+        if (text.includes('from=') || text.includes('src=')) return '#f78c6c';
         return '#d4d4d4';
     };
 
     return (
-        <group ref={meshRef} onClick={onClick} rotation={[0.25, -0.15, 0.03]}>
-            {/* Main body - the tablet */}
+        <group ref={groupRef} onClick={onClick} position={[0, 0, 0]}>
+            {/* Main tablet body - the thick slab */}
             <RoundedBox
-                args={[3.2, 2.4, 0.12]} // width, height, depth
-                radius={0.06}
+                args={[width, height, depth]}
+                radius={cornerRadius}
                 smoothness={4}
+                position={[0, 0, 0]}
             >
                 <meshStandardMaterial
-                    color="#282c34"
-                    metalness={0.1}
-                    roughness={0.8}
+                    color="#2d313a"
+                    metalness={0.15}
+                    roughness={0.75}
                 />
             </RoundedBox>
 
-            {/* Screen surface - slightly raised */}
+            {/* Screen bezel - slightly inset darker area */}
             <RoundedBox
-                args={[3.0, 2.2, 0.02]}
-                radius={0.04}
+                args={[width - 0.15, height - 0.15, 0.01]}
+                radius={cornerRadius - 0.02}
                 smoothness={4}
-                position={[0, 0, 0.07]}
+                position={[0, 0, depth / 2 + 0.005]}
+            >
+                <meshStandardMaterial
+                    color="#1a1d23"
+                    metalness={0.05}
+                    roughness={0.95}
+                />
+            </RoundedBox>
+
+            {/* Screen surface with code */}
+            <RoundedBox
+                args={[width - 0.25, height - 0.25, 0.005]}
+                radius={cornerRadius - 0.03}
+                smoothness={4}
+                position={[0, 0, depth / 2 + 0.015]}
             >
                 <meshStandardMaterial
                     color="#1e1e1e"
                     metalness={0}
-                    roughness={0.9}
+                    roughness={1}
+                    emissive="#1e1e1e"
+                    emissiveIntensity={0.1}
                 />
             </RoundedBox>
 
-            {/* Code content overlay using Html */}
+            {/* Code content */}
             <Html
                 transform
                 occlude
-                position={[0, 0, 0.09]}
+                position={[0, 0.1, depth / 2 + 0.025]}
                 style={{
-                    width: '280px',
-                    height: '200px',
+                    width: '320px',
+                    height: '220px',
                     pointerEvents: 'none',
                 }}
             >
                 <div style={{
-                    width: '280px',
-                    height: '200px',
-                    padding: '16px',
-                    fontFamily: "'Fira Code', 'Monaco', monospace",
-                    fontSize: '10px',
-                    lineHeight: '1.5',
+                    width: '320px',
+                    height: '220px',
+                    padding: '20px',
+                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', monospace",
+                    fontSize: '11px',
+                    lineHeight: '1.6',
                     color: '#d4d4d4',
                     background: 'transparent',
                     overflow: 'hidden',
                 }}>
                     {displayedLines.map((line, i) => (
-                        <div key={i} style={{
+                        <div key={i} style={{ 
                             whiteSpace: 'pre',
-                            color: getLineColor(line)
+                            color: getLineColor(line),
                         }}>
                             {line}
                             {i === displayedLines.length - 1 && isTyping && (
                                 <span style={{
                                     display: 'inline-block',
-                                    width: '6px',
-                                    height: '12px',
+                                    width: '8px',
+                                    height: '14px',
                                     background: '#528bff',
                                     marginLeft: '2px',
                                     animation: 'blink 1s infinite',
+                                    verticalAlign: 'text-bottom',
                                 }} />
                             )}
                         </div>
@@ -168,18 +196,50 @@ function Card3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => voi
                 </div>
             </Html>
 
-            {/* Bottom edge highlight */}
-            <mesh position={[0, -1.14, -0.03]}>
-                <boxGeometry args={[3.2, 0.08, 0.06]} />
-                <meshStandardMaterial color="#0f1012" metalness={0.3} roughness={0.7} />
+            {/* Bottom edge - visible due to tilt */}
+            <mesh position={[0, -height/2 + 0.02, -depth/4]}>
+                <boxGeometry args={[width - 0.02, 0.04, depth/2]} />
+                <meshStandardMaterial 
+                    color="#0c0d0f" 
+                    metalness={0.2} 
+                    roughness={0.8}
+                />
             </mesh>
 
-            {/* Left edge highlight */}
-            <mesh position={[-1.54, 0, -0.03]}>
-                <boxGeometry args={[0.08, 2.4, 0.06]} />
-                <meshStandardMaterial color="#0a0b0d" metalness={0.3} roughness={0.7} />
+            {/* Left edge - visible due to rotation */}
+            <mesh position={[-width/2 + 0.02, 0, -depth/4]}>
+                <boxGeometry args={[0.04, height - 0.02, depth/2]} />
+                <meshStandardMaterial 
+                    color="#08090a" 
+                    metalness={0.2} 
+                    roughness={0.8}
+                />
+            </mesh>
+
+            {/* Subtle screen reflection/glare */}
+            <mesh position={[0.3, 0.3, depth / 2 + 0.02]} rotation={[0, 0, -0.2]}>
+                <planeGeometry args={[1.5, 0.15]} />
+                <meshBasicMaterial 
+                    color="#ffffff" 
+                    transparent 
+                    opacity={0.03}
+                />
             </mesh>
         </group>
+    );
+}
+
+// Ground shadow component
+function GroundShadow() {
+    return (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.3, -1.8, -0.5]}>
+            <planeGeometry args={[4, 2.5]} />
+            <meshBasicMaterial 
+                color="#000000" 
+                transparent 
+                opacity={0.25}
+            />
+        </mesh>
     );
 }
 
@@ -188,36 +248,53 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
     const [hovered, setHovered] = useState(isHovered);
 
     return (
-        <div
-            className="w-full aspect-[4/3] cursor-pointer"
+        <div 
+            className="w-full cursor-pointer relative"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            style={{ minHeight: '200px' }}
+            style={{ 
+                height: '220px',
+                marginBottom: '20px',
+            }}
         >
             <Canvas
-                camera={{ position: [0, 0, 4], fov: 45 }}
+                camera={{ 
+                    position: [0, 0.5, 5], 
+                    fov: 35,
+                }}
                 style={{ background: 'transparent' }}
+                gl={{ alpha: true, antialias: true }}
             >
-                <ambientLight intensity={0.5} />
-                <directionalLight position={[5, 5, 5]} intensity={0.8} />
-                <directionalLight position={[-3, -3, 2]} intensity={0.3} />
-
-                <Card3D
-                    isHovered={hovered}
+                {/* Lighting setup for realistic shadows */}
+                <ambientLight intensity={0.4} />
+                <directionalLight 
+                    position={[4, 6, 4]} 
+                    intensity={0.9}
+                    castShadow
+                />
+                <directionalLight 
+                    position={[-2, 3, 2]} 
+                    intensity={0.3}
+                />
+                <pointLight position={[0, 2, 3]} intensity={0.2} />
+                
+                <TabletCard3D 
+                    isHovered={hovered} 
                     onClick={onClick}
                 />
+                <GroundShadow />
             </Canvas>
 
             {/* Hover overlay */}
             {hovered && (
-                <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    style={{
-                        background: 'rgba(0,0,0,0.6)',
-                        borderRadius: '8px',
+                <div 
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+                    style={{ 
+                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%)',
                     }}
                 >
-                    <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full bg-red-600">
+                    <span className="flex items-center gap-2 text-sm text-white font-semibold px-5 py-2.5 rounded-full shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' }}>
                         Open Project →
                     </span>
                 </div>
