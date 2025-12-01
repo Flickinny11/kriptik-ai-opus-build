@@ -254,12 +254,12 @@ function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
     const [typedText, setTypedText] = useState('');
     const [currentLine, setCurrentLine] = useState(0);
-    
+
     // Format dates
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const lastOpened = project.lastOpened ? new Date(project.lastOpened).toLocaleDateString() : 'Just now';
     const frameworks = project.framework || 'React, Node.js';
-    
+
     // Typing animation showing project details
     const codeLines = [
         { text: `// ${project.name || 'My Project'}`, color: '#6A9955' },
@@ -295,7 +295,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                 }, 2000);
             }
         };
-        
+
         const timer = setTimeout(typeNextChar, 40 + Math.random() * 20);
         return () => clearTimeout(timer);
     }, [typedText, currentLine, codeLines.length]);
@@ -313,15 +313,15 @@ function ProjectThumbnail({ project }: { project: any }) {
     return (
         <div className="group cursor-pointer pb-12" style={{ perspective: '1000px' }}>
             {/* Ground shadow - larger and softer */}
-            <div 
+            <div
                 className="absolute left-1/2 w-[90%] h-6 rounded-[50%] blur-lg pointer-events-none"
-                style={{ 
+                style={{
                     background: 'radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%)',
                     transform: 'translateX(-50%)',
                     bottom: '20px',
                 }}
             />
-            
+
             {/* 3D Container - adjusted angle: less tilt back, rotated on all axes */}
             <div
                 className="relative transition-all duration-500 ease-out"
@@ -345,13 +345,14 @@ function ProjectThumbnail({ project }: { project: any }) {
                         background: '#1e222a',
                         borderRadius: '6px',
                         transform: 'translateZ(16px)', // Raised more for thicker appearance
+                        border: '1px solid rgba(255,255,255,0.4)',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
                     }}
                 >
                     {/* Screen content - dark editor with typing animation */}
                     <div
                         className="aspect-[4/3] relative overflow-hidden p-4"
-                        style={{ 
+                        style={{
                             background: 'linear-gradient(180deg, #1e1e1e 0%, #252526 100%)',
                             borderRadius: '6px',
                         }}
@@ -359,8 +360,8 @@ function ProjectThumbnail({ project }: { project: any }) {
                         {/* Code lines with syntax highlighting and typing effect */}
                         <div className="font-mono text-[10px] leading-[1.6] space-y-0">
                             {codeLines.slice(0, currentLine).map((line, i) => (
-                                <div 
-                                    key={i} 
+                                <div
+                                    key={i}
                                     className="whitespace-pre"
                                     style={{ minHeight: '14px' }}
                                     dangerouslySetInnerHTML={{ __html: colorize(line.text) }}
@@ -369,7 +370,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                             {currentLine < codeLines.length && (
                                 <div className="whitespace-pre" style={{ minHeight: '14px' }}>
                                     <span dangerouslySetInnerHTML={{ __html: colorize(typedText) }} />
-                                    <span 
+                                    <span
                                         className="inline-block w-[6px] h-[13px] ml-0.5 animate-pulse"
                                         style={{ background: '#528bff', verticalAlign: 'text-bottom' }}
                                     />
@@ -409,14 +410,10 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderTop: 'none',
                     }}
-                >
-                    {/* Edge top highlight */}
-                    <div 
-                        className="absolute top-0 left-0 right-0 h-[1px]"
-                        style={{ background: 'rgba(255,255,255,0.08)' }}
-                    />
-                </div>
+                />
 
                 {/* LEFT EDGE - 2x thicker (32px) - most visible */}
                 <div
@@ -428,14 +425,10 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRight: 'none',
                     }}
-                >
-                    {/* Edge right highlight */}
-                    <div 
-                        className="absolute top-0 right-0 bottom-0 w-[1px]"
-                        style={{ background: 'rgba(255,255,255,0.05)' }}
-                    />
-                </div>
+                />
 
                 {/* TOP EDGE - visible from angle */}
                 <div
@@ -447,6 +440,8 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderBottom: 'none',
                     }}
                 />
 
@@ -460,6 +455,8 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderLeft: 'none',
                     }}
                 />
             </div>
