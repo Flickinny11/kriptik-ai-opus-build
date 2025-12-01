@@ -180,12 +180,12 @@ export default function SettingsPage() {
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
             <HoverSidebar />
-            
+
             {/* Visual trigger for sidebar */}
             <div className="fixed top-4 left-4 z-50">
                 <HandDrawnArrow />
             </div>
-            
+
             <div className="max-w-6xl mx-auto p-8">
                     {/* Header */}
                     <div className="mb-8">
@@ -237,9 +237,9 @@ export default function SettingsPage() {
                                                 <div>
                                                     <h3 className="text-lg font-medium" style={{ color: '#1a1a1a' }}>{user?.name}</h3>
                                                     <p style={{ color: '#666' }}>{user?.email}</p>
-                                                    <span 
+                                                    <span
                                                         className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium"
-                                                        style={{ 
+                                                        style={{
                                                             background: 'rgba(255,180,140,0.2)',
                                                             color: '#c25a00',
                                                         }}
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                                                     <p className="text-sm" style={{ color: '#666' }}>Credit Balance</p>
                                                     <p className="text-4xl font-bold" style={{ color: '#1a1a1a' }}>{creditBalance.toLocaleString()}</p>
                                                 </div>
-                                                <div 
+                                                <div
                                                     className="w-16 h-16 rounded-2xl flex items-center justify-center"
                                                     style={{ background: 'rgba(255,180,140,0.2)' }}
                                                 >
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-4">
-                                                            <div 
+                                                            <div
                                                                 className="w-12 h-8 rounded flex items-center justify-center text-xs font-bold uppercase"
                                                                 style={{ background: 'rgba(0,0,0,0.1)', color: '#1a1a1a' }}
                                                             >
@@ -407,7 +407,7 @@ export default function SettingsPage() {
                                                                 </p>
                                                             </div>
                                                             {method.isDefault && (
-                                                                <span 
+                                                                <span
                                                                     className="px-2 py-1 rounded-full text-xs"
                                                                     style={{ background: 'rgba(255,180,140,0.2)', color: '#c25a00' }}
                                                                 >
@@ -586,7 +586,7 @@ export default function SettingsPage() {
                                                     <Globe className="w-4 h-4 mr-2" />
                                                     Export My Data
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="glass-button w-full justify-start"
                                                     style={{ color: '#dc2626' }}
                                                 >

@@ -120,29 +120,44 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
     return (
         <div className="space-y-2">
             <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Credits Used</span>
-                <span className="font-mono text-amber-400">{remaining} left</span>
+                <span style={{ color: '#666' }}>Credits Used</span>
+                <span className="font-mono" style={{ color: '#c25a00' }}>{remaining.toLocaleString()} left</span>
             </div>
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div 
+                className="h-2 rounded-full overflow-hidden"
+                style={{
+                    background: 'rgba(0,0,0,0.08)',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                }}
+            >
                 <div
-                    className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        percentage > 80 ? "bg-red-500" :
-                        percentage > 50 ? "bg-amber-500" : "bg-emerald-500"
-                    )}
-                    style={{ width: `${percentage}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ 
+                        width: `${percentage}%`,
+                        background: percentage > 80 
+                            ? 'linear-gradient(90deg, #dc2626, #ef4444)' 
+                            : percentage > 50 
+                                ? 'linear-gradient(90deg, #c25a00, #d97706)'
+                                : 'linear-gradient(90deg, #16a34a, #22c55e)',
+                        boxShadow: percentage > 80
+                            ? '0 0 12px rgba(220, 38, 38, 0.4)'
+                            : percentage > 50
+                                ? '0 0 12px rgba(194, 90, 0, 0.4)'
+                                : '0 0 12px rgba(22, 163, 74, 0.4)',
+                    }}
                 />
             </div>
-            <p className="text-xs text-slate-500">
-                {used} of {total} credits this month
+            <p className="text-xs" style={{ color: '#999' }}>
+                {used.toLocaleString()} of {total.toLocaleString()} credits this month
             </p>
         </div>
     );
 }
 
-// User menu with credit meter
+// User menu with credit meter - Liquid Glass Style
 function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isButtonHovered, setIsButtonHovered] = useState(false);
     const { user } = useUserStore();
     const { balance, fetchCredits, isLoading: creditsLoading } = useCostStore();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -166,86 +181,221 @@ function UserMenu() {
 
     return (
         <div className="relative" ref={menuRef}>
+            {/* Liquid Glass Badge Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                onMouseEnter={() => setIsOpen(true)}
-                className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-xl",
-                    "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50",
-                    "transition-all duration-200"
-                )}
+                onMouseEnter={() => { setIsOpen(true); setIsButtonHovered(true); }}
+                onMouseLeave={() => setIsButtonHovered(false)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 16px',
+                    borderRadius: '50px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    
+                    // Liquid glass background
+                    background: isButtonHovered
+                        ? 'linear-gradient(145deg, rgba(255,230,215,0.7) 0%, rgba(255,220,200,0.55) 40%, rgba(255,210,185,0.5) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 40%, rgba(248,248,250,0.45) 100%)',
+                    backdropFilter: 'blur(24px) saturate(200%)',
+                    
+                    // Liquid glass shadow with warm glow
+                    boxShadow: isButtonHovered
+                        ? `
+                            0 4px 0 rgba(200, 180, 160, 0.5),
+                            0 16px 50px rgba(255, 150, 100, 0.2),
+                            0 8px 25px rgba(255, 130, 80, 0.15),
+                            inset 0 2px 2px rgba(255, 255, 255, 1),
+                            inset 0 -2px 2px rgba(0, 0, 0, 0.02),
+                            0 0 20px rgba(255, 180, 140, 0.3),
+                            0 0 0 1px rgba(255, 220, 200, 0.7)
+                        `
+                        : `
+                            0 4px 0 rgba(200, 195, 190, 0.5),
+                            0 12px 40px rgba(0, 0, 0, 0.08),
+                            0 4px 12px rgba(0, 0, 0, 0.05),
+                            inset 0 2px 2px rgba(255, 255, 255, 0.95),
+                            inset 0 -2px 2px rgba(0, 0, 0, 0.03),
+                            0 0 0 1px rgba(255, 255, 255, 0.6)
+                        `,
+                    
+                    transform: isButtonHovered ? 'translateY(-2px)' : 'translateY(0)',
+                    transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+                }}
             >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <span className="text-sm font-bold text-black">
+                {/* Shine animation overlay */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: isButtonHovered ? '150%' : '-100%',
+                        width: '60%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                        transform: 'skewX(-15deg)',
+                        transition: 'left 0.6s ease',
+                        pointerEvents: 'none',
+                    }}
+                />
+                
+                <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{
+                        background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
+                        boxShadow: '0 2px 8px rgba(194, 90, 0, 0.3)',
+                    }}
+                >
+                    <span className="text-sm font-bold text-white">
                         {user?.name?.charAt(0) || 'U'}
                     </span>
                 </div>
                 <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
-                    <p className="text-xs text-slate-400">Builder Plan</p>
+                    <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{user?.name || 'User'}</p>
+                    <p className="text-xs" style={{ color: '#666' }}>Builder Plan</p>
                 </div>
-                <ChevronDown className={cn(
-                    "h-4 w-4 text-slate-400 transition-transform",
-                    isOpen && "rotate-180"
-                )} />
+                <ChevronDown 
+                    className="h-4 w-4 transition-transform"
+                    style={{ 
+                        color: '#666',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }} 
+                />
             </button>
 
+            {/* Liquid Glass Dropdown Menu */}
             {isOpen && (
-                <div className={cn(
-                    "absolute right-0 mt-2 w-72 rounded-2xl",
-                    "bg-slate-900 border border-slate-700/50 shadow-2xl shadow-black/50",
-                    "animate-in fade-in slide-in-from-top-2 duration-200",
-                    "overflow-hidden z-50"
-                )}>
+                <div 
+                    className="absolute right-0 mt-3 w-80 z-50"
+                    style={{
+                        borderRadius: '24px',
+                        overflow: 'hidden',
+                        
+                        // Liquid glass background
+                        background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 50%, rgba(248,248,250,0.55) 100%)',
+                        backdropFilter: 'blur(40px) saturate(200%)',
+                        WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                        
+                        // Multi-layer liquid glass shadow
+                        boxShadow: `
+                            0 30px 80px rgba(0, 0, 0, 0.15),
+                            0 15px 40px rgba(0, 0, 0, 0.1),
+                            0 8px 20px rgba(0, 0, 0, 0.08),
+                            inset 0 2px 4px rgba(255, 255, 255, 0.9),
+                            inset 0 -1px 2px rgba(0, 0, 0, 0.02),
+                            0 0 0 1px rgba(255, 255, 255, 0.5)
+                        `,
+                        
+                        animation: 'slideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
+                    }}
+                >
+                    {/* Top highlight */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: '10%',
+                            right: '10%',
+                            height: '1px',
+                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
+                        }}
+                    />
+
                     {/* Header */}
-                    <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-slate-700/50">
+                    <div 
+                        className="p-4"
+                        style={{ 
+                            background: 'linear-gradient(145deg, rgba(255,200,170,0.2) 0%, rgba(255,180,150,0.1) 100%)',
+                            borderBottom: '1px solid rgba(255,255,255,0.3)',
+                        }}
+                    >
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                                <span className="text-lg font-bold text-black">
+                            <div 
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                                style={{
+                                    background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
+                                    boxShadow: '0 4px 16px rgba(194, 90, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.2)',
+                                }}
+                            >
+                                <span className="text-lg font-bold text-white">
                                     {user?.name?.charAt(0) || 'U'}
                                 </span>
                             </div>
                             <div>
-                                <p className="font-semibold text-white">{user?.name || 'User'}</p>
-                                <p className="text-xs text-slate-400">{user?.email}</p>
+                                <p className="font-semibold" style={{ color: '#1a1a1a' }}>{user?.name || 'User'}</p>
+                                <p className="text-xs" style={{ color: '#666' }}>{user?.email}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Credit meter */}
-                    <div className="p-4 border-b border-slate-700/50">
+                    <div className="p-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                         {creditsLoading ? (
-                            <div className="text-xs text-slate-400 animate-pulse">Loading credits...</div>
+                            <div className="text-xs animate-pulse" style={{ color: '#666' }}>Loading credits...</div>
                         ) : (
                             <CreditMeter
                                 used={balance.totalUsedThisMonth}
                                 total={balance.limit === Infinity ? balance.available + balance.totalUsedThisMonth : balance.limit}
                             />
                         )}
-                        <p className="mt-2 text-xs text-emerald-400 font-mono">
+                        <p className="mt-2 text-xs font-mono" style={{ color: '#16a34a' }}>
                             {balance.available.toLocaleString()} credits available
                         </p>
                     </div>
 
-                    {/* Menu items */}
+                    {/* Menu items - Liquid Glass Buttons */}
                     <div className="p-2">
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors">
-                            <Settings className="h-4 w-4" />
-                            <span className="text-sm">Settings</span>
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors">
-                            <CreditCard className="h-4 w-4" />
-                            <span className="text-sm">Billing & Credits</span>
-                        </button>
-                        <div className="my-2 border-t border-slate-700/50" />
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors">
-                            <LogOut className="h-4 w-4" />
-                            <span className="text-sm">Sign Out</span>
-                        </button>
+                        <MenuButton icon={Settings} label="Settings" />
+                        <MenuButton icon={CreditCard} label="Billing & Credits" />
+                        <div className="my-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }} />
+                        <MenuButton icon={LogOut} label="Sign Out" danger />
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px) scale(0.98);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `}</style>
         </div>
+    );
+}
+
+// Liquid Glass Menu Button Component
+function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ElementType; label: string; danger?: boolean }) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <button 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={{
+                background: isHovered 
+                    ? danger 
+                        ? 'rgba(239, 68, 68, 0.1)' 
+                        : 'linear-gradient(145deg, rgba(255,220,200,0.4) 0%, rgba(255,200,170,0.25) 100%)'
+                    : 'transparent',
+                boxShadow: isHovered && !danger
+                    ? 'inset 0 0 20px rgba(255, 160, 120, 0.1), 0 0 0 1px rgba(255, 200, 170, 0.3)'
+                    : 'none',
+                color: danger ? '#dc2626' : '#1a1a1a',
+            }}
+        >
+            <Icon className="h-4 w-4" />
+            <span className="text-sm font-medium">{label}</span>
+        </button>
     );
 }
 

@@ -7,7 +7,16 @@ interface ProjectCard3DProps {
     projectName?: string;
 }
 
-// Realistic 3D Glass Card - CSS-based for performance
+/**
+ * Liquid Glass 3D Project Card
+ * 
+ * Features:
+ * - Photorealistic liquid glass appearance (Hana Glass / Spline inspired)
+ * - Warm internal glow on hover
+ * - Realistic light refraction and caustics
+ * - Smooth 3D depth with soft shadows
+ * - Glass shine micro-animation
+ */
 export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3DProps) {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -18,7 +27,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
             onMouseLeave={() => setIsHovered(false)}
             onClick={onClick}
             style={{
-                perspective: '1000px',
+                perspective: '1200px',
                 marginBottom: '16px',
             }}
         >
@@ -30,83 +39,142 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     aspectRatio: '4/3',
                     transformStyle: 'preserve-3d',
                     transform: isHovered
-                        ? 'rotateX(2deg) rotateY(-2deg) translateY(-4px)'
-                        : 'rotateX(5deg) rotateY(-5deg)',
-                    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        ? 'rotateX(0deg) rotateY(0deg) translateY(-8px) scale(1.02)'
+                        : 'rotateX(6deg) rotateY(-4deg)',
+                    transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
             >
-                {/* Main Glass Card */}
+                {/* Liquid Glass Card */}
                 <div
                     style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: '16px',
+                        borderRadius: '20px',
+                        overflow: 'hidden',
+                        
+                        // Liquid glass background
                         background: thumbnail
                             ? `url(${thumbnail}) center/cover no-repeat`
-                            : 'linear-gradient(145deg, rgba(40,44,52,0.95) 0%, rgba(30,34,42,0.98) 100%)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        boxShadow: `
-                            0 25px 50px -12px rgba(0,0,0,0.4),
-                            0 12px 24px -8px rgba(0,0,0,0.3),
-                            inset 0 1px 0 rgba(255,255,255,0.1),
-                            inset 0 -1px 0 rgba(0,0,0,0.2)
-                        `,
-                        overflow: 'hidden',
+                            : `linear-gradient(
+                                145deg,
+                                rgba(255, 255, 255, 0.65) 0%,
+                                rgba(255, 255, 255, 0.45) 25%,
+                                rgba(248, 250, 252, 0.55) 50%,
+                                rgba(255, 255, 255, 0.5) 75%,
+                                rgba(252, 252, 254, 0.6) 100%
+                            )`,
+                        
+                        // Glass blur effect
+                        backdropFilter: 'blur(40px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                        
+                        // Multi-layer liquid glass shadow
+                        boxShadow: isHovered
+                            ? `
+                                /* Warm internal glow */
+                                inset 0 0 60px rgba(255, 180, 140, 0.25),
+                                inset 0 0 30px rgba(255, 160, 120, 0.15),
+                                /* Top highlight - light refraction */
+                                inset 0 2px 4px rgba(255, 255, 255, 0.95),
+                                /* Bottom inner shadow */
+                                inset 0 -2px 4px rgba(0, 0, 0, 0.05),
+                                /* Outer glow */
+                                0 20px 60px rgba(255, 150, 100, 0.2),
+                                0 10px 30px rgba(255, 130, 80, 0.15),
+                                /* Soft ambient shadow */
+                                0 30px 80px rgba(0, 0, 0, 0.15),
+                                0 15px 40px rgba(0, 0, 0, 0.1),
+                                /* Glass edge highlight */
+                                0 0 0 1px rgba(255, 220, 200, 0.5)
+                            `
+                            : `
+                                /* Top highlight */
+                                inset 0 2px 4px rgba(255, 255, 255, 0.9),
+                                /* Bottom inner shadow */
+                                inset 0 -2px 4px rgba(0, 0, 0, 0.03),
+                                /* Soft ambient shadow */
+                                0 25px 60px rgba(0, 0, 0, 0.12),
+                                0 10px 30px rgba(0, 0, 0, 0.08),
+                                0 4px 12px rgba(0, 0, 0, 0.05),
+                                /* Glass edge */
+                                0 0 0 1px rgba(255, 255, 255, 0.6)
+                            `,
+                        
+                        transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
                     }}
                 >
-                    {/* Glass Shine Effect - Diagonal Light Sweep */}
+                    {/* Liquid caustics / light refraction effect */}
                     <div
                         style={{
                             position: 'absolute',
-                            top: 0,
-                            left: '-100%',
-                            width: '60%',
-                            height: '100%',
-                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
-                            transform: 'skewX(-20deg)',
-                            animation: isHovered ? 'shine 0.8s ease-out forwards' : 'none',
-                        }}
-                    />
-
-                    {/* Top Highlight - Glass Edge */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: '10%',
-                            right: '10%',
-                            height: '1px',
-                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-                        }}
-                    />
-
-                    {/* Inner Glass Reflection */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '5%',
-                            left: '5%',
-                            right: '30%',
-                            height: '30%',
-                            background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)',
-                            borderRadius: '12px 12px 50% 50%',
+                            inset: 0,
+                            background: `
+                                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 50%),
+                                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,255,255,0.15) 0%, transparent 40%)
+                            `,
+                            opacity: isHovered ? 0.8 : 0.5,
+                            transition: 'opacity 0.5s ease',
                             pointerEvents: 'none',
                         }}
                     />
+
+                    {/* Glass shine sweep animation */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: isHovered ? '150%' : '-100%',
+                            width: '80%',
+                            height: '100%',
+                            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)',
+                            transform: 'skewX(-25deg)',
+                            transition: 'left 0.8s cubic-bezier(0.23, 1, 0.32, 1)',
+                            pointerEvents: 'none',
+                        }}
+                    />
+
+                    {/* Top edge highlight - glass bevel */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '2px',
+                            background: 'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.8) 30%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.8) 70%, transparent 95%)',
+                            borderRadius: '20px 20px 0 0',
+                        }}
+                    />
+
+                    {/* Inner glow ring on hover */}
+                    {isHovered && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                inset: '3px',
+                                borderRadius: '17px',
+                                border: '1px solid rgba(255, 180, 140, 0.3)',
+                                boxShadow: 'inset 0 0 20px rgba(255, 160, 120, 0.15)',
+                                pointerEvents: 'none',
+                                animation: 'pulse-glow 2s ease-in-out infinite',
+                            }}
+                        />
+                    )}
 
                     {/* Default content when no thumbnail */}
                     {!thumbnail && (
                         <div
                             className="absolute inset-0 flex items-center justify-center"
-                            style={{ color: 'rgba(255,255,255,0.3)' }}
+                            style={{ color: 'rgba(30, 30, 40, 0.4)' }}
                         >
                             <div className="text-center">
                                 <div
-                                    className="w-16 h-16 mx-auto mb-3 rounded-xl flex items-center justify-center"
+                                    className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
                                     style={{
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        background: 'rgba(0, 0, 0, 0.04)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5), 0 4px 12px rgba(0,0,0,0.05)',
                                     }}
                                 >
                                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,28 +182,39 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 9h16M9 4v16" />
                                     </svg>
                                 </div>
-                                <span className="text-sm font-medium opacity-60">
+                                <span className="text-sm font-medium" style={{ color: 'rgba(30, 30, 40, 0.5)' }}>
                                     {projectName || 'Project Preview'}
                                 </span>
                             </div>
                         </div>
                     )}
 
-                    {/* Hover Overlay */}
+                    {/* Hover Overlay with glass button */}
                     <div
-                        className="absolute inset-0 flex items-center justify-center transition-opacity duration-300"
+                        className="absolute inset-0 flex items-center justify-center transition-all duration-400"
                         style={{
-                            background: 'rgba(0,0,0,0.6)',
-                            backdropFilter: 'blur(4px)',
+                            background: isHovered 
+                                ? 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)'
+                                : 'transparent',
+                            backdropFilter: isHovered ? 'blur(4px)' : 'none',
                             opacity: isHovered ? 1 : 0,
-                            borderRadius: '16px',
+                            borderRadius: '20px',
                         }}
                     >
                         <span
-                            className="flex items-center gap-2 text-sm text-white font-semibold px-5 py-2.5 rounded-full"
+                            className="flex items-center gap-2 text-sm font-semibold px-6 py-3 rounded-full"
                             style={{
-                                background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                                backdropFilter: 'blur(10px)',
+                                color: '#1a1a1a',
+                                boxShadow: `
+                                    0 8px 32px rgba(0, 0, 0, 0.15),
+                                    0 4px 16px rgba(0, 0, 0, 0.1),
+                                    inset 0 1px 2px rgba(255,255,255,0.9),
+                                    0 0 0 1px rgba(255,255,255,0.5)
+                                `,
+                                transform: isHovered ? 'scale(1)' : 'scale(0.9)',
+                                transition: 'transform 0.3s ease',
                             }}
                         >
                             Open Project <ArrowRight className="w-4 h-4" />
@@ -143,57 +222,50 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     </div>
                 </div>
 
-                {/* 3D Depth - Bottom Edge */}
+                {/* 3D Depth - Bottom Edge (soft, blurred) */}
                 <div
                     style={{
                         position: 'absolute',
-                        left: '2px',
-                        right: '2px',
-                        bottom: '-8px',
-                        height: '10px',
-                        background: 'linear-gradient(180deg, rgba(20,22,28,0.9) 0%, rgba(10,12,16,0.95) 100%)',
-                        borderRadius: '0 0 14px 14px',
-                        transform: 'rotateX(-90deg)',
+                        left: '4px',
+                        right: '4px',
+                        bottom: '-6px',
+                        height: '8px',
+                        background: 'linear-gradient(180deg, rgba(200, 195, 190, 0.4) 0%, rgba(180, 175, 170, 0.2) 100%)',
+                        borderRadius: '0 0 16px 16px',
+                        filter: 'blur(1px)',
+                        transform: 'rotateX(-85deg) translateZ(-2px)',
                         transformOrigin: 'top',
-                        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                        opacity: isHovered ? 0.5 : 0.8,
+                        transition: 'opacity 0.4s ease',
                     }}
                 />
 
-                {/* 3D Depth - Left Edge */}
+                {/* Ground Shadow - soft and diffused */}
                 <div
                     style={{
                         position: 'absolute',
-                        top: '2px',
-                        bottom: '2px',
-                        left: '-8px',
-                        width: '10px',
-                        background: 'linear-gradient(270deg, rgba(20,22,28,0.9) 0%, rgba(10,12,16,0.95) 100%)',
-                        borderRadius: '14px 0 0 14px',
-                        transform: 'rotateY(90deg)',
-                        transformOrigin: 'right',
-                        boxShadow: '-4px 0 8px rgba(0,0,0,0.3)',
-                    }}
-                />
-
-                {/* Ground Shadow */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: '5%',
-                        right: '5%',
-                        bottom: '-20px',
-                        height: '20px',
-                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%)',
-                        filter: 'blur(8px)',
-                        transform: 'translateZ(-20px)',
+                        left: '10%',
+                        right: '10%',
+                        bottom: isHovered ? '-30px' : '-20px',
+                        height: '30px',
+                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, transparent 70%)',
+                        filter: 'blur(12px)',
+                        opacity: isHovered ? 0.6 : 0.4,
+                        transition: 'all 0.5s ease',
                     }}
                 />
             </div>
 
             <style>{`
-                @keyframes shine {
-                    0% { left: -100%; }
-                    100% { left: 150%; }
+                @keyframes pulse-glow {
+                    0%, 100% {
+                        opacity: 0.6;
+                        box-shadow: inset 0 0 20px rgba(255, 160, 120, 0.15);
+                    }
+                    50% {
+                        opacity: 1;
+                        box-shadow: inset 0 0 30px rgba(255, 160, 120, 0.25);
+                    }
                 }
             `}</style>
         </div>
@@ -201,4 +273,3 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
 }
 
 export default ProjectCard3D;
-

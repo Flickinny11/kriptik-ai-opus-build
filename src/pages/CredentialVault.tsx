@@ -69,7 +69,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             onMouseLeave={() => setIsHovered(false)}
             className="glass-panel relative p-5 rounded-2xl transition-all duration-500"
             style={{
-                background: isHovered 
+                background: isHovered
                     ? 'linear-gradient(145deg, rgba(255,230,215,0.7) 0%, rgba(255,220,200,0.55) 40%, rgba(255,210,185,0.5) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)',
                 boxShadow: isHovered
@@ -102,10 +102,10 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             />
 
             {/* Status indicator */}
-            <div 
+            <div
                 className="absolute top-4 right-4 w-3 h-3 rounded-full"
                 style={{
-                    background: credential.status === 'active' 
+                    background: credential.status === 'active'
                         ? 'linear-gradient(135deg, #22c55e, #16a34a)'
                         : credential.status === 'expired'
                             ? 'linear-gradient(135deg, #f59e0b, #d97706)'
@@ -120,7 +120,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
 
             <div className="flex items-start gap-4">
                 {/* Icon - 3D Glass Box */}
-                <div 
+                <div
                     className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,180,140,0.3) 0%, rgba(255,160,120,0.2) 100%)',
@@ -141,9 +141,9 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
 
                     {/* Masked key */}
                     <div className="mt-3 flex items-center gap-2">
-                        <code 
+                        <code
                             className="text-xs font-mono px-3 py-1.5 rounded-lg"
-                            style={{ 
+                            style={{
                                 background: 'rgba(0,0,0,0.06)',
                                 color: '#666',
                             }}
@@ -157,7 +157,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                         >
                             {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
-                        <button 
+                        <button
                             className="glass-button p-2 rounded-lg"
                             style={{ padding: '6px' }}
                         >
@@ -232,14 +232,14 @@ export default function CredentialVault() {
 
             <main className="container mx-auto px-4 py-8">
                 {/* Security banner */}
-                <div 
+                <div
                     className="glass-panel mb-8 p-4 flex items-center gap-4"
                     style={{
                         background: 'linear-gradient(145deg, rgba(34,197,94,0.1) 0%, rgba(22,163,74,0.05) 100%)',
                         boxShadow: '0 0 20px rgba(34,197,94,0.1), inset 0 1px 1px rgba(255,255,255,0.9)',
                     }}
                 >
-                    <div 
+                    <div
                         className="w-12 h-12 rounded-xl flex items-center justify-center"
                         style={{
                             background: 'rgba(34,197,94,0.15)',
