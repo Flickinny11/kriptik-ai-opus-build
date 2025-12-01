@@ -262,7 +262,7 @@ function ProjectThumbnail({ project }: { project: any }) {
             <Suspense fallback={
                 <div className="w-full aspect-[4/3] bg-gray-800 rounded-lg animate-pulse" />
             }>
-                <ProjectCard3D 
+                <ProjectCard3D
                     onClick={() => navigate(`/builder/${project.id}`)}
                 />
             </Suspense>

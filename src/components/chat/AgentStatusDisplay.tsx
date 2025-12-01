@@ -1,19 +1,19 @@
 /**
  * Agent Status Display Component
- * 
+ *
  * Shows real-time status of active AI agents in the chat interface.
  * Displays what each agent is working on and their progress.
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Brain, 
-    Code, 
-    TestTube, 
-    Rocket, 
-    Search, 
-    Plug, 
-    Eye, 
+import {
+    Brain,
+    Code,
+    TestTube,
+    Rocket,
+    Search,
+    Plug,
+    Eye,
     Bug,
     Loader2,
 } from 'lucide-react';
@@ -66,11 +66,11 @@ export function AgentStatusDisplay({
 }: AgentStatusDisplayProps) {
     const workingAgents = agents.filter(a => a.status === 'working');
     const idleAgents = agents.filter(a => a.status === 'idle');
-    
+
     if (agents.length === 0) {
         return null;
     }
-    
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -95,18 +95,18 @@ export function AgentStatusDisplay({
                         Agent Orchestration
                     </span>
                 </div>
-                
+
                 <div className="text-xs text-slate-400">
                     {totalTokensUsed.toLocaleString()} tokens used
                 </div>
             </div>
-            
+
             {/* Working agents */}
             <AnimatePresence>
                 {workingAgents.map(agent => {
                     const Icon = AGENT_ICONS[agent.type];
                     const colors = AGENT_COLORS[agent.type];
-                    
+
                     return (
                         <motion.div
                             key={agent.id}
@@ -119,7 +119,7 @@ export function AgentStatusDisplay({
                                 <div className={cn('p-2 rounded-lg', colors as string)}>
                                     <Icon className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-medium text-white">
@@ -127,13 +127,13 @@ export function AgentStatusDisplay({
                                         </span>
                                         <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
                                     </div>
-                                    
+
                                     {agent.currentTask && (
                                         <div className="mt-1">
                                             <p className="text-xs text-slate-400 truncate">
                                                 {agent.currentTask.title}
                                             </p>
-                                            
+
                                             {agent.currentTask.progress !== undefined && (
                                                 <div className="mt-1.5 h-1 bg-slate-700 rounded-full overflow-hidden">
                                                     <motion.div
@@ -154,7 +154,7 @@ export function AgentStatusDisplay({
                     );
                 })}
             </AnimatePresence>
-            
+
             {/* Idle agents (collapsed) */}
             {idleAgents.length > 0 && (
                 <div className="px-4 py-2.5 flex items-center gap-2">

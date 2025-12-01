@@ -26,7 +26,7 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
         }
 
         const currentLine = lines[currentLineIndex];
-        
+
         if (currentCharIndex < currentLine.length) {
             const timer = setTimeout(() => {
                 setDisplayedLines(prev => {
@@ -75,10 +75,10 @@ function Card3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => voi
     // Smooth rotation animation
     useFrame((state) => {
         if (meshRef.current) {
-            const target = isHovered 
+            const target = isHovered
                 ? { x: 0.15, y: -0.08, z: 0.02 }
                 : { x: 0.25, y: -0.15, z: 0.03 };
-            
+
             meshRef.current.rotation.x += (target.x - meshRef.current.rotation.x) * 0.1;
             meshRef.current.rotation.y += (target.y - meshRef.current.rotation.y) * 0.1;
             meshRef.current.rotation.z += (target.z - meshRef.current.rotation.z) * 0.1;
@@ -148,7 +148,7 @@ function Card3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => voi
                     overflow: 'hidden',
                 }}>
                     {displayedLines.map((line, i) => (
-                        <div key={i} style={{ 
+                        <div key={i} style={{
                             whiteSpace: 'pre',
                             color: getLineColor(line)
                         }}>
@@ -188,7 +188,7 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
     const [hovered, setHovered] = useState(isHovered);
 
     return (
-        <div 
+        <div
             className="w-full aspect-[4/3] cursor-pointer"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
@@ -201,18 +201,18 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[5, 5, 5]} intensity={0.8} />
                 <directionalLight position={[-3, -3, 2]} intensity={0.3} />
-                
-                <Card3D 
-                    isHovered={hovered} 
+
+                <Card3D
+                    isHovered={hovered}
                     onClick={onClick}
                 />
             </Canvas>
 
             {/* Hover overlay */}
             {hovered && (
-                <div 
+                <div
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    style={{ 
+                    style={{
                         background: 'rgba(0,0,0,0.6)',
                         borderRadius: '8px',
                     }}
