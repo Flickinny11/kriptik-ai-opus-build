@@ -253,11 +253,9 @@ function UserMenu() {
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
-    // Format dates
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const frameworks = project.framework || 'React';
 
-    // Simple code display
     const codeLines = [
         { text: `const MyVideo = () => {`, color: '#c792ea' },
         { text: `  return (`, color: '#c792ea' },
@@ -274,36 +272,62 @@ function ProjectThumbnail({ project }: { project: any }) {
     ];
 
     return (
-        <div className="group cursor-pointer" style={{ marginBottom: '60px' }}>
-            {/* 3D Card Container */}
+        <div className="group cursor-pointer" style={{ marginBottom: '80px', paddingLeft: '20px', paddingBottom: '20px' }}>
+            {/* Wrapper for 3D effect - using simple positioning, not 3D transforms for edges */}
             <div
                 className="relative transition-transform duration-300 ease-out"
                 style={{
-                    width: '100%',
-                    transform: 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)',
-                    transformStyle: 'preserve-3d',
-                    perspective: '800px',
+                    transform: 'perspective(800px) rotateX(15deg) rotateY(-10deg)',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(8deg) rotateY(-5deg) rotateZ(1deg) translateY(-4px)';
+                    e.currentTarget.style.transform = 'perspective(800px) rotateX(10deg) rotateY(-6deg) translateY(-5px)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(12deg) rotateY(-8deg) rotateZ(2deg)';
+                    e.currentTarget.style.transform = 'perspective(800px) rotateX(15deg) rotateY(-10deg)';
                 }}
             >
+                {/* LEFT EDGE - positioned to the left, skewed to create depth */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '-12px',
+                        bottom: '-8px',
+                        width: '14px',
+                        background: 'linear-gradient(to right, #0d0e10, #1a1c20)',
+                        borderRadius: '6px 0 0 6px',
+                        transform: 'skewY(-5deg)',
+                    }}
+                />
+
+                {/* BOTTOM EDGE - positioned below, skewed to create depth */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: '-8px',
+                        right: '4px',
+                        bottom: '-12px',
+                        height: '14px',
+                        background: 'linear-gradient(to bottom, #1a1c20, #0d0e10)',
+                        borderRadius: '0 0 6px 6px',
+                        transform: 'skewX(-5deg)',
+                    }}
+                />
+
                 {/* Main Screen Face */}
                 <button
                     onClick={() => navigate(`/builder/${project.id}`)}
                     className="relative w-full text-left block"
                     style={{
                         background: '#282c34',
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         aspectRatio: '4/3',
-                        transformStyle: 'preserve-3d',
+                        position: 'relative',
+                        zIndex: 1,
                     }}
                 >
                     {/* Code Content */}
-                    <div className="absolute inset-0 p-4 overflow-hidden" style={{ borderRadius: '8px' }}>
+                    <div className="absolute inset-0 p-4 overflow-hidden" style={{ borderRadius: '6px' }}>
                         <div className="font-mono text-[9px] leading-relaxed">
                             {codeLines.map((line, i) => (
                                 <div key={i} style={{ color: line.color, whiteSpace: 'pre' }}>
@@ -316,62 +340,30 @@ function ProjectThumbnail({ project }: { project: any }) {
                     {/* Hover overlay */}
                     <div
                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
-                        style={{ background: 'rgba(0,0,0,0.75)', borderRadius: '8px' }}
+                        style={{ background: 'rgba(0,0,0,0.75)', borderRadius: '6px', zIndex: 2 }}
                     >
                         <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
                             style={{ background: '#dc2626' }}>
                             Open Project <ArrowRight className="h-4 w-4" />
                         </span>
                     </div>
-
-                    {/* BOTTOM EDGE - visible thickness */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            height: '14px',
-                            background: '#1a1c20',
-                            borderRadius: '0 0 8px 8px',
-                            transform: 'translateY(100%) rotateX(-90deg)',
-                            transformOrigin: 'top',
-                        }}
-                    />
-
-                    {/* LEFT EDGE - visible thickness */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: '14px',
-                            background: '#15171a',
-                            borderRadius: '8px 0 0 8px',
-                            transform: 'translateX(-100%) rotateY(90deg)',
-                            transformOrigin: 'right',
-                        }}
-                    />
                 </button>
-
-                {/* Ground Shadow */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: '10%',
-                        right: '10%',
-                        bottom: '-30px',
-                        height: '20px',
-                        background: 'radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%)',
-                        filter: 'blur(8px)',
-                        transform: 'translateZ(-20px)',
-                    }}
-                />
             </div>
 
+            {/* Ground Shadow */}
+            <div
+                style={{
+                    marginTop: '15px',
+                    marginLeft: '-5px',
+                    width: '90%',
+                    height: '12px',
+                    background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, transparent 70%)',
+                    filter: 'blur(6px)',
+                }}
+            />
+
             {/* Project Info */}
-            <div className="mt-8 px-1">
+            <div className="mt-4 px-1">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
