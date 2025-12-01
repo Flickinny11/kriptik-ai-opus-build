@@ -405,15 +405,17 @@ function ProjectThumbnail({ project }: { project: any }) {
                     style={{
                         height: '32px',
                         bottom: '0',
-                        background: 'linear-gradient(180deg, #18191d 0%, #0e0f11 40%, #080909 100%)',
+                        background: 'linear-gradient(180deg, #2a2d33 0%, #18191d 30%, #0e0f11 70%, #080909 100%)',
                         borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
-                        borderLeft: '1px solid rgba(255,255,255,0.35)',
-                        borderRight: '1px solid rgba(255,255,255,0.35)',
-                        borderBottom: '1px solid rgba(255,255,255,0.35)',
                     }}
-                />
+                >
+                    {/* Outer edge highlight */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.4)' }} />
+                    <div className="absolute top-0 bottom-0 left-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
+                    <div className="absolute top-0 bottom-0 right-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.25)' }} />
+                </div>
 
                 {/* LEFT EDGE - thickness */}
                 <div
@@ -421,15 +423,17 @@ function ProjectThumbnail({ project }: { project: any }) {
                     style={{
                         width: '32px',
                         left: '0',
-                        background: 'linear-gradient(90deg, #0a0a0c 0%, #101114 40%, #1a1b1f 100%)',
+                        background: 'linear-gradient(90deg, #080909 0%, #0e0f11 30%, #18191d 70%, #2a2d33 100%)',
                         borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
-                        borderLeft: '1px solid rgba(255,255,255,0.35)',
-                        borderTop: '1px solid rgba(255,255,255,0.35)',
-                        borderBottom: '1px solid rgba(255,255,255,0.35)',
                     }}
-                />
+                >
+                    {/* Outer edge highlight */}
+                    <div className="absolute top-0 bottom-0 left-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.4)' }} />
+                    <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.25)' }} />
+                </div>
 
                 {/* TOP EDGE - visible from angle */}
                 <div
@@ -437,15 +441,14 @@ function ProjectThumbnail({ project }: { project: any }) {
                     style={{
                         height: '16px',
                         top: '0',
-                        background: 'linear-gradient(0deg, #1e2024 0%, #2a2d33 100%)',
+                        background: 'linear-gradient(0deg, #1e2024 0%, #2a2d33 50%, #3a3d43 100%)',
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
-                        borderLeft: '1px solid rgba(255,255,255,0.25)',
-                        borderRight: '1px solid rgba(255,255,255,0.25)',
-                        borderTop: '1px solid rgba(255,255,255,0.25)',
                     }}
-                />
+                >
+                    <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.35)' }} />
+                </div>
 
                 {/* RIGHT EDGE - slightly visible */}
                 <div
@@ -453,23 +456,21 @@ function ProjectThumbnail({ project }: { project: any }) {
                     style={{
                         width: '16px',
                         right: '0',
-                        background: 'linear-gradient(270deg, #1a1b1f 0%, #24262b 100%)',
+                        background: 'linear-gradient(270deg, #2a2d33 0%, #1e2024 100%)',
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
-                        borderRight: '1px solid rgba(255,255,255,0.25)',
-                        borderTop: '1px solid rgba(255,255,255,0.25)',
-                        borderBottom: '1px solid rgba(255,255,255,0.25)',
                     }}
-                />
+                >
+                    <div className="absolute top-0 bottom-0 right-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
+                </div>
 
-                {/* FRONT FACE OUTLINE */}
+                {/* FRONT FACE OUTLINE - the main screen border */}
                 <div
-                    className="absolute inset-0 pointer-events-none"
+                    className="absolute inset-0 pointer-events-none rounded-md"
                     style={{
-                        borderRadius: '6px',
                         transform: 'translateZ(16px)',
-                        border: '1px solid rgba(255,255,255,0.4)',
+                        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.45)',
                     }}
                 />
             </div>
