@@ -399,7 +399,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
                 </button>
 
-                {/* BOTTOM EDGE - thickness */}
+                {/* BOTTOM EDGE - thickness with outer edge line */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
@@ -409,15 +409,11 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
+                        boxShadow: '0 1px 0 0 rgba(255,255,255,0.5)',
                     }}
-                >
-                    {/* Outer edge highlight */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.4)' }} />
-                    <div className="absolute top-0 bottom-0 left-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
-                    <div className="absolute top-0 bottom-0 right-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.25)' }} />
-                </div>
+                />
 
-                {/* LEFT EDGE - thickness */}
+                {/* LEFT EDGE - thickness with outer edge line */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
@@ -427,15 +423,11 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
+                        boxShadow: '-1px 0 0 0 rgba(255,255,255,0.5)',
                     }}
-                >
-                    {/* Outer edge highlight */}
-                    <div className="absolute top-0 bottom-0 left-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.4)' }} />
-                    <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
-                    <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.25)' }} />
-                </div>
+                />
 
-                {/* TOP EDGE - visible from angle */}
+                {/* TOP EDGE */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
@@ -445,12 +437,11 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
+                        boxShadow: '0 -1px 0 0 rgba(255,255,255,0.4)',
                     }}
-                >
-                    <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'rgba(255,255,255,0.35)' }} />
-                </div>
+                />
 
-                {/* RIGHT EDGE - slightly visible */}
+                {/* RIGHT EDGE */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
@@ -460,17 +451,16 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
+                        boxShadow: '1px 0 0 0 rgba(255,255,255,0.35)',
                     }}
-                >
-                    <div className="absolute top-0 bottom-0 right-0 w-[1px]" style={{ background: 'rgba(255,255,255,0.3)' }} />
-                </div>
+                />
 
-                {/* FRONT FACE OUTLINE - the main screen border */}
+                {/* FRONT FACE OUTLINE */}
                 <div
                     className="absolute inset-0 pointer-events-none rounded-md"
                     style={{
                         transform: 'translateZ(16px)',
-                        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.45)',
+                        border: '1px solid rgba(255,255,255,0.5)',
                     }}
                 />
             </div>
