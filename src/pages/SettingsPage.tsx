@@ -20,10 +20,10 @@ import {
     Wallet, Settings2, Moon, Sun,
     Globe, Zap
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { apiClient } from '../lib/api-client';
+import { HoverSidebar } from '../components/navigation/HoverSidebar';
+import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 
 type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'privacy' | 'usage';
 
@@ -165,7 +165,7 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div 
+            <div
                 className="flex items-center justify-center min-h-screen"
                 style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
             >
@@ -175,31 +175,37 @@ export default function SettingsPage() {
     }
 
     return (
-        <div 
-            className="min-h-screen p-8"
+        <div
+            className="min-h-screen"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
-            <div className="max-w-6xl mx-auto">
+            <HoverSidebar />
+            
+            {/* Visual trigger for sidebar */}
+            <div className="fixed top-4 left-4 z-50">
+                <HandDrawnArrow />
+            </div>
+            
+            <div className="max-w-6xl mx-auto p-8">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-                        <p className="text-slate-400">Manage your account, billing, and preferences</p>
+                        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
+                        <p style={{ color: '#666' }}>Manage your account, billing, and preferences</p>
                     </div>
 
                     <div className="flex gap-8">
-                        {/* Sidebar */}
+                        {/* Sidebar Tabs */}
                         <div className="w-64 shrink-0">
-                            <nav className="space-y-1">
+                            <nav className="space-y-2">
                                 {tabs.map(tab => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={cn(
-                                            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                                            activeTab === tab.id
-                                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                            "glass-button w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all",
+                                            activeTab === tab.id && "glass-button--glow"
                                         )}
+                                        style={{ justifyContent: 'flex-start' }}
                                     >
                                         <tab.icon className={"w-5 h-5"} />
                                         <span className="font-medium">{tab.label}</span>
@@ -221,166 +227,161 @@ export default function SettingsPage() {
                             >
                                 {/* Profile Tab */}
                                 {activeTab === 'profile' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                        <h2 className="text-xl font-semibold text-white mb-6">Profile</h2>
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Profile</h2>
                                         <div className="space-y-6">
                                             <div className="flex items-center gap-6">
-                                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-black text-2xl font-bold">
+                                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white text-2xl font-bold">
                                                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-lg font-medium text-white">{user?.name}</h3>
-                                                    <p className="text-slate-400">{user?.email}</p>
-                                                    <span className={cn(
-                                                        "inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium",
-                                                        user?.tier === 'pro' ? "bg-amber-500/20 text-amber-400" :
-                                                        user?.tier === 'enterprise' ? "bg-purple-500/20 text-purple-400" :
-                                                        "bg-slate-700 text-slate-300"
-                                                    )}>
+                                                    <h3 className="text-lg font-medium" style={{ color: '#1a1a1a' }}>{user?.name}</h3>
+                                                    <p style={{ color: '#666' }}>{user?.email}</p>
+                                                    <span 
+                                                        className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium"
+                                                        style={{ 
+                                                            background: 'rgba(255,180,140,0.2)',
+                                                            color: '#c25a00',
+                                                        }}
+                                                    >
                                                         {user?.tier?.toUpperCase()} Plan
                                                     </span>
                                                 </div>
                                             </div>
 
-                                            <div className="pt-6 border-t border-slate-800 space-y-4">
+                                            <div className="pt-6 space-y-4" style={{ borderTop: '1px solid rgba(0,0,0,0.1)' }}>
                                                 <div>
-                                                    <label className="text-sm font-medium text-slate-300 mb-2 block">
+                                                    <label className="text-sm font-medium mb-2 block" style={{ color: '#404040' }}>
                                                         Display Name
                                                     </label>
-                                                    <input
-                                                        type="text"
-                                                        defaultValue={user?.name}
-                                                        className={cn(
-                                                            "w-full px-4 py-3 rounded-xl",
-                                                            "bg-slate-800 border border-slate-700",
-                                                            "text-white placeholder:text-slate-500",
-                                                            "focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                                                        )}
-                                                    />
+                                                    <div className="glass-input">
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={user?.name}
+                                                            className="w-full px-4 py-3 bg-transparent border-none outline-none"
+                                                            style={{ color: '#1a1a1a' }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <Button
-                                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
-                                                >
+                                                <button className="glass-button glass-button--glow">
                                                     Save Changes
-                                                </Button>
+                                                </button>
                                             </div>
                                         </div>
-                                    </Card>
+                                    </div>
                                 )}
 
                                 {/* Billing Tab */}
                                 {activeTab === 'billing' && (
                                     <div className="space-y-6">
                                         {/* Credit Balance Card */}
-                                        <Card className="p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30">
+                                        <div className="glass-panel p-6 glass-button--glow">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div>
-                                                    <p className="text-sm text-slate-400">Credit Balance</p>
-                                                    <p className="text-4xl font-bold text-white">{creditBalance.toLocaleString()}</p>
+                                                    <p className="text-sm" style={{ color: '#666' }}>Credit Balance</p>
+                                                    <p className="text-4xl font-bold" style={{ color: '#1a1a1a' }}>{creditBalance.toLocaleString()}</p>
                                                 </div>
-                                                <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center">
-                                                    <Zap className="w-8 h-8 text-amber-400" />
+                                                <div 
+                                                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                                                    style={{ background: 'rgba(255,180,140,0.2)' }}
+                                                >
+                                                    <Zap className="w-8 h-8" style={{ color: '#c25a00' }} />
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-400">100 credits = $1.00</p>
-                                        </Card>
+                                            <p className="text-xs" style={{ color: '#666' }}>100 credits = $1.00</p>
+                                        </div>
 
                                         {/* Top Up */}
-                                        <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                            <h3 className="text-lg font-semibold text-white mb-4">Top Up Credits</h3>
+                                        <div className="glass-panel p-6">
+                                            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a' }}>Top Up Credits</h3>
                                             <div className="grid grid-cols-4 gap-3 mb-4">
                                                 {[500, 1000, 2500, 5000].map(amount => (
                                                     <button
                                                         key={amount}
                                                         onClick={() => setTopUpAmount(amount)}
                                                         className={cn(
-                                                            "py-3 rounded-xl font-medium transition-all",
-                                                            topUpAmount === amount
-                                                                ? "bg-amber-500 text-black"
-                                                                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                                            "glass-button py-3 rounded-xl font-medium transition-all flex flex-col items-center justify-center",
+                                                            topUpAmount === amount && "glass-button--glow"
                                                         )}
                                                     >
-                                                        {amount.toLocaleString()}
-                                                        <span className="text-xs block opacity-70">${(amount / 100).toFixed(2)}</span>
+                                                        <span>{amount.toLocaleString()}</span>
+                                                        <span className="text-xs opacity-70">${(amount / 100).toFixed(2)}</span>
                                                     </button>
                                                 ))}
                                             </div>
-                                            <Button
+                                            <button
                                                 onClick={handleTopUp}
-                                                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold"
+                                                className="glass-button glass-button--glow w-full flex items-center justify-center"
                                             >
                                                 <CreditCard className="w-4 h-4 mr-2" />
                                                 Add {topUpAmount.toLocaleString()} Credits - ${(topUpAmount / 100).toFixed(2)}
-                                            </Button>
-                                        </Card>
+                                            </button>
+                                        </div>
 
                                         {/* Spending Limits */}
-                                        <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                            <h3 className="text-lg font-semibold text-white mb-4">Spending Limits</h3>
+                                        <div className="glass-panel p-6">
+                                            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a' }}>Spending Limits</h3>
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="text-sm font-medium text-slate-300 mb-2 block">
+                                                    <label className="text-sm font-medium mb-2 block" style={{ color: '#404040' }}>
                                                         Monthly Spending Limit
                                                     </label>
                                                     <div className="flex items-center gap-3">
-                                                        <input
-                                                            type="number"
-                                                            placeholder="No limit"
-                                                            defaultValue={settings?.spendingLimit || ''}
-                                                            onChange={(e) => updateSettings({ spendingLimit: parseInt(e.target.value) || null })}
-                                                            className={cn(
-                                                                "flex-1 px-4 py-3 rounded-xl",
-                                                                "bg-slate-800 border border-slate-700",
-                                                                "text-white placeholder:text-slate-500",
-                                                                "focus:border-amber-500 focus:outline-none"
-                                                            )}
-                                                        />
-                                                        <span className="text-slate-400">credits/month</span>
+                                                        <div className="glass-input flex-1">
+                                                            <input
+                                                                type="number"
+                                                                placeholder="No limit"
+                                                                defaultValue={settings?.spendingLimit || ''}
+                                                                onChange={(e) => updateSettings({ spendingLimit: parseInt(e.target.value) || null })}
+                                                                className="w-full px-4 py-3 bg-transparent border-none outline-none"
+                                                                style={{ color: '#1a1a1a' }}
+                                                            />
+                                                        </div>
+                                                        <span style={{ color: '#666' }}>credits/month</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50">
+                                                <div className="glass-panel flex items-center justify-between p-4">
                                                     <div>
-                                                        <p className="font-medium text-white">Auto Top-Up</p>
-                                                        <p className="text-sm text-slate-400">Automatically add credits when balance is low</p>
+                                                        <p className="font-medium" style={{ color: '#1a1a1a' }}>Auto Top-Up</p>
+                                                        <p className="text-sm" style={{ color: '#666' }}>Automatically add credits when balance is low</p>
                                                     </div>
                                                     <button
                                                         onClick={() => updateSettings({ autoTopUp: !settings?.autoTopUp })}
-                                                        className={cn(
-                                                            "w-12 h-6 rounded-full transition-colors",
-                                                            settings?.autoTopUp ? "bg-amber-500" : "bg-slate-700"
-                                                        )}
+                                                        className="w-12 h-6 rounded-full transition-colors relative"
+                                                        style={{ background: settings?.autoTopUp ? 'rgba(255,180,140,0.6)' : 'rgba(0,0,0,0.1)' }}
                                                     >
                                                         <motion.div
-                                                            className="w-5 h-5 rounded-full bg-white shadow"
-                                                            animate={{ x: settings?.autoTopUp ? 26 : 2 }}
+                                                            className="w-5 h-5 rounded-full shadow absolute top-0.5"
+                                                            style={{ background: settings?.autoTopUp ? '#c25a00' : '#999' }}
+                                                            animate={{ left: settings?.autoTopUp ? 26 : 2 }}
                                                         />
                                                     </button>
                                                 </div>
                                             </div>
-                                        </Card>
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* Payment Methods Tab */}
                                 {activeTab === 'payment' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
+                                    <div className="glass-panel p-6">
                                         <div className="flex items-center justify-between mb-6">
-                                            <h2 className="text-xl font-semibold text-white">Payment Methods</h2>
-                                            <Button variant="outline" className="border-slate-700">
+                                            <h2 className="text-xl font-semibold" style={{ color: '#1a1a1a' }}>Payment Methods</h2>
+                                            <button className="glass-button">
                                                 <Plus className="w-4 h-4 mr-2" />
                                                 Add Card
-                                            </Button>
+                                            </button>
                                         </div>
 
                                         {paymentMethods.length === 0 ? (
                                             <div className="text-center py-12">
-                                                <CreditCard className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                                                <p className="text-slate-400">No payment methods added</p>
-                                                <Button className="mt-4" variant="outline">
+                                                <CreditCard className="w-12 h-12 mx-auto mb-4" style={{ color: '#999' }} />
+                                                <p style={{ color: '#666' }}>No payment methods added</p>
+                                                <button className="glass-button glass-button--glow mt-4">
                                                     <Plus className="w-4 h-4 mr-2" />
                                                     Add Payment Method
-                                                </Button>
+                                                </button>
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
@@ -388,58 +389,61 @@ export default function SettingsPage() {
                                                     <div
                                                         key={method.id}
                                                         className={cn(
-                                                            "flex items-center justify-between p-4 rounded-xl",
-                                                            "bg-slate-800/50 border",
-                                                            method.isDefault ? "border-amber-500/50" : "border-slate-700"
+                                                            "glass-panel flex items-center justify-between p-4",
+                                                            method.isDefault && "glass-button--glow"
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-8 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-white uppercase">
+                                                            <div 
+                                                                className="w-12 h-8 rounded flex items-center justify-center text-xs font-bold uppercase"
+                                                                style={{ background: 'rgba(0,0,0,0.1)', color: '#1a1a1a' }}
+                                                            >
                                                                 {method.brand}
                                                             </div>
                                                             <div>
-                                                                <p className="font-medium text-white">•••• {method.last4}</p>
-                                                                <p className="text-sm text-slate-400">
+                                                                <p className="font-medium" style={{ color: '#1a1a1a' }}>•••• {method.last4}</p>
+                                                                <p className="text-sm" style={{ color: '#666' }}>
                                                                     Expires {method.expMonth}/{method.expYear}
                                                                 </p>
                                                             </div>
                                                             {method.isDefault && (
-                                                                <span className="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">
+                                                                <span 
+                                                                    className="px-2 py-1 rounded-full text-xs"
+                                                                    style={{ background: 'rgba(255,180,140,0.2)', color: '#c25a00' }}
+                                                                >
                                                                     Default
                                                                 </span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             {!method.isDefault && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
+                                                                <button
+                                                                    className="glass-button glass-button--small"
                                                                     onClick={() => setDefaultPaymentMethod(method.id)}
                                                                 >
                                                                     <Check className="w-4 h-4 mr-1" />
                                                                     Set Default
-                                                                </Button>
+                                                                </button>
                                                             )}
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-red-400 hover:text-red-300"
+                                                            <button
+                                                                className="glass-button glass-button--small"
+                                                                style={{ color: '#dc2626' }}
                                                                 onClick={() => removePaymentMethod(method.id)}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
-                                                            </Button>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
-                                    </Card>
+                                    </div>
                                 )}
 
                                 {/* Notifications Tab */}
                                 {activeTab === 'notifications' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                        <h2 className="text-xl font-semibold text-white mb-6">Notifications</h2>
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Notifications</h2>
                                         <div className="space-y-4">
                                             {[
                                                 { key: 'emailNotifications', label: 'Email Notifications', desc: 'Receive updates via email' },
@@ -447,53 +451,50 @@ export default function SettingsPage() {
                                                 { key: 'billingAlerts', label: 'Billing Alerts', desc: 'Alerts for low credits and payments' },
                                                 { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Summary of your activity' },
                                             ].map(item => (
-                                                <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50">
+                                                <div key={item.key} className="glass-panel flex items-center justify-between p-4">
                                                     <div>
-                                                        <p className="font-medium text-white">{item.label}</p>
-                                                        <p className="text-sm text-slate-400">{item.desc}</p>
+                                                        <p className="font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>
+                                                        <p className="text-sm" style={{ color: '#666' }}>{item.desc}</p>
                                                     </div>
                                                     <button
                                                         onClick={() => updateSettings({ [item.key]: !settings?.[item.key as keyof UserSettings] } as Partial<UserSettings>)}
-                                                        className={cn(
-                                                            "w-12 h-6 rounded-full transition-colors",
-                                                            settings?.[item.key as keyof UserSettings] ? "bg-amber-500" : "bg-slate-700"
-                                                        )}
+                                                        className="w-12 h-6 rounded-full transition-colors relative"
+                                                        style={{ background: settings?.[item.key as keyof UserSettings] ? 'rgba(255,180,140,0.6)' : 'rgba(0,0,0,0.1)' }}
                                                     >
                                                         <motion.div
-                                                            className="w-5 h-5 rounded-full bg-white shadow"
-                                                            animate={{ x: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
+                                                            className="w-5 h-5 rounded-full shadow absolute top-0.5"
+                                                            style={{ background: settings?.[item.key as keyof UserSettings] ? '#c25a00' : '#999' }}
+                                                            animate={{ left: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
                                                         />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    </Card>
+                                    </div>
                                 )}
 
                                 {/* AI Preferences Tab */}
                                 {activeTab === 'ai' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                        <h2 className="text-xl font-semibold text-white mb-6">AI Preferences</h2>
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>AI Preferences</h2>
                                         <div className="space-y-6">
                                             <div>
-                                                <label className="text-sm font-medium text-slate-300 mb-2 block">
+                                                <label className="text-sm font-medium mb-2 block" style={{ color: '#404040' }}>
                                                     Preferred Model
                                                 </label>
-                                                <select
-                                                    value={settings?.preferredModel || 'claude-sonnet-4-5'}
-                                                    onChange={(e) => updateSettings({ preferredModel: e.target.value })}
-                                                    className={cn(
-                                                        "w-full px-4 py-3 rounded-xl",
-                                                        "bg-slate-800 border border-slate-700",
-                                                        "text-white",
-                                                        "focus:border-amber-500 focus:outline-none"
-                                                    )}
-                                                >
-                                                    <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Recommended)</option>
-                                                    <option value="claude-opus-4">Claude Opus 4 (Most Capable)</option>
-                                                    <option value="gpt-4o">GPT-4o</option>
-                                                    <option value="deepseek-v3">DeepSeek V3 (Cost Effective)</option>
-                                                </select>
+                                                <div className="glass-input">
+                                                    <select
+                                                        value={settings?.preferredModel || 'claude-sonnet-4-5'}
+                                                        onChange={(e) => updateSettings({ preferredModel: e.target.value })}
+                                                        className="w-full px-4 py-3 bg-transparent border-none outline-none"
+                                                        style={{ color: '#1a1a1a' }}
+                                                    >
+                                                        <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Recommended)</option>
+                                                        <option value="claude-opus-4">Claude Opus 4 (Most Capable)</option>
+                                                        <option value="gpt-4o">GPT-4o</option>
+                                                        <option value="deepseek-v3">DeepSeek V3 (Cost Effective)</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
                                             <div className="space-y-4">
@@ -501,21 +502,22 @@ export default function SettingsPage() {
                                                     { key: 'streamingEnabled', label: 'Streaming Responses', desc: 'See AI responses as they generate' },
                                                     { key: 'autoSave', label: 'Auto-Save', desc: 'Automatically save changes' },
                                                 ].map(item => (
-                                                    <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50">
+                                                    <div key={item.key} className="glass-panel flex items-center justify-between p-4">
                                                         <div>
-                                                            <p className="font-medium text-white">{item.label}</p>
-                                                            <p className="text-sm text-slate-400">{item.desc}</p>
+                                                            <p className="font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>
+                                                            <p className="text-sm" style={{ color: '#666' }}>{item.desc}</p>
                                                         </div>
                                                         <button
                                                             onClick={() => updateSettings({ [item.key]: !settings?.[item.key as keyof UserSettings] } as Partial<UserSettings>)}
                                                             className={cn(
-                                                                "w-12 h-6 rounded-full transition-colors",
-                                                                settings?.[item.key as keyof UserSettings] ? "bg-amber-500" : "bg-slate-700"
+                                                                "w-12 h-6 rounded-full transition-colors relative",
                                                             )}
+                                                            style={{ background: settings?.[item.key as keyof UserSettings] ? 'rgba(255,180,140,0.6)' : 'rgba(0,0,0,0.1)' }}
                                                         >
                                                             <motion.div
-                                                                className="w-5 h-5 rounded-full bg-white shadow"
-                                                                animate={{ x: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
+                                                                className="w-5 h-5 rounded-full shadow absolute top-0.5"
+                                                                style={{ background: settings?.[item.key as keyof UserSettings] ? '#c25a00' : '#999' }}
+                                                                animate={{ left: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
                                                             />
                                                         </button>
                                                     </div>
@@ -523,7 +525,7 @@ export default function SettingsPage() {
                                             </div>
 
                                             <div>
-                                                <label className="text-sm font-medium text-slate-300 mb-2 block">
+                                                <label className="text-sm font-medium mb-2 block" style={{ color: '#404040' }}>
                                                     Theme
                                                 </label>
                                                 <div className="flex gap-3">
@@ -532,10 +534,8 @@ export default function SettingsPage() {
                                                             key={theme}
                                                             onClick={() => updateSettings({ theme })}
                                                             className={cn(
-                                                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all",
-                                                                settings?.theme === theme
-                                                                    ? "bg-amber-500 text-black"
-                                                                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                                                "glass-button flex-1 flex items-center justify-center gap-2 py-3",
+                                                                settings?.theme === theme && "glass-button--glow"
                                                             )}
                                                         >
                                                             {theme === 'dark' && <Moon className="w-4 h-4" />}
@@ -547,65 +547,67 @@ export default function SettingsPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </Card>
+                                    </div>
                                 )}
 
                                 {/* Privacy Tab */}
                                 {activeTab === 'privacy' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                        <h2 className="text-xl font-semibold text-white mb-6">Privacy</h2>
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Privacy</h2>
                                         <div className="space-y-4">
                                             {[
                                                 { key: 'analyticsOptIn', label: 'Usage Analytics', desc: 'Help improve KripTik with anonymous usage data' },
                                                 { key: 'crashReports', label: 'Crash Reports', desc: 'Send crash reports to help fix bugs' },
                                             ].map(item => (
-                                                <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50">
+                                                <div key={item.key} className="glass-panel flex items-center justify-between p-4">
                                                     <div>
-                                                        <p className="font-medium text-white">{item.label}</p>
-                                                        <p className="text-sm text-slate-400">{item.desc}</p>
+                                                        <p className="font-medium" style={{ color: '#1a1a1a' }}>{item.label}</p>
+                                                        <p className="text-sm" style={{ color: '#666' }}>{item.desc}</p>
                                                     </div>
                                                     <button
                                                         onClick={() => updateSettings({ [item.key]: !settings?.[item.key as keyof UserSettings] } as Partial<UserSettings>)}
-                                                        className={cn(
-                                                            "w-12 h-6 rounded-full transition-colors",
-                                                            settings?.[item.key as keyof UserSettings] ? "bg-amber-500" : "bg-slate-700"
-                                                        )}
+                                                        className="w-12 h-6 rounded-full transition-colors relative"
+                                                        style={{ background: settings?.[item.key as keyof UserSettings] ? 'rgba(255,180,140,0.6)' : 'rgba(0,0,0,0.1)' }}
                                                     >
                                                         <motion.div
-                                                            className="w-5 h-5 rounded-full bg-white shadow"
-                                                            animate={{ x: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
+                                                            className="w-5 h-5 rounded-full shadow absolute top-0.5"
+                                                            style={{ background: settings?.[item.key as keyof UserSettings] ? '#c25a00' : '#999' }}
+                                                            animate={{ left: settings?.[item.key as keyof UserSettings] ? 26 : 2 }}
                                                         />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
 
-                                        <div className="mt-8 pt-6 border-t border-slate-800">
-                                            <h3 className="text-lg font-semibold text-white mb-4">Data Management</h3>
+                                        <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                                            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a' }}>Data Management</h3>
                                             <div className="space-y-3">
-                                                <Button variant="outline" className="w-full justify-start border-slate-700">
+                                                <button className="glass-button w-full justify-start">
                                                     <Globe className="w-4 h-4 mr-2" />
                                                     Export My Data
-                                                </Button>
-                                                <Button variant="outline" className="w-full justify-start border-red-900/50 text-red-400 hover:bg-red-500/10">
+                                                </button>
+                                                <button 
+                                                    className="glass-button w-full justify-start"
+                                                    style={{ color: '#dc2626' }}
+                                                >
                                                     <Trash2 className="w-4 h-4 mr-2" />
                                                     Delete Account
-                                                </Button>
+                                                </button>
                                             </div>
                                         </div>
-                                    </Card>
+                                    </div>
                                 )}
 
                                 {/* Usage History Tab */}
                                 {activeTab === 'usage' && (
-                                    <Card className="p-6 bg-slate-900/50 border-slate-800">
-                                        <h2 className="text-xl font-semibold text-white mb-6">Usage History</h2>
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Usage History</h2>
                                         <div className="text-center py-12">
-                                            <Activity className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                                            <p className="text-slate-400">Usage history will appear here</p>
-                                            <p className="text-sm text-slate-500 mt-2">View your AI generations, token usage, and costs</p>
+                                            <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: '#999' }} />
+                                            <p style={{ color: '#666' }}>Usage history will appear here</p>
+                                            <p className="text-sm mt-2" style={{ color: '#999' }}>View your AI generations, token usage, and costs</p>
                                         </div>
-                                    </Card>
+                                    </div>
                                 )}
                             </motion.div>
                         </div>
@@ -614,4 +616,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
 

@@ -12,12 +12,12 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
     const [isHovered, setIsHovered] = useState(false);
 
     return (
-        <div 
+        <div
             className="cursor-pointer group"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={onClick}
-            style={{ 
+            style={{
                 perspective: '1000px',
                 marginBottom: '16px',
             }}
@@ -29,8 +29,8 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     width: '100%',
                     aspectRatio: '4/3',
                     transformStyle: 'preserve-3d',
-                    transform: isHovered 
-                        ? 'rotateX(2deg) rotateY(-2deg) translateY(-4px)' 
+                    transform: isHovered
+                        ? 'rotateX(2deg) rotateY(-2deg) translateY(-4px)'
                         : 'rotateX(5deg) rotateY(-5deg)',
                     transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
@@ -41,7 +41,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                         position: 'absolute',
                         inset: 0,
                         borderRadius: '16px',
-                        background: thumbnail 
+                        background: thumbnail
                             ? `url(${thumbnail}) center/cover no-repeat`
                             : 'linear-gradient(145deg, rgba(40,44,52,0.95) 0%, rgba(30,34,42,0.98) 100%)',
                         backdropFilter: 'blur(20px)',
@@ -97,14 +97,14 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
 
                     {/* Default content when no thumbnail */}
                     {!thumbnail && (
-                        <div 
+                        <div
                             className="absolute inset-0 flex items-center justify-center"
                             style={{ color: 'rgba(255,255,255,0.3)' }}
                         >
                             <div className="text-center">
-                                <div 
+                                <div
                                     className="w-16 h-16 mx-auto mb-3 rounded-xl flex items-center justify-center"
-                                    style={{ 
+                                    style={{
                                         background: 'rgba(255,255,255,0.05)',
                                         border: '1px solid rgba(255,255,255,0.1)',
                                     }}
@@ -131,9 +131,9 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                             borderRadius: '16px',
                         }}
                     >
-                        <span 
+                        <span
                             className="flex items-center gap-2 text-sm text-white font-semibold px-5 py-2.5 rounded-full"
-                            style={{ 
+                            style={{
                                 background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
                                 boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
                             }}

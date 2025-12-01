@@ -993,9 +993,9 @@ export default function FixMyApp() {
     const currentStepIndex = steps.findIndex(s => s.id === step);
 
     return (
-        <div 
+        <div
             className="min-h-screen"
-            style={{ 
+            style={{
                 background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)',
                 color: '#1a1a1a',
             }}

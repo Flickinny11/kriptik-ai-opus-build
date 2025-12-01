@@ -126,7 +126,7 @@ export default function DesignRoom() {
     };
 
     return (
-        <div 
+        <div
             className="min-h-screen flex flex-col"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >

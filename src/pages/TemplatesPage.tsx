@@ -180,9 +180,9 @@ function TemplateCard({
                 >
                     {/* Animated indicator */}
                     {template.animated && (
-                        <div 
+                        <div
                             className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full"
-                            style={{ 
+                            style={{
                                 background: 'rgba(255,255,255,0.2)',
                                 backdropFilter: 'blur(8px)',
                             }}
@@ -199,9 +199,9 @@ function TemplateCard({
                     {/* Simulated content */}
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center p-6">
-                            <div 
+                            <div
                                 className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                                style={{ 
+                                style={{
                                     background: 'rgba(255,255,255,0.1)',
                                     backdropFilter: 'blur(8px)',
                                 }}
@@ -249,7 +249,7 @@ function TemplateCard({
                             <span
                                 key={tag}
                                 className="px-2 py-0.5 text-[10px] rounded-full font-mono uppercase"
-                                style={{ 
+                                style={{
                                     background: 'rgba(0,0,0,0.06)',
                                     color: '#666',
                                 }}
@@ -278,7 +278,7 @@ export default function TemplatesPage() {
     });
 
     return (
-        <div 
+        <div
             className="min-h-screen"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
@@ -306,9 +306,9 @@ export default function TemplatesPage() {
             <main className="container mx-auto px-4 py-8">
                 {/* Page header */}
                 <div className="mb-8">
-                    <h1 
-                        className="text-3xl font-bold mb-2" 
-                        style={{ 
+                    <h1
+                        className="text-3xl font-bold mb-2"
+                        style={{
                             fontFamily: 'Syne, sans-serif',
                             color: '#1a1a1a',
                         }}
@@ -343,7 +343,7 @@ export default function TemplatesPage() {
                                     "glass-button flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap",
                                     activeCategory === cat.id && "glass-button--glow"
                                 )}
-                                style={{ 
+                                style={{
                                     padding: '10px 18px',
                                     fontSize: '13px',
                                 }}
