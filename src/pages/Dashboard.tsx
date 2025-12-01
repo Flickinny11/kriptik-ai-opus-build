@@ -255,20 +255,24 @@ function ProjectThumbnail({ project }: { project: any }) {
     const [typedText, setTypedText] = useState('');
     const [currentLine, setCurrentLine] = useState(0);
     
-    // Typing animation for project info
+    // Format dates
+    const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
+    const lastOpened = project.lastOpened ? new Date(project.lastOpened).toLocaleDateString() : 'Just now';
+    const frameworks = project.framework || 'React, Node.js';
+    
+    // Typing animation showing project details
     const codeLines = [
-        { text: `const ${project.name?.replace(/\s+/g, '') || 'MyVideo'} = () => {`, delay: 0 },
-        { text: '  return (', delay: 100 },
-        { text: '    <AbsoluteFill>', delay: 200 },
-        { text: '      <Video', delay: 300 },
-        { text: `        src={staticFile('${project.name || 'video'}.mp4')}`, delay: 400 },
-        { text: '      />', delay: 500 },
-        { text: `      <Sequence from={60}>`, delay: 600 },
-        { text: '        <BRoll', delay: 700 },
-        { text: '      </Sequence>', delay: 800 },
-        { text: '      <AbsoluteFill>', delay: 900 },
-        { text: '        <Captions />', delay: 1000 },
-        { text: '      </AbsoluteFill>', delay: 1100 },
+        { text: `// ${project.name || 'My Project'}`, color: '#6A9955' },
+        { text: ``, color: '' },
+        { text: `const project = {`, color: '#c792ea' },
+        { text: `  name: "${project.name || 'Untitled'}"`, color: '#c3e88d' },
+        { text: `  modified: "${lastModified}"`, color: '#c3e88d' },
+        { text: `  opened: "${lastOpened}"`, color: '#c3e88d' },
+        { text: `  stack: ["${frameworks.split(',')[0] || 'React'}"]`, color: '#c3e88d' },
+        { text: `  status: "active"`, color: '#c3e88d' },
+        { text: `}`, color: '#c792ea' },
+        { text: ``, color: '' },
+        { text: `export default project`, color: '#c792ea' },
     ];
 
     useEffect(() => {
@@ -281,50 +285,56 @@ function ProjectThumbnail({ project }: { project: any }) {
                     setTimeout(() => {
                         setCurrentLine(prev => prev + 1);
                         setTypedText('');
-                    }, 200);
+                    }, 150);
                 }
+            } else {
+                // Reset and loop
+                setTimeout(() => {
+                    setCurrentLine(0);
+                    setTypedText('');
+                }, 2000);
             }
         };
         
-        const timer = setTimeout(typeNextChar, 50 + Math.random() * 30);
+        const timer = setTimeout(typeNextChar, 40 + Math.random() * 20);
         return () => clearTimeout(timer);
-    }, [typedText, currentLine]);
+    }, [typedText, currentLine, codeLines.length]);
 
     // Color coding for syntax
     const colorize = (text: string) => {
         return text
-            .replace(/(const|return|from)/g, '<span style="color:#c792ea">$1</span>')
-            .replace(/(\w+)(?=\s*=\s*\()/g, '<span style="color:#82aaff">$1</span>')
-            .replace(/(=>|=|\{|\}|\(|\))/g, '<span style="color:#89ddff">$1</span>')
-            .replace(/(<\/?[\w]+)/g, '<span style="color:#f07178">$1</span>')
-            .replace(/(src|from)(?==)/g, '<span style="color:#ffcb6b">$1</span>')
-            .replace(/('[^']*'|"[^"]*")/g, '<span style="color:#c3e88d">$1</span>')
-            .replace(/(\/>)/g, '<span style="color:#f07178">$1</span>');
+            .replace(/(\/\/.*)/g, '<span style="color:#6A9955">$1</span>')
+            .replace(/(const|export|default|import|from)/g, '<span style="color:#c792ea">$1</span>')
+            .replace(/(\w+)(?=:)/g, '<span style="color:#9cdcfe">$1</span>')
+            .replace(/(=|{|}|\[|\])/g, '<span style="color:#d4d4d4">$1</span>')
+            .replace(/("[^"]*")/g, '<span style="color:#ce9178">$1</span>');
     };
 
     return (
-        <div className="group cursor-pointer pb-8" style={{ perspective: '800px' }}>
-            {/* Ground shadow */}
+        <div className="group cursor-pointer pb-12" style={{ perspective: '1000px' }}>
+            {/* Ground shadow - larger and softer */}
             <div 
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[85%] h-4 rounded-[50%] blur-md"
+                className="absolute left-1/2 w-[90%] h-6 rounded-[50%] blur-lg pointer-events-none"
                 style={{ 
-                    background: 'radial-gradient(ellipse, rgba(0,0,0,0.35) 0%, transparent 70%)',
-                    transform: 'translateX(-50%) translateY(20px)',
+                    background: 'radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%)',
+                    transform: 'translateX(-50%)',
+                    bottom: '20px',
                 }}
             />
             
-            {/* 3D Container - more pronounced angle like the reference image */}
+            {/* 3D Container - adjusted angle: less tilt back, rotated on all axes */}
             <div
                 className="relative transition-all duration-500 ease-out"
                 style={{
                     transformStyle: 'preserve-3d',
-                    transform: 'rotateX(55deg) rotateZ(-2deg) scale(0.9)',
+                    // Less rotateX (more upright), rotateY to turn left side forward, slight rotateZ
+                    transform: 'rotateX(28deg) rotateY(12deg) rotateZ(-3deg) scale(0.95)',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(50deg) rotateZ(-1deg) scale(0.92) translateY(-5px)';
+                    e.currentTarget.style.transform = 'rotateX(22deg) rotateY(8deg) rotateZ(-2deg) scale(0.98) translateY(-8px)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(55deg) rotateZ(-2deg) scale(0.9)';
+                    e.currentTarget.style.transform = 'rotateX(28deg) rotateY(12deg) rotateZ(-3deg) scale(0.95)';
                 }}
             >
                 {/* Main face - the screen surface */}
@@ -333,33 +343,34 @@ function ProjectThumbnail({ project }: { project: any }) {
                     className="relative w-full text-left overflow-hidden"
                     style={{
                         background: '#1e222a',
-                        borderRadius: '8px',
-                        transform: 'translateZ(8px)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                        borderRadius: '6px',
+                        transform: 'translateZ(16px)', // Raised more for thicker appearance
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
                     }}
                 >
                     {/* Screen content - dark editor with typing animation */}
                     <div
-                        className="aspect-[5/4] relative overflow-hidden p-3"
+                        className="aspect-[4/3] relative overflow-hidden p-4"
                         style={{ 
-                            background: 'linear-gradient(180deg, #282c34 0%, #21252b 100%)',
-                            borderRadius: '8px',
+                            background: 'linear-gradient(180deg, #1e1e1e 0%, #252526 100%)',
+                            borderRadius: '6px',
                         }}
                     >
                         {/* Code lines with syntax highlighting and typing effect */}
-                        <div className="font-mono text-[9px] leading-relaxed space-y-0.5">
+                        <div className="font-mono text-[10px] leading-[1.6] space-y-0">
                             {codeLines.slice(0, currentLine).map((line, i) => (
                                 <div 
                                     key={i} 
                                     className="whitespace-pre"
+                                    style={{ minHeight: '14px' }}
                                     dangerouslySetInnerHTML={{ __html: colorize(line.text) }}
                                 />
                             ))}
                             {currentLine < codeLines.length && (
-                                <div className="whitespace-pre">
+                                <div className="whitespace-pre" style={{ minHeight: '14px' }}>
                                     <span dangerouslySetInnerHTML={{ __html: colorize(typedText) }} />
                                     <span 
-                                        className="inline-block w-[5px] h-[12px] ml-0.5 animate-pulse"
+                                        className="inline-block w-[6px] h-[13px] ml-0.5 animate-pulse"
                                         style={{ background: '#528bff', verticalAlign: 'text-bottom' }}
                                     />
                                 </div>
@@ -370,111 +381,97 @@ function ProjectThumbnail({ project }: { project: any }) {
                         <div
                             className="absolute inset-0 pointer-events-none"
                             style={{
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%)',
-                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)',
+                                borderRadius: '6px',
                             }}
                         />
 
                         {/* Hover overlay */}
                         <div
                             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                            style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '8px' }}
+                            style={{ background: 'rgba(0,0,0,0.7)', borderRadius: '6px' }}
                         >
-                            <span className="flex items-center gap-2 text-xs text-white font-medium px-3 py-1.5 rounded-full"
+                            <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
                                 style={{ background: 'rgba(220, 38, 38, 0.9)' }}>
-                                Open <ArrowRight className="h-3 w-3" />
+                                Open Project <ArrowRight className="h-4 w-4" />
                             </span>
                         </div>
                     </div>
                 </button>
 
-                {/* BOTTOM EDGE - Very thick and visible */}
+                {/* BOTTOM EDGE - 2x thicker (32px) */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
-                        height: '16px',
+                        height: '32px',
                         bottom: '0',
-                        background: 'linear-gradient(180deg, #15181e 0%, #0c0e12 50%, #080a0d 100%)',
-                        borderRadius: '0 0 8px 8px',
+                        background: 'linear-gradient(180deg, #18191d 0%, #0e0f11 40%, #080909 100%)',
+                        borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
                     }}
                 >
-                    {/* Edge highlight */}
+                    {/* Edge top highlight */}
                     <div 
                         className="absolute top-0 left-0 right-0 h-[1px]"
-                        style={{ background: 'rgba(255,255,255,0.05)' }}
+                        style={{ background: 'rgba(255,255,255,0.08)' }}
                     />
                 </div>
 
-                {/* LEFT EDGE - Thick visible side */}
+                {/* LEFT EDGE - 2x thicker (32px) - most visible */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
-                        width: '16px',
+                        width: '32px',
                         left: '0',
-                        background: 'linear-gradient(90deg, #0a0c0f 0%, #12151a 50%, #1a1d24 100%)',
-                        borderRadius: '8px 0 0 8px',
+                        background: 'linear-gradient(90deg, #0a0a0c 0%, #101114 40%, #1a1b1f 100%)',
+                        borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
                     }}
                 >
-                    {/* Edge highlight */}
+                    {/* Edge right highlight */}
                     <div 
                         className="absolute top-0 right-0 bottom-0 w-[1px]"
-                        style={{ background: 'rgba(255,255,255,0.03)' }}
+                        style={{ background: 'rgba(255,255,255,0.05)' }}
                     />
                 </div>
 
-                {/* TOP EDGE - Thin visible edge */}
+                {/* TOP EDGE - visible from angle */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
-                        height: '8px',
+                        height: '16px',
                         top: '0',
-                        background: 'linear-gradient(0deg, #1a1d24 0%, #25292f 100%)',
-                        borderRadius: '8px 8px 0 0',
-                        transform: 'translateZ(8px) rotateX(90deg)',
+                        background: 'linear-gradient(0deg, #1e2024 0%, #2a2d33 100%)',
+                        borderRadius: '6px 6px 0 0',
+                        transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
                     }}
                 />
 
-                {/* RIGHT EDGE - Thin visible side */}
+                {/* RIGHT EDGE - slightly visible */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
-                        width: '8px',
-                        right: '0',
-                        background: 'linear-gradient(270deg, #1a1d24 0%, #22262e 100%)',
-                        borderRadius: '0 8px 8px 0',
-                        transform: 'translateZ(8px) rotateY(90deg)',
-                        transformOrigin: 'right',
-                    }}
-                />
-
-                {/* Corner pieces to complete the 3D box */}
-                <div
-                    className="absolute"
-                    style={{
                         width: '16px',
-                        height: '16px',
-                        left: '0',
-                        bottom: '0',
-                        background: '#080a0d',
-                        transform: 'rotateY(-90deg) rotateX(-90deg)',
-                        transformOrigin: 'bottom left',
+                        right: '0',
+                        background: 'linear-gradient(270deg, #1a1b1f 0%, #24262b 100%)',
+                        borderRadius: '0 6px 6px 0',
+                        transform: 'translateZ(16px) rotateY(90deg)',
+                        transformOrigin: 'right',
                     }}
                 />
             </div>
 
             {/* Project info - below the 3D card */}
-            <div className="mt-4 px-1">
+            <div className="mt-6 px-1">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
                             <Clock className="h-3 w-3" style={{ color: '#666' }} />
-                            <span className="text-xs" style={{ color: '#666' }}>Updated 2h ago</span>
+                            <span className="text-xs" style={{ color: '#666' }}>Modified {lastModified}</span>
                         </div>
                     </div>
                     <button
