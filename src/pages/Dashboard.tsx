@@ -343,9 +343,9 @@ function ProjectThumbnail({ project }: { project: any }) {
                     className="relative w-full text-left overflow-hidden"
                     style={{
                         background: '#1e222a',
-                        borderRadius: '6px',
-                        transform: 'translateZ(16px)',
-                        border: '1px solid rgba(255,255,255,0.5)',
+                        borderRadius: '4px',
+                        transform: 'translateZ(20px)',
+                        border: '1px solid rgba(255,255,255,0.45)',
                     }}
                 >
                     {/* Screen content - dark editor with typing animation */}
@@ -399,35 +399,33 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
                 </button>
 
-                {/* BOTTOM THICKNESS */}
+                {/* BOTTOM THICKNESS - lighter grey */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
-                        height: '32px',
+                        height: '20px',
                         bottom: '0',
-                        background: '#151619',
-                        borderRadius: '0 0 6px 6px',
+                        background: '#3a3d45',
                         transform: 'rotateX(-90deg)',
                         transformOrigin: 'bottom',
-                        borderLeft: '1px solid rgba(255,255,255,0.5)',
-                        borderRight: '1px solid rgba(255,255,255,0.5)',
-                        borderBottom: '1px solid rgba(255,255,255,0.5)',
+                        borderBottom: '1px solid rgba(255,255,255,0.4)',
+                        borderLeft: '1px solid rgba(255,255,255,0.3)',
+                        borderRight: '1px solid rgba(255,255,255,0.3)',
                     }}
                 />
 
-                {/* LEFT THICKNESS */}
+                {/* LEFT THICKNESS - lighter grey */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
-                        width: '32px',
+                        width: '20px',
                         left: '0',
-                        background: '#101114',
-                        borderRadius: '6px 0 0 6px',
+                        background: '#2d3038',
                         transform: 'rotateY(90deg)',
                         transformOrigin: 'left',
-                        borderLeft: '1px solid rgba(255,255,255,0.5)',
-                        borderTop: '1px solid rgba(255,255,255,0.5)',
-                        borderBottom: '1px solid rgba(255,255,255,0.5)',
+                        borderLeft: '1px solid rgba(255,255,255,0.4)',
+                        borderTop: '1px solid rgba(255,255,255,0.3)',
+                        borderBottom: '1px solid rgba(255,255,255,0.3)',
                     }}
                 />
             </div>
