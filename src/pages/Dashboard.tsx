@@ -344,8 +344,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     style={{
                         background: '#1e222a',
                         borderRadius: '6px',
-                        transform: 'translateZ(16px)', // Raised more for thicker appearance
-                        border: '1px solid rgba(255,255,255,0.4)',
+                        transform: 'translateZ(16px)',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
                     }}
                 >
@@ -410,8 +409,6 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 0 6px 6px',
                         transform: 'translateZ(0) rotateX(-90deg)',
                         transformOrigin: 'bottom',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        borderTop: 'none',
                     }}
                 />
 
@@ -425,8 +422,6 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 0 0 6px',
                         transform: 'translateZ(0) rotateY(-90deg)',
                         transformOrigin: 'left',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        borderRight: 'none',
                     }}
                 />
 
@@ -440,8 +435,6 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        borderBottom: 'none',
                     }}
                 />
 
@@ -455,8 +448,82 @@ function ProjectThumbnail({ project }: { project: any }) {
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        borderLeft: 'none',
+                    }}
+                />
+
+                {/* OUTER WIREFRAME - White outline on the outside edges only */}
+                {/* Front face outline */}
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        borderRadius: '6px',
+                        transform: 'translateZ(16px)',
+                        border: '1.5px solid rgba(255,255,255,0.5)',
+                    }}
+                />
+                {/* Bottom front edge line */}
+                <div
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{
+                        height: '1.5px',
+                        bottom: '0',
+                        background: 'rgba(255,255,255,0.5)',
+                        transform: 'translateZ(16px)',
+                    }}
+                />
+                {/* Left front edge line */}
+                <div
+                    className="absolute top-0 bottom-0 pointer-events-none"
+                    style={{
+                        width: '1.5px',
+                        left: '0',
+                        background: 'rgba(255,255,255,0.5)',
+                        transform: 'translateZ(16px)',
+                    }}
+                />
+                {/* Bottom back edge line */}
+                <div
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{
+                        height: '1.5px',
+                        bottom: '-32px',
+                        background: 'rgba(255,255,255,0.4)',
+                        transform: 'translateZ(0)',
+                        borderRadius: '0 0 6px 6px',
+                    }}
+                />
+                {/* Left back edge line */}
+                <div
+                    className="absolute top-0 bottom-0 pointer-events-none"
+                    style={{
+                        width: '1.5px',
+                        left: '-32px',
+                        background: 'rgba(255,255,255,0.4)',
+                        transform: 'translateZ(0)',
+                    }}
+                />
+                {/* Bottom-left corner vertical edge */}
+                <div
+                    className="absolute pointer-events-none"
+                    style={{
+                        width: '1.5px',
+                        height: '32px',
+                        left: '0',
+                        bottom: '-32px',
+                        background: 'rgba(255,255,255,0.45)',
+                        transform: 'translateZ(0)',
+                    }}
+                />
+                {/* Top-left corner edge (front to back) */}
+                <div
+                    className="absolute pointer-events-none"
+                    style={{
+                        width: '32px',
+                        height: '1.5px',
+                        left: '-32px',
+                        top: '0',
+                        background: 'rgba(255,255,255,0.4)',
+                        transform: 'translateZ(16px)',
                     }}
                 />
             </div>
