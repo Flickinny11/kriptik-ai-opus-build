@@ -399,70 +399,77 @@ function ProjectThumbnail({ project }: { project: any }) {
                     </div>
                 </button>
 
-                {/* BOTTOM EDGE - thickness with outer edge line */}
+                {/* BOTTOM THICKNESS - gradient from light (front edge) to dark (back edge) */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
                         height: '32px',
                         bottom: '0',
-                        background: 'linear-gradient(180deg, #2a2d33 0%, #18191d 30%, #0e0f11 70%, #080909 100%)',
+                        background: 'linear-gradient(180deg, #3a3d43 0%, #2a2d33 20%, #18191d 60%, #0a0a0c 100%)',
                         borderRadius: '0 0 6px 6px',
-                        transform: 'translateZ(0) rotateX(-90deg)',
+                        transform: 'rotateX(-90deg)',
                         transformOrigin: 'bottom',
-                        boxShadow: '0 1px 0 0 rgba(255,255,255,0.5)',
                     }}
                 />
 
-                {/* LEFT EDGE - thickness with outer edge line */}
+                {/* LEFT THICKNESS - gradient from light (front edge) to dark (back edge) */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
                         width: '32px',
                         left: '0',
-                        background: 'linear-gradient(90deg, #080909 0%, #0e0f11 30%, #18191d 70%, #2a2d33 100%)',
+                        background: 'linear-gradient(270deg, #3a3d43 0%, #2a2d33 20%, #18191d 60%, #0a0a0c 100%)',
                         borderRadius: '6px 0 0 6px',
-                        transform: 'translateZ(0) rotateY(-90deg)',
+                        transform: 'rotateY(90deg)',
                         transformOrigin: 'left',
-                        boxShadow: '-1px 0 0 0 rgba(255,255,255,0.5)',
                     }}
                 />
 
-                {/* TOP EDGE */}
+                {/* TOP THICKNESS */}
                 <div
                     className="absolute left-0 right-0"
                     style={{
                         height: '16px',
                         top: '0',
-                        background: 'linear-gradient(0deg, #1e2024 0%, #2a2d33 50%, #3a3d43 100%)',
+                        background: 'linear-gradient(0deg, #2a2d33 0%, #3a3d43 100%)',
                         borderRadius: '6px 6px 0 0',
                         transform: 'translateZ(16px) rotateX(90deg)',
                         transformOrigin: 'top',
-                        boxShadow: '0 -1px 0 0 rgba(255,255,255,0.4)',
                     }}
                 />
 
-                {/* RIGHT EDGE */}
+                {/* RIGHT THICKNESS */}
                 <div
                     className="absolute top-0 bottom-0"
                     style={{
                         width: '16px',
                         right: '0',
-                        background: 'linear-gradient(270deg, #2a2d33 0%, #1e2024 100%)',
+                        background: 'linear-gradient(90deg, #2a2d33 0%, #3a3d43 100%)',
                         borderRadius: '0 6px 6px 0',
                         transform: 'translateZ(16px) rotateY(90deg)',
                         transformOrigin: 'right',
-                        boxShadow: '1px 0 0 0 rgba(255,255,255,0.35)',
                     }}
                 />
 
-                {/* FRONT FACE OUTLINE */}
-                <div
-                    className="absolute inset-0 pointer-events-none rounded-md"
-                    style={{
-                        transform: 'translateZ(16px)',
-                        border: '1px solid rgba(255,255,255,0.5)',
-                    }}
-                />
+                {/* WHITE EDGE LINES - positioned in 3D space */}
+                {/* Top edge of front face */}
+                <div className="absolute left-0 right-0 h-[1px] top-0" style={{ background: 'rgba(255,255,255,0.6)', transform: 'translateZ(16px)' }} />
+                {/* Right edge of front face */}
+                <div className="absolute top-0 bottom-0 w-[1px] right-0" style={{ background: 'rgba(255,255,255,0.5)', transform: 'translateZ(16px)' }} />
+                {/* Bottom edge of front face (where front meets bottom thickness) */}
+                <div className="absolute left-0 right-0 h-[1px] bottom-0" style={{ background: 'rgba(255,255,255,0.55)', transform: 'translateZ(16px)' }} />
+                {/* Left edge of front face (where front meets left thickness) */}
+                <div className="absolute top-0 bottom-0 w-[1px] left-0" style={{ background: 'rgba(255,255,255,0.55)', transform: 'translateZ(16px)' }} />
+                
+                {/* Far bottom edge (outer edge of bottom thickness) */}
+                <div className="absolute left-0 right-0 h-[1px] bottom-0" style={{ background: 'rgba(255,255,255,0.45)', transform: 'translateZ(0) translateY(32px)' }} />
+                {/* Far left edge (outer edge of left thickness) */}
+                <div className="absolute top-0 bottom-0 w-[1px] left-0" style={{ background: 'rgba(255,255,255,0.45)', transform: 'translateZ(0) translateX(-32px)' }} />
+                
+                {/* Vertical corner edge - front-left to back-left-bottom */}
+                <div className="absolute w-[1px] left-0 bottom-0" style={{ height: '32px', background: 'rgba(255,255,255,0.4)', transform: 'translateZ(0) rotateX(-90deg)', transformOrigin: 'bottom' }} />
+                {/* Horizontal corner edge - front-bottom to back-bottom-left */}
+                <div className="absolute h-[1px] left-0 bottom-0" style={{ width: '32px', background: 'rgba(255,255,255,0.4)', transform: 'translateZ(0) rotateY(90deg)', transformOrigin: 'left' }} />
             </div>
 
             {/* Project info - below the 3D card */}
