@@ -13,6 +13,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import '../styles/realistic-glass.css';
 import {
     User, CreditCard, Bell, Brain, Shield, Activity,
     ChevronRight, Plus, Trash2, Check, Loader2,
@@ -164,14 +165,20 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+            <div 
+                className="flex items-center justify-center min-h-screen"
+                style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+            >
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#c25a00' }} />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
+        <div 
+            className="min-h-screen p-8"
+            style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+        >
             <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="mb-8">

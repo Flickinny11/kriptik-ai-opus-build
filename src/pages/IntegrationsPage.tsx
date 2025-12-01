@@ -19,6 +19,7 @@ import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // Integration categories
 const CATEGORIES = [
@@ -146,11 +147,14 @@ export default function IntegrationsPage() {
     const connectedCount = INTEGRATIONS.filter(i => i.connected).length;
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div 
+            className="min-h-screen"
+            style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+        >
             <HoverSidebar />
 
-            {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-slate-800/50">
+            {/* Header - Glass Style */}
+            <header className="glass-header sticky top-0 z-30">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <HandDrawnArrow className="mr-2" />

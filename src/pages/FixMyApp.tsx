@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+import '../styles/realistic-glass.css';
 
 // =============================================================================
 // MODERN 3D BUTTON STYLES (React CSSProperties)
@@ -992,9 +993,15 @@ export default function FixMyApp() {
     const currentStepIndex = steps.findIndex(s => s.id === step);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-            {/* Header */}
-            <header className="border-b border-white/10 bg-slate-900/50 backdrop-blur-xl">
+        <div 
+            className="min-h-screen"
+            style={{ 
+                background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)',
+                color: '#1a1a1a',
+            }}
+        >
+            {/* Header - Glass Style */}
+            <header className="glass-header">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
