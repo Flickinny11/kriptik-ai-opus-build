@@ -293,7 +293,7 @@ function StatCard({
     value,
     color,
 }: {
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     value: string;
     color: 'green' | 'blue' | 'amber' | 'purple';
@@ -306,9 +306,9 @@ function StatCard({
     };
 
     return (
-        <div className={`rounded-xl border p-4 ${colorClasses[color]}`}>
+        <div className={`rounded-xl border p-4 ${colorClasses[color] as string}`}>
             <div className="flex items-center gap-3">
-                <Icon className={`w-5 h-5 ${colorClasses[color].split(' ')[0]}`} />
+                <Icon className={`w-5 h-5 ${(colorClasses[color] as string).split(' ')[0]}`} />
                 <div>
                     <p className="text-xs text-gray-400">{label}</p>
                     <p className="text-lg font-bold text-white">{value}</p>

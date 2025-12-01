@@ -621,7 +621,7 @@ const getSourcesByCategory = (): Record<SourceCategory, SourceConfig[]> => {
 };
 
 // Step configuration
-const steps: { id: Step; label: string; icon: React.ElementType }[] = [
+const steps: { id: Step; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'source', label: 'Source', icon: Upload },
     { id: 'consent', label: 'Access', icon: Eye },
     { id: 'upload', label: 'Import', icon: Code },
@@ -1039,7 +1039,7 @@ export default function FixMyApp() {
                                         isActive && "text-amber-400",
                                         isComplete && "text-emerald-400",
                                         !isActive && !isComplete && "text-slate-500"
-                                    )} />
+                                    ) as string} />
                                     <span className={cn(
                                         "text-sm font-medium hidden sm:block",
                                         isActive && "text-amber-400",

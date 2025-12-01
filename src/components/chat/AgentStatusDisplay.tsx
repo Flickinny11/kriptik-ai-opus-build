@@ -37,7 +37,7 @@ interface AgentStatusDisplayProps {
     className?: string;
 }
 
-const AGENT_ICONS: Record<Agent['type'], React.ElementType> = {
+const AGENT_ICONS: Record<Agent['type'], React.ComponentType<{ className?: string }>> = {
     planning: Brain,
     coding: Code,
     testing: TestTube,
@@ -116,7 +116,7 @@ export function AgentStatusDisplay({
                             className="border-b border-slate-700/50"
                         >
                             <div className="p-3 flex items-center gap-3">
-                                <div className={cn('p-2 rounded-lg', colors)}>
+                                <div className={cn('p-2 rounded-lg', colors as string)}>
                                     <Icon className="w-4 h-4" />
                                 </div>
                                 
@@ -169,7 +169,7 @@ export function AgentStatusDisplay({
                                     key={agent.id}
                                     className={cn(
                                         'p-1 rounded',
-                                        AGENT_COLORS[agent.type]
+                                        AGENT_COLORS[agent.type] as string
                                     )}
                                     title={agent.name}
                                 >

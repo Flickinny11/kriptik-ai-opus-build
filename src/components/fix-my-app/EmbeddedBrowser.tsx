@@ -551,7 +551,7 @@ function ExtractionPhaseIcon({
     active,
     complete,
 }: {
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     active: boolean;
     complete: boolean;
@@ -580,7 +580,7 @@ function ExtractionPhaseIcon({
                 ) : active ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
-                    <Icon className="w-6 h-6" />
+                    <Icon className={"w-6 h-6"} />
                 )}
             </motion.div>
             <span className={cn(

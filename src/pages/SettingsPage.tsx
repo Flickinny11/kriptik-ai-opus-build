@@ -64,7 +64,7 @@ interface PaymentMethod {
     isDefault: boolean;
 }
 
-const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
+const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing & Credits', icon: Wallet },
     { id: 'payment', label: 'Payment Methods', icon: CreditCard },
@@ -194,7 +194,7 @@ export default function SettingsPage() {
                                                 : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                                         )}
                                     >
-                                        <tab.icon className="w-5 h-5" />
+                                        <tab.icon className={"w-5 h-5"} />
                                         <span className="font-medium">{tab.label}</span>
                                         {activeTab === tab.id && (
                                             <ChevronRight className="w-4 h-4 ml-auto" />

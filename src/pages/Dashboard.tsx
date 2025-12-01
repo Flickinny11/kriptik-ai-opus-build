@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
@@ -15,7 +15,6 @@ import NewProjectModal from '../components/dashboard/NewProjectModal';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
-    ArrowRight,
     Clock,
     MoreHorizontal,
     Settings,
@@ -38,6 +37,7 @@ import {
     FixBrokenAppIcon
 } from '../components/ui/AbstractIcons';
 import { GenerateButton3D } from '../components/ui/GenerateButton3D';
+import { ProjectCard3D } from '../components/ui/ProjectCard3D';
 import '../components/ui/premium-buttons/Premium3DButtons.css';
 import '../styles/realistic-glass.css';
 
@@ -256,111 +256,16 @@ function ProjectThumbnail({ project }: { project: any }) {
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const frameworks = project.framework || 'React';
 
-    const codeLines = [
-        { text: `const MyVideo = () => {`, color: '#c792ea' },
-        { text: `  return (`, color: '#c792ea' },
-        { text: `    <AbsoluteFill>`, color: '#4fc1ff' },
-        { text: `      <Video`, color: '#4fc1ff' },
-        { text: `        src={staticFile('video.mp4')}`, color: '#ce9178' },
-        { text: `      />`, color: '#4fc1ff' },
-        { text: `      <Sequence from={60}>`, color: '#4fc1ff' },
-        { text: `        <BRoll`, color: '#4fc1ff' },
-        { text: `      </Sequence>`, color: '#4fc1ff' },
-        { text: `      <AbsoluteFill>`, color: '#4fc1ff' },
-        { text: `        <Captions />`, color: '#4fc1ff' },
-        { text: `      </AbsoluteFill>`, color: '#4fc1ff' },
-    ];
-
     return (
-        <div className="group cursor-pointer" style={{ marginBottom: '80px', paddingLeft: '20px', paddingBottom: '20px' }}>
-            {/* Wrapper for 3D effect - using simple positioning, not 3D transforms for edges */}
-            <div
-                className="relative transition-transform duration-300 ease-out"
-                style={{
-                    transform: 'perspective(800px) rotateX(15deg) rotateY(-10deg)',
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'perspective(800px) rotateX(10deg) rotateY(-6deg) translateY(-5px)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'perspective(800px) rotateX(15deg) rotateY(-10deg)';
-                }}
-            >
-                {/* LEFT EDGE - positioned to the left, skewed to create depth */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: '4px',
-                        left: '-12px',
-                        bottom: '-8px',
-                        width: '14px',
-                        background: 'linear-gradient(to right, #0d0e10, #1a1c20)',
-                        borderRadius: '6px 0 0 6px',
-                        transform: 'skewY(-5deg)',
-                    }}
-                />
-
-                {/* BOTTOM EDGE - positioned below, skewed to create depth */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: '-8px',
-                        right: '4px',
-                        bottom: '-12px',
-                        height: '14px',
-                        background: 'linear-gradient(to bottom, #1a1c20, #0d0e10)',
-                        borderRadius: '0 0 6px 6px',
-                        transform: 'skewX(-5deg)',
-                    }}
-                />
-
-                {/* Main Screen Face */}
-                <button
+        <div className="group cursor-pointer" style={{ marginBottom: '40px' }}>
+            {/* 3D Card using Three.js */}
+            <Suspense fallback={
+                <div className="w-full aspect-[4/3] bg-gray-800 rounded-lg animate-pulse" />
+            }>
+                <ProjectCard3D 
                     onClick={() => navigate(`/builder/${project.id}`)}
-                    className="relative w-full text-left block"
-                    style={{
-                        background: '#282c34',
-                        borderRadius: '6px',
-                        aspectRatio: '4/3',
-                        position: 'relative',
-                        zIndex: 1,
-                    }}
-                >
-                    {/* Code Content */}
-                    <div className="absolute inset-0 p-4 overflow-hidden" style={{ borderRadius: '6px' }}>
-                        <div className="font-mono text-[9px] leading-relaxed">
-                            {codeLines.map((line, i) => (
-                                <div key={i} style={{ color: line.color, whiteSpace: 'pre' }}>
-                                    {line.text}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Hover overlay */}
-                    <div
-                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
-                        style={{ background: 'rgba(0,0,0,0.75)', borderRadius: '6px', zIndex: 2 }}
-                    >
-                        <span className="flex items-center gap-2 text-sm text-white font-medium px-4 py-2 rounded-full"
-                            style={{ background: '#dc2626' }}>
-                            Open Project <ArrowRight className="h-4 w-4" />
-                        </span>
-                    </div>
-                </button>
-            </div>
-
-            {/* Ground Shadow */}
-            <div
-                style={{
-                    marginTop: '15px',
-                    marginLeft: '-5px',
-                    width: '90%',
-                    height: '12px',
-                    background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, transparent 70%)',
-                    filter: 'blur(6px)',
-                }}
-            />
+                />
+            </Suspense>
 
             {/* Project Info */}
             <div className="mt-4 px-1">
