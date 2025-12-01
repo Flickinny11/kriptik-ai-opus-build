@@ -1,8 +1,8 @@
 /**
  * KripTik AI Logo Component
  *
- * A modern 3D semi-circle design in white-grey-charcoal,
- * with subtle warping and skewing effects.
+ * 3D black sphere with white geometric orbital rings
+ * Premium, modern design matching the brand aesthetic
  */
 
 import { motion } from 'framer-motion';
@@ -37,116 +37,165 @@ export function KriptikLogo({
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="drop-shadow-lg"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
         >
-            {/* Definitions for gradients and effects */}
             <defs>
-                {/* Main gradient - white to charcoal */}
-                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                {/* Sphere gradient - dark with subtle texture */}
+                <radialGradient id="sphereGradient" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                    <stop offset="0%" stopColor="#4a4a4a" />
+                    <stop offset="40%" stopColor="#2a2a2a" />
+                    <stop offset="70%" stopColor="#1a1a1a" />
+                    <stop offset="100%" stopColor="#0a0a0a" />
+                </radialGradient>
+                
+                {/* Highlight on sphere */}
+                <radialGradient id="sphereHighlight" cx="30%" cy="25%" r="40%">
+                    <stop offset="0%" stopColor="#666" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#333" stopOpacity="0" />
+                </radialGradient>
+
+                {/* Ring gradient */}
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#ffffff" />
-                    <stop offset="35%" stopColor="#d4d4d8" />
-                    <stop offset="65%" stopColor="#71717a" />
-                    <stop offset="100%" stopColor="#27272a" />
+                    <stop offset="50%" stopColor="#e8e8e8" />
+                    <stop offset="100%" stopColor="#d0d0d0" />
                 </linearGradient>
-
-                {/* Inner gradient for depth */}
-                <linearGradient id="innerGradient" x1="100%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#52525b" />
-                    <stop offset="50%" stopColor="#3f3f46" />
-                    <stop offset="100%" stopColor="#18181b" />
-                </linearGradient>
-
-                {/* Highlight gradient */}
-                <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
-                    <stop offset="50%" stopColor="#ffffff" stopOpacity="0.1" />
-                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                </linearGradient>
-
-                {/* 3D shadow filter */}
-                <filter id="shadow3d" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.4" />
-                    <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.2" />
-                </filter>
-
-                {/* Glow effect */}
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                    <feMerge>
-                        <feMergeNode in="coloredBlur" />
-                        <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                </filter>
             </defs>
 
-            {/* Background shadow circle for depth */}
-            <ellipse
-                cx="52"
-                cy="54"
-                rx="38"
-                ry="36"
-                fill="#18181b"
-                opacity="0.5"
+            {/* Main sphere */}
+            <circle
+                cx="50"
+                cy="50"
+                r="28"
+                fill="url(#sphereGradient)"
+            />
+            
+            {/* Sphere highlight */}
+            <circle
+                cx="50"
+                cy="50"
+                r="28"
+                fill="url(#sphereHighlight)"
             />
 
-            {/* Main semi-circle with 3D effect - warped and skewed */}
-            <g filter="url(#shadow3d)" transform="skewX(-5) skewY(2) translate(5, -2)">
-                {/* Outer ring */}
-                <path
-                    d="M 15 50
-                       A 35 35 0 0 1 85 50
-                       A 8 8 0 0 1 85 58
-                       A 27 27 0 0 0 23 58
-                       A 8 8 0 0 1 15 50 Z"
-                    fill="url(#logoGradient)"
+            {/* Outer orbital ring - ellipse tilted */}
+            <g transform="rotate(-25, 50, 50)">
+                {/* Ring back (behind sphere) */}
+                <ellipse
+                    cx="50"
+                    cy="50"
+                    rx="42"
+                    ry="14"
+                    fill="none"
+                    stroke="url(#ringGradient)"
+                    strokeWidth="2.5"
+                    strokeDasharray="0 66 132"
+                    strokeLinecap="round"
                 />
-
-                {/* Inner depth layer */}
-                <path
-                    d="M 20 50
-                       A 30 30 0 0 1 80 50
-                       A 6 6 0 0 1 80 56
-                       A 24 24 0 0 0 26 56
-                       A 6 6 0 0 1 20 50 Z"
-                    fill="url(#innerGradient)"
-                />
-
-                {/* Highlight overlay */}
-                <path
-                    d="M 20 48
-                       A 30 30 0 0 1 65 35
-                       Q 50 42 25 48
-                       A 8 8 0 0 1 20 48 Z"
-                    fill="url(#highlightGradient)"
-                />
+                
+                {/* Geometric connectors - back */}
+                <g opacity="0.4">
+                    <line x1="12" y1="42" x2="20" y2="48" stroke="#ccc" strokeWidth="1" />
+                    <line x1="80" y1="52" x2="88" y2="58" stroke="#ccc" strokeWidth="1" />
+                    <line x1="18" y1="45" x2="26" y2="51" stroke="#ddd" strokeWidth="0.8" />
+                    <line x1="74" y1="49" x2="82" y2="55" stroke="#ddd" strokeWidth="0.8" />
+                </g>
             </g>
 
-            {/* Accent dot - gives it the "AI" feel */}
-            <circle
-                cx="72"
-                cy="35"
-                r="5"
-                fill="#ffffff"
-                filter="url(#glow)"
-                opacity="0.9"
-            />
+            {/* Inner orbital ring */}
+            <g transform="rotate(-25, 50, 50)">
+                <ellipse
+                    cx="50"
+                    cy="50"
+                    rx="36"
+                    ry="11"
+                    fill="none"
+                    stroke="#e0e0e0"
+                    strokeWidth="2"
+                    strokeDasharray="0 57 113"
+                    strokeLinecap="round"
+                />
+                
+                {/* Geometric connectors - inner */}
+                <g opacity="0.5">
+                    <line x1="16" y1="44" x2="22" y2="48" stroke="#fff" strokeWidth="0.8" />
+                    <line x1="78" y1="52" x2="84" y2="56" stroke="#fff" strokeWidth="0.8" />
+                </g>
+            </g>
 
-            {/* Secondary accent */}
-            <circle
-                cx="28"
-                cy="42"
-                r="3"
-                fill="#a1a1aa"
-                opacity="0.7"
-            />
+            {/* Re-draw sphere front to occlude rings */}
+            <clipPath id="sphereClip">
+                <circle cx="50" cy="50" r="28" />
+            </clipPath>
+            
+            {/* Front ring portions (in front of sphere) */}
+            <g transform="rotate(-25, 50, 50)">
+                {/* Outer ring front */}
+                <ellipse
+                    cx="50"
+                    cy="50"
+                    rx="42"
+                    ry="14"
+                    fill="none"
+                    stroke="url(#ringGradient)"
+                    strokeWidth="2.5"
+                    strokeDasharray="66 0 0 66"
+                    strokeLinecap="round"
+                />
+                
+                {/* Geometric truss structure - front */}
+                <g stroke="#fff" strokeWidth="0.8" opacity="0.9">
+                    {/* Left side trusses */}
+                    <line x1="10" y1="46" x2="18" y2="52" />
+                    <line x1="14" y1="44" x2="22" y2="50" />
+                    <line x1="10" y1="46" x2="14" y2="44" />
+                    <line x1="18" y1="52" x2="22" y2="50" />
+                    
+                    <line x1="18" y1="52" x2="26" y2="56" />
+                    <line x1="22" y1="50" x2="30" y2="54" />
+                    <line x1="26" y1="56" x2="30" y2="54" />
+                    
+                    {/* Right side trusses */}
+                    <line x1="90" y1="54" x2="82" y2="48" />
+                    <line x1="86" y1="56" x2="78" y2="50" />
+                    <line x1="90" y1="54" x2="86" y2="56" />
+                    <line x1="82" y1="48" x2="78" y2="50" />
+                    
+                    <line x1="82" y1="48" x2="74" y2="44" />
+                    <line x1="78" y1="50" x2="70" y2="46" />
+                    <line x1="74" y1="44" x2="70" y2="46" />
+                </g>
+                
+                {/* Inner ring front */}
+                <ellipse
+                    cx="50"
+                    cy="50"
+                    rx="36"
+                    ry="11"
+                    fill="none"
+                    stroke="#e8e8e8"
+                    strokeWidth="2"
+                    strokeDasharray="57 0 0 57"
+                    strokeLinecap="round"
+                />
+                
+                {/* Inner ring trusses */}
+                <g stroke="#f0f0f0" strokeWidth="0.6" opacity="0.8">
+                    <line x1="16" y1="48" x2="22" y2="52" />
+                    <line x1="19" y1="46" x2="25" y2="50" />
+                    <line x1="78" y1="52" x2="84" y2="48" />
+                    <line x1="75" y1="54" x2="81" y2="50" />
+                </g>
+            </g>
 
-            {/* Subtle inner glow arc */}
-            <path
-                d="M 30 50 A 20 20 0 0 1 70 50"
-                stroke="url(#highlightGradient)"
-                strokeWidth="2"
+            {/* Subtle sphere rim light */}
+            <circle
+                cx="50"
+                cy="50"
+                r="27"
                 fill="none"
-                opacity="0.5"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="1"
             />
         </svg>
     );
@@ -155,15 +204,15 @@ export function KriptikLogo({
         return (
             <div className={cn("flex items-center gap-3", className)}>
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.8, rotateY: -20 }}
-                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     whileHover={{
-                        scale: 1.05,
-                        rotateY: 10,
-                        transition: { duration: 0.2 },
+                        scale: 1.08,
+                        rotate: 5,
+                        transition: { duration: 0.3 },
                     }}
-                    style={{ perspective: "1000px" }}
+                    style={{ transformStyle: 'preserve-3d' }}
                 >
                     {LogoSVG}
                 </motion.div>
@@ -172,9 +221,10 @@ export function KriptikLogo({
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className={cn("font-bold tracking-tight text-white", fontSize)}
+                        className={cn("font-bold tracking-tight", fontSize)}
+                        style={{ color: '#1a1a1a' }}
                     >
-                        KripTik<span className="text-zinc-400">AI</span>
+                        KripTik<span style={{ color: '#666' }}>AI</span>
                     </motion.span>
                 )}
             </div>
@@ -185,8 +235,8 @@ export function KriptikLogo({
         <div className={cn("flex items-center gap-3", className)}>
             {LogoSVG}
             {showText && (
-                <span className={cn("font-bold tracking-tight text-white", fontSize)}>
-                    KripTik<span className="text-zinc-400">AI</span>
+                <span className={cn("font-bold tracking-tight", fontSize)} style={{ color: '#1a1a1a' }}>
+                    KripTik<span style={{ color: '#666' }}>AI</span>
                 </span>
             )}
         </div>
@@ -194,4 +244,3 @@ export function KriptikLogo({
 }
 
 export default KriptikLogo;
-

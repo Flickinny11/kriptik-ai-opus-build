@@ -11,14 +11,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    Plug, Check, Settings, RefreshCw, Search
+    Plug, Check, Settings, RefreshCw, Search,
+    Cpu, Brain, Cloud, Database, CreditCard, Github, 
+    Server, HardDrive, Workflow, Key, Globe, Layers
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
-import { cn } from '@/lib/utils';
 import '../styles/realistic-glass.css';
 
 // Integration categories
@@ -32,26 +32,26 @@ const CATEGORIES = [
     { id: 'storage', label: 'Storage' },
 ];
 
-// Integrations list
-const INTEGRATIONS = [
-    { id: 'openrouter', name: 'OpenRouter', category: 'ai', description: 'Multi-model AI routing', connected: true, logo: '🔀' },
-    { id: 'openai', name: 'OpenAI', category: 'ai', description: 'GPT models and DALL-E', connected: false, logo: '🤖' },
-    { id: 'anthropic', name: 'Anthropic', category: 'ai', description: 'Claude models', connected: false, logo: '🧠' },
-    { id: 'vercel', name: 'Vercel', category: 'deploy', description: 'Frontend deployment', connected: true, logo: '▲' },
-    { id: 'netlify', name: 'Netlify', category: 'deploy', description: 'JAMstack deployment', connected: false, logo: '◆' },
-    { id: 'cloudflare', name: 'Cloudflare', category: 'deploy', description: 'Edge deployment', connected: false, logo: '☁️' },
-    { id: 'turso', name: 'Turso', category: 'database', description: 'Edge SQLite database', connected: true, logo: '🔷' },
-    { id: 'supabase', name: 'Supabase', category: 'database', description: 'PostgreSQL + Auth', connected: false, logo: '⚡' },
-    { id: 'planetscale', name: 'PlanetScale', category: 'database', description: 'Serverless MySQL', connected: false, logo: '🌐' },
-    { id: 'stripe', name: 'Stripe', category: 'payments', description: 'Payment processing', connected: true, logo: '💳' },
-    { id: 'github', name: 'GitHub', category: 'auth', description: 'Code hosting & OAuth', connected: false, logo: '🐙' },
-    { id: 'google', name: 'Google', category: 'auth', description: 'Google OAuth', connected: true, logo: '🔵' },
-    { id: 'aws-s3', name: 'AWS S3', category: 'storage', description: 'Object storage', connected: false, logo: '📦' },
-    { id: 'cloudinary', name: 'Cloudinary', category: 'storage', description: 'Media management', connected: false, logo: '🖼️' },
-    { id: 'runpod', name: 'RunPod', category: 'ai', description: 'GPU cloud for AI', connected: false, logo: '🚀' },
-    { id: 'replicate', name: 'Replicate', category: 'ai', description: 'ML model hosting', connected: false, logo: '🔄' },
-    { id: 'huggingface', name: 'HuggingFace', category: 'ai', description: 'ML model hub', connected: false, logo: '🤗' },
-    { id: 'modal', name: 'Modal', category: 'ai', description: 'Serverless GPU', connected: false, logo: '⚡' },
+// Integrations list with premium icons
+const INTEGRATIONS: { id: string; name: string; category: string; description: string; connected: boolean; icon: React.ElementType }[] = [
+    { id: 'openrouter', name: 'OpenRouter', category: 'ai', description: 'Multi-model AI routing', connected: true, icon: Workflow },
+    { id: 'openai', name: 'OpenAI', category: 'ai', description: 'GPT models and DALL-E', connected: false, icon: Brain },
+    { id: 'anthropic', name: 'Anthropic', category: 'ai', description: 'Claude models', connected: false, icon: Cpu },
+    { id: 'vercel', name: 'Vercel', category: 'deploy', description: 'Frontend deployment', connected: true, icon: Layers },
+    { id: 'netlify', name: 'Netlify', category: 'deploy', description: 'JAMstack deployment', connected: false, icon: Globe },
+    { id: 'cloudflare', name: 'Cloudflare', category: 'deploy', description: 'Edge deployment', connected: false, icon: Cloud },
+    { id: 'turso', name: 'Turso', category: 'database', description: 'Edge SQLite database', connected: true, icon: Database },
+    { id: 'supabase', name: 'Supabase', category: 'database', description: 'PostgreSQL + Auth', connected: false, icon: Server },
+    { id: 'planetscale', name: 'PlanetScale', category: 'database', description: 'Serverless MySQL', connected: false, icon: Database },
+    { id: 'stripe', name: 'Stripe', category: 'payments', description: 'Payment processing', connected: true, icon: CreditCard },
+    { id: 'github', name: 'GitHub', category: 'auth', description: 'Code hosting & OAuth', connected: false, icon: Github },
+    { id: 'google', name: 'Google', category: 'auth', description: 'Google OAuth', connected: true, icon: Key },
+    { id: 'aws-s3', name: 'AWS S3', category: 'storage', description: 'Object storage', connected: false, icon: HardDrive },
+    { id: 'cloudinary', name: 'Cloudinary', category: 'storage', description: 'Media management', connected: false, icon: HardDrive },
+    { id: 'runpod', name: 'RunPod', category: 'ai', description: 'GPU cloud for AI', connected: false, icon: Cpu },
+    { id: 'replicate', name: 'Replicate', category: 'ai', description: 'ML model hosting', connected: false, icon: Workflow },
+    { id: 'huggingface', name: 'HuggingFace', category: 'ai', description: 'ML model hub', connected: false, icon: Brain },
+    { id: 'modal', name: 'Modal', category: 'ai', description: 'Serverless GPU', connected: false, icon: Server },
 ];
 
 function IntegrationCard({ integration, onConnect, onSettings }: {
@@ -59,40 +59,77 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
     onConnect: () => void;
     onSettings: () => void;
 }) {
+    const [isHovered, setIsHovered] = useState(false);
+    const IconComponent = integration.icon;
+    
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}
-            className={cn(
-                "relative p-5 rounded-2xl",
-                "bg-slate-800/30 border",
-                integration.connected
-                    ? "border-emerald-500/30 bg-emerald-500/5"
-                    : "border-slate-700/50 hover:border-slate-600",
-                "transition-all duration-300"
-            )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="relative p-5 rounded-2xl transition-all duration-300 overflow-hidden"
+            style={{
+                background: integration.connected
+                    ? 'linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(255,255,255,0.5) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                boxShadow: isHovered
+                    ? integration.connected
+                        ? `0 12px 32px rgba(16, 185, 129, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(16, 185, 129, 0.3)`
+                        : `0 12px 32px rgba(0,0,0,0.12), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
+                    : `0 4px 16px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`,
+            }}
         >
+            {/* Shine effect */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: isHovered ? '150%' : '-100%',
+                    width: '60%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                    transform: 'skewX(-15deg)',
+                    transition: 'left 0.6s ease',
+                    pointerEvents: 'none',
+                }}
+            />
+
             {/* Connected badge */}
             {integration.connected && (
-                <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20">
-                    <Check className="h-3 w-3 text-emerald-500" />
-                    <span className="text-[10px] text-emerald-400 font-medium">Connected</span>
+                <div 
+                    className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
+                    style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                    }}
+                >
+                    <Check className="h-3 w-3" style={{ color: '#10b981' }} />
+                    <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Connected</span>
                 </div>
             )}
 
             <div className="flex items-start gap-4">
-                {/* Logo */}
-                <div className={cn(
-                    "w-14 h-14 rounded-xl flex items-center justify-center text-3xl",
-                    "bg-slate-800/80 border border-slate-700/50"
-                )}>
-                    {integration.logo}
+                {/* Icon */}
+                <div 
+                    className="w-14 h-14 rounded-xl flex items-center justify-center relative overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%)',
+                        boxShadow: `
+                            0 4px 12px rgba(0,0,0,0.06),
+                            inset 0 1px 2px rgba(255,255,255,0.9),
+                            0 0 0 1px rgba(255,255,255,0.5)
+                        `,
+                    }}
+                >
+                    <IconComponent className="w-6 h-6" style={{ color: integration.connected ? '#c25a00' : '#1a1a1a' }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white text-lg">{integration.name}</h3>
-                    <p className="text-sm text-slate-400 mt-0.5">{integration.description}</p>
+                    <h3 className="font-semibold text-lg" style={{ color: '#1a1a1a' }}>{integration.name}</h3>
+                    <p className="text-sm mt-0.5" style={{ color: '#666' }}>{integration.description}</p>
                 </div>
             </div>
 
@@ -100,35 +137,103 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
             <div className="flex gap-2 mt-4">
                 {integration.connected ? (
                     <>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={onSettings}
-                            className="flex-1 text-slate-300"
-                        >
+                        <GlassButton onClick={onSettings} className="flex-1">
                             <Settings className="h-4 w-4 mr-1" />
                             Settings
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-slate-400"
-                        >
+                        </GlassButton>
+                        <GlassButton>
                             <RefreshCw className="h-4 w-4" />
-                        </Button>
+                        </GlassButton>
                     </>
                 ) : (
-                    <Button
-                        size="sm"
-                        onClick={onConnect}
-                        className="flex-1 bg-amber-500 hover:bg-amber-400 text-black"
-                    >
+                    <GlassButton onClick={onConnect} variant="primary" className="flex-1">
                         <Plug className="h-4 w-4 mr-1" />
                         Connect
-                    </Button>
+                    </GlassButton>
                 )}
             </div>
         </motion.div>
+    );
+}
+
+// Liquid Glass Button for Integrations
+function GlassButton({ 
+    children, 
+    onClick, 
+    variant = 'default',
+    className = ''
+}: { 
+    children: React.ReactNode; 
+    onClick?: () => void;
+    variant?: 'default' | 'primary';
+    className?: string;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${className}`}
+            style={{
+                background: variant === 'primary'
+                    ? isHovered
+                        ? 'linear-gradient(145deg, rgba(255,200,170,0.8) 0%, rgba(255,180,150,0.6) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.4) 100%)'
+                    : isHovered
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                boxShadow: isHovered
+                    ? variant === 'primary'
+                        ? `0 6px 20px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.5)`
+                        : `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
+                    : `0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+                color: variant === 'primary' ? '#92400e' : '#1a1a1a',
+                transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+            }}
+        >
+            {children}
+        </button>
+    );
+}
+
+// Category Button Component
+function CategoryButton({ 
+    label, 
+    isActive, 
+    onClick 
+}: { 
+    label: string; 
+    isActive: boolean; 
+    onClick: () => void;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="px-4 py-2 rounded-xl whitespace-nowrap text-sm font-medium transition-all duration-300"
+            style={{
+                background: isActive
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.7) 0%, rgba(255,180,150,0.5) 100%)'
+                    : isHovered
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.25) 100%)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: isActive
+                    ? `inset 0 0 15px rgba(255, 160, 120, 0.2), 0 4px 12px rgba(255, 140, 100, 0.15), 0 0 0 1px rgba(255, 200, 170, 0.5)`
+                    : isHovered
+                        ? `0 4px 16px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`
+                        : `0 2px 8px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.35)`,
+                color: isActive ? '#92400e' : '#1a1a1a',
+                transform: isHovered || isActive ? 'translateY(-1px)' : 'translateY(0)',
+            }}
+        >
+            {label}
+        </button>
     );
 }
 
@@ -176,10 +281,10 @@ export default function IntegrationsPage() {
                 {/* Page header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Syne, sans-serif', color: '#1a1a1a' }}>
                             Integrations
                         </h1>
-                        <p className="text-slate-400">
+                        <p style={{ color: '#666' }}>
                             {connectedCount} of {INTEGRATIONS.length} services connected
                         </p>
                     </div>
@@ -188,36 +293,36 @@ export default function IntegrationsPage() {
                 {/* Search and filters */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#999' }} />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search integrations..."
-                            className={cn(
-                                "w-full pl-10 pr-4 py-2.5 rounded-xl",
-                                "bg-slate-800/50 border border-slate-700/50",
-                                "text-white placeholder:text-slate-500",
-                                "focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                            )}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl transition-all duration-300"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 100%)',
+                                backdropFilter: 'blur(20px)',
+                                border: 'none',
+                                boxShadow: `
+                                    0 4px 16px rgba(0,0,0,0.06),
+                                    inset 0 1px 2px rgba(255,255,255,0.9),
+                                    0 0 0 1px rgba(255,255,255,0.5)
+                                `,
+                                color: '#1a1a1a',
+                                outline: 'none',
+                            }}
                         />
                     </div>
 
                     <div className="flex gap-2 overflow-x-auto pb-2">
                         {CATEGORIES.map((cat) => (
-                            <button
+                            <CategoryButton 
                                 key={cat.id}
+                                label={cat.label}
+                                isActive={activeCategory === cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
-                                className={cn(
-                                    "px-4 py-2 rounded-xl whitespace-nowrap",
-                                    "transition-all duration-200",
-                                    activeCategory === cat.id
-                                        ? "bg-amber-500 text-black font-medium"
-                                        : "bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-800"
-                                )}
-                            >
-                                {cat.label}
-                            </button>
+                            />
                         ))}
                     </div>
                 </div>

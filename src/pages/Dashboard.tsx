@@ -123,7 +123,7 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
                 <span style={{ color: '#666' }}>Credits Used</span>
                 <span className="font-mono" style={{ color: '#c25a00' }}>{remaining.toLocaleString()} left</span>
             </div>
-            <div 
+            <div
                 className="h-2 rounded-full overflow-hidden"
                 style={{
                     background: 'rgba(0,0,0,0.08)',
@@ -132,11 +132,11 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
             >
                 <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ 
+                    style={{
                         width: `${percentage}%`,
-                        background: percentage > 80 
-                            ? 'linear-gradient(90deg, #dc2626, #ef4444)' 
-                            : percentage > 50 
+                        background: percentage > 80
+                            ? 'linear-gradient(90deg, #dc2626, #ef4444)'
+                            : percentage > 50
                                 ? 'linear-gradient(90deg, #c25a00, #d97706)'
                                 : 'linear-gradient(90deg, #16a34a, #22c55e)',
                         boxShadow: percentage > 80
@@ -196,13 +196,13 @@ function UserMenu() {
                     cursor: 'pointer',
                     position: 'relative',
                     overflow: 'hidden',
-                    
+
                     // Liquid glass background
                     background: isButtonHovered
                         ? 'linear-gradient(145deg, rgba(255,230,215,0.7) 0%, rgba(255,220,200,0.55) 40%, rgba(255,210,185,0.5) 100%)'
                         : 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 40%, rgba(248,248,250,0.45) 100%)',
                     backdropFilter: 'blur(24px) saturate(200%)',
-                    
+
                     // Liquid glass shadow with warm glow
                     boxShadow: isButtonHovered
                         ? `
@@ -222,7 +222,7 @@ function UserMenu() {
                             inset 0 -2px 2px rgba(0, 0, 0, 0.03),
                             0 0 0 1px rgba(255, 255, 255, 0.6)
                         `,
-                    
+
                     transform: isButtonHovered ? 'translateY(-2px)' : 'translateY(0)',
                     transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
@@ -241,8 +241,8 @@ function UserMenu() {
                         pointerEvents: 'none',
                     }}
                 />
-                
-                <div 
+
+                <div
                     className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={{
                         background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
@@ -257,28 +257,28 @@ function UserMenu() {
                     <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{user?.name || 'User'}</p>
                     <p className="text-xs" style={{ color: '#666' }}>Builder Plan</p>
                 </div>
-                <ChevronDown 
+                <ChevronDown
                     className="h-4 w-4 transition-transform"
-                    style={{ 
+                    style={{
                         color: '#666',
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }} 
+                    }}
                 />
             </button>
 
             {/* Liquid Glass Dropdown Menu */}
             {isOpen && (
-                <div 
+                <div
                     className="absolute right-0 mt-3 w-80 z-50"
                     style={{
                         borderRadius: '24px',
                         overflow: 'hidden',
-                        
+
                         // Liquid glass background
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 50%, rgba(248,248,250,0.55) 100%)',
                         backdropFilter: 'blur(40px) saturate(200%)',
                         WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                        
+
                         // Multi-layer liquid glass shadow
                         boxShadow: `
                             0 30px 80px rgba(0, 0, 0, 0.15),
@@ -288,7 +288,7 @@ function UserMenu() {
                             inset 0 -1px 2px rgba(0, 0, 0, 0.02),
                             0 0 0 1px rgba(255, 255, 255, 0.5)
                         `,
-                        
+
                         animation: 'slideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
                     }}
                 >
@@ -305,15 +305,15 @@ function UserMenu() {
                     />
 
                     {/* Header */}
-                    <div 
+                    <div
                         className="p-4"
-                        style={{ 
+                        style={{
                             background: 'linear-gradient(145deg, rgba(255,200,170,0.2) 0%, rgba(255,180,150,0.1) 100%)',
                             borderBottom: '1px solid rgba(255,255,255,0.3)',
                         }}
                     >
                         <div className="flex items-center gap-3">
-                            <div 
+                            <div
                                 className="w-12 h-12 rounded-2xl flex items-center justify-center"
                                 style={{
                                     background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
@@ -375,16 +375,16 @@ function UserMenu() {
 // Liquid Glass Menu Button Component
 function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ElementType; label: string; danger?: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
-        <button 
+        <button
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             style={{
-                background: isHovered 
-                    ? danger 
-                        ? 'rgba(239, 68, 68, 0.1)' 
+                background: isHovered
+                    ? danger
+                        ? 'rgba(239, 68, 68, 0.1)'
                         : 'linear-gradient(145deg, rgba(255,220,200,0.4) 0%, rgba(255,200,170,0.25) 100%)'
                     : 'transparent',
                 boxShadow: isHovered && !danger

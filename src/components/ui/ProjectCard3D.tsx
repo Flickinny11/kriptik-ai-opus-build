@@ -9,7 +9,7 @@ interface ProjectCard3DProps {
 
 /**
  * Liquid Glass 3D Project Card
- * 
+ *
  * Features:
  * - Photorealistic liquid glass appearance (Hana Glass / Spline inspired)
  * - Warm internal glow on hover
@@ -51,7 +51,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                         inset: 0,
                         borderRadius: '20px',
                         overflow: 'hidden',
-                        
+
                         // Liquid glass background
                         background: thumbnail
                             ? `url(${thumbnail}) center/cover no-repeat`
@@ -63,11 +63,11 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                                 rgba(255, 255, 255, 0.5) 75%,
                                 rgba(252, 252, 254, 0.6) 100%
                             )`,
-                        
+
                         // Glass blur effect
                         backdropFilter: 'blur(40px) saturate(180%)',
                         WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-                        
+
                         // Multi-layer liquid glass shadow
                         boxShadow: isHovered
                             ? `
@@ -99,7 +99,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                                 /* Glass edge */
                                 0 0 0 1px rgba(255, 255, 255, 0.6)
                             `,
-                        
+
                         transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
                     }}
                 >
@@ -193,7 +193,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     <div
                         className="absolute inset-0 flex items-center justify-center transition-all duration-400"
                         style={{
-                            background: isHovered 
+                            background: isHovered
                                 ? 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)'
                                 : 'transparent',
                             backdropFilter: isHovered ? 'blur(4px)' : 'none',

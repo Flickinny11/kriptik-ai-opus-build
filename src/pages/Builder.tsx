@@ -9,15 +9,18 @@
  * - Integrated file explorer
  * - Monaco code editor
  * - Collaboration tools
+ * 
+ * Design: Liquid Glass 3D aesthetic with warm internal glow
  */
 
 import { useState, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Code2, Eye, Settings, Brain, Rocket, Blocks,
-    Cloud, ChevronRight, X, Bot, Activity,
-    Database, Server, Workflow, LayoutDashboard
+    Code2, Eye, Settings, Brain, Blocks,
+    Cloud, ChevronRight, X, Activity,
+    Database, Server, Workflow, LayoutDashboard,
+    Check, Layers
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -36,9 +39,7 @@ import ShareModal from '../components/collaboration/ShareModal';
 import CollaborationHeader from '../components/collaboration/CollaborationHeader';
 import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -46,7 +47,33 @@ import { useDeploymentStore } from '../store/useDeploymentStore';
 import { useIntegrationStore } from '../store/useIntegrationStore';
 import { useParams } from 'react-router-dom';
 
-// Initial files for a new project
+// CSS-in-JS for liquid glass styling
+const liquidGlassPanel = {
+    background: 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 50%, rgba(248,248,250,0.5) 100%)',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+    boxShadow: `
+        0 20px 60px rgba(0,0,0,0.1),
+        0 8px 24px rgba(0,0,0,0.08),
+        inset 0 2px 4px rgba(255,255,255,0.9),
+        inset 0 -1px 2px rgba(0,0,0,0.02),
+        0 0 0 1px rgba(255,255,255,0.5)
+    `,
+};
+
+const liquidGlassHeader = {
+    background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
+    backdropFilter: 'blur(20px) saturate(180%)',
+    boxShadow: `
+        0 4px 30px rgba(0,0,0,0.3),
+        0 2px 8px rgba(0,0,0,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.3)
+    `,
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+};
+
+// Initial files for a new project - No purple, using warm neutral tones
 const INITIAL_FILES = {
     '/App.tsx': {
         code: `import { useState } from 'react';
@@ -55,22 +82,22 @@ export default function App() {
   const [count, setCount] = useState(0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-stone-900 via-neutral-900 to-stone-950 flex items-center justify-center">
       <div className="text-center space-y-6">
         <h1 className="text-5xl font-bold text-white tracking-tight">
-          Welcome to <span className="text-purple-400">KripTik AI</span>
+          Welcome to <span className="text-amber-400">KripTik AI</span>
         </h1>
-        <p className="text-xl text-slate-300 max-w-md mx-auto">
+        <p className="text-xl text-stone-300 max-w-md mx-auto">
           Start building your app by describing what you want in the chat.
         </p>
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setCount(c => c + 1)}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors"
           >
             Count: {count}
           </button>
-          <button className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors">
+          <button className="px-6 py-3 bg-stone-700 hover:bg-stone-600 text-white rounded-lg font-medium transition-colors">
             Learn More
           </button>
         </div>
@@ -127,31 +154,170 @@ body {
 .rounded-lg { border-radius: 0.5rem; }
 .transition-colors { transition: color 0.15s, background-color 0.15s; }
 
-/* Colors */
+/* Colors - Warm neutrals */
 .bg-gradient-to-br { background: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
-.from-slate-900 { --tw-gradient-from: #0f172a; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
-.via-purple-900 { --tw-gradient-stops: var(--tw-gradient-from), #581c87, var(--tw-gradient-to, transparent); }
-.to-slate-900 { --tw-gradient-to: #0f172a; }
+.from-stone-900 { --tw-gradient-from: #1c1917; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.via-neutral-900 { --tw-gradient-stops: var(--tw-gradient-from), #171717, var(--tw-gradient-to, transparent); }
+.to-stone-950 { --tw-gradient-to: #0c0a09; }
 .text-white { color: white; }
-.text-purple-400 { color: #c084fc; }
-.text-slate-300 { color: #cbd5e1; }
-.bg-purple-600 { background-color: #9333ea; }
-.bg-purple-700 { background-color: #7e22ce; }
-.bg-slate-700 { background-color: #334155; }
-.bg-slate-600 { background-color: #475569; }
+.text-amber-400 { color: #fbbf24; }
+.text-stone-300 { color: #d6d3d1; }
+.bg-amber-600 { background-color: #d97706; }
+.bg-amber-700 { background-color: #b45309; }
+.bg-stone-700 { background-color: #44403c; }
+.bg-stone-600 { background-color: #57534e; }
 
-.bg-purple-600:hover { background-color: #7e22ce; }
-.bg-slate-700:hover { background-color: #475569; }`,
+.bg-amber-600:hover { background-color: #b45309; }
+.bg-stone-700:hover { background-color: #57534e; }`,
     },
 };
 
 // Quick action items for the sidebar
 const quickActions = [
-    { icon: Bot, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
+    { icon: Activity, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
     { icon: Cloud, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
     { icon: Database, label: 'Database', description: 'Manage schemas', panel: 'database' },
     { icon: Workflow, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
 ];
+
+// Liquid Glass Icon Button Component
+function GlassIconButton({ 
+    icon: Icon, 
+    onClick, 
+    isActive = false, 
+    title,
+    size = 'md'
+}: { 
+    icon: React.ElementType; 
+    onClick?: () => void; 
+    isActive?: boolean;
+    title?: string;
+    size?: 'sm' | 'md';
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    const sizeClasses = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+    const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+    
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            title={title}
+            className={`${sizeClasses} rounded-xl flex items-center justify-center transition-all duration-300`}
+            style={{
+                background: isActive
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)'
+                    : isHovered
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.25) 100%)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: isActive
+                    ? `inset 0 0 15px rgba(255, 160, 120, 0.2), 0 4px 12px rgba(255, 140, 100, 0.15), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                    : isHovered
+                        ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`
+                        : `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.3)`,
+                transform: isHovered ? 'translateY(-1px) scale(1.02)' : 'translateY(0)',
+            }}
+        >
+            <Icon className={iconSize} style={{ color: isActive ? '#c25a00' : '#1a1a1a' }} />
+            
+            {/* Shine effect */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: isHovered ? '150%' : '-100%',
+                    width: '60%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                    transform: 'skewX(-15deg)',
+                    transition: 'left 0.5s ease',
+                    pointerEvents: 'none',
+                }}
+            />
+        </button>
+    );
+}
+
+// Liquid Glass Text Button Component
+function GlassButton({ 
+    children, 
+    onClick, 
+    isActive = false,
+    variant = 'default',
+    icon: Icon,
+}: { 
+    children: React.ReactNode; 
+    onClick?: () => void; 
+    isActive?: boolean;
+    variant?: 'default' | 'primary' | 'deploy';
+    icon?: React.ElementType;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    const getStyles = () => {
+        if (variant === 'deploy') {
+            return {
+                background: isHovered
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.7) 0%, rgba(255,180,150,0.55) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,220,200,0.6) 0%, rgba(255,200,170,0.45) 100%)',
+                boxShadow: isHovered
+                    ? `0 8px 24px rgba(255, 140, 100, 0.2), inset 0 0 20px rgba(255, 160, 120, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.6)`
+                    : `0 4px 16px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
+            };
+        }
+        return {
+            background: isActive
+                ? 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)'
+                : isHovered
+                    ? 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+            boxShadow: isActive
+                ? `inset 0 0 15px rgba(255, 160, 120, 0.15), 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                : isHovered
+                    ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`
+                    : `0 2px 10px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.35)`,
+        };
+    };
+    
+    const styles = getStyles();
+    
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 relative overflow-hidden"
+            style={{
+                ...styles,
+                backdropFilter: 'blur(16px)',
+                color: '#1a1a1a',
+                fontWeight: 500,
+                fontSize: '13px',
+                transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+            }}
+        >
+            {Icon && <Icon className="w-4 h-4" style={{ color: variant === 'deploy' ? '#b45309' : '#1a1a1a' }} />}
+            <span className="hidden sm:inline">{children}</span>
+            
+            {/* Shine animation */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: isHovered ? '150%' : '-100%',
+                    width: '60%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                    transform: 'skewX(-15deg)',
+                    transition: 'left 0.5s ease',
+                    pointerEvents: 'none',
+                }}
+            />
+        </button>
+    );
+}
 
 export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -161,8 +327,6 @@ export default function Builder() {
     const [projectName, _setProjectName] = useState('Untitled Project');
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
-    // Cloud panel state - prepared for future integration
-    const [_showCloudPanel, _setShowCloudPanel] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
@@ -181,7 +345,6 @@ export default function Builder() {
         setShowQualityReport(true);
         setIsScanning(true);
 
-        // Set project context for the scanner
         if (projectId) {
             qualityScanner.setContext(projectId);
         }
@@ -201,7 +364,10 @@ export default function Builder() {
 
     return (
         <SandpackProvider initialFiles={INITIAL_FILES}>
-            <div className="h-screen flex flex-col bg-background relative overflow-hidden">
+            <div 
+                className="h-screen flex flex-col relative overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+            >
                 <QualityReportModal open={showQualityReport} onOpenChange={setShowQualityReport} />
                 <DeploymentModal />
                 <IntegrationMarketplace />
@@ -209,33 +375,38 @@ export default function Builder() {
                 <CommandPalette />
                 <KeyboardShortcutsPanel />
 
-                {/* Premium Header */}
-                <header className="h-14 border-b border-border/50 flex items-center justify-between px-4 bg-card/80 backdrop-blur-md z-20 shrink-0">
+                {/* Premium Liquid Glass Header */}
+                <header 
+                    className="h-14 flex items-center justify-between px-4 z-20 shrink-0"
+                    style={liquidGlassHeader}
+                >
                     <div className="flex items-center gap-4">
                         {/* Dashboard Button */}
-                        <Button
-                            variant="ghost"
+                        <GlassIconButton
+                            icon={LayoutDashboard}
+                            onClick={() => navigate('/dashboard')}
+                            title="Dashboard"
                             size="sm"
-                            onClick={() => navigate('/dashboard')}
-                            className="gap-2 hover:bg-primary/10"
-                        >
-                            <LayoutDashboard className="h-4 w-4" />
-                            <span className="hidden sm:inline">Dashboard</span>
-                        </Button>
+                        />
 
-                        <div className="h-6 w-px bg-border/50" />
+                        <div className="h-6 w-px bg-white/10" />
 
-                        <div
-                            className="font-bold text-xl text-gradient cursor-pointer hover:opacity-80 transition-opacity"
-                            style={{ fontFamily: 'var(--font-display)' }}
+                        {/* Logo */}
+                        <div 
+                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => navigate('/dashboard')}
                         >
-                            KripTik AI
+                            <KriptikLogo size="sm" animated={false} />
+                            <span className="font-bold text-lg text-white hidden sm:inline">
+                                KripTik<span className="text-zinc-400">AI</span>
+                            </span>
                         </div>
-                        <div className="h-6 w-px bg-border/50 mx-2" />
+
+                        <div className="h-6 w-px bg-white/10 mx-2" />
+                        
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-sm text-muted-foreground">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-sm text-zinc-400">
                                 {projectId || 'New Project'}
                             </span>
                         </div>
@@ -244,89 +415,88 @@ export default function Builder() {
                     <div className="flex items-center gap-2">
                         <CollaborationHeader />
 
-                        <div className="h-4 w-px bg-border/50 mx-2" />
+                        <div className="h-4 w-px bg-white/10 mx-2" />
 
-                        {/* Agent Status Button */}
-                        <Button
-                            variant={showAgentPanel ? "secondary" : "ghost"}
-                            size="sm"
+                        {/* Header Buttons */}
+                        <GlassButton 
+                            icon={Activity}
                             onClick={() => setShowAgentPanel(!showAgentPanel)}
-                            className="gap-2"
+                            isActive={showAgentPanel}
                         >
-                            <Activity className="h-4 w-4" />
-                            <span className="hidden sm:inline">Agents</span>
-                        </Button>
+                            Agents
+                        </GlassButton>
 
-                        <Button
-                            variant={showMemory ? "secondary" : "ghost"}
-                            size="sm"
+                        <GlassButton 
+                            icon={Brain}
                             onClick={() => setShowMemory(!showMemory)}
-                            className="gap-2"
+                            isActive={showMemory}
                         >
-                            <Brain className="h-4 w-4" />
-                            <span className="hidden sm:inline">Memory</span>
-                        </Button>
+                            Memory
+                        </GlassButton>
 
-                        <Button
-                            variant="glass"
-                            size="sm"
+                        <GlassButton 
+                            icon={Check}
                             onClick={handleProductionCheck}
-                            className="gap-2"
                         >
-                            <Rocket className="h-4 w-4" />
-                            <span className="hidden sm:inline">Quality Check</span>
-                        </Button>
+                            Quality Check
+                        </GlassButton>
 
-                        <Button
-                            variant="ghost"
-                            size="sm"
+                        <GlassButton 
+                            icon={Blocks}
                             onClick={() => setIntegrationsOpen(true)}
-                            className="gap-2"
                         >
-                            <Blocks className="h-4 w-4" />
-                            <span className="hidden sm:inline">Integrations</span>
-                        </Button>
+                            Integrations
+                        </GlassButton>
 
-                        <div className="h-4 w-px bg-border/50 mx-2" />
+                        <div className="h-4 w-px bg-white/10 mx-2" />
 
-                        <Button variant="ghost" size="icon-sm">
-                            <Settings className="h-4 w-4" />
-                        </Button>
-
-                        <Button
-                            variant="gradient"
+                        <GlassIconButton
+                            icon={Settings}
+                            title="Settings"
                             size="sm"
+                        />
+
+                        <GlassButton
+                            icon={Cloud}
                             onClick={() => setDeploymentOpen(true)}
-                            className="gap-2"
+                            variant="deploy"
                         >
-                            <Cloud className="h-4 w-4" />
                             Deploy
-                        </Button>
+                        </GlassButton>
                     </div>
                 </header>
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
-                    {/* Quick Actions Sidebar */}
-                    <div className="w-14 border-r border-border/50 bg-card/50 flex flex-col items-center py-4 gap-2 shrink-0">
+                    {/* Quick Actions Sidebar - Liquid Glass */}
+                    <div 
+                        className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
+                        style={{
+                            ...liquidGlassPanel,
+                            borderRight: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 0,
+                        }}
+                    >
                         {quickActions.map((action) => (
-                            <button
-                                key={action.panel}
-                                onClick={() => handleQuickAction(action.panel)}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 group relative ${
-                                    activeQuickAction === action.panel
-                                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                                }`}
-                            >
-                                <action.icon className="w-5 h-5" />
+                            <div key={action.panel} className="relative group">
+                                <GlassIconButton
+                                    icon={action.icon}
+                                    onClick={() => handleQuickAction(action.panel)}
+                                    isActive={activeQuickAction === action.panel}
+                                    title={action.label}
+                                />
 
                                 {/* Tooltip */}
-                                <div className="absolute left-full ml-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                                    <div className="text-sm font-medium">{action.label}</div>
-                                    <div className="text-xs text-muted-foreground">{action.description}</div>
+                                <div className="absolute left-full ml-3 px-3 py-2 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50"
+                                    style={{
+                                        ...liquidGlassPanel,
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.5)',
+                                    }}
+                                >
+                                    <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{action.label}</div>
+                                    <div className="text-xs" style={{ color: '#666' }}>{action.description}</div>
                                 </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
 
@@ -335,48 +505,73 @@ export default function Builder() {
                         <PanelGroup direction="horizontal">
                             {/* Left Panel: Chat */}
                             <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
-                                <div className="h-full flex flex-col">
+                                <div 
+                                    className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
                                     <ChatInterface />
                                     {activeTab === 'preview' && <ActivityFeed />}
                                 </div>
                             </Panel>
 
-                            <PanelResizeHandle className="w-1 bg-border/50 hover:bg-primary/50 transition-colors" />
+                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
 
                             {/* Middle Panel: File Explorer (only in code view) */}
                             {activeTab === 'code' && (
                                 <>
                                     <Panel defaultSize={15} minSize={10} maxSize={25}>
-                                        <div className="h-full flex flex-col border-r border-border/50">
+                                        <div 
+                                            className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
+                                            style={liquidGlassPanel}
+                                        >
                                             <SandpackFileExplorer />
                                         </div>
                                     </Panel>
-                                    <PanelResizeHandle className="w-1 bg-border/50 hover:bg-primary/50 transition-colors" />
+                                    <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
                                 </>
                             )}
 
                             {/* Right Panel: Preview or Code */}
                             <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
-                                <div className="h-full flex flex-col relative">
+                                <div 
+                                    className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
                                     {/* Tab bar */}
-                                    <div className="border-b border-border/50 bg-card/50 backdrop-blur-sm px-4 py-2 flex justify-between items-center shrink-0">
-                                        <Tabs
-                                            value={activeTab}
-                                            onValueChange={(v) => setActiveTab(v as 'preview' | 'code')}
-                                            className="w-[200px]"
-                                        >
-                                            <TabsList className="grid w-full grid-cols-2 h-8 bg-muted/50">
-                                                <TabsTrigger value="preview" className="text-xs gap-1.5">
-                                                    <Eye className="h-3 w-3" /> Preview
-                                                </TabsTrigger>
-                                                <TabsTrigger value="code" className="text-xs gap-1.5">
-                                                    <Code2 className="h-3 w-3" /> Code
-                                                </TabsTrigger>
-                                            </TabsList>
-                                        </Tabs>
+                                    <div 
+                                        className="px-4 py-3 flex justify-between items-center shrink-0"
+                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                    >
+                                        {/* Tabs */}
+                                        <div className="flex gap-2">
+                                            <TabButton 
+                                                active={activeTab === 'preview'} 
+                                                onClick={() => setActiveTab('preview')}
+                                                icon={Eye}
+                                            >
+                                                Preview
+                                            </TabButton>
+                                            <TabButton 
+                                                active={activeTab === 'code'} 
+                                                onClick={() => setActiveTab('code')}
+                                                icon={Code2}
+                                            >
+                                                Code
+                                            </TabButton>
+                                        </div>
+                                        
                                         <div className="flex items-center gap-3">
-                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                <kbd className="px-2 py-1 bg-muted rounded border border-border text-[10px] font-mono">⌘K</kbd>
+                                            <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
+                                                <kbd 
+                                                    className="px-2 py-1 rounded-lg text-[10px] font-mono"
+                                                    style={{
+                                                        background: 'rgba(0,0,0,0.05)',
+                                                        border: '1px solid rgba(0,0,0,0.1)',
+                                                        color: '#1a1a1a',
+                                                    }}
+                                                >
+                                                    ⌘K
+                                                </kbd>
                                                 <span>Quick actions</span>
                                             </div>
                                             <PublishButton
@@ -413,26 +608,30 @@ export default function Builder() {
                         {activeQuickAction && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 320, opacity: 1 }}
+                                animate={{ width: 340, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="border-l border-border/50 bg-card/80 backdrop-blur-md shrink-0 overflow-hidden"
+                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                                className="shrink-0 overflow-hidden m-2"
                             >
-                                <div className="w-[320px] h-full flex flex-col">
-                                    <div className="flex items-center justify-between p-4 border-b border-border/50">
-                                        <h3 className="font-semibold flex items-center gap-2">
+                                <div 
+                                    className="w-[324px] h-full flex flex-col rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
+                                    <div 
+                                        className="flex items-center justify-between p-4"
+                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                    >
+                                        <h3 className="font-semibold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
                                             {activeQuickAction === 'agents' && <><Activity className="w-4 h-4" /> AI Agents</>}
                                             {activeQuickAction === 'cloud' && <><Cloud className="w-4 h-4" /> Cloud Deploy</>}
                                             {activeQuickAction === 'database' && <><Database className="w-4 h-4" /> Database</>}
                                             {activeQuickAction === 'workflows' && <><Workflow className="w-4 h-4" /> Workflows</>}
                                         </h3>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
+                                        <GlassIconButton
+                                            icon={X}
                                             onClick={() => setActiveQuickAction(null)}
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </Button>
+                                            size="sm"
+                                        />
                                     </div>
                                     <div className="flex-1 overflow-auto p-4">
                                         {activeQuickAction === 'agents' && <AgentStatusPanel />}
@@ -445,17 +644,20 @@ export default function Builder() {
                         )}
                     </AnimatePresence>
 
-                    {/* Autonomous Agents Panel - with "Fix it Free" */}
+                    {/* Autonomous Agents Panel */}
                     <AnimatePresence>
                         {showAgentPanel && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 400, opacity: 1 }}
+                                animate={{ width: 420, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="border-l border-border/50 shrink-0 overflow-hidden"
+                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                                className="shrink-0 overflow-hidden m-2"
                             >
-                                <div className="w-[400px] h-full">
+                                <div 
+                                    className="w-[404px] h-full rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
                                     <AutonomousAgentsPanel />
                                 </div>
                             </motion.div>
@@ -467,12 +669,17 @@ export default function Builder() {
                         {showMemory && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 300, opacity: 1 }}
+                                animate={{ width: 320, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="border-l border-border/50 shrink-0"
+                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                                className="shrink-0 m-2"
                             >
-                                <ProjectMemoryPanel />
+                                <div 
+                                    className="w-[304px] h-full rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
+                                    <ProjectMemoryPanel />
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -482,39 +689,102 @@ export default function Builder() {
     );
 }
 
-// Agent Status Panel Component - Now using Autonomous Agents
+// Tab Button Component
+function TabButton({ 
+    active, 
+    onClick, 
+    icon: Icon, 
+    children 
+}: { 
+    active: boolean; 
+    onClick: () => void; 
+    icon: React.ElementType;
+    children: React.ReactNode;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+            style={{
+                background: active
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)'
+                    : isHovered
+                        ? 'rgba(0,0,0,0.04)'
+                        : 'transparent',
+                boxShadow: active
+                    ? `inset 0 0 15px rgba(255, 160, 120, 0.15), 0 2px 8px rgba(0,0,0,0.05), 0 0 0 1px rgba(255, 200, 170, 0.3)`
+                    : 'none',
+                color: active ? '#c25a00' : '#666',
+            }}
+        >
+            <Icon className="w-3.5 h-3.5" />
+            {children}
+        </button>
+    );
+}
+
+// Agent Status Panel Component
 function AgentStatusPanel() {
     return <AutonomousAgentsPanel />;
+}
+
+// Liquid Glass Card Component
+function GlassCard({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <div 
+            className={`rounded-xl p-4 cursor-pointer transition-all duration-300 ${className}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={onClick}
+            style={{
+                background: isHovered
+                    ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                boxShadow: isHovered
+                    ? `0 8px 24px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.6)`
+                    : `0 2px 10px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+            }}
+        >
+            {children}
+        </div>
+    );
 }
 
 // Cloud Deploy Panel Component
 function CloudDeployPanel() {
     const providers = [
-        { name: 'Vercel', icon: '▲', available: true },
-        { name: 'Netlify', icon: '◆', available: true },
-        { name: 'RunPod GPU', icon: '⚡', available: true },
-        { name: 'AWS', icon: '☁', available: true },
-        { name: 'Google Cloud', icon: '◉', available: true },
+        { name: 'Vercel', icon: <VercelIcon />, available: true },
+        { name: 'Netlify', icon: <NetlifyIcon />, available: true },
+        { name: 'RunPod GPU', icon: <Layers className="w-5 h-5" />, available: true },
+        { name: 'AWS', icon: <Cloud className="w-5 h-5" />, available: true },
+        { name: 'Google Cloud', icon: <Server className="w-5 h-5" />, available: true },
     ];
 
     return (
         <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: '#666' }}>
                 Deploy your app to production with real-time pricing confirmation.
             </p>
             {providers.map((provider, i) => (
-                <Card key={i} variant="interactive" className="p-4 cursor-pointer">
+                <GlassCard key={i}>
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl">{provider.icon}</span>
-                        <div>
-                            <span className="font-medium">{provider.name}</span>
-                            <p className="text-xs text-muted-foreground">
+                        <span style={{ color: '#1a1a1a' }}>{provider.icon}</span>
+                        <div className="flex-1">
+                            <span className="font-medium" style={{ color: '#1a1a1a' }}>{provider.name}</span>
+                            <p className="text-xs" style={{ color: '#666' }}>
                                 {provider.available ? 'Ready to deploy' : 'Coming soon'}
                             </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 ml-auto text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4" style={{ color: '#999' }} />
                     </div>
-                </Card>
+                </GlassCard>
             ))}
         </div>
     );
@@ -524,28 +794,28 @@ function CloudDeployPanel() {
 function DatabasePanel() {
     return (
         <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: '#666' }}>
                 Manage your database schemas and migrations.
             </p>
-            <Card variant="depth" className="p-4">
+            <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                    <Database className="w-4 h-4 text-primary" />
-                    <span className="font-medium">PostgreSQL</span>
+                    <Database className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <span className="font-medium" style={{ color: '#1a1a1a' }}>PostgreSQL</span>
                 </div>
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tables</span>
-                        <span>0</span>
+                        <span style={{ color: '#666' }}>Tables</span>
+                        <span style={{ color: '#1a1a1a' }}>0</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Migrations</span>
-                        <span>0</span>
+                        <span style={{ color: '#666' }}>Migrations</span>
+                        <span style={{ color: '#1a1a1a' }}>0</span>
                     </div>
                 </div>
-            </Card>
-            <Button variant="outline" className="w-full">
+            </GlassCard>
+            <GlassButton icon={Layers}>
                 Generate Schema
-            </Button>
+            </GlassButton>
         </div>
     );
 }
@@ -554,30 +824,47 @@ function DatabasePanel() {
 function WorkflowsPanel() {
     return (
         <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: '#666' }}>
                 Deploy ComfyUI workflows and HuggingFace models.
             </p>
-            <Card variant="depth" className="p-4">
+            <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                    <Workflow className="w-4 h-4 text-accent" />
-                    <span className="font-medium">ComfyUI</span>
+                    <Workflow className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <span className="font-medium" style={{ color: '#1a1a1a' }}>ComfyUI</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm" style={{ color: '#666' }}>
                     Upload workflow JSON to deploy as API endpoint.
                 </p>
-            </Card>
-            <Card variant="depth" className="p-4">
+            </GlassCard>
+            <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                    <Server className="w-4 h-4 text-primary" />
-                    <span className="font-medium">HuggingFace</span>
+                    <Server className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <span className="font-medium" style={{ color: '#1a1a1a' }}>HuggingFace</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm" style={{ color: '#666' }}>
                     Search and deploy ML models with GPU inference.
                 </p>
-            </Card>
-            <Button variant="outline" className="w-full">
+            </GlassCard>
+            <GlassButton icon={Workflow}>
                 Import Workflow
-            </Button>
+            </GlassButton>
         </div>
+    );
+}
+
+// Simple provider icons
+function VercelIcon() {
+    return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 22h20L12 2z"/>
+        </svg>
+    );
+}
+
+function NetlifyIcon() {
+    return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5l6.5 3.25L12 11 5.5 7.75 12 4.5z"/>
+        </svg>
     );
 }
