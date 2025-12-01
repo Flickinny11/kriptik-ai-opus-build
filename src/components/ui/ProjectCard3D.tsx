@@ -25,7 +25,7 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
         }
 
         const currentLine = lines[currentLineIndex];
-        
+
         if (currentCharIndex < currentLine.length) {
             const timer = setTimeout(() => {
                 setDisplayedLines(prev => {
@@ -51,7 +51,7 @@ function useTypingAnimation(lines: string[], speed: number = 50) {
 // The 3D Tablet Card - matches Remotion reference exactly
 function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () => void }) {
     const groupRef = useRef<THREE.Group>(null);
-    
+
     // Dimensions matching reference image proportions
     const width = 3.6;
     const height = 2.7;
@@ -84,15 +84,15 @@ function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () 
             const baseX = 0.45; // ~26 degrees tilt back
             const baseY = -0.25; // ~14 degrees rotation showing left edge
             const baseZ = 0.05; // slight roll
-            
+
             const targetX = isHovered ? baseX - 0.1 : baseX;
             const targetY = isHovered ? baseY + 0.08 : baseY;
             const targetZ = isHovered ? baseZ - 0.02 : baseZ;
-            
+
             groupRef.current.rotation.x += (targetX - groupRef.current.rotation.x) * 0.08;
             groupRef.current.rotation.y += (targetY - groupRef.current.rotation.y) * 0.08;
             groupRef.current.rotation.z += (targetZ - groupRef.current.rotation.z) * 0.08;
-            
+
             // Subtle float
             groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.015;
         }
@@ -175,7 +175,7 @@ function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () 
                     overflow: 'hidden',
                 }}>
                     {displayedLines.map((line, i) => (
-                        <div key={i} style={{ 
+                        <div key={i} style={{
                             whiteSpace: 'pre',
                             color: getLineColor(line),
                         }}>
@@ -199,9 +199,9 @@ function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () 
             {/* Bottom edge - visible due to tilt */}
             <mesh position={[0, -height/2 + 0.02, -depth/4]}>
                 <boxGeometry args={[width - 0.02, 0.04, depth/2]} />
-                <meshStandardMaterial 
-                    color="#0c0d0f" 
-                    metalness={0.2} 
+                <meshStandardMaterial
+                    color="#0c0d0f"
+                    metalness={0.2}
                     roughness={0.8}
                 />
             </mesh>
@@ -209,9 +209,9 @@ function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () 
             {/* Left edge - visible due to rotation */}
             <mesh position={[-width/2 + 0.02, 0, -depth/4]}>
                 <boxGeometry args={[0.04, height - 0.02, depth/2]} />
-                <meshStandardMaterial 
-                    color="#08090a" 
-                    metalness={0.2} 
+                <meshStandardMaterial
+                    color="#08090a"
+                    metalness={0.2}
                     roughness={0.8}
                 />
             </mesh>
@@ -219,9 +219,9 @@ function TabletCard3D({ isHovered, onClick }: { isHovered: boolean; onClick: () 
             {/* Subtle screen reflection/glare */}
             <mesh position={[0.3, 0.3, depth / 2 + 0.02]} rotation={[0, 0, -0.2]}>
                 <planeGeometry args={[1.5, 0.15]} />
-                <meshBasicMaterial 
-                    color="#ffffff" 
-                    transparent 
+                <meshBasicMaterial
+                    color="#ffffff"
+                    transparent
                     opacity={0.03}
                 />
             </mesh>
@@ -234,9 +234,9 @@ function GroundShadow() {
     return (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.3, -1.8, -0.5]}>
             <planeGeometry args={[4, 2.5]} />
-            <meshBasicMaterial 
-                color="#000000" 
-                transparent 
+            <meshBasicMaterial
+                color="#000000"
+                transparent
                 opacity={0.25}
             />
         </mesh>
@@ -248,18 +248,18 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
     const [hovered, setHovered] = useState(isHovered);
 
     return (
-        <div 
+        <div
             className="w-full cursor-pointer relative"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            style={{ 
+            style={{
                 height: '220px',
                 marginBottom: '20px',
             }}
         >
             <Canvas
-                camera={{ 
-                    position: [0, 0.5, 5], 
+                camera={{
+                    position: [0, 0.5, 5],
                     fov: 35,
                 }}
                 style={{ background: 'transparent' }}
@@ -267,19 +267,19 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
             >
                 {/* Lighting setup for realistic shadows */}
                 <ambientLight intensity={0.4} />
-                <directionalLight 
-                    position={[4, 6, 4]} 
+                <directionalLight
+                    position={[4, 6, 4]}
                     intensity={0.9}
                     castShadow
                 />
-                <directionalLight 
-                    position={[-2, 3, 2]} 
+                <directionalLight
+                    position={[-2, 3, 2]}
                     intensity={0.3}
                 />
                 <pointLight position={[0, 2, 3]} intensity={0.2} />
-                
-                <TabletCard3D 
-                    isHovered={hovered} 
+
+                <TabletCard3D
+                    isHovered={hovered}
                     onClick={onClick}
                 />
                 <GroundShadow />
@@ -287,9 +287,9 @@ export function ProjectCard3D({ onClick, isHovered = false }: ProjectCard3DProps
 
             {/* Hover overlay */}
             {hovered && (
-                <div 
+                <div
                     className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-                    style={{ 
+                    style={{
                         background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%)',
                     }}
                 >
