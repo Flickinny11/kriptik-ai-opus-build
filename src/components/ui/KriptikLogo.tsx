@@ -47,7 +47,7 @@ export function KriptikLogo({
                     <stop offset="70%" stopColor="#1a1a1a" />
                     <stop offset="100%" stopColor="#0a0a0a" />
                 </radialGradient>
-                
+
                 {/* Highlight on sphere */}
                 <radialGradient id="sphereHighlight" cx="30%" cy="25%" r="40%">
                     <stop offset="0%" stopColor="#666" stopOpacity="0.6" />
@@ -69,7 +69,7 @@ export function KriptikLogo({
                 r="28"
                 fill="url(#sphereGradient)"
             />
-            
+
             {/* Sphere highlight */}
             <circle
                 cx="50"
@@ -92,7 +92,7 @@ export function KriptikLogo({
                     strokeDasharray="0 66 132"
                     strokeLinecap="round"
                 />
-                
+
                 {/* Geometric connectors - back */}
                 <g opacity="0.4">
                     <line x1="12" y1="42" x2="20" y2="48" stroke="#ccc" strokeWidth="1" />
@@ -115,7 +115,7 @@ export function KriptikLogo({
                     strokeDasharray="0 57 113"
                     strokeLinecap="round"
                 />
-                
+
                 {/* Geometric connectors - inner */}
                 <g opacity="0.5">
                     <line x1="16" y1="44" x2="22" y2="48" stroke="#fff" strokeWidth="0.8" />
@@ -127,7 +127,7 @@ export function KriptikLogo({
             <clipPath id="sphereClip">
                 <circle cx="50" cy="50" r="28" />
             </clipPath>
-            
+
             {/* Front ring portions (in front of sphere) */}
             <g transform="rotate(-25, 50, 50)">
                 {/* Outer ring front */}
@@ -142,7 +142,7 @@ export function KriptikLogo({
                     strokeDasharray="66 0 0 66"
                     strokeLinecap="round"
                 />
-                
+
                 {/* Geometric truss structure - front */}
                 <g stroke="#fff" strokeWidth="0.8" opacity="0.9">
                     {/* Left side trusses */}
@@ -150,22 +150,22 @@ export function KriptikLogo({
                     <line x1="14" y1="44" x2="22" y2="50" />
                     <line x1="10" y1="46" x2="14" y2="44" />
                     <line x1="18" y1="52" x2="22" y2="50" />
-                    
+
                     <line x1="18" y1="52" x2="26" y2="56" />
                     <line x1="22" y1="50" x2="30" y2="54" />
                     <line x1="26" y1="56" x2="30" y2="54" />
-                    
+
                     {/* Right side trusses */}
                     <line x1="90" y1="54" x2="82" y2="48" />
                     <line x1="86" y1="56" x2="78" y2="50" />
                     <line x1="90" y1="54" x2="86" y2="56" />
                     <line x1="82" y1="48" x2="78" y2="50" />
-                    
+
                     <line x1="82" y1="48" x2="74" y2="44" />
                     <line x1="78" y1="50" x2="70" y2="46" />
                     <line x1="74" y1="44" x2="70" y2="46" />
                 </g>
-                
+
                 {/* Inner ring front */}
                 <ellipse
                     cx="50"
@@ -178,7 +178,7 @@ export function KriptikLogo({
                     strokeDasharray="57 0 0 57"
                     strokeLinecap="round"
                 />
-                
+
                 {/* Inner ring trusses */}
                 <g stroke="#f0f0f0" strokeWidth="0.6" opacity="0.8">
                     <line x1="16" y1="48" x2="22" y2="52" />

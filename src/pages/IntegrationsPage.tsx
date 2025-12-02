@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Plug, Check, Settings, RefreshCw, Search,
-    Cpu, Brain, Cloud, Database, CreditCard, Github, 
+    Cpu, Brain, Cloud, Database, CreditCard, Github,
     Server, HardDrive, Workflow, Key, Globe, Layers
 } from 'lucide-react';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
@@ -61,7 +61,7 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
 }) {
     const [isHovered, setIsHovered] = useState(false);
     const IconComponent = integration.icon;
-    
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -99,7 +99,7 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
 
             {/* Connected badge */}
             {integration.connected && (
-                <div 
+                <div
                     className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
                     style={{
                         background: 'rgba(16, 185, 129, 0.15)',
@@ -113,7 +113,7 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
 
             <div className="flex items-start gap-4">
                 {/* Icon */}
-                <div 
+                <div
                     className="w-14 h-14 rounded-xl flex items-center justify-center relative overflow-hidden"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%)',
@@ -157,19 +157,19 @@ function IntegrationCard({ integration, onConnect, onSettings }: {
 }
 
 // Liquid Glass Button for Integrations
-function GlassButton({ 
-    children, 
-    onClick, 
+function GlassButton({
+    children,
+    onClick,
     variant = 'default',
     className = ''
-}: { 
-    children: React.ReactNode; 
+}: {
+    children: React.ReactNode;
     onClick?: () => void;
     variant?: 'default' | 'primary';
     className?: string;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
         <button
             onClick={onClick}
@@ -199,17 +199,17 @@ function GlassButton({
 }
 
 // Category Button Component
-function CategoryButton({ 
-    label, 
-    isActive, 
-    onClick 
-}: { 
-    label: string; 
-    isActive: boolean; 
+function CategoryButton({
+    label,
+    isActive,
+    onClick
+}: {
+    label: string;
+    isActive: boolean;
     onClick: () => void;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
         <button
             onClick={onClick}
@@ -317,7 +317,7 @@ export default function IntegrationsPage() {
 
                     <div className="flex gap-2 overflow-x-auto pb-2">
                         {CATEGORIES.map((cat) => (
-                            <CategoryButton 
+                            <CategoryButton
                                 key={cat.id}
                                 label={cat.label}
                                 isActive={activeCategory === cat.id}

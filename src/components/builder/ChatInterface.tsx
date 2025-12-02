@@ -1,22 +1,20 @@
 /**
- * Chat Interface - Premium AI conversation panel
+ * Chat Interface - Premium Liquid Glass AI Conversation Panel
  *
  * Features:
  * - Real-time streaming from multi-agent orchestrator
  * - Cost estimation before generation
  * - Agent progress visualization
- * - Premium message styling with animations
+ * - Liquid Glass 3D styling throughout
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Send, Paperclip, Mic, StopCircle, Pause, Play,
-    Sparkles, Bot, User, Loader2, Zap, ArrowRight
+    Send, Paperclip, StopCircle, Pause, Play,
+    User, Loader2, ArrowRight, Image, Wand2
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Card } from '../ui/card';
 import { orchestrator } from '../../lib/AgentOrchestrator';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
@@ -41,6 +39,182 @@ const suggestions = [
     "Design a landing page with pricing",
     "Add a contact form with validation",
 ];
+
+// Liquid Glass Button Component
+function GlassButton({ 
+    children, 
+    onClick, 
+    disabled = false,
+    variant = 'default',
+    size = 'md',
+    className = ''
+}: { 
+    children: React.ReactNode; 
+    onClick?: () => void;
+    disabled?: boolean;
+    variant?: 'default' | 'primary' | 'danger';
+    size?: 'sm' | 'md' | 'lg';
+    className?: string;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    const sizeClasses = {
+        sm: 'w-8 h-8',
+        md: 'w-10 h-10',
+        lg: 'w-12 h-12 rounded-2xl',
+    };
+    
+    const getStyles = () => {
+        if (disabled) {
+            return {
+                background: 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)',
+                boxShadow: 'none',
+                cursor: 'not-allowed',
+            };
+        }
+        
+        if (variant === 'primary') {
+            return {
+                background: isHovered
+                    ? 'linear-gradient(145deg, rgba(255,180,150,0.85) 0%, rgba(255,160,130,0.7) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,200,170,0.75) 0%, rgba(255,180,150,0.6) 100%)',
+                boxShadow: isHovered
+                    ? `0 8px 24px rgba(255, 140, 100, 0.3), inset 0 0 20px rgba(255, 180, 140, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.6)`
+                    : `0 4px 16px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.5)`,
+            };
+        }
+        
+        if (variant === 'danger') {
+            return {
+                background: isHovered
+                    ? 'linear-gradient(145deg, rgba(239,68,68,0.3) 0%, rgba(220,38,38,0.2) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                boxShadow: isHovered
+                    ? `0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(239, 68, 68, 0.3)`
+                    : `0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+            };
+        }
+        
+        return {
+            background: isHovered
+                ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
+                : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+            boxShadow: isHovered
+                ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
+                : `0 2px 10px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+        };
+    };
+    
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden ${className}`}
+            style={{
+                ...getStyles(),
+                backdropFilter: 'blur(16px)',
+                transform: isHovered && !disabled ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
+            }}
+        >
+            {children}
+            
+            {/* Shine effect */}
+            {!disabled && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: isHovered ? '150%' : '-100%',
+                        width: '60%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                        transform: 'skewX(-15deg)',
+                        transition: 'left 0.5s ease',
+                        pointerEvents: 'none',
+                    }}
+                />
+            )}
+        </button>
+    );
+}
+
+// Liquid Glass Message Card
+function MessageCard({ 
+    children, 
+    isUser = false,
+    isSystem = false 
+}: { 
+    children: React.ReactNode;
+    isUser?: boolean;
+    isSystem?: boolean;
+}) {
+    return (
+        <div
+            className="max-w-[85%] p-4 rounded-2xl transition-all duration-300"
+            style={{
+                background: isUser
+                    ? 'linear-gradient(145deg, rgba(255,180,150,0.6) 0%, rgba(255,160,130,0.45) 100%)'
+                    : isSystem
+                        ? 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 100%)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: isUser
+                    ? `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                    : `0 4px 16px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`,
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+// Suggestion Card
+function SuggestionCard({ 
+    text, 
+    onClick, 
+    delay 
+}: { 
+    text: string; 
+    onClick: () => void;
+    delay: number;
+}) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay }}
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="w-full text-left p-4 rounded-xl transition-all duration-300 group"
+            style={{
+                background: isHovered
+                    ? 'linear-gradient(145deg, rgba(255,220,200,0.5) 0%, rgba(255,200,170,0.35) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: isHovered
+                    ? `0 8px 24px rgba(255, 140, 100, 0.12), inset 0 0 15px rgba(255, 160, 120, 0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                    : `0 2px 10px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+            }}
+        >
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{text}</span>
+                <ArrowRight 
+                    className="w-4 h-4 transition-all duration-300" 
+                    style={{ 
+                        color: isHovered ? '#c25a00' : '#999',
+                        transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
+                    }}
+                />
+            </div>
+        </motion.button>
+    );
+}
 
 export default function ChatInterface() {
     const [input, setInput] = useState('');
@@ -80,7 +254,6 @@ export default function ChatInterface() {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // Calculate estimate before proceeding
         const estimate = costEstimator.estimate(input);
         setEstimate(estimate);
         setPendingPrompt(input);
@@ -104,7 +277,6 @@ export default function ChatInterface() {
         setPendingPrompt(null);
         setIsTyping(true);
 
-        // Add system message
         const systemMessage: Message = {
             id: `msg-${Date.now() + 1}`,
             role: 'system',
@@ -143,7 +315,7 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background/50">
+        <div className="flex flex-col h-full">
             <CostEstimatorModal
                 open={showCostEstimator}
                 onOpenChange={setShowCostEstimator}
@@ -155,39 +327,54 @@ export default function ChatInterface() {
                 onOpenChange={setShowBreakdown}
             />
 
-            {/* Header */}
-            <div className="p-4 border-b border-border/50 flex justify-between items-center bg-card/30 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-white" />
+            {/* Header - Liquid Glass */}
+            <div 
+                className="p-4 flex justify-between items-center shrink-0"
+                style={{
+                    borderBottom: '1px solid rgba(0,0,0,0.06)',
+                }}
+            >
+                <div className="flex items-center gap-3">
+                    <div 
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
+                            boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
+                        }}
+                    >
+                        <Wand2 className="w-5 h-5" style={{ color: '#92400e' }} />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-sm">AI Assistant</h2>
-                        <p className="text-xs text-muted-foreground">
-                            {globalStatus === 'running' ? 'Working...' :
-                             globalStatus === 'paused' ? 'Paused' : 'Ready'}
+                        <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                            Build Assistant
+                        </h2>
+                        <p className="text-xs" style={{ color: globalStatus === 'running' ? '#c25a00' : '#666' }}>
+                            {globalStatus === 'running' ? 'Building...' :
+                             globalStatus === 'paused' ? 'Paused' : 'Ready to create'}
                         </p>
                     </div>
                 </div>
+                
                 {globalStatus !== 'idle' && (
                     <div className="flex gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
+                        <GlassButton
                             onClick={handlePauseResume}
                             disabled={globalStatus === 'completed' || globalStatus === 'failed'}
+                            size="sm"
                         >
-                            {globalStatus === 'paused' ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
+                            {globalStatus === 'paused' 
+                                ? <Play className="h-4 w-4" style={{ color: '#1a1a1a' }} /> 
+                                : <Pause className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                            }
+                        </GlassButton>
+                        <GlassButton
                             onClick={handleStop}
                             disabled={globalStatus === 'completed' || globalStatus === 'failed'}
-                            className="text-destructive hover:text-destructive"
+                            variant="danger"
+                            size="sm"
                         >
-                            <StopCircle className="h-4 w-4" />
-                        </Button>
+                            <StopCircle className="h-4 w-4" style={{ color: '#dc2626' }} />
+                        </GlassButton>
                     </div>
                 )}
             </div>
@@ -202,32 +389,36 @@ export default function ChatInterface() {
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="text-center py-12"
+                                    className="text-center py-8"
                                 >
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-6">
-                                        <Sparkles className="w-8 h-8 text-primary" />
+                                    <div 
+                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+                                        style={{
+                                            background: 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)',
+                                            boxShadow: `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
+                                        }}
+                                    >
+                                        <Wand2 className="w-8 h-8" style={{ color: '#92400e' }} />
                                     </div>
-                                    <h3 className="text-lg font-semibold mb-2">What would you like to build?</h3>
-                                    <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                                        Describe your app in natural language and our AI agents will build it for you.
+                                    <h3 
+                                        className="text-lg font-semibold mb-2"
+                                        style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
+                                    >
+                                        What would you like to build?
+                                    </h3>
+                                    <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: '#666' }}>
+                                        Describe your app and watch our AI agents build it for you.
                                     </p>
 
                                     {/* Suggestions */}
                                     <div className="space-y-2">
                                         {suggestions.map((suggestion, i) => (
-                                            <motion.button
+                                            <SuggestionCard
                                                 key={i}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: i * 0.1 }}
+                                                text={suggestion}
                                                 onClick={() => handleSuggestionClick(suggestion)}
-                                                className="w-full text-left p-3 rounded-xl bg-muted/50 hover:bg-muted border border-transparent hover:border-primary/20 transition-all duration-200 group"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm">{suggestion}</span>
-                                                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </div>
-                                            </motion.button>
+                                                delay={i * 0.1}
+                                            />
                                         ))}
                                     </div>
                                 </motion.div>
@@ -244,39 +435,54 @@ export default function ChatInterface() {
                                         className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         {msg.role !== 'user' && (
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                                msg.role === 'system'
-                                                    ? 'bg-muted'
-                                                    : 'bg-gradient-to-br from-primary to-accent'
-                                            }`}>
-                                                <Bot className={`w-4 h-4 ${msg.role === 'system' ? 'text-muted-foreground' : 'text-white'}`} />
+                                            <div 
+                                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                                style={{
+                                                    background: msg.role === 'system'
+                                                        ? 'linear-gradient(145deg, rgba(200,200,200,0.4) 0%, rgba(180,180,180,0.25) 100%)'
+                                                        : 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
+                                                    boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
+                                                }}
+                                            >
+                                                <Wand2 
+                                                    className="w-4 h-4" 
+                                                    style={{ color: msg.role === 'system' ? '#666' : '#92400e' }}
+                                                />
                                             </div>
                                         )}
 
-                                        <Card
-                                            variant={msg.role === 'user' ? 'default' : 'glass'}
-                                            className={`max-w-[85%] p-3 ${
-                                                msg.role === 'user'
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : msg.role === 'system'
-                                                    ? 'bg-muted/50 border-border/50'
-                                                    : 'bg-card/80'
-                                            }`}
-                                        >
+                                        <MessageCard isUser={msg.role === 'user'} isSystem={msg.role === 'system'}>
                                             {msg.agentType && (
-                                                <div className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">
+                                                <div 
+                                                    className="text-[10px] mb-1 font-semibold uppercase tracking-wider"
+                                                    style={{ color: '#c25a00' }}
+                                                >
                                                     {msg.agentType}
                                                 </div>
                                             )}
-                                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                                            <div className="text-[10px] text-muted-foreground/60 mt-2">
+                                            <p 
+                                                className="text-sm whitespace-pre-wrap"
+                                                style={{ color: msg.role === 'user' ? '#92400e' : '#1a1a1a' }}
+                                            >
+                                                {msg.content}
+                                            </p>
+                                            <div 
+                                                className="text-[10px] mt-2"
+                                                style={{ color: '#999' }}
+                                            >
                                                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
-                                        </Card>
+                                        </MessageCard>
 
                                         {msg.role === 'user' && (
-                                            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                                <User className="w-4 h-4 text-muted-foreground" />
+                                            <div 
+                                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                                style={{
+                                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
+                                                    boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
+                                                }}
+                                            >
+                                                <User className="w-4 h-4" style={{ color: '#1a1a1a' }} />
                                             </div>
                                         )}
                                     </motion.div>
@@ -290,26 +496,41 @@ export default function ChatInterface() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="flex gap-3"
                                 >
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                    <div 
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                        style={{
+                                            background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
+                                            boxShadow: `0 2px 8px rgba(255, 140, 100, 0.15)`,
+                                        }}
+                                    >
+                                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#92400e' }} />
                                     </div>
-                                    <Card variant="glass" className="p-3 bg-card/80">
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    <MessageCard>
+                                        <div className="flex gap-1.5 py-1">
+                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '0ms' }} />
+                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '150ms' }} />
+                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '300ms' }} />
                                         </div>
-                                    </Card>
+                                    </MessageCard>
                                 </motion.div>
                             )}
                         </div>
                     </ScrollArea>
                 ) : (
                     <div className="h-full flex flex-col">
-                        <div className="p-4 border-b border-border/50 bg-muted/20 shrink-0">
+                        <div 
+                            className="p-4 shrink-0"
+                            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                        >
                             <AgentProgress />
                         </div>
-                        <div className="flex-1 overflow-hidden bg-[#0d1117] min-h-0">
+                        <div 
+                            className="flex-1 overflow-hidden min-h-0 m-2 rounded-xl"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
+                                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.3)',
+                            }}
+                        >
                             <AgentTerminal />
                         </div>
                     </div>
@@ -330,51 +551,76 @@ export default function ChatInterface() {
                 </AnimatePresence>
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
-                <div className="flex gap-2 items-end">
-                    <Button variant="ghost" size="icon-sm" className="shrink-0">
-                        <Paperclip className="h-4 w-4" />
-                    </Button>
+            {/* Input Area - Liquid Glass Pane */}
+            <div 
+                className="p-4 shrink-0"
+                style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
+            >
+                {/* Glass Input Container */}
+                <div 
+                    className="rounded-2xl p-3 transition-all duration-300"
+                    style={{
+                        background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)',
+                        backdropFilter: 'blur(24px) saturate(180%)',
+                        boxShadow: `
+                            0 8px 32px rgba(0,0,0,0.08),
+                            inset 0 2px 4px rgba(255,255,255,0.95),
+                            inset 0 -1px 2px rgba(0,0,0,0.02),
+                            0 0 0 1px rgba(255,255,255,0.6)
+                        `,
+                    }}
+                >
+                    <div className="flex gap-2 items-end">
+                        {/* Attach Image Button */}
+                        <GlassButton size="sm">
+                            <Paperclip className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                        </GlassButton>
+                        
+                        {/* Image to Code Button */}
+                        <GlassButton size="sm">
+                            <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                        </GlassButton>
 
-                    <div className="flex-1 relative">
-                        <textarea
-                            ref={inputRef}
-                            placeholder="Describe your app... (Shift+Enter for new line)"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            disabled={globalStatus !== 'idle'}
-                            rows={1}
-                            className="w-full resize-none bg-muted/50 border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 disabled:opacity-50"
-                            style={{ minHeight: '44px', maxHeight: '120px' }}
-                        />
+                        {/* Text Input */}
+                        <div className="flex-1">
+                            <textarea
+                                ref={inputRef}
+                                placeholder="Describe what you want to build..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                disabled={globalStatus !== 'idle'}
+                                rows={1}
+                                className="w-full resize-none bg-transparent border-none px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                                style={{ 
+                                    minHeight: '40px', 
+                                    maxHeight: '120px',
+                                    color: '#1a1a1a',
+                                    fontFamily: 'Inter, system-ui, sans-serif',
+                                }}
+                            />
+                        </div>
+
+                        {/* Send Button */}
+                        <GlassButton
+                            onClick={handleSend}
+                            disabled={globalStatus !== 'idle' || !input.trim()}
+                            variant="primary"
+                            size="md"
+                        >
+                            <Send className="h-4 w-4" style={{ color: '#92400e' }} />
+                        </GlassButton>
                     </div>
-
-                    <Button
-                        onClick={handleSend}
-                        disabled={globalStatus !== 'idle' || !input.trim()}
-                        variant="gradient"
-                        size="icon"
-                        className="shrink-0"
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
-
-                    <Button variant="ghost" size="icon-sm" className="shrink-0">
-                        <Mic className="h-4 w-4" />
-                    </Button>
                 </div>
 
                 {/* Quick hint */}
-                <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" /> AI-powered
-                    </span>
-                    <span>•</span>
-                    <span>Multi-agent orchestration</span>
-                    <span>•</span>
-                    <span>Production-ready code</span>
+                <div 
+                    className="flex items-center justify-center gap-4 mt-3 text-[10px]"
+                    style={{ color: '#999' }}
+                >
+                    <span>Press Enter to send</span>
+                    <span style={{ color: '#ccc' }}>•</span>
+                    <span>Shift+Enter for new line</span>
                 </div>
             </div>
         </div>

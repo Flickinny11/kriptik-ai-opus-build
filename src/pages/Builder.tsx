@@ -9,7 +9,7 @@
  * - Integrated file explorer
  * - Monaco code editor
  * - Collaboration tools
- * 
+ *
  * Design: Liquid Glass 3D aesthetic with warm internal glow
  */
 
@@ -181,15 +181,15 @@ const quickActions = [
 ];
 
 // Liquid Glass Icon Button Component
-function GlassIconButton({ 
-    icon: Icon, 
-    onClick, 
-    isActive = false, 
+function GlassIconButton({
+    icon: Icon,
+    onClick,
+    isActive = false,
     title,
     size = 'md'
-}: { 
-    icon: React.ElementType; 
-    onClick?: () => void; 
+}: {
+    icon: React.ElementType;
+    onClick?: () => void;
     isActive?: boolean;
     title?: string;
     size?: 'sm' | 'md';
@@ -197,7 +197,7 @@ function GlassIconButton({
     const [isHovered, setIsHovered] = useState(false);
     const sizeClasses = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
     const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
-    
+
     return (
         <button
             onClick={onClick}
@@ -221,7 +221,7 @@ function GlassIconButton({
             }}
         >
             <Icon className={iconSize} style={{ color: isActive ? '#c25a00' : '#1a1a1a' }} />
-            
+
             {/* Shine effect */}
             <div
                 style={{
@@ -241,21 +241,21 @@ function GlassIconButton({
 }
 
 // Liquid Glass Text Button Component
-function GlassButton({ 
-    children, 
-    onClick, 
+function GlassButton({
+    children,
+    onClick,
     isActive = false,
     variant = 'default',
     icon: Icon,
-}: { 
-    children: React.ReactNode; 
-    onClick?: () => void; 
+}: {
+    children: React.ReactNode;
+    onClick?: () => void;
     isActive?: boolean;
     variant?: 'default' | 'primary' | 'deploy';
     icon?: React.ElementType;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     const getStyles = () => {
         if (variant === 'deploy') {
             return {
@@ -280,9 +280,9 @@ function GlassButton({
                     : `0 2px 10px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.35)`,
         };
     };
-    
+
     const styles = getStyles();
-    
+
     return (
         <button
             onClick={onClick}
@@ -300,7 +300,7 @@ function GlassButton({
         >
             {Icon && <Icon className="w-4 h-4" style={{ color: variant === 'deploy' ? '#b45309' : '#1a1a1a' }} />}
             <span className="hidden sm:inline">{children}</span>
-            
+
             {/* Shine animation */}
             <div
                 style={{
@@ -364,7 +364,7 @@ export default function Builder() {
 
     return (
         <SandpackProvider initialFiles={INITIAL_FILES}>
-            <div 
+            <div
                 className="h-screen flex flex-col relative overflow-hidden"
                 style={{ background: 'linear-gradient(180deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
             >
@@ -376,7 +376,7 @@ export default function Builder() {
                 <KeyboardShortcutsPanel />
 
                 {/* Premium Liquid Glass Header */}
-                <header 
+                <header
                     className="h-14 flex items-center justify-between px-4 z-20 shrink-0"
                     style={liquidGlassHeader}
                 >
@@ -392,7 +392,7 @@ export default function Builder() {
                         <div className="h-6 w-px bg-white/10" />
 
                         {/* Logo */}
-                        <div 
+                        <div
                             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => navigate('/dashboard')}
                         >
@@ -403,7 +403,7 @@ export default function Builder() {
                         </div>
 
                         <div className="h-6 w-px bg-white/10 mx-2" />
-                        
+
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                             <span className="text-sm text-zinc-400">
@@ -418,7 +418,7 @@ export default function Builder() {
                         <div className="h-4 w-px bg-white/10 mx-2" />
 
                         {/* Header Buttons */}
-                        <GlassButton 
+                        <GlassButton
                             icon={Activity}
                             onClick={() => setShowAgentPanel(!showAgentPanel)}
                             isActive={showAgentPanel}
@@ -426,7 +426,7 @@ export default function Builder() {
                             Agents
                         </GlassButton>
 
-                        <GlassButton 
+                        <GlassButton
                             icon={Brain}
                             onClick={() => setShowMemory(!showMemory)}
                             isActive={showMemory}
@@ -434,14 +434,14 @@ export default function Builder() {
                             Memory
                         </GlassButton>
 
-                        <GlassButton 
+                        <GlassButton
                             icon={Check}
                             onClick={handleProductionCheck}
                         >
                             Quality Check
                         </GlassButton>
 
-                        <GlassButton 
+                        <GlassButton
                             icon={Blocks}
                             onClick={() => setIntegrationsOpen(true)}
                         >
@@ -469,7 +469,7 @@ export default function Builder() {
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
                     {/* Quick Actions Sidebar - Liquid Glass */}
-                    <div 
+                    <div
                         className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
                         style={{
                             ...liquidGlassPanel,
@@ -505,7 +505,7 @@ export default function Builder() {
                         <PanelGroup direction="horizontal">
                             {/* Left Panel: Chat */}
                             <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
-                                <div 
+                                <div
                                     className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
@@ -520,7 +520,7 @@ export default function Builder() {
                             {activeTab === 'code' && (
                                 <>
                                     <Panel defaultSize={15} minSize={10} maxSize={25}>
-                                        <div 
+                                        <div
                                             className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
                                             style={liquidGlassPanel}
                                         >
@@ -533,36 +533,36 @@ export default function Builder() {
 
                             {/* Right Panel: Preview or Code */}
                             <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
-                                <div 
+                                <div
                                     className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
                                     {/* Tab bar */}
-                                    <div 
+                                    <div
                                         className="px-4 py-3 flex justify-between items-center shrink-0"
                                         style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
                                     >
                                         {/* Tabs */}
                                         <div className="flex gap-2">
-                                            <TabButton 
-                                                active={activeTab === 'preview'} 
+                                            <TabButton
+                                                active={activeTab === 'preview'}
                                                 onClick={() => setActiveTab('preview')}
                                                 icon={Eye}
                                             >
                                                 Preview
                                             </TabButton>
-                                            <TabButton 
-                                                active={activeTab === 'code'} 
+                                            <TabButton
+                                                active={activeTab === 'code'}
                                                 onClick={() => setActiveTab('code')}
                                                 icon={Code2}
                                             >
                                                 Code
                                             </TabButton>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3">
                                             <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
-                                                <kbd 
+                                                <kbd
                                                     className="px-2 py-1 rounded-lg text-[10px] font-mono"
                                                     style={{
                                                         background: 'rgba(0,0,0,0.05)',
@@ -613,11 +613,11 @@ export default function Builder() {
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
                                 className="shrink-0 overflow-hidden m-2"
                             >
-                                <div 
+                                <div
                                     className="w-[324px] h-full flex flex-col rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
-                                    <div 
+                                    <div
                                         className="flex items-center justify-between p-4"
                                         style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
                                     >
@@ -654,7 +654,7 @@ export default function Builder() {
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
                                 className="shrink-0 overflow-hidden m-2"
                             >
-                                <div 
+                                <div
                                     className="w-[404px] h-full rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
@@ -674,7 +674,7 @@ export default function Builder() {
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
                                 className="shrink-0 m-2"
                             >
-                                <div 
+                                <div
                                     className="w-[304px] h-full rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
@@ -690,19 +690,19 @@ export default function Builder() {
 }
 
 // Tab Button Component
-function TabButton({ 
-    active, 
-    onClick, 
-    icon: Icon, 
-    children 
-}: { 
-    active: boolean; 
-    onClick: () => void; 
+function TabButton({
+    active,
+    onClick,
+    icon: Icon,
+    children
+}: {
+    active: boolean;
+    onClick: () => void;
     icon: React.ElementType;
     children: React.ReactNode;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
         <button
             onClick={onClick}
@@ -735,9 +735,9 @@ function AgentStatusPanel() {
 // Liquid Glass Card Component
 function GlassCard({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
-        <div 
+        <div
             className={`rounded-xl p-4 cursor-pointer transition-all duration-300 ${className}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
