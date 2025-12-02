@@ -31,6 +31,7 @@ import SandpackPreviewWindow from '../components/builder/SandpackPreview';
 import ProjectMemoryPanel from '../components/builder/ProjectMemoryPanel';
 import QualityReportModal from '../components/builder/QualityReportModal';
 import CommandPalette from '../components/builder/CommandPalette';
+import MobileViewToggle, { useMobileView } from '../components/builder/MobileViewToggle';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import DeploymentModal from '../components/deployment/DeploymentModal';
 import { PublishButton } from '../components/deployment/PublishButton';
@@ -332,6 +333,9 @@ export default function Builder() {
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
+    
+    // Mobile/tablet responsive view state
+    const { activeView, setActiveView, isMobile } = useMobileView('chat');
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
@@ -377,10 +381,10 @@ export default function Builder() {
 
                 {/* Premium Liquid Glass Header */}
                 <header
-                    className="h-14 flex items-center justify-between px-4 z-20 shrink-0"
+                    className="h-12 sm:h-14 flex items-center justify-between px-2 sm:px-4 z-20 shrink-0"
                     style={liquidGlassHeader}
                 >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         {/* Dashboard Button */}
                         <GlassIconButton
                             icon={LayoutDashboard}
@@ -389,66 +393,71 @@ export default function Builder() {
                             size="sm"
                         />
 
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="h-6 w-px bg-white/10 hidden sm:block" />
 
                         {/* Logo */}
                         <div
-                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => navigate('/dashboard')}
                         >
                             <KriptikLogo size="sm" animated={false} />
-                            <span className="font-bold text-lg text-white hidden sm:inline">
+                            <span className="font-bold text-base sm:text-lg text-white hidden md:inline">
                                 KripTik<span className="text-zinc-400">AI</span>
                             </span>
                         </div>
 
-                        <div className="h-6 w-px bg-white/10 mx-2" />
+                        <div className="h-6 w-px bg-white/10 mx-1 sm:mx-2 hidden sm:block" />
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-sm text-zinc-400">
+                            <span className="text-xs sm:text-sm text-zinc-400 truncate max-w-[80px] sm:max-w-none">
                                 {projectId || 'New Project'}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <CollaborationHeader />
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        {/* Collaboration header - hidden on mobile */}
+                        <div className="hidden lg:block">
+                            <CollaborationHeader />
+                        </div>
 
-                        <div className="h-4 w-px bg-white/10 mx-2" />
+                        <div className="h-4 w-px bg-white/10 mx-1 sm:mx-2 hidden lg:block" />
 
-                        {/* Header Buttons */}
-                        <GlassButton
-                            icon={Activity}
-                            onClick={() => setShowAgentPanel(!showAgentPanel)}
-                            isActive={showAgentPanel}
-                        >
-                            Agents
-                        </GlassButton>
+                        {/* Header Buttons - Hidden on mobile/tablet */}
+                        <div className="hidden lg:flex items-center gap-2">
+                            <GlassButton
+                                icon={Activity}
+                                onClick={() => setShowAgentPanel(!showAgentPanel)}
+                                isActive={showAgentPanel}
+                            >
+                                Agents
+                            </GlassButton>
 
-                        <GlassButton
-                            icon={Brain}
-                            onClick={() => setShowMemory(!showMemory)}
-                            isActive={showMemory}
-                        >
-                            Memory
-                        </GlassButton>
+                            <GlassButton
+                                icon={Brain}
+                                onClick={() => setShowMemory(!showMemory)}
+                                isActive={showMemory}
+                            >
+                                Memory
+                            </GlassButton>
 
-                        <GlassButton
-                            icon={Check}
-                            onClick={handleProductionCheck}
-                        >
-                            Quality Check
-                        </GlassButton>
+                            <GlassButton
+                                icon={Check}
+                                onClick={handleProductionCheck}
+                            >
+                                Quality Check
+                            </GlassButton>
 
-                        <GlassButton
-                            icon={Blocks}
-                            onClick={() => setIntegrationsOpen(true)}
-                        >
-                            Integrations
-                        </GlassButton>
+                            <GlassButton
+                                icon={Blocks}
+                                onClick={() => setIntegrationsOpen(true)}
+                            >
+                                Integrations
+                            </GlassButton>
 
-                        <div className="h-4 w-px bg-white/10 mx-2" />
+                            <div className="h-4 w-px bg-white/10 mx-2" />
+                        </div>
 
                         <GlassIconButton
                             icon={Settings}
@@ -466,11 +475,14 @@ export default function Builder() {
                     </div>
                 </header>
 
+                {/* Mobile View Toggle */}
+                <MobileViewToggle activeView={activeView} onViewChange={setActiveView} />
+
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
-                    {/* Quick Actions Sidebar - Liquid Glass */}
+                    {/* Quick Actions Sidebar - Liquid Glass (Hidden on mobile) */}
                     <div
-                        className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
+                        className="w-16 flex-col items-center py-4 gap-3 shrink-0 hidden lg:flex"
                         style={{
                             ...liquidGlassPanel,
                             borderRight: '1px solid rgba(255,255,255,0.3)',
@@ -500,8 +512,8 @@ export default function Builder() {
                         ))}
                     </div>
 
-                    {/* Main Builder Area */}
-                    <div className="flex-1 min-w-0">
+                    {/* Desktop Layout (1024px+) */}
+                    <div className="flex-1 min-w-0 hidden lg:block">
                         <PanelGroup direction="horizontal">
                             {/* Left Panel: Chat */}
                             <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
@@ -603,15 +615,60 @@ export default function Builder() {
                         </PanelGroup>
                     </div>
 
-                    {/* Quick Action Panel */}
+                    {/* Mobile/Tablet Layout (< 1024px) */}
+                    <div className="flex-1 min-w-0 lg:hidden relative">
+                        {/* Mobile Chat View */}
+                        <motion.div
+                            initial={false}
+                            animate={{
+                                opacity: activeView === 'chat' ? 1 : 0,
+                                x: activeView === 'chat' ? 0 : -20,
+                            }}
+                            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                            className={`absolute inset-0 flex flex-col ${
+                                activeView === 'chat' ? 'z-10' : 'z-0 pointer-events-none'
+                            }`}
+                            style={{ paddingTop: '60px' }} // Space for MobileViewToggle
+                        >
+                            <div
+                                className="flex-1 flex flex-col m-2 rounded-2xl overflow-hidden"
+                                style={liquidGlassPanel}
+                            >
+                                <ChatInterface />
+                            </div>
+                        </motion.div>
+
+                        {/* Mobile Preview View */}
+                        <motion.div
+                            initial={false}
+                            animate={{
+                                opacity: activeView === 'preview' ? 1 : 0,
+                                x: activeView === 'preview' ? 0 : 20,
+                            }}
+                            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                            className={`absolute inset-0 flex flex-col ${
+                                activeView === 'preview' ? 'z-10' : 'z-0 pointer-events-none'
+                            }`}
+                            style={{ paddingTop: '60px' }} // Space for MobileViewToggle
+                        >
+                            <div
+                                className="flex-1 flex flex-col m-2 rounded-2xl overflow-hidden"
+                                style={liquidGlassPanel}
+                            >
+                                <SandpackPreviewWindow isMobileView={true} />
+                            </div>
+                        </motion.div>
+                    </div>
+
+                    {/* Quick Action Panel - Hidden on mobile/tablet */}
                     <AnimatePresence>
-                        {activeQuickAction && (
+                        {activeQuickAction && !isMobile && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 340, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2"
+                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
                             >
                                 <div
                                     className="w-[324px] h-full flex flex-col rounded-2xl overflow-hidden"
@@ -644,15 +701,15 @@ export default function Builder() {
                         )}
                     </AnimatePresence>
 
-                    {/* Autonomous Agents Panel */}
+                    {/* Autonomous Agents Panel - Hidden on mobile/tablet */}
                     <AnimatePresence>
-                        {showAgentPanel && (
+                        {showAgentPanel && !isMobile && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 420, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2"
+                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
                             >
                                 <div
                                     className="w-[404px] h-full rounded-2xl overflow-hidden"
@@ -664,15 +721,15 @@ export default function Builder() {
                         )}
                     </AnimatePresence>
 
-                    {/* Memory Panel */}
+                    {/* Memory Panel - Hidden on mobile/tablet */}
                     <AnimatePresence>
-                        {showMemory && (
+                        {showMemory && !isMobile && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 320, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 m-2"
+                                className="shrink-0 m-2 hidden lg:block"
                             >
                                 <div
                                     className="w-[304px] h-full rounded-2xl overflow-hidden"
