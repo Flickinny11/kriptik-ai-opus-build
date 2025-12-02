@@ -334,8 +334,8 @@ export default function Builder() {
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
     
-    // Mobile/tablet responsive view state
-    const { activeView, setActiveView, isMobile } = useMobileView('chat');
+    // Mobile/tablet responsive view state with swipe gesture support
+    const { activeView, setActiveView, isMobile, swipeHandlers } = useMobileView('chat');
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
@@ -615,45 +615,74 @@ export default function Builder() {
                         </PanelGroup>
                     </div>
 
-                    {/* Mobile/Tablet Layout (< 1024px) */}
-                    <div className="flex-1 min-w-0 lg:hidden relative">
-                        {/* Mobile Chat View */}
+                    {/* Mobile/Tablet Layout (< 1024px) with swipe gestures */}
+                    <div 
+                        className="flex-1 min-w-0 lg:hidden relative touch-pan-y"
+                        onTouchStart={(e) => swipeHandlers.onTouchStart(e.nativeEvent)}
+                        onTouchMove={(e) => swipeHandlers.onTouchMove(e.nativeEvent)}
+                        onTouchEnd={() => swipeHandlers.onTouchEnd()}
+                    >
+                        {/* Mobile Chat View - 250ms transition with scale 0.98 -> 1 */}
                         <motion.div
                             initial={false}
                             animate={{
                                 opacity: activeView === 'chat' ? 1 : 0,
                                 x: activeView === 'chat' ? 0 : -20,
+                                scale: activeView === 'chat' ? 1 : 0.98,
                             }}
-                            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                            transition={{ 
+                                duration: 0.25, 
+                                ease: [0.25, 0.1, 0.25, 1], // ease-out
+                            }}
                             className={`absolute inset-0 flex flex-col ${
                                 activeView === 'chat' ? 'z-10' : 'z-0 pointer-events-none'
                             }`}
-                            style={{ paddingTop: '60px' }} // Space for MobileViewToggle
+                            style={{ 
+                                paddingTop: '72px', // Space for MobileViewToggle + swipe hint
+                                willChange: 'transform, opacity', // GPU acceleration
+                            }}
                         >
                             <div
-                                className="flex-1 flex flex-col m-2 rounded-2xl overflow-hidden"
-                                style={liquidGlassPanel}
+                                className="flex-1 flex flex-col mx-2 mb-2 rounded-2xl overflow-hidden"
+                                style={{
+                                    ...liquidGlassPanel,
+                                    // Maintain blur during transitions
+                                    backfaceVisibility: 'hidden',
+                                    transform: 'translateZ(0)',
+                                }}
                             >
                                 <ChatInterface />
                             </div>
                         </motion.div>
 
-                        {/* Mobile Preview View */}
+                        {/* Mobile Preview View - 250ms transition with scale 0.98 -> 1 */}
                         <motion.div
                             initial={false}
                             animate={{
                                 opacity: activeView === 'preview' ? 1 : 0,
                                 x: activeView === 'preview' ? 0 : 20,
+                                scale: activeView === 'preview' ? 1 : 0.98,
                             }}
-                            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                            transition={{ 
+                                duration: 0.25, 
+                                ease: [0.25, 0.1, 0.25, 1], // ease-out
+                            }}
                             className={`absolute inset-0 flex flex-col ${
                                 activeView === 'preview' ? 'z-10' : 'z-0 pointer-events-none'
                             }`}
-                            style={{ paddingTop: '60px' }} // Space for MobileViewToggle
+                            style={{ 
+                                paddingTop: '72px', // Space for MobileViewToggle + swipe hint
+                                willChange: 'transform, opacity', // GPU acceleration
+                            }}
                         >
                             <div
-                                className="flex-1 flex flex-col m-2 rounded-2xl overflow-hidden"
-                                style={liquidGlassPanel}
+                                className="flex-1 flex flex-col mx-2 mb-2 rounded-2xl overflow-hidden"
+                                style={{
+                                    ...liquidGlassPanel,
+                                    // Maintain blur during transitions
+                                    backfaceVisibility: 'hidden',
+                                    transform: 'translateZ(0)',
+                                }}
                             >
                                 <SandpackPreviewWindow isMobileView={true} />
                             </div>

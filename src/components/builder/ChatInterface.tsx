@@ -40,7 +40,7 @@ const suggestions = [
     "Add a contact form with validation",
 ];
 
-// Liquid Glass Button Component
+// Liquid Glass Button Component with 44px mobile touch targets
 function GlassButton({ 
     children, 
     onClick, 
@@ -57,11 +57,13 @@ function GlassButton({
     className?: string;
 }) {
     const [isHovered, setIsHovered] = useState(false);
+    const [isPressed, setIsPressed] = useState(false);
     
+    // All sizes have minimum 44px for mobile touch accessibility
     const sizeClasses = {
-        sm: 'w-8 h-8',
-        md: 'w-10 h-10',
-        lg: 'w-12 h-12 rounded-2xl',
+        sm: 'min-w-[44px] min-h-[44px] w-10 h-10',
+        md: 'min-w-[44px] min-h-[44px] w-11 h-11',
+        lg: 'min-w-[44px] min-h-[44px] w-12 h-12 rounded-2xl',
     };
     
     const getStyles = () => {
@@ -75,10 +77,10 @@ function GlassButton({
         
         if (variant === 'primary') {
             return {
-                background: isHovered
+                background: isHovered || isPressed
                     ? 'linear-gradient(145deg, rgba(255,180,150,0.85) 0%, rgba(255,160,130,0.7) 100%)'
                     : 'linear-gradient(145deg, rgba(255,200,170,0.75) 0%, rgba(255,180,150,0.6) 100%)',
-                boxShadow: isHovered
+                boxShadow: isHovered || isPressed
                     ? `0 8px 24px rgba(255, 140, 100, 0.3), inset 0 0 20px rgba(255, 180, 140, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.6)`
                     : `0 4px 16px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.5)`,
             };
@@ -86,20 +88,20 @@ function GlassButton({
         
         if (variant === 'danger') {
             return {
-                background: isHovered
+                background: isHovered || isPressed
                     ? 'linear-gradient(145deg, rgba(239,68,68,0.3) 0%, rgba(220,38,38,0.2) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                boxShadow: isHovered
+                boxShadow: isHovered || isPressed
                     ? `0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(239, 68, 68, 0.3)`
                     : `0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
             };
         }
         
         return {
-            background: isHovered
+            background: isHovered || isPressed
                 ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
                 : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-            boxShadow: isHovered
+            boxShadow: isHovered || isPressed
                 ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
                 : `0 2px 10px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
         };
@@ -110,12 +112,23 @@ function GlassButton({
             onClick={onClick}
             disabled={disabled}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden ${className}`}
+            onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
+            onMouseDown={() => setIsPressed(true)}
+            onMouseUp={() => setIsPressed(false)}
+            onTouchStart={() => setIsPressed(true)}
+            onTouchEnd={() => setIsPressed(false)}
+            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-200 relative overflow-hidden ${className}`}
             style={{
                 ...getStyles(),
                 backdropFilter: 'blur(16px)',
-                transform: isHovered && !disabled ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
+                WebkitBackdropFilter: 'blur(16px)',
+                transform: isPressed && !disabled 
+                    ? 'scale(0.95)' 
+                    : isHovered && !disabled 
+                        ? 'translateY(-1px) scale(1.02)' 
+                        : 'translateY(0) scale(1)',
+                // Touch action for better mobile interaction
+                touchAction: 'manipulation',
             }}
         >
             {children}
@@ -126,7 +139,7 @@ function GlassButton({
                     style={{
                         position: 'absolute',
                         top: 0,
-                        left: isHovered ? '150%' : '-100%',
+                        left: isHovered || isPressed ? '150%' : '-100%',
                         width: '60%',
                         height: '100%',
                         background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
@@ -140,7 +153,7 @@ function GlassButton({
     );
 }
 
-// Liquid Glass Message Card
+// Liquid Glass Message Card with mobile-optimized touch targets
 function MessageCard({ 
     children, 
     isUser = false,
@@ -152,14 +165,19 @@ function MessageCard({
 }) {
     return (
         <div
-            className="max-w-[85%] p-4 rounded-2xl transition-all duration-300"
+            // 44px minimum touch target, proper padding for mobile
+            className="max-w-[85%] sm:max-w-[80%] rounded-2xl transition-all duration-300"
             style={{
+                // Mobile-first padding with 44px touch area consideration
+                padding: 'clamp(14px, 4vw, 18px)',
+                minHeight: '44px',
                 background: isUser
                     ? 'linear-gradient(145deg, rgba(255,180,150,0.6) 0%, rgba(255,160,130,0.45) 100%)'
                     : isSystem
                         ? 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)'
                         : 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 100%)',
                 backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
                 boxShadow: isUser
                     ? `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
                     : `0 4px 16px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`,
@@ -382,8 +400,15 @@ export default function ChatInterface() {
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative min-h-0">
                 {globalStatus === 'idle' ? (
-                    <ScrollArea className="h-full" ref={scrollRef}>
-                        <div className="p-4 space-y-4">
+                    <ScrollArea 
+                        className="h-full" 
+                        ref={scrollRef}
+                        style={{
+                            // Smooth momentum scrolling on mobile
+                            WebkitOverflowScrolling: 'touch',
+                        }}
+                    >
+                        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                             {/* Empty state with suggestions */}
                             {messages.length === 0 && (
                                 <motion.div
@@ -454,20 +479,25 @@ export default function ChatInterface() {
                                         <MessageCard isUser={msg.role === 'user'} isSystem={msg.role === 'system'}>
                                             {msg.agentType && (
                                                 <div 
-                                                    className="text-[10px] mb-1 font-semibold uppercase tracking-wider"
+                                                    className="text-[10px] sm:text-[11px] mb-1.5 font-semibold uppercase tracking-wider"
                                                     style={{ color: '#c25a00' }}
                                                 >
                                                     {msg.agentType}
                                                 </div>
                                             )}
                                             <p 
-                                                className="text-sm whitespace-pre-wrap"
-                                                style={{ color: msg.role === 'user' ? '#92400e' : '#1a1a1a' }}
+                                                className="whitespace-pre-wrap"
+                                                style={{ 
+                                                    color: msg.role === 'user' ? '#92400e' : '#1a1a1a',
+                                                    // Minimum 16px font for mobile readability
+                                                    fontSize: 'clamp(16px, 3.5vw, 14px)',
+                                                    lineHeight: '1.6',
+                                                }}
                                             >
                                                 {msg.content}
                                             </p>
                                             <div 
-                                                className="text-[10px] mt-2"
+                                                className="text-[10px] sm:text-[11px] mt-2"
                                                 style={{ color: '#999' }}
                                             >
                                                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -551,18 +581,25 @@ export default function ChatInterface() {
                 </AnimatePresence>
             </div>
 
-            {/* Input Area - Liquid Glass Pane - Sticky on mobile */}
+            {/* Input Area - Liquid Glass Pane with mobile optimization */}
             <div 
-                className="p-3 sm:p-4 shrink-0 lg:relative"
+                className="shrink-0 lg:relative"
                 style={{ 
+                    // Safe area inset for notched devices (iPhone X+, etc.)
+                    paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
+                    paddingLeft: 'env(safe-area-inset-left, 12px)',
+                    paddingRight: 'env(safe-area-inset-right, 12px)',
+                    paddingTop: '12px',
                     borderTop: '1px solid rgba(0,0,0,0.06)',
+                    // Keyboard-aware - this will be handled by the native viewport behavior
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.4) 100%)',
                     backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
                 }}
             >
-                {/* Glass Input Container */}
+                {/* Glass Input Container - Full width on mobile with warm internal glow */}
                 <div 
-                    className="rounded-2xl p-2.5 sm:p-3 transition-all duration-300"
+                    className="rounded-2xl p-3 transition-all duration-300"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)',
                         backdropFilter: 'blur(24px) saturate(180%)',
@@ -571,25 +608,26 @@ export default function ChatInterface() {
                             0 8px 32px rgba(0,0,0,0.08),
                             inset 0 2px 4px rgba(255,255,255,0.95),
                             inset 0 -1px 2px rgba(0,0,0,0.02),
-                            0 0 0 1px rgba(255,255,255,0.6)
+                            0 0 0 1px rgba(255,255,255,0.6),
+                            inset 0 0 30px rgba(255, 180, 150, 0.08)
                         `,
                     }}
                 >
-                    <div className="flex gap-1.5 sm:gap-2 items-end">
-                        {/* Attach Image Button */}
-                        <GlassButton size="sm">
+                    <div className="flex gap-2 items-end">
+                        {/* Attach Button - 44px touch target for mobile */}
+                        <GlassButton size="md" className="shrink-0">
                             <Paperclip className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                         </GlassButton>
                         
-                        {/* Image to Code Button - Hidden on very small screens */}
-                        <div className="hidden xs:block">
-                            <GlassButton size="sm">
+                        {/* Image to Code Button - Hidden on small screens */}
+                        <div className="hidden sm:block shrink-0">
+                            <GlassButton size="md">
                                 <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                             </GlassButton>
                         </div>
 
-                        {/* Text Input */}
-                        <div className="flex-1">
+                        {/* Text Input - optimized for mobile */}
+                        <div className="flex-1 min-w-0">
                             <textarea
                                 ref={inputRef}
                                 placeholder="Describe what you want to build..."
@@ -598,22 +636,28 @@ export default function ChatInterface() {
                                 onKeyDown={handleKeyDown}
                                 disabled={globalStatus !== 'idle'}
                                 rows={1}
-                                className="w-full resize-none bg-transparent border-none px-2 sm:px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                                className="w-full resize-none bg-transparent border-none px-3 py-2.5 focus:outline-none disabled:opacity-50"
                                 style={{ 
-                                    minHeight: '40px', 
+                                    // Minimum 16px font for mobile readability
+                                    fontSize: '16px',
+                                    lineHeight: '1.5',
+                                    minHeight: '44px', // 44px touch target
                                     maxHeight: '120px',
                                     color: '#1a1a1a',
-                                    fontFamily: 'Inter, system-ui, sans-serif',
+                                    fontFamily: 'var(--font-body, Inter, system-ui, sans-serif)',
+                                    // Prevent zoom on focus in iOS
+                                    WebkitTextSizeAdjust: '100%',
                                 }}
                             />
                         </div>
 
-                        {/* Send Button */}
+                        {/* Send Button - 44px touch target */}
                         <GlassButton
                             onClick={handleSend}
                             disabled={globalStatus !== 'idle' || !input.trim()}
                             variant="primary"
                             size="md"
+                            className="shrink-0"
                         >
                             <Send className="h-4 w-4" style={{ color: '#92400e' }} />
                         </GlassButton>
