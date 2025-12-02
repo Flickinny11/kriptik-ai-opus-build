@@ -22,56 +22,80 @@ const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string }> = {
     desktop: { width: 1280, label: '100%' },
 };
 
-// Liquid Glass Device Button
+// Liquid Glass Device Button - Mobile optimized with 44px touch targets
 function DeviceButton({ 
     icon: Icon, 
     isActive, 
     onClick, 
-    title 
+    title,
+    label,
+    isMobileLayout = false
 }: { 
     icon: React.ElementType; 
     isActive: boolean; 
     onClick: () => void;
     title: string;
+    label?: string;
+    isMobileLayout?: boolean;
 }) {
-    const [isHovered, setIsHovered] = useState(false);
+    const [isPressed, setIsPressed] = useState(false);
     
     return (
         <button
             onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsPressed(true)}
+            onTouchEnd={() => setIsPressed(false)}
+            onMouseDown={() => setIsPressed(true)}
+            onMouseUp={() => setIsPressed(false)}
+            onMouseLeave={() => setIsPressed(false)}
             title={title}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 relative overflow-hidden"
+            // 44px touch target on mobile, standard on desktop
+            className={`
+                ${isMobileLayout ? 'min-w-[56px] min-h-[40px] px-3 gap-1.5' : 'w-8 h-8'} 
+                rounded-lg flex items-center justify-center transition-all duration-200 relative overflow-hidden
+            `}
             style={{
                 background: isActive
-                    ? 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)'
-                    : isHovered
-                        ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
-                        : 'transparent',
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.65) 0%, rgba(255,180,150,0.5) 100%)'
+                    : 'transparent',
                 boxShadow: isActive
-                    ? `inset 0 0 12px rgba(255, 160, 120, 0.2), 0 2px 8px rgba(255, 140, 100, 0.15), 0 0 0 1px rgba(255, 200, 170, 0.4)`
-                    : isHovered
-                        ? `0 4px 12px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.4)`
-                        : 'none',
-                transform: isHovered && !isActive ? 'scale(1.05)' : 'scale(1)',
+                    ? `
+                        inset 0 0 20px rgba(255, 160, 120, 0.25),
+                        0 4px 12px rgba(255, 140, 100, 0.2),
+                        0 2px 6px rgba(255, 130, 80, 0.15),
+                        0 0 0 1px rgba(255, 200, 170, 0.5)
+                    `
+                    : 'none',
+                transform: isPressed ? 'scale(0.95)' : 'scale(1)',
+                touchAction: 'manipulation',
             }}
         >
             <Icon 
-                className="w-4 h-4" 
-                style={{ color: isActive ? '#92400e' : isHovered ? '#1a1a1a' : '#666' }}
+                className={isMobileLayout ? 'w-4 h-4' : 'w-4 h-4'}
+                style={{ color: isActive ? '#92400e' : '#666' }}
             />
+            {isMobileLayout && label && (
+                <span 
+                    className="text-xs font-medium"
+                    style={{ 
+                        color: isActive ? '#92400e' : '#666',
+                        fontFamily: 'var(--font-body, Outfit, system-ui, sans-serif)',
+                    }}
+                >
+                    {label}
+                </span>
+            )}
             
-            {/* Shine effect */}
-            {(isActive || isHovered) && (
+            {/* Shine effect on press */}
+            {isActive && (
                 <div
                     style={{
                         position: 'absolute',
                         top: 0,
-                        left: isHovered ? '150%' : '-100%',
+                        left: isPressed ? '150%' : '-100%',
                         width: '60%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
                         transform: 'skewX(-15deg)',
                         transition: 'left 0.4s ease',
                         pointerEvents: 'none',
@@ -82,7 +106,7 @@ function DeviceButton({
     );
 }
 
-// Liquid Glass Icon Button
+// Liquid Glass Icon Button with 44px mobile touch targets
 function GlassIconButton({ 
     icon: Icon, 
     onClick, 
@@ -94,28 +118,34 @@ function GlassIconButton({
     isActive?: boolean;
     title?: string;
 }) {
-    const [isHovered, setIsHovered] = useState(false);
+    const [isPressed, setIsPressed] = useState(false);
     
     return (
         <button
             onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsPressed(true)}
+            onTouchEnd={() => setIsPressed(false)}
+            onMouseDown={() => setIsPressed(true)}
+            onMouseUp={() => setIsPressed(false)}
+            onMouseLeave={() => setIsPressed(false)}
             title={title}
-            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden"
+            // 44px minimum touch target for mobile accessibility
+            className="min-w-[44px] min-h-[44px] w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 relative overflow-hidden"
             style={{
                 background: isActive
                     ? 'linear-gradient(145deg, rgba(255,200,170,0.55) 0%, rgba(255,180,150,0.4) 100%)'
-                    : isHovered
+                    : isPressed
                         ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
                         : 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.25) 100%)',
                 backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
                 boxShadow: isActive
                     ? `inset 0 0 12px rgba(255, 160, 120, 0.15), 0 2px 8px rgba(255, 140, 100, 0.12), 0 0 0 1px rgba(255, 200, 170, 0.4)`
-                    : isHovered
+                    : isPressed
                         ? `0 4px 14px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`
                         : `0 2px 6px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.3)`,
-                transform: isHovered ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
+                transform: isPressed ? 'scale(0.95)' : 'scale(1)',
+                touchAction: 'manipulation',
             }}
         >
             <Icon 
@@ -128,7 +158,7 @@ function GlassIconButton({
                 style={{
                     position: 'absolute',
                     top: 0,
-                    left: isHovered ? '150%' : '-100%',
+                    left: isPressed ? '150%' : '-100%',
                     width: '60%',
                     height: '100%',
                     background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
@@ -186,25 +216,21 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                 }}
             >
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Viewport Selector - Liquid Glass Pill */}
+                    {/* Viewport Selector - Liquid Glass Segmented Control */}
+                    {/* Mobile: Matching MobileViewToggle styling with labels */}
+                    {/* Desktop: Icon-only compact version */}
                     <div 
-                        className="flex gap-0.5 sm:gap-1 p-1 sm:p-1.5 rounded-xl"
+                        className="flex gap-1 p-1.5 rounded-2xl"
                         style={{
-                            background: isMobileView
-                                ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.45) 50%, rgba(248,248,250,0.5) 100%)'
-                                : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                            backdropFilter: isMobileView ? 'blur(16px) saturate(180%)' : undefined,
-                            WebkitBackdropFilter: isMobileView ? 'blur(16px) saturate(180%)' : undefined,
-                            boxShadow: isMobileView ? `
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)',
+                            backdropFilter: 'blur(20px) saturate(180%)',
+                            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                            boxShadow: `
+                                0 8px 32px rgba(0,0,0,0.12),
                                 0 4px 16px rgba(0,0,0,0.08),
-                                0 2px 8px rgba(0,0,0,0.06),
                                 inset 0 1px 2px rgba(255,255,255,0.95),
                                 inset 0 -1px 1px rgba(0,0,0,0.02),
                                 0 0 0 1px rgba(255,255,255,0.5)
-                            ` : `
-                                0 2px 8px rgba(0,0,0,0.04),
-                                inset 0 1px 2px rgba(255,255,255,0.9),
-                                0 0 0 1px rgba(255,255,255,0.4)
                             `,
                         }}
                     >
@@ -213,18 +239,24 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                             isActive={viewport === 'mobile'}
                             onClick={() => setViewport('mobile')}
                             title="Mobile (375px)"
+                            label="Phone"
+                            isMobileLayout={isMobileView}
                         />
                         <DeviceButton
                             icon={Tablet}
                             isActive={viewport === 'tablet'}
                             onClick={() => setViewport('tablet')}
                             title="Tablet (768px)"
+                            label="Tablet"
+                            isMobileLayout={isMobileView}
                         />
                         <DeviceButton
                             icon={Monitor}
                             isActive={viewport === 'desktop'}
                             onClick={() => setViewport('desktop')}
                             title="Desktop (100%)"
+                            label="Desktop"
+                            isMobileLayout={isMobileView}
                         />
                     </div>
                     
