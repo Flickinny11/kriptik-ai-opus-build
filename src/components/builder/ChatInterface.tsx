@@ -551,17 +551,22 @@ export default function ChatInterface() {
                 </AnimatePresence>
             </div>
 
-            {/* Input Area - Liquid Glass Pane */}
+            {/* Input Area - Liquid Glass Pane - Sticky on mobile */}
             <div 
-                className="p-4 shrink-0"
-                style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                className="p-3 sm:p-4 shrink-0 lg:relative"
+                style={{ 
+                    borderTop: '1px solid rgba(0,0,0,0.06)',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.4) 100%)',
+                    backdropFilter: 'blur(20px)',
+                }}
             >
                 {/* Glass Input Container */}
                 <div 
-                    className="rounded-2xl p-3 transition-all duration-300"
+                    className="rounded-2xl p-2.5 sm:p-3 transition-all duration-300"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)',
                         backdropFilter: 'blur(24px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                         boxShadow: `
                             0 8px 32px rgba(0,0,0,0.08),
                             inset 0 2px 4px rgba(255,255,255,0.95),
@@ -570,16 +575,18 @@ export default function ChatInterface() {
                         `,
                     }}
                 >
-                    <div className="flex gap-2 items-end">
+                    <div className="flex gap-1.5 sm:gap-2 items-end">
                         {/* Attach Image Button */}
                         <GlassButton size="sm">
                             <Paperclip className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                         </GlassButton>
                         
-                        {/* Image to Code Button */}
-                        <GlassButton size="sm">
-                            <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
-                        </GlassButton>
+                        {/* Image to Code Button - Hidden on very small screens */}
+                        <div className="hidden xs:block">
+                            <GlassButton size="sm">
+                                <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                            </GlassButton>
+                        </div>
 
                         {/* Text Input */}
                         <div className="flex-1">
@@ -591,7 +598,7 @@ export default function ChatInterface() {
                                 onKeyDown={handleKeyDown}
                                 disabled={globalStatus !== 'idle'}
                                 rows={1}
-                                className="w-full resize-none bg-transparent border-none px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                                className="w-full resize-none bg-transparent border-none px-2 sm:px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
                                 style={{ 
                                     minHeight: '40px', 
                                     maxHeight: '120px',
@@ -613,9 +620,9 @@ export default function ChatInterface() {
                     </div>
                 </div>
 
-                {/* Quick hint */}
+                {/* Quick hint - Hidden on mobile */}
                 <div 
-                    className="flex items-center justify-center gap-4 mt-3 text-[10px]"
+                    className="hidden sm:flex items-center justify-center gap-4 mt-3 text-[10px]"
                     style={{ color: '#999' }}
                 >
                     <span>Press Enter to send</span>

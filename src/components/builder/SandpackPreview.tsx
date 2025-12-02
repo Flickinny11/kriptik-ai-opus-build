@@ -141,7 +141,11 @@ function GlassIconButton({
     );
 }
 
-export default function SandpackPreviewWindow() {
+interface SandpackPreviewWindowProps {
+    isMobileView?: boolean;
+}
+
+export default function SandpackPreviewWindow({ isMobileView = false }: SandpackPreviewWindowProps) {
     const [viewport, setViewport] = useState<ViewportSize>('desktop');
     const [showConsole, setShowConsole] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -163,20 +167,41 @@ export default function SandpackPreviewWindow() {
         >
             {/* Toolbar - Liquid Glass */}
             <div 
-                className="h-14 flex items-center justify-between px-4 shrink-0"
+                className={`flex items-center justify-between px-3 sm:px-4 shrink-0 ${
+                    isMobileView ? 'h-12' : 'h-14'
+                }`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                    backdropFilter: 'blur(16px)',
+                    background: isMobileView 
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                    backdropFilter: isMobileView ? 'blur(20px) saturate(180%)' : 'blur(16px)',
+                    WebkitBackdropFilter: isMobileView ? 'blur(20px) saturate(180%)' : undefined,
                     borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    boxShadow: isMobileView ? `
+                        0 4px 16px rgba(0,0,0,0.08),
+                        inset 0 1px 2px rgba(255,255,255,0.95),
+                        inset 0 -1px 1px rgba(0,0,0,0.02),
+                        0 0 0 1px rgba(255,255,255,0.5)
+                    ` : undefined,
                 }}
             >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     {/* Viewport Selector - Liquid Glass Pill */}
                     <div 
-                        className="flex gap-1 p-1.5 rounded-xl"
+                        className="flex gap-0.5 sm:gap-1 p-1 sm:p-1.5 rounded-xl"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                            boxShadow: `
+                            background: isMobileView
+                                ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.45) 50%, rgba(248,248,250,0.5) 100%)'
+                                : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                            backdropFilter: isMobileView ? 'blur(16px) saturate(180%)' : undefined,
+                            WebkitBackdropFilter: isMobileView ? 'blur(16px) saturate(180%)' : undefined,
+                            boxShadow: isMobileView ? `
+                                0 4px 16px rgba(0,0,0,0.08),
+                                0 2px 8px rgba(0,0,0,0.06),
+                                inset 0 1px 2px rgba(255,255,255,0.95),
+                                inset 0 -1px 1px rgba(0,0,0,0.02),
+                                0 0 0 1px rgba(255,255,255,0.5)
+                            ` : `
                                 0 2px 8px rgba(0,0,0,0.04),
                                 inset 0 1px 2px rgba(255,255,255,0.9),
                                 0 0 0 1px rgba(255,255,255,0.4)
@@ -203,13 +228,13 @@ export default function SandpackPreviewWindow() {
                         />
                     </div>
                     
-                    <span className="text-xs font-medium" style={{ color: '#666' }}>
+                    <span className="text-xs font-medium hidden sm:inline" style={{ color: '#666' }}>
                         {VIEWPORT_SIZES[viewport].label}
                     </span>
 
-                    {/* Status indicator */}
+                    {/* Status indicator - Hidden on mobile to save space */}
                     <div 
-                        className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-lg"
+                        className="items-center gap-2 ml-1 sm:ml-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hidden sm:flex"
                         style={{
                             background: sandpack.status === 'running' 
                                 ? 'rgba(16, 185, 129, 0.1)'
@@ -248,9 +273,28 @@ export default function SandpackPreviewWindow() {
                             {sandpack.status}
                         </span>
                     </div>
+
+                    {/* Mobile-only status dot */}
+                    <div 
+                        className="w-2.5 h-2.5 rounded-full animate-pulse sm:hidden"
+                        style={{
+                            background: sandpack.status === 'running' 
+                                ? '#10b981'
+                                : sandpack.status === 'idle'
+                                    ? '#eab308'
+                                    : '#ef4444',
+                            boxShadow: `0 0 8px ${
+                                sandpack.status === 'running' 
+                                    ? 'rgba(16, 185, 129, 0.4)'
+                                    : sandpack.status === 'idle'
+                                        ? 'rgba(234, 179, 8, 0.4)'
+                                        : 'rgba(239, 68, 68, 0.4)'
+                            }`,
+                        }}
+                    />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                     <GlassIconButton
                         icon={MousePointer2}
                         isActive={isSelectionMode}
@@ -268,12 +312,15 @@ export default function SandpackPreviewWindow() {
                         onClick={handleRefresh}
                         title="Refresh Preview"
                     />
-                    <GlassIconButton
-                        icon={Maximize2}
-                        isActive={isFullscreen}
-                        onClick={() => setIsFullscreen(!isFullscreen)}
-                        title="Toggle Fullscreen"
-                    />
+                    {/* Hide fullscreen on mobile - not needed */}
+                    <div className="hidden sm:block">
+                        <GlassIconButton
+                            icon={Maximize2}
+                            isActive={isFullscreen}
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            title="Toggle Fullscreen"
+                        />
+                    </div>
                     <GlassIconButton
                         icon={ExternalLink}
                         onClick={handleOpenExternal}
