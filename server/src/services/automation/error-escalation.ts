@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 4-Level Error Escalation System - Ultimate AI-First Builder Architecture
  *
@@ -408,7 +407,7 @@ Provide a direct fix. Respond with JSON:
 
         return {
             changes: result.changes,
-            strategy: result.strategy,
+            strategy: result.strategy || 'Level 1 simple fix',
             tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
             thinkingTokens: response.usage.thinkingTokens || 0,
         };
@@ -694,24 +693,39 @@ Respond with JSON:
         level: EscalationLevel,
         result: { success: boolean; fix: Fix | null }
     ): Promise<void> {
-        await db.insert(errorEscalationHistory).values({
-            id: uuidv4(),
+        // Build attempt record for the JSON array
+        const attemptRecord = {
+            level,
+            attempt: (this.state.attemptsPerLevel.get(level) || 0) + 1,
+            model: level >= 2 ? 'claude-opus-4-5' : 'claude-sonnet-4-5',
+            effort: level >= 2 ? 'high' : 'medium',
+            thinkingBudget: level >= 2 ? 65536 : undefined,
+            fixApplied: result.fix?.strategy || 'No fix applied',
+            result: result.success ? 'success' as const : 'failure' as const,
+            durationMs: result.fix?.durationMs || 0,
+            tokensUsed: result.fix?.tokensUsed || 0,
+            timestamp: new Date().toISOString(),
+        };
+
+        // Use type assertion to work around Drizzle ORM type inference issues
+        const insertData = {
             orchestrationRunId: this.orchestrationRunId,
             projectId: this.projectId,
-            errorId: error.id,
-            errorCategory: error.category,
+            errorType: error.category,
             errorMessage: error.message,
             errorFile: error.file,
-            level,
-            attemptNumber: (this.state.attemptsPerLevel.get(level) || 0) + 1,
-            success: result.success,
-            fixStrategy: result.fix?.strategy,
-            filesModified: result.fix?.changes.map(c => c.path),
-            tokensUsed: result.fix?.tokensUsed,
-            thinkingTokensUsed: result.fix?.thinkingTokens,
-            durationMs: result.fix?.durationMs,
-            createdAt: new Date().toISOString(),
-        });
+            errorLine: error.line,
+            currentLevel: level,
+            totalAttempts: this.state.totalAttempts,
+            attempts: [attemptRecord],
+            resolved: result.success,
+            resolvedAt: result.success ? new Date().toISOString() : undefined,
+            resolvedAtLevel: result.success ? level : undefined,
+            finalFix: result.success ? result.fix?.strategy : undefined,
+            wasRebuiltFromIntent: level === 4 && result.success,
+        } as typeof errorEscalationHistory.$inferInsert;
+
+        await db.insert(errorEscalationHistory).values(insertData);
     }
 
     /**
