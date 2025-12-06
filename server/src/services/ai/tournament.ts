@@ -306,7 +306,7 @@ Output your implementation with proper file operations.`;
      */
     private extractIssues(swarmResult: CombinedVerificationResult): VerificationIssue[] {
         const issues: VerificationIssue[] = [];
-        
+
         const results = swarmResult.results;
         if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
         if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
@@ -404,7 +404,7 @@ Output your implementation with proper file operations.`;
                     competitor.scores.overall = this.calculateWeightedScore(competitor.scores, config.weights);
 
                     competitor.verificationVerdict = swarmResult.verdict;
-                    
+
                     // Extract issues from swarm result
                     const issues = this.extractIssues(swarmResult);
                     competitor.verificationIssues = issues.map(i => i.description);

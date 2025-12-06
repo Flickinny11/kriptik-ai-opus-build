@@ -41,6 +41,9 @@ import CollaborationHeader from '../components/collaboration/CollaborationHeader
 import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
+// Builder/Agents Mode Components
+import { BuilderAgentsToggle } from '../components/builder/BuilderAgentsToggle';
+import { AgentModeSidebar } from '../components/builder/AgentModeSidebar';
 // Ultimate AI-First Builder Architecture Components
 import { SpeedDialSelector } from '../components/builder/SpeedDialSelector';
 import { IntelligenceToggles } from '../components/builder/IntelligenceToggles';
@@ -335,6 +338,8 @@ export default function Builder() {
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
+    // Builder/Agents Mode Toggle - swaps layout positions
+    const [builderMode, setBuilderMode] = useState<'builder' | 'agents'>('builder');
     // Ultimate AI-First Builder Architecture State
     const [showBuildConfig, setShowBuildConfig] = useState(false);
     const [selectedBuildMode, setSelectedBuildMode] = useState<'lightning' | 'standard' | 'tournament' | 'production'>('standard');
@@ -563,106 +568,227 @@ export default function Builder() {
                         ))}
                     </div>
 
-                    {/* Desktop Layout (1024px+) */}
+                    {/* Desktop Layout (1024px+) - Swaps when in Agents mode */}
                     <div className="flex-1 min-w-0 hidden lg:block">
-                        <PanelGroup direction="horizontal">
-                            {/* Left Panel: Chat */}
-                            <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
-                                <div
-                                    className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
-                                    style={liquidGlassPanel}
-                                >
-                                    <ChatInterface />
-                                    {activeTab === 'preview' && <ActivityFeed />}
-                                </div>
-                            </Panel>
-
-                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
-
-                            {/* Middle Panel: File Explorer (only in code view) */}
-                            {activeTab === 'code' && (
+                        <PanelGroup direction="horizontal" key={builderMode}>
+                            {/* Builder Mode: Chat on LEFT, Preview on RIGHT */}
+                            {/* Agents Mode: Preview on LEFT, Agent Sidebar on RIGHT */}
+                            
+                            {builderMode === 'builder' ? (
                                 <>
-                                    <Panel defaultSize={15} minSize={10} maxSize={25}>
+                                    {/* Left Panel: Chat (Builder Mode) */}
+                                    <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
                                         <div
-                                            className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
+                                            className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                             style={liquidGlassPanel}
                                         >
-                                            <SandpackFileExplorer />
+                                            {/* Mode Toggle at top of chat */}
+                                            <div className="px-4 py-3 flex items-center justify-between shrink-0"
+                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                            >
+                                                <BuilderAgentsToggle mode={builderMode} onModeChange={setBuilderMode} />
+                                            </div>
+                                            <ChatInterface />
+                                            {activeTab === 'preview' && <ActivityFeed />}
                                         </div>
                                     </Panel>
+
                                     <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
+
+                                    {/* Middle Panel: File Explorer (only in code view) */}
+                                    {activeTab === 'code' && (
+                                        <>
+                                            <Panel defaultSize={15} minSize={10} maxSize={25}>
+                                                <div
+                                                    className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
+                                                    style={liquidGlassPanel}
+                                                >
+                                                    <SandpackFileExplorer />
+                                                </div>
+                                            </Panel>
+                                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
+                                        </>
+                                    )}
+
+                                    {/* Right Panel: Preview or Code */}
+                                    <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
+                                        <div
+                                            className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
+                                            style={liquidGlassPanel}
+                                        >
+                                            {/* Tab bar */}
+                                            <div
+                                                className="px-4 py-3 flex justify-between items-center shrink-0"
+                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                            >
+                                                {/* Tabs */}
+                                                <div className="flex gap-2">
+                                                    <TabButton
+                                                        active={activeTab === 'preview'}
+                                                        onClick={() => setActiveTab('preview')}
+                                                        icon={Eye}
+                                                    >
+                                                        Preview
+                                                    </TabButton>
+                                                    <TabButton
+                                                        active={activeTab === 'code'}
+                                                        onClick={() => setActiveTab('code')}
+                                                        icon={Code2}
+                                                    >
+                                                        Code
+                                                    </TabButton>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
+                                                        <kbd
+                                                            className="px-2 py-1 rounded-lg text-[10px] font-mono"
+                                                            style={{
+                                                                background: 'rgba(0,0,0,0.05)',
+                                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                                color: '#1a1a1a',
+                                                            }}
+                                                        >
+                                                            ⌘K
+                                                        </kbd>
+                                                        <span>Quick actions</span>
+                                                    </div>
+                                                    <PublishButton
+                                                        projectId={projectId || 'new-project'}
+                                                        projectName={projectName}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Content area */}
+                                            <div className="flex-1 overflow-hidden relative min-h-0">
+                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                                    activeTab === 'preview'
+                                                        ? 'opacity-100 z-10'
+                                                        : 'opacity-0 z-0 pointer-events-none'
+                                                }`}>
+                                                    <SandpackPreviewWindow />
+                                                </div>
+                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                                    activeTab === 'code'
+                                                        ? 'opacity-100 z-10'
+                                                        : 'opacity-0 z-0 pointer-events-none'
+                                                }`}>
+                                                    <SandpackEditor />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Panel>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Left Panel: Preview/Code (Agents Mode) */}
+                                    <Panel defaultSize={activeTab === 'code' ? 55 : 65} minSize={40}>
+                                        <div
+                                            className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
+                                            style={liquidGlassPanel}
+                                        >
+                                            {/* Tab bar */}
+                                            <div
+                                                className="px-4 py-3 flex justify-between items-center shrink-0"
+                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                            >
+                                                {/* Tabs */}
+                                                <div className="flex gap-2">
+                                                    <TabButton
+                                                        active={activeTab === 'preview'}
+                                                        onClick={() => setActiveTab('preview')}
+                                                        icon={Eye}
+                                                    >
+                                                        Preview
+                                                    </TabButton>
+                                                    <TabButton
+                                                        active={activeTab === 'code'}
+                                                        onClick={() => setActiveTab('code')}
+                                                        icon={Code2}
+                                                    >
+                                                        Code
+                                                    </TabButton>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
+                                                        <kbd
+                                                            className="px-2 py-1 rounded-lg text-[10px] font-mono"
+                                                            style={{
+                                                                background: 'rgba(0,0,0,0.05)',
+                                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                                color: '#1a1a1a',
+                                                            }}
+                                                        >
+                                                            ⌘K
+                                                        </kbd>
+                                                        <span>Quick actions</span>
+                                                    </div>
+                                                    <PublishButton
+                                                        projectId={projectId || 'new-project'}
+                                                        projectName={projectName}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Content area */}
+                                            <div className="flex-1 overflow-hidden relative min-h-0">
+                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                                    activeTab === 'preview'
+                                                        ? 'opacity-100 z-10'
+                                                        : 'opacity-0 z-0 pointer-events-none'
+                                                }`}>
+                                                    <SandpackPreviewWindow />
+                                                </div>
+                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                                    activeTab === 'code'
+                                                        ? 'opacity-100 z-10'
+                                                        : 'opacity-0 z-0 pointer-events-none'
+                                                }`}>
+                                                    <SandpackEditor />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Panel>
+
+                                    {/* Middle Panel: File Explorer (only in code view, Agents Mode) */}
+                                    {activeTab === 'code' && (
+                                        <>
+                                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
+                                            <Panel defaultSize={15} minSize={10} maxSize={25}>
+                                                <div
+                                                    className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
+                                                    style={liquidGlassPanel}
+                                                >
+                                                    <SandpackFileExplorer />
+                                                </div>
+                                            </Panel>
+                                        </>
+                                    )}
+
+                                    <PanelResizeHandle className="w-2 hover:bg-lime-400/30 transition-colors mx-1" />
+
+                                    {/* Right Panel: Agent Sidebar (Agents Mode) */}
+                                    <Panel defaultSize={activeTab === 'code' ? 30 : 35} minSize={25} maxSize={45}>
+                                        <div className="h-full m-2 rounded-2xl overflow-hidden">
+                                            {/* Mode Toggle at top */}
+                                            <div 
+                                                className="px-4 py-3 flex items-center justify-between shrink-0"
+                                                style={{ 
+                                                    background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    borderTopLeftRadius: '16px',
+                                                    borderTopRightRadius: '16px',
+                                                }}
+                                            >
+                                                <BuilderAgentsToggle mode={builderMode} onModeChange={setBuilderMode} />
+                                            </div>
+                                            <AgentModeSidebar />
+                                        </div>
+                                    </Panel>
                                 </>
                             )}
-
-                            {/* Right Panel: Preview or Code */}
-                            <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
-                                <div
-                                    className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
-                                    style={liquidGlassPanel}
-                                >
-                                    {/* Tab bar */}
-                                    <div
-                                        className="px-4 py-3 flex justify-between items-center shrink-0"
-                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                    >
-                                        {/* Tabs */}
-                                        <div className="flex gap-2">
-                                            <TabButton
-                                                active={activeTab === 'preview'}
-                                                onClick={() => setActiveTab('preview')}
-                                                icon={Eye}
-                                            >
-                                                Preview
-                                            </TabButton>
-                                            <TabButton
-                                                active={activeTab === 'code'}
-                                                onClick={() => setActiveTab('code')}
-                                                icon={Code2}
-                                            >
-                                                Code
-                                            </TabButton>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
-                                                <kbd
-                                                    className="px-2 py-1 rounded-lg text-[10px] font-mono"
-                                                    style={{
-                                                        background: 'rgba(0,0,0,0.05)',
-                                                        border: '1px solid rgba(0,0,0,0.1)',
-                                                        color: '#1a1a1a',
-                                                    }}
-                                                >
-                                                    ⌘K
-                                                </kbd>
-                                                <span>Quick actions</span>
-                                            </div>
-                                            <PublishButton
-                                                projectId={projectId || 'new-project'}
-                                                projectName={projectName}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Content area */}
-                                    <div className="flex-1 overflow-hidden relative min-h-0">
-                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                            activeTab === 'preview'
-                                                ? 'opacity-100 z-10'
-                                                : 'opacity-0 z-0 pointer-events-none'
-                                        }`}>
-                                            <SandpackPreviewWindow />
-                                        </div>
-                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                            activeTab === 'code'
-                                                ? 'opacity-100 z-10'
-                                                : 'opacity-0 z-0 pointer-events-none'
-                                        }`}>
-                                            <SandpackEditor />
-                                        </div>
-                                    </div>
-                                </div>
-                            </Panel>
                         </PanelGroup>
                     </div>
 

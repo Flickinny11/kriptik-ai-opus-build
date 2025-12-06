@@ -393,7 +393,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
      */
     private extractIssues(swarmResult: CombinedVerificationResult): VerificationIssue[] {
         const issues: VerificationIssue[] = [];
-        
+
         const results = swarmResult.results;
         if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
         if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
@@ -573,7 +573,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
     private createBuildError(issue: ReflectionIssue): BuildError {
         const [file, lineStr] = (issue.location || '').split(':');
         const line = lineStr ? parseInt(lineStr, 10) : undefined;
-        
+
         return {
             id: issue.id,
             featureId: 'reflection-fix',
@@ -666,7 +666,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
                                 this.currentFiles.delete(change.path);
                             }
                         }
-                        
+
                         issue.status = 'fixed';
                         fixed++;
 

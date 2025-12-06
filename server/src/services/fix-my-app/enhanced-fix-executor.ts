@@ -357,7 +357,7 @@ Always explain your reasoning and provide detailed plans.`;
      */
     private extractVerificationIssues(result: CombinedVerificationResult): VerificationIssue[] {
         const issues: VerificationIssue[] = [];
-        
+
         const results = result.results;
         if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
         if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
