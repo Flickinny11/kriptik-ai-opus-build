@@ -3,9 +3,9 @@
   "version": "2.0",
   "last_updated": "2025-12-06",
   "total_features": 28,
-  "completed": 9,
+  "completed": 12,
   "in_progress": 0,
-  "pending": 28,
+  "pending": 16,
 
   "categories": {
     "foundational": {
@@ -188,10 +188,11 @@
           "name": "Error Escalation Engine",
           "description": "4-level escalation: simple → deep → rewrite → rebuild",
           "priority": 1,
-          "passes": false,
-          "files": ["server/src/services/ai/error-escalation.ts"],
+          "passes": true,
+          "files": ["server/src/services/automation/error-escalation.ts"],
           "dependencies": ["F006"],
-          "phase": 6
+          "phase": 5,
+          "completed_at": "2025-12-06"
         }
       ]
     },
@@ -200,23 +201,28 @@
       "features": [
         {
           "id": "F017",
-          "name": "Enhanced Import Flow",
-          "description": "Forensic analysis with intent extraction and failure archaeology",
+          "name": "Enhanced Fix Executor",
+          "description": "Enhanced fix execution with verification swarm and error escalation",
           "priority": 1,
-          "passes": false,
-          "files": ["server/src/services/fix-my-app/enhanced-import.ts"],
-          "dependencies": ["F001", "F002", "F006"],
-          "phase": 7
+          "passes": true,
+          "files": [
+            "server/src/services/fix-my-app/enhanced-fix-executor.ts",
+            "server/src/services/fix-my-app/import-controller.ts"
+          ],
+          "dependencies": ["F001", "F002", "F006", "F007", "F016"],
+          "phase": 6,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F018",
-          "name": "Salvage Assessment",
-          "description": "KEEP/REWRITE/DELETE decisions for imported code",
+          "name": "Intent Lock Integration",
+          "description": "Creates Intent Lock contracts for fix sessions and tracks feature progress",
           "priority": 2,
-          "passes": false,
-          "files": ["server/src/services/fix-my-app/enhanced-import.ts"],
+          "passes": true,
+          "files": ["server/src/services/fix-my-app/enhanced-fix-executor.ts"],
           "dependencies": ["F017"],
-          "phase": 7
+          "phase": 6,
+          "completed_at": "2025-12-06"
         }
       ]
     },
@@ -372,9 +378,9 @@
     "phase_2": { "name": "Model Router", "features": 2, "completed": 2 },
     "phase_3": { "name": "6-Phase Loop", "features": 1, "completed": 1 },
     "phase_4": { "name": "Verification Swarm", "features": 7, "completed": 1 },
-    "phase_5": { "name": "Design System", "features": 2, "completed": 0 },
-    "phase_6": { "name": "Error Escalation", "features": 1, "completed": 0 },
-    "phase_7": { "name": "Fix My App", "features": 2, "completed": 0 },
+    "phase_5": { "name": "Error Escalation", "features": 1, "completed": 1 },
+    "phase_6": { "name": "Enhanced Fix My App", "features": 2, "completed": 2 },
+    "phase_7": { "name": "Design System", "features": 2, "completed": 0 },
     "phase_8": { "name": "Competitive", "features": 5, "completed": 0 },
     "phase_9": { "name": "UI Updates", "features": 4, "completed": 0 },
     "phase_10": { "name": "Database", "features": 1, "completed": 1 }

@@ -14,6 +14,7 @@ import { createIntentAnalyzer, IntentAnalyzer } from './intent-analyzer.js';
 import { createErrorArchaeologist, ErrorArchaeologist } from './error-archaeologist.js';
 import { createStrategyEngine, StrategyEngine } from './strategy-engine.js';
 import { createFixExecutor, FixExecutor } from './fix-executor.js';
+import { createEnhancedFixExecutor, EnhancedFixExecutor } from './enhanced-fix-executor.js';
 import { createIntentVerifier, IntentVerifier } from './intent-verifier.js';
 import { SarcasticNotifier, createSarcasticNotifier } from './sarcastic-notifier.js';
 import type {
@@ -46,8 +47,10 @@ export class ImportController extends EventEmitter {
     private errorArchaeologist?: ErrorArchaeologist;
     private strategyEngine?: StrategyEngine;
     private fixExecutor?: FixExecutor;
+    private enhancedFixExecutor?: EnhancedFixExecutor;
     private intentVerifier?: IntentVerifier;
     private sarcasticNotifier?: SarcasticNotifier;
+    private useEnhancedExecutor: boolean = true; // Enable enhanced executor by default
 
     constructor(userId: string, sessionId?: string) {
         super();
@@ -805,6 +808,7 @@ export class ImportController extends EventEmitter {
 
     /**
      * Execute the fix with selected strategy
+     * Uses Enhanced Fix Executor with verification swarm and error escalation by default
      */
     async executeFix(strategy?: FixStrategy, preferences?: FixPreferences): Promise<void> {
         const selectedStrategy = strategy || this.session.selectedStrategy;
@@ -828,31 +832,70 @@ export class ImportController extends EventEmitter {
         const intent = this.session.context.processed.intentSummary!;
         const gaps = this.session.context.processed.implementationGaps;
 
-        // Create fix executor with preferences
-        this.fixExecutor = createFixExecutor(
-            this.userId,
-            this.session.projectId!,
-            projectFiles,
-            finalStrategy,
-            intent,
-            gaps,
-            this.session.preferences
-        );
+        let fixedFiles: Map<string, string>;
 
-        // Forward events
-        this.fixExecutor.on('progress', (event) => this.emit('progress', event));
-        this.fixExecutor.on('file', (event) => this.emit('file', event));
-        this.fixExecutor.on('log', (msg) => this.log(msg));
-        this.fixExecutor.on('error', (err) => this.emit('error', err));
+        if (this.useEnhancedExecutor) {
+            // Use Enhanced Fix Executor with verification swarm and error escalation
+            this.log('Using Enhanced Fix Executor with verification swarm and error escalation');
+            
+            this.enhancedFixExecutor = createEnhancedFixExecutor({
+                userId: this.userId,
+                projectId: this.session.projectId!,
+                projectFiles,
+                strategy: finalStrategy,
+                intent,
+                gaps,
+                preferences: this.session.preferences,
+                enableVerificationSwarm: true,
+                enableErrorEscalation: true,
+                maxEscalationAttempts: 12
+            });
 
-        // Execute fix
-        const fixedFiles = await this.fixExecutor.execute();
+            // Forward events
+            this.enhancedFixExecutor.on('progress', (event) => this.emit('progress', event));
+            this.enhancedFixExecutor.on('file', (event) => this.emit('file', event));
+            this.enhancedFixExecutor.on('log', (msg) => this.log(msg));
+            this.enhancedFixExecutor.on('error', (err) => this.emit('error', err));
+
+            // Execute enhanced fix
+            fixedFiles = await this.enhancedFixExecutor.execute();
+        } else {
+            // Use standard fix executor (fallback)
+            this.log('Using Standard Fix Executor');
+            
+            this.fixExecutor = createFixExecutor(
+                this.userId,
+                this.session.projectId!,
+                projectFiles,
+                finalStrategy,
+                intent,
+                gaps,
+                this.session.preferences
+            );
+
+            // Forward events
+            this.fixExecutor.on('progress', (event) => this.emit('progress', event));
+            this.fixExecutor.on('file', (event) => this.emit('file', event));
+            this.fixExecutor.on('log', (msg) => this.log(msg));
+            this.fixExecutor.on('error', (err) => this.emit('error', err));
+
+            // Execute fix
+            fixedFiles = await this.fixExecutor.execute();
+        }
 
         // Save fixed files to database
         await this.saveFixedFiles(fixedFiles);
 
         // Proceed to verification
         await this.runVerification(fixedFiles);
+    }
+
+    /**
+     * Enable or disable the enhanced fix executor
+     */
+    setUseEnhancedExecutor(enabled: boolean): void {
+        this.useEnhancedExecutor = enabled;
+        this.log(`Enhanced executor ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     private async saveFixedFiles(files: Map<string, string>): Promise<void> {
