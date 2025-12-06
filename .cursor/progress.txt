@@ -88,7 +88,46 @@ CURRENT STATE:
 - Build: Passing
 - Linting: No errors
 - Phase 1: COMPLETE ✓
-- Ready for Phase 2
+- Phase 2: COMPLETE ✓
+- Ready for Phase 3
+
+═══ [2025-12-06 PHASE 2 COMPLETE] ═══
+COMPLETED: OpenRouter Beta Features & Context Editing
+
+FILES MODIFIED:
+- server/src/services/ai/openrouter-client.ts
+
+ENHANCEMENTS IMPLEMENTED:
+
+1. December 2025 Beta Features:
+   - effort-2025-11-24: Effort parameter control
+   - interleaved-thinking-2025-05-14: Think between tool calls
+   - context-management-2025-06-27: Memory tool + context editing
+   - structured-outputs-2025-11-13: Guaranteed JSON schema
+   - advanced-tool-use-2025-11-20: Enhanced tool capabilities
+   - context-1m-2025-08-07: 1M token context (Sonnet)
+
+2. Context Editing Configuration:
+   - Automatic 84% token reduction
+   - clear_tool_uses_20250919: At 150K tokens, keep last 5 tool calls
+   - clear_thinking_20251015: At 180K tokens, clear thinking blocks
+   - Memory tool exclusion: Never clear memory operations
+
+3. Phase-Based Model Configuration:
+   - intent_lock: Opus 4.5, high effort, 64K thinking
+   - build_orchestrator: Opus 4.5, medium effort, 16K thinking
+   - build_agent: Sonnet 4.5, medium effort, 16K thinking
+   - visual_verify: Sonnet 4.5, high effort, 32K thinking
+   - intent_satisfaction: Opus 4.5, high effort, 64K thinking
+   - tournament_judge: Opus 4.5, high effort, 64K thinking
+   - simple_check: Haiku 3.5, low effort, no thinking
+
+4. New Client Methods:
+   - getConfigForPhase(): Auto-configure from phase name
+   - buildPhaseParams(): Build params from phase
+   - getContextEdits(): Get context editing rules
+   - areBetasEnabled(): Check beta status
+   - getEnabledBetas(): List enabled betas
 
 CONTEXT:
 - All schema changes are ADDITIVE (no breaking changes)
