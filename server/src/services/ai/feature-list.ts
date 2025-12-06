@@ -581,7 +581,7 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
             assignedAt: row.assignedAt,
             verificationStatus: row.verificationStatus as FeatureVerificationStatus,
             verificationScores: row.verificationScores as FeatureVerificationScores | null,
-            buildAttempts: row.buildAttempts,
+            buildAttempts: row.buildAttempts ?? 0,
             lastBuildAt: row.lastBuildAt,
             passedAt: row.passedAt,
             createdAt: row.createdAt,

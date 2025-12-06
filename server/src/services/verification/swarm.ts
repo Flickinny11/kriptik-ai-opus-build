@@ -789,15 +789,22 @@ export class VerificationSwarm extends EventEmitter {
 
         // Save to database
         await db.insert(verificationResults).values({
-            id: result.id,
-            featureProgressId: null, // Would need to look up actual feature record
             orchestrationRunId: this.orchestrationRunId,
+            projectId: this.projectId,
+            featureProgressId: null, // Would need to look up actual feature record
             agentType,
             passed,
             score,
-            issues,
-            details,
-            createdAt: result.timestamp.toISOString(),
+            details: {
+                violations: issues.map(i => ({
+                    file: i.file || 'unknown',
+                    line: i.line,
+                    message: i.description,
+                    severity: i.severity,
+                })),
+                reasoning: details, // details is a string in this context
+            },
+            durationMs,
         });
 
         this.state.totalVerifications++;

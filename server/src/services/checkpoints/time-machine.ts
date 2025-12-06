@@ -12,9 +12,12 @@
  * Part of Phase 8: Competitive Enhancements (Ultimate AI-First Builder Architecture)
  */
 
-import { db } from '../../db/index.js';
-import { buildCheckpoints, type BuildCheckpoint } from '../../db/schema.js';
+import { db } from '../../db.js';
+import { buildCheckpoints } from '../../schema.js';
 import { eq, and, desc } from 'drizzle-orm';
+
+// Infer types from the schema
+type BuildCheckpointRow = typeof buildCheckpoints.$inferSelect;
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
@@ -178,15 +181,43 @@ export class TimeMachine {
         // Store in database
         await db.insert(buildCheckpoints).values({
             id: checkpoint.id,
-            buildId: checkpoint.buildId,
-            timestamp: checkpoint.timestamp,
+            orchestrationRunId: checkpoint.buildId, // Map to actual schema column
+            projectId: checkpoint.projectId,
+            userId: checkpoint.userId,
+            trigger: checkpoint.triggerReason || 'manual',
             phase: checkpoint.phase,
-            status: checkpoint.status,
-            gitCommitHash: checkpoint.gitInfo?.commitHash || '',
-            artifactsSnapshot: checkpoint.artifacts,
-            agentMemorySnapshot: checkpoint.agentMemory,
-            scores: checkpoint.scores,
-            screenshots: checkpoint.screenshots,
+            gitCommitHash: checkpoint.gitInfo?.commitHash || null,
+            gitBranch: checkpoint.gitInfo?.branch || null,
+            artifacts: {
+                intentJson: checkpoint.artifacts?.intentContract ? JSON.parse(checkpoint.artifacts.intentContract) : undefined,
+                featureListJson: checkpoint.artifacts?.featureList ? JSON.parse(checkpoint.artifacts.featureList) : undefined,
+                progressTxt: checkpoint.artifacts?.progressLog,
+                buildStateJson: checkpoint.artifacts?.buildState ? JSON.parse(checkpoint.artifacts.buildState) : undefined,
+            },
+            featureListSnapshot: {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                pending: 0,
+                features: [],
+            },
+            verificationScoresSnapshot: checkpoint.scores ? {
+                overallScore: checkpoint.scores.overall || 0,
+                codeQualityAvg: checkpoint.scores.codeQuality || 0,
+                visualScoreAvg: checkpoint.scores.visual || 0,
+                antiSlopScoreAvg: checkpoint.scores.antiSlop || 0,
+                designStyleAvg: 0,
+            } : null,
+            screenshots: checkpoint.screenshots?.map(s => ({
+                name: 'screenshot',
+                base64: s,
+                timestamp: new Date().toISOString(),
+            })) || [],
+            agentMemorySnapshot: checkpoint.agentMemory ? {
+                buildAgentContext: checkpoint.agentMemory.contextCache,
+                issueResolutions: {},
+            } : null,
+            fileChecksums: {}, // Would store file checksums in production
         });
 
         console.log(`[TimeMachine] Created checkpoint ${checkpoint.id} for phase "${phase}"`);
@@ -216,8 +247,8 @@ export class TimeMachine {
         const results = await db
             .select()
             .from(buildCheckpoints)
-            .where(eq(buildCheckpoints.buildId, this.buildId))
-            .orderBy(desc(buildCheckpoints.timestamp));
+            .where(eq(buildCheckpoints.orchestrationRunId, this.buildId))
+            .orderBy(desc(buildCheckpoints.createdAt));
 
         return results.map(r => this.dbToSummary(r));
     }
@@ -229,8 +260,8 @@ export class TimeMachine {
         const result = await db
             .select()
             .from(buildCheckpoints)
-            .where(eq(buildCheckpoints.buildId, this.buildId))
-            .orderBy(desc(buildCheckpoints.timestamp))
+            .where(eq(buildCheckpoints.orchestrationRunId, this.buildId))
+            .orderBy(desc(buildCheckpoints.createdAt))
             .limit(1);
 
         if (result.length === 0) return null;
@@ -333,7 +364,7 @@ export class TimeMachine {
     async clearAllCheckpoints(): Promise<number> {
         const result = await db
             .delete(buildCheckpoints)
-            .where(eq(buildCheckpoints.buildId, this.buildId));
+            .where(eq(buildCheckpoints.orchestrationRunId, this.buildId));
 
         console.log(`[TimeMachine] Cleared all checkpoints for build ${this.buildId}`);
         return result.rowsAffected || 0;
@@ -347,7 +378,7 @@ export class TimeMachine {
             .select()
             .from(buildCheckpoints)
             .where(and(
-                eq(buildCheckpoints.buildId, this.buildId),
+                eq(buildCheckpoints.orchestrationRunId, this.buildId),
                 eq(buildCheckpoints.gitCommitHash, hash) // Using gitCommitHash to store files hash
             ))
             .limit(1);
@@ -365,10 +396,10 @@ export class TimeMachine {
             .select()
             .from(buildCheckpoints)
             .where(and(
-                eq(buildCheckpoints.buildId, this.buildId),
+                eq(buildCheckpoints.orchestrationRunId, this.buildId),
                 eq(buildCheckpoints.phase, phase)
             ))
-            .orderBy(desc(buildCheckpoints.timestamp));
+            .orderBy(desc(buildCheckpoints.createdAt));
 
         return results.map(r => this.dbToSummary(r));
     }
@@ -408,37 +439,70 @@ export class TimeMachine {
         }
     }
 
-    private dbToCheckpointData(row: BuildCheckpoint): CheckpointData {
+    private dbToCheckpointData(row: BuildCheckpointRow): CheckpointData {
+        const artifacts = row.artifacts as {
+            intentJson?: object;
+            featureListJson?: object;
+            progressTxt?: string;
+            buildStateJson?: object;
+        } | null;
+
+        const scores = row.verificationScoresSnapshot as {
+            overallScore?: number;
+            codeQualityAvg?: number;
+            visualScoreAvg?: number;
+            antiSlopScoreAvg?: number;
+        } | null;
+
+        const screenshots = row.screenshots as Array<{ base64?: string }> | null;
+
         return {
             id: row.id,
-            buildId: row.buildId,
-            projectId: this.projectId,
-            userId: this.userId,
-            timestamp: row.timestamp,
-            phase: row.phase,
-            status: row.status as CheckpointData['status'],
+            buildId: row.orchestrationRunId,
+            projectId: row.projectId,
+            userId: row.userId,
+            timestamp: new Date(row.createdAt),
+            phase: row.phase || 'unknown',
+            status: 'created',
             files: new Map(), // Would need to be stored/retrieved separately in production
-            filesHash: row.gitCommitHash,
-            artifacts: row.artifactsSnapshot as CheckpointData['artifacts'] || {},
+            filesHash: row.gitCommitHash || '',
+            artifacts: artifacts ? {
+                intentContract: artifacts.intentJson ? JSON.stringify(artifacts.intentJson) : undefined,
+                featureList: artifacts.featureListJson ? JSON.stringify(artifacts.featureListJson) : undefined,
+                progressLog: artifacts.progressTxt,
+                buildState: artifacts.buildStateJson ? JSON.stringify(artifacts.buildStateJson) : undefined,
+            } : {},
             agentMemory: row.agentMemorySnapshot as CheckpointData['agentMemory'],
-            scores: row.scores as CheckpointData['scores'],
-            screenshots: row.screenshots as string[],
-            gitInfo: row.gitCommitHash ? { commitHash: row.gitCommitHash } : undefined,
-            isAutomatic: true, // Default
-            triggerReason: 'manual',
+            scores: scores ? {
+                overall: scores.overallScore,
+                codeQuality: scores.codeQualityAvg,
+                visual: scores.visualScoreAvg,
+                antiSlop: scores.antiSlopScoreAvg,
+            } : undefined,
+            screenshots: screenshots?.map(s => s.base64 || '').filter(Boolean),
+            gitInfo: row.gitCommitHash ? { commitHash: row.gitCommitHash, branch: row.gitBranch || undefined } : undefined,
+            isAutomatic: row.trigger !== 'manual',
+            triggerReason: (row.trigger as CheckpointData['triggerReason']) || 'manual',
         };
     }
 
-    private dbToSummary(row: BuildCheckpoint): CheckpointSummary {
+    private dbToSummary(row: BuildCheckpointRow): CheckpointSummary {
+        const scores = row.verificationScoresSnapshot as {
+            overallScore?: number;
+            codeQualityAvg?: number;
+            visualScoreAvg?: number;
+            antiSlopScoreAvg?: number;
+        } | null;
+
         return {
             id: row.id,
-            timestamp: row.timestamp,
-            phase: row.phase,
-            status: row.status,
-            filesHash: row.gitCommitHash,
-            filesCount: 0, // Would need to be stored
-            scores: row.scores as Record<string, number>,
-            isAutomatic: true,
+            timestamp: new Date(row.createdAt),
+            phase: row.phase || 'unknown',
+            status: 'created',
+            filesHash: row.gitCommitHash || '',
+            filesCount: row.fileChecksums ? Object.keys(row.fileChecksums).length : 0,
+            scores: scores as Record<string, number> | undefined,
+            isAutomatic: row.trigger !== 'manual',
         };
     }
 

@@ -69,17 +69,17 @@ router.post('/start', async (req: Request, res: Response) => {
             judgeCount = 3,
             buildTimeoutMs = 300000,
         } = req.body;
-        
+
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         if (!featureId || !featureName || !featureRequirements) {
             return res.status(400).json({
                 error: 'featureId, featureName, and featureRequirements are required',
             });
         }
-        
+
         const tournamentId = `tournament-${uuidv4()}`;
-        
+
         // Initialize competitors
         const competitors: TournamentCompetitor[] = Array.from({ length: competitorCount }, (_, i) => ({
             id: `competitor-${i + 1}`,
@@ -88,7 +88,7 @@ router.post('/start', async (req: Request, res: Response) => {
             files: new Map(),
             logs: [],
         }));
-        
+
         const state: TournamentState = {
             id: tournamentId,
             status: 'pending',
@@ -100,14 +100,14 @@ router.post('/start', async (req: Request, res: Response) => {
             verdicts: [],
             startTime: new Date(),
         };
-        
+
         activeTournaments.set(tournamentId, state);
-        
+
         // Simulate tournament start (in production, this would be async)
         state.status = 'running';
         state.phase = 'building';
         competitors.forEach(c => c.status = 'building');
-        
+
         res.json({
             success: true,
             tournamentId,
@@ -137,14 +137,14 @@ router.get('/:id/status', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const state = activeTournaments.get(id);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -182,14 +182,14 @@ router.get('/:id/competitors', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const state = activeTournaments.get(id);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -220,14 +220,14 @@ router.get('/:id/verdicts', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const state = activeTournaments.get(id);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -255,27 +255,27 @@ router.get('/:id/winner/files', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const state = activeTournaments.get(id);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         if (!state.winner) {
             return res.status(400).json({
                 error: 'No winner yet',
                 status: state.status,
             });
         }
-        
+
         // Convert Map to object for JSON
         const files: Record<string, string> = {};
         state.winner.files.forEach((content, path) => {
             files[path] = content;
         });
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -302,17 +302,17 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const state = activeTournaments.get(id);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         state.status = 'cancelled';
         state.endTime = new Date();
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -334,16 +334,16 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        
+
         if (!activeTournaments.has(id)) {
             return res.status(404).json({
                 error: 'Tournament not found',
                 tournamentId: id,
             });
         }
-        
+
         activeTournaments.delete(id);
-        
+
         res.json({
             success: true,
             tournamentId: id,
@@ -371,7 +371,7 @@ router.get('/active', async (_req: Request, res: Response) => {
             competitorCount: state.competitors.length,
             hasWinner: !!state.winner,
         }));
-        
+
         res.json({
             success: true,
             count: tournaments.length,

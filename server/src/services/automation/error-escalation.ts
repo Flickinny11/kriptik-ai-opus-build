@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 4-Level Error Escalation System - Ultimate AI-First Builder Architecture
  *

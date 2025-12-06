@@ -107,7 +107,7 @@ router.get('/modes', async (req: Request, res: Response) => {
             maxDurationMinutes: config.maxDurationMinutes,
             description: getAutonomyModeDescription(key as AutonomyMode),
         }));
-        
+
         res.json({
             success: true,
             modes,
@@ -130,11 +130,11 @@ router.post('/session/create', async (req: Request, res: Response) => {
     try {
         const { projectId, mode = 'standard', pushNotifications, autoApprove, pauseConditions } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         if (!projectId) {
             return res.status(400).json({ error: 'projectId is required' });
         }
-        
+
         const validModes: AutonomyMode[] = ['supervised', 'standard', 'extended', 'maximum'];
         if (!validModes.includes(mode)) {
             return res.status(400).json({
@@ -142,10 +142,10 @@ router.post('/session/create', async (req: Request, res: Response) => {
                 validModes,
             });
         }
-        
+
         const sessionId = `autonomy-${uuidv4()}`;
         const modeConfig = AUTONOMY_MODES[mode as AutonomyMode];
-        
+
         const session: AutonomySession = {
             id: sessionId,
             projectId,
@@ -179,9 +179,9 @@ router.post('/session/create', async (req: Request, res: Response) => {
                 totalDurationMs: 0,
             },
         };
-        
+
         autonomySessions.set(sessionId, session);
-        
+
         res.json({
             success: true,
             sessionId,
@@ -209,15 +209,15 @@ router.post('/session/:sessionId/start', async (req: Request, res: Response) => 
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         if (session.status === 'running') {
             return res.status(400).json({ error: 'Session already running' });
         }
-        
+
         session.status = 'running';
         session.startedAt = new Date();
         session.events.push({
@@ -225,7 +225,7 @@ router.post('/session/:sessionId/start', async (req: Request, res: Response) => 
             timestamp: new Date(),
             message: 'Autonomy session started',
         });
-        
+
         // Set up auto-stop timer
         const maxDurationMs = session.config.maxDurationMinutes * 60 * 1000;
         setTimeout(() => {
@@ -241,7 +241,7 @@ router.post('/session/:sessionId/start', async (req: Request, res: Response) => 
                 autonomyEvents.emit('completion', sessionId);
             }
         }, maxDurationMs);
-        
+
         res.json({
             success: true,
             sessionId,
@@ -267,15 +267,15 @@ router.post('/session/:sessionId/pause', async (req: Request, res: Response) => 
         const { sessionId } = req.params;
         const { reason } = req.body;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         if (session.status !== 'running') {
             return res.status(400).json({ error: 'Session is not running' });
         }
-        
+
         session.status = 'paused';
         session.pausedAt = new Date();
         session.events.push({
@@ -283,7 +283,7 @@ router.post('/session/:sessionId/pause', async (req: Request, res: Response) => 
             timestamp: new Date(),
             message: reason || 'Session paused by user',
         });
-        
+
         res.json({
             success: true,
             sessionId,
@@ -307,22 +307,22 @@ router.post('/session/:sessionId/resume', async (req: Request, res: Response) =>
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         if (session.status !== 'paused') {
             return res.status(400).json({ error: 'Session is not paused' });
         }
-        
+
         session.status = 'running';
         session.events.push({
             type: 'resume',
             timestamp: new Date(),
             message: 'Session resumed',
         });
-        
+
         res.json({
             success: true,
             sessionId,
@@ -345,24 +345,24 @@ router.post('/session/:sessionId/stop', async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         session.status = 'complete';
         session.completedAt = new Date();
-        
+
         if (session.startedAt) {
             session.metrics.totalDurationMs = session.completedAt.getTime() - session.startedAt.getTime();
         }
-        
+
         session.events.push({
             type: 'completion',
             timestamp: new Date(),
             message: 'Session stopped by user',
         });
-        
+
         res.json({
             success: true,
             sessionId,
@@ -386,11 +386,11 @@ router.get('/session/:sessionId', async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         res.json({
             success: true,
             session: {
@@ -422,28 +422,28 @@ router.get('/session/:sessionId/events', async (req: Request, res: Response) => 
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         // Check if client wants SSE
         if (req.headers.accept === 'text/event-stream') {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
-            
+
             const sendEvent = (event: AutonomyEvent) => {
                 res.write(`data: ${JSON.stringify(event)}\n\n`);
             };
-            
+
             // Send existing events
             session.events.forEach(sendEvent);
-            
+
             // Listen for new events
             const listener = (event: AutonomyEvent) => sendEvent(event);
             autonomyEvents.on(sessionId, listener);
-            
+
             req.on('close', () => {
                 autonomyEvents.off(sessionId, listener);
             });
@@ -473,21 +473,21 @@ router.post('/session/:sessionId/event', async (req: Request, res: Response) => 
         const { sessionId } = req.params;
         const { type, message, data } = req.body;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         const event: AutonomyEvent = {
             type,
             timestamp: new Date(),
             message,
             data,
         };
-        
+
         session.events.push(event);
         autonomyEvents.emit(sessionId, event);
-        
+
         // Update metrics based on event type
         switch (type) {
             case 'checkpoint':
@@ -503,7 +503,7 @@ router.post('/session/:sessionId/event', async (req: Request, res: Response) => 
                 session.metrics.errorsFixed++;
                 break;
         }
-        
+
         res.json({
             success: true,
             event,
@@ -524,7 +524,7 @@ router.post('/session/:sessionId/event', async (req: Request, res: Response) => 
 router.get('/sessions/active', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.id;
-        
+
         const sessions = Array.from(autonomySessions.values())
             .filter(s => s.status === 'running' || s.status === 'paused')
             .filter(s => !userId || s.userId === userId)
@@ -536,7 +536,7 @@ router.get('/sessions/active', async (req: Request, res: Response) => {
                 startedAt: s.startedAt,
                 metrics: s.metrics,
             }));
-        
+
         res.json({
             success: true,
             count: sessions.length,
@@ -559,17 +559,17 @@ router.delete('/session/:sessionId', async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
         const session = autonomySessions.get(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        
+
         if (session.status === 'running') {
             return res.status(400).json({ error: 'Cannot delete running session' });
         }
-        
+
         autonomySessions.delete(sessionId);
-        
+
         res.json({
             success: true,
             sessionId,

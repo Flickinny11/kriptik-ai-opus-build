@@ -38,7 +38,7 @@ export {
     createIntentLockEngine,
     createAndLockIntent,
     type IntentContract,
-    type AppSoul,
+    type IntentAppSoul,
     type SuccessCriterion,
     type UserWorkflow,
     type VisualIdentity,

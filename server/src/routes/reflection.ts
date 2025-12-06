@@ -83,9 +83,9 @@ router.get('/:projectId/status', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         res.json({
             success: true,
             projectId,
@@ -117,15 +117,15 @@ router.post('/:projectId/start', async (req: Request, res: Response) => {
         const { projectId } = req.params;
         const { maxIterations = 10, targetImprovement = 20 } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         if (state.status === 'running') {
             return res.status(400).json({
                 error: 'Reflection engine already running',
             });
         }
-        
+
         // Reset and start
         state.status = 'running';
         state.currentIteration = 0;
@@ -137,7 +137,7 @@ router.post('/:projectId/start', async (req: Request, res: Response) => {
         state.startedAt = new Date();
         state.iterationHistory = [];
         state.escalationHistory = [];
-        
+
         res.json({
             success: true,
             projectId,
@@ -165,18 +165,18 @@ router.post('/:projectId/stop', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const key = `${projectId}-${userId}`;
         const state = reflectionEngines.get(key);
-        
+
         if (!state) {
             return res.status(404).json({
                 error: 'No active reflection engine for this project',
             });
         }
-        
+
         state.status = 'paused';
-        
+
         res.json({
             success: true,
             projectId,
@@ -199,9 +199,9 @@ router.get('/:projectId/metrics', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         res.json({
             success: true,
             projectId,
@@ -216,7 +216,7 @@ router.get('/:projectId/metrics', async (req: Request, res: Response) => {
                     found: state.issuesFixed + state.issuesRemaining,
                     fixed: state.issuesFixed,
                     remaining: state.issuesRemaining,
-                    fixRate: state.issuesFixed > 0 
+                    fixRate: state.issuesFixed > 0
                         ? Math.round((state.issuesFixed / (state.issuesFixed + state.issuesRemaining)) * 100)
                         : 0,
                 },
@@ -240,9 +240,9 @@ router.get('/:projectId/learned-patterns', async (req: Request, res: Response) =
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         res.json({
             success: true,
             projectId,
@@ -266,9 +266,9 @@ router.get('/:projectId/history', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         res.json({
             success: true,
             projectId,
@@ -293,13 +293,13 @@ router.post('/:projectId/configure', async (req: Request, res: Response) => {
         const { projectId } = req.params;
         const { maxIterations, targetImprovement } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const state = getOrCreateReflectionState(projectId, userId);
-        
+
         if (maxIterations) {
             state.maxIterations = maxIterations;
         }
-        
+
         res.json({
             success: true,
             projectId,
@@ -331,7 +331,7 @@ router.get('/active', async (_req: Request, res: Response) => {
             currentIteration: state.currentIteration,
             improvementPercentage: state.improvementPercentage,
         }));
-        
+
         res.json({
             success: true,
             count: engines.length,

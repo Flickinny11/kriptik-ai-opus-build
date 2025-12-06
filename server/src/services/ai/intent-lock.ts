@@ -18,7 +18,7 @@ import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-serv
 // TYPES
 // =============================================================================
 
-export type AppSoul =
+export type IntentAppSoul =
     | 'immersive_media'    // Music, video, entertainment
     | 'professional'       // Finance, business, enterprise
     | 'developer'          // Dev tools, IDEs, CLI
@@ -43,7 +43,7 @@ export interface UserWorkflow {
 }
 
 export interface VisualIdentity {
-    soul: AppSoul;
+    soul: IntentAppSoul;
     primaryEmotion: string;
     depthLevel: 'low' | 'medium' | 'high';
     motionPhilosophy: string;
@@ -55,7 +55,7 @@ export interface IntentContract {
     orchestrationRunId?: string;
     userId: string;
     appType: string;
-    appSoul: AppSoul;
+    appSoul: IntentAppSoul;
     coreValueProp: string;
     successCriteria: SuccessCriterion[];
     userWorkflows: UserWorkflow[];
@@ -224,7 +224,7 @@ export class IntentLockEngine {
             orchestrationRunId,
             userId,
             appType: contractData.appType,
-            appSoul: contractData.appSoul as AppSoul,
+            appSoul: contractData.appSoul as IntentAppSoul,
             coreValueProp: contractData.coreValueProp,
             successCriteria: contractData.successCriteria.map((sc, idx) => ({
                 ...sc,
@@ -292,7 +292,7 @@ export class IntentLockEngine {
             orchestrationRunId: row.orchestrationRunId || undefined,
             userId: row.userId,
             appType: row.appType,
-            appSoul: row.appSoul as AppSoul,
+            appSoul: row.appSoul as IntentAppSoul,
             coreValueProp: row.coreValueProp,
             successCriteria: row.successCriteria as SuccessCriterion[],
             userWorkflows: row.userWorkflows as UserWorkflow[],
@@ -461,8 +461,8 @@ export class IntentLockEngine {
             throw new Error('Invalid contract: missing or invalid appSoul');
         }
 
-        const validSouls: AppSoul[] = ['immersive_media', 'professional', 'developer', 'creative', 'social', 'ecommerce', 'utility', 'gaming'];
-        if (!validSouls.includes(contract.appSoul as AppSoul)) {
+        const validSouls: IntentAppSoul[] = ['immersive_media', 'professional', 'developer', 'creative', 'social', 'ecommerce', 'utility', 'gaming'];
+        if (!validSouls.includes(contract.appSoul as IntentAppSoul)) {
             throw new Error(`Invalid contract: appSoul must be one of: ${validSouls.join(', ')}`);
         }
 

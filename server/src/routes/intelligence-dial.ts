@@ -37,7 +37,7 @@ router.get('/presets', async (req: Request, res: Response) => {
     try {
         const dial = getIntelligenceDial();
         const presets = dial.getPresets();
-        
+
         res.json({
             success: true,
             presets,
@@ -62,14 +62,14 @@ router.get('/preset/:name', async (req: Request, res: Response) => {
         const dial = getIntelligenceDial();
         const presets = dial.getPresets();
         const preset = presets.find((p: { name: string }) => p.name.toLowerCase().replace(/\s+/g, '_') === name);
-        
+
         if (!preset) {
             return res.status(404).json({
                 error: 'Preset not found',
                 available: presets.map((p: { name: string }) => p.name.toLowerCase().replace(/\s+/g, '_')),
             });
         }
-        
+
         res.json({
             success: true,
             preset,
@@ -93,7 +93,7 @@ router.get('/current', async (req: Request, res: Response) => {
         const settings = dial.getSettings();
         const modelConfig = dial.getModelConfig();
         const generationConfig = dial.getGenerationConfig();
-        
+
         res.json({
             success: true,
             settings,
@@ -116,20 +116,20 @@ router.get('/current', async (req: Request, res: Response) => {
 router.post('/configure', async (req: Request, res: Response) => {
     try {
         const { settings } = req.body;
-        
+
         if (!settings || typeof settings !== 'object') {
             return res.status(400).json({
                 error: 'Settings object is required',
             });
         }
-        
+
         const dial = getIntelligenceDial();
         dial.updateSettings(settings as Partial<IntelligenceSettings>);
-        
+
         const updatedSettings = dial.getSettings();
         const modelConfig = dial.getModelConfig();
         const promptAdditions = dial.buildPromptAdditions();
-        
+
         res.json({
             success: true,
             settings: updatedSettings,
@@ -152,26 +152,26 @@ router.post('/configure', async (req: Request, res: Response) => {
 router.post('/apply-preset', async (req: Request, res: Response) => {
     try {
         const { preset } = req.body;
-        
+
         if (!preset) {
             return res.status(400).json({
                 error: 'Preset name is required',
             });
         }
-        
+
         const dial = getIntelligenceDial();
         const success = dial.applyPreset(preset);
-        
+
         if (!success) {
             return res.status(400).json({
                 error: 'Invalid preset name',
                 available: dial.getPresets().map((p: { name: string }) => p.name.toLowerCase().replace(/\s+/g, '_')),
             });
         }
-        
+
         const settings = dial.getSettings();
         const modelConfig = dial.getModelConfig();
-        
+
         res.json({
             success: true,
             appliedPreset: preset,
@@ -194,7 +194,7 @@ router.post('/apply-preset', async (req: Request, res: Response) => {
 router.post('/thinking-depth', async (req: Request, res: Response) => {
     try {
         const { depth } = req.body;
-        
+
         const validDepths = ['shallow', 'normal', 'deep', 'maximum'] as const;
         if (!validDepths.includes(depth)) {
             return res.status(400).json({
@@ -202,12 +202,12 @@ router.post('/thinking-depth', async (req: Request, res: Response) => {
                 validDepths,
             });
         }
-        
+
         const dial = getIntelligenceDial();
         dial.setThinkingDepth(depth);
-        
+
         const settings = dial.getSettings();
-        
+
         res.json({
             success: true,
             thinkingDepth: depth,
@@ -230,7 +230,7 @@ router.post('/thinking-depth', async (req: Request, res: Response) => {
 router.post('/power-level', async (req: Request, res: Response) => {
     try {
         const { level } = req.body;
-        
+
         const validLevels = ['economy', 'balanced', 'performance', 'maximum'] as const;
         if (!validLevels.includes(level)) {
             return res.status(400).json({
@@ -238,12 +238,12 @@ router.post('/power-level', async (req: Request, res: Response) => {
                 validLevels,
             });
         }
-        
+
         const dial = getIntelligenceDial();
         dial.setPowerLevel(level);
-        
+
         const modelConfig = dial.getModelConfig();
-        
+
         res.json({
             success: true,
             powerLevel: level,
@@ -265,7 +265,7 @@ router.post('/power-level', async (req: Request, res: Response) => {
 router.post('/creativity', async (req: Request, res: Response) => {
     try {
         const { level } = req.body;
-        
+
         const validLevels = ['conservative', 'balanced', 'creative', 'experimental'] as const;
         if (!validLevels.includes(level)) {
             return res.status(400).json({
@@ -273,12 +273,12 @@ router.post('/creativity', async (req: Request, res: Response) => {
                 validLevels,
             });
         }
-        
+
         const dial = getIntelligenceDial();
         dial.setCreativityLevel(level);
-        
+
         const settings = dial.getSettings();
-        
+
         res.json({
             success: true,
             creativityLevel: level,
@@ -301,9 +301,9 @@ router.post('/reset', async (req: Request, res: Response) => {
     try {
         // Create a fresh instance
         intelligenceDial = createIntelligenceDial();
-        
+
         const settings = intelligenceDial.getSettings();
-        
+
         res.json({
             success: true,
             message: 'Settings reset to defaults',
@@ -326,7 +326,7 @@ router.get('/model-config', async (req: Request, res: Response) => {
     try {
         const dial = getIntelligenceDial();
         const modelConfig = dial.getModelConfig();
-        
+
         res.json({
             success: true,
             modelConfig,
@@ -349,7 +349,7 @@ router.get('/cost-estimate', async (req: Request, res: Response) => {
         const dial = getIntelligenceDial();
         const costMultiplier = dial.estimateCostMultiplier();
         const settings = dial.getSettings();
-        
+
         res.json({
             success: true,
             costMultiplier,

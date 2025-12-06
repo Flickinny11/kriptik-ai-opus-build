@@ -35,7 +35,7 @@ router.get('/modes', async (req: Request, res: Response) => {
     try {
         const service = getSpeedDialService();
         const modes = service.getAllModes();
-        
+
         res.json({
             success: true,
             modes,
@@ -58,7 +58,7 @@ router.get('/mode/:mode', async (req: Request, res: Response) => {
     try {
         const { mode } = req.params;
         const service = getSpeedDialService();
-        
+
         const validModes: BuildMode[] = ['lightning', 'standard', 'tournament', 'production'];
         if (!validModes.includes(mode as BuildMode)) {
             return res.status(400).json({
@@ -66,9 +66,9 @@ router.get('/mode/:mode', async (req: Request, res: Response) => {
                 validModes,
             });
         }
-        
+
         const config = service.getModeConfig(mode as BuildMode);
-        
+
         res.json({
             success: true,
             mode,
@@ -94,7 +94,7 @@ router.get('/current', async (req: Request, res: Response) => {
         const config = service.getConfig();
         const costEstimate = service.estimateCost();
         const timeEstimate = service.estimateTime();
-        
+
         res.json({
             success: true,
             mode,
@@ -121,11 +121,11 @@ router.post('/select', async (req: Request, res: Response) => {
     try {
         const { mode } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         if (!mode) {
             return res.status(400).json({ error: 'Build mode is required' });
         }
-        
+
         const validModes: BuildMode[] = ['lightning', 'standard', 'tournament', 'production'];
         if (!validModes.includes(mode as BuildMode)) {
             return res.status(400).json({
@@ -133,14 +133,14 @@ router.post('/select', async (req: Request, res: Response) => {
                 validModes,
             });
         }
-        
+
         const service = getSpeedDialService();
         service.setMode(mode as BuildMode);
-        
+
         const config = service.getConfig();
         const costEstimate = service.estimateCost();
         const timeEstimate = service.estimateTime();
-        
+
         res.json({
             success: true,
             selected: {
@@ -170,7 +170,7 @@ router.post('/select', async (req: Request, res: Response) => {
 router.post('/suggest', async (req: Request, res: Response) => {
     try {
         const { hasDeadline, deadlineMinutes, requiresHighQuality, requiresSecurityAudit, budgetUSD, isProduction } = req.body;
-        
+
         const service = getSpeedDialService();
         const suggestedMode = service.suggestMode({
             hasDeadline,
@@ -180,9 +180,9 @@ router.post('/suggest', async (req: Request, res: Response) => {
             budgetUSD,
             isProduction,
         });
-        
+
         const config = service.getModeConfig(suggestedMode);
-        
+
         res.json({
             success: true,
             suggestedMode,
@@ -205,18 +205,18 @@ router.post('/suggest', async (req: Request, res: Response) => {
 router.post('/customize', async (req: Request, res: Response) => {
     try {
         const { overrides } = req.body;
-        
+
         if (!overrides || typeof overrides !== 'object') {
             return res.status(400).json({
                 error: 'Overrides object is required',
             });
         }
-        
+
         const service = getSpeedDialService();
         service.customize(overrides);
-        
+
         const config = service.getConfig();
-        
+
         res.json({
             success: true,
             message: 'Custom overrides applied',
@@ -238,7 +238,7 @@ router.post('/customize', async (req: Request, res: Response) => {
 router.get('/compare', async (req: Request, res: Response) => {
     try {
         const service = getSpeedDialService();
-        
+
         const modes: BuildMode[] = ['lightning', 'standard', 'tournament', 'production'];
         const comparison = modes.map(mode => {
             const config = service.getModeConfig(mode);
@@ -251,7 +251,7 @@ router.get('/compare', async (req: Request, res: Response) => {
                 description: config.description,
             };
         });
-        
+
         res.json({
             success: true,
             comparison,

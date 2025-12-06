@@ -38,16 +38,16 @@ router.post('/create', async (req: Request, res: Response) => {
     try {
         const { projectId, buildId, phase = 'manual', files, description, scores, screenshots } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         if (!projectId) {
             return res.status(400).json({ error: 'projectId is required' });
         }
-        
+
         const timeMachine = getTimeMachine(projectId, userId, buildId);
-        
+
         // Convert files object to Map
         const fileMap = new Map<string, string>(Object.entries(files || {}));
-        
+
         const checkpoint = await timeMachine.createCheckpoint(
             phase,
             fileMap,
@@ -59,7 +59,7 @@ router.post('/create', async (req: Request, res: Response) => {
                 triggerReason: 'manual',
             }
         );
-        
+
         res.json({
             success: true,
             checkpoint: {
@@ -90,10 +90,10 @@ router.get('/list/:projectId', async (req: Request, res: Response) => {
         const { projectId } = req.params;
         const { buildId } = req.query;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId, buildId as string);
         const checkpoints = await timeMachine.getAllCheckpoints();
-        
+
         res.json({
             success: true,
             projectId,
@@ -117,23 +117,23 @@ router.get('/:projectId/:checkpointId', async (req: Request, res: Response) => {
     try {
         const { projectId, checkpointId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
         const checkpoint = await timeMachine.getCheckpoint(checkpointId);
-        
+
         if (!checkpoint) {
             return res.status(404).json({
                 error: 'Checkpoint not found',
                 checkpointId,
             });
         }
-        
+
         // Convert files Map to object for JSON
         const files: Record<string, string> = {};
         checkpoint.files.forEach((content, path) => {
             files[path] = content;
         });
-        
+
         res.json({
             success: true,
             checkpoint: {
@@ -168,18 +168,18 @@ router.post('/:projectId/:checkpointId/restore', async (req: Request, res: Respo
     try {
         const { projectId, checkpointId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
-        
+
         const result = await timeMachine.rollback(checkpointId);
-        
+
         if (!result.success) {
             return res.status(400).json({
                 error: result.message,
                 checkpointId,
             });
         }
-        
+
         res.json({
             success: true,
             checkpointId,
@@ -204,22 +204,22 @@ router.post('/compare', async (req: Request, res: Response) => {
     try {
         const { projectId, checkpoint1Id, checkpoint2Id } = req.body;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         if (!projectId || !checkpoint1Id || !checkpoint2Id) {
             return res.status(400).json({
                 error: 'projectId, checkpoint1Id, and checkpoint2Id are required',
             });
         }
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
         const comparison = await timeMachine.compare(checkpoint1Id, checkpoint2Id);
-        
+
         if (!comparison) {
             return res.status(404).json({
                 error: 'One or both checkpoints not found',
             });
         }
-        
+
         res.json({
             success: true,
             comparison,
@@ -241,10 +241,10 @@ router.delete('/:projectId/:checkpointId', async (req: Request, res: Response) =
     try {
         const { projectId, checkpointId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
         await timeMachine.deleteCheckpoint(checkpointId);
-        
+
         res.json({
             success: true,
             checkpointId,
@@ -267,10 +267,10 @@ router.post('/:projectId/cleanup', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
         await timeMachine.clearAllCheckpoints();
-        
+
         res.json({
             success: true,
             projectId,
@@ -293,17 +293,17 @@ router.get('/:projectId/latest', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const userId = (req as any).user?.id || 'anonymous';
-        
+
         const timeMachine = getTimeMachine(projectId, userId);
         const latest = await timeMachine.getLatestCheckpoint();
-        
+
         if (!latest) {
             return res.status(404).json({
                 error: 'No checkpoints found',
                 projectId,
             });
         }
-        
+
         res.json({
             success: true,
             checkpoint: {

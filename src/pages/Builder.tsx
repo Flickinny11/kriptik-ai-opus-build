@@ -384,7 +384,7 @@ export default function Builder() {
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
-    
+
     // Mobile/tablet responsive view state with swipe gesture support
     const { activeView, setActiveView, isMobile, swipeHandlers } = useMobileView('chat');
 
@@ -667,7 +667,7 @@ export default function Builder() {
                     </div>
 
                     {/* Mobile/Tablet Layout (< 1024px) with swipe gestures */}
-                    <div 
+                    <div
                         className="flex-1 min-w-0 lg:hidden relative touch-pan-y"
                         onTouchStart={(e) => swipeHandlers.onTouchStart(e.nativeEvent)}
                         onTouchMove={(e) => swipeHandlers.onTouchMove(e.nativeEvent)}
@@ -681,14 +681,14 @@ export default function Builder() {
                                 x: activeView === 'chat' ? 0 : -20,
                                 scale: activeView === 'chat' ? 1 : 0.98,
                             }}
-                            transition={{ 
-                                duration: 0.25, 
+                            transition={{
+                                duration: 0.25,
                                 ease: [0.25, 0.1, 0.25, 1], // ease-out
                             }}
                             className={`absolute inset-0 flex flex-col ${
                                 activeView === 'chat' ? 'z-10' : 'z-0 pointer-events-none'
                             }`}
-                            style={{ 
+                            style={{
                                 paddingTop: '72px', // Space for MobileViewToggle + swipe hint
                                 willChange: 'transform, opacity', // GPU acceleration
                             }}
@@ -714,14 +714,14 @@ export default function Builder() {
                                 x: activeView === 'preview' ? 0 : 20,
                                 scale: activeView === 'preview' ? 1 : 0.98,
                             }}
-                            transition={{ 
-                                duration: 0.25, 
+                            transition={{
+                                duration: 0.25,
                                 ease: [0.25, 0.1, 0.25, 1], // ease-out
                             }}
                             className={`absolute inset-0 flex flex-col ${
                                 activeView === 'preview' ? 'z-10' : 'z-0 pointer-events-none'
                             }`}
-                            style={{ 
+                            style={{
                                 paddingTop: '72px', // Space for MobileViewToggle + swipe hint
                                 willChange: 'transform, opacity', // GPU acceleration
                             }}
@@ -881,7 +881,7 @@ export default function Builder() {
                                                 onRerun={() => {
                                                     // Trigger verification rerun
                                                     console.log('Rerunning verification swarm...');
-                                                    setVerificationAgents(agents => 
+                                                    setVerificationAgents(agents =>
                                                         agents.map(a => ({ ...a, status: 'running' as const }))
                                                     );
                                                     // Simulate completion after 2 seconds
