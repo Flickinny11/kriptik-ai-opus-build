@@ -3,9 +3,9 @@
   "version": "2.0",
   "last_updated": "2025-12-06",
   "total_features": 28,
-  "completed": 14,
+  "completed": 19,
   "in_progress": 0,
-  "pending": 14,
+  "pending": 9,
 
   "categories": {
     "foundational": {
@@ -236,50 +236,55 @@
           "name": "Speed Dial Architecture",
           "description": "4 build modes: Lightning/Standard/Tournament/Production",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/ai/speed-dial.ts"],
           "dependencies": ["F006"],
-          "phase": 8
+          "phase": 8,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F020",
           "name": "Tournament Mode",
           "description": "Competing implementations with AI judge panel",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/ai/tournament.ts"],
           "dependencies": ["F019"],
-          "phase": 8
+          "phase": 8,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F021",
           "name": "Time Machine Checkpoints",
           "description": "Comprehensive state snapshots with rollback capability",
           "priority": 2,
-          "passes": false,
-          "files": ["server/src/services/checkpoints/time-machine.ts"],
+          "passes": true,
+          "files": ["server/src/services/checkpoints/time-machine.ts", "server/src/services/checkpoints/index.ts"],
           "dependencies": ["F006"],
-          "phase": 8
+          "phase": 8,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F022",
           "name": "Intelligence Dial",
           "description": "Per-request capability toggles (thinking, power, speed, etc.)",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/ai/intelligence-dial.ts"],
           "dependencies": ["F004"],
-          "phase": 8
+          "phase": 8,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F023",
           "name": "Infinite Reflection Engine",
           "description": "Self-healing loop targeting 4x faster than competition",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/ai/reflection-engine.ts"],
           "dependencies": ["F016", "F007"],
-          "phase": 8
+          "phase": 8,
+          "completed_at": "2025-12-06"
         }
       ]
     },
@@ -383,7 +388,7 @@
     "phase_5": { "name": "Error Escalation", "features": 1, "completed": 1 },
     "phase_6": { "name": "Enhanced Fix My App", "features": 2, "completed": 2 },
     "phase_7": { "name": "Design System", "features": 2, "completed": 2 },
-    "phase_8": { "name": "Competitive", "features": 5, "completed": 0 },
+    "phase_8": { "name": "Competitive", "features": 5, "completed": 5 },
     "phase_9": { "name": "UI Updates", "features": 4, "completed": 0 },
     "phase_10": { "name": "Database", "features": 1, "completed": 1 }
   }

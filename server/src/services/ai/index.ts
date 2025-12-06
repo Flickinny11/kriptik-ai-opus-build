@@ -87,3 +87,48 @@ export {
     type ComponentPatterns,
 } from './app-soul.js';
 
+// =============================================================================
+// PHASE 8: Competitive Enhancements
+// =============================================================================
+
+// Speed Dial Architecture - 4 build modes with different speed/quality trade-offs
+export {
+    SpeedDialService,
+    createSpeedDialService,
+    SPEED_DIAL_CONFIGS,
+    type BuildMode,
+    type SpeedDialConfig,
+} from './speed-dial.js';
+
+// Intelligence Dial - Per-request capability toggles
+export {
+    IntelligenceDial,
+    createIntelligenceDial,
+    getPreset as getIntelligencePreset,
+    getAllPresets as getAllIntelligencePresets,
+    INTELLIGENCE_PRESETS,
+    type IntelligenceSettings,
+    type IntelligencePreset,
+} from './intelligence-dial.js';
+
+// Tournament Mode - Competing implementations with AI judge panel
+export {
+    TournamentService,
+    createTournamentService,
+    type TournamentConfig,
+    type Competitor,
+    type JudgeVerdict,
+    type TournamentResult,
+} from './tournament.js';
+
+// Infinite Reflection Engine - Self-healing loop for continuous improvement
+export {
+    InfiniteReflectionEngine,
+    createInfiniteReflectionEngine,
+    type ReflectionConfig,
+    type ReflectionIssue,
+    type ReflectionCycle,
+    type ReflectionResult,
+    type ReflectionLearning,
+} from './reflection-engine.js';
+
