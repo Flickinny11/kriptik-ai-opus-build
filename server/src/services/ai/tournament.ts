@@ -28,7 +28,7 @@ export interface TournamentConfig {
     featureRequirements: string;
     baseFiles: Map<string, string>;
     appSoul?: AppSoulType;
-    
+
     // Scoring weights
     weights: {
         codeQuality: number;       // 0-1
@@ -38,11 +38,11 @@ export interface TournamentConfig {
         creativity: number;        // 0-1
         efficiency: number;        // 0-1 (tokens used / code quality)
     };
-    
+
     // Judge configuration
     judgeCount: number;            // Number of AI judges (odd number recommended)
     unanimousRequired: boolean;    // Require all judges to agree
-    
+
     // Time limits
     buildTimeoutMs: number;
     judgeTimeoutMs: number;
@@ -57,7 +57,7 @@ export interface Competitor {
     endTime?: Date;
     buildTimeMs?: number;
     tokensUsed?: number;
-    
+
     // Scores
     scores: {
         codeQuality: number;
@@ -68,11 +68,11 @@ export interface Competitor {
         efficiency: number;
         overall: number;
     };
-    
+
     // Verification results
     verificationVerdict?: string;
     verificationIssues?: string[];
-    
+
     // Build logs
     logs: string[];
 }
@@ -108,47 +108,47 @@ export class TournamentService extends EventEmitter {
     private claudeService: ReturnType<typeof createClaudeService>;
     private verificationSwarm: ReturnType<typeof createVerificationSwarm>;
     private antiSlopDetector: ReturnType<typeof createAntiSlopDetector>;
-    
+
     constructor(projectId: string, userId: string, appSoul?: AppSoulType) {
         super();
         this.projectId = projectId;
         this.userId = userId;
-        
+
         this.claudeService = createClaudeService({
             agentType: 'generation',
             projectId,
             userId,
         });
-        
+
         this.verificationSwarm = createVerificationSwarm(projectId, userId);
         this.antiSlopDetector = createAntiSlopDetector(userId, projectId, appSoul);
     }
-    
+
     /**
      * Run a tournament for a feature
      */
     async runTournament(config: TournamentConfig): Promise<TournamentResult> {
         const tournamentId = uuidv4();
         const startTime = Date.now();
-        
+
         this.emit('tournament_start', { tournamentId, config });
         console.log(`[Tournament] Starting tournament ${tournamentId} with ${config.competitorCount} competitors`);
-        
+
         // Initialize competitors
         const competitors: Competitor[] = this.initializeCompetitors(config.competitorCount);
-        
+
         // Phase 1: Parallel Build
         this.emit('phase', { phase: 'build', tournamentId });
         await this.runBuildPhase(competitors, config);
-        
+
         // Phase 2: Verification
         this.emit('phase', { phase: 'verify', tournamentId });
         await this.runVerificationPhase(competitors, config);
-        
+
         // Phase 3: AI Judge Panel
         this.emit('phase', { phase: 'judge', tournamentId });
         const judgeVerdicts = await this.runJudgePhase(competitors, config);
-        
+
         // Phase 4: Determine Winner
         const result = this.determineWinner(
             tournamentId,
@@ -157,24 +157,24 @@ export class TournamentService extends EventEmitter {
             judgeVerdicts,
             startTime
         );
-        
+
         this.emit('tournament_complete', result);
         console.log(`[Tournament] Complete. Winner: ${result.winnerId || 'TIE'}`);
-        
+
         return result;
     }
-    
+
     /**
      * Initialize competitors
      */
     private initializeCompetitors(count: number): Competitor[] {
         const competitors: Competitor[] = [];
-        
+
         const competitorNames = [
             'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon',
             'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa',
         ];
-        
+
         for (let i = 0; i < count; i++) {
             competitors.push({
                 id: uuidv4(),
@@ -193,10 +193,10 @@ export class TournamentService extends EventEmitter {
                 logs: [],
             });
         }
-        
+
         return competitors;
     }
-    
+
     /**
      * Run the build phase - all competitors build in parallel
      */
@@ -205,13 +205,13 @@ export class TournamentService extends EventEmitter {
             competitor.status = 'building';
             competitor.startTime = new Date();
             competitor.logs.push(`[${new Date().toISOString()}] Build started`);
-            
+
             this.emit('competitor_update', { competitorId: competitor.id, status: 'building' });
-            
+
             try {
                 // Each competitor gets slightly different instructions to encourage variety
                 const prompt = this.buildCompetitorPrompt(competitor, config);
-                
+
                 const response = await this.claudeService.generate(prompt, {
                     model: CLAUDE_MODELS.SONNET_4_5,
                     maxTokens: 32000,
@@ -219,10 +219,10 @@ export class TournamentService extends EventEmitter {
                     thinkingBudgetTokens: 16000,
                     timeout: config.buildTimeoutMs,
                 });
-                
+
                 // Parse file operations from response
                 const fileOps = this.claudeService.parseFileOperations(response.content);
-                
+
                 // Apply to base files
                 competitor.files = new Map(config.baseFiles);
                 for (const op of fileOps) {
@@ -232,22 +232,22 @@ export class TournamentService extends EventEmitter {
                         competitor.files.delete(op.path);
                     }
                 }
-                
+
                 competitor.endTime = new Date();
                 competitor.buildTimeMs = competitor.endTime.getTime() - competitor.startTime.getTime();
                 competitor.tokensUsed = response.usage?.total_tokens || 0;
                 competitor.logs.push(`[${new Date().toISOString()}] Build complete (${competitor.buildTimeMs}ms, ${competitor.tokensUsed} tokens)`);
-                
+
             } catch (error: any) {
                 competitor.status = 'failed';
                 competitor.logs.push(`[${new Date().toISOString()}] Build FAILED: ${error.message}`);
                 this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: error.message });
             }
         });
-        
+
         await Promise.all(buildPromises);
     }
-    
+
     /**
      * Build unique prompt for each competitor
      */
@@ -260,9 +260,9 @@ export class TournamentService extends EventEmitter {
             Delta: 'Take a creative, innovative approach. Try something unique.',
             Epsilon: 'Focus on robustness and error handling. Make it bulletproof.',
         };
-        
+
         const approachHint = approaches[competitor.name] || 'Build the best implementation you can.';
-        
+
         return `You are competing in a Tournament to build the best implementation of a feature.
 
 FEATURE: ${config.featureName}
@@ -284,7 +284,7 @@ Build a complete, working implementation. Your code will be judged on:
 
 Output your implementation with proper file operations.`;
     }
-    
+
     /**
      * Run the verification phase
      */
@@ -294,69 +294,69 @@ Output your implementation with proper file operations.`;
             .map(async (competitor) => {
                 competitor.status = 'verifying';
                 competitor.logs.push(`[${new Date().toISOString()}] Verification started`);
-                
+
                 this.emit('competitor_update', { competitorId: competitor.id, status: 'verifying' });
-                
+
                 try {
                     // Run verification swarm
                     const swarmResult = await this.verificationSwarm.runVerification(
                         config.featureId,
                         competitor.files
                     );
-                    
+
                     // Run anti-slop detector
                     const antiSlopResult = await this.antiSlopDetector.analyze(competitor.files);
-                    
+
                     // Calculate scores
                     competitor.scores.codeQuality = swarmResult.scores.codeQuality || 75;
                     competitor.scores.visual = swarmResult.scores.visual || 70;
                     competitor.scores.antiSlop = antiSlopResult.overall;
                     competitor.scores.security = swarmResult.scores.security || 80;
-                    
+
                     // Efficiency = code quality / tokens used (normalized)
                     const normalizedTokens = (competitor.tokensUsed || 10000) / 10000;
                     competitor.scores.efficiency = Math.round((competitor.scores.codeQuality / normalizedTokens) * 10) / 10;
                     competitor.scores.efficiency = Math.min(100, Math.max(0, competitor.scores.efficiency));
-                    
+
                     // Creativity will be judged by AI judges
                     competitor.scores.creativity = 70; // Placeholder
-                    
+
                     // Calculate weighted overall score
                     competitor.scores.overall = this.calculateWeightedScore(competitor.scores, config.weights);
-                    
+
                     competitor.verificationVerdict = swarmResult.verdict;
                     competitor.verificationIssues = swarmResult.issues?.map(i => i.description) || [];
-                    
+
                     competitor.status = 'complete';
                     competitor.logs.push(`[${new Date().toISOString()}] Verification complete (overall: ${competitor.scores.overall})`);
-                    
+
                     this.emit('competitor_update', {
                         competitorId: competitor.id,
                         status: 'complete',
                         scores: competitor.scores,
                     });
-                    
+
                 } catch (error: any) {
                     competitor.status = 'failed';
                     competitor.logs.push(`[${new Date().toISOString()}] Verification FAILED: ${error.message}`);
                     this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: error.message });
                 }
             });
-        
+
         await Promise.all(verifyPromises);
     }
-    
+
     /**
      * Run the AI judge phase
      */
     private async runJudgePhase(competitors: Competitor[], config: TournamentConfig): Promise<JudgeVerdict[]> {
         const completedCompetitors = competitors.filter(c => c.status === 'complete');
-        
+
         if (completedCompetitors.length === 0) {
             console.log('[Tournament] No competitors completed successfully');
             return [];
         }
-        
+
         if (completedCompetitors.length === 1) {
             // Only one competitor finished - they win by default
             return [{
@@ -367,17 +367,17 @@ Output your implementation with proper file operations.`;
                 confidence: 1.0,
             }];
         }
-        
+
         const judgePromises: Promise<JudgeVerdict>[] = [];
-        
+
         for (let i = 0; i < config.judgeCount; i++) {
             judgePromises.push(this.runSingleJudge(i + 1, completedCompetitors, config));
         }
-        
+
         const verdicts = await Promise.all(judgePromises);
         return verdicts;
     }
-    
+
     /**
      * Run a single AI judge
      */
@@ -387,9 +387,9 @@ Output your implementation with proper file operations.`;
         config: TournamentConfig
     ): Promise<JudgeVerdict> {
         const judgeId = `judge-${judgeNumber}`;
-        
+
         this.emit('judge_start', { judgeId });
-        
+
         // Build comparison prompt
         const competitorSummaries = competitors.map(c => `
 ## ${c.name} (ID: ${c.id})
@@ -402,7 +402,7 @@ Output your implementation with proper file operations.`;
 ### Files Created:
 ${Array.from(c.files.keys()).join('\n')}
 `).join('\n---\n');
-        
+
         const judgePrompt = `You are an AI Judge evaluating competing implementations.
 
 FEATURE BEING EVALUATED: ${config.featureName}
@@ -432,7 +432,7 @@ Respond with JSON only:
   },
   "confidence": 0.0-1.0
 }`;
-        
+
         try {
             const response = await this.claudeService.generateStructured<JudgeVerdict>(
                 judgePrompt,
@@ -444,20 +444,20 @@ Respond with JSON only:
                     timeout: config.judgeTimeoutMs,
                 }
             );
-            
+
             this.emit('judge_complete', { judgeId, verdict: response });
-            
+
             return {
                 ...response,
                 judgeId,
             };
-            
+
         } catch (error: any) {
             console.error(`[Tournament] Judge ${judgeId} failed:`, error.message);
-            
+
             // Fallback to highest scored competitor
             const fallbackWinner = [...competitors].sort((a, b) => b.scores.overall - a.scores.overall)[0];
-            
+
             return {
                 judgeId,
                 winnerId: fallbackWinner.id,
@@ -467,7 +467,7 @@ Respond with JSON only:
             };
         }
     }
-    
+
     /**
      * Determine the winner from judge verdicts
      */
@@ -481,7 +481,7 @@ Respond with JSON only:
         const endTime = Date.now();
         const totalTimeMs = endTime - startTime;
         const totalTokensUsed = competitors.reduce((sum, c) => sum + (c.tokensUsed || 0), 0);
-        
+
         if (judgeVerdicts.length === 0) {
             return {
                 id: tournamentId,
@@ -494,32 +494,32 @@ Respond with JSON only:
                 totalTokensUsed,
             };
         }
-        
+
         // Count votes for each competitor
         const voteCounts: Record<string, number> = {};
         const totalConfidence: Record<string, number> = {};
-        
+
         for (const verdict of judgeVerdicts) {
             voteCounts[verdict.winnerId] = (voteCounts[verdict.winnerId] || 0) + 1;
             totalConfidence[verdict.winnerId] = (totalConfidence[verdict.winnerId] || 0) + verdict.confidence;
         }
-        
+
         // Find the competitor with most votes
         const sortedByVotes = Object.entries(voteCounts)
             .sort(([, a], [, b]) => b - a);
-        
+
         const topVotes = sortedByVotes[0]?.[1] || 0;
         const topVoters = sortedByVotes.filter(([, votes]) => votes === topVotes);
-        
+
         // Check for tie
         if (topVoters.length > 1) {
             // Break tie by confidence
             const tieBreaker = topVoters
                 .sort(([idA], [idB]) => (totalConfidence[idB] || 0) - (totalConfidence[idA] || 0));
-            
+
             const winnerId = tieBreaker[0][0];
             const winner = competitors.find(c => c.id === winnerId);
-            
+
             return {
                 id: tournamentId,
                 featureId,
@@ -533,19 +533,19 @@ Respond with JSON only:
                 totalTokensUsed,
             };
         }
-        
+
         const winnerId = sortedByVotes[0]?.[0];
         const winner = competitors.find(c => c.id === winnerId);
-        
+
         // Build consensus reasoning from judge reasonings
         const reasonings = judgeVerdicts
             .filter(v => v.winnerId === winnerId)
             .map(v => v.reasoning);
-        
+
         const consensusReasoning = reasonings.length > 0
             ? `${winner?.name} won with ${topVotes}/${judgeVerdicts.length} votes. Judges noted: ${reasonings[0]}`
             : `${winner?.name} won by automated scoring.`;
-        
+
         return {
             id: tournamentId,
             featureId,
@@ -559,7 +559,7 @@ Respond with JSON only:
             totalTokensUsed,
         };
     }
-    
+
     /**
      * Calculate weighted overall score
      */

@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
-    FileText, Settings, Hammer, Link2, TestTube, 
+import {
+    FileText, Settings, Hammer, Link2, TestTube,
     Sparkles, Monitor, Check, Loader2, AlertCircle,
     ChevronRight
 } from 'lucide-react';
@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // TYPES
 // ============================================================================
 
-export type BuildPhase = 
+export type BuildPhase =
     | 'intent_lock'       // Phase 0: Sacred Contract
     | 'initialization'    // Phase 1: Setup artifacts
     | 'parallel_build'    // Phase 2: Feature building
@@ -139,7 +139,7 @@ function PhaseStep({
     onClick?: () => void;
 }) {
     const Icon = config.icon;
-    
+
     const getStatusStyles = () => {
         switch (info.status) {
             case 'complete':
@@ -179,9 +179,9 @@ function PhaseStep({
                 };
         }
     };
-    
+
     const styles = getStatusStyles();
-    
+
     return (
         <div className="relative flex items-center">
             {/* Connector Line */}
@@ -195,7 +195,7 @@ function PhaseStep({
                     />
                 </div>
             )}
-            
+
             {/* Phase Circle */}
             <motion.button
                 onClick={onClick}
@@ -219,7 +219,7 @@ function PhaseStep({
                 ) : (
                     <Icon className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${styles.text}`} />
                 )}
-                
+
                 {/* Progress Ring for Active Phase */}
                 {info.status === 'active' && info.progress !== undefined && (
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
@@ -249,7 +249,7 @@ function PhaseStep({
                     </svg>
                 )}
             </motion.button>
-            
+
             {/* Phase Label (non-compact) */}
             {!compact && (
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
@@ -278,16 +278,16 @@ export function BuildPhaseIndicator({
 }: BuildPhaseIndicatorProps) {
     // Build a map of phases for easy lookup
     const phaseMap = new Map(phases.map(p => [p.phase, p]));
-    
+
     // Get current phase info
     const current = currentPhase ? phaseMap.get(currentPhase) : undefined;
     const currentConfig = currentPhase ? PHASE_CONFIG[currentPhase] : undefined;
-    
+
     // Calculate overall progress
     const completedCount = phases.filter(p => p.status === 'complete').length;
     const totalCount = PHASE_ORDER.length;
     const overallProgress = Math.round((completedCount / totalCount) * 100);
-    
+
     return (
         <div className={`${compact ? 'p-3' : 'p-4 md:p-6'} rounded-xl bg-slate-900/50 backdrop-blur-xl border border-white/5`}>
             {/* Header */}
@@ -305,13 +305,13 @@ export function BuildPhaseIndicator({
                     </div>
                 </div>
             )}
-            
+
             {/* Phase Steps */}
             <div className={`flex items-center justify-between ${compact ? 'gap-1' : 'gap-4 md:gap-2'}`}>
                 {PHASE_ORDER.map((phase, index) => {
                     const info = phaseMap.get(phase) || { phase, status: 'pending' as PhaseStatus };
                     const config = PHASE_CONFIG[phase];
-                    
+
                     return (
                         <PhaseStep
                             key={phase}
@@ -326,7 +326,7 @@ export function BuildPhaseIndicator({
                     );
                 })}
             </div>
-            
+
             {/* Current Phase Details */}
             {showDetails && current && currentConfig && (
                 <motion.div
@@ -349,7 +349,7 @@ export function BuildPhaseIndicator({
                             </div>
                         )}
                     </div>
-                    
+
                     {/* Progress Bar */}
                     {current.progress !== undefined && (
                         <div className="mt-3 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -363,7 +363,7 @@ export function BuildPhaseIndicator({
                     )}
                 </motion.div>
             )}
-            
+
             {/* Overall Progress Bar (compact) */}
             {compact && (
                 <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
@@ -384,7 +384,7 @@ export function BuildPhaseIndicator({
 export function BuildPhaseInline({ phases, currentPhase }: { phases: PhaseInfo[]; currentPhase?: BuildPhase }) {
     const completedCount = phases.filter(p => p.status === 'complete').length;
     const current = currentPhase ? PHASE_CONFIG[currentPhase] : undefined;
-    
+
     return (
         <div className="flex items-center gap-2">
             {/* Mini dots */}
@@ -392,7 +392,7 @@ export function BuildPhaseInline({ phases, currentPhase }: { phases: PhaseInfo[]
                 {PHASE_ORDER.map((phase) => {
                     const info = phases.find(p => p.phase === phase);
                     const config = PHASE_CONFIG[phase];
-                    
+
                     return (
                         <div
                             key={phase}
@@ -406,7 +406,7 @@ export function BuildPhaseInline({ phases, currentPhase }: { phases: PhaseInfo[]
                     );
                 })}
             </div>
-            
+
             {/* Current phase label */}
             {current && (
                 <span className="text-xs text-slate-400">

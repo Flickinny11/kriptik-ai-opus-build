@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
+import {
     AlertTriangle, CheckCircle2, XCircle, Loader2,
     Bug, Code, Eye, Shield, FileText, Palette,
     ChevronDown, RefreshCw
@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // TYPES
 // ============================================================================
 
-export type VerificationAgentType = 
+export type VerificationAgentType =
     | 'error_checker'
     | 'code_quality'
     | 'visual_verifier'
@@ -159,10 +159,10 @@ function VerdictBadge({ verdict }: { verdict: SwarmVerdict }) {
                 };
         }
     };
-    
+
     const styles = getVerdictStyles();
     const Icon = styles.icon;
-    
+
     return (
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${styles.bg} border ${styles.border}`}>
             <Icon className={`w-4 h-4 ${styles.text}`} />
@@ -190,7 +190,7 @@ function AgentCard({
     onToggle: () => void;
 }) {
     const Icon = config.icon;
-    
+
     const getStatusStyles = () => {
         switch (agent.status) {
             case 'passed':
@@ -205,10 +205,10 @@ function AgentCard({
                 return { bg: 'bg-slate-800/50', border: 'border-slate-700/50', icon: Icon, iconColor: 'text-slate-400' };
         }
     };
-    
+
     const styles = getStatusStyles();
     const StatusIcon = styles.icon;
-    
+
     return (
         <motion.div
             className={`rounded-lg ${styles.bg} border ${styles.border} overflow-hidden transition-all duration-200`}
@@ -227,7 +227,7 @@ function AgentCard({
                         <div className="text-xs text-slate-500">{config.pollInterval}</div>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     {agent.score !== undefined && (
                         <span className={`text-sm font-mono ${agent.score >= 80 ? 'text-emerald-400' : agent.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
@@ -245,7 +245,7 @@ function AgentCard({
                     </motion.div>
                 </div>
             </button>
-            
+
             <AnimatePresence>
                 {expanded && (
                     <motion.div
@@ -257,11 +257,11 @@ function AgentCard({
                     >
                         <div className="px-3 pb-3 space-y-2">
                             <p className="text-xs text-slate-400">{config.description}</p>
-                            
+
                             {agent.message && (
                                 <p className="text-xs text-slate-300">{agent.message}</p>
                             )}
-                            
+
                             {agent.details && agent.details.length > 0 && (
                                 <div className="space-y-1">
                                     {agent.details.slice(0, 3).map((detail, i) => (
@@ -277,7 +277,7 @@ function AgentCard({
                                     )}
                                 </div>
                             )}
-                            
+
                             {agent.lastRun && (
                                 <div className="text-[10px] text-slate-500">
                                     Last run: {formatTimeAgo(agent.lastRun)}
@@ -303,16 +303,16 @@ export function VerificationSwarmStatus({
     compact = false,
 }: VerificationSwarmStatusProps) {
     const [expandedAgent, setExpandedAgent] = useState<VerificationAgentType | null>(null);
-    
+
     // Build agent map
     const agentMap = new Map(agents.map(a => [a.type, a]));
-    
+
     // Calculate stats
     const passedCount = agents.filter(a => a.status === 'passed').length;
     const failedCount = agents.filter(a => a.status === 'failed').length;
     const warningCount = agents.filter(a => a.status === 'warning').length;
     const runningCount = agents.filter(a => a.status === 'running').length;
-    
+
     if (compact) {
         return (
             <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ export function VerificationSwarmStatus({
                     {AGENT_ORDER.map((type) => {
                         const agent = agentMap.get(type);
                         const config = AGENT_CONFIG[type];
-                        
+
                         return (
                             <div
                                 key={type}
@@ -338,7 +338,7 @@ export function VerificationSwarmStatus({
                         );
                     })}
                 </div>
-                
+
                 {/* Summary */}
                 <span className="text-xs text-slate-400">
                     {passedCount}/{AGENT_ORDER.length} passed
@@ -346,7 +346,7 @@ export function VerificationSwarmStatus({
             </div>
         );
     }
-    
+
     return (
         <div className="rounded-xl bg-slate-900/50 backdrop-blur-xl border border-white/5 overflow-hidden">
             {/* Header */}
@@ -367,25 +367,25 @@ export function VerificationSwarmStatus({
                     <div>
                         <h3 className="font-semibold text-white">Verification Swarm</h3>
                         <p className="text-xs text-slate-400">
-                            {runningCount > 0 
+                            {runningCount > 0
                                 ? `${runningCount} agent${runningCount > 1 ? 's' : ''} running...`
                                 : `${passedCount} passed, ${failedCount} failed, ${warningCount} warnings`
                             }
                         </p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     {verdict && <VerdictBadge verdict={verdict} />}
-                    
+
                     {onRerun && (
                         <button
                             onClick={onRerun}
                             disabled={isRunning}
                             className={`
                                 p-2 rounded-lg transition-all duration-200
-                                ${isRunning 
-                                    ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' 
+                                ${isRunning
+                                    ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
                                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
                                 }
                             `}
@@ -395,13 +395,13 @@ export function VerificationSwarmStatus({
                     )}
                 </div>
             </div>
-            
+
             {/* Agent List */}
             <div className="p-4 space-y-2">
                 {AGENT_ORDER.map((type) => {
                     const agent = agentMap.get(type) || { type, status: 'idle' as AgentStatus };
                     const config = AGENT_CONFIG[type];
-                    
+
                     return (
                         <AgentCard
                             key={type}
@@ -413,7 +413,7 @@ export function VerificationSwarmStatus({
                     );
                 })}
             </div>
-            
+
             {/* Overall Score Bar */}
             {verdict && (
                 <div className="p-4 border-t border-white/5">
@@ -446,7 +446,7 @@ export function VerificationSwarmStatus({
 
 function formatTimeAgo(date: Date): string {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-    
+
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;

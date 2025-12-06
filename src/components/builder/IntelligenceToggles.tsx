@@ -6,8 +6,8 @@
  */
 
 import { useState } from 'react';
-import { 
-    Brain, Zap, Gauge, Sparkles, Code, Palette, 
+import {
+    Brain, Zap, Gauge, Sparkles, Code, Palette,
     Shield, MessageSquare, ChevronDown, ChevronUp,
     Lightbulb, Rocket
 } from 'lucide-react';
@@ -105,7 +105,7 @@ function SettingSlider({
     const Icon = config.icon;
     const currentIndex = config.options.findIndex(o => o.value === value);
     const percentage = (currentIndex / (config.options.length - 1)) * 100;
-    
+
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -117,7 +117,7 @@ function SettingSlider({
                     {config.options[currentIndex]?.label}
                 </span>
             </div>
-            
+
             <div className="relative h-8 flex items-center">
                 {/* Track */}
                 <div className="absolute inset-x-0 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -127,13 +127,13 @@ function SettingSlider({
                         transition={{ duration: 0.2 }}
                     />
                 </div>
-                
+
                 {/* Options */}
                 <div className="absolute inset-x-0 flex justify-between">
                     {config.options.map((option, index) => {
                         const isActive = index <= currentIndex;
                         const isCurrent = option.value === value;
-                        
+
                         return (
                             <button
                                 key={option.value}
@@ -161,7 +161,7 @@ function SettingSlider({
                     })}
                 </div>
             </div>
-            
+
             <p className="text-xs text-slate-500">{config.description}</p>
         </div>
     );
@@ -179,7 +179,7 @@ export function IntelligenceToggles({
 }: IntelligenceTogglesProps) {
     const [expanded, setExpanded] = useState(!compact);
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-    
+
     // Detect current preset
     const detectPreset = () => {
         for (const [id, presetSettings] of Object.entries(PRESET_SETTINGS)) {
@@ -189,14 +189,14 @@ export function IntelligenceToggles({
         }
         return null;
     };
-    
+
     const currentPreset = selectedPreset || detectPreset();
-    
+
     const applyPreset = (presetId: string) => {
         setSelectedPreset(presetId);
         onSettingsChange(PRESET_SETTINGS[presetId]);
     };
-    
+
     const updateSetting = <K extends keyof IntelligenceSettings>(
         key: K,
         value: IntelligenceSettings[K]
@@ -204,7 +204,7 @@ export function IntelligenceToggles({
         setSelectedPreset(null);
         onSettingsChange({ ...settings, [key]: value });
     };
-    
+
     const sliderConfigs: (SliderConfig & { key: keyof IntelligenceSettings })[] = [
         {
             key: 'thinkingDepth',
@@ -285,7 +285,7 @@ export function IntelligenceToggles({
             color: 'rose',
         },
     ];
-    
+
     return (
         <div className="rounded-xl bg-slate-900/50 backdrop-blur-xl border border-white/5 overflow-hidden">
             {/* Header */}
@@ -304,12 +304,12 @@ export function IntelligenceToggles({
                         </p>
                     </div>
                 </div>
-                
+
                 <motion.div animate={{ rotate: expanded ? 180 : 0 }}>
                     <ChevronDown className="w-5 h-5 text-slate-400" />
                 </motion.div>
             </button>
-            
+
             <AnimatePresence>
                 {expanded && (
                     <motion.div
@@ -329,7 +329,7 @@ export function IntelligenceToggles({
                                     {PRESETS.map((preset) => {
                                         const isActive = currentPreset === preset.id;
                                         const Icon = preset.icon;
-                                        
+
                                         return (
                                             <motion.button
                                                 key={preset.id}
@@ -341,8 +341,8 @@ export function IntelligenceToggles({
                                                     relative p-3 rounded-lg text-center
                                                     transition-all duration-200
                                                     ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                                                    ${isActive 
-                                                        ? `bg-${preset.color}-500/20 border border-${preset.color}-500/50` 
+                                                    ${isActive
+                                                        ? `bg-${preset.color}-500/20 border border-${preset.color}-500/50`
                                                         : 'bg-slate-800/50 border border-white/5 hover:border-white/10'
                                                     }
                                                 `}
@@ -356,10 +356,10 @@ export function IntelligenceToggles({
                                     })}
                                 </div>
                             </div>
-                            
+
                             {/* Divider */}
                             <div className="border-t border-white/5" />
-                            
+
                             {/* Individual Sliders */}
                             <div className="space-y-6">
                                 {sliderConfigs.map((config) => (
@@ -372,7 +372,7 @@ export function IntelligenceToggles({
                                     />
                                 ))}
                             </div>
-                            
+
                             {/* Cost Indicator */}
                             <div className="p-3 rounded-lg bg-slate-800/50 border border-white/5">
                                 <div className="flex items-center justify-between">
@@ -403,16 +403,16 @@ export function IntelligenceToggles({
 
 function calculateCostMultiplier(settings: IntelligenceSettings): number {
     let multiplier = 1;
-    
+
     const powerMultipliers = { economy: 0.3, balanced: 1, performance: 2, maximum: 5 };
     multiplier *= powerMultipliers[settings.powerLevel];
-    
+
     const thinkingMultipliers = { shallow: 1, normal: 1.2, deep: 1.5, maximum: 2 };
     multiplier *= thinkingMultipliers[settings.thinkingDepth];
-    
+
     const speedMultipliers = { fastest: 0.7, fast: 0.9, balanced: 1, quality: 1.5, 'maximum-quality': 2.5 };
     multiplier *= speedMultipliers[settings.speedPriority];
-    
+
     return Math.round(multiplier * 10) / 10;
 }
 

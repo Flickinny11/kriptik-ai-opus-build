@@ -33,7 +33,7 @@ export interface AntiSlopScore {
     color: number;             // Color palette quality score
     layout: number;            // Spacing & structure score
     soulAlignment: number;     // How well design matches app soul
-    
+
     // Detailed findings
     violations: AntiSlopViolation[];
     recommendations: string[];
@@ -77,7 +77,7 @@ export type AntiSlopRule =
 const SLOP_PATTERNS = {
     // Emoji patterns (strict ban)
     emojiRegex: /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu,
-    
+
     // Generic font patterns
     genericFonts: [
         'font-sans',
@@ -88,7 +88,7 @@ const SLOP_PATTERNS = {
         'sans-serif',
         'system-ui',
     ],
-    
+
     // Banned color patterns (AI slop signatures)
     bannedColorPatterns: [
         /from-purple-\d+ to-pink-\d+/,  // Classic AI gradient
@@ -97,7 +97,7 @@ const SLOP_PATTERNS = {
         /bg-white(?!\s*\/)/,            // Pure white backgrounds
         /text-gray-500/,                // Generic gray text
     ],
-    
+
     // Flat design indicators
     flatDesignPatterns: [
         'shadow-sm',
@@ -105,12 +105,12 @@ const SLOP_PATTERNS = {
         'shadow-lg', // Without color is still flat
         /border(?!-[a-z]+-\d+\/)/,     // Borders without opacity
     ],
-    
+
     // No animation indicators
     staticPatterns: [
         /class="[^"]*"/, // Classes without transition/animate
     ],
-    
+
     // Placeholder patterns
     placeholderPatterns: [
         /lorem ipsum/i,
@@ -135,7 +135,7 @@ const QUALITY_PATTERNS = {
         'bg-.*\/[0-9]+',           // Background with opacity
         'border-.*\/[0-9]+',       // Border with opacity
     ],
-    
+
     // Motion indicators
     motion: [
         'transition-',
@@ -145,7 +145,7 @@ const QUALITY_PATTERNS = {
         'hover:',
         'group-hover:',
     ],
-    
+
     // Typography quality
     typography: [
         'font-',
@@ -153,7 +153,7 @@ const QUALITY_PATTERNS = {
         'tracking-',
         'leading-',
     ],
-    
+
     // Layout quality
     layout: [
         'gap-',
@@ -180,7 +180,7 @@ export class AntiSlopDetector {
             projectId,
             userId,
         });
-        
+
         if (soulType) {
             this.appSoul = APP_SOULS[soulType];
         }
@@ -205,40 +205,40 @@ export class AntiSlopDetector {
      */
     async analyze(files: Map<string, string>): Promise<AntiSlopScore> {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Static analysis for each file
         for (const [path, content] of files.entries()) {
             // Skip non-UI files
             if (!this.isUIFile(path)) continue;
-            
+
             // Check for emoji violations
             violations.push(...this.checkEmoji(path, content));
-            
+
             // Check for placeholder violations
             violations.push(...this.checkPlaceholders(path, content));
-            
+
             // Check for flat design violations
             violations.push(...this.checkDepth(path, content));
-            
+
             // Check for typography violations
             violations.push(...this.checkTypography(path, content));
-            
+
             // Check for color violations
             violations.push(...this.checkColors(path, content));
-            
+
             // Check for layout violations
             violations.push(...this.checkLayout(path, content));
-            
+
             // Check for motion violations
             violations.push(...this.checkMotion(path, content));
         }
 
         // Calculate scores
         const scores = this.calculateScores(files, violations);
-        
+
         // AI-powered soul alignment check
         const soulAlignmentScore = await this.checkSoulAlignment(files);
-        
+
         // Calculate overall score
         const overall = this.calculateOverallScore({
             ...scores,
@@ -263,17 +263,17 @@ export class AntiSlopDetector {
      */
     quickCheck(files: Map<string, string>): { pass: boolean; criticalViolations: AntiSlopViolation[] } {
         const criticalViolations: AntiSlopViolation[] = [];
-        
+
         for (const [path, content] of files.entries()) {
             if (!this.isUIFile(path)) continue;
-            
+
             // Only check for critical violations
             const emojiViolations = this.checkEmoji(path, content).filter(v => v.severity === 'critical');
             const placeholderViolations = this.checkPlaceholders(path, content).filter(v => v.severity === 'critical');
-            
+
             criticalViolations.push(...emojiViolations, ...placeholderViolations);
         }
-        
+
         return {
             pass: criticalViolations.length === 0,
             criticalViolations,
@@ -287,7 +287,7 @@ export class AntiSlopDetector {
     private checkEmoji(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
         const matches = content.match(SLOP_PATTERNS.emojiRegex);
-        
+
         if (matches) {
             // Check if emojis are in UI-critical locations
             const lines = content.split('\n');
@@ -295,7 +295,7 @@ export class AntiSlopDetector {
                 if (SLOP_PATTERNS.emojiRegex.test(line)) {
                     const isHeading = /<h[1-6]|className=".*text-[2-9]xl/i.test(line);
                     const isButton = /<button|<Button|type="submit"|type="button"/i.test(line);
-                    
+
                     violations.push({
                         rule: isHeading ? 'EMOJI_IN_HEADING' : isButton ? 'EMOJI_IN_BUTTON' : 'EMOJI_IN_UI',
                         severity: isHeading || isButton ? 'critical' : 'major',
@@ -307,17 +307,17 @@ export class AntiSlopDetector {
                 }
             });
         }
-        
+
         return violations;
     }
 
     private checkPlaceholders(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         SLOP_PATTERNS.placeholderPatterns.forEach(pattern => {
             const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern, 'gi');
             const lines = content.split('\n');
-            
+
             lines.forEach((line, index) => {
                 if (regex.test(line)) {
                     violations.push({
@@ -331,18 +331,18 @@ export class AntiSlopDetector {
                 }
             });
         });
-        
+
         return violations;
     }
 
     private checkDepth(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Check for depth-providing patterns
-        const hasDepth = QUALITY_PATTERNS.depth.some(pattern => 
+        const hasDepth = QUALITY_PATTERNS.depth.some(pattern =>
             new RegExp(pattern).test(content)
         );
-        
+
         // Check for flat design patterns
         const hasFlatPatterns = SLOP_PATTERNS.flatDesignPatterns.some(pattern => {
             if (pattern instanceof RegExp) {
@@ -350,11 +350,11 @@ export class AntiSlopDetector {
             }
             return content.includes(pattern) && !content.includes(`${pattern}-`) && !content.includes('/');
         });
-        
+
         // Count shadow usage without color
         const shadowWithoutColor = (content.match(/shadow-(sm|md|lg|xl|2xl)(?!\s*shadow-)/g) || []).length;
         const shadowWithColor = (content.match(/shadow-[a-z]+-\d+\/?\d*/g) || []).length;
-        
+
         if (!hasDepth && this.isUIFile(path)) {
             violations.push({
                 rule: 'DEPTH_FLAT_DESIGN',
@@ -364,7 +364,7 @@ export class AntiSlopDetector {
                 suggestion: 'Add backdrop-blur, colored shadows (shadow-violet-500/20), or semi-transparent backgrounds.',
             });
         }
-        
+
         if (shadowWithoutColor > shadowWithColor && shadowWithoutColor > 0) {
             violations.push({
                 rule: 'DEPTH_DEFAULT_SHADOW',
@@ -374,26 +374,26 @@ export class AntiSlopDetector {
                 suggestion: 'Use colored shadows like shadow-violet-500/20 instead of plain shadow-lg.',
             });
         }
-        
+
         return violations;
     }
 
     private checkTypography(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Check for generic fonts
-        const usesGenericFonts = SLOP_PATTERNS.genericFonts.some(font => 
+        const usesGenericFonts = SLOP_PATTERNS.genericFonts.some(font =>
             content.includes(font) || content.toLowerCase().includes(font.toLowerCase())
         );
-        
+
         // Check for typography hierarchy
-        const hasHierarchy = 
+        const hasHierarchy =
             (content.match(/text-(xs|sm|base|lg|xl|[2-9]xl)/g) || []).length > 2;
-        
+
         // Check for font weight variation
-        const hasFontWeights = 
+        const hasFontWeights =
             (content.match(/font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)/g) || []).length > 1;
-        
+
         if (usesGenericFonts && !content.includes("font-['")) {
             violations.push({
                 rule: 'TYPO_GENERIC_FONT',
@@ -403,7 +403,7 @@ export class AntiSlopDetector {
                 suggestion: 'Import and use distinctive fonts like Plus Jakarta Sans, Clash Display, or Inter with proper weights.',
             });
         }
-        
+
         if (!hasHierarchy && this.hasTextContent(content)) {
             violations.push({
                 rule: 'TYPO_NO_HIERARCHY',
@@ -413,13 +413,13 @@ export class AntiSlopDetector {
                 suggestion: 'Establish clear hierarchy with varied text sizes: hero (6xl+), h1 (4xl), h2 (2xl), body (base).',
             });
         }
-        
+
         return violations;
     }
 
     private checkColors(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Check for banned color patterns (AI slop signatures)
         SLOP_PATTERNS.bannedColorPatterns.forEach(pattern => {
             if (pattern.test(content)) {
@@ -433,11 +433,11 @@ export class AntiSlopDetector {
                 });
             }
         });
-        
+
         // Check for default gray overuse
         const grayUsage = (content.match(/gray-\d{3}/g) || []).length;
         const coloredUsage = (content.match(/(violet|purple|rose|amber|emerald|cyan|blue|pink|orange|lime)-\d{3}/g) || []).length;
-        
+
         if (grayUsage > coloredUsage * 2 && grayUsage > 5) {
             violations.push({
                 rule: 'COLOR_DEFAULT_GRAY',
@@ -447,22 +447,22 @@ export class AntiSlopDetector {
                 suggestion: 'Use slate-* instead of gray-*, and add accent colors that match the app soul.',
             });
         }
-        
+
         return violations;
     }
 
     private checkLayout(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Check for spacing system
         const hasSpacingSystem = QUALITY_PATTERNS.layout.some(pattern =>
             new RegExp(pattern).test(content)
         );
-        
+
         // Check for over-centering
         const centerCount = (content.match(/text-center|items-center|justify-center|mx-auto/g) || []).length;
         const totalLayoutClasses = (content.match(/flex|grid|items-|justify-|text-(left|right|center)/g) || []).length;
-        
+
         if (!hasSpacingSystem && this.hasLayoutContent(content)) {
             violations.push({
                 rule: 'LAYOUT_NO_SPACING_SYSTEM',
@@ -472,7 +472,7 @@ export class AntiSlopDetector {
                 suggestion: 'Use consistent gap-*, space-*, p-*, m-* with a 4px/8px grid system.',
             });
         }
-        
+
         if (centerCount > totalLayoutClasses * 0.7 && centerCount > 5) {
             violations.push({
                 rule: 'LAYOUT_CENTERED_EVERYTHING',
@@ -482,22 +482,22 @@ export class AntiSlopDetector {
                 suggestion: 'Vary alignment. Use text-left for body copy, asymmetric layouts for visual interest.',
             });
         }
-        
+
         return violations;
     }
 
     private checkMotion(path: string, content: string): AntiSlopViolation[] {
         const violations: AntiSlopViolation[] = [];
-        
+
         // Check for motion patterns
         const hasTransitions = /transition-/.test(content);
         const hasAnimations = /animate-/.test(content);
         const hasHoverEffects = /hover:/.test(content);
         const hasDurations = /duration-/.test(content);
-        
+
         // Interactive components that should have motion
         const hasInteractiveElements = /<button|<Button|<a\s|<Link|onClick|onSubmit/i.test(content);
-        
+
         if (hasInteractiveElements && !hasTransitions && !hasHoverEffects) {
             violations.push({
                 rule: 'MOTION_NO_ANIMATION',
@@ -507,7 +507,7 @@ export class AntiSlopDetector {
                 suggestion: 'Add hover:scale-[1.02], transition-all duration-200, and hover:shadow-lg effects.',
             });
         }
-        
+
         if (hasTransitions && !hasDurations) {
             violations.push({
                 rule: 'MOTION_ABRUPT',
@@ -517,7 +517,7 @@ export class AntiSlopDetector {
                 suggestion: 'Add duration-200 or duration-300 for smooth, polished animations.',
             });
         }
-        
+
         return violations;
     }
 
@@ -542,7 +542,7 @@ export class AntiSlopDetector {
             color: violations.filter(v => v.rule.startsWith('COLOR_')).length,
             layout: violations.filter(v => v.rule.startsWith('LAYOUT_')).length,
         };
-        
+
         // Count quality patterns found
         let qualityPatternCounts = {
             depth: 0,
@@ -550,7 +550,7 @@ export class AntiSlopDetector {
             typography: 0,
             layout: 0,
         };
-        
+
         for (const [, content] of files.entries()) {
             QUALITY_PATTERNS.depth.forEach(p => {
                 if (new RegExp(p).test(content)) qualityPatternCounts.depth++;
@@ -565,21 +565,21 @@ export class AntiSlopDetector {
                 if (new RegExp(p).test(content)) qualityPatternCounts.layout++;
             });
         }
-        
+
         // Calculate scores (100 = perfect, penalties for violations, bonuses for quality patterns)
         const baseScore = 85;
         const criticalPenalty = 25;
         const majorPenalty = 15;
         const minorPenalty = 5;
         const patternBonus = 3;
-        
+
         const penalize = (count: number, critical = 0) => {
             const criticals = violations.filter(v => v.severity === 'critical').length;
             const majors = violations.filter(v => v.severity === 'major').length;
             const minors = count - criticals - majors;
             return criticals * criticalPenalty + majors * majorPenalty + minors * minorPenalty;
         };
-        
+
         return {
             depth: Math.max(0, Math.min(100, baseScore - penalize(violationCounts.depth) + qualityPatternCounts.depth * patternBonus)),
             motion: Math.max(0, Math.min(100, baseScore - penalize(violationCounts.motion) + qualityPatternCounts.motion * patternBonus)),
@@ -594,14 +594,14 @@ export class AntiSlopDetector {
         if (!this.appSoul) {
             return 80; // Default score if no soul defined
         }
-        
+
         // Combine UI files for analysis
         const uiContent = Array.from(files.entries())
             .filter(([path]) => this.isUIFile(path))
             .map(([path, content]) => `// ${path}\n${content}`)
             .join('\n\n')
             .substring(0, 30000); // Limit for context
-        
+
         const prompt = `Analyze this UI code for alignment with the "${this.appSoul.name}" design soul.
 
 DESIGN SOUL REQUIREMENTS:
@@ -626,7 +626,7 @@ Respond with ONLY a number 0-100. No explanation.`;
                 maxTokens: 10,
                 useExtendedThinking: false,
             });
-            
+
             const score = parseInt(response.content.trim(), 10);
             return isNaN(score) ? 75 : Math.max(0, Math.min(100, score));
         } catch {
@@ -653,8 +653,8 @@ Respond with ONLY a number 0-100. No explanation.`;
             layout: 0.10,
             soulAlignment: 0.15,
         };
-        
-        const weighted = 
+
+        const weighted =
             scores.depth * weights.depth +
             scores.motion * weights.motion +
             scores.emojiCompliance * weights.emojiCompliance +
@@ -662,36 +662,36 @@ Respond with ONLY a number 0-100. No explanation.`;
             scores.color * weights.color +
             scores.layout * weights.layout +
             scores.soulAlignment * weights.soulAlignment;
-        
+
         return Math.round(weighted);
     }
 
     private generateRecommendations(violations: AntiSlopViolation[], scores: Record<string, number>): string[] {
         const recommendations: string[] = [];
-        
+
         // Priority recommendations based on lowest scores
         const sortedScores = Object.entries(scores)
             .filter(([key]) => key !== 'emojiCompliance') // Handle emoji separately
             .sort(([, a], [, b]) => a - b);
-        
+
         // Top 3 areas to improve
         sortedScores.slice(0, 3).forEach(([category, score]) => {
             if (score < 80) {
                 recommendations.push(this.getRecommendationForCategory(category, score));
             }
         });
-        
+
         // Specific violation-based recommendations
         const criticalViolations = violations.filter(v => v.severity === 'critical');
         if (criticalViolations.length > 0) {
             recommendations.unshift(`FIX CRITICAL: ${criticalViolations.length} critical violations must be resolved immediately.`);
         }
-        
+
         // Emoji-specific recommendation
         if (scores.emojiCompliance !== undefined && scores.emojiCompliance < 100) {
             recommendations.unshift('EMOJI BAN: Remove ALL emojis from UI. Use Lucide React icons instead.');
         }
-        
+
         return recommendations.slice(0, 5); // Top 5 recommendations
     }
 
@@ -704,7 +704,7 @@ Respond with ONLY a number 0-100. No explanation.`;
             layout: `ENHANCE LAYOUT (${score}/100): Use consistent gap-6, px-8, establish visual rhythm with varied spacing.`,
             soulAlignment: `ALIGN WITH SOUL (${score}/100): Review the app soul definition and match its color, depth, and motion philosophy.`,
         };
-        
+
         return recommendations[category] || `IMPROVE ${category.toUpperCase()} (${score}/100)`;
     }
 

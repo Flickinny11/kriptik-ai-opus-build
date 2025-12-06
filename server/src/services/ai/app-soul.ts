@@ -28,19 +28,19 @@ export interface AppSoul {
     type: AppSoulType;
     name: string;
     description: string;
-    
+
     // Visual Identity
     colorPalette: ColorPalette;
     typography: TypographySystem;
     depth: DepthPhilosophy;
     motion: MotionPhilosophy;
-    
+
     // Component Patterns
     componentPatterns: ComponentPatterns;
-    
+
     // Banned Patterns (anti-slop)
     bannedPatterns: string[];
-    
+
     // Example Apps
     exampleApps: string[];
 }
@@ -884,7 +884,7 @@ Return ONLY the soul type name (e.g., "immersive_media") with no explanation.`;
         });
 
         const soulType = response.content.trim().toLowerCase().replace(/[^a-z_]/g, '') as AppSoulType;
-        
+
         // Return the detected soul or default to ecommerce_convert
         return APP_SOULS[soulType] || APP_SOULS.ecommerce_convert;
     }

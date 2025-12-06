@@ -16,7 +16,7 @@ import { AppSoul, APP_SOULS, AppSoulType } from '../ai/app-soul.js';
 
 export interface VisualVerificationResult {
     passed: boolean;
-    
+
     // Individual Scores (0-100)
     scores: {
         visual: number;           // Overall visual quality
@@ -27,19 +27,19 @@ export interface VisualVerificationResult {
         typography: number;       // Typography hierarchy
         colorHarmony: number;     // Color palette coherence
     };
-    
+
     // Aggregated
     overallScore: number;
-    
+
     // Verdict
     verdict: 'APPROVED' | 'NEEDS_WORK' | 'REJECTED';
-    
+
     // Issues Found
     issues: VisualIssue[];
-    
+
     // Recommendations
     recommendations: string[];
-    
+
     // Details
     analysis: string;
 }
@@ -77,7 +77,7 @@ const SLOP_PATTERNS = {
         warning_fonts: ['Inter', 'Roboto', 'Open Sans'], // Only warning, not critical
         generic_font_stack: /font-family:\s*['"]?(system-ui|sans-serif|serif|monospace)['"]?(?!\s*,)/gi,
     },
-    
+
     // Color Crimes
     colors: {
         pure_white_bg: /bg-white(?![\/\-])/g,
@@ -86,21 +86,21 @@ const SLOP_PATTERNS = {
         purple_gradient_slop: /from-purple-\d+.*to-indigo-\d+/g, // The classic AI slop gradient
         too_many_colors: 8, // More than this = rainbow slop
     },
-    
+
     // Layout Crimes
     layout: {
         centered_everything: /text-center.*text-center.*text-center/gs,
         card_grid_soup: /grid-cols-3.*grid-cols-3.*grid-cols-3/gs,
         hero_with_just_text: /<section[^>]*>[\s\S]*?<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p[^>]*>[\s\S]*?<\/p>[\s\S]*?<\/section>/gi,
     },
-    
+
     // Interaction Crimes
     interactions: {
         no_hover_states: /className="[^"]*"(?![^>]*hover:)/g,
         no_transitions: /className="[^"]*(?!.*transition)/g,
         no_shadows: /rounded-[^"]*"(?![^>]*shadow)/g,
     },
-    
+
     // Content Crimes
     content: {
         lorem_ipsum: /lorem\s+ipsum/gi,
@@ -108,7 +108,7 @@ const SLOP_PATTERNS = {
         generic_button_text: /\b(Click here|Submit|Button|Learn more)\b/gi,
         emoji_overuse: /[\u{1F300}-\u{1F9FF}]{3,}/gu, // 3+ emoji in a row
     },
-    
+
     // Depth Crimes
     depth: {
         flat_cards: /bg-white[^}]*border[^}]*rounded(?![^}]*shadow)/g,
@@ -131,7 +131,7 @@ export class VisualVerifierV2 {
             projectId,
             userId,
         });
-        
+
         if (soulType) {
             this.targetSoul = APP_SOULS[soulType];
         }
@@ -175,7 +175,7 @@ export class VisualVerifierV2 {
         // AI-assisted visual analysis if screenshot provided
         let visualScore = 70; // Default if no screenshot
         let aiAnalysis = '';
-        
+
         if (screenshot) {
             const aiResult = await this.runAIVisualAnalysis(screenshot);
             visualScore = aiResult.score;
@@ -222,7 +222,7 @@ export class VisualVerifierV2 {
         // Determine verdict
         let verdict: 'APPROVED' | 'NEEDS_WORK' | 'REJECTED';
         const criticalIssues = allIssues.filter(i => i.severity === 'critical');
-        
+
         if (criticalIssues.length > 0 || overallScore < 50) {
             verdict = 'REJECTED';
         } else if (overallScore < 85) {
@@ -619,7 +619,7 @@ export class VisualVerifierV2 {
         // Check depth level matches
         const blurCount = (uiContent.match(/backdrop-blur/g) || []).length;
         const expectedBlur = soul.depth.level === 'immersive' ? 5 : soul.depth.level === 'high' ? 3 : 1;
-        
+
         if (blurCount < expectedBlur) {
             issues.push({
                 category: 'soul_mismatch',

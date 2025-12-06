@@ -85,9 +85,9 @@ export function SpeedDialSelector({
 }: SpeedDialSelectorProps) {
     const [hoveredMode, setHoveredMode] = useState<BuildMode | null>(null);
     const [showTooltip, setShowTooltip] = useState<BuildMode | null>(null);
-    
+
     const selectedConfig = BUILD_MODES.find(m => m.mode === selectedMode);
-    
+
     return (
         <div className="w-full">
             {/* Mode Selector */}
@@ -96,7 +96,7 @@ export function SpeedDialSelector({
                     const isSelected = selectedMode === config.mode;
                     const isHovered = hoveredMode === config.mode;
                     const Icon = config.icon;
-                    
+
                     return (
                         <motion.button
                             key={config.mode}
@@ -125,7 +125,7 @@ export function SpeedDialSelector({
                                     />
                                 )}
                             </AnimatePresence>
-                            
+
                             {/* Hover Effect */}
                             {!isSelected && isHovered && (
                                 <motion.div
@@ -135,7 +135,7 @@ export function SpeedDialSelector({
                                     exit={{ opacity: 0 }}
                                 />
                             )}
-                            
+
                             {/* Content */}
                             <div className="relative z-10 flex items-center justify-center gap-2">
                                 <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
@@ -143,7 +143,7 @@ export function SpeedDialSelector({
                                     {config.name}
                                 </span>
                             </div>
-                            
+
                             {/* Selected Indicator */}
                             {isSelected && (
                                 <motion.div
@@ -159,7 +159,7 @@ export function SpeedDialSelector({
                     );
                 })}
             </div>
-            
+
             {/* Details Panel */}
             {showDetails && selectedConfig && (
                 <motion.div
@@ -179,14 +179,14 @@ export function SpeedDialSelector({
                                 <p className="text-sm text-slate-400">{selectedConfig.description}</p>
                             </div>
                         </div>
-                        
+
                         <div className="text-right">
                             <div className="text-sm text-slate-400">Est. Time & Cost</div>
                             <div className="font-mono text-sm text-white">{selectedConfig.time}</div>
                             <div className="font-mono text-xs text-slate-500">{selectedConfig.cost}</div>
                         </div>
                     </div>
-                    
+
                     {/* Features */}
                     <div className="mt-4 grid grid-cols-2 gap-2">
                         {selectedConfig.features.map((feature, i) => (
@@ -211,9 +211,9 @@ export function SpeedDialCompact({
     disabled = false,
 }: Omit<SpeedDialSelectorProps, 'showDetails'>) {
     const selectedConfig = BUILD_MODES.find(m => m.mode === selectedMode);
-    
+
     if (!selectedConfig) return null;
-    
+
     return (
         <div className="relative">
             <button
@@ -231,7 +231,7 @@ export function SpeedDialCompact({
                 <selectedConfig.icon className="w-4 h-4" />
                 <span>{selectedConfig.name}</span>
             </button>
-            
+
             <div
                 id="speedDialDropdown"
                 className="hidden absolute top-full left-0 mt-2 p-2 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-xl z-50 min-w-[200px]"
@@ -239,7 +239,7 @@ export function SpeedDialCompact({
                 {BUILD_MODES.map((config) => {
                     const isSelected = selectedMode === config.mode;
                     const Icon = config.icon;
-                    
+
                     return (
                         <button
                             key={config.mode}

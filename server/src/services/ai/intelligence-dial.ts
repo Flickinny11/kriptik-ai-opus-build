@@ -23,31 +23,31 @@ export interface IntelligenceSettings {
     thinkingEnabled: boolean;
     thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
     thinkingBudget: number;  // Token budget for extended thinking
-    
+
     // Model Power
     powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
     forceModel?: string;  // Override model selection
-    
+
     // Speed vs Quality Trade-off
     speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
-    
+
     // Creativity Settings
     creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
     temperature: number;  // 0-1, lower = more deterministic
-    
+
     // Code Style Preferences
     codeVerbosity: 'minimal' | 'standard' | 'verbose';
     commentStyle: 'none' | 'key-points' | 'detailed' | 'educational';
     errorHandling: 'minimal' | 'standard' | 'defensive' | 'paranoid';
-    
+
     // UI/Design Preferences
     designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
     animationLevel: 'none' | 'subtle' | 'smooth' | 'cinematic';
-    
+
     // Context Preferences
     contextWindow: 'small' | 'medium' | 'large' | 'maximum';
     includeExamples: boolean;
-    
+
     // Feature Toggles
     enableStreaming: boolean;
     enableToolUse: boolean;
@@ -181,7 +181,7 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: false,
         },
     },
-    
+
     balanced_build: {
         name: 'Balanced Build',
         description: 'Good quality with reasonable speed. Default for most tasks.',
@@ -206,7 +206,7 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: true,
         },
     },
-    
+
     quality_focused: {
         name: 'Quality Focused',
         description: 'High quality output with thorough thinking. Worth the wait.',
@@ -231,7 +231,7 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: true,
         },
     },
-    
+
     production_grade: {
         name: 'Production Grade',
         description: 'Enterprise quality. Maximum thinking, maximum quality.',
@@ -256,7 +256,7 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: true,
         },
     },
-    
+
     creative_mode: {
         name: 'Creative Mode',
         description: 'Experimental, novel approaches. Good for design and UX.',
@@ -281,7 +281,7 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: false,
         },
     },
-    
+
     debugging: {
         name: 'Debugging Mode',
         description: 'Maximum analysis for finding and fixing bugs.',
@@ -320,43 +320,43 @@ const DEFAULT_SETTINGS: IntelligenceSettings = INTELLIGENCE_PRESETS.balanced_bui
 
 export class IntelligenceDial {
     private settings: IntelligenceSettings;
-    
+
     constructor(initialSettings?: Partial<IntelligenceSettings>) {
         this.settings = { ...DEFAULT_SETTINGS, ...initialSettings };
     }
-    
+
     /**
      * Get current settings
      */
     getSettings(): IntelligenceSettings {
         return { ...this.settings };
     }
-    
+
     /**
      * Update settings
      */
     updateSettings(updates: Partial<IntelligenceSettings>): void {
         this.settings = { ...this.settings, ...updates };
     }
-    
+
     /**
      * Apply a preset
      */
     applyPreset(presetName: string): boolean {
         const preset = INTELLIGENCE_PRESETS[presetName];
         if (!preset) return false;
-        
+
         this.settings = { ...preset.settings };
         return true;
     }
-    
+
     /**
      * Get all available presets
      */
     getPresets(): IntelligencePreset[] {
         return Object.values(INTELLIGENCE_PRESETS);
     }
-    
+
     /**
      * Set thinking depth
      */
@@ -366,27 +366,27 @@ export class IntelligenceDial {
         this.settings.thinkingDepth = depth;
         this.settings.thinkingBudget = config.budget;
     }
-    
+
     /**
      * Set power level
      */
     setPowerLevel(level: 'economy' | 'balanced' | 'performance' | 'maximum'): void {
         this.settings.powerLevel = level;
     }
-    
+
     /**
      * Set speed priority
      */
     setSpeedPriority(priority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality'): void {
         this.settings.speedPriority = priority;
     }
-    
+
     /**
      * Set creativity level
      */
     setCreativityLevel(level: 'conservative' | 'balanced' | 'creative' | 'experimental'): void {
         this.settings.creativityLevel = level;
-        
+
         // Auto-adjust temperature based on creativity
         const temps = {
             conservative: 0.1,
@@ -396,7 +396,7 @@ export class IntelligenceDial {
         };
         this.settings.temperature = temps[level];
     }
-    
+
     /**
      * Get resolved model configuration
      */
@@ -408,7 +408,7 @@ export class IntelligenceDial {
         temperature: number;
     } {
         const powerConfig = POWER_CONFIGS[this.settings.powerLevel];
-        
+
         return {
             model: this.settings.forceModel || powerConfig.model,
             effort: powerConfig.effort,
@@ -417,7 +417,7 @@ export class IntelligenceDial {
             temperature: this.settings.temperature,
         };
     }
-    
+
     /**
      * Get resolved generation configuration
      */
@@ -430,7 +430,7 @@ export class IntelligenceDial {
         enableStructuredOutput: boolean;
     } {
         const speedConfig = SPEED_CONFIGS[this.settings.speedPriority];
-        
+
         return {
             maxTokens: speedConfig.maxTokens,
             streaming: this.settings.enableStreaming && speedConfig.streaming,
@@ -440,7 +440,7 @@ export class IntelligenceDial {
             enableStructuredOutput: this.settings.enableStructuredOutput,
         };
     }
-    
+
     /**
      * Get code generation preferences
      */
@@ -455,7 +455,7 @@ export class IntelligenceDial {
             errorHandling: this.settings.errorHandling,
         };
     }
-    
+
     /**
      * Get design preferences
      */
@@ -468,66 +468,66 @@ export class IntelligenceDial {
             animationLevel: this.settings.animationLevel,
         };
     }
-    
+
     /**
      * Build system prompt additions based on current settings
      */
     buildPromptAdditions(): string {
         const additions: string[] = [];
-        
+
         // Code style preferences
         if (this.settings.codeVerbosity === 'minimal') {
             additions.push('Write concise, minimal code. Avoid verbose patterns.');
         } else if (this.settings.codeVerbosity === 'verbose') {
             additions.push('Write detailed, explicit code with clear variable names.');
         }
-        
+
         // Comment style
         if (this.settings.commentStyle === 'none') {
             additions.push('Do not include code comments.');
         } else if (this.settings.commentStyle === 'educational') {
             additions.push('Include detailed comments explaining the why behind decisions.');
         }
-        
+
         // Error handling
         if (this.settings.errorHandling === 'paranoid') {
             additions.push('Implement comprehensive error handling for all edge cases.');
         } else if (this.settings.errorHandling === 'minimal') {
             additions.push('Use minimal error handling, assume happy path.');
         }
-        
+
         // Design detail
         if (this.settings.designDetail === 'premium') {
             additions.push('Create premium, polished UI with attention to micro-details.');
         } else if (this.settings.designDetail === 'minimal') {
             additions.push('Focus on functionality over visual polish.');
         }
-        
+
         // Animation
         if (this.settings.animationLevel === 'cinematic') {
             additions.push('Include rich, smooth animations and transitions.');
         } else if (this.settings.animationLevel === 'none') {
             additions.push('Do not include any animations or transitions.');
         }
-        
+
         // Creativity
         if (this.settings.creativityLevel === 'experimental') {
             additions.push('Feel free to try novel, creative approaches.');
         } else if (this.settings.creativityLevel === 'conservative') {
             additions.push('Use proven, conventional patterns only.');
         }
-        
-        return additions.length > 0 
+
+        return additions.length > 0
             ? `\n\n## Intelligence Settings:\n${additions.map(a => `- ${a}`).join('\n')}`
             : '';
     }
-    
+
     /**
      * Estimate cost for current settings
      */
     estimateCostMultiplier(): number {
         let multiplier = 1;
-        
+
         // Power level affects cost
         const powerMultipliers = {
             economy: 0.3,
@@ -536,7 +536,7 @@ export class IntelligenceDial {
             maximum: 5,
         };
         multiplier *= powerMultipliers[this.settings.powerLevel];
-        
+
         // Thinking depth affects cost
         if (this.settings.thinkingEnabled) {
             const thinkingMultipliers = {
@@ -547,7 +547,7 @@ export class IntelligenceDial {
             };
             multiplier *= thinkingMultipliers[this.settings.thinkingDepth];
         }
-        
+
         // Speed priority affects cost (slower = more processing)
         const speedMultipliers = {
             fastest: 0.7,
@@ -557,17 +557,17 @@ export class IntelligenceDial {
             'maximum-quality': 2.5,
         };
         multiplier *= speedMultipliers[this.settings.speedPriority];
-        
+
         return multiplier;
     }
-    
+
     /**
      * Serialize for storage
      */
     toJSON(): IntelligenceSettings {
         return this.settings;
     }
-    
+
     /**
      * Create from serialized settings
      */

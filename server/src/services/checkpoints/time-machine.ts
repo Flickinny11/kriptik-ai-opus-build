@@ -28,16 +28,16 @@ export interface CheckpointData {
     buildId: string;
     projectId: string;
     userId: string;
-    
+
     // Timing
     timestamp: Date;
     phase: string;
     status: 'created' | 'verified' | 'invalid';
-    
+
     // Files snapshot
     files: Map<string, string>;
     filesHash: string;
-    
+
     // Artifacts snapshot
     artifacts: {
         intentContract?: string;      // JSON string
@@ -45,14 +45,14 @@ export interface CheckpointData {
         progressLog?: string;
         buildState?: string;          // JSON string
     };
-    
+
     // Agent memory
     agentMemory?: {
         conversationHistory?: string[];
         contextCache?: Record<string, unknown>;
         toolCallHistory?: unknown[];
     };
-    
+
     // Quality scores
     scores?: {
         codeQuality?: number;
@@ -61,17 +61,17 @@ export interface CheckpointData {
         security?: number;
         overall?: number;
     };
-    
+
     // Screenshots
     screenshots?: string[];  // Base64 or URLs
-    
+
     // Git info (if integrated)
     gitInfo?: {
         commitHash?: string;
         branch?: string;
         message?: string;
     };
-    
+
     // Metadata
     description?: string;
     isAutomatic: boolean;
@@ -116,14 +116,14 @@ export class TimeMachine {
     private userId: string;
     private buildId: string;
     private maxCheckpoints: number;
-    
+
     constructor(projectId: string, userId: string, buildId: string, maxCheckpoints: number = 10) {
         this.projectId = projectId;
         this.userId = userId;
         this.buildId = buildId;
         this.maxCheckpoints = maxCheckpoints;
     }
-    
+
     /**
      * Create a new checkpoint
      */
@@ -143,17 +143,17 @@ export class TimeMachine {
     ): Promise<CheckpointData> {
         // Calculate files hash
         const filesHash = this.calculateFilesHash(files);
-        
+
         // Check if we already have this exact state (skip duplicate)
         const existing = await this.findByHash(filesHash);
         if (existing) {
             console.log(`[TimeMachine] Skipping duplicate checkpoint (hash: ${filesHash.substring(0, 8)})`);
             return existing;
         }
-        
+
         // Enforce max checkpoints
         await this.enforceMaxCheckpoints();
-        
+
         // Create checkpoint data
         const checkpoint: CheckpointData = {
             id: uuidv4(),
@@ -174,7 +174,7 @@ export class TimeMachine {
             isAutomatic: options.isAutomatic ?? true,
             triggerReason: options.triggerReason || 'manual',
         };
-        
+
         // Store in database
         await db.insert(buildCheckpoints).values({
             id: checkpoint.id,
@@ -188,12 +188,12 @@ export class TimeMachine {
             scores: checkpoint.scores,
             screenshots: checkpoint.screenshots,
         });
-        
+
         console.log(`[TimeMachine] Created checkpoint ${checkpoint.id} for phase "${phase}"`);
-        
+
         return checkpoint;
     }
-    
+
     /**
      * Get a checkpoint by ID
      */
@@ -203,12 +203,12 @@ export class TimeMachine {
             .from(buildCheckpoints)
             .where(eq(buildCheckpoints.id, checkpointId))
             .limit(1);
-        
+
         if (result.length === 0) return null;
-        
+
         return this.dbToCheckpointData(result[0]);
     }
-    
+
     /**
      * Get all checkpoints for current build
      */
@@ -218,10 +218,10 @@ export class TimeMachine {
             .from(buildCheckpoints)
             .where(eq(buildCheckpoints.buildId, this.buildId))
             .orderBy(desc(buildCheckpoints.timestamp));
-        
+
         return results.map(r => this.dbToSummary(r));
     }
-    
+
     /**
      * Get the most recent checkpoint
      */
@@ -232,18 +232,18 @@ export class TimeMachine {
             .where(eq(buildCheckpoints.buildId, this.buildId))
             .orderBy(desc(buildCheckpoints.timestamp))
             .limit(1);
-        
+
         if (result.length === 0) return null;
-        
+
         return this.dbToCheckpointData(result[0]);
     }
-    
+
     /**
      * Rollback to a specific checkpoint
      */
     async rollback(checkpointId: string): Promise<RollbackResult> {
         const checkpoint = await this.getCheckpoint(checkpointId);
-        
+
         if (!checkpoint) {
             return {
                 success: false,
@@ -252,18 +252,18 @@ export class TimeMachine {
                 message: `Checkpoint ${checkpointId} not found`,
             };
         }
-        
+
         const warnings: string[] = [];
-        
+
         // The actual file restoration would be handled by the caller
         // We return the checkpoint data for them to apply
-        
+
         // Create a "before rollback" checkpoint automatically
         // This allows rolling forward if the rollback was a mistake
         // (The actual implementation would need current files passed in)
-        
+
         console.log(`[TimeMachine] Rolling back to checkpoint ${checkpointId} (phase: ${checkpoint.phase})`);
-        
+
         return {
             success: true,
             checkpointId,
@@ -272,7 +272,7 @@ export class TimeMachine {
             warnings: warnings.length > 0 ? warnings : undefined,
         };
     }
-    
+
     /**
      * Compare two checkpoints
      */
@@ -281,30 +281,30 @@ export class TimeMachine {
             this.getCheckpoint(checkpointIdA),
             this.getCheckpoint(checkpointIdB),
         ]);
-        
+
         if (!checkpointA || !checkpointB) return null;
-        
+
         const filesA = new Set(checkpointA.files.keys());
         const filesB = new Set(checkpointB.files.keys());
-        
+
         const filesAdded = Array.from(filesB).filter(f => !filesA.has(f));
         const filesRemoved = Array.from(filesA).filter(f => !filesB.has(f));
         const filesModified = Array.from(filesA)
             .filter(f => filesB.has(f) && checkpointA.files.get(f) !== checkpointB.files.get(f));
-        
+
         // Calculate score changes
         const scoreChanges: Record<string, { before: number; after: number; delta: number }> = {};
         const scoreKeys = new Set([
             ...Object.keys(checkpointA.scores || {}),
             ...Object.keys(checkpointB.scores || {}),
         ]);
-        
+
         for (const key of scoreKeys) {
             const before = (checkpointA.scores as Record<string, number>)?.[key] ?? 0;
             const after = (checkpointB.scores as Record<string, number>)?.[key] ?? 0;
             scoreChanges[key] = { before, after, delta: after - before };
         }
-        
+
         return {
             checkpointA: this.checkpointToSummary(checkpointA),
             checkpointB: this.checkpointToSummary(checkpointB),
@@ -314,7 +314,7 @@ export class TimeMachine {
             scoreChanges,
         };
     }
-    
+
     /**
      * Delete a checkpoint
      */
@@ -322,11 +322,11 @@ export class TimeMachine {
         await db
             .delete(buildCheckpoints)
             .where(eq(buildCheckpoints.id, checkpointId));
-        
+
         console.log(`[TimeMachine] Deleted checkpoint ${checkpointId}`);
         return true;
     }
-    
+
     /**
      * Delete all checkpoints for current build
      */
@@ -334,11 +334,11 @@ export class TimeMachine {
         const result = await db
             .delete(buildCheckpoints)
             .where(eq(buildCheckpoints.buildId, this.buildId));
-        
+
         console.log(`[TimeMachine] Cleared all checkpoints for build ${this.buildId}`);
         return result.rowsAffected || 0;
     }
-    
+
     /**
      * Find checkpoint by files hash
      */
@@ -351,12 +351,12 @@ export class TimeMachine {
                 eq(buildCheckpoints.gitCommitHash, hash) // Using gitCommitHash to store files hash
             ))
             .limit(1);
-        
+
         if (result.length === 0) return null;
-        
+
         return this.dbToCheckpointData(result[0]);
     }
-    
+
     /**
      * Get checkpoints for a specific phase
      */
@@ -369,45 +369,45 @@ export class TimeMachine {
                 eq(buildCheckpoints.phase, phase)
             ))
             .orderBy(desc(buildCheckpoints.timestamp));
-        
+
         return results.map(r => this.dbToSummary(r));
     }
-    
+
     // ==========================================================================
     // HELPER METHODS
     // ==========================================================================
-    
+
     private calculateFilesHash(files: Map<string, string>): string {
         const hash = crypto.createHash('sha256');
-        
+
         // Sort keys for deterministic hashing
         const sortedKeys = Array.from(files.keys()).sort();
-        
+
         for (const key of sortedKeys) {
             hash.update(key);
             hash.update(files.get(key) || '');
         }
-        
+
         return hash.digest('hex');
     }
-    
+
     private async enforceMaxCheckpoints(): Promise<void> {
         const all = await this.getAllCheckpoints();
-        
+
         if (all.length >= this.maxCheckpoints) {
             // Delete oldest automatic checkpoints first
             const automaticCheckpoints = all
                 .filter(c => c.isAutomatic)
                 .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-            
+
             const toDelete = automaticCheckpoints.slice(0, all.length - this.maxCheckpoints + 1);
-            
+
             for (const checkpoint of toDelete) {
                 await this.deleteCheckpoint(checkpoint.id);
             }
         }
     }
-    
+
     private dbToCheckpointData(row: BuildCheckpoint): CheckpointData {
         return {
             id: row.id,
@@ -428,7 +428,7 @@ export class TimeMachine {
             triggerReason: 'manual',
         };
     }
-    
+
     private dbToSummary(row: BuildCheckpoint): CheckpointSummary {
         return {
             id: row.id,
@@ -441,7 +441,7 @@ export class TimeMachine {
             isAutomatic: true,
         };
     }
-    
+
     private checkpointToSummary(checkpoint: CheckpointData): CheckpointSummary {
         return {
             id: checkpoint.id,
@@ -466,20 +466,20 @@ export class CheckpointScheduler {
     private intervalMinutes: number;
     private intervalTimer?: NodeJS.Timeout;
     private isRunning: boolean = false;
-    
+
     constructor(timeMachine: TimeMachine, intervalMinutes: number = 10) {
         this.timeMachine = timeMachine;
         this.intervalMinutes = intervalMinutes;
     }
-    
+
     /**
      * Start automatic checkpointing
      */
     start(getFiles: () => Map<string, string>, getPhase: () => string): void {
         if (this.isRunning) return;
-        
+
         this.isRunning = true;
-        
+
         this.intervalTimer = setInterval(async () => {
             try {
                 await this.timeMachine.createCheckpoint(
@@ -494,10 +494,10 @@ export class CheckpointScheduler {
                 console.error('[CheckpointScheduler] Failed to create automatic checkpoint:', error);
             }
         }, this.intervalMinutes * 60 * 1000);
-        
+
         console.log(`[CheckpointScheduler] Started with ${this.intervalMinutes} minute interval`);
     }
-    
+
     /**
      * Stop automatic checkpointing
      */
@@ -509,14 +509,14 @@ export class CheckpointScheduler {
         this.isRunning = false;
         console.log('[CheckpointScheduler] Stopped');
     }
-    
+
     /**
      * Check if scheduler is running
      */
     isActive(): boolean {
         return this.isRunning;
     }
-    
+
     /**
      * Update the interval
      */
