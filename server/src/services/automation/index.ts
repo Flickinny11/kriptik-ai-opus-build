@@ -64,3 +64,20 @@ export {
     type BuildLoopEvent,
 } from './build-loop.js';
 
+// =============================================================================
+// ULTIMATE AI-FIRST BUILDER - 4-Level Error Escalation
+// =============================================================================
+
+export {
+    ErrorEscalationEngine,
+    createErrorEscalationEngine,
+    type EscalationLevel,
+    type ErrorCategory,
+    type BuildError as EscalationBuildError,
+    type Fix as EscalationFix,
+    type FileChange,
+    type EscalationConfig,
+    type EscalationState,
+    type EscalationResult,
+} from './error-escalation.js';
+
