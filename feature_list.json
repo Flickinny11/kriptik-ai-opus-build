@@ -1,9 +1,9 @@
 {
   "project": "KripTik AI Ultimate Builder Architecture",
-  "version": "2.0",
+  "version": "2.1",
   "last_updated": "2025-12-06",
-  "total_features": 28,
-  "completed": 28,
+  "total_features": 29,
+  "completed": 29,
   "in_progress": 0,
   "pending": 0,
 
@@ -374,6 +374,36 @@
           ]
         }
       ]
+    },
+    "developer_mode": {
+      "name": "Developer Mode (Competitor Killer)",
+      "features": [
+        {
+          "id": "F029",
+          "name": "Developer View UI Foundation",
+          "description": "Builder/Agents toggle, Agent Mode sidebar, layout swap, model selector",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "src/components/builder/BuilderAgentsToggle.tsx",
+            "src/components/builder/AgentModeSidebar.tsx",
+            "src/pages/Builder.tsx"
+          ],
+          "dependencies": [],
+          "phase": 11,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Builder/Agents toggle button",
+            "Layout swap (Chat LEFT ↔ Preview RIGHT)",
+            "Agent Mode sidebar with dark theme",
+            "Agent list with status indicators",
+            "Model selector dropdown",
+            "Agent progress indicators",
+            "Agent logs display",
+            "Yellow hover effect in Agent mode"
+          ]
+        }
+      ]
     }
   },
 
@@ -400,7 +430,8 @@
     "phase_7": { "name": "Design System", "features": 2, "completed": 2 },
     "phase_8": { "name": "Competitive", "features": 5, "completed": 5 },
     "phase_9": { "name": "UI Updates", "features": 4, "completed": 4 },
-    "phase_10": { "name": "Database", "features": 1, "completed": 1 }
+    "phase_10": { "name": "Database", "features": 1, "completed": 1 },
+    "phase_11": { "name": "Developer Mode", "features": 1, "completed": 1 }
   }
 }
 
