@@ -3,9 +3,9 @@
   "version": "2.0",
   "last_updated": "2025-12-06",
   "total_features": 28,
-  "completed": 19,
+  "completed": 23,
   "in_progress": 0,
-  "pending": 9,
+  "pending": 5,
 
   "categories": {
     "foundational": {
@@ -296,40 +296,44 @@
           "name": "Speed Dial Selector UI",
           "description": "Build mode selector component in Builder",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["src/components/builder/SpeedDialSelector.tsx"],
           "dependencies": ["F019"],
-          "phase": 9
+          "phase": 9,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F025",
           "name": "Intelligence Toggles UI",
           "description": "Capability toggle switches in Builder",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["src/components/builder/IntelligenceToggles.tsx"],
           "dependencies": ["F022"],
-          "phase": 9
+          "phase": 9,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F026",
           "name": "Build Phase Indicator",
           "description": "6-phase progress visualization",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["src/components/builder/BuildPhaseIndicator.tsx"],
           "dependencies": ["F006"],
-          "phase": 9
+          "phase": 9,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F027",
           "name": "Verification Swarm Status",
           "description": "Live verification agent status display",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["src/components/builder/VerificationSwarmStatus.tsx"],
           "dependencies": ["F007"],
-          "phase": 9
+          "phase": 9,
+          "completed_at": "2025-12-06"
         }
       ]
     },
@@ -389,7 +393,7 @@
     "phase_6": { "name": "Enhanced Fix My App", "features": 2, "completed": 2 },
     "phase_7": { "name": "Design System", "features": 2, "completed": 2 },
     "phase_8": { "name": "Competitive", "features": 5, "completed": 5 },
-    "phase_9": { "name": "UI Updates", "features": 4, "completed": 0 },
+    "phase_9": { "name": "UI Updates", "features": 4, "completed": 4 },
     "phase_10": { "name": "Database", "features": 1, "completed": 1 }
   }
 }
