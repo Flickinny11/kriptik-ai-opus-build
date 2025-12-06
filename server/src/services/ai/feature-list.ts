@@ -1,9 +1,9 @@
 /**
  * Feature List Manager - Phase 1 & 2 of the Ultimate AI-First Builder Architecture
- * 
+ *
  * Tracks all features with passes: true/false status.
  * Single source of truth for build progress during Phase 2 parallel building.
- * 
+ *
  * Each feature has verification status from all 6 agents of the Verification Swarm:
  * - Error Checker
  * - Code Quality
@@ -361,7 +361,7 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
 
         const now = new Date().toISOString();
         const verificationStatus = { ...feature.verificationStatus, [agentType]: status };
-        
+
         let verificationScores = feature.verificationScores || {};
         if (score !== undefined) {
             const scoreKey = this.getScoreKeyForAgent(agentType);

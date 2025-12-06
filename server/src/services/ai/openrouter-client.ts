@@ -74,7 +74,7 @@ export const OPENROUTER_MODELS = {
 
     // GPT-4o - Alternative for certain tasks
     GPT_4O: 'openai/gpt-4o',
-    
+
     // Gemini 2.0 - Good for certain use cases
     GEMINI_2_FLASH: 'google/gemini-2.0-flash-thinking-exp',
 } as const;
@@ -274,7 +274,7 @@ export class OpenRouterClient {
             defaultHeaders: headers,
         });
 
-        const betaList = this.config.enableBetas 
+        const betaList = this.config.enableBetas
             ? getBetaHeaders(this.config.betaFeatures || [])
             : 'none';
         console.log(`[OpenRouterClient] Initialized with betas: ${betaList}`);

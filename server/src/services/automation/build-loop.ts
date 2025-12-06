@@ -1,9 +1,9 @@
 /**
  * 6-Phase Build Loop - Ultimate AI-First Builder Architecture
- * 
+ *
  * The heart of the autonomous build system. Implements the complete
  * 6-Phase Build Loop with Intent Lock integration:
- * 
+ *
  * Phase 0: INTENT LOCK - Create Sacred Contract (immutable DONE definition)
  * Phase 1: INITIALIZATION - Set up artifacts, scaffolding
  * Phase 2: PARALLEL BUILD - 3-5 agents building features continuously
@@ -11,7 +11,7 @@
  * Phase 4: FUNCTIONAL TEST - Browser automation testing as real user
  * Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
  * Phase 6: BROWSER DEMO - Show user their working app
- * 
+ *
  * Three-Stage Gated System:
  * - Stage 1: FRONTEND (mock data)
  * - Stage 2: BACKEND (real APIs)
@@ -85,38 +85,38 @@ export interface BuildLoopState {
     userId: string;
     orchestrationRunId: string;
     config: BuildLoopConfig;
-    
+
     // Current position
     currentPhase: BuildLoopPhase;
     currentStage: BuildStage;
     stageProgress: number;
-    
+
     // Artifacts
     intentContract: IntentContract | null;
     featureSummary: FeatureListSummary | null;
-    
+
     // Build status
     status: 'pending' | 'running' | 'awaiting_approval' | 'complete' | 'failed';
     startedAt: Date;
     completedAt: Date | null;
-    
+
     // Progress tracking
     phasesCompleted: BuildLoopPhase[];
     currentPhaseStartedAt: Date | null;
     currentPhaseDurationMs: number;
-    
+
     // Error state
     errorCount: number;
     lastError: string | null;
     escalationLevel: number;
-    
+
     // Checkpoints
     lastCheckpointId: string | null;
     checkpointCount: number;
 }
 
 export interface BuildLoopEvent {
-    type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result' 
+    type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result'
         | 'error' | 'fix_applied' | 'checkpoint_created' | 'stage_complete' | 'build_complete';
     timestamp: Date;
     buildId: string;
@@ -230,20 +230,20 @@ export class BuildLoopOrchestrator extends EventEmitter {
         try {
             // Phase 0: Intent Lock
             await this.executePhase0_IntentLock(prompt);
-            
+
             // Phase 1: Initialization
             await this.executePhase1_Initialization();
-            
+
             // Loop through stages (Frontend → Backend → Production)
             const stages: BuildStage[] = ['frontend', 'backend', 'production'];
-            
+
             for (const stage of stages) {
                 if (this.aborted) break;
-                
+
                 this.state.currentStage = stage;
                 await this.executeStage(stage);
             }
-            
+
             if (!this.aborted) {
                 this.state.status = 'complete';
                 this.state.completedAt = new Date();
@@ -410,13 +410,13 @@ export class BuildLoopOrchestrator extends EventEmitter {
             // Build each feature (sequential for now, parallel in future)
             for (const feature of stageFeatures) {
                 if (this.aborted) break;
-                
+
                 await this.buildFeature(feature);
-                
+
                 // Emit progress
                 const summary = await this.featureManager.getSummary();
                 this.state.featureSummary = summary;
-                
+
                 this.emitEvent('feature_complete', {
                     featureId: feature.featureId,
                     passRate: summary.passRate,
@@ -477,13 +477,13 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
             // Test each user workflow
             const results: { workflow: string; passed: boolean }[] = [];
-            
+
             for (const workflow of this.state.intentContract.userWorkflows) {
                 if (this.aborted) break;
-                
+
                 const passed = await this.testWorkflow(workflow);
                 results.push({ workflow: workflow.name, passed });
-                
+
                 if (passed) {
                     await this.intentEngine.markWorkflowVerified(
                         this.state.intentContract.id,
@@ -602,7 +602,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
     private async buildFeature(feature: Feature): Promise<void> {
         await this.featureManager.incrementBuildAttempts(feature.featureId);
-        
+
         const phaseConfig = getPhaseConfig('build_agent');
 
         const prompt = `Build feature: ${feature.featureId}
@@ -743,19 +743,19 @@ Would the user be satisfied with this result?`;
 
     private shouldCreateCheckpoint(): boolean {
         if (!this.state.config.autoCreateCheckpoints) return false;
-        
+
         const now = Date.now();
         const elapsed = now - (this.state.currentPhaseStartedAt?.getTime() || now);
         const interval = this.state.config.checkpointIntervalMinutes * 60 * 1000;
-        
+
         return elapsed >= interval;
     }
 
     private async createCheckpoint(description: string): Promise<void> {
         const checkpointId = uuidv4();
-        
+
         const snapshot = await this.artifactManager.createSnapshot();
-        
+
         await db.insert(buildCheckpoints).values({
             id: checkpointId,
             orchestrationRunId: this.state.orchestrationRunId,
@@ -880,7 +880,7 @@ export async function startBuildLoop(
     mode: BuildMode = 'standard'
 ): Promise<BuildLoopOrchestrator> {
     const orchestrationRunId = uuidv4();
-    
+
     // Create orchestration run record
     await db.insert(orchestrationRuns).values({
         id: orchestrationRunId,
@@ -894,7 +894,7 @@ export async function startBuildLoop(
     });
 
     const orchestrator = createBuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode);
-    
+
     // Start in background
     orchestrator.start(prompt).catch(error => {
         console.error('[BuildLoop] Failed:', error);

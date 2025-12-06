@@ -1,9 +1,9 @@
 /**
  * 6-Agent Verification Swarm - Ultimate AI-First Builder Architecture
- * 
+ *
  * Parallel verification system that runs continuously during Phase 2.
  * All 6 agents work together to ensure code quality, security, and design.
- * 
+ *
  * Agents:
  * 1. Error Checker (5s polling) - TypeScript/ESLint/runtime errors
  * 2. Code Quality (30s polling) - Naming, DRY, error handling
@@ -27,7 +27,7 @@ import type { IntentContract, VisualIdentity } from '../ai/intent-lock.js';
 // TYPES
 // =============================================================================
 
-export type VerificationAgentType = 
+export type VerificationAgentType =
     | 'error_checker'
     | 'code_quality'
     | 'visual_verifier'
@@ -200,7 +200,7 @@ export class VerificationSwarm extends EventEmitter {
      */
     start(): void {
         if (this.state.running) return;
-        
+
         this.state.running = true;
         console.log('[VerificationSwarm] Starting 6-agent swarm');
 
@@ -222,7 +222,7 @@ export class VerificationSwarm extends EventEmitter {
      */
     stop(): void {
         this.state.running = false;
-        
+
         for (const [agent, interval] of this.intervals) {
             clearInterval(interval);
             this.state.activeAgents.delete(agent);
@@ -255,7 +255,7 @@ export class VerificationSwarm extends EventEmitter {
             this.runPlaceholderEliminator(feature, fileContents),
             this.runSecurityScanner(feature, fileContents),
             this.runDesignStyleAgent(feature, fileContents),
-            this.config.enableVisualVerification 
+            this.config.enableVisualVerification
                 ? this.runVisualVerifier(feature, fileContents)
                 : Promise.resolve(null),
         ]);
@@ -286,8 +286,8 @@ export class VerificationSwarm extends EventEmitter {
             designStyle?.score || 0,
             visualVerify?.score || 70, // Default if not running visual verification
         ].filter(s => s > 0);
-        
-        const overallScore = scores.length > 0 
+
+        const overallScore = scores.length > 0
             ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
             : 0;
 
@@ -299,7 +299,7 @@ export class VerificationSwarm extends EventEmitter {
             verdict = 'NEEDS_WORK';
         }
 
-        const allPassed = verdict === 'APPROVED' && 
+        const allPassed = verdict === 'APPROVED' &&
             (!errorCheck || errorCheck.passed) &&
             (!codeQuality || codeQuality.passed) &&
             (!placeholderCheck || placeholderCheck.passed) &&
@@ -437,14 +437,14 @@ export class VerificationSwarm extends EventEmitter {
      */
     private async runVisualVerifier(feature: Feature, files: Map<string, string>): Promise<VerificationResult | null> {
         const startTime = Date.now();
-        
+
         if (!this.intent) {
             return null;
         }
 
         const phaseConfig = getPhaseConfig('visual_verify');
 
-        const cssFiles = Array.from(files.entries()).filter(([path]) => 
+        const cssFiles = Array.from(files.entries()).filter(([path]) =>
             path.endsWith('.css') || path.endsWith('.tsx') || path.endsWith('.jsx')
         );
 
@@ -462,13 +462,13 @@ export class VerificationSwarm extends EventEmitter {
             }>(
                 this.buildVisualVerificationPrompt(cssFiles, this.intent.visualIdentity),
                 `You are the VISUAL VERIFIER agent. Analyze the code for visual quality.
-                
+
                 Check for:
                 - Depth: Cards lift? Multiple shadows? Parallax? Modal blur?
                 - Motion: Animate in? Transitions? Skeleton shimmer? Micro-interactions?
                 - Typography: Correct fonts? Hierarchy? Line heights?
                 - Anti-Slop: NO emoji as design? NO banned fonts? NOT flat? Matches soul?
-                
+
                 Respond with JSON: { visualScore, antiSlopScore, soulMatchScore, issues, verdict }
                 Each score is 0-100. Verdict is APPROVED (85+), NEEDS_WORK (60-84), REJECTED (<60)`,
                 {
@@ -710,9 +710,9 @@ export class VerificationSwarm extends EventEmitter {
                 - Typography hierarchy
                 - Color system
                 - Depth and visual interest
-                
+
                 85+ is required to pass.
-                
+
                 Respond with JSON: { score, soulMatch, issues, recommendations }`,
                 {
                     model: phaseConfig.model,

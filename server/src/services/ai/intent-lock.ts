@@ -1,11 +1,11 @@
 /**
  * Intent Lock Engine - Phase 0 of the Ultimate AI-First Builder Architecture
- * 
+ *
  * Creates an IMMUTABLE "DONE" definition (Sacred Contract) before any code is written.
  * This prevents "premature victory declaration" - a major failure mode in AI builders.
- * 
+ *
  * The Intent Lock is NEVER modified after creation. All subsequent phases reference it.
- * 
+ *
  * Model: Claude Opus 4.5 | Effort: high | Thinking: 64K tokens
  */
 
@@ -18,7 +18,7 @@ import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-serv
 // TYPES
 // =============================================================================
 
-export type AppSoul = 
+export type AppSoul =
     | 'immersive_media'    // Music, video, entertainment
     | 'professional'       // Finance, business, enterprise
     | 'developer'          // Dev tools, IDEs, CLI
@@ -197,7 +197,7 @@ export class IntentLockEngine {
 
         // Parse the response
         let contractData: Omit<IntentContract, 'id' | 'projectId' | 'orchestrationRunId' | 'userId' | 'locked' | 'lockedAt' | 'originalPrompt' | 'generatedBy' | 'thinkingTokensUsed' | 'createdAt'>;
-        
+
         try {
             // Try direct parse first
             contractData = JSON.parse(response.content);
@@ -217,7 +217,7 @@ export class IntentLockEngine {
         // Create the full contract
         const now = new Date().toISOString();
         const contractId = crypto.randomUUID();
-        
+
         const fullContract: IntentContract = {
             id: contractId,
             projectId,

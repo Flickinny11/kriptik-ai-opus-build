@@ -1,6 +1,6 @@
 /**
  * Verification Services Index
- * 
+ *
  * Exports all verification-related services for the Ultimate AI-First Builder
  */
 

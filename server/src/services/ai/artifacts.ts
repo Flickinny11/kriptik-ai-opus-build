@@ -1,9 +1,9 @@
 /**
  * Progress Artifacts Manager - Artifact-Based Handoff System
- * 
+ *
  * Manages human-readable handoff notes (claude-progress.txt) and other artifacts
  * that enable context persistence across sessions and agent handoffs.
- * 
+ *
  * Core artifacts:
  * - intent.json: The Sacred Contract (from Intent Lock)
  * - feature_list.json: Feature tracking with passes: true/false
@@ -109,7 +109,7 @@ export class ArtifactManager {
 
         // Get existing progress file
         const existing = await this.getArtifact('.cursor/progress.txt');
-        const content = existing 
+        const content = existing
             ? `${existing}\n\n${entry}`
             : this.createProgressFileHeader() + entry;
 
@@ -256,9 +256,9 @@ Each session records what was completed, current state, and next steps.
      */
     async findSimilarResolution(errorType: string, errorMessage: string): Promise<IssueResolution | null> {
         const resolutions = await this.getIssueResolutions();
-        
+
         // Simple similarity matching - could be enhanced with embeddings
-        return resolutions.find(r => 
+        return resolutions.find(r =>
             r.errorType === errorType ||
             r.errorMessage.toLowerCase().includes(errorMessage.toLowerCase().substring(0, 50))
         ) || null;

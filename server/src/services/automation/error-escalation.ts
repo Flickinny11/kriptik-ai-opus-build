@@ -1,26 +1,26 @@
 /**
  * 4-Level Error Escalation System - Ultimate AI-First Builder Architecture
- * 
+ *
  * NEVER GIVES UP. Always escalates until fixed.
- * 
+ *
  * Level 1: SIMPLE FIXES
  * - Model: Sonnet 4.5, medium effort
  * - Max Attempts: 3
  * - Handles: syntax_error, import_missing, type_mismatch, undefined_variable
  * - Process: Direct fix based on error message
- * 
+ *
  * Level 2: DEEP ANALYSIS
  * - Model: Opus 4.5, HIGH effort, 64K thinking
  * - Max Attempts: 3
  * - Handles: architectural_review, dependency_conflicts, integration_issues
  * - Process: Extended thinking, review related files, check past resolutions
- * 
+ *
  * Level 3: COMPONENT REWRITE
  * - Model: Opus 4.5, HIGH effort, 64K thinking
  * - Max Attempts: 2
  * - Handles: targeted_rewrite, dependency_update, approach_change
  * - Process: Identify minimum scope, fresh implementation, preserve interfaces
- * 
+ *
  * Level 4: FEATURE REBUILD
  * - Model: Opus 4.5, HIGH effort, 64K thinking
  * - Max Attempts: 1
@@ -190,7 +190,7 @@ export class ErrorEscalationEngine extends EventEmitter {
         this.orchestrationRunId = orchestrationRunId;
         this.projectId = projectId;
         this.userId = userId;
-        
+
         this.state = {
             currentLevel: 1,
             attemptsPerLevel: new Map([
@@ -229,7 +229,7 @@ export class ErrorEscalationEngine extends EventEmitter {
     ): Promise<EscalationResult> {
         // Determine starting level based on error category
         let level = this.categorizeError(error);
-        
+
         while (level <= 4) {
             const attempts = this.state.attemptsPerLevel.get(level) || 0;
             const maxAttempts = this.getMaxAttempts(level);
@@ -237,10 +237,10 @@ export class ErrorEscalationEngine extends EventEmitter {
             if (attempts < maxAttempts) {
                 // Attempt fix at this level
                 const result = await this.attemptFix(error, fileContents, level, feature);
-                
+
                 this.state.attemptsPerLevel.set(level, attempts + 1);
                 this.state.totalAttempts++;
-                
+
                 // Log escalation history
                 this.state.escalationHistory.push({
                     level,
