@@ -3,9 +3,9 @@
   "version": "2.0",
   "last_updated": "2025-12-06",
   "total_features": 28,
-  "completed": 12,
+  "completed": 14,
   "in_progress": 0,
-  "pending": 16,
+  "pending": 14,
 
   "categories": {
     "foundational": {
@@ -163,20 +163,22 @@
           "name": "App Soul Mapper",
           "description": "Detects app type and assigns appropriate design soul",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/ai/app-soul.ts"],
           "dependencies": ["F001"],
-          "phase": 5
+          "phase": 7,
+          "completed_at": "2025-12-06"
         },
         {
           "id": "F015",
           "name": "Anti-Slop Detection",
           "description": "Scores typography, depth, motion, emoji ban, color harmony",
           "priority": 1,
-          "passes": false,
-          "files": ["server/src/services/verification/visual-verifier-v2.ts"],
-          "dependencies": ["F010"],
-          "phase": 5
+          "passes": true,
+          "files": ["server/src/services/verification/anti-slop-detector.ts"],
+          "dependencies": ["F014"],
+          "phase": 7,
+          "completed_at": "2025-12-06"
         }
       ]
     },
@@ -380,7 +382,7 @@
     "phase_4": { "name": "Verification Swarm", "features": 7, "completed": 1 },
     "phase_5": { "name": "Error Escalation", "features": 1, "completed": 1 },
     "phase_6": { "name": "Enhanced Fix My App", "features": 2, "completed": 2 },
-    "phase_7": { "name": "Design System", "features": 2, "completed": 0 },
+    "phase_7": { "name": "Design System", "features": 2, "completed": 2 },
     "phase_8": { "name": "Competitive", "features": 5, "completed": 0 },
     "phase_9": { "name": "UI Updates", "features": 4, "completed": 0 },
     "phase_10": { "name": "Database", "features": 1, "completed": 1 }

@@ -69,3 +69,21 @@ export {
     type ProjectArtifacts,
 } from './artifacts.js';
 
+// =============================================================================
+// PHASE 7: Design System - App Soul & Anti-Slop Detection
+// =============================================================================
+
+// App Soul Mapper - Detects app type and assigns design soul
+export {
+    AppSoulMapper,
+    createAppSoulMapper,
+    APP_SOULS,
+    type AppSoul,
+    type AppSoulType,
+    type ColorPalette,
+    type TypographySystem,
+    type DepthPhilosophy,
+    type MotionPhilosophy,
+    type ComponentPatterns,
+} from './app-soul.js';
+

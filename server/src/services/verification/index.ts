@@ -16,3 +16,12 @@ export {
     type CombinedVerificationResult,
 } from './swarm.js';
 
+// Anti-Slop Detector - Phase 7 Design System
+export {
+    AntiSlopDetector,
+    createAntiSlopDetector,
+    type AntiSlopScore,
+    type AntiSlopViolation,
+    type AntiSlopRule,
+} from './anti-slop-detector.js';
+

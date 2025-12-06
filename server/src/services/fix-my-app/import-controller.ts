@@ -837,7 +837,7 @@ export class ImportController extends EventEmitter {
         if (this.useEnhancedExecutor) {
             // Use Enhanced Fix Executor with verification swarm and error escalation
             this.log('Using Enhanced Fix Executor with verification swarm and error escalation');
-            
+
             this.enhancedFixExecutor = createEnhancedFixExecutor({
                 userId: this.userId,
                 projectId: this.session.projectId!,
@@ -862,7 +862,7 @@ export class ImportController extends EventEmitter {
         } else {
             // Use standard fix executor (fallback)
             this.log('Using Standard Fix Executor');
-            
+
             this.fixExecutor = createFixExecutor(
                 this.userId,
                 this.session.projectId!,

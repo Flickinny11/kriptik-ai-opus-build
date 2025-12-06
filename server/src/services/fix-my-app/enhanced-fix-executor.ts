@@ -653,7 +653,7 @@ PRODUCTION-READY code only. No placeholders.`;
             this.log('✅ Final verification passed! All checks complete.');
         } else {
             this.log(`⚠️ Final verification has issues: ${finalResult.verdict}`);
-            
+
             // One last attempt to fix any remaining issues
             if (this.enableErrorEscalation && this.errorEscalationService && this.buildIntentId) {
                 const finalFix = await this.errorEscalationService.attemptFix(
