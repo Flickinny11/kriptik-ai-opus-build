@@ -213,13 +213,6 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
         setSelectedAgentId(newId);
     };
 
-    const _handleDeleteAgent = (agentId: string) => {
-        setAgents(prev => prev.filter(a => a.id !== agentId));
-        if (selectedAgentId === agentId) {
-            setSelectedAgentId(agents[0]?.id || null);
-        }
-    };
-
     const handleRenameAgent = (agentId: string, newName: string) => {
         setAgents(prev => prev.map(a => a.id === agentId ? { ...a, name: newName } : a));
         setEditingAgentId(null);
