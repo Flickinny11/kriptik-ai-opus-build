@@ -1,22 +1,101 @@
 /**
  * Seed data for Ultimate AI-First Builder Architecture
  * Run with: npx tsx src/seed-ultimate-builder.ts
- * 
- * NOTE: This file is temporarily disabled during TypeScript migration.
- * Re-enable after all service files are fixed.
  */
-
-// @ts-nocheck
-// Temporarily disabled for build - will be re-enabled after migration
 
 import { db } from './db.js';
 import { appSoulTemplates, buildModeConfigs } from './schema.js';
 
 // =============================================================================
+// TYPES
+// =============================================================================
+
+interface AppSoulTemplate {
+    id: string;
+    soulType: string;
+    displayName: string;
+    description: string;
+    typography: {
+        displayFont: string;
+        bodyFont: string;
+        monoFont?: string;
+        fontScale: number[];
+        lineHeights: Record<string, number>;
+        letterSpacing: Record<string, string>;
+        bannedFonts: string[];
+    };
+    colorSystem: {
+        primary: string;
+        secondary?: string;
+        accent: string;
+        background: string;
+        surface: string;
+        text: string;
+        textMuted: string;
+        error: string;
+        warning: string;
+        success: string;
+        semantic: Record<string, string>;
+        darkMode: boolean;
+        gradients?: string[];
+    };
+    motionLanguage: {
+        philosophy: string;
+        timingFunctions: Record<string, string>;
+        durations: Record<string, string>;
+        entranceAnimations: string[];
+        microInteractions: string[];
+        loadingStates: string[];
+    };
+    depthSystem: {
+        level: 'low' | 'medium' | 'high';
+        shadows: Record<string, string>;
+        layering: string[];
+        glassEffects: boolean;
+        parallax: boolean;
+        hoverLift: boolean;
+    };
+    layoutPrinciples: {
+        grid: string;
+        spacing: number[];
+        maxWidth: string;
+        asymmetric: boolean;
+        fullBleed: boolean;
+        overlapping: boolean;
+    };
+    antiPatterns: string[];
+    exampleApps: string[];
+}
+
+interface BuildModeConfig {
+    id: string;
+    mode: string;
+    displayName: string;
+    icon: string;
+    targetTimeMinutes: number;
+    maxTimeMinutes: number;
+    enabledPhases: string[];
+    defaultModelTier: string;
+    effortLevel: string;
+    thinkingBudget: number;
+    tournamentEnabled: boolean;
+    verificationSwarmEnabled: boolean;
+    checkpointsEnabled: boolean;
+    backendEnabled: boolean;
+    designScoreThreshold: number;
+    codeQualityThreshold: number;
+    description: string;
+    outputDescription: string;
+    totalBuilds: number;
+    avgCompletionTime: number | null;
+    successRate: number;
+}
+
+// =============================================================================
 // APP SOUL TEMPLATES - Design systems for different app types
 // =============================================================================
 
-const APP_SOULS = [
+const APP_SOULS: AppSoulTemplate[] = [
     {
         id: crypto.randomUUID(),
         soulType: 'immersive_media',
@@ -59,7 +138,7 @@ const APP_SOULS = [
             loadingStates: ['shimmer', 'waveform', 'pulse-ring']
         },
         depthSystem: {
-            level: 'high' as const,
+            level: 'high',
             shadows: {
                 sm: '0 1px 2px rgba(0,0,0,0.2)',
                 md: '0 4px 12px rgba(0,0,0,0.3)',
@@ -403,7 +482,7 @@ const APP_SOULS = [
             error: '#DC2626',
             warning: '#D97706',
             success: '#059669',
-            semantic: { sale: '#DC2626', new: '#059669', limited: '#D97706 ' },
+            semantic: { sale: '#DC2626', new: '#059669', limited: '#D97706' },
             darkMode: false,
             gradients: []
         },
@@ -474,7 +553,7 @@ const APP_SOULS = [
             error: '#EF4444',
             warning: '#F59E0B',
             success: '#22C55E',
-            semantic: { todo: '#3B82F6', done: '#22C55E', urgent: '#EF4444 ' },
+            semantic: { todo: '#3B82F6', done: '#22C55E', urgent: '#EF4444' },
             darkMode: false,
             gradients: []
         },
@@ -606,7 +685,7 @@ const APP_SOULS = [
 // BUILD MODE CONFIGS - Speed Dial settings
 // =============================================================================
 
-const BUILD_MODES = [
+const BUILD_MODES: BuildModeConfig[] = [
     {
         id: crypto.randomUUID(),
         mode: 'lightning',
@@ -708,7 +787,19 @@ async function seed() {
         // Seed App Soul Templates
         console.log('📐 Seeding App Soul Templates...');
         for (const soul of APP_SOULS) {
-            await db.insert(appSoulTemplates).values(soul).onConflictDoNothing();
+            await db.insert(appSoulTemplates).values({
+                id: soul.id,
+                soulType: soul.soulType,
+                displayName: soul.displayName,
+                description: soul.description,
+                typography: soul.typography,
+                colorSystem: soul.colorSystem,
+                motionLanguage: soul.motionLanguage,
+                depthSystem: soul.depthSystem,
+                layoutPrinciples: soul.layoutPrinciples,
+                antiPatterns: soul.antiPatterns,
+                exampleApps: soul.exampleApps,
+            }).onConflictDoNothing();
             console.log(`  ✓ ${soul.displayName}`);
         }
         console.log(`  Total: ${APP_SOULS.length} soul templates\n`);
@@ -716,7 +807,29 @@ async function seed() {
         // Seed Build Mode Configs
         console.log('⚡ Seeding Build Mode Configs...');
         for (const mode of BUILD_MODES) {
-            await db.insert(buildModeConfigs).values(mode).onConflictDoNothing();
+            await db.insert(buildModeConfigs).values({
+                id: mode.id,
+                mode: mode.mode,
+                displayName: mode.displayName,
+                icon: mode.icon,
+                targetTimeMinutes: mode.targetTimeMinutes,
+                maxTimeMinutes: mode.maxTimeMinutes,
+                enabledPhases: mode.enabledPhases,
+                defaultModelTier: mode.defaultModelTier,
+                effortLevel: mode.effortLevel,
+                thinkingBudget: mode.thinkingBudget,
+                tournamentEnabled: mode.tournamentEnabled,
+                verificationSwarmEnabled: mode.verificationSwarmEnabled,
+                checkpointsEnabled: mode.checkpointsEnabled,
+                backendEnabled: mode.backendEnabled,
+                designScoreThreshold: mode.designScoreThreshold,
+                codeQualityThreshold: mode.codeQualityThreshold,
+                description: mode.description,
+                outputDescription: mode.outputDescription,
+                totalBuilds: mode.totalBuilds,
+                avgCompletionTime: mode.avgCompletionTime,
+                successRate: mode.successRate,
+            }).onConflictDoNothing();
             console.log(`  ✓ ${mode.displayName} (${mode.targetTimeMinutes}min)`);
         }
         console.log(`  Total: ${BUILD_MODES.length} build modes\n`);
@@ -738,4 +851,3 @@ async function seed() {
 }
 
 seed().then(() => process.exit(0));
-

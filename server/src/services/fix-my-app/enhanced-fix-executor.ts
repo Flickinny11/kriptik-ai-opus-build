@@ -9,19 +9,16 @@
  * - Feature-by-feature progress tracking
  *
  * Part of Phase 6: Enhanced Fix My App Flow
- * 
- * @ts-nocheck - Temporarily disabled strict type checking during architecture migration
  */
-// @ts-nocheck
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
-import { createClaudeService, ClaudeService, CLAUDE_MODELS } from '../ai/claude-service.js';
+import { createClaudeService, type ClaudeService, CLAUDE_MODELS } from '../ai/claude-service.js';
 import { createIntentLockEngine, type IntentContract } from '../ai/intent-lock.js';
-import { createFeatureListManager, type Feature } from '../ai/feature-list.js';
-import { createArtifactManager, ArtifactManager } from '../ai/artifacts.js';
-import { createVerificationSwarm, VerificationSwarm } from '../verification/swarm.js';
-import { createErrorEscalationEngine, ErrorEscalationEngine } from '../automation/error-escalation.js';
+import { createFeatureListManager, type Feature, type FeatureVerificationStatus, type FeatureVerificationScores } from '../ai/feature-list.js';
+import { createArtifactManager, type ArtifactManager } from '../ai/artifacts.js';
+import { createVerificationSwarm, type VerificationSwarm, type CombinedVerificationResult, type VerificationIssue } from '../verification/swarm.js';
+import { createErrorEscalationEngine, type ErrorEscalationEngine, type BuildError, type ErrorCategory } from '../automation/error-escalation.js';
 import { getDesignTokenPrompt } from '../ai/design-tokens.js';
 import type {
     FixStrategy,
@@ -63,7 +60,6 @@ export class EnhancedFixExecutor extends EventEmitter {
     private artifactManager?: ArtifactManager;
     private intentLockEngine?: ReturnType<typeof createIntentLockEngine>;
     private featureListManager?: ReturnType<typeof createFeatureListManager>;
-    private artifacts?: ReturnType<typeof createProgressArtifacts>;
 
     // Configuration
     private enableVerificationSwarm: boolean;
@@ -71,6 +67,7 @@ export class EnhancedFixExecutor extends EventEmitter {
     private maxEscalationAttempts: number;
     private userId: string;
     private projectId: string;
+    private orchestrationRunId: string;
 
     // Build intent ID for tracking
     private buildIntentId?: string;
@@ -79,6 +76,7 @@ export class EnhancedFixExecutor extends EventEmitter {
         super();
         this.userId = config.userId;
         this.projectId = config.projectId;
+        this.orchestrationRunId = uuidv4(); // Generate unique orchestration run ID
         this.projectFiles = config.projectFiles;
         this.strategy = config.strategy;
         this.intent = config.intent;
@@ -109,23 +107,23 @@ export class EnhancedFixExecutor extends EventEmitter {
 
     private initializeEnhancedServices(): void {
         if (this.enableVerificationSwarm) {
-            this.verificationSwarm = createVerificationSwarm(this.projectId, this.userId);
+            this.verificationSwarm = createVerificationSwarm(this.orchestrationRunId, this.projectId, this.userId);
             this.log('Verification Swarm initialized');
         }
 
         if (this.enableErrorEscalation) {
-            this.errorEscalationService = createErrorEscalationService(this.projectId, this.userId);
+            this.errorEscalationService = createErrorEscalationEngine(this.orchestrationRunId, this.projectId, this.userId);
             this.log('Error Escalation Service initialized');
         }
 
-        this.intentLockEngine = createIntentLockEngine(this.projectId, this.userId);
-        this.artifacts = createProgressArtifacts(this.projectId);
+        this.intentLockEngine = createIntentLockEngine(this.userId, this.projectId);
+        this.artifactManager = createArtifactManager(this.projectId, this.orchestrationRunId, this.userId);
         this.log('Intent Lock Engine and Artifacts initialized');
     }
 
     private buildSystemPrompt(): string {
         const uiPref = this.preferences?.uiPreference || 'improve_ui';
-        const uiInstructions = {
+        const uiInstructions: Record<string, string> = {
             keep_ui: `CRITICAL: The user wants to KEEP their existing UI exactly as-is.
 - Clone and preserve ALL UI components, layouts, and styles
 - Only modify the logic/functions underneath
@@ -152,7 +150,7 @@ CONTEXT:
 - Preserve Styling: ${this.strategy.preserve.styling}
 
 UI PRESERVATION INSTRUCTIONS:
-${uiInstructions[uiPref]}
+${uiInstructions[uiPref] || uiInstructions['improve_ui']}
 
 DESIGN PREFERENCES:
 - Theme: ${this.intent.designPreferences.theme}
@@ -286,84 +284,89 @@ Always explain your reasoning and provide detailed plans.`;
     private async createIntentLock(): Promise<void> {
         this.emitProgress(2, 'Creating Intent Lock contract');
 
-        const intentContract: IntentLockContract = {
-            app_type: this.determineAppType(),
-            soul: this.determineSoul(),
-            core_value_prop: this.intent.corePurpose,
-            success_criteria: this.intent.primaryFeatures.map(f => f.description),
-            user_workflows: this.intent.primaryFeatures.map(f => ({
-                name: f.name,
-                steps: [f.description],
-                success: f.userQuote || `${f.name} works as expected`
-            })),
-            visual_identity: {
-                soul: this.intent.designPreferences.style,
-                primary_emotion: 'satisfaction',
-                depth_level: 'high',
-                motion_philosophy: 'fluid_purposeful'
-            },
-            anti_patterns: [
-                'NO placeholders',
-                'NO broken features',
-                'NO generic AI slop UI',
-                ...this.intent.frustrationPoints.map(f => `NO ${f.issue}`)
-            ]
-        };
-
         try {
-            const storedIntent = await this.intentLockEngine!.createIntentLock(intentContract);
-            this.buildIntentId = storedIntent.id;
+            const contract = await this.intentLockEngine!.createContract(
+                this.intent.corePurpose,
+                this.userId,
+                this.projectId,
+                this.orchestrationRunId,
+                {
+                    model: CLAUDE_MODELS.OPUS_4_5,
+                    effort: 'high',
+                    thinkingBudget: 32000,
+                }
+            );
+
+            this.buildIntentId = contract.id;
             this.log(`Intent Lock created: ${this.buildIntentId}`);
 
             // Initialize feature list manager with this intent
-            this.featureListManager = createFeatureListManager(this.buildIntentId);
+            this.featureListManager = createFeatureListManager(this.projectId, this.orchestrationRunId, this.userId);
 
-            // Create feature list from gaps
-            const features: FeatureDefinition[] = this.gaps.map((gap, index) => ({
-                id: gap.featureId,
-                category: gap.severity,
-                description: gap.featureName,
-                priority: gap.severity === 'critical' ? 1 : gap.severity === 'major' ? 2 : 3,
-                steps: [gap.suggestedFix],
-                visual_requirements: [],
-                passes: false,
-                verification_status: {
-                    error_check: 'pending',
-                    code_quality: 'pending',
-                    visual_verify: 'pending',
-                    placeholder_check: 'pending',
-                    design_style: 'pending',
-                    security_scan: 'pending'
-                }
-            }));
-
-            await this.featureListManager.initializeFeatureList(features);
-            this.log(`Feature list initialized with ${features.length} items to fix`);
+            // Generate feature list from intent
+            await this.featureListManager.generateFromIntent(contract, { thinkingBudget: 16000 });
+            this.log(`Feature list initialized from intent`);
 
         } catch (error) {
             this.log(`Warning: Could not create Intent Lock: ${error}`);
         }
     }
 
-    private determineAppType(): string {
-        const purpose = this.intent.corePurpose.toLowerCase();
-        if (purpose.includes('dashboard')) return 'dashboard';
-        if (purpose.includes('e-commerce') || purpose.includes('shop')) return 'e-commerce';
-        if (purpose.includes('social')) return 'social_platform';
-        if (purpose.includes('chat') || purpose.includes('messaging')) return 'chat_app';
-        if (purpose.includes('portfolio')) return 'portfolio';
-        if (purpose.includes('blog')) return 'blog';
-        if (purpose.includes('saas') || purpose.includes('tool')) return 'saas_tool';
-        return 'web_application';
+    /**
+     * Create a synthetic feature for verification
+     */
+    private createVerificationFeature(featureId: string, description: string, files: string[]): Feature {
+        const now = new Date().toISOString();
+        const verificationStatus: FeatureVerificationStatus = {
+            errorCheck: 'pending',
+            codeQuality: 'pending',
+            visualVerify: 'pending',
+            placeholderCheck: 'pending',
+            designStyle: 'pending',
+            securityScan: 'pending',
+        };
+        const verificationScores: FeatureVerificationScores = {};
+
+        return {
+            id: uuidv4(),
+            buildIntentId: this.buildIntentId || '',
+            orchestrationRunId: this.orchestrationRunId,
+            projectId: this.projectId,
+            featureId,
+            category: 'functional',
+            description,
+            priority: 1,
+            implementationSteps: [],
+            visualRequirements: [],
+            filesModified: files,
+            passes: false,
+            assignedAgent: null,
+            assignedAt: null,
+            verificationStatus,
+            verificationScores,
+            buildAttempts: 0,
+            lastBuildAt: null,
+            passedAt: null,
+            createdAt: now,
+            updatedAt: now,
+        };
     }
 
-    private determineSoul(): string {
-        const style = this.intent.designPreferences.style.toLowerCase();
-        if (style.includes('minimal')) return 'minimalist_focus';
-        if (style.includes('playful') || style.includes('fun')) return 'playful_creative';
-        if (style.includes('professional') || style.includes('corporate')) return 'professional_trust';
-        if (style.includes('dark') || style.includes('tech')) return 'tech_innovation';
-        return 'modern_elegant';
+    /**
+     * Extract issues from CombinedVerificationResult
+     */
+    private extractVerificationIssues(result: CombinedVerificationResult): VerificationIssue[] {
+        const issues: VerificationIssue[] = [];
+        
+        const results = result.results;
+        if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
+        if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
+        if (results.visualVerify?.issues) issues.push(...results.visualVerify.issues);
+        if (results.securityScan?.issues) issues.push(...results.securityScan.issues);
+        if (results.placeholderCheck?.issues) issues.push(...results.placeholderCheck.issues);
+        if (results.designStyle?.issues) issues.push(...results.designStyle.issues);
+
+        return issues;
     }
 
     /**
@@ -393,26 +396,43 @@ Always explain your reasoning and provide detailed plans.`;
 
                 // Run verification if enabled
                 if (this.enableVerificationSwarm && this.verificationSwarm) {
-                    const verificationResult = await this.verificationSwarm.runVerification(
-                        fix.featureId,
+                    const feature = this.createVerificationFeature(fix.featureId, fix.featureName, [filePath]);
+                    const verificationResult = await this.verificationSwarm.verifyFeature(
+                        feature,
                         this.generatedFiles
                     );
 
-                    if (!verificationResult.all_passed) {
+                    if (!verificationResult.allPassed) {
                         this.log(`Verification failed for ${fix.featureName}: ${verificationResult.verdict}`);
 
                         if (this.enableErrorEscalation && this.errorEscalationService && this.buildIntentId) {
-                            const escalationResult = await this.errorEscalationService.attemptFix(
-                                this.buildIntentId,
-                                fix.featureId,
+                            // Create a BuildError from verification result
+                            const issues = this.extractVerificationIssues(verificationResult);
+                            const buildError: BuildError = {
+                                id: uuidv4(),
+                                featureId: fix.featureId,
+                                category: 'syntax_error' as ErrorCategory,
+                                message: verificationResult.verdict,
+                                file: filePath,
+                                context: { issues: issues.map(i => i.description) },
+                                timestamp: new Date(),
+                            };
+
+                            const escalationResult = await this.errorEscalationService.fixError(
+                                buildError,
                                 this.generatedFiles,
-                                verificationResult.verdict
+                                feature
                             );
 
-                            if (escalationResult.success) {
-                                this.generatedFiles = escalationResult.updatedFiles;
-                                fixedContent = escalationResult.updatedFiles.get(filePath) || fixedContent;
-                                this.log(`Fixed after ${escalationResult.level} escalation`);
+                            if (escalationResult.success && escalationResult.fix) {
+                                // Apply fix changes
+                                for (const change of escalationResult.fix.changes) {
+                                    if (change.action === 'create' || change.action === 'update') {
+                                        this.generatedFiles.set(change.path, change.newContent || '');
+                                    }
+                                }
+                                fixedContent = this.generatedFiles.get(filePath) || fixedContent;
+                                this.log(`Fixed after level ${escalationResult.level} escalation`);
                             } else {
                                 this.log(`Warning: Could not fix ${fix.featureName} after all escalation levels`);
                             }
@@ -425,7 +445,7 @@ Always explain your reasoning and provide detailed plans.`;
 
             // Update feature status
             if (this.featureListManager) {
-                await this.featureListManager.setFeaturePassStatus(fix.featureId, true);
+                await this.featureListManager.markFeaturePassed(fix.featureId);
             }
 
             completed++;
@@ -514,25 +534,43 @@ Make it PRODUCTION-READY with no placeholders.`;
 
         // Run verification if enabled
         if (this.enableVerificationSwarm && this.verificationSwarm) {
-            const verificationResult = await this.verificationSwarm.runVerification(
+            const verificationFeature = this.createVerificationFeature(
                 fix.featureId,
+                fix.featureName,
+                Array.from(this.generatedFiles.keys())
+            );
+            const verificationResult = await this.verificationSwarm.verifyFeature(
+                verificationFeature,
                 this.generatedFiles
             );
 
-            if (!verificationResult.all_passed) {
+            if (!verificationResult.allPassed) {
                 this.log(`Verification failed for rebuilt ${fix.featureName}: ${verificationResult.verdict}`);
 
                 if (this.enableErrorEscalation && this.errorEscalationService && this.buildIntentId) {
-                    const escalationResult = await this.errorEscalationService.attemptFix(
-                        this.buildIntentId,
-                        fix.featureId,
+                    const issues = this.extractVerificationIssues(verificationResult);
+                    const buildError: BuildError = {
+                        id: uuidv4(),
+                        featureId: fix.featureId,
+                        category: 'syntax_error' as ErrorCategory,
+                        message: verificationResult.verdict,
+                        context: { issues: issues.map(i => i.description) },
+                        timestamp: new Date(),
+                    };
+
+                    const escalationResult = await this.errorEscalationService.fixError(
+                        buildError,
                         this.generatedFiles,
-                        verificationResult.verdict
+                        verificationFeature
                     );
 
-                    if (escalationResult.success) {
-                        this.generatedFiles = escalationResult.updatedFiles;
-                        this.log(`Feature ${fix.featureName} fixed after ${escalationResult.level} escalation`);
+                    if (escalationResult.success && escalationResult.fix) {
+                        for (const change of escalationResult.fix.changes) {
+                            if (change.action === 'create' || change.action === 'update') {
+                                this.generatedFiles.set(change.path, change.newContent || '');
+                            }
+                        }
+                        this.log(`Feature ${fix.featureName} fixed after level ${escalationResult.level} escalation`);
                     }
                 }
             }
@@ -540,7 +578,7 @@ Make it PRODUCTION-READY with no placeholders.`;
 
         // Update feature status
         if (this.featureListManager) {
-            await this.featureListManager.setFeaturePassStatus(fix.featureId, true);
+            await this.featureListManager.markFeaturePassed(fix.featureId);
         }
     }
 
@@ -611,25 +649,43 @@ PRODUCTION-READY code only. No placeholders.`;
 
         // Run verification on generated group
         if (this.enableVerificationSwarm && this.verificationSwarm) {
-            const verificationResult = await this.verificationSwarm.runVerification(
+            const verificationFeature = this.createVerificationFeature(
                 groupName,
+                `File group: ${groupName}`,
+                files
+            );
+            const verificationResult = await this.verificationSwarm.verifyFeature(
+                verificationFeature,
                 this.generatedFiles
             );
 
-            if (!verificationResult.all_passed) {
+            if (!verificationResult.allPassed) {
                 this.log(`Verification failed for ${groupName}: ${verificationResult.verdict}`);
 
                 if (this.enableErrorEscalation && this.errorEscalationService && this.buildIntentId) {
-                    const escalationResult = await this.errorEscalationService.attemptFix(
-                        this.buildIntentId,
-                        groupName,
+                    const issues = this.extractVerificationIssues(verificationResult);
+                    const buildError: BuildError = {
+                        id: uuidv4(),
+                        featureId: groupName,
+                        category: 'syntax_error' as ErrorCategory,
+                        message: verificationResult.verdict,
+                        context: { issues: issues.map(i => i.description) },
+                        timestamp: new Date(),
+                    };
+
+                    const escalationResult = await this.errorEscalationService.fixError(
+                        buildError,
                         this.generatedFiles,
-                        verificationResult.verdict
+                        verificationFeature
                     );
 
-                    if (escalationResult.success) {
-                        this.generatedFiles = escalationResult.updatedFiles;
-                        this.log(`${groupName} fixed after ${escalationResult.level} escalation`);
+                    if (escalationResult.success && escalationResult.fix) {
+                        for (const change of escalationResult.fix.changes) {
+                            if (change.action === 'create' || change.action === 'update') {
+                                this.generatedFiles.set(change.path, change.newContent || '');
+                            }
+                        }
+                        this.log(`${groupName} fixed after level ${escalationResult.level} escalation`);
                     }
                 }
             }
@@ -648,27 +704,46 @@ PRODUCTION-READY code only. No placeholders.`;
         this.emitProgress(92, 'Running final verification pass');
         this.log('Running final verification swarm...');
 
-        const finalResult = await this.verificationSwarm.runVerification(
+        const verificationFeature = this.createVerificationFeature(
             'final-pass',
+            'Final verification pass',
+            Array.from(this.generatedFiles.keys())
+        );
+
+        const finalResult = await this.verificationSwarm.verifyFeature(
+            verificationFeature,
             this.generatedFiles
         );
 
-        if (finalResult.all_passed) {
+        if (finalResult.allPassed) {
             this.log('✅ Final verification passed! All checks complete.');
         } else {
             this.log(`⚠️ Final verification has issues: ${finalResult.verdict}`);
 
             // One last attempt to fix any remaining issues
             if (this.enableErrorEscalation && this.errorEscalationService && this.buildIntentId) {
-                const finalFix = await this.errorEscalationService.attemptFix(
-                    this.buildIntentId,
-                    'final-verification',
+                const issues = this.extractVerificationIssues(finalResult);
+                const buildError: BuildError = {
+                    id: uuidv4(),
+                    featureId: 'final-verification',
+                    category: 'syntax_error' as ErrorCategory,
+                    message: finalResult.verdict,
+                    context: { issues: issues.map(i => i.description) },
+                    timestamp: new Date(),
+                };
+
+                const finalFix = await this.errorEscalationService.fixError(
+                    buildError,
                     this.generatedFiles,
-                    finalResult.verdict
+                    verificationFeature
                 );
 
-                if (finalFix.success) {
-                    this.generatedFiles = finalFix.updatedFiles;
+                if (finalFix.success && finalFix.fix) {
+                    for (const change of finalFix.fix.changes) {
+                        if (change.action === 'create' || change.action === 'update') {
+                            this.generatedFiles.set(change.path, change.newContent || '');
+                        }
+                    }
                     this.log('✅ Final issues resolved through error escalation');
                 }
             }
@@ -679,17 +754,16 @@ PRODUCTION-READY code only. No placeholders.`;
      * Update artifacts with current status
      */
     private async updateArtifacts(status: 'in_progress' | 'complete' | 'failed'): Promise<void> {
-        if (!this.artifacts) return;
+        if (!this.artifactManager) return;
 
         try {
-            await this.artifacts.writeBuildState({
-                status,
+            await this.artifactManager.saveBuildState({
                 phase: 'fix-my-app',
-                projectId: this.projectId,
-                buildIntentId: this.buildIntentId,
-                featuresFixed: this.strategy.featuresToFix.length,
-                approach: this.strategy.approach,
-                timestamp: new Date().toISOString()
+                status,
+                devServer: 'stopped',
+                build: 'unknown',
+                tests: { passing: 0, failing: 0, pending: this.strategy.featuresToFix.length },
+                lastCommit: null,
             });
 
             const progressLog = `
@@ -701,7 +775,8 @@ FILES GENERATED: ${this.generatedFiles.size}
 VERIFICATION SWARM: ${this.enableVerificationSwarm ? 'ENABLED' : 'DISABLED'}
 ERROR ESCALATION: ${this.enableErrorEscalation ? 'ENABLED' : 'DISABLED'}
 `;
-            await this.artifacts.writeProgressLog(progressLog);
+            // Note: appendToProgressLog would be called via createSessionLog
+            this.log(progressLog);
 
         } catch (error) {
             this.log(`Warning: Could not update artifacts: ${error}`);
@@ -1070,4 +1145,3 @@ export default {
 export function createEnhancedFixExecutor(config: EnhancedFixExecutorConfig): EnhancedFixExecutor {
     return new EnhancedFixExecutor(config);
 }
-

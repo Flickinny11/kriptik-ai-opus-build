@@ -16,10 +16,7 @@
  * - Stage 1: FRONTEND (mock data)
  * - Stage 2: BACKEND (real APIs)
  * - Stage 3: PRODUCTION (auth, payments)
- * 
- * @ts-nocheck - Temporarily disabled strict type checking during architecture migration
  */
-// @ts-nocheck
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,30 +24,23 @@ import { db } from '../../db.js';
 import { orchestrationRuns, buildCheckpoints } from '../../schema.js';
 import { eq } from 'drizzle-orm';
 import {
-    IntentLockEngine,
     createIntentLockEngine,
     type IntentContract,
 } from '../ai/intent-lock.js';
 import {
-    FeatureListManager,
     createFeatureListManager,
     type Feature,
     type FeatureListSummary,
 } from '../ai/feature-list.js';
 import {
-    ArtifactManager,
     createArtifactManager,
-    type SessionLog,
-    type BuildState,
 } from '../ai/artifacts.js';
 import {
-    ClaudeService,
     createClaudeService,
     CLAUDE_MODELS,
 } from '../ai/claude-service.js';
 import {
     getPhaseConfig,
-    OPENROUTER_MODELS,
 } from '../ai/openrouter-client.js';
 
 // =============================================================================
@@ -175,10 +165,10 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
 
 export class BuildLoopOrchestrator extends EventEmitter {
     private state: BuildLoopState;
-    private intentEngine: IntentLockEngine;
-    private featureManager: FeatureListManager;
-    private artifactManager: ArtifactManager;
-    private claudeService: ClaudeService;
+    private intentEngine: ReturnType<typeof createIntentLockEngine>;
+    private featureManager: ReturnType<typeof createFeatureListManager>;
+    private artifactManager: ReturnType<typeof createArtifactManager>;
+    private claudeService: ReturnType<typeof createClaudeService>;
     private aborted: boolean = false;
 
     constructor(
@@ -354,7 +344,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
             // Create initial checkpoint
             if (this.state.config.autoCreateCheckpoints) {
-                await this.createCheckpoint('After initialization');
+                await this.createCheckpoint('phase_complete', 'After initialization');
             }
 
             this.completePhase('initialization');
@@ -428,7 +418,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
                 // Auto-checkpoint on interval
                 if (this.shouldCreateCheckpoint()) {
-                    await this.createCheckpoint(`After feature ${feature.featureId}`);
+                    await this.createCheckpoint('feature_complete', `After feature ${feature.featureId}`, feature.featureId);
                 }
             }
 
@@ -754,25 +744,59 @@ Would the user be satisfied with this result?`;
         return elapsed >= interval;
     }
 
-    private async createCheckpoint(description: string): Promise<void> {
+    private async createCheckpoint(
+        trigger: string,
+        description: string,
+        featureId?: string
+    ): Promise<void> {
         const checkpointId = uuidv4();
 
         const snapshot = await this.artifactManager.createSnapshot();
+        const buildState = await this.artifactManager.getBuildState();
+        const featureSummary = this.state.featureSummary;
 
-        await db.insert(buildCheckpoints).values({
+        // Create feature list snapshot from the summary
+        const features = await this.featureManager.getAllFeatures();
+        const featureListSnapshot = {
+            total: featureSummary?.total || 0,
+            passed: featureSummary?.passed || 0,
+            failed: featureSummary?.failed || 0,
+            pending: featureSummary?.pending || 0,
+            features: features.map(f => ({
+                id: f.featureId,
+                passes: f.passes,
+                verificationStatus: f.verificationStatus,
+            })),
+        };
+
+        // Use type assertion to work around drizzle-orm type inference issues
+        // with self-referencing foreign keys. The schema is correct but TypeScript
+        // has trouble inferring the full type due to circular references.
+        const checkpointData = {
             id: checkpointId,
             orchestrationRunId: this.state.orchestrationRunId,
             projectId: this.state.projectId,
+            userId: this.state.userId,
+            trigger, // e.g., 'feature_complete', 'phase_complete', 'interval_15m', 'manual'
+            triggerFeatureId: featureId,
             phase: this.state.currentPhase,
-            stage: this.state.currentStage,
-            description,
-            artifacts: snapshot,
-            featureSummary: this.state.featureSummary,
-            buildState: await this.artifactManager.getBuildState(),
-            createdAt: new Date().toISOString(),
-        });
+            artifacts: {
+                intentJson: this.state.intentContract,
+                featureListJson: featureSummary,
+                styleGuideJson: snapshot.styleGuideJson,
+                progressTxt: snapshot.progressTxt,
+                buildStateJson: buildState,
+            },
+            featureListSnapshot,
+            verificationScoresSnapshot: null,
+            screenshots: [],
+            agentMemorySnapshot: null,
+            fileChecksums: null,
+        } as typeof buildCheckpoints.$inferInsert;
 
-        this.state.lastCheckpointId = checkpointId;
+        const [inserted] = await db.insert(buildCheckpoints).values(checkpointData).returning();
+
+        this.state.lastCheckpointId = inserted?.id || checkpointId;
         this.state.checkpointCount++;
 
         this.emitEvent('checkpoint_created', {
@@ -848,16 +872,19 @@ Would the user be satisfied with this result?`;
         }
 
         const checkpoint = checkpoints[0];
-        await this.artifactManager.restoreFromSnapshot(checkpoint.artifacts as {
+        const artifacts = checkpoint.artifacts as {
             intentJson?: object;
             featureListJson?: object;
             styleGuideJson?: object;
             progressTxt?: string;
             buildStateJson?: object;
-        });
+        } | null;
+
+        if (artifacts) {
+            await this.artifactManager.restoreFromSnapshot(artifacts);
+        }
 
         this.state.currentPhase = checkpoint.phase as BuildLoopPhase;
-        this.state.currentStage = checkpoint.stage as BuildStage;
     }
 }
 
@@ -889,11 +916,11 @@ export async function startBuildLoop(
         id: orchestrationRunId,
         projectId,
         userId,
-        status: 'running',
+        prompt,
         plan: { prompt, mode },
+        status: 'running',
         artifacts: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
     });
 
     const orchestrator = createBuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode);
@@ -905,4 +932,3 @@ export async function startBuildLoop(
 
     return orchestrator;
 }
-

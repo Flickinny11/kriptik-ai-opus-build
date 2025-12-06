@@ -8,14 +8,12 @@
  * - Best implementation wins and gets merged
  *
  * Part of Phase 8: Competitive Enhancements (Ultimate AI-First Builder Architecture)
- * 
- * @ts-nocheck - Temporarily disabled strict type checking during architecture migration
  */
-// @ts-nocheck
 
 import { createClaudeService, CLAUDE_MODELS } from './claude-service.js';
-import { createVerificationSwarm } from '../verification/swarm.js';
+import { createVerificationSwarm, type CombinedVerificationResult, type VerificationResult, type VerificationIssue } from '../verification/swarm.js';
 import { createAntiSlopDetector } from '../verification/anti-slop-detector.js';
+import type { Feature, FeatureVerificationStatus, FeatureVerificationScores } from './feature-list.js';
 import type { AppSoulType } from './app-soul.js';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
@@ -123,7 +121,7 @@ export class TournamentService extends EventEmitter {
             userId,
         });
 
-        this.verificationSwarm = createVerificationSwarm(projectId, userId);
+        this.verificationSwarm = createVerificationSwarm(uuidv4(), projectId, userId);
         this.antiSlopDetector = createAntiSlopDetector(userId, projectId, appSoul);
     }
 
@@ -220,7 +218,6 @@ export class TournamentService extends EventEmitter {
                     maxTokens: 32000,
                     useExtendedThinking: true,
                     thinkingBudgetTokens: 16000,
-                    timeout: config.buildTimeoutMs,
                 });
 
                 // Parse file operations from response
@@ -238,13 +235,14 @@ export class TournamentService extends EventEmitter {
 
                 competitor.endTime = new Date();
                 competitor.buildTimeMs = competitor.endTime.getTime() - competitor.startTime.getTime();
-                competitor.tokensUsed = response.usage?.total_tokens || 0;
+                competitor.tokensUsed = (response.usage?.inputTokens || 0) + (response.usage?.outputTokens || 0);
                 competitor.logs.push(`[${new Date().toISOString()}] Build complete (${competitor.buildTimeMs}ms, ${competitor.tokensUsed} tokens)`);
 
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 competitor.status = 'failed';
-                competitor.logs.push(`[${new Date().toISOString()}] Build FAILED: ${error.message}`);
-                this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: error.message });
+                competitor.logs.push(`[${new Date().toISOString()}] Build FAILED: ${errorMessage}`);
+                this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: errorMessage });
             }
         });
 
@@ -289,6 +287,78 @@ Output your implementation with proper file operations.`;
     }
 
     /**
+     * Extract scores from CombinedVerificationResult
+     */
+    private extractScores(swarmResult: CombinedVerificationResult): { codeQuality: number; visual: number; security: number } {
+        const getScore = (result: VerificationResult | null, defaultScore: number): number => {
+            return result?.score ?? defaultScore;
+        };
+
+        return {
+            codeQuality: getScore(swarmResult.results.codeQuality, 75),
+            visual: getScore(swarmResult.results.visualVerify, 70),
+            security: getScore(swarmResult.results.securityScan, 80),
+        };
+    }
+
+    /**
+     * Extract issues from CombinedVerificationResult
+     */
+    private extractIssues(swarmResult: CombinedVerificationResult): VerificationIssue[] {
+        const issues: VerificationIssue[] = [];
+        
+        const results = swarmResult.results;
+        if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
+        if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
+        if (results.visualVerify?.issues) issues.push(...results.visualVerify.issues);
+        if (results.securityScan?.issues) issues.push(...results.securityScan.issues);
+        if (results.placeholderCheck?.issues) issues.push(...results.placeholderCheck.issues);
+        if (results.designStyle?.issues) issues.push(...results.designStyle.issues);
+
+        return issues;
+    }
+
+    /**
+     * Create a synthetic feature for verification
+     */
+    private createVerificationFeature(featureId: string, files: Map<string, string>): Feature {
+        const now = new Date().toISOString();
+        const verificationStatus: FeatureVerificationStatus = {
+            errorCheck: 'pending',
+            codeQuality: 'pending',
+            visualVerify: 'pending',
+            placeholderCheck: 'pending',
+            designStyle: 'pending',
+            securityScan: 'pending',
+        };
+        const verificationScores: FeatureVerificationScores = {};
+
+        return {
+            id: uuidv4(),
+            buildIntentId: '',
+            orchestrationRunId: '',
+            projectId: this.projectId,
+            featureId,
+            category: 'functional',
+            description: 'Tournament competitor verification',
+            priority: 1,
+            implementationSteps: [],
+            visualRequirements: [],
+            filesModified: Array.from(files.keys()),
+            passes: false,
+            assignedAgent: null,
+            assignedAt: null,
+            verificationStatus,
+            verificationScores,
+            buildAttempts: 0,
+            lastBuildAt: null,
+            passedAt: null,
+            createdAt: now,
+            updatedAt: now,
+        };
+    }
+
+    /**
      * Run the verification phase
      */
     private async runVerificationPhase(competitors: Competitor[], config: TournamentConfig): Promise<void> {
@@ -301,20 +371,26 @@ Output your implementation with proper file operations.`;
                 this.emit('competitor_update', { competitorId: competitor.id, status: 'verifying' });
 
                 try {
+                    // Create a synthetic feature for verification
+                    const feature = this.createVerificationFeature(config.featureId, competitor.files);
+
                     // Run verification swarm
-                    const swarmResult = await this.verificationSwarm.runVerification(
-                        config.featureId,
+                    const swarmResult = await this.verificationSwarm.verifyFeature(
+                        feature,
                         competitor.files
                     );
 
                     // Run anti-slop detector
                     const antiSlopResult = await this.antiSlopDetector.analyze(competitor.files);
 
+                    // Extract scores from the swarm result
+                    const scores = this.extractScores(swarmResult);
+
                     // Calculate scores
-                    competitor.scores.codeQuality = swarmResult.scores.codeQuality || 75;
-                    competitor.scores.visual = swarmResult.scores.visual || 70;
+                    competitor.scores.codeQuality = scores.codeQuality;
+                    competitor.scores.visual = scores.visual;
                     competitor.scores.antiSlop = antiSlopResult.overall;
-                    competitor.scores.security = swarmResult.scores.security || 80;
+                    competitor.scores.security = scores.security;
 
                     // Efficiency = code quality / tokens used (normalized)
                     const normalizedTokens = (competitor.tokensUsed || 10000) / 10000;
@@ -328,7 +404,10 @@ Output your implementation with proper file operations.`;
                     competitor.scores.overall = this.calculateWeightedScore(competitor.scores, config.weights);
 
                     competitor.verificationVerdict = swarmResult.verdict;
-                    competitor.verificationIssues = swarmResult.issues?.map(i => i.description) || [];
+                    
+                    // Extract issues from swarm result
+                    const issues = this.extractIssues(swarmResult);
+                    competitor.verificationIssues = issues.map(i => i.description);
 
                     competitor.status = 'complete';
                     competitor.logs.push(`[${new Date().toISOString()}] Verification complete (overall: ${competitor.scores.overall})`);
@@ -339,10 +418,11 @@ Output your implementation with proper file operations.`;
                         scores: competitor.scores,
                     });
 
-                } catch (error: any) {
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     competitor.status = 'failed';
-                    competitor.logs.push(`[${new Date().toISOString()}] Verification FAILED: ${error.message}`);
-                    this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: error.message });
+                    competitor.logs.push(`[${new Date().toISOString()}] Verification FAILED: ${errorMessage}`);
+                    this.emit('competitor_update', { competitorId: competitor.id, status: 'failed', error: errorMessage });
                 }
             });
 
@@ -444,7 +524,6 @@ Respond with JSON only:
                     model: CLAUDE_MODELS.OPUS_4_5,
                     effort: 'high',
                     thinkingBudgetTokens: 32000,
-                    timeout: config.judgeTimeoutMs,
                 }
             );
 
@@ -455,8 +534,9 @@ Respond with JSON only:
                 judgeId,
             };
 
-        } catch (error: any) {
-            console.error(`[Tournament] Judge ${judgeId} failed:`, error.message);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[Tournament] Judge ${judgeId} failed:`, errorMessage);
 
             // Fallback to highest scored competitor
             const fallbackWinner = [...competitors].sort((a, b) => b.scores.overall - a.scores.overall)[0];
@@ -594,4 +674,3 @@ export function createTournamentService(
 }
 
 export default TournamentService;
-

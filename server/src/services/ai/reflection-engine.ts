@@ -12,15 +12,13 @@
  * - Escalation to human only as last resort
  *
  * Part of Phase 8: Competitive Enhancements (Ultimate AI-First Builder Architecture)
- * 
- * @ts-nocheck - Temporarily disabled strict type checking during architecture migration
  */
-// @ts-nocheck
 
 import { createClaudeService, CLAUDE_MODELS } from './claude-service.js';
-import { createErrorEscalationEngine } from '../automation/error-escalation.js';
-import { createVerificationSwarm } from '../verification/swarm.js';
+import { createErrorEscalationEngine, type BuildError, type EscalationResult, type ErrorCategory } from '../automation/error-escalation.js';
+import { createVerificationSwarm, type CombinedVerificationResult, type VerificationResult, type VerificationIssue } from '../verification/swarm.js';
 import { createAntiSlopDetector } from '../verification/anti-slop-detector.js';
+import type { Feature, FeatureVerificationStatus, FeatureVerificationScores } from './feature-list.js';
 import type { AppSoulType } from './app-soul.js';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
@@ -134,7 +132,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
     private buildId: string;
     private config: ReflectionConfig;
     private claudeService: ReturnType<typeof createClaudeService>;
-    private errorEscalation: ReturnType<typeof createErrorEscalationEngine> | null = null;
+    private errorEscalation: ReturnType<typeof createErrorEscalationEngine>;
     private verificationSwarm: ReturnType<typeof createVerificationSwarm>;
     private antiSlopDetector: ReturnType<typeof createAntiSlopDetector>;
 
@@ -166,8 +164,8 @@ export class InfiniteReflectionEngine extends EventEmitter {
             userId,
         });
 
-        this.errorEscalation = createErrorEscalationEngine(projectId, userId, buildId);
-        this.verificationSwarm = createVerificationSwarm(projectId, userId);
+        this.errorEscalation = createErrorEscalationEngine(buildId, projectId, userId);
+        this.verificationSwarm = createVerificationSwarm(buildId, projectId, userId);
         this.antiSlopDetector = createAntiSlopDetector(userId, projectId, appSoul);
     }
 
@@ -336,30 +334,83 @@ export class InfiniteReflectionEngine extends EventEmitter {
     // ==========================================================================
 
     /**
+     * Create a synthetic Feature for verification
+     */
+    private createSyntheticFeature(featureId: string, description: string): Feature {
+        const now = new Date().toISOString();
+        const verificationStatus: FeatureVerificationStatus = {
+            errorCheck: 'pending',
+            codeQuality: 'pending',
+            visualVerify: 'pending',
+            placeholderCheck: 'pending',
+            designStyle: 'pending',
+            securityScan: 'pending',
+        };
+        const verificationScores: FeatureVerificationScores = {};
+
+        return {
+            id: uuidv4(),
+            buildIntentId: this.buildId,
+            orchestrationRunId: this.buildId,
+            projectId: this.projectId,
+            featureId,
+            category: 'functional',
+            description,
+            priority: 1,
+            implementationSteps: [],
+            visualRequirements: [],
+            filesModified: Array.from(this.currentFiles.keys()),
+            passes: false,
+            assignedAgent: null,
+            assignedAt: null,
+            verificationStatus,
+            verificationScores,
+            buildAttempts: 0,
+            lastBuildAt: null,
+            passedAt: null,
+            createdAt: now,
+            updatedAt: now,
+        };
+    }
+
+    /**
+     * Extract scores from CombinedVerificationResult
+     */
+    private extractScores(swarmResult: CombinedVerificationResult): { codeQuality: number; visual: number; security: number } {
+        const getScore = (result: VerificationResult | null, defaultScore: number): number => {
+            return result?.score ?? defaultScore;
+        };
+
+        return {
+            codeQuality: getScore(swarmResult.results.codeQuality, 75),
+            visual: getScore(swarmResult.results.visualVerify, 70),
+            security: getScore(swarmResult.results.securityScan, 80),
+        };
+    }
+
+    /**
+     * Extract issues from CombinedVerificationResult
+     */
+    private extractIssues(swarmResult: CombinedVerificationResult): VerificationIssue[] {
+        const issues: VerificationIssue[] = [];
+        
+        const results = swarmResult.results;
+        if (results.errorCheck?.issues) issues.push(...results.errorCheck.issues);
+        if (results.codeQuality?.issues) issues.push(...results.codeQuality.issues);
+        if (results.visualVerify?.issues) issues.push(...results.visualVerify.issues);
+        if (results.securityScan?.issues) issues.push(...results.securityScan.issues);
+        if (results.placeholderCheck?.issues) issues.push(...results.placeholderCheck.issues);
+        if (results.designStyle?.issues) issues.push(...results.designStyle.issues);
+
+        return issues;
+    }
+
+    /**
      * Get current quality scores
      */
     private async getScores(): Promise<Record<string, number>> {
         try {
-            // Create a synthetic feature for verification
-            const reflectionFeature = {
-                id: 'reflection-check',
-                category: 'functional' as const,
-                description: 'Reflection quality check',
-                priority: 1,
-                implementationSteps: [],
-                visualRequirements: [],
-                filesModified: Array.from(this.currentFiles.keys()),
-                passes: false,
-                verificationStatus: {
-                    errorCheck: 'pending' as const,
-                    codeQuality: 'pending' as const,
-                    visualVerify: 'pending' as const,
-                    placeholderCheck: 'pending' as const,
-                    designStyle: 'pending' as const,
-                    securityScan: 'pending' as const,
-                },
-                buildAttempts: 0,
-            };
+            const reflectionFeature = this.createSyntheticFeature('reflection-check', 'Reflection quality check');
 
             // Run verification
             const swarmResult = await this.verificationSwarm.verifyFeature(
@@ -369,16 +420,18 @@ export class InfiniteReflectionEngine extends EventEmitter {
 
             const antiSlopResult = await this.antiSlopDetector.analyze(this.currentFiles);
 
+            const scores = this.extractScores(swarmResult);
+
             return {
-                codeQuality: swarmResult.scores.codeQuality || 75,
-                visual: swarmResult.scores.visual || 70,
+                codeQuality: scores.codeQuality,
+                visual: scores.visual,
                 antiSlop: antiSlopResult.overall,
-                security: swarmResult.scores.security || 80,
+                security: scores.security,
                 overall: Math.round(
-                    (swarmResult.scores.codeQuality || 75) * 0.3 +
-                    (swarmResult.scores.visual || 70) * 0.2 +
+                    scores.codeQuality * 0.3 +
+                    scores.visual * 0.2 +
                     antiSlopResult.overall * 0.3 +
-                    (swarmResult.scores.security || 80) * 0.2
+                    scores.security * 0.2
                 ),
             };
         } catch (error) {
@@ -405,26 +458,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
         const issues: ReflectionIssue[] = [];
 
         try {
-            // Create a synthetic feature for verification
-            const reflectionFeature = {
-                id: 'reflection-check',
-                category: 'functional' as const,
-                description: 'Reflection issue check',
-                priority: 1,
-                implementationSteps: [],
-                visualRequirements: [],
-                filesModified: Array.from(this.currentFiles.keys()),
-                passes: false,
-                verificationStatus: {
-                    errorCheck: 'pending' as const,
-                    codeQuality: 'pending' as const,
-                    visualVerify: 'pending' as const,
-                    placeholderCheck: 'pending' as const,
-                    designStyle: 'pending' as const,
-                    securityScan: 'pending' as const,
-                },
-                buildAttempts: 0,
-            };
+            const reflectionFeature = this.createSyntheticFeature('reflection-check', 'Reflection issue check');
 
             // Run verification to find issues
             const swarmResult = await this.verificationSwarm.verifyFeature(
@@ -432,26 +466,25 @@ export class InfiniteReflectionEngine extends EventEmitter {
                 this.currentFiles
             );
 
-            // Convert verification issues to reflection issues
-            if (swarmResult.issues) {
-                for (const issue of swarmResult.issues) {
-                    const reflectionIssue: ReflectionIssue = {
-                        id: uuidv4(),
-                        type: this.mapIssueType(issue.type),
-                        severity: issue.severity as 'critical' | 'major' | 'minor',
-                        description: issue.description,
-                        location: issue.location,
-                        suggestion: issue.suggestion,
-                        fixAttempts: 0,
-                        status: 'pending',
-                    };
+            // Extract and convert verification issues to reflection issues
+            const verificationIssues = this.extractIssues(swarmResult);
+            for (const issue of verificationIssues) {
+                const reflectionIssue: ReflectionIssue = {
+                    id: uuidv4(),
+                    type: this.mapIssueCategory(issue.category),
+                    severity: this.mapSeverity(issue.severity),
+                    description: issue.description,
+                    location: issue.file ? `${issue.file}:${issue.line ?? ''}` : undefined,
+                    suggestion: issue.suggestion,
+                    fixAttempts: 0,
+                    status: 'pending',
+                };
 
-                    // Skip if we already have this issue
-                    const existingIssue = this.findSimilarIssue(reflectionIssue);
-                    if (!existingIssue) {
-                        this.issues.set(reflectionIssue.id, reflectionIssue);
-                        issues.push(reflectionIssue);
-                    }
+                // Skip if we already have this issue
+                const existingIssue = this.findSimilarIssue(reflectionIssue);
+                if (!existingIssue) {
+                    this.issues.set(reflectionIssue.id, reflectionIssue);
+                    issues.push(reflectionIssue);
                 }
             }
 
@@ -462,7 +495,7 @@ export class InfiniteReflectionEngine extends EventEmitter {
                 const reflectionIssue: ReflectionIssue = {
                     id: uuidv4(),
                     type: 'design',
-                    severity: violation.severity,
+                    severity: this.mapSeverity(violation.severity),
                     description: violation.description,
                     location: violation.location,
                     suggestion: violation.suggestion,
@@ -491,9 +524,9 @@ export class InfiniteReflectionEngine extends EventEmitter {
     }
 
     /**
-     * Map issue type from verification to reflection type
+     * Map issue category from verification to reflection type
      */
-    private mapIssueType(type: string): ReflectionIssue['type'] {
+    private mapIssueCategory(category: string): ReflectionIssue['type'] {
         const typeMap: Record<string, ReflectionIssue['type']> = {
             error: 'error',
             code_quality: 'quality',
@@ -502,7 +535,20 @@ export class InfiniteReflectionEngine extends EventEmitter {
             placeholder: 'placeholder',
             design: 'design',
         };
-        return typeMap[type] || 'quality';
+        return typeMap[category] || 'quality';
+    }
+
+    /**
+     * Map severity
+     */
+    private mapSeverity(severity: string): 'critical' | 'major' | 'minor' {
+        const severityMap: Record<string, 'critical' | 'major' | 'minor'> = {
+            critical: 'critical',
+            high: 'major',
+            medium: 'major',
+            low: 'minor',
+        };
+        return severityMap[severity] || 'minor';
     }
 
     /**
@@ -522,11 +568,48 @@ export class InfiniteReflectionEngine extends EventEmitter {
     }
 
     /**
+     * Create a BuildError from a ReflectionIssue
+     */
+    private createBuildError(issue: ReflectionIssue): BuildError {
+        const [file, lineStr] = (issue.location || '').split(':');
+        const line = lineStr ? parseInt(lineStr, 10) : undefined;
+        
+        return {
+            id: issue.id,
+            featureId: 'reflection-fix',
+            category: this.mapReflectionTypeToBuildErrorCategory(issue.type),
+            message: issue.description,
+            file: file || undefined,
+            line: isNaN(line as number) ? undefined : line,
+            context: {
+                suggestion: issue.suggestion,
+                severity: issue.severity,
+            },
+            timestamp: new Date(),
+        };
+    }
+
+    /**
+     * Map reflection issue type to BuildError category
+     */
+    private mapReflectionTypeToBuildErrorCategory(type: ReflectionIssue['type']): ErrorCategory {
+        const categoryMap: Record<ReflectionIssue['type'], ErrorCategory> = {
+            error: 'syntax_error',
+            quality: 'type_mismatch',
+            visual: 'runtime_error',
+            security: 'runtime_error',
+            placeholder: 'type_mismatch',
+            design: 'type_mismatch',
+        };
+        return categoryMap[type] || 'runtime_error';
+    }
+
+    /**
      * Fix a batch of issues
      */
     private async fixIssuesBatch(
         issues: ReflectionIssue[],
-        buildIntentId: string
+        _buildIntentId: string
     ): Promise<{ fixed: number; escalated: number; fixLearnings: string[] }> {
         let fixed = 0;
         let escalated = 0;
@@ -565,22 +648,31 @@ export class InfiniteReflectionEngine extends EventEmitter {
                         }
                     }
 
+                    // Create a BuildError from the ReflectionIssue
+                    const buildError = this.createBuildError(issue);
+
                     // Use error escalation service for robust fixing
-                    const fixResult = await this.errorEscalation.attemptFix(
-                        buildIntentId,
-                        issue.id,
-                        this.currentFiles,
-                        `${issue.type}: ${issue.description}. Location: ${issue.location || 'unknown'}. Suggestion: ${issue.suggestion || 'none'}`
+                    const fixResult: EscalationResult = await this.errorEscalation.fixError(
+                        buildError,
+                        this.currentFiles
                     );
 
-                    if (fixResult.success) {
-                        this.currentFiles = fixResult.updatedFiles;
+                    if (fixResult.success && fixResult.fix) {
+                        // Apply the fix changes to current files
+                        for (const change of fixResult.fix.changes) {
+                            if (change.action === 'create' || change.action === 'update') {
+                                this.currentFiles.set(change.path, change.newContent || '');
+                            } else if (change.action === 'delete') {
+                                this.currentFiles.delete(change.path);
+                            }
+                        }
+                        
                         issue.status = 'fixed';
                         fixed++;
 
                         // Learn from this fix
                         if (this.config.enableLearning) {
-                            this.learnFromFix(issue, fixResult);
+                            this.learnFromFix(issue, { success: true, message: fixResult.message });
                             fixLearnings.push(`Learned fix pattern for ${issue.type}: ${issue.description.substring(0, 50)}...`);
                         }
                     } else if (issue.fixAttempts >= this.config.maxAutoFixAttempts) {
@@ -591,8 +683,9 @@ export class InfiniteReflectionEngine extends EventEmitter {
                         issue.status = 'pending'; // Will retry next iteration
                     }
 
-                } catch (error: any) {
-                    console.error(`[ReflectionEngine] Error fixing issue ${issue.id}:`, error.message);
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    console.error(`[ReflectionEngine] Error fixing issue ${issue.id}:`, errorMessage);
 
                     if (issue.fixAttempts >= this.config.maxAutoFixAttempts) {
                         issue.status = 'escalated';
@@ -734,11 +827,11 @@ Apply the pattern to fix this specific issue.`,
 export function createInfiniteReflectionEngine(
     projectId: string,
     userId: string,
+    buildId: string,
     config?: Partial<ReflectionConfig>,
     appSoul?: AppSoulType
 ): InfiniteReflectionEngine {
-    return new InfiniteReflectionEngine(projectId, userId, config, appSoul);
+    return new InfiniteReflectionEngine(projectId, userId, buildId, config, appSoul);
 }
 
 export default InfiniteReflectionEngine;
-
