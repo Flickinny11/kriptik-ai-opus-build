@@ -8,8 +8,7 @@
 import { useState } from 'react';
 import {
     Brain, Zap, Gauge, Sparkles, Code, Palette,
-    Shield, MessageSquare, ChevronDown, ChevronUp,
-    Lightbulb, Rocket
+    ChevronDown, Lightbulb, Rocket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

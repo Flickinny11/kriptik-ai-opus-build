@@ -217,7 +217,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         this.claudeService = createClaudeService({
             agentType: 'verification',
             projectId,
@@ -231,12 +231,12 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
     async scan(files: Map<string, string>): Promise<PlaceholderScanResult> {
         const startTime = Date.now();
         const violations: PlaceholderViolation[] = [];
-        
+
         console.log(`[PlaceholderEliminator] Scanning ${files.size} files...`);
-        
+
         // Filter out ignored files
         const filesToScan = new Map(
-            Array.from(files.entries()).filter(([path]) => 
+            Array.from(files.entries()).filter(([path]) =>
                 !this.config.ignoredFiles.some(pattern => {
                     if (pattern.includes('*')) {
                         const regex = new RegExp(pattern.replace('*', '.*'));
@@ -246,13 +246,13 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 })
             )
         );
-        
+
         // Scan each file
         for (const [filePath, content] of filesToScan.entries()) {
             const fileViolations = this.scanFile(filePath, content);
             violations.push(...fileViolations);
         }
-        
+
         // Add custom pattern violations
         for (const customPattern of this.config.customPatterns) {
             for (const [filePath, content] of filesToScan.entries()) {
@@ -260,12 +260,12 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 violations.push(...customViolations);
             }
         }
-        
+
         // Generate AI suggestions if enabled
         if (this.config.enableAISuggestions && violations.length > 0) {
             await this.generateSuggestions(violations, files);
         }
-        
+
         // Calculate stats
         const byType: Record<PlaceholderType, number> = {
             todo_comment: 0,
@@ -279,22 +279,22 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
             debug_code: 0,
             mock_data: 0,
         };
-        
+
         for (const violation of violations) {
             byType[violation.type]++;
         }
-        
+
         const stats = {
             filesScanned: filesToScan.size,
             violationsFound: violations.length,
             byType,
         };
-        
+
         // Determine blocking status
-        const blocking = this.config.zeroTolerance 
+        const blocking = this.config.zeroTolerance
             ? violations.length > 0
             : violations.length > this.config.maxViolationsAllowed;
-        
+
         const result: PlaceholderScanResult = {
             timestamp: new Date(),
             passed: violations.length === 0,
@@ -303,16 +303,16 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
             summary: this.generateSummary(violations, stats),
             stats,
         };
-        
+
         this.lastResult = result;
         this.emit('scan_complete', result);
-        
+
         if (blocking) {
             this.emit('blocking', result);
         }
-        
+
         console.log(`[PlaceholderEliminator] Scan complete: ${violations.length} violations (${Date.now() - startTime}ms)`);
-        
+
         return result;
     }
 
@@ -330,22 +330,22 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
     private scanFile(filePath: string, content: string): PlaceholderViolation[] {
         const violations: PlaceholderViolation[] = [];
         const lines = content.split('\n');
-        
+
         for (const { type, patterns } of PLACEHOLDER_PATTERNS) {
             for (const { regex, description } of patterns) {
                 // Reset regex state
                 regex.lastIndex = 0;
-                
+
                 let match;
                 while ((match = regex.exec(content)) !== null) {
                     // Find line number
                     const lineNumber = this.getLineNumber(content, match.index);
-                    
+
                     // Skip if it looks like legitimate code
                     if (this.isLegitimateUsage(filePath, match[0], type, lines[lineNumber - 1])) {
                         continue;
                     }
-                    
+
                     violations.push({
                         id: uuidv4(),
                         type,
@@ -357,7 +357,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return violations;
     }
 
@@ -367,10 +367,10 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
         pattern: { pattern: RegExp; type: PlaceholderType; description: string }
     ): PlaceholderViolation[] {
         const violations: PlaceholderViolation[] = [];
-        
+
         pattern.pattern.lastIndex = 0;
         let match;
-        
+
         while ((match = pattern.pattern.exec(content)) !== null) {
             violations.push({
                 id: uuidv4(),
@@ -381,7 +381,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 code: this.truncateCode(match[0]),
             });
         }
-        
+
         return violations;
     }
 
@@ -404,7 +404,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 return true;
             }
         }
-        
+
         // Allow mock data in test files
         if (type === 'mock_data' || type === 'dummy_data') {
             if (
@@ -417,7 +417,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 return true;
             }
         }
-        
+
         // Allow TODO in comments that are documentation
         if (type === 'todo_comment' && line) {
             // Skip if it's documenting a known issue with a ticket reference
@@ -425,7 +425,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 return true;
             }
         }
-        
+
         // Allow placeholder images in development/storybook files
         if (type === 'placeholder_image') {
             if (
@@ -435,7 +435,7 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -460,17 +460,17 @@ export class PlaceholderEliminatorAgent extends EventEmitter {
     ): Promise<void> {
         // Only generate suggestions for first 10 violations
         const violationsToSuggest = violations.slice(0, 10);
-        
+
         for (const violation of violationsToSuggest) {
             try {
                 const fileContent = files.get(violation.file);
                 if (!fileContent) continue;
-                
+
                 const contextLines = this.getContextLines(
                     fileContent,
                     violation.line || 1
                 );
-                
+
                 const response = await this.claudeService.generate(
                     `Suggest a real replacement for this placeholder content:
 
@@ -493,7 +493,7 @@ If it's debug code, suggest removal or proper logging.`,
                         useExtendedThinking: false,
                     }
                 );
-                
+
                 violation.suggestion = response.content.trim();
             } catch (e) {
                 // Silently skip suggestion generation on error
@@ -505,7 +505,7 @@ If it's debug code, suggest removal or proper logging.`,
         const lines = content.split('\n');
         const start = Math.max(0, line - context - 1);
         const end = Math.min(lines.length, line + context);
-        
+
         return lines
             .slice(start, end)
             .map((l, i) => `${start + i + 1} | ${l}`)
@@ -523,29 +523,29 @@ If it's debug code, suggest removal or proper logging.`,
         if (violations.length === 0) {
             return `Placeholder scan passed. Scanned ${stats.filesScanned} files, no placeholders found.`;
         }
-        
+
         // Find most common types
         const sortedTypes = Object.entries(stats.byType)
             .filter(([_, count]) => count > 0)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
-        
+
         const typeBreakdown = sortedTypes
             .map(([type, count]) => `${type.replace(/_/g, ' ')}: ${count}`)
             .join(', ');
-        
+
         // Find most affected files
         const fileViolations = new Map<string, number>();
         for (const v of violations) {
             fileViolations.set(v.file, (fileViolations.get(v.file) || 0) + 1);
         }
-        
+
         const topFiles = Array.from(fileViolations.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([file]) => file.split('/').pop())
             .join(', ');
-        
+
         return `BLOCKING: Found ${violations.length} placeholder(s) in ${fileViolations.size} file(s). ` +
                `Types: ${typeBreakdown}. ` +
                `Affected: ${topFiles}`;

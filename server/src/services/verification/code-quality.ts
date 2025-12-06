@@ -108,7 +108,7 @@ export class CodeQualityAgent extends EventEmitter {
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         this.claudeService = createClaudeService({
             agentType: 'verification',
             projectId,
@@ -122,29 +122,29 @@ export class CodeQualityAgent extends EventEmitter {
     async analyze(files: Map<string, string>): Promise<CodeQualityResult> {
         const startTime = Date.now();
         const issues: QualityIssue[] = [];
-        
+
         // Filter to code files only
         const codeFiles = new Map(
             Array.from(files.entries()).filter(([path]) => this.isCodeFile(path))
         );
-        
+
         console.log(`[CodeQuality] Analyzing ${codeFiles.size} files...`);
-        
+
         // Run static analysis
         for (const [filePath, content] of codeFiles.entries()) {
             const fileIssues = this.analyzeFile(filePath, content);
             issues.push(...fileIssues);
         }
-        
+
         // Calculate metrics
         const metrics = this.calculateMetrics(codeFiles, issues);
-        
+
         // Run AI-powered analysis if enabled
         let aiRecommendations: string[] = [];
         if (this.config.enableAIAnalysis) {
             aiRecommendations = await this.runAIAnalysis(codeFiles, issues);
         }
-        
+
         const result: CodeQualityResult = {
             timestamp: new Date(),
             passed: metrics.overallScore >= this.config.minOverallScore,
@@ -153,12 +153,12 @@ export class CodeQualityAgent extends EventEmitter {
             summary: this.generateSummary(metrics, issues),
             recommendations: aiRecommendations,
         };
-        
+
         this.lastResult = result;
         this.emit('analysis_complete', result);
-        
+
         console.log(`[CodeQuality] Analysis complete: Score ${metrics.overallScore}/100 (${Date.now() - startTime}ms)`);
-        
+
         return result;
     }
 
@@ -180,7 +180,7 @@ export class CodeQualityAgent extends EventEmitter {
     private analyzeFile(filePath: string, content: string): QualityIssue[] {
         const issues: QualityIssue[] = [];
         const lines = content.split('\n');
-        
+
         // Check file length
         if (lines.length > this.config.maxFileLength) {
             issues.push({
@@ -193,19 +193,19 @@ export class CodeQualityAgent extends EventEmitter {
                 suggestion: 'Consider splitting into smaller, focused modules',
             });
         }
-        
+
         // Analyze functions
         issues.push(...this.analyzeFunctions(filePath, content, lines));
-        
+
         // Check for code smells
         issues.push(...this.checkCodeSmells(filePath, content, lines));
-        
+
         // Check naming conventions
         issues.push(...this.checkNaming(filePath, content));
-        
+
         // Check for duplication patterns
         issues.push(...this.checkDuplication(filePath, content, lines));
-        
+
         return issues;
     }
 
@@ -215,25 +215,25 @@ export class CodeQualityAgent extends EventEmitter {
         lines: string[]
     ): QualityIssue[] {
         const issues: QualityIssue[] = [];
-        
+
         // Find function declarations (simple pattern matching)
         const functionPatterns = [
             /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[^=])\s*=>)/g,
             /(?:async\s+)?(\w+)\s*\([^)]*\)\s*(?::\s*\w+)?\s*{/g,
         ];
-        
+
         // Track function positions
         const functions: { name: string; startLine: number; endLine: number; content: string }[] = [];
-        
+
         // Simplified function detection by counting braces
         let braceCount = 0;
         let inFunction = false;
         let functionStart = 0;
         let currentFunction = '';
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            
+
             // Check for function start
             const funcMatch = line.match(/(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\()/);
             if (funcMatch && !inFunction) {
@@ -242,13 +242,13 @@ export class CodeQualityAgent extends EventEmitter {
                 currentFunction = funcMatch[1] || funcMatch[2] || 'anonymous';
                 braceCount = 0;
             }
-            
+
             // Count braces
             for (const char of line) {
                 if (char === '{') braceCount++;
                 if (char === '}') braceCount--;
             }
-            
+
             // Check for function end
             if (inFunction && braceCount <= 0 && line.includes('}')) {
                 functions.push({
@@ -260,11 +260,11 @@ export class CodeQualityAgent extends EventEmitter {
                 inFunction = false;
             }
         }
-        
+
         // Analyze each function
         for (const func of functions) {
             const functionLength = func.endLine - func.startLine + 1;
-            
+
             // Check function length
             if (functionLength > this.config.maxFunctionLength) {
                 issues.push({
@@ -279,7 +279,7 @@ export class CodeQualityAgent extends EventEmitter {
                     suggestion: 'Extract logic into smaller, well-named helper functions',
                 });
             }
-            
+
             // Check cyclomatic complexity (simplified)
             const complexity = this.calculateComplexity(func.content);
             if (complexity > this.config.maxComplexityPerFunction) {
@@ -294,7 +294,7 @@ export class CodeQualityAgent extends EventEmitter {
                     suggestion: 'Reduce branching by extracting conditions or using early returns',
                 });
             }
-            
+
             // Check nesting depth
             const maxNesting = this.calculateNestingDepth(func.content);
             if (maxNesting > this.config.maxNestingDepth) {
@@ -310,7 +310,7 @@ export class CodeQualityAgent extends EventEmitter {
                 });
             }
         }
-        
+
         return issues;
     }
 
@@ -328,20 +328,20 @@ export class CodeQualityAgent extends EventEmitter {
             /\|\|/g,
             /\?[^?]/g,  // Ternary operator (exclude ??)
         ];
-        
+
         let complexity = 1; // Base complexity
         for (const pattern of patterns) {
             const matches = code.match(pattern);
             if (matches) complexity += matches.length;
         }
-        
+
         return complexity;
     }
 
     private calculateNestingDepth(code: string): number {
         let maxDepth = 0;
         let currentDepth = 0;
-        
+
         // Track nesting through braces (simplified)
         for (const char of code) {
             if (char === '{') {
@@ -351,7 +351,7 @@ export class CodeQualityAgent extends EventEmitter {
                 currentDepth = Math.max(0, currentDepth - 1);
             }
         }
-        
+
         return maxDepth;
     }
 
@@ -361,7 +361,7 @@ export class CodeQualityAgent extends EventEmitter {
         lines: string[]
     ): QualityIssue[] {
         const issues: QualityIssue[] = [];
-        
+
         // Check for console.log statements
         lines.forEach((line, index) => {
             if (/console\.(log|debug|info|warn|error)\(/.test(line) && !line.includes('//')) {
@@ -378,7 +378,7 @@ export class CodeQualityAgent extends EventEmitter {
                 });
             }
         });
-        
+
         // Check for TODO/FIXME comments
         lines.forEach((line, index) => {
             if (/\/\/\s*(TODO|FIXME|HACK|XXX):/i.test(line)) {
@@ -394,13 +394,13 @@ export class CodeQualityAgent extends EventEmitter {
                 });
             }
         });
-        
+
         // Check for magic numbers
         const magicNumberPattern = /[^a-zA-Z0-9_]\d{2,}[^a-zA-Z0-9_\.]/g;
         lines.forEach((line, index) => {
             // Skip imports, comments, and obvious constants
             if (line.includes('import') || line.trim().startsWith('//') || line.includes('const')) return;
-            
+
             const matches = line.match(magicNumberPattern);
             if (matches && matches.length > 0) {
                 issues.push({
@@ -416,7 +416,7 @@ export class CodeQualityAgent extends EventEmitter {
                 });
             }
         });
-        
+
         // Check for any type usage in TypeScript
         if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
             lines.forEach((line, index) => {
@@ -435,22 +435,22 @@ export class CodeQualityAgent extends EventEmitter {
                 }
             });
         }
-        
+
         return issues;
     }
 
     private checkNaming(filePath: string, content: string): QualityIssue[] {
         const issues: QualityIssue[] = [];
         const lines = content.split('\n');
-        
+
         // Check for single-letter variable names (except loop counters)
         const singleLetterPattern = /(?:const|let|var)\s+([a-z])\s*[=:]/g;
         let match;
-        
+
         lines.forEach((line, index) => {
             // Skip loop declarations
             if (line.includes('for (') || line.includes('for(')) return;
-            
+
             while ((match = singleLetterPattern.exec(line)) !== null) {
                 if (!['i', 'j', 'k', 'x', 'y', 'e'].includes(match[1])) {
                     issues.push({
@@ -466,11 +466,11 @@ export class CodeQualityAgent extends EventEmitter {
                 }
             }
         });
-        
+
         // Check for inconsistent naming (e.g., mixing camelCase and snake_case)
         const camelCase = content.match(/[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*/g);
         const snakeCase = content.match(/[a-z]+_[a-z]+/g);
-        
+
         if (camelCase && camelCase.length > 5 && snakeCase && snakeCase.length > 5) {
             issues.push({
                 id: uuidv4(),
@@ -482,7 +482,7 @@ export class CodeQualityAgent extends EventEmitter {
                 suggestion: 'Stick to one naming convention throughout the codebase',
             });
         }
-        
+
         return issues;
     }
 
@@ -492,20 +492,20 @@ export class CodeQualityAgent extends EventEmitter {
         lines: string[]
     ): QualityIssue[] {
         const issues: QualityIssue[] = [];
-        
+
         // Find duplicate blocks of code (3+ lines)
         const blockSize = 3;
         const seenBlocks = new Map<string, number>();
-        
+
         for (let i = 0; i < lines.length - blockSize; i++) {
             const block = lines
                 .slice(i, i + blockSize)
                 .map(l => l.trim())
                 .filter(l => l && !l.startsWith('//'))
                 .join('\n');
-            
+
             if (block.length < 50) continue; // Skip short blocks
-            
+
             const existingLine = seenBlocks.get(block);
             if (existingLine !== undefined) {
                 issues.push({
@@ -523,7 +523,7 @@ export class CodeQualityAgent extends EventEmitter {
                 seenBlocks.set(block, i);
             }
         }
-        
+
         return issues;
     }
 
@@ -537,17 +537,17 @@ export class CodeQualityAgent extends EventEmitter {
     ): Promise<string[]> {
         // Only analyze if there are issues or we want comprehensive feedback
         if (files.size === 0) return [];
-        
+
         // Prepare code summary (limit to avoid token explosion)
         const codePreview = Array.from(files.entries())
             .slice(0, 5)
             .map(([path, content]) => `// ${path}\n${content.slice(0, 500)}...`)
             .join('\n\n---\n\n');
-        
-        const issuesSummary = issues.slice(0, 10).map(i => 
+
+        const issuesSummary = issues.slice(0, 10).map(i =>
             `- [${i.severity}] ${i.title}: ${i.description}`
         ).join('\n');
-        
+
         try {
             const response = await this.claudeService.generate(
                 `As a code quality expert, review this code and issues found:
@@ -571,7 +571,7 @@ Return recommendations as a JSON array of strings.`,
                     useExtendedThinking: false,
                 }
             );
-            
+
             // Parse recommendations
             try {
                 const match = response.content.match(/\[[\s\S]*\]/);
@@ -585,7 +585,7 @@ Return recommendations as a JSON array of strings.`,
         } catch (error) {
             console.error('[CodeQuality] AI analysis failed:', error);
         }
-        
+
         return [];
     }
 
@@ -602,7 +602,7 @@ Return recommendations as a JSON array of strings.`,
         let duplicationScore = 100;
         let maintainabilityScore = 100;
         let readabilityScore = 100;
-        
+
         // Severity weights
         const weights = {
             critical: 15,
@@ -610,11 +610,11 @@ Return recommendations as a JSON array of strings.`,
             minor: 3,
             suggestion: 1,
         };
-        
+
         // Calculate deductions by type
         for (const issue of issues) {
             const deduction = weights[issue.severity];
-            
+
             switch (issue.type) {
                 case 'complexity':
                     complexityScore -= deduction;
@@ -633,13 +633,13 @@ Return recommendations as a JSON array of strings.`,
                     break;
             }
         }
-        
+
         // Ensure scores don't go below 0
         complexityScore = Math.max(0, complexityScore);
         duplicationScore = Math.max(0, duplicationScore);
         maintainabilityScore = Math.max(0, maintainabilityScore);
         readabilityScore = Math.max(0, readabilityScore);
-        
+
         // Calculate overall score (weighted average)
         const overallScore = Math.round(
             (complexityScore * 0.3) +
@@ -647,7 +647,7 @@ Return recommendations as a JSON array of strings.`,
             (maintainabilityScore * 0.3) +
             (readabilityScore * 0.2)
         );
-        
+
         return {
             overallScore,
             complexityScore,
@@ -661,13 +661,13 @@ Return recommendations as a JSON array of strings.`,
         const criticalCount = issues.filter(i => i.severity === 'critical').length;
         const majorCount = issues.filter(i => i.severity === 'major').length;
         const minorCount = issues.filter(i => i.severity === 'minor').length;
-        
+
         let status = 'Excellent';
         if (metrics.overallScore < 90) status = 'Good';
         if (metrics.overallScore < 80) status = 'Fair';
         if (metrics.overallScore < 70) status = 'Needs Improvement';
         if (metrics.overallScore < 50) status = 'Poor';
-        
+
         return `Code Quality: ${status} (${metrics.overallScore}/100). ` +
                `Issues: ${criticalCount} critical, ${majorCount} major, ${minorCount} minor. ` +
                `Complexity: ${metrics.complexityScore}/100, Maintainability: ${metrics.maintainabilityScore}/100`;

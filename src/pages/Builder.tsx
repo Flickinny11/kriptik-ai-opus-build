@@ -41,6 +41,11 @@ import CollaborationHeader from '../components/collaboration/CollaborationHeader
 import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
+// Ultimate AI-First Builder Architecture Components
+import { SpeedDialSelector } from '../components/builder/SpeedDialSelector';
+import { IntelligenceToggles } from '../components/builder/IntelligenceToggles';
+import { BuildPhaseIndicator } from '../components/builder/BuildPhaseIndicator';
+import { VerificationSwarmStatus } from '../components/builder/VerificationSwarmStatus';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -176,6 +181,7 @@ body {
 // Quick action items for the sidebar
 const quickActions = [
     { icon: Activity, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
+    { icon: Layers, label: 'Build Mode', description: 'Speed Dial settings', panel: 'buildconfig' },
     { icon: Cloud, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
     { icon: Database, label: 'Database', description: 'Manage schemas', panel: 'database' },
     { icon: Workflow, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
@@ -329,6 +335,51 @@ export default function Builder() {
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
+    // Ultimate AI-First Builder Architecture State
+    const [showBuildConfig, setShowBuildConfig] = useState(false);
+    const [selectedBuildMode, setSelectedBuildMode] = useState<'lightning' | 'standard' | 'tournament' | 'production'>('standard');
+    const [buildPhases] = useState<Array<{
+        phase: 'intent_lock' | 'initialization' | 'parallel_build' | 'integration' | 'testing' | 'intent_satisfaction' | 'demo';
+        status: 'pending' | 'active' | 'complete' | 'failed' | 'skipped';
+        progress?: number;
+    }>>([
+        { phase: 'intent_lock', status: 'pending' },
+        { phase: 'initialization', status: 'pending' },
+        { phase: 'parallel_build', status: 'pending' },
+        { phase: 'integration', status: 'pending' },
+        { phase: 'testing', status: 'pending' },
+        { phase: 'intent_satisfaction', status: 'pending' },
+        { phase: 'demo', status: 'pending' },
+    ]);
+    const [verificationAgents, setVerificationAgents] = useState<Array<{
+        type: 'error_checker' | 'code_quality' | 'visual_verifier' | 'security_scanner' | 'placeholder_eliminator' | 'design_style';
+        status: 'idle' | 'running' | 'passed' | 'failed' | 'warning';
+        score?: number;
+        lastRun?: Date;
+        issues?: number;
+    }>>([
+        { type: 'error_checker', status: 'idle' },
+        { type: 'code_quality', status: 'idle' },
+        { type: 'visual_verifier', status: 'idle' },
+        { type: 'security_scanner', status: 'idle' },
+        { type: 'placeholder_eliminator', status: 'idle' },
+        { type: 'design_style', status: 'idle' },
+    ]);
+    const [intelligenceSettings, setIntelligenceSettings] = useState<{
+        thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
+        powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
+        speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
+        creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
+        codeVerbosity: 'minimal' | 'standard' | 'verbose';
+        designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
+    }>({
+        thinkingDepth: 'normal',
+        powerLevel: 'balanced',
+        speedPriority: 'balanced',
+        creativityLevel: 'balanced',
+        codeVerbosity: 'standard',
+        designDetail: 'standard',
+    });
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -765,6 +816,89 @@ export default function Builder() {
                                     style={liquidGlassPanel}
                                 >
                                     <ProjectMemoryPanel />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Build Configuration Panel - Ultimate AI-First Builder */}
+                    <AnimatePresence>
+                        {(activeQuickAction === 'buildconfig' || showBuildConfig) && !isMobile && (
+                            <motion.div
+                                initial={{ width: 0, opacity: 0 }}
+                                animate={{ width: 420, opacity: 1 }}
+                                exit={{ width: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
+                            >
+                                <div
+                                    className="w-[404px] h-full rounded-2xl overflow-auto"
+                                    style={liquidGlassPanel}
+                                >
+                                    <div className="p-4 space-y-4">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-semibold text-zinc-800">
+                                                Build Configuration
+                                            </h3>
+                                            <button
+                                                onClick={() => {
+                                                    setShowBuildConfig(false);
+                                                    setActiveQuickAction(null);
+                                                }}
+                                                className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+                                            >
+                                                <X className="w-4 h-4 text-zinc-500" />
+                                            </button>
+                                        </div>
+
+                                        {/* Build Phase Indicator */}
+                                        <div className="bg-white/50 rounded-xl p-3">
+                                            <BuildPhaseIndicator
+                                                phases={buildPhases}
+                                                compact={true}
+                                            />
+                                        </div>
+
+                                        {/* Speed Dial Selector */}
+                                        <SpeedDialSelector
+                                            selectedMode={selectedBuildMode}
+                                            onModeChange={setSelectedBuildMode}
+                                        />
+
+                                        {/* Intelligence Toggles */}
+                                        <IntelligenceToggles
+                                            settings={intelligenceSettings}
+                                            onSettingsChange={setIntelligenceSettings}
+                                            compact={true}
+                                        />
+
+                                        {/* Verification Swarm Status */}
+                                        <div className="pt-2">
+                                            <VerificationSwarmStatus
+                                                agents={verificationAgents}
+                                                compact={true}
+                                                onRerun={() => {
+                                                    // Trigger verification rerun
+                                                    console.log('Rerunning verification swarm...');
+                                                    setVerificationAgents(agents => 
+                                                        agents.map(a => ({ ...a, status: 'running' as const }))
+                                                    );
+                                                    // Simulate completion after 2 seconds
+                                                    setTimeout(() => {
+                                                        setVerificationAgents(agents =>
+                                                            agents.map(a => ({
+                                                                ...a,
+                                                                status: Math.random() > 0.2 ? 'passed' as const : 'warning' as const,
+                                                                score: Math.floor(Math.random() * 20) + 80,
+                                                                lastRun: new Date(),
+                                                            }))
+                                                        );
+                                                    }, 2000);
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}

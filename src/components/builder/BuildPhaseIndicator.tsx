@@ -5,13 +5,12 @@
  * Part of Phase 9: UI Enhancements
  */
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import {
     FileText, Settings, Hammer, Link2, TestTube,
-    Sparkles, Monitor, Check, Loader2, AlertCircle,
-    ChevronRight
+    Sparkles, Monitor, Check, Loader2, AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // ============================================================================
 // TYPES
@@ -125,7 +124,7 @@ function PhaseStep({
     info,
     config,
     isFirst,
-    isLast,
+    isLast: _isLast,
     showConnector,
     compact,
     onClick,
@@ -382,7 +381,6 @@ export function BuildPhaseIndicator({
  * Minimal inline version
  */
 export function BuildPhaseInline({ phases, currentPhase }: { phases: PhaseInfo[]; currentPhase?: BuildPhase }) {
-    const completedCount = phases.filter(p => p.status === 'complete').length;
     const current = currentPhase ? PHASE_CONFIG[currentPhase] : undefined;
 
     return (

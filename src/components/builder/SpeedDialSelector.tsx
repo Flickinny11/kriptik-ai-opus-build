@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Zap, Clock, Trophy, Rocket, Check, Info } from 'lucide-react';
+import { Zap, Clock, Trophy, Rocket, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export type BuildMode = 'lightning' | 'standard' | 'tournament' | 'production';
@@ -84,7 +84,6 @@ export function SpeedDialSelector({
     showDetails = true,
 }: SpeedDialSelectorProps) {
     const [hoveredMode, setHoveredMode] = useState<BuildMode | null>(null);
-    const [showTooltip, setShowTooltip] = useState<BuildMode | null>(null);
 
     const selectedConfig = BUILD_MODES.find(m => m.mode === selectedMode);
 

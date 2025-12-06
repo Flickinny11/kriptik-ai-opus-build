@@ -5,7 +5,7 @@
  * Part of Phase 9: UI Enhancements
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     AlertTriangle, CheckCircle2, XCircle, Loader2,
     Bug, Code, Eye, Shield, FileText, Palette,

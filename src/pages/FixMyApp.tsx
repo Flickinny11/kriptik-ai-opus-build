@@ -25,6 +25,10 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+// Ultimate AI-First Builder Architecture Components
+import { SpeedDialSelector } from '@/components/builder/SpeedDialSelector';
+import { BuildPhaseIndicator } from '@/components/builder/BuildPhaseIndicator';
+import { VerificationSwarmStatus } from '@/components/builder/VerificationSwarmStatus';
 import '../styles/realistic-glass.css';
 
 // =============================================================================
@@ -677,6 +681,34 @@ export default function FixMyApp() {
     // Completion
     const [verificationReport, setVerificationReport] = useState<any>(null);
     const [notification, setNotification] = useState<SarcasticNotification | null>(null);
+
+    // Ultimate AI-First Builder Architecture State
+    const [fixMode, setFixMode] = useState<'lightning' | 'standard' | 'tournament' | 'production'>('standard');
+    const [fixBuildPhases] = useState<Array<{
+        phase: 'intent_lock' | 'initialization' | 'parallel_build' | 'integration' | 'testing' | 'intent_satisfaction' | 'demo';
+        status: 'pending' | 'active' | 'complete' | 'failed' | 'skipped';
+        progress?: number;
+    }>>([
+        { phase: 'intent_lock', status: 'complete' },
+        { phase: 'initialization', status: 'complete' },
+        { phase: 'parallel_build', status: 'active', progress: progress },
+        { phase: 'integration', status: 'pending' },
+        { phase: 'testing', status: 'pending' },
+    ]);
+    const [fixVerificationAgents, setFixVerificationAgents] = useState<Array<{
+        type: 'error_checker' | 'code_quality' | 'visual_verifier' | 'security_scanner' | 'placeholder_eliminator' | 'design_style';
+        status: 'idle' | 'running' | 'passed' | 'failed' | 'warning';
+        score?: number;
+        lastRun?: Date;
+        issues?: number;
+    }>>([
+        { type: 'error_checker', status: 'running' },
+        { type: 'code_quality', status: 'idle' },
+        { type: 'visual_verifier', status: 'idle' },
+        { type: 'security_scanner', status: 'idle' },
+        { type: 'placeholder_eliminator', status: 'idle' },
+        { type: 'design_style', status: 'idle' },
+    ]);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -1786,6 +1818,15 @@ export default function FixMyApp() {
                                         </div>
                                     )}
 
+                                    {/* Fix Mode Selector */}
+                                    <div className="mt-6 p-4 bg-slate-800/30 rounded-xl">
+                                        <h4 className="text-sm font-medium text-slate-400 mb-3">Fix Mode</h4>
+                                        <SpeedDialSelector
+                                            selectedMode={fixMode}
+                                            onModeChange={setFixMode}
+                                        />
+                                    </div>
+
                                     <button
                                         onClick={startFix}
                                         disabled={!selectedStrategy}
@@ -1793,35 +1834,76 @@ export default function FixMyApp() {
                                         className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         <Rocket className="h-5 w-5" />
-                                        Start Fixing
+                                        Start Fixing ({fixMode === 'lightning' ? '⚡ Fast' : fixMode === 'tournament' ? '🏆 Best' : '🔧 Standard'})
                                     </button>
                                 </Card>
                             </div>
                         )}
 
-                        {/* Step 7: Fix Progress */}
+                        {/* Step 7: Fix Progress - Enhanced with Ultimate Builder Components */}
                         {step === 'fix' && (
-                            <Card className="p-8 bg-slate-900/50 border-slate-800">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                                        <Wrench className="w-6 h-6 text-amber-500 animate-pulse" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold">Fixing Your App</h2>
-                                        <p className="text-slate-400">{currentPhase}</p>
-                                    </div>
-                                </div>
-
-                                <Progress value={progress} className="h-2 mb-6" />
-
-                                <div className="bg-slate-800/50 rounded-xl p-4 font-mono text-sm h-64 overflow-y-auto">
-                                    {logs.map((log, i) => (
-                                        <div key={i} className="text-slate-300">
-                                            <span className="text-slate-500">[{new Date().toLocaleTimeString()}]</span> {log}
+                            <div className="space-y-4">
+                                <Card className="p-6 bg-slate-900/50 border-slate-800">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                            <Wrench className="w-5 h-5 text-amber-500 animate-pulse" />
                                         </div>
-                                    ))}
-                                </div>
-                            </Card>
+                                        <div>
+                                            <h2 className="text-lg font-bold">Fixing Your App</h2>
+                                            <p className="text-sm text-slate-400">{currentPhase}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Build Phase Indicator */}
+                                    <div className="mb-4 p-3 bg-slate-800/30 rounded-xl">
+                                        <BuildPhaseIndicator
+                                            phases={fixBuildPhases.map(p => ({
+                                                ...p,
+                                                progress: p.phase === 'parallel_build' ? progress : undefined,
+                                            }))}
+                                            currentPhase="parallel_build"
+                                            compact={true}
+                                        />
+                                    </div>
+
+                                    <Progress value={progress} className="h-2 mb-4" />
+
+                                    {/* Fix Mode Badge */}
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-400">
+                                            {fixMode === 'lightning' ? '⚡ Lightning' :
+                                             fixMode === 'standard' ? '🔧 Standard' :
+                                             fixMode === 'tournament' ? '🏆 Tournament' : '🚀 Production'} Mode
+                                        </Badge>
+                                        <span className="text-xs text-slate-500">
+                                            {selectedStrategy?.approach === 'repair' ? 'Repairing' :
+                                             selectedStrategy?.approach === 'rebuild_partial' ? 'Partial Rebuild' : 'Full Rebuild'}
+                                        </span>
+                                    </div>
+
+                                    {/* Logs */}
+                                    <div className="bg-slate-800/50 rounded-xl p-3 font-mono text-xs h-40 overflow-y-auto">
+                                        {logs.map((log, i) => (
+                                            <div key={i} className="text-slate-300">
+                                                <span className="text-slate-500">[{new Date().toLocaleTimeString()}]</span> {log}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+
+                                {/* Verification Swarm Status */}
+                                <Card className="p-4 bg-slate-900/50 border-slate-800">
+                                    <VerificationSwarmStatus
+                                        agents={fixVerificationAgents}
+                                        compact={true}
+                                        onRerun={() => {
+                                            setFixVerificationAgents(agents =>
+                                                agents.map(a => ({ ...a, status: 'running' as const }))
+                                            );
+                                        }}
+                                    />
+                                </Card>
+                            </div>
                         )}
 
                         {/* Step 8: Complete */}

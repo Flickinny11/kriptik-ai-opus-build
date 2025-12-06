@@ -23,7 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 // ============================================================================
 
 export type ErrorSeverity = 'error' | 'warning' | 'info';
-export type ErrorCategory = 
+export type ErrorCategory =
     | 'typescript'
     | 'eslint'
     | 'runtime'
@@ -101,7 +101,7 @@ const ERROR_PATTERNS = {
         ],
         severity: 'error' as ErrorSeverity,
     },
-    
+
     // ESLint errors
     eslint: {
         patterns: [
@@ -115,7 +115,7 @@ const ERROR_PATTERNS = {
         ],
         severity: 'error' as ErrorSeverity,
     },
-    
+
     // Syntax errors
     syntax: {
         patterns: [
@@ -128,7 +128,7 @@ const ERROR_PATTERNS = {
         ],
         severity: 'error' as ErrorSeverity,
     },
-    
+
     // Reference errors
     reference: {
         patterns: [
@@ -138,7 +138,7 @@ const ERROR_PATTERNS = {
         ],
         severity: 'error' as ErrorSeverity,
     },
-    
+
     // Import/export errors
     import: {
         patterns: [
@@ -151,7 +151,7 @@ const ERROR_PATTERNS = {
         ],
         severity: 'error' as ErrorSeverity,
     },
-    
+
     // Build errors
     build: {
         patterns: [
@@ -186,7 +186,7 @@ export class ErrorCheckerAgent extends EventEmitter {
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         this.claudeService = createClaudeService({
             agentType: 'verification',
             projectId,
@@ -199,14 +199,14 @@ export class ErrorCheckerAgent extends EventEmitter {
      */
     start(getFiles: () => Map<string, string>): void {
         if (this.isRunning) return;
-        
+
         this.isRunning = true;
         this.emit('started');
         console.log(`[ErrorChecker] Started with ${this.config.pollIntervalMs}ms interval`);
-        
+
         // Initial check
         this.runCheck(getFiles());
-        
+
         // Set up polling
         this.pollTimer = setInterval(() => {
             if (this.isRunning) {
@@ -234,42 +234,42 @@ export class ErrorCheckerAgent extends EventEmitter {
     async runCheck(files: Map<string, string>): Promise<ErrorCheckResult> {
         const startTime = Date.now();
         const errors: DetectedError[] = [];
-        
+
         // Filter out ignored paths
         const filesToCheck = new Map(
-            Array.from(files.entries()).filter(([path]) => 
+            Array.from(files.entries()).filter(([path]) =>
                 !this.config.ignoredPaths.some(ignored => path.includes(ignored))
             )
         );
-        
+
         // Check each file for errors
         for (const [filePath, content] of filesToCheck.entries()) {
             // Skip non-code files
             if (!this.isCodeFile(filePath)) continue;
-            
+
             const fileErrors = this.checkFile(filePath, content);
             errors.push(...fileErrors);
         }
-        
+
         // Filter out ignored codes
-        const filteredErrors = errors.filter(e => 
+        const filteredErrors = errors.filter(e =>
             !this.config.ignoredCodes.includes(e.code)
         );
-        
+
         // Generate AI suggestions if enabled
         if (this.config.enableAISuggestions && filteredErrors.length > 0) {
             await this.generateSuggestions(filteredErrors, files);
         }
-        
+
         // Calculate counts
         const errorCount = filteredErrors.filter(e => e.severity === 'error').length;
         const warningCount = filteredErrors.filter(e => e.severity === 'warning').length;
-        
+
         // Determine if blocking
-        const blocking = 
+        const blocking =
             (this.config.blockOnErrors && errorCount > this.config.maxErrorsBeforeBlock) ||
             (this.config.blockOnWarnings && warningCount > 0);
-        
+
         const result: ErrorCheckResult = {
             timestamp: new Date(),
             passed: errorCount === 0,
@@ -279,16 +279,16 @@ export class ErrorCheckerAgent extends EventEmitter {
             errors: filteredErrors,
             summary: this.generateSummary(filteredErrors, errorCount, warningCount),
         };
-        
+
         this.lastResult = result;
         this.emit('check_complete', result);
-        
+
         if (blocking) {
             this.emit('blocking', result);
         }
-        
+
         console.log(`[ErrorChecker] Check complete: ${errorCount} errors, ${warningCount} warnings (${Date.now() - startTime}ms)`);
-        
+
         return result;
     }
 
@@ -317,7 +317,7 @@ export class ErrorCheckerAgent extends EventEmitter {
     private checkFile(filePath: string, content: string): DetectedError[] {
         const errors: DetectedError[] = [];
         const lines = content.split('\n');
-        
+
         // Check each category of errors
         for (const [category, config] of Object.entries(ERROR_PATTERNS)) {
             for (const pattern of config.patterns) {
@@ -342,10 +342,10 @@ export class ErrorCheckerAgent extends EventEmitter {
                 }
             }
         }
-        
+
         // Additional structural checks
         errors.push(...this.checkStructuralErrors(filePath, content, lines));
-        
+
         return errors;
     }
 
@@ -355,11 +355,11 @@ export class ErrorCheckerAgent extends EventEmitter {
         lines: string[]
     ): DetectedError[] {
         const errors: DetectedError[] = [];
-        
+
         // Check for unclosed brackets/braces
         const brackets = { '(': 0, '[': 0, '{': 0 };
         const bracketMap = { ')': '(', ']': '[', '}': '{' };
-        
+
         for (let i = 0; i < content.length; i++) {
             const char = content[i];
             if (char in brackets) {
@@ -368,7 +368,7 @@ export class ErrorCheckerAgent extends EventEmitter {
                 brackets[bracketMap[char as keyof typeof bracketMap] as keyof typeof brackets]--;
             }
         }
-        
+
         for (const [bracket, count] of Object.entries(brackets)) {
             if (count !== 0) {
                 errors.push({
@@ -381,7 +381,7 @@ export class ErrorCheckerAgent extends EventEmitter {
                 });
             }
         }
-        
+
         // Check for common TypeScript/React issues in TSX files
         if (filePath.endsWith('.tsx') || filePath.endsWith('.jsx')) {
             // Missing return in component
@@ -398,7 +398,7 @@ export class ErrorCheckerAgent extends EventEmitter {
                     });
                 }
             }
-            
+
             // Check for common hooks issues
             if (content.includes('useState') || content.includes('useEffect')) {
                 // Check if hooks are at top level
@@ -415,7 +415,7 @@ export class ErrorCheckerAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return errors;
     }
 
@@ -423,11 +423,11 @@ export class ErrorCheckerAgent extends EventEmitter {
         // Try to extract TypeScript error code
         const tsMatch = line.match(/TS(\d{4,5})/);
         if (tsMatch) return `TS${tsMatch[1]}`;
-        
+
         // Try to extract ESLint rule
         const eslintMatch = line.match(/([\w-]+\/[\w-]+|[\w-]+)(?:\s|$)/);
         if (eslintMatch && category === 'eslint') return eslintMatch[1];
-        
+
         return category.toUpperCase();
     }
 
@@ -446,14 +446,14 @@ export class ErrorCheckerAgent extends EventEmitter {
     ): Promise<void> {
         // Only suggest for first 5 errors to save tokens
         const errorsToSuggest = errors.slice(0, 5);
-        
+
         for (const error of errorsToSuggest) {
             try {
                 const fileContent = files.get(error.file);
                 if (!fileContent) continue;
-                
+
                 const contextLines = this.getContextLines(fileContent, error.line || 1);
-                
+
                 const response = await this.claudeService.generate(
                     `Suggest a fix for this ${error.category} error:
 
@@ -473,7 +473,7 @@ Provide a brief, actionable fix suggestion in 1-2 sentences.`,
                         useExtendedThinking: false,
                     }
                 );
-                
+
                 error.suggestion = response.content.trim();
             } catch (e) {
                 // Silently skip suggestion generation on error
@@ -485,7 +485,7 @@ Provide a brief, actionable fix suggestion in 1-2 sentences.`,
         const lines = content.split('\n');
         const start = Math.max(0, line - context - 1);
         const end = Math.min(lines.length, line + context);
-        
+
         return lines
             .slice(start, end)
             .map((l, i) => `${start + i + 1} | ${l}`)
@@ -500,26 +500,26 @@ Provide a brief, actionable fix suggestion in 1-2 sentences.`,
         if (errorCount === 0 && warningCount === 0) {
             return 'No errors or warnings detected.';
         }
-        
+
         const parts: string[] = [];
-        
+
         if (errorCount > 0) {
             parts.push(`${errorCount} error${errorCount > 1 ? 's' : ''}`);
         }
         if (warningCount > 0) {
             parts.push(`${warningCount} warning${warningCount > 1 ? 's' : ''}`);
         }
-        
+
         // Group by category
         const byCategory = new Map<ErrorCategory, number>();
         for (const error of errors) {
             byCategory.set(error.category, (byCategory.get(error.category) || 0) + 1);
         }
-        
+
         const categoryBreakdown = Array.from(byCategory.entries())
             .map(([cat, count]) => `${cat}: ${count}`)
             .join(', ');
-        
+
         return `Found ${parts.join(', ')}. Categories: ${categoryBreakdown}`;
     }
 }

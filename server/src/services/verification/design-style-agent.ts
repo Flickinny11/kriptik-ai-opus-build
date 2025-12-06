@@ -100,7 +100,7 @@ const ANTI_SLOP_PATTERNS = {
         'BlinkMacSystemFont',
         'Segoe UI',
     ],
-    
+
     // Banned generic colors (AI slop indicators)
     genericColors: [
         '#f3f4f6',  // Tailwind gray-100
@@ -112,7 +112,7 @@ const ANTI_SLOP_PATTERNS = {
         'gray',
         'grey',
     ],
-    
+
     // Flat/generic shadow patterns
     flatShadows: [
         'shadow-sm',
@@ -121,7 +121,7 @@ const ANTI_SLOP_PATTERNS = {
         'shadow-xl',
         // Without color modifications
     ],
-    
+
     // Emoji patterns in UI text
     emojiPatterns: [
         /[\u{1F300}-\u{1F9FF}]/gu,  // Misc symbols and pictographs
@@ -131,7 +131,7 @@ const ANTI_SLOP_PATTERNS = {
         /[\u{1F680}-\u{1F6FF}]/gu,  // Transport/map symbols
         /:\w+:/g,                    // :emoji: syntax
     ],
-    
+
     // Generic layout patterns
     genericLayouts: [
         'grid-cols-3',
@@ -139,7 +139,7 @@ const ANTI_SLOP_PATTERNS = {
         'flex justify-center items-center',
         'mx-auto max-w-',
     ],
-    
+
     // Missing depth indicators
     noDepthPatterns: [
         'border-gray-',
@@ -148,7 +148,7 @@ const ANTI_SLOP_PATTERNS = {
         'bg-gray-',
         'bg-slate-',
     ],
-    
+
     // Static (no motion) patterns
     noMotionPatterns: [
         // Elements that should have transitions but don't
@@ -177,13 +177,13 @@ export class DesignStyleAgent extends EventEmitter {
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         this.claudeService = createClaudeService({
             agentType: 'verification',
             projectId,
             userId,
         });
-        
+
         this.appSoulMapper = new AppSoulMapper(userId, projectId);
     }
 
@@ -196,26 +196,26 @@ export class DesignStyleAgent extends EventEmitter {
     ): Promise<DesignStyleResult> {
         const startTime = Date.now();
         const violations: DesignViolation[] = [];
-        
+
         console.log(`[DesignStyleAgent] Analyzing ${files.size} files...`);
-        
+
         // Filter to UI files only
         const uiFiles = new Map(
             Array.from(files.entries()).filter(([path]) => this.isUIFile(path))
         );
-        
+
         // Detect app soul if description provided
         let detectedSoul: AppSoul | undefined;
         if (appDescription) {
             detectedSoul = await this.appSoulMapper.detectSoul(appDescription);
         }
-        
+
         // Static pattern analysis
         for (const [filePath, content] of uiFiles.entries()) {
             const fileViolations = this.analyzeFile(filePath, content, detectedSoul);
             violations.push(...fileViolations);
         }
-        
+
         // AI-powered analysis
         let aiRecommendations: string[] = [];
         if (this.config.enableAIAnalysis && uiFiles.size > 0) {
@@ -223,10 +223,10 @@ export class DesignStyleAgent extends EventEmitter {
             violations.push(...aiResult.violations);
             aiRecommendations = aiResult.recommendations;
         }
-        
+
         // Calculate scores
         const scores = this.calculateScores(violations, uiFiles);
-        
+
         const result: DesignStyleResult = {
             timestamp: new Date(),
             passed: scores.overall >= this.config.minOverallScore,
@@ -236,12 +236,12 @@ export class DesignStyleAgent extends EventEmitter {
             recommendations: aiRecommendations,
             detectedSoul: detectedSoul?.name,
         };
-        
+
         this.lastResult = result;
         this.emit('analysis_complete', result);
-        
+
         console.log(`[DesignStyleAgent] Analysis complete: Score ${scores.overall}/100 (${Date.now() - startTime}ms)`);
-        
+
         return result;
     }
 
@@ -269,55 +269,55 @@ export class DesignStyleAgent extends EventEmitter {
     ): DesignViolation[] {
         const violations: DesignViolation[] = [];
         const lines = content.split('\n');
-        
+
         // Check for emoji violations (CRITICAL - Zero Tolerance)
         violations.push(...this.checkEmojis(filePath, content, lines));
-        
+
         // Check for generic fonts
         violations.push(...this.checkFonts(filePath, content, lines));
-        
+
         // Check for flat/generic styling
         violations.push(...this.checkDepth(filePath, content, lines));
-        
+
         // Check for missing motion
         violations.push(...this.checkMotion(filePath, content, lines));
-        
+
         // Check for generic colors
         violations.push(...this.checkColors(filePath, content, lines));
-        
+
         // Check against soul-specific banned patterns
         if (soul) {
             violations.push(...this.checkSoulViolations(filePath, content, lines, soul));
         }
-        
+
         return violations;
     }
 
     private checkEmojis(filePath: string, content: string, lines: string[]): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         // Skip if not JSX/TSX (might be backend)
         if (!filePath.match(/\.(tsx|jsx)$/)) return violations;
-        
+
         for (const pattern of ANTI_SLOP_PATTERNS.emojiPatterns) {
             pattern.lastIndex = 0;
             let match;
-            
+
             while ((match = pattern.exec(content)) !== null) {
                 // Find line number
                 const lineNumber = this.getLineNumber(content, match.index);
                 const line = lines[lineNumber - 1] || '';
-                
+
                 // Skip if in a comment
                 if (line.trim().startsWith('//') || line.trim().startsWith('*')) {
                     continue;
                 }
-                
+
                 // Skip if it's in an icon import or variable name
                 if (line.includes('import') || line.includes('Icon')) {
                     continue;
                 }
-                
+
                 violations.push({
                     id: uuidv4(),
                     principle: 'emoji_ban',
@@ -331,20 +331,20 @@ export class DesignStyleAgent extends EventEmitter {
                 });
             }
         }
-        
+
         return violations;
     }
 
     private checkFonts(filePath: string, content: string, lines: string[]): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         for (const font of ANTI_SLOP_PATTERNS.genericFonts) {
             const regex = new RegExp(`font-family[^;]*${font}`, 'gi');
             let match;
-            
+
             while ((match = regex.exec(content)) !== null) {
                 const lineNumber = this.getLineNumber(content, match.index);
-                
+
                 violations.push({
                     id: uuidv4(),
                     principle: 'typography',
@@ -357,13 +357,13 @@ export class DesignStyleAgent extends EventEmitter {
                 });
             }
         }
-        
+
         // Also check for Tailwind font classes
         const tailwindFontPattern = /font-(sans|serif|mono)(?!\w)/g;
         let match;
         while ((match = tailwindFontPattern.exec(content)) !== null) {
             const lineNumber = this.getLineNumber(content, match.index);
-            
+
             violations.push({
                 id: uuidv4(),
                 principle: 'typography',
@@ -375,22 +375,22 @@ export class DesignStyleAgent extends EventEmitter {
                 recommendation: 'Define custom font families in Tailwind config',
             });
         }
-        
+
         return violations;
     }
 
     private checkDepth(filePath: string, content: string, lines: string[]): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         // Check for flat backgrounds
         for (const pattern of ANTI_SLOP_PATTERNS.noDepthPatterns) {
             if (content.includes(pattern)) {
                 const regex = new RegExp(pattern, 'g');
                 let match;
-                
+
                 while ((match = regex.exec(content)) !== null) {
                     const lineNumber = this.getLineNumber(content, match.index);
-                    
+
                     violations.push({
                         id: uuidv4(),
                         principle: 'depth',
@@ -404,22 +404,22 @@ export class DesignStyleAgent extends EventEmitter {
                 }
             }
         }
-        
+
         // Check for shadows without color (generic)
         for (const shadow of ANTI_SLOP_PATTERNS.flatShadows) {
             const regex = new RegExp(`${shadow}(?!-[a-z]+\\/|\\s+shadow-)`, 'g');
             let match;
-            
+
             while ((match = regex.exec(content)) !== null) {
                 // Check if there's a colored shadow modifier nearby
                 const context = content.substring(
                     Math.max(0, match.index - 50),
                     Math.min(content.length, match.index + 100)
                 );
-                
+
                 if (!context.includes('shadow-') || !context.match(/shadow-[a-z]+-\d+/)) {
                     const lineNumber = this.getLineNumber(content, match.index);
-                    
+
                     violations.push({
                         id: uuidv4(),
                         principle: 'depth',
@@ -433,13 +433,13 @@ export class DesignStyleAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return violations;
     }
 
     private checkMotion(filePath: string, content: string, lines: string[]): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         // Check for interactive elements without transitions
         const interactivePatterns = [
             { pattern: /className="[^"]*button[^"]*"/gi, name: 'button' },
@@ -448,27 +448,27 @@ export class DesignStyleAgent extends EventEmitter {
             { pattern: /onClick\s*=/gi, name: 'clickable element' },
             { pattern: /href\s*=/gi, name: 'link' },
         ];
-        
+
         for (const { pattern, name } of interactivePatterns) {
             pattern.lastIndex = 0;
             let match;
-            
+
             while ((match = pattern.exec(content)) !== null) {
                 // Check surrounding context for transition/animation
                 const contextStart = Math.max(0, match.index - 200);
                 const contextEnd = Math.min(content.length, match.index + 200);
                 const context = content.substring(contextStart, contextEnd);
-                
-                const hasMotion = 
+
+                const hasMotion =
                     context.includes('transition') ||
                     context.includes('animate-') ||
                     context.includes('motion') ||
                     context.includes('Framer') ||
                     context.includes('duration-');
-                
+
                 if (!hasMotion) {
                     const lineNumber = this.getLineNumber(content, match.index);
-                    
+
                     violations.push({
                         id: uuidv4(),
                         principle: 'motion',
@@ -482,17 +482,17 @@ export class DesignStyleAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return violations;
     }
 
     private checkColors(filePath: string, content: string, lines: string[]): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         // Check for overused gray palette
         const grayUsage = (content.match(/gray-\d+|slate-\d+/g) || []).length;
         const colorUsage = (content.match(/(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d+/g) || []).length;
-        
+
         if (grayUsage > colorUsage * 3 && grayUsage > 10) {
             violations.push({
                 id: uuidv4(),
@@ -504,7 +504,7 @@ export class DesignStyleAgent extends EventEmitter {
                 recommendation: 'Introduce a cohesive accent color palette. Consider app soul and emotional impact.',
             });
         }
-        
+
         return violations;
     }
 
@@ -515,16 +515,16 @@ export class DesignStyleAgent extends EventEmitter {
         soul: AppSoul
     ): DesignViolation[] {
         const violations: DesignViolation[] = [];
-        
+
         // Check for soul-specific banned patterns
         for (const banned of soul.bannedPatterns) {
             if (content.includes(banned)) {
                 const regex = new RegExp(banned, 'g');
                 let match;
-                
+
                 while ((match = regex.exec(content)) !== null) {
                     const lineNumber = this.getLineNumber(content, match.index);
-                    
+
                     violations.push({
                         id: uuidv4(),
                         principle: 'app_soul',
@@ -538,7 +538,7 @@ export class DesignStyleAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return violations;
     }
 
@@ -552,26 +552,26 @@ export class DesignStyleAgent extends EventEmitter {
     ): Promise<{ violations: DesignViolation[]; recommendations: string[] }> {
         const violations: DesignViolation[] = [];
         const recommendations: string[] = [];
-        
+
         try {
             // Prepare code preview (limit to key UI files)
             const keyFiles = Array.from(files.entries())
-                .filter(([path]) => 
-                    path.includes('App.') || 
-                    path.includes('page') || 
+                .filter(([path]) =>
+                    path.includes('App.') ||
+                    path.includes('page') ||
                     path.includes('layout') ||
                     path.includes('component')
                 )
                 .slice(0, 3);
-            
+
             const codePreview = keyFiles
                 .map(([path, content]) => `// ${path}\n${content.slice(0, 800)}`)
                 .join('\n\n---\n\n');
-            
-            const soulContext = soul 
+
+            const soulContext = soul
                 ? `TARGET SOUL: ${soul.name}\n${soul.description}\n`
                 : '';
-            
+
             const response = await this.claudeService.generate(
                 `As an elite UI/UX designer enforcing the Anti-Slop Design Manifesto, analyze this code:
 
@@ -609,12 +609,12 @@ Provide analysis as JSON:
                     useExtendedThinking: false,
                 }
             );
-            
+
             // Parse response
             const match = response.content.match(/\{[\s\S]*\}/);
             if (match) {
                 const parsed = JSON.parse(match[0]);
-                
+
                 // Add AI violations
                 for (const v of parsed.violations || []) {
                     violations.push({
@@ -627,14 +627,14 @@ Provide analysis as JSON:
                         recommendation: v.recommendation,
                     });
                 }
-                
+
                 // Add recommendations
                 recommendations.push(...(parsed.recommendations || []));
             }
         } catch (error) {
             console.error('[DesignStyleAgent] AI analysis failed:', error);
         }
-        
+
         return { violations, recommendations };
     }
 
@@ -660,7 +660,7 @@ Provide analysis as JSON:
             layout: 100,
             appSoul: 100,
         };
-        
+
         // Deduction weights
         const weights = {
             critical: 15,
@@ -668,11 +668,11 @@ Provide analysis as JSON:
             minor: 3,
             suggestion: 1,
         };
-        
+
         // Apply deductions
         for (const v of violations) {
             const deduction = weights[v.severity];
-            
+
             switch (v.principle) {
                 case 'depth':
                     scores.depth -= deduction;
@@ -695,7 +695,7 @@ Provide analysis as JSON:
                     break;
             }
         }
-        
+
         // Clamp scores to 0-100
         scores.depth = Math.max(0, Math.min(100, scores.depth));
         scores.motion = Math.max(0, Math.min(100, scores.motion));
@@ -703,7 +703,7 @@ Provide analysis as JSON:
         scores.color = Math.max(0, Math.min(100, scores.color));
         scores.layout = Math.max(0, Math.min(100, scores.layout));
         scores.appSoul = Math.max(0, Math.min(100, scores.appSoul));
-        
+
         // Calculate overall (weighted average)
         scores.overall = Math.round(
             (scores.depth * 0.15) +
@@ -713,7 +713,7 @@ Provide analysis as JSON:
             (scores.layout * 0.15) +
             (scores.appSoul * 0.2)       // Soul consistency weighted higher
         );
-        
+
         return scores;
     }
 
@@ -723,10 +723,10 @@ Provide analysis as JSON:
         if (scores.overall < 80) status = 'Fair';
         if (scores.overall < 70) status = 'Needs Work';
         if (scores.overall < 50) status = 'Poor';
-        
+
         const critical = violations.filter(v => v.severity === 'critical').length;
         const major = violations.filter(v => v.severity === 'major').length;
-        
+
         // Find lowest scoring area
         const areas = [
             { name: 'Depth', score: scores.depth },
@@ -736,11 +736,11 @@ Provide analysis as JSON:
             { name: 'Layout', score: scores.layout },
             { name: 'App Soul', score: scores.appSoul },
         ];
-        
+
         const weakest = areas.sort((a, b) => a.score - b.score)[0];
-        
+
         let summary = `Design Quality: ${status} (${scores.overall}/100). `;
-        
+
         if (critical > 0) {
             summary += `${critical} critical violation(s) - emojis or major anti-patterns detected. `;
         }
@@ -750,7 +750,7 @@ Provide analysis as JSON:
         if (weakest.score < 70) {
             summary += `Focus area: ${weakest.name} (${weakest.score}/100).`;
         }
-        
+
         return summary;
     }
 }

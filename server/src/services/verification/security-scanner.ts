@@ -120,7 +120,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-798',
         remediation: 'Remove hardcoded credentials. Use environment variables or a secrets manager.',
     },
-    
+
     // SQL Injection
     sql_injection: {
         patterns: [
@@ -132,7 +132,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-89',
         remediation: 'Use parameterized queries or an ORM. Never concatenate user input into SQL strings.',
     },
-    
+
     // XSS
     xss: {
         patterns: [
@@ -145,7 +145,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-79',
         remediation: 'Sanitize user input before rendering. Use textContent instead of innerHTML when possible.',
     },
-    
+
     // Unsafe eval
     unsafe_eval: {
         patterns: [
@@ -158,7 +158,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-95',
         remediation: 'Avoid eval() and dynamic code execution. Use safer alternatives.',
     },
-    
+
     // Hardcoded credentials
     hardcoded_credential: {
         patterns: [
@@ -169,7 +169,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-798',
         remediation: 'Never hardcode credentials. Use environment variables or a secrets manager.',
     },
-    
+
     // Insecure crypto
     insecure_crypto: {
         patterns: [
@@ -181,7 +181,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-327',
         remediation: 'Use strong cryptographic algorithms (SHA-256+, AES-256). Use crypto.randomBytes() for secure random values.',
     },
-    
+
     // Path traversal
     path_traversal: {
         patterns: [
@@ -192,7 +192,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-22',
         remediation: 'Validate and sanitize file paths. Use path.resolve() and verify the result is within expected directories.',
     },
-    
+
     // Open redirect
     open_redirect: {
         patterns: [
@@ -203,7 +203,7 @@ const SECURITY_PATTERNS = {
         cweId: 'CWE-601',
         remediation: 'Validate redirect URLs against an allowlist. Do not use user input directly in redirects.',
     },
-    
+
     // Sensitive data exposure
     sensitive_data_exposure: {
         patterns: [
@@ -236,7 +236,7 @@ export class SecurityScannerAgent extends EventEmitter {
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         this.claudeService = createClaudeService({
             agentType: 'verification',
             projectId,
@@ -250,18 +250,18 @@ export class SecurityScannerAgent extends EventEmitter {
     async scan(files: Map<string, string>): Promise<SecurityScanResult> {
         const startTime = Date.now();
         const vulnerabilities: SecurityVulnerability[] = [];
-        
+
         console.log(`[SecurityScanner] Scanning ${files.size} files...`);
-        
+
         // Filter out ignored files
         const filesToScan = new Map(
-            Array.from(files.entries()).filter(([path]) => 
-                !this.config.ignoredFiles.some(pattern => 
+            Array.from(files.entries()).filter(([path]) =>
+                !this.config.ignoredFiles.some(pattern =>
                     path.includes(pattern.replace('*', ''))
                 )
             )
         );
-        
+
         // Pattern-based scanning
         if (this.config.scanPatterns) {
             for (const [filePath, content] of filesToScan.entries()) {
@@ -269,22 +269,22 @@ export class SecurityScannerAgent extends EventEmitter {
                 vulnerabilities.push(...fileVulns);
             }
         }
-        
+
         // AI-powered deep analysis for critical files
         if (this.config.enableAIAnalysis) {
             const criticalFiles = Array.from(filesToScan.entries())
                 .filter(([path]) => this.isCriticalFile(path))
                 .slice(0, 5); // Limit to 5 files for AI analysis
-            
+
             for (const [filePath, content] of criticalFiles) {
                 const aiVulns = await this.aiSecurityAnalysis(filePath, content);
                 vulnerabilities.push(...aiVulns);
             }
         }
-        
+
         // Deduplicate vulnerabilities
         const uniqueVulns = this.deduplicateVulnerabilities(vulnerabilities);
-        
+
         // Calculate counts
         const counts = {
             critical: uniqueVulns.filter(v => v.severity === 'critical').length,
@@ -292,14 +292,14 @@ export class SecurityScannerAgent extends EventEmitter {
             medium: uniqueVulns.filter(v => v.severity === 'medium').length,
             low: uniqueVulns.filter(v => v.severity === 'low').length,
         };
-        
+
         // Calculate risk score
         const riskScore = this.calculateRiskScore(counts);
-        
+
         // Determine pass/fail
         const passed = counts.critical <= this.config.maxCriticalAllowed &&
                       counts.high <= this.config.maxHighAllowed;
-        
+
         const result: SecurityScanResult = {
             timestamp: new Date(),
             passed,
@@ -308,12 +308,12 @@ export class SecurityScannerAgent extends EventEmitter {
             summary: this.generateSummary(counts, uniqueVulns),
             riskScore,
         };
-        
+
         this.lastResult = result;
         this.emit('scan_complete', result);
-        
+
         console.log(`[SecurityScanner] Scan complete: ${uniqueVulns.length} vulnerabilities, Risk Score: ${riskScore} (${Date.now() - startTime}ms)`);
-        
+
         return result;
     }
 
@@ -331,20 +331,20 @@ export class SecurityScannerAgent extends EventEmitter {
     private scanFilePatterns(filePath: string, content: string): SecurityVulnerability[] {
         const vulnerabilities: SecurityVulnerability[] = [];
         const lines = content.split('\n');
-        
+
         // Check each security pattern category
         for (const [vulnType, config] of Object.entries(SECURITY_PATTERNS)) {
             for (const patternConfig of config.patterns) {
                 // Reset regex lastIndex
                 patternConfig.regex.lastIndex = 0;
-                
+
                 let match;
                 while ((match = patternConfig.regex.exec(content)) !== null) {
                     // Find line number
                     const matchIndex = match.index;
                     let lineNumber = 1;
                     let charCount = 0;
-                    
+
                     for (let i = 0; i < lines.length; i++) {
                         charCount += lines[i].length + 1; // +1 for newline
                         if (charCount > matchIndex) {
@@ -352,12 +352,12 @@ export class SecurityScannerAgent extends EventEmitter {
                             break;
                         }
                     }
-                    
+
                     // Skip false positives
                     if (this.isFalsePositive(filePath, match[0], vulnType)) {
                         continue;
                     }
-                    
+
                     vulnerabilities.push({
                         id: uuidv4(),
                         type: vulnType as SecurityVulnerabilityType,
@@ -373,7 +373,7 @@ export class SecurityScannerAgent extends EventEmitter {
                 }
             }
         }
-        
+
         return vulnerabilities;
     }
 
@@ -382,7 +382,7 @@ export class SecurityScannerAgent extends EventEmitter {
         if (filePath.includes('.test.') || filePath.includes('.spec.')) {
             return vulnType !== 'exposed_secret';
         }
-        
+
         // Skip example/placeholder values
         const placeholders = [
             'your-api-key',
@@ -394,16 +394,16 @@ export class SecurityScannerAgent extends EventEmitter {
             'demo',
             'REPLACE_ME',
         ];
-        
+
         if (placeholders.some(p => match.toLowerCase().includes(p))) {
             return true;
         }
-        
+
         // Skip environment variable references
         if (match.includes('process.env') || match.includes('import.meta.env')) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -420,7 +420,7 @@ export class SecurityScannerAgent extends EventEmitter {
             /database/i,
             /credential/i,
         ];
-        
+
         return criticalPatterns.some(p => p.test(path));
     }
 
@@ -442,10 +442,10 @@ export class SecurityScannerAgent extends EventEmitter {
     ): Promise<SecurityVulnerability[]> {
         try {
             // Truncate very long files
-            const truncatedContent = content.length > 4000 
+            const truncatedContent = content.length > 4000
                 ? content.substring(0, 4000) + '\n// ... truncated ...'
                 : content;
-            
+
             const response = await this.claudeService.generate(
                 `As a security expert, analyze this code for vulnerabilities:
 
@@ -480,7 +480,7 @@ Return empty array [] if no issues found.`,
                     useExtendedThinking: false,
                 }
             );
-            
+
             // Parse response
             const match = response.content.match(/\[[\s\S]*\]/);
             if (match) {
@@ -499,7 +499,7 @@ Return empty array [] if no issues found.`,
         } catch (error) {
             console.error('[SecurityScanner] AI analysis failed:', error);
         }
-        
+
         return [];
     }
 
@@ -519,12 +519,12 @@ Return empty array [] if no issues found.`,
 
     private calculateRiskScore(counts: { critical: number; high: number; medium: number; low: number }): number {
         // Weighted risk score
-        const score = 
+        const score =
             (counts.critical * 25) +
             (counts.high * 15) +
             (counts.medium * 5) +
             (counts.low * 1);
-        
+
         // Cap at 100
         return Math.min(100, score);
     }
@@ -534,29 +534,29 @@ Return empty array [] if no issues found.`,
         vulnerabilities: SecurityVulnerability[]
     ): string {
         const total = counts.critical + counts.high + counts.medium + counts.low;
-        
+
         if (total === 0) {
             return 'Security scan passed. No vulnerabilities detected.';
         }
-        
+
         const parts: string[] = [];
         if (counts.critical > 0) parts.push(`${counts.critical} critical`);
         if (counts.high > 0) parts.push(`${counts.high} high`);
         if (counts.medium > 0) parts.push(`${counts.medium} medium`);
         if (counts.low > 0) parts.push(`${counts.low} low`);
-        
+
         // Most common vulnerability types
         const typeCounts = new Map<string, number>();
         for (const v of vulnerabilities) {
             typeCounts.set(v.type, (typeCounts.get(v.type) || 0) + 1);
         }
-        
+
         const topTypes = Array.from(typeCounts.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([type]) => type.replace(/_/g, ' '))
             .join(', ');
-        
+
         return `Found ${total} security issue(s): ${parts.join(', ')}. ` +
                `Main concerns: ${topTypes || 'various issues'}`;
     }
