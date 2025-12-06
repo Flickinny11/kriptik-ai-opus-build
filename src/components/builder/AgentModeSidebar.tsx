@@ -13,10 +13,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Bot, Plus, MoreVertical, Play, Pause, Square,
+    Bot, Plus, Pause,
     CheckCircle2, XCircle, Loader2, Clock, Send,
-    ChevronDown, Pencil, Trash2, Copy, Eye,
-    Code2, Search, FileEdit, GitBranch, Zap
+    ChevronDown, Pencil, FileEdit, Zap
 } from 'lucide-react';
 
 // Agent types
@@ -74,7 +73,7 @@ export interface AgentModeSidebarProps {
     onClose?: () => void;
 }
 
-export function AgentModeSidebar({ onClose }: AgentModeSidebarProps) {
+export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
     const [agents, setAgents] = useState<Agent[]>([
         {
             id: '1',
@@ -214,7 +213,7 @@ export function AgentModeSidebar({ onClose }: AgentModeSidebarProps) {
         setSelectedAgentId(newId);
     };
 
-    const handleDeleteAgent = (agentId: string) => {
+    const _handleDeleteAgent = (agentId: string) => {
         setAgents(prev => prev.filter(a => a.id !== agentId));
         if (selectedAgentId === agentId) {
             setSelectedAgentId(agents[0]?.id || null);

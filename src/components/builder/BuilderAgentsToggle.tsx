@@ -68,7 +68,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 style={{
                     color: mode === 'agents' 
                         ? '#c8ff64' 
-                        : mode === 'agents' ? 'rgba(255,255,255,0.5)' : '#666',
+                        : mode === 'builder' ? 'rgba(255,255,255,0.5)' : '#666',
                 }}
             >
                 <Bot className="w-4 h-4" />
