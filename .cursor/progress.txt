@@ -928,3 +928,52 @@ Phase 9 - UI Updates: F024-F027 ✅
 Phase 10 - Database: F028 ✅
 
 PRODUCTION READY: YES ✅
+
+═══ [2025-12-06 DEVELOPER VIEW UI FOUNDATION] ═══
+COMPLETED: Builder/Agents Mode Toggle for Developer View
+
+FILES CREATED:
+1. src/components/builder/BuilderAgentsToggle.tsx
+   - Toggles between "Builder" and "Agents" modes
+   - Animated indicator with gradient background
+   - Dark theme support for Agent mode
+   - Yellow-ish hover glow effect in Agent mode
+
+2. src/components/builder/AgentModeSidebar.tsx
+   - Full agent management sidebar for Agent mode
+   - Agent list with status indicators (idle, running, completed, waiting, failed)
+   - Agent selection and configuration
+   - Model selector dropdown (Claude Opus 4.5, Sonnet 4.5, Haiku 4.5, GPT-5 Codex, Gemini 2.5 Pro, DeepSeek R1)
+   - Real-time progress indicators per agent
+   - Agent logs display
+   - Create new agent functionality
+   - Rename agent functionality
+   - Dark glass panel aesthetic
+
+FILES MODIFIED:
+1. src/pages/Builder.tsx
+   - Added isAgentMode state for toggle management
+   - Integrated BuilderAgentsToggle into ChatInterface header
+   - Implemented conditional layout swap:
+     * Builder Mode: Chat LEFT, Preview RIGHT
+     * Agent Mode: Preview LEFT, Agent Sidebar RIGHT
+   - Context preservation when toggling between modes
+   - Dark theme styling in Agent mode
+
+UI FEATURES IMPLEMENTED:
+- Toggle at top of streaming chat
+- Layout swaps positions (not navigation to new page)
+- Dark background in Agent mode
+- Semi-translucent fluorescent yellow hover effect (replaces orange)
+- "Agent #_here" header (editable name)
+- Agent list with name, status, progress, logs
+- Status indicators: running/completed/waiting/failed
+- Three-dot menu placeholder for agent management
+- Model selector dropdown with best models
+
+BUILD STATUS:
+- Build: PASSING ✅
+- GitHub Push: a1cf9fc ✅
+- Vercel Deployment: 2/2 PASSED ✅
+
+═══ [NEXT: DEVELOPER VIEW CONCEPT IMPLEMENTATION PLAN] ═══
