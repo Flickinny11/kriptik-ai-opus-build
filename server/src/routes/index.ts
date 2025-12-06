@@ -45,3 +45,6 @@ export { default as qualityRouter } from './quality.js';
 
 // Templates
 export { default as templatesRouter } from './templates.js';
+
+// Autonomous Learning Engine
+export { default as learningRouter } from './learning.js';

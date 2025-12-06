@@ -1,0 +1,71 @@
+{
+  "architectural_decisions": [
+    {
+      "id": "AD001",
+      "date": "2025-12-06",
+      "decision": "Preserve existing Turso SQLite database",
+      "rationale": "User requirement: no new databases. Turso already supports all required operations.",
+      "impact": "All new tables added as migrations, no schema breaks"
+    },
+    {
+      "id": "AD002",
+      "date": "2025-12-06",
+      "decision": "Preserve OpenRouter as AI service provider",
+      "rationale": "User requirement: no new AI providers. OpenRouter already routes to all required models.",
+      "impact": "Enhance existing model-router.ts with beta features"
+    },
+    {
+      "id": "AD003",
+      "date": "2025-12-06",
+      "decision": "All changes are additive (no breaking changes)",
+      "rationale": "User requirement: must not break the app. Backward compatibility essential.",
+      "impact": "New services are independent modules, existing routes remain functional"
+    },
+    {
+      "id": "AD004",
+      "date": "2025-12-06",
+      "decision": "Feature flags for new capabilities",
+      "rationale": "Risk mitigation: gradual rollout allows testing without affecting existing users",
+      "impact": "New features can be enabled/disabled per project or user"
+    },
+    {
+      "id": "AD005",
+      "date": "2025-12-06",
+      "decision": "Both Builder and Fix My App use same enhanced capabilities",
+      "rationale": "User requirement: both modes should use the Ultimate Builder features",
+      "impact": "Shared verification swarm, intent lock, error escalation across modes"
+    },
+    {
+      "id": "AD006",
+      "date": "2025-12-06",
+      "decision": "UI modifications are minimal enhancements",
+      "rationale": "User stated no UI overhaul required, just slight modifications for AI communication",
+      "impact": "Add SpeedDial, IntelligenceToggles, Phase/Verification indicators only"
+    }
+  ],
+
+  "technical_choices": [
+    {
+      "id": "TC001",
+      "category": "model_selection",
+      "choice": "Opus 4.5 for critical phases (Intent Lock, Intent Satisfaction, Tournament Judge)",
+      "alternatives_considered": ["Sonnet for all", "GPT-4o for judging"],
+      "rationale": "Anthropic research shows Opus with high effort provides 4.3% better performance"
+    },
+    {
+      "id": "TC002",
+      "category": "verification",
+      "choice": "6 parallel verification agents with different polling intervals",
+      "alternatives_considered": ["Single sequential verifier", "On-demand verification"],
+      "rationale": "Continuous verification catches issues immediately, parallel reduces latency"
+    },
+    {
+      "id": "TC003",
+      "category": "error_handling",
+      "choice": "4-level escalation with never-give-up policy",
+      "alternatives_considered": ["3-strike failure", "Manual escalation"],
+      "rationale": "Matches spec requirement: autonomous fixing until working"
+    }
+  ]
+}
+

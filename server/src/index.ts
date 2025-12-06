@@ -351,6 +351,7 @@ import userSettingsRouter from './routes/user-settings.js';
 import fixMyAppRouter from './routes/fix-my-app.js';
 import dbMigrateRouter from './routes/db-migrate.js';
 import adminRouter from './routes/admin.js';
+import learningRouter from './routes/learning.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -441,6 +442,9 @@ app.use("/api/db", dbMigrateRouter);
 
 // Admin routes (protected by admin secret header)
 app.use("/api/admin", adminRouter);
+
+// Autonomous Learning Engine
+app.use("/api/learning", learningRouter);
 
 // =============================================================================
 // HEALTH & STATUS

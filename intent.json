@@ -1,0 +1,151 @@
+{
+  "id": "ultimate-builder-implementation",
+  "project": "KripTik AI",
+  "version": "2.0",
+  "created_at": "2025-12-06",
+  "locked": true,
+
+  "app_type": "ai_builder_platform",
+  "soul": "developer",
+
+  "core_value_prop": "Transform KripTik AI into the most comprehensive, fastest, cost-efficient, and accurate autonomous AI-first build platform in the market",
+
+  "success_criteria": [
+    {
+      "id": "SC001",
+      "description": "Intent Lock System creates immutable contracts before any building",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC002",
+      "description": "6-Phase Build Loop executes autonomously with minimal user input",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC003",
+      "description": "6-Agent Verification Swarm runs continuously during builds",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC004",
+      "description": "Zero placeholders exist in any generated code (ZERO TOLERANCE)",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC005",
+      "description": "App Soul System assigns appropriate design based on app type",
+      "verification_method": "visual",
+      "passed": false
+    },
+    {
+      "id": "SC006",
+      "description": "4 Speed Dial modes work correctly (Lightning/Standard/Tournament/Production)",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC007",
+      "description": "Fix My App performs forensic analysis with intent reconstruction",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC008",
+      "description": "4-Level Error Escalation never gives up until fixed",
+      "verification_method": "functional",
+      "passed": false
+    },
+    {
+      "id": "SC009",
+      "description": "Anti-Slop detection prevents AI-generated design patterns",
+      "verification_method": "visual",
+      "passed": false
+    },
+    {
+      "id": "SC010",
+      "description": "Existing Turso DB and OpenRouter integrations preserved",
+      "verification_method": "functional",
+      "passed": false
+    }
+  ],
+
+  "user_workflows": [
+    {
+      "name": "Autonomous App Building",
+      "steps": [
+        "User enters natural language description",
+        "Intent Lock creates immutable contract",
+        "Initialization sets up all artifacts",
+        "Parallel Build + Verification executes",
+        "Integration Check validates connections",
+        "Functional Test verifies user workflows",
+        "Intent Satisfaction confirms completion",
+        "Browser Demo shows working app"
+      ],
+      "success": "User receives working app matching their intent within selected time mode",
+      "verified": false
+    },
+    {
+      "name": "Fix My App Import",
+      "steps": [
+        "User uploads broken project files",
+        "Deep analysis extracts original intent",
+        "Failure archaeology identifies what went wrong",
+        "Salvage assessment determines keep/rewrite/delete",
+        "Standard build loop executes with context",
+        "Fixed app demonstrated in browser"
+      ],
+      "success": "Broken app from other AI builders is successfully repaired",
+      "verified": false
+    },
+    {
+      "name": "Speed Mode Selection",
+      "steps": [
+        "User views Speed Dial selector",
+        "User selects build mode (Lightning/Standard/Tournament/Production)",
+        "Build executes with appropriate phases",
+        "Output matches mode's promise (prototype → MVP → best-of-breed → production)"
+      ],
+      "success": "Build completes within mode's time target with expected output quality",
+      "verified": false
+    }
+  ],
+
+  "visual_identity": {
+    "soul": "developer",
+    "primary_emotion": "professional_power",
+    "depth_level": "medium",
+    "motion_philosophy": "snappy_purposeful"
+  },
+
+  "anti_patterns": [
+    "NO placeholder content (TODO, FIXME, lorem ipsum)",
+    "NO mock implementations or demo data",
+    "NO breaking changes to existing architecture",
+    "NO new databases or AI service providers",
+    "NO emoji as design elements",
+    "NO flat design without depth",
+    "NO generic fonts (Inter, Roboto, Arial)"
+  ],
+
+  "constraints": {
+    "database": "Turso SQLite (existing)",
+    "ai_services": "OpenRouter (existing)",
+    "authentication": "Better Auth (existing)",
+    "frontend": "React + Vite + Tailwind (existing)",
+    "backend": "Express + TypeScript (existing)",
+    "deployment": "Vercel, Cloudflare, AWS (existing)"
+  },
+
+  "competitive_targets": {
+    "cursor": "Beat with Tournament Mode + unique criteria (Anti-Slop, Intent Lock)",
+    "replit": "Beat 3x reflection with 4x target",
+    "lovable": "Beat with comprehensive verification swarm",
+    "bolt": "Beat with extended autonomy and checkpoints"
+  }
+}
+

@@ -22,80 +22,56 @@ const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string }> = {
     desktop: { width: 1280, label: '100%' },
 };
 
-// Liquid Glass Device Button - Mobile optimized with 44px touch targets
-function DeviceButton({ 
-    icon: Icon, 
-    isActive, 
-    onClick, 
-    title,
-    label,
-    isMobileLayout = false
-}: { 
-    icon: React.ElementType; 
-    isActive: boolean; 
+// Liquid Glass Device Button
+function DeviceButton({
+    icon: Icon,
+    isActive,
+    onClick,
+    title
+}: {
+    icon: React.ElementType;
+    isActive: boolean;
     onClick: () => void;
     title: string;
-    label?: string;
-    isMobileLayout?: boolean;
 }) {
-    const [isPressed, setIsPressed] = useState(false);
-    
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
         <button
             onClick={onClick}
-            onTouchStart={() => setIsPressed(true)}
-            onTouchEnd={() => setIsPressed(false)}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            onMouseLeave={() => setIsPressed(false)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             title={title}
-            // 44px touch target on mobile, standard on desktop
-            className={`
-                ${isMobileLayout ? 'min-w-[56px] min-h-[40px] px-3 gap-1.5' : 'w-8 h-8'} 
-                rounded-lg flex items-center justify-center transition-all duration-200 relative overflow-hidden
-            `}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 relative overflow-hidden"
             style={{
                 background: isActive
-                    ? 'linear-gradient(145deg, rgba(255,200,170,0.65) 0%, rgba(255,180,150,0.5) 100%)'
-                    : 'transparent',
+                    ? 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)'
+                    : isHovered
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
+                        : 'transparent',
                 boxShadow: isActive
-                    ? `
-                        inset 0 0 20px rgba(255, 160, 120, 0.25),
-                        0 4px 12px rgba(255, 140, 100, 0.2),
-                        0 2px 6px rgba(255, 130, 80, 0.15),
-                        0 0 0 1px rgba(255, 200, 170, 0.5)
-                    `
-                    : 'none',
-                transform: isPressed ? 'scale(0.95)' : 'scale(1)',
-                touchAction: 'manipulation',
+                    ? `inset 0 0 12px rgba(255, 160, 120, 0.2), 0 2px 8px rgba(255, 140, 100, 0.15), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                    : isHovered
+                        ? `0 4px 12px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.4)`
+                        : 'none',
+                transform: isHovered && !isActive ? 'scale(1.05)' : 'scale(1)',
             }}
         >
-            <Icon 
-                className={isMobileLayout ? 'w-4 h-4' : 'w-4 h-4'}
-                style={{ color: isActive ? '#92400e' : '#666' }}
+            <Icon
+                className="w-4 h-4"
+                style={{ color: isActive ? '#92400e' : isHovered ? '#1a1a1a' : '#666' }}
             />
-            {isMobileLayout && label && (
-                <span 
-                    className="text-xs font-medium"
-                    style={{ 
-                        color: isActive ? '#92400e' : '#666',
-                        fontFamily: 'var(--font-body, Outfit, system-ui, sans-serif)',
-                    }}
-                >
-                    {label}
-                </span>
-            )}
-            
-            {/* Shine effect on press */}
-            {isActive && (
+
+            {/* Shine effect */}
+            {(isActive || isHovered) && (
                 <div
                     style={{
                         position: 'absolute',
                         top: 0,
-                        left: isPressed ? '150%' : '-100%',
+                        left: isHovered ? '150%' : '-100%',
                         width: '60%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
                         transform: 'skewX(-15deg)',
                         transition: 'left 0.4s ease',
                         pointerEvents: 'none',
@@ -106,59 +82,53 @@ function DeviceButton({
     );
 }
 
-// Liquid Glass Icon Button with 44px mobile touch targets
-function GlassIconButton({ 
-    icon: Icon, 
-    onClick, 
+// Liquid Glass Icon Button
+function GlassIconButton({
+    icon: Icon,
+    onClick,
     isActive = false,
     title
-}: { 
-    icon: React.ElementType; 
+}: {
+    icon: React.ElementType;
     onClick?: () => void;
     isActive?: boolean;
     title?: string;
 }) {
-    const [isPressed, setIsPressed] = useState(false);
-    
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
         <button
             onClick={onClick}
-            onTouchStart={() => setIsPressed(true)}
-            onTouchEnd={() => setIsPressed(false)}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            onMouseLeave={() => setIsPressed(false)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             title={title}
-            // 44px minimum touch target for mobile accessibility
-            className="min-w-[44px] min-h-[44px] w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 relative overflow-hidden"
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden"
             style={{
                 background: isActive
                     ? 'linear-gradient(145deg, rgba(255,200,170,0.55) 0%, rgba(255,180,150,0.4) 100%)'
-                    : isPressed
+                    : isHovered
                         ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
                         : 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.25) 100%)',
                 backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
                 boxShadow: isActive
                     ? `inset 0 0 12px rgba(255, 160, 120, 0.15), 0 2px 8px rgba(255, 140, 100, 0.12), 0 0 0 1px rgba(255, 200, 170, 0.4)`
-                    : isPressed
+                    : isHovered
                         ? `0 4px 14px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`
                         : `0 2px 6px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.3)`,
-                transform: isPressed ? 'scale(0.95)' : 'scale(1)',
-                touchAction: 'manipulation',
+                transform: isHovered ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
             }}
         >
-            <Icon 
-                className="w-4 h-4" 
+            <Icon
+                className="w-4 h-4"
                 style={{ color: isActive ? '#c25a00' : '#1a1a1a' }}
             />
-            
+
             {/* Shine effect */}
             <div
                 style={{
                     position: 'absolute',
                     top: 0,
-                    left: isPressed ? '150%' : '-100%',
+                    left: isHovered ? '150%' : '-100%',
                     width: '60%',
                     height: '100%',
                     background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
@@ -171,11 +141,7 @@ function GlassIconButton({
     );
 }
 
-interface SandpackPreviewWindowProps {
-    isMobileView?: boolean;
-}
-
-export default function SandpackPreviewWindow({ isMobileView = false }: SandpackPreviewWindowProps) {
+export default function SandpackPreviewWindow() {
     const [viewport, setViewport] = useState<ViewportSize>('desktop');
     const [showConsole, setShowConsole] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -191,46 +157,29 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
     };
 
     return (
-        <div 
+        <div
             className={`h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             style={{ background: 'transparent' }}
         >
             {/* Toolbar - Liquid Glass */}
-            <div 
-                className={`flex items-center justify-between px-3 sm:px-4 shrink-0 ${
-                    isMobileView ? 'h-12' : 'h-14'
-                }`}
+            <div
+                className="h-14 flex items-center justify-between px-4 shrink-0"
                 style={{
-                    background: isMobileView 
-                        ? 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)'
-                        : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                    backdropFilter: isMobileView ? 'blur(20px) saturate(180%)' : 'blur(16px)',
-                    WebkitBackdropFilter: isMobileView ? 'blur(20px) saturate(180%)' : undefined,
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                    backdropFilter: 'blur(16px)',
                     borderBottom: '1px solid rgba(0,0,0,0.06)',
-                    boxShadow: isMobileView ? `
-                        0 4px 16px rgba(0,0,0,0.08),
-                        inset 0 1px 2px rgba(255,255,255,0.95),
-                        inset 0 -1px 1px rgba(0,0,0,0.02),
-                        0 0 0 1px rgba(255,255,255,0.5)
-                    ` : undefined,
                 }}
             >
-                <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Viewport Selector - Liquid Glass Segmented Control */}
-                    {/* Mobile: Matching MobileViewToggle styling with labels */}
-                    {/* Desktop: Icon-only compact version */}
-                    <div 
-                        className="flex gap-1 p-1.5 rounded-2xl"
+                <div className="flex items-center gap-3">
+                    {/* Viewport Selector - Liquid Glass Pill */}
+                    <div
+                        className="flex gap-1 p-1.5 rounded-xl"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)',
-                            backdropFilter: 'blur(20px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
                             boxShadow: `
-                                0 8px 32px rgba(0,0,0,0.12),
-                                0 4px 16px rgba(0,0,0,0.08),
-                                inset 0 1px 2px rgba(255,255,255,0.95),
-                                inset 0 -1px 1px rgba(0,0,0,0.02),
-                                0 0 0 1px rgba(255,255,255,0.5)
+                                0 2px 8px rgba(0,0,0,0.04),
+                                inset 0 1px 2px rgba(255,255,255,0.9),
+                                0 0 0 1px rgba(255,255,255,0.4)
                             `,
                         }}
                     >
@@ -239,42 +188,36 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                             isActive={viewport === 'mobile'}
                             onClick={() => setViewport('mobile')}
                             title="Mobile (375px)"
-                            label="Phone"
-                            isMobileLayout={isMobileView}
                         />
                         <DeviceButton
                             icon={Tablet}
                             isActive={viewport === 'tablet'}
                             onClick={() => setViewport('tablet')}
                             title="Tablet (768px)"
-                            label="Tablet"
-                            isMobileLayout={isMobileView}
                         />
                         <DeviceButton
                             icon={Monitor}
                             isActive={viewport === 'desktop'}
                             onClick={() => setViewport('desktop')}
                             title="Desktop (100%)"
-                            label="Desktop"
-                            isMobileLayout={isMobileView}
                         />
                     </div>
-                    
-                    <span className="text-xs font-medium hidden sm:inline" style={{ color: '#666' }}>
+
+                    <span className="text-xs font-medium" style={{ color: '#666' }}>
                         {VIEWPORT_SIZES[viewport].label}
                     </span>
 
-                    {/* Status indicator - Hidden on mobile to save space */}
-                    <div 
-                        className="items-center gap-2 ml-1 sm:ml-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hidden sm:flex"
+                    {/* Status indicator */}
+                    <div
+                        className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-lg"
                         style={{
-                            background: sandpack.status === 'running' 
+                            background: sandpack.status === 'running'
                                 ? 'rgba(16, 185, 129, 0.1)'
                                 : sandpack.status === 'idle'
                                     ? 'rgba(234, 179, 8, 0.1)'
                                     : 'rgba(239, 68, 68, 0.1)',
                             border: `1px solid ${
-                                sandpack.status === 'running' 
+                                sandpack.status === 'running'
                                     ? 'rgba(16, 185, 129, 0.2)'
                                     : sandpack.status === 'idle'
                                         ? 'rgba(234, 179, 8, 0.2)'
@@ -282,20 +225,20 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                             }`,
                         }}
                     >
-                        <div 
+                        <div
                             className="w-2 h-2 rounded-full animate-pulse"
                             style={{
-                                background: sandpack.status === 'running' 
+                                background: sandpack.status === 'running'
                                     ? '#10b981'
                                     : sandpack.status === 'idle'
                                         ? '#eab308'
                                         : '#ef4444',
                             }}
                         />
-                        <span 
+                        <span
                             className="text-xs font-medium capitalize"
                             style={{
-                                color: sandpack.status === 'running' 
+                                color: sandpack.status === 'running'
                                     ? '#059669'
                                     : sandpack.status === 'idle'
                                         ? '#ca8a04'
@@ -305,28 +248,9 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                             {sandpack.status}
                         </span>
                     </div>
-
-                    {/* Mobile-only status dot */}
-                    <div 
-                        className="w-2.5 h-2.5 rounded-full animate-pulse sm:hidden"
-                        style={{
-                            background: sandpack.status === 'running' 
-                                ? '#10b981'
-                                : sandpack.status === 'idle'
-                                    ? '#eab308'
-                                    : '#ef4444',
-                            boxShadow: `0 0 8px ${
-                                sandpack.status === 'running' 
-                                    ? 'rgba(16, 185, 129, 0.4)'
-                                    : sandpack.status === 'idle'
-                                        ? 'rgba(234, 179, 8, 0.4)'
-                                        : 'rgba(239, 68, 68, 0.4)'
-                            }`,
-                        }}
-                    />
                 </div>
 
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-2">
                     <GlassIconButton
                         icon={MousePointer2}
                         isActive={isSelectionMode}
@@ -344,15 +268,12 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                         onClick={handleRefresh}
                         title="Refresh Preview"
                     />
-                    {/* Hide fullscreen on mobile - not needed */}
-                    <div className="hidden sm:block">
-                        <GlassIconButton
-                            icon={Maximize2}
-                            isActive={isFullscreen}
-                            onClick={() => setIsFullscreen(!isFullscreen)}
-                            title="Toggle Fullscreen"
-                        />
-                    </div>
+                    <GlassIconButton
+                        icon={Maximize2}
+                        isActive={isFullscreen}
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        title="Toggle Fullscreen"
+                    />
                     <GlassIconButton
                         icon={ExternalLink}
                         onClick={handleOpenExternal}
@@ -362,9 +283,9 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
             </div>
 
             {/* Preview Container - Liquid Glass Frame */}
-            <div 
+            <div
                 className="flex-1 p-4 flex items-start justify-center overflow-auto"
-                style={{ 
+                style={{
                     background: 'linear-gradient(180deg, rgba(200,195,190,0.3) 0%, rgba(180,175,170,0.2) 100%)',
                 }}
             >
@@ -388,7 +309,7 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
                     }}
                 >
                     {/* Inner frame for preview */}
-                    <div 
+                    <div
                         className="w-full h-full rounded-2xl overflow-hidden"
                         style={{
                             background: '#ffffff',
@@ -407,16 +328,16 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
 
             {/* Console Panel - Dark Glass */}
             {showConsole && (
-                <div 
+                <div
                     className="h-48 shrink-0"
                     style={{
                         background: 'linear-gradient(145deg, rgba(30,30,35,0.98) 0%, rgba(20,20,25,1) 100%)',
                         borderTop: '1px solid rgba(255,255,255,0.08)',
                     }}
                 >
-                    <div 
+                    <div
                         className="h-9 flex items-center px-4"
-                        style={{ 
+                        style={{
                             borderBottom: '1px solid rgba(255,255,255,0.08)',
                             background: 'rgba(255,255,255,0.03)',
                         }}
@@ -435,7 +356,7 @@ export default function SandpackPreviewWindow({ isMobileView = false }: Sandpack
 
             {/* Selection Mode Indicator */}
             {isSelectionMode && (
-                <div 
+                <div
                     className="absolute top-20 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full shadow-xl text-sm font-medium z-10"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,200,170,0.9) 0%, rgba(255,180,150,0.8) 100%)',

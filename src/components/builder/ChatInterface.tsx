@@ -40,16 +40,16 @@ const suggestions = [
     "Add a contact form with validation",
 ];
 
-// Liquid Glass Button Component with 44px mobile touch targets
-function GlassButton({ 
-    children, 
-    onClick, 
+// Liquid Glass Button Component
+function GlassButton({
+    children,
+    onClick,
     disabled = false,
     variant = 'default',
     size = 'md',
     className = ''
-}: { 
-    children: React.ReactNode; 
+}: {
+    children: React.ReactNode;
     onClick?: () => void;
     disabled?: boolean;
     variant?: 'default' | 'primary' | 'danger';
@@ -57,15 +57,13 @@ function GlassButton({
     className?: string;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    const [isPressed, setIsPressed] = useState(false);
-    
-    // All sizes have minimum 44px for mobile touch accessibility
+
     const sizeClasses = {
-        sm: 'min-w-[44px] min-h-[44px] w-10 h-10',
-        md: 'min-w-[44px] min-h-[44px] w-11 h-11',
-        lg: 'min-w-[44px] min-h-[44px] w-12 h-12 rounded-2xl',
+        sm: 'w-8 h-8',
+        md: 'w-10 h-10',
+        lg: 'w-12 h-12 rounded-2xl',
     };
-    
+
     const getStyles = () => {
         if (disabled) {
             return {
@@ -74,72 +72,61 @@ function GlassButton({
                 cursor: 'not-allowed',
             };
         }
-        
+
         if (variant === 'primary') {
             return {
-                background: isHovered || isPressed
+                background: isHovered
                     ? 'linear-gradient(145deg, rgba(255,180,150,0.85) 0%, rgba(255,160,130,0.7) 100%)'
                     : 'linear-gradient(145deg, rgba(255,200,170,0.75) 0%, rgba(255,180,150,0.6) 100%)',
-                boxShadow: isHovered || isPressed
+                boxShadow: isHovered
                     ? `0 8px 24px rgba(255, 140, 100, 0.3), inset 0 0 20px rgba(255, 180, 140, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.6)`
                     : `0 4px 16px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.5)`,
             };
         }
-        
+
         if (variant === 'danger') {
             return {
-                background: isHovered || isPressed
+                background: isHovered
                     ? 'linear-gradient(145deg, rgba(239,68,68,0.3) 0%, rgba(220,38,38,0.2) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                boxShadow: isHovered || isPressed
+                boxShadow: isHovered
                     ? `0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(239, 68, 68, 0.3)`
                     : `0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
             };
         }
-        
+
         return {
-            background: isHovered || isPressed
+            background: isHovered
                 ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
                 : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-            boxShadow: isHovered || isPressed
+            boxShadow: isHovered
                 ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
                 : `0 2px 10px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
         };
     };
-    
+
     return (
         <button
             onClick={onClick}
             disabled={disabled}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            onTouchStart={() => setIsPressed(true)}
-            onTouchEnd={() => setIsPressed(false)}
-            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-200 relative overflow-hidden ${className}`}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden ${className}`}
             style={{
                 ...getStyles(),
                 backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                transform: isPressed && !disabled 
-                    ? 'scale(0.95)' 
-                    : isHovered && !disabled 
-                        ? 'translateY(-1px) scale(1.02)' 
-                        : 'translateY(0) scale(1)',
-                // Touch action for better mobile interaction
-                touchAction: 'manipulation',
+                transform: isHovered && !disabled ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
             }}
         >
             {children}
-            
+
             {/* Shine effect */}
             {!disabled && (
                 <div
                     style={{
                         position: 'absolute',
                         top: 0,
-                        left: isHovered || isPressed ? '150%' : '-100%',
+                        left: isHovered ? '150%' : '-100%',
                         width: '60%',
                         height: '100%',
                         background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
@@ -153,31 +140,26 @@ function GlassButton({
     );
 }
 
-// Liquid Glass Message Card with mobile-optimized touch targets
-function MessageCard({ 
-    children, 
+// Liquid Glass Message Card
+function MessageCard({
+    children,
     isUser = false,
-    isSystem = false 
-}: { 
+    isSystem = false
+}: {
     children: React.ReactNode;
     isUser?: boolean;
     isSystem?: boolean;
 }) {
     return (
         <div
-            // 44px minimum touch target, proper padding for mobile
-            className="max-w-[85%] sm:max-w-[80%] rounded-2xl transition-all duration-300"
+            className="max-w-[85%] p-4 rounded-2xl transition-all duration-300"
             style={{
-                // Mobile-first padding with 44px touch area consideration
-                padding: 'clamp(14px, 4vw, 18px)',
-                minHeight: '44px',
                 background: isUser
                     ? 'linear-gradient(145deg, rgba(255,180,150,0.6) 0%, rgba(255,160,130,0.45) 100%)'
                     : isSystem
                         ? 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)'
                         : 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.45) 100%)',
                 backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
                 boxShadow: isUser
                     ? `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
                     : `0 4px 16px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.5)`,
@@ -189,17 +171,17 @@ function MessageCard({
 }
 
 // Suggestion Card
-function SuggestionCard({ 
-    text, 
-    onClick, 
-    delay 
-}: { 
-    text: string; 
+function SuggestionCard({
+    text,
+    onClick,
+    delay
+}: {
+    text: string;
     onClick: () => void;
     delay: number;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     return (
         <motion.button
             initial={{ opacity: 0, y: 10 }}
@@ -222,9 +204,9 @@ function SuggestionCard({
         >
             <div className="flex items-center justify-between">
                 <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{text}</span>
-                <ArrowRight 
-                    className="w-4 h-4 transition-all duration-300" 
-                    style={{ 
+                <ArrowRight
+                    className="w-4 h-4 transition-all duration-300"
+                    style={{
                         color: isHovered ? '#c25a00' : '#999',
                         transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
                     }}
@@ -346,14 +328,14 @@ export default function ChatInterface() {
             />
 
             {/* Header - Liquid Glass */}
-            <div 
+            <div
                 className="p-4 flex justify-between items-center shrink-0"
                 style={{
                     borderBottom: '1px solid rgba(0,0,0,0.06)',
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <div 
+                    <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{
                             background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
@@ -372,7 +354,7 @@ export default function ChatInterface() {
                         </p>
                     </div>
                 </div>
-                
+
                 {globalStatus !== 'idle' && (
                     <div className="flex gap-2">
                         <GlassButton
@@ -380,8 +362,8 @@ export default function ChatInterface() {
                             disabled={globalStatus === 'completed' || globalStatus === 'failed'}
                             size="sm"
                         >
-                            {globalStatus === 'paused' 
-                                ? <Play className="h-4 w-4" style={{ color: '#1a1a1a' }} /> 
+                            {globalStatus === 'paused'
+                                ? <Play className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                                 : <Pause className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                             }
                         </GlassButton>
@@ -400,15 +382,8 @@ export default function ChatInterface() {
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative min-h-0">
                 {globalStatus === 'idle' ? (
-                    <ScrollArea 
-                        className="h-full" 
-                        ref={scrollRef}
-                        style={{
-                            // Smooth momentum scrolling on mobile
-                            WebkitOverflowScrolling: 'touch',
-                        }}
-                    >
-                        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                    <ScrollArea className="h-full" ref={scrollRef}>
+                        <div className="p-4 space-y-4">
                             {/* Empty state with suggestions */}
                             {messages.length === 0 && (
                                 <motion.div
@@ -416,7 +391,7 @@ export default function ChatInterface() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="text-center py-8"
                                 >
-                                    <div 
+                                    <div
                                         className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
                                         style={{
                                             background: 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)',
@@ -425,7 +400,7 @@ export default function ChatInterface() {
                                     >
                                         <Wand2 className="w-8 h-8" style={{ color: '#92400e' }} />
                                     </div>
-                                    <h3 
+                                    <h3
                                         className="text-lg font-semibold mb-2"
                                         style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
                                     >
@@ -460,7 +435,7 @@ export default function ChatInterface() {
                                         className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         {msg.role !== 'user' && (
-                                            <div 
+                                            <div
                                                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                                                 style={{
                                                     background: msg.role === 'system'
@@ -469,8 +444,8 @@ export default function ChatInterface() {
                                                     boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
                                                 }}
                                             >
-                                                <Wand2 
-                                                    className="w-4 h-4" 
+                                                <Wand2
+                                                    className="w-4 h-4"
                                                     style={{ color: msg.role === 'system' ? '#666' : '#92400e' }}
                                                 />
                                             </div>
@@ -478,26 +453,21 @@ export default function ChatInterface() {
 
                                         <MessageCard isUser={msg.role === 'user'} isSystem={msg.role === 'system'}>
                                             {msg.agentType && (
-                                                <div 
-                                                    className="text-[10px] sm:text-[11px] mb-1.5 font-semibold uppercase tracking-wider"
+                                                <div
+                                                    className="text-[10px] mb-1 font-semibold uppercase tracking-wider"
                                                     style={{ color: '#c25a00' }}
                                                 >
                                                     {msg.agentType}
                                                 </div>
                                             )}
-                                            <p 
-                                                className="whitespace-pre-wrap"
-                                                style={{ 
-                                                    color: msg.role === 'user' ? '#92400e' : '#1a1a1a',
-                                                    // Minimum 16px font for mobile readability
-                                                    fontSize: 'clamp(16px, 3.5vw, 14px)',
-                                                    lineHeight: '1.6',
-                                                }}
+                                            <p
+                                                className="text-sm whitespace-pre-wrap"
+                                                style={{ color: msg.role === 'user' ? '#92400e' : '#1a1a1a' }}
                                             >
                                                 {msg.content}
                                             </p>
-                                            <div 
-                                                className="text-[10px] sm:text-[11px] mt-2"
+                                            <div
+                                                className="text-[10px] mt-2"
                                                 style={{ color: '#999' }}
                                             >
                                                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -505,7 +475,7 @@ export default function ChatInterface() {
                                         </MessageCard>
 
                                         {msg.role === 'user' && (
-                                            <div 
+                                            <div
                                                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                                                 style={{
                                                     background: 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
@@ -526,7 +496,7 @@ export default function ChatInterface() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="flex gap-3"
                                 >
-                                    <div 
+                                    <div
                                         className="w-8 h-8 rounded-lg flex items-center justify-center"
                                         style={{
                                             background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
@@ -548,13 +518,13 @@ export default function ChatInterface() {
                     </ScrollArea>
                 ) : (
                     <div className="h-full flex flex-col">
-                        <div 
+                        <div
                             className="p-4 shrink-0"
                             style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
                         >
                             <AgentProgress />
                         </div>
-                        <div 
+                        <div
                             className="flex-1 overflow-hidden min-h-0 m-2 rounded-xl"
                             style={{
                                 background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
@@ -581,53 +551,38 @@ export default function ChatInterface() {
                 </AnimatePresence>
             </div>
 
-            {/* Input Area - Liquid Glass Pane with mobile optimization */}
-            <div 
-                className="shrink-0 lg:relative"
-                style={{ 
-                    // Safe area inset for notched devices (iPhone X+, etc.)
-                    paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
-                    paddingLeft: 'env(safe-area-inset-left, 12px)',
-                    paddingRight: 'env(safe-area-inset-right, 12px)',
-                    paddingTop: '12px',
-                    borderTop: '1px solid rgba(0,0,0,0.06)',
-                    // Keyboard-aware - this will be handled by the native viewport behavior
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.4) 100%)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                }}
+            {/* Input Area - Liquid Glass Pane */}
+            <div
+                className="p-4 shrink-0"
+                style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
             >
-                {/* Glass Input Container - Full width on mobile with warm internal glow */}
-                <div 
+                {/* Glass Input Container */}
+                <div
                     className="rounded-2xl p-3 transition-all duration-300"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)',
                         backdropFilter: 'blur(24px) saturate(180%)',
-                        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                         boxShadow: `
                             0 8px 32px rgba(0,0,0,0.08),
                             inset 0 2px 4px rgba(255,255,255,0.95),
                             inset 0 -1px 2px rgba(0,0,0,0.02),
-                            0 0 0 1px rgba(255,255,255,0.6),
-                            inset 0 0 30px rgba(255, 180, 150, 0.08)
+                            0 0 0 1px rgba(255,255,255,0.6)
                         `,
                     }}
                 >
                     <div className="flex gap-2 items-end">
-                        {/* Attach Button - 44px touch target for mobile */}
-                        <GlassButton size="md" className="shrink-0">
+                        {/* Attach Image Button */}
+                        <GlassButton size="sm">
                             <Paperclip className="h-4 w-4" style={{ color: '#1a1a1a' }} />
                         </GlassButton>
-                        
-                        {/* Image to Code Button - Hidden on small screens */}
-                        <div className="hidden sm:block shrink-0">
-                            <GlassButton size="md">
-                                <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
-                            </GlassButton>
-                        </div>
 
-                        {/* Text Input - optimized for mobile */}
-                        <div className="flex-1 min-w-0">
+                        {/* Image to Code Button */}
+                        <GlassButton size="sm">
+                            <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                        </GlassButton>
+
+                        {/* Text Input */}
+                        <div className="flex-1">
                             <textarea
                                 ref={inputRef}
                                 placeholder="Describe what you want to build..."
@@ -636,37 +591,31 @@ export default function ChatInterface() {
                                 onKeyDown={handleKeyDown}
                                 disabled={globalStatus !== 'idle'}
                                 rows={1}
-                                className="w-full resize-none bg-transparent border-none px-3 py-2.5 focus:outline-none disabled:opacity-50"
-                                style={{ 
-                                    // Minimum 16px font for mobile readability
-                                    fontSize: '16px',
-                                    lineHeight: '1.5',
-                                    minHeight: '44px', // 44px touch target
+                                className="w-full resize-none bg-transparent border-none px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                                style={{
+                                    minHeight: '40px',
                                     maxHeight: '120px',
                                     color: '#1a1a1a',
-                                    fontFamily: 'var(--font-body, Inter, system-ui, sans-serif)',
-                                    // Prevent zoom on focus in iOS
-                                    WebkitTextSizeAdjust: '100%',
+                                    fontFamily: 'Inter, system-ui, sans-serif',
                                 }}
                             />
                         </div>
 
-                        {/* Send Button - 44px touch target */}
+                        {/* Send Button */}
                         <GlassButton
                             onClick={handleSend}
                             disabled={globalStatus !== 'idle' || !input.trim()}
                             variant="primary"
                             size="md"
-                            className="shrink-0"
                         >
                             <Send className="h-4 w-4" style={{ color: '#92400e' }} />
                         </GlassButton>
                     </div>
                 </div>
 
-                {/* Quick hint - Hidden on mobile */}
-                <div 
-                    className="hidden sm:flex items-center justify-center gap-4 mt-3 text-[10px]"
+                {/* Quick hint */}
+                <div
+                    className="flex items-center justify-center gap-4 mt-3 text-[10px]"
                     style={{ color: '#999' }}
                 >
                     <span>Press Enter to send</span>

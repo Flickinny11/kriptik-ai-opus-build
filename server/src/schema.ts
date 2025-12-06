@@ -459,3 +459,884 @@ export const fixSessions = sqliteTable('fix_sessions', {
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
 });
+
+// =============================================================================
+// AUTONOMOUS LEARNING ENGINE TABLES
+// =============================================================================
+
+/**
+ * Build Records - Top-level record for each build with learning signals
+ */
+export const buildRecords = sqliteTable('build_records', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    prompt: text('prompt').notNull(),
+
+    // Status
+    status: text('status').default('pending').notNull(), // pending, in_progress, completed, failed
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+
+    // Metrics
+    totalTokensUsed: integer('total_tokens_used').default(0),
+    totalCost: integer('total_cost').default(0), // in micro-dollars
+    totalDurationMs: integer('total_duration_ms'),
+
+    // Final outcome
+    finalVerificationScores: text('final_verification_scores', { mode: 'json' }),
+    userFeedback: text('user_feedback', { mode: 'json' }),
+
+    // Learning signals (JSON arrays of IDs)
+    decisionTraceIds: text('decision_trace_ids', { mode: 'json' }).$type<string[]>().default([]),
+    artifactTraceIds: text('artifact_trace_ids', { mode: 'json' }).$type<string[]>().default([]),
+    designChoiceIds: text('design_choice_ids', { mode: 'json' }).$type<string[]>().default([]),
+    errorRecoveryIds: text('error_recovery_ids', { mode: 'json' }).$type<string[]>().default([]),
+    patternsExtracted: text('patterns_extracted', { mode: 'json' }).$type<string[]>().default([]),
+    strategiesUsed: text('strategies_used', { mode: 'json' }).$type<string[]>().default([]),
+
+    successPredictionId: text('success_prediction_id'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Decision Traces - Every decision made during a build
+ */
+export const decisionTraces = sqliteTable('decision_traces', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').references(() => buildRecords.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    phase: text('phase').notNull(), // planning, architecture, etc.
+    decisionType: text('decision_type').notNull(), // architecture_choice, component_structure, etc.
+
+    // Context at decision time (JSON)
+    context: text('context', { mode: 'json' }).notNull(),
+
+    // Decision made (JSON)
+    decision: text('decision', { mode: 'json' }).notNull(),
+
+    // Outcome (JSON, filled in later)
+    outcome: text('outcome', { mode: 'json' }),
+    outcomeRecordedAt: text('outcome_recorded_at'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Code Artifact Traces - Evolution of code artifacts
+ */
+export const codeArtifactTraces = sqliteTable('code_artifact_traces', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').references(() => buildRecords.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    filePath: text('file_path').notNull(),
+
+    // Version history (JSON array)
+    versions: text('versions', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Quality trajectory (JSON array)
+    qualityTrajectory: text('quality_trajectory', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Patterns used (JSON array)
+    patternsUsed: text('patterns_used', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Design Choice Traces - Design decisions and outcomes
+ */
+export const designChoiceTraces = sqliteTable('design_choice_traces', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').references(() => buildRecords.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    appSoul: text('app_soul').notNull(), // professional, playful, minimal, etc.
+
+    // Design choices (JSON)
+    typography: text('typography', { mode: 'json' }).notNull(),
+    colorSystem: text('color_system', { mode: 'json' }).notNull(),
+    motionLanguage: text('motion_language', { mode: 'json' }).notNull(),
+    layoutDecisions: text('layout_decisions', { mode: 'json' }).notNull(),
+
+    // Visual verifier scores (JSON, filled in later)
+    visualVerifierScores: text('visual_verifier_scores', { mode: 'json' }),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Error Recovery Traces - How errors were diagnosed and fixed
+ */
+export const errorRecoveryTraces = sqliteTable('error_recovery_traces', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').references(() => buildRecords.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // The error (JSON)
+    error: text('error', { mode: 'json' }).notNull(),
+
+    // Recovery journey (JSON array of attempts)
+    recoveryJourney: text('recovery_journey', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Successful fix (JSON, null if not resolved)
+    successfulFix: text('successful_fix', { mode: 'json' }),
+
+    // Metrics
+    totalTimeTakenMs: integer('total_time_taken_ms').default(0),
+    wasEscalated: integer('was_escalated', { mode: 'boolean' }).default(false),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    resolvedAt: text('resolved_at'),
+});
+
+/**
+ * Preference Pairs - Training data for DPO/RLAIF
+ */
+export const preferencePairs = sqliteTable('preference_pairs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    prompt: text('prompt').notNull(),
+    chosen: text('chosen').notNull(),
+    rejected: text('rejected').notNull(),
+    judgmentReasoning: text('judgment_reasoning').notNull(),
+    margin: integer('margin').default(50), // 0-100 scale for ranking
+    domain: text('domain').notNull(), // code, design, architecture, error_fix
+
+    // Source info
+    sourceTraceId: text('source_trace_id'),
+    sourceType: text('source_type'), // decision, artifact, error_recovery
+
+    // Training status
+    usedInTrainingBatch: text('used_in_training_batch'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Patterns - Learned reusable solutions
+ */
+export const patterns = sqliteTable('patterns', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    category: text('category').notNull(), // react, css, api, state, animation, etc.
+
+    // What it solves
+    problem: text('problem').notNull(),
+    problemEmbedding: blob('problem_embedding'), // For similarity search
+
+    // Solution
+    solutionTemplate: text('solution_template').notNull(),
+    codeTemplate: text('code_template'),
+
+    // When to apply (JSON arrays)
+    conditions: text('conditions', { mode: 'json' }).$type<string[]>().default([]),
+    antiConditions: text('anti_conditions', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Metrics
+    timesUsed: integer('times_used').default(0),
+    successRate: integer('success_rate').default(100), // 0-100
+    avgQualityScore: integer('avg_quality_score').default(0), // 0-100
+
+    // Metadata
+    extractedFromBuildId: text('extracted_from_build_id'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Strategies - Approaches to solving classes of problems
+ */
+export const strategies = sqliteTable('strategies', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    domain: text('domain').notNull(), // code_generation, error_recovery, design_approach, etc.
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+
+    // Performance metrics (0-100 scale stored as integer)
+    successRate: integer('success_rate').default(50),
+    avgAttempts: integer('avg_attempts').default(1),
+    avgTimeMs: integer('avg_time_ms').default(0),
+
+    // Contexts where effective (JSON array)
+    contextsWhereEffective: text('contexts_where_effective', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Metadata
+    derivedFrom: text('derived_from'), // Parent strategy ID if evolved
+    isExperimental: integer('is_experimental', { mode: 'boolean' }).default(false),
+    totalUses: integer('total_uses').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Success Predictions - Predictions about build success
+ */
+export const successPredictions = sqliteTable('success_predictions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').references(() => buildRecords.id).notNull(),
+
+    // Features (JSON)
+    features: text('features', { mode: 'json' }).notNull(),
+
+    // Prediction
+    successProbability: integer('success_probability').notNull(), // 0-100
+    riskFactors: text('risk_factors', { mode: 'json' }).$type<string[]>().default([]),
+    recommendedInterventions: text('recommended_interventions', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Actual outcome (filled in later)
+    actualOutcome: text('actual_outcome'), // success, failure
+    predictionWasCorrect: integer('prediction_was_correct', { mode: 'boolean' }),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    verifiedAt: text('verified_at'),
+});
+
+/**
+ * Model Versions - Shadow model version registry
+ */
+export const modelVersions = sqliteTable('model_versions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    modelId: text('model_id').notNull(), // code_shadow, architecture_shadow, etc.
+    version: text('version').notNull(),
+
+    // Evaluation metrics (0-100 scale)
+    evalScore: integer('eval_score').default(0),
+    codeQualityAvg: integer('code_quality_avg').default(0),
+    designQualityAvg: integer('design_quality_avg').default(0),
+    errorFixRate: integer('error_fix_rate').default(0),
+    firstAttemptSuccess: integer('first_attempt_success').default(0),
+    antiSlopScore: integer('anti_slop_score').default(0),
+
+    // Training info
+    trainingDataSize: integer('training_data_size').default(0),
+    trainingDurationMs: integer('training_duration_ms').default(0),
+    adapterPath: text('adapter_path'),
+
+    // Status
+    isActive: integer('is_active', { mode: 'boolean' }).default(false),
+    promotedDomains: text('promoted_domains', { mode: 'json' }).$type<string[]>().default([]),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Training Batches - Track DPO training runs
+ */
+export const trainingBatches = sqliteTable('training_batches', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    modelId: text('model_id').notNull(),
+    status: text('status').default('pending').notNull(), // pending, training, completed, failed
+
+    // Data
+    preferencePairCount: integer('preference_pair_count').default(0),
+    domains: text('domains', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Timing
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+
+    // Results
+    resultVersionId: text('result_version_id'),
+    error: text('error'),
+
+    // Compute info
+    gpuType: text('gpu_type'),
+    computeProvider: text('compute_provider'), // modal, runpod, etc.
+    computeCost: integer('compute_cost'), // in micro-dollars
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Insights - Meta-learning reflections
+ */
+export const learningInsights = sqliteTable('learning_insights', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    category: text('category').notNull(), // improving, stuck, overfitting, new_capability
+    insight: text('insight').notNull(),
+    evidence: text('evidence').notNull(),
+    recommendedAction: text('recommended_action').notNull(),
+    expectedImpact: text('expected_impact').notNull(),
+    confidence: integer('confidence').default(50), // 0-100
+
+    // Status
+    status: text('status').default('pending'), // pending, actioned, dismissed
+    actionedAt: text('actioned_at'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Quality Judgments - AI-generated judgments for RLAIF
+ */
+export const qualityJudgments = sqliteTable('quality_judgments', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    targetId: text('target_id').notNull(), // ID of artifact or design choice
+    targetType: text('target_type').notNull(), // code_artifact, design_choice
+
+    // Judgment type
+    judgmentType: text('judgment_type').notNull(), // code_quality, design_quality
+
+    // Scores (JSON with detailed breakdown)
+    scores: text('scores', { mode: 'json' }).notNull(),
+
+    // Issues and suggestions (JSON arrays)
+    issues: text('issues', { mode: 'json' }).$type<unknown[]>().default([]),
+    suggestions: text('suggestions', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Verdict for design judgments
+    verdict: text('verdict'), // EXCELLENT, GOOD, ACCEPTABLE, AI-SLOP
+
+    // Model info
+    modelUsed: text('model_used').notNull(),
+    tokensUsed: integer('tokens_used').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// =============================================================================
+// ULTIMATE AI-FIRST BUILDER ARCHITECTURE TABLES
+// Phase 10: Database Schema for Intent Lock, Verification Swarm, Time Machine
+// =============================================================================
+
+/**
+ * Build Intents - Immutable "DONE" definitions created before any building (Phase 0)
+ * The Sacred Contract - NEVER modified after creation
+ */
+export const buildIntents = sqliteTable('build_intents', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // App classification
+    appType: text('app_type').notNull(), // music_streaming, saas, ecommerce, portfolio, etc.
+    appSoul: text('app_soul').notNull(), // immersive_media, professional, developer, creative, social, ecommerce, utility, gaming
+
+    // Core definition
+    coreValueProp: text('core_value_prop').notNull(),
+
+    // Success criteria (JSON array of SuccessCriterion objects)
+    successCriteria: text('success_criteria', { mode: 'json' }).$type<{
+        id: string;
+        description: string;
+        verificationMethod: 'visual' | 'functional' | 'performance';
+        passed: boolean;
+    }[]>().notNull(),
+
+    // User workflows (JSON array of UserWorkflow objects)
+    userWorkflows: text('user_workflows', { mode: 'json' }).$type<{
+        name: string;
+        steps: string[];
+        success: string;
+        verified: boolean;
+    }[]>().notNull(),
+
+    // Visual identity
+    visualIdentity: text('visual_identity', { mode: 'json' }).$type<{
+        soul: string;
+        primaryEmotion: string;
+        depthLevel: 'low' | 'medium' | 'high';
+        motionPhilosophy: string;
+    }>().notNull(),
+
+    // Anti-patterns (JSON array of strings)
+    antiPatterns: text('anti_patterns', { mode: 'json' }).$type<string[]>().notNull(),
+
+    // Lock status
+    locked: integer('locked', { mode: 'boolean' }).default(false).notNull(),
+    lockedAt: text('locked_at'),
+
+    // Metadata
+    originalPrompt: text('original_prompt').notNull(),
+    generatedBy: text('generated_by').default('claude-opus-4.5'), // Model used to generate
+    thinkingTokensUsed: integer('thinking_tokens_used').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Feature Progress - Tracks individual features with passes: true/false status
+ * Single source of truth for build progress during Phase 2
+ */
+export const featureProgress = sqliteTable('feature_progress', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildIntentId: text('build_intent_id').references(() => buildIntents.id).notNull(),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Feature definition
+    featureId: text('feature_id').notNull(), // F001, F002, etc.
+    category: text('category').notNull(), // functional, visual, integration
+    description: text('description').notNull(),
+    priority: integer('priority').default(1).notNull(),
+
+    // Implementation details (JSON arrays)
+    implementationSteps: text('implementation_steps', { mode: 'json' }).$type<string[]>().default([]),
+    visualRequirements: text('visual_requirements', { mode: 'json' }).$type<string[]>().default([]),
+    filesModified: text('files_modified', { mode: 'json' }).$type<string[]>().default([]),
+
+    // THE KEY FIELD - Does this feature pass all verification?
+    passes: integer('passes', { mode: 'boolean' }).default(false).notNull(),
+
+    // Agent assignment
+    assignedAgent: text('assigned_agent'), // build-agent-1, build-agent-2, etc.
+    assignedAt: text('assigned_at'),
+
+    // Verification status per agent (JSON object)
+    verificationStatus: text('verification_status', { mode: 'json' }).$type<{
+        errorCheck: 'pending' | 'passed' | 'failed';
+        codeQuality: 'pending' | 'passed' | 'failed';
+        visualVerify: 'pending' | 'passed' | 'failed';
+        placeholderCheck: 'pending' | 'passed' | 'failed';
+        designStyle: 'pending' | 'passed' | 'failed';
+        securityScan: 'pending' | 'passed' | 'failed';
+    }>().default({
+        errorCheck: 'pending',
+        codeQuality: 'pending',
+        visualVerify: 'pending',
+        placeholderCheck: 'pending',
+        designStyle: 'pending',
+        securityScan: 'pending'
+    }),
+
+    // Verification scores (JSON object)
+    verificationScores: text('verification_scores', { mode: 'json' }).$type<{
+        codeQualityScore?: number;
+        visualScore?: number;
+        antiSlopScore?: number;
+        soulMatchScore?: number;
+        designStyleScore?: number;
+    }>(),
+
+    // Build attempts
+    buildAttempts: integer('build_attempts').default(0),
+    lastBuildAt: text('last_build_at'),
+    passedAt: text('passed_at'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Verification Results - Individual results from each verification agent
+ * Tracks all 6 agents of the Verification Swarm
+ */
+export const verificationResults = sqliteTable('verification_results', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    featureProgressId: text('feature_progress_id').references(() => featureProgress.id),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Agent identification
+    agentType: text('agent_type').notNull(), // error_checker, code_quality, visual_verifier, security_scanner, placeholder_eliminator, design_style
+
+    // Result
+    passed: integer('passed', { mode: 'boolean' }).notNull(),
+    score: integer('score'), // 0-100 scale
+    blocking: integer('blocking', { mode: 'boolean' }).default(false), // Did this block progress?
+
+    // Details (JSON)
+    details: text('details', { mode: 'json' }).$type<{
+        violations?: Array<{
+            file: string;
+            line?: number;
+            message: string;
+            severity: 'critical' | 'high' | 'medium' | 'low';
+        }>;
+        metrics?: Record<string, number>;
+        verdict?: string;
+        reasoning?: string;
+    }>(),
+
+    // For visual verifier specifically
+    screenshotPath: text('screenshot_path'),
+    antiSlopScore: integer('anti_slop_score'),
+    soulMatchScore: integer('soul_match_score'),
+
+    // Model used
+    modelUsed: text('model_used'),
+    tokensUsed: integer('tokens_used').default(0),
+    durationMs: integer('duration_ms'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Build Checkpoints - Time Machine snapshots for rollback capability
+ * Comprehensive state snapshots triggered automatically or manually
+ */
+export const buildCheckpoints = sqliteTable('build_checkpoints', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Trigger information
+    trigger: text('trigger').notNull(), // feature_complete, verification_pass, phase_complete, interval_15m, manual
+    triggerFeatureId: text('trigger_feature_id'), // Which feature triggered this (if applicable)
+    phase: text('phase'), // Current phase when checkpoint was created
+
+    // Git state
+    gitCommitHash: text('git_commit_hash'),
+    gitBranch: text('git_branch'),
+
+    // Artifact snapshots (JSON)
+    artifacts: text('artifacts', { mode: 'json' }).$type<{
+        intentJson?: object;
+        featureListJson?: object;
+        styleGuideJson?: object;
+        progressTxt?: string;
+        buildStateJson?: object;
+    }>().notNull(),
+
+    // Feature list snapshot (JSON)
+    featureListSnapshot: text('feature_list_snapshot', { mode: 'json' }).$type<{
+        total: number;
+        passed: number;
+        failed: number;
+        pending: number;
+        features: Array<{
+            id: string;
+            passes: boolean;
+            verificationStatus: object;
+        }>;
+    }>().notNull(),
+
+    // Verification scores snapshot (JSON)
+    verificationScoresSnapshot: text('verification_scores_snapshot', { mode: 'json' }).$type<{
+        overallScore: number;
+        codeQualityAvg: number;
+        visualScoreAvg: number;
+        antiSlopScoreAvg: number;
+        designStyleAvg: number;
+    }>(),
+
+    // Screenshots (JSON array of base64 or paths)
+    screenshots: text('screenshots', { mode: 'json' }).$type<Array<{
+        name: string;
+        path?: string;
+        base64?: string;
+        timestamp: string;
+    }>>().default([]),
+
+    // Agent memory snapshot (JSON)
+    agentMemorySnapshot: text('agent_memory_snapshot', { mode: 'json' }).$type<{
+        buildAgentContext?: object;
+        verificationHistory?: object;
+        issueResolutions?: object;
+    }>(),
+
+    // File snapshot (list of file paths and their checksums)
+    fileChecksums: text('file_checksums', { mode: 'json' }).$type<Record<string, string>>(),
+
+    // Rollback info
+    rolledBackToId: text('rolled_back_to_id'), // If this checkpoint was restored, points to source
+    wasRolledBack: integer('was_rolled_back', { mode: 'boolean' }).default(false),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * App Soul Templates - Predefined design systems for different app types
+ * Used by Design Style Agent to enforce soul-appropriate design
+ */
+export const appSoulTemplates = sqliteTable('app_soul_templates', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+
+    // Soul identification
+    soulType: text('soul_type').notNull().unique(), // immersive_media, professional, developer, creative, social, ecommerce, utility, gaming
+    displayName: text('display_name').notNull(),
+    description: text('description').notNull(),
+
+    // Design system (JSON)
+    typography: text('typography', { mode: 'json' }).$type<{
+        displayFont: string;
+        bodyFont: string;
+        monoFont?: string;
+        fontScale: number[];
+        lineHeights: Record<string, number>;
+        letterSpacing: Record<string, string>;
+        bannedFonts: string[];
+    }>().notNull(),
+
+    colorSystem: text('color_system', { mode: 'json' }).$type<{
+        primary: string;
+        secondary?: string;
+        accent: string;
+        background: string;
+        surface: string;
+        text: string;
+        textMuted: string;
+        error: string;
+        warning: string;
+        success: string;
+        semantic: Record<string, string>;
+        darkMode: boolean;
+        gradients?: string[];
+    }>().notNull(),
+
+    motionLanguage: text('motion_language', { mode: 'json' }).$type<{
+        philosophy: string;
+        timingFunctions: Record<string, string>;
+        durations: Record<string, string>;
+        entranceAnimations: string[];
+        microInteractions: string[];
+        loadingStates: string[];
+    }>().notNull(),
+
+    depthSystem: text('depth_system', { mode: 'json' }).$type<{
+        level: 'low' | 'medium' | 'high';
+        shadows: Record<string, string>;
+        layering: string[];
+        glassEffects: boolean;
+        parallax: boolean;
+        hoverLift: boolean;
+    }>().notNull(),
+
+    layoutPrinciples: text('layout_principles', { mode: 'json' }).$type<{
+        grid: string;
+        spacing: number[];
+        maxWidth: string;
+        asymmetric: boolean;
+        fullBleed: boolean;
+        overlapping: boolean;
+    }>().notNull(),
+
+    // Anti-patterns specific to this soul
+    antiPatterns: text('anti_patterns', { mode: 'json' }).$type<string[]>().notNull(),
+
+    // Example apps for reference
+    exampleApps: text('example_apps', { mode: 'json' }).$type<string[]>().default([]),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Error Escalation History - Tracks 4-level error escalation attempts
+ * Ensures we NEVER give up until errors are fixed
+ */
+export const errorEscalationHistory = sqliteTable('error_escalation_history', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    featureProgressId: text('feature_progress_id').references(() => featureProgress.id),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Error information
+    errorType: text('error_type').notNull(), // syntax_error, import_missing, type_mismatch, architectural, integration, etc.
+    errorMessage: text('error_message').notNull(),
+    errorFile: text('error_file'),
+    errorLine: integer('error_line'),
+
+    // Escalation tracking
+    currentLevel: integer('current_level').default(1).notNull(), // 1-4
+    totalAttempts: integer('total_attempts').default(0).notNull(),
+
+    // Attempt history (JSON array)
+    attempts: text('attempts', { mode: 'json' }).$type<Array<{
+        level: number;
+        attempt: number;
+        model: string;
+        effort: string;
+        thinkingBudget?: number;
+        fixApplied: string;
+        result: 'success' | 'failure';
+        durationMs: number;
+        tokensUsed: number;
+        timestamp: string;
+    }>>().default([]),
+
+    // Resolution
+    resolved: integer('resolved', { mode: 'boolean' }).default(false).notNull(),
+    resolvedAt: text('resolved_at'),
+    resolvedAtLevel: integer('resolved_at_level'),
+    finalFix: text('final_fix'),
+
+    // If escalated to Level 4 (feature rebuild)
+    wasRebuiltFromIntent: integer('was_rebuilt_from_intent', { mode: 'boolean' }).default(false),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Build Mode Configurations - Speed Dial settings
+ * Lightning / Standard / Tournament / Production modes
+ */
+export const buildModeConfigs = sqliteTable('build_mode_configs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+
+    // Mode identification
+    mode: text('mode').notNull().unique(), // lightning, standard, tournament, production
+    displayName: text('display_name').notNull(),
+    icon: text('icon').notNull(),
+
+    // Timing
+    targetTimeMinutes: integer('target_time_minutes').notNull(),
+    maxTimeMinutes: integer('max_time_minutes').notNull(),
+
+    // Phases enabled (JSON array)
+    enabledPhases: text('enabled_phases', { mode: 'json' }).$type<string[]>().notNull(),
+
+    // Model configuration
+    defaultModelTier: text('default_model_tier').notNull(), // haiku, sonnet, sonnet_primary, opus_judging, opus_all
+    effortLevel: text('effort_level').notNull(), // low, medium, high
+    thinkingBudget: integer('thinking_budget').default(0),
+
+    // Features enabled
+    tournamentEnabled: integer('tournament_enabled', { mode: 'boolean' }).default(false),
+    verificationSwarmEnabled: integer('verification_swarm_enabled', { mode: 'boolean' }).default(true),
+    checkpointsEnabled: integer('checkpoints_enabled', { mode: 'boolean' }).default(true),
+    backendEnabled: integer('backend_enabled', { mode: 'boolean' }).default(true),
+
+    // Quality thresholds
+    designScoreThreshold: integer('design_score_threshold').default(75),
+    codeQualityThreshold: integer('code_quality_threshold').default(70),
+
+    // Description
+    description: text('description').notNull(),
+    outputDescription: text('output_description').notNull(),
+
+    // Usage stats
+    totalBuilds: integer('total_builds').default(0),
+    avgCompletionTime: integer('avg_completion_time'),
+    successRate: integer('success_rate').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Tournament Runs - Tracks Tournament Mode competing implementations
+ * Multiple implementations with AI judge panel
+ */
+export const tournamentRuns = sqliteTable('tournament_runs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    featureProgressId: text('feature_progress_id').references(() => featureProgress.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Tournament status
+    status: text('status').default('running').notNull(), // running, judging, complete, failed
+
+    // Contestants (JSON array)
+    contestants: text('contestants', { mode: 'json' }).$type<Array<{
+        id: string;
+        model: string;
+        strategy: 'conservative' | 'aggressive' | 'alternative' | 'creative';
+        implementation: string; // Code or file reference
+        completedAt?: string;
+        durationMs?: number;
+        tokensUsed?: number;
+    }>>().notNull(),
+
+    // Judge panel results (JSON)
+    judgeResults: text('judge_results', { mode: 'json' }).$type<{
+        judges: Array<{
+            model: string;
+            focus: 'code_quality' | 'design_quality' | 'intent_alignment';
+            scores: Record<string, number>; // contestantId -> score
+            reasoning: Record<string, string>;
+        }>;
+        finalScores: Record<string, number>;
+        winner: string;
+        hybridComponents?: Record<string, string>; // If hybrid selected
+    }>(),
+
+    // Winner
+    winnerId: text('winner_id'),
+    winnerModel: text('winner_model'),
+    isHybrid: integer('is_hybrid', { mode: 'boolean' }).default(false),
+
+    // Metrics
+    totalTokensUsed: integer('total_tokens_used').default(0),
+    totalDurationMs: integer('total_duration_ms'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    completedAt: text('completed_at'),
+});
+
+/**
+ * Intelligence Dial Configs - Per-request capability toggles
+ * Allows users to customize AI capabilities for each build
+ */
+export const intelligenceDialConfigs = sqliteTable('intelligence_dial_configs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Toggles
+    extendedThinking: integer('extended_thinking', { mode: 'boolean' }).default(false),
+    highPower: integer('high_power', { mode: 'boolean' }).default(false),
+    speedMode: integer('speed_mode', { mode: 'boolean' }).default(false),
+    tournament: integer('tournament', { mode: 'boolean' }).default(false),
+    webSearch: integer('web_search', { mode: 'boolean' }).default(false),
+    antiSlopStrict: integer('anti_slop_strict', { mode: 'boolean' }).default(false),
+
+    // Custom thresholds (overrides build mode defaults)
+    customDesignThreshold: integer('custom_design_threshold'),
+    customCodeQualityThreshold: integer('custom_code_quality_threshold'),
+    customThinkingBudget: integer('custom_thinking_budget'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Build Session Progress - Real-time progress for streaming to UI
+ * Tracks all 6 phases and provides detailed status updates
+ */
+export const buildSessionProgress = sqliteTable('build_session_progress', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Current phase
+    currentPhase: text('current_phase').notNull(), // phase_0_intent_lock, phase_1_initialization, phase_2_parallel_build, phase_3_integration, phase_4_functional_test, phase_5_intent_satisfaction, phase_6_browser_demo
+
+    // Phase progress (JSON)
+    phaseProgress: text('phase_progress', { mode: 'json' }).$type<{
+        phase_0_intent_lock: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; };
+        phase_1_initialization: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; };
+        phase_2_parallel_build: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; featuresComplete: number; featuresTotal: number; };
+        phase_3_integration: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; };
+        phase_4_functional_test: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; testsPass: number; testsTotal: number; };
+        phase_5_intent_satisfaction: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; };
+        phase_6_browser_demo: { status: 'pending' | 'in_progress' | 'complete' | 'failed'; progress: number; startedAt?: string; completedAt?: string; };
+    }>().notNull(),
+
+    // Verification swarm status (JSON)
+    verificationSwarmStatus: text('verification_swarm_status', { mode: 'json' }).$type<{
+        errorChecker: { running: boolean; lastCheck?: string; status: 'ok' | 'issues' | 'blocked'; };
+        codeQuality: { running: boolean; lastCheck?: string; score?: number; };
+        visualVerifier: { running: boolean; lastCheck?: string; score?: number; };
+        securityScanner: { running: boolean; lastCheck?: string; status: 'ok' | 'issues' | 'blocked'; };
+        placeholderEliminator: { running: boolean; lastCheck?: string; violations: number; };
+        designStyle: { running: boolean; lastCheck?: string; score?: number; };
+    }>(),
+
+    // Current activity message for UI
+    currentActivityMessage: text('current_activity_message'),
+
+    // Overall metrics
+    overallProgress: integer('overall_progress').default(0), // 0-100
+    estimatedTimeRemaining: integer('estimated_time_remaining'), // seconds
+    tokensUsedTotal: integer('tokens_used_total').default(0),
+    costTotal: integer('cost_total').default(0), // micro-dollars
+
+    // Error state
+    hasBlockingError: integer('has_blocking_error', { mode: 'boolean' }).default(false),
+    blockingErrorMessage: text('blocking_error_message'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
