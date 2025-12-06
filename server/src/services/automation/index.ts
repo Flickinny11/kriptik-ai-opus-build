@@ -48,3 +48,19 @@ export {
     type BuildEvent,
 } from './autonomous-controller.js';
 
+// =============================================================================
+// ULTIMATE AI-FIRST BUILDER - 6-Phase Build Loop
+// =============================================================================
+
+export {
+    BuildLoopOrchestrator,
+    createBuildLoopOrchestrator,
+    startBuildLoop,
+    type BuildLoopPhase,
+    type BuildStage,
+    type BuildMode,
+    type BuildLoopConfig,
+    type BuildLoopState,
+    type BuildLoopEvent,
+} from './build-loop.js';
+
