@@ -48,3 +48,6 @@ export { default as templatesRouter } from './templates.js';
 
 // Autonomous Learning Engine
 export { default as learningRouter } from './learning.js';
+
+// Krip-Toe-Nite - Intelligent Model Orchestration
+export { default as kripToeNiteRouter } from './krip-toe-nite.js';

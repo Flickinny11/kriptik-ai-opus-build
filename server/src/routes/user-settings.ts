@@ -121,6 +121,38 @@ router.patch('/', async (req: Request, res: Response) => {
             'weeklyDigest',
             'analyticsOptIn',
             'crashReports',
+            // Advanced Developer Options
+            'softInterruptEnabled',
+            'softInterruptAutoClassify',
+            'softInterruptPriority',
+            'preDeployValidationEnabled',
+            'preDeployStrictMode',
+            'preDeployDefaultPlatform',
+            'preDeployAutoRun',
+            'ghostModeEnabled',
+            'ghostModeMaxRuntime',
+            'ghostModeMaxCredits',
+            'ghostModeCheckpointInterval',
+            'ghostModeAutonomyLevel',
+            'ghostModePauseOnError',
+            'ghostModeNotifyEmail',
+            'ghostModeNotifySlack',
+            'ghostModeSlackWebhook',
+            'developerModeDefaultModel',
+            'developerModeDefaultVerification',
+            'developerModeMaxConcurrentAgents',
+            'developerModeAutoFix',
+            'developerModeAutoFixRetries',
+            'defaultBuildMode',
+            'extendedThinkingEnabled',
+            'tournamentModeEnabled',
+            'designScoreThreshold',
+            'codeQualityThreshold',
+            'securityScanEnabled',
+            'placeholderCheckEnabled',
+            'timeMachineEnabled',
+            'timeMachineAutoCheckpoint',
+            'timeMachineRetentionDays',
         ];
 
         const sanitizedUpdates: Record<string, unknown> = {};
@@ -650,6 +682,310 @@ router.get('/usage', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Get usage error:', error);
         res.status(500).json({ error: 'Failed to get usage history' });
+    }
+});
+
+// =============================================================================
+// ADVANCED DEVELOPER OPTIONS
+// =============================================================================
+
+/**
+ * GET /api/settings/developer
+ * Get advanced developer options
+ */
+router.get('/developer', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Get or create settings
+        let [settings] = await db
+            .select()
+            .from(userSettings)
+            .where(eq(userSettings.userId, userId))
+            .limit(1);
+
+        if (!settings) {
+            // Create default settings
+            [settings] = await db.insert(userSettings).values({
+                userId,
+            }).returning();
+        }
+
+        // Return only advanced developer settings
+        res.json({
+            softInterrupt: {
+                enabled: settings.softInterruptEnabled ?? true,
+                autoClassify: settings.softInterruptAutoClassify ?? true,
+                priority: settings.softInterruptPriority ?? 'normal',
+            },
+            preDeployValidation: {
+                enabled: settings.preDeployValidationEnabled ?? true,
+                strictMode: settings.preDeployStrictMode ?? false,
+                defaultPlatform: settings.preDeployDefaultPlatform ?? 'vercel',
+                autoRun: settings.preDeployAutoRun ?? true,
+            },
+            ghostMode: {
+                enabled: settings.ghostModeEnabled ?? true,
+                maxRuntime: settings.ghostModeMaxRuntime ?? 120,
+                maxCredits: settings.ghostModeMaxCredits ?? 100,
+                checkpointInterval: settings.ghostModeCheckpointInterval ?? 15,
+                autonomyLevel: settings.ghostModeAutonomyLevel ?? 'moderate',
+                pauseOnError: settings.ghostModePauseOnError ?? true,
+                notifyEmail: settings.ghostModeNotifyEmail ?? true,
+                notifySlack: settings.ghostModeNotifySlack ?? false,
+                slackWebhook: settings.ghostModeSlackWebhook ?? null,
+            },
+            developerMode: {
+                defaultModel: settings.developerModeDefaultModel ?? 'claude-sonnet-4-5',
+                defaultVerification: settings.developerModeDefaultVerification ?? 'standard',
+                maxConcurrentAgents: settings.developerModeMaxConcurrentAgents ?? 3,
+                autoFix: settings.developerModeAutoFix ?? true,
+                autoFixRetries: settings.developerModeAutoFixRetries ?? 3,
+            },
+            buildMode: {
+                defaultMode: settings.defaultBuildMode ?? 'standard',
+                extendedThinking: settings.extendedThinkingEnabled ?? false,
+                tournamentMode: settings.tournamentModeEnabled ?? false,
+            },
+            quality: {
+                designScoreThreshold: settings.designScoreThreshold ?? 75,
+                codeQualityThreshold: settings.codeQualityThreshold ?? 70,
+                securityScan: settings.securityScanEnabled ?? true,
+                placeholderCheck: settings.placeholderCheckEnabled ?? true,
+            },
+            timeMachine: {
+                enabled: settings.timeMachineEnabled ?? true,
+                autoCheckpoint: settings.timeMachineAutoCheckpoint ?? true,
+                retentionDays: settings.timeMachineRetentionDays ?? 30,
+            },
+        });
+    } catch (error) {
+        console.error('Get developer settings error:', error);
+        res.status(500).json({ error: 'Failed to get developer settings' });
+    }
+});
+
+/**
+ * PATCH /api/settings/developer
+ * Update advanced developer options
+ */
+router.patch('/developer', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const updates = req.body;
+        const sanitizedUpdates: Record<string, unknown> = {};
+
+        // Map nested structure to flat database columns
+        if (updates.softInterrupt) {
+            if (updates.softInterrupt.enabled !== undefined) {
+                sanitizedUpdates.softInterruptEnabled = updates.softInterrupt.enabled;
+            }
+            if (updates.softInterrupt.autoClassify !== undefined) {
+                sanitizedUpdates.softInterruptAutoClassify = updates.softInterrupt.autoClassify;
+            }
+            if (updates.softInterrupt.priority !== undefined) {
+                sanitizedUpdates.softInterruptPriority = updates.softInterrupt.priority;
+            }
+        }
+
+        if (updates.preDeployValidation) {
+            if (updates.preDeployValidation.enabled !== undefined) {
+                sanitizedUpdates.preDeployValidationEnabled = updates.preDeployValidation.enabled;
+            }
+            if (updates.preDeployValidation.strictMode !== undefined) {
+                sanitizedUpdates.preDeployStrictMode = updates.preDeployValidation.strictMode;
+            }
+            if (updates.preDeployValidation.defaultPlatform !== undefined) {
+                sanitizedUpdates.preDeployDefaultPlatform = updates.preDeployValidation.defaultPlatform;
+            }
+            if (updates.preDeployValidation.autoRun !== undefined) {
+                sanitizedUpdates.preDeployAutoRun = updates.preDeployValidation.autoRun;
+            }
+        }
+
+        if (updates.ghostMode) {
+            if (updates.ghostMode.enabled !== undefined) {
+                sanitizedUpdates.ghostModeEnabled = updates.ghostMode.enabled;
+            }
+            if (updates.ghostMode.maxRuntime !== undefined) {
+                sanitizedUpdates.ghostModeMaxRuntime = updates.ghostMode.maxRuntime;
+            }
+            if (updates.ghostMode.maxCredits !== undefined) {
+                sanitizedUpdates.ghostModeMaxCredits = updates.ghostMode.maxCredits;
+            }
+            if (updates.ghostMode.checkpointInterval !== undefined) {
+                sanitizedUpdates.ghostModeCheckpointInterval = updates.ghostMode.checkpointInterval;
+            }
+            if (updates.ghostMode.autonomyLevel !== undefined) {
+                sanitizedUpdates.ghostModeAutonomyLevel = updates.ghostMode.autonomyLevel;
+            }
+            if (updates.ghostMode.pauseOnError !== undefined) {
+                sanitizedUpdates.ghostModePauseOnError = updates.ghostMode.pauseOnError;
+            }
+            if (updates.ghostMode.notifyEmail !== undefined) {
+                sanitizedUpdates.ghostModeNotifyEmail = updates.ghostMode.notifyEmail;
+            }
+            if (updates.ghostMode.notifySlack !== undefined) {
+                sanitizedUpdates.ghostModeNotifySlack = updates.ghostMode.notifySlack;
+            }
+            if (updates.ghostMode.slackWebhook !== undefined) {
+                sanitizedUpdates.ghostModeSlackWebhook = updates.ghostMode.slackWebhook;
+            }
+        }
+
+        if (updates.developerMode) {
+            if (updates.developerMode.defaultModel !== undefined) {
+                sanitizedUpdates.developerModeDefaultModel = updates.developerMode.defaultModel;
+            }
+            if (updates.developerMode.defaultVerification !== undefined) {
+                sanitizedUpdates.developerModeDefaultVerification = updates.developerMode.defaultVerification;
+            }
+            if (updates.developerMode.maxConcurrentAgents !== undefined) {
+                sanitizedUpdates.developerModeMaxConcurrentAgents = updates.developerMode.maxConcurrentAgents;
+            }
+            if (updates.developerMode.autoFix !== undefined) {
+                sanitizedUpdates.developerModeAutoFix = updates.developerMode.autoFix;
+            }
+            if (updates.developerMode.autoFixRetries !== undefined) {
+                sanitizedUpdates.developerModeAutoFixRetries = updates.developerMode.autoFixRetries;
+            }
+        }
+
+        if (updates.buildMode) {
+            if (updates.buildMode.defaultMode !== undefined) {
+                sanitizedUpdates.defaultBuildMode = updates.buildMode.defaultMode;
+            }
+            if (updates.buildMode.extendedThinking !== undefined) {
+                sanitizedUpdates.extendedThinkingEnabled = updates.buildMode.extendedThinking;
+            }
+            if (updates.buildMode.tournamentMode !== undefined) {
+                sanitizedUpdates.tournamentModeEnabled = updates.buildMode.tournamentMode;
+            }
+        }
+
+        if (updates.quality) {
+            if (updates.quality.designScoreThreshold !== undefined) {
+                sanitizedUpdates.designScoreThreshold = updates.quality.designScoreThreshold;
+            }
+            if (updates.quality.codeQualityThreshold !== undefined) {
+                sanitizedUpdates.codeQualityThreshold = updates.quality.codeQualityThreshold;
+            }
+            if (updates.quality.securityScan !== undefined) {
+                sanitizedUpdates.securityScanEnabled = updates.quality.securityScan;
+            }
+            if (updates.quality.placeholderCheck !== undefined) {
+                sanitizedUpdates.placeholderCheckEnabled = updates.quality.placeholderCheck;
+            }
+        }
+
+        if (updates.timeMachine) {
+            if (updates.timeMachine.enabled !== undefined) {
+                sanitizedUpdates.timeMachineEnabled = updates.timeMachine.enabled;
+            }
+            if (updates.timeMachine.autoCheckpoint !== undefined) {
+                sanitizedUpdates.timeMachineAutoCheckpoint = updates.timeMachine.autoCheckpoint;
+            }
+            if (updates.timeMachine.retentionDays !== undefined) {
+                sanitizedUpdates.timeMachineRetentionDays = updates.timeMachine.retentionDays;
+            }
+        }
+
+        if (Object.keys(sanitizedUpdates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        sanitizedUpdates.updatedAt = new Date().toISOString();
+
+        // Update or create settings
+        const [existing] = await db
+            .select()
+            .from(userSettings)
+            .where(eq(userSettings.userId, userId))
+            .limit(1);
+
+        let settings;
+        if (existing) {
+            [settings] = await db
+                .update(userSettings)
+                .set(sanitizedUpdates)
+                .where(eq(userSettings.userId, userId))
+                .returning();
+        } else {
+            [settings] = await db.insert(userSettings).values({
+                userId,
+                ...sanitizedUpdates,
+            }).returning();
+        }
+
+        res.json({ success: true, settings });
+    } catch (error) {
+        console.error('Update developer settings error:', error);
+        res.status(500).json({ error: 'Failed to update developer settings' });
+    }
+});
+
+/**
+ * POST /api/settings/developer/reset
+ * Reset advanced developer options to defaults
+ */
+router.post('/developer/reset', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const defaultSettings = {
+            softInterruptEnabled: true,
+            softInterruptAutoClassify: true,
+            softInterruptPriority: 'normal',
+            preDeployValidationEnabled: true,
+            preDeployStrictMode: false,
+            preDeployDefaultPlatform: 'vercel',
+            preDeployAutoRun: true,
+            ghostModeEnabled: true,
+            ghostModeMaxRuntime: 120,
+            ghostModeMaxCredits: 100,
+            ghostModeCheckpointInterval: 15,
+            ghostModeAutonomyLevel: 'moderate',
+            ghostModePauseOnError: true,
+            ghostModeNotifyEmail: true,
+            ghostModeNotifySlack: false,
+            ghostModeSlackWebhook: null,
+            developerModeDefaultModel: 'claude-sonnet-4-5',
+            developerModeDefaultVerification: 'standard',
+            developerModeMaxConcurrentAgents: 3,
+            developerModeAutoFix: true,
+            developerModeAutoFixRetries: 3,
+            defaultBuildMode: 'standard',
+            extendedThinkingEnabled: false,
+            tournamentModeEnabled: false,
+            designScoreThreshold: 75,
+            codeQualityThreshold: 70,
+            securityScanEnabled: true,
+            placeholderCheckEnabled: true,
+            timeMachineEnabled: true,
+            timeMachineAutoCheckpoint: true,
+            timeMachineRetentionDays: 30,
+            updatedAt: new Date().toISOString(),
+        };
+
+        await db
+            .update(userSettings)
+            .set(defaultSettings)
+            .where(eq(userSettings.userId, userId));
+
+        res.json({ success: true, message: 'Developer settings reset to defaults' });
+    } catch (error) {
+        console.error('Reset developer settings error:', error);
+        res.status(500).json({ error: 'Failed to reset developer settings' });
     }
 });
 

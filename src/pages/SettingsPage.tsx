@@ -25,8 +25,9 @@ import { apiClient } from '../lib/api-client';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { LearningSettingsSection } from '../components/settings/LearningSettingsSection';
+import { DeveloperSettingsSection } from '../components/settings/DeveloperSettingsSection';
 
-type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'privacy' | 'usage' | 'learning';
+type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'developer' | 'privacy' | 'usage' | 'learning';
 
 interface UserSettings {
     spendingLimit: number | null;
@@ -66,12 +67,13 @@ interface PaymentMethod {
     isDefault: boolean;
 }
 
-const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }> = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing & Credits', icon: Wallet },
     { id: 'payment', label: 'Payment Methods', icon: CreditCard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'ai', label: 'AI Preferences', icon: Brain },
+    { id: 'developer', label: 'Developer Options', icon: Settings2, badge: 'Advanced' },
     { id: 'learning', label: 'Learning Engine', icon: Brain },
     { id: 'privacy', label: 'Privacy', icon: Shield },
     { id: 'usage', label: 'Usage History', icon: Activity },
@@ -211,6 +213,14 @@ export default function SettingsPage() {
                                     >
                                         <tab.icon className={"w-5 h-5"} />
                                         <span className="font-medium">{tab.label}</span>
+                                        {tab.badge && (
+                                            <span
+                                                className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
+                                                style={{ background: 'rgba(255,180,140,0.3)', color: '#c25a00' }}
+                                            >
+                                                {tab.badge}
+                                            </span>
+                                        )}
                                         {activeTab === tab.id && (
                                             <ChevronRight className="w-4 h-4 ml-auto" />
                                         )}
@@ -549,6 +559,13 @@ export default function SettingsPage() {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Developer Options Tab */}
+                                {activeTab === 'developer' && (
+                                    <div className="glass-panel p-6">
+                                        <DeveloperSettingsSection />
                                     </div>
                                 )}
 

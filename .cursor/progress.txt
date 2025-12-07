@@ -1887,3 +1887,108 @@ PRODUCTION STATUS:
 - Learning API: Operational ✅
 
 COMPONENT 28 (AUTONOMOUS LEARNING ENGINE): COMPLETE & PRODUCTION-READY ✅
+
+
+═══ [2025-12-07 KRIP-TOE-NITE ORCHESTRATION ENGINE] ═══
+IMPLEMENTING: Intelligent Model Orchestration System
+
+OVERVIEW:
+Krip-Toe-Nite is KripTik AI's proprietary intelligent model orchestration
+system that appears as a single model selection but internally orchestrates
+multiple frontier models for maximum speed, quality, and cost efficiency.
+
+TARGET OUTCOMES:
+- Simple tasks: <500ms perceived latency (TTFT)
+- Complex tasks: <3s perceived latency  
+- Quality: Matches or exceeds Claude Opus 4.5
+- Cost: 50-70% reduction vs. naive single-model approach
+
+EXECUTION STRATEGIES:
+1. SINGLE - Ultra-fast model for trivial/simple tasks
+2. SPECULATIVE - Fast streams, smart validates for medium tasks
+3. PARALLEL - Race models for complex tasks
+4. ENSEMBLE - Multiple experts for system design
+
+FILES CREATED:
+server/src/services/ai/krip-toe-nite/
+├── types.ts - Type definitions (TaskType, Complexity, etc.)
+├── model-registry.ts - OpenRouter model configs with performance data
+├── classifier.ts - Intent + complexity classification
+├── router.ts - Intelligent routing decision logic
+├── executor.ts - Speculative/parallel execution engine
+└── index.ts - Main KripToeNite service class
+
+server/src/routes/krip-toe-nite.ts - API endpoints:
+- POST /api/krip-toe-nite/generate - Streaming generation
+- POST /api/krip-toe-nite/generate/sync - Sync generation
+- POST /api/krip-toe-nite/analyze - Prompt analysis
+- GET /api/krip-toe-nite/models - Available models
+- GET /api/krip-toe-nite/stats - Service statistics
+- GET /api/krip-toe-nite/telemetry - Learning Engine data
+
+FRONTEND COMPONENTS CREATED:
+src/components/builder/
+├── BuilderAgentsToggle.tsx - Updated with 3 modes (Builder/Agents/Developer)
+├── ModelSelector.tsx - AI model dropdown with Krip-Toe-Nite as recommended
+└── DeveloperModeView.tsx - Import & enhance existing projects
+
+KEY FEATURES:
+✓ All models via OpenRouter (unified API, no direct keys needed)
+✓ Intelligent task classification (10+ task types)
+✓ Complexity estimation (5 levels: Trivial to Expert)
+✓ Speculative execution (fast + smart in parallel)
+✓ Automatic fallback chains
+✓ Telemetry buffer for Learning Engine integration
+✓ Developer Mode with ZIP/GitHub/External import
+
+MODEL REGISTRY (via OpenRouter):
+SPEED TIER:
+- Gemini Flash (~150ms TTFT)
+- GPT-4o Mini (~200ms)
+- DeepSeek V3 (~300ms)
+- DeepSeek Coder (~350ms)
+- Haiku 3.5 (~400ms)
+
+INTELLIGENCE TIER:
+- Claude Opus 4.5 (~1200ms)
+- Claude Sonnet 4.5 (~800ms)
+- GPT-4o (~600ms)
+- Gemini 2 Pro (~700ms)
+
+SPECIALIST TIER:
+- Qwen Coder 32B
+- Codestral
+- Mistral Large
+
+ROUTING STRATEGY MATRIX:
+- TRIVIAL → Single (Gemini Flash)
+- SIMPLE → Single (DeepSeek Coder)
+- MEDIUM → Speculative (DeepSeek → Claude validates)
+- COMPLEX → Parallel (Claude vs GPT-4o race)
+- EXPERT → Ensemble (Opus-first)
+
+DEVELOPER MODE FEATURES:
+- ZIP file upload and extraction
+- GitHub repository cloning
+- External builder import (Lovable, v0, Bolt, etc.)
+- NLP-based project modifications
+- Model selector with all available models
+
+BUILD STATUS:
+- TypeScript: ✓ No errors
+- Server Build: PASSING
+- Frontend Build: PASSING
+
+INTEGRATION POINTS:
+- OpenRouterClient - All models via unified API
+- Learning Engine - Telemetry feeds back for optimization
+- Verification Swarm - Quality checks outputs
+- Error Escalation - 4-level fallback
+
+REMAINING TASKS:
+- Update Builder.tsx to handle Developer mode
+- Add GitHub OAuth for repository import
+- Implement external builder connectors
+- Full Learning Engine telemetry integration
+
+KRIP-TOE-NITE: Core Engine Implementation COMPLETE ✅

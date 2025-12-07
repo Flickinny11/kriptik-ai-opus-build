@@ -464,6 +464,10 @@ app.use("/api/ghost-mode", promptSanitizer, requireCredits(150), ghostModeRouter
 // Autonomous Learning Engine - System status, patterns, strategies, insights
 app.use("/api/learning", learningRouter);
 
+// Krip-Toe-Nite - Intelligent Model Orchestration
+import kripToeNiteRouter from './routes/krip-toe-nite.js';
+app.use("/api/krip-toe-nite", kripToeNiteRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
