@@ -1,12 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
   "builds": [
     {
       "src": "api/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**/*.js", "package.json", "node_modules/**/*"]
+        "includeFiles": ["src/**/*.ts", "src/**/*.js"]
       }
     }
   ],

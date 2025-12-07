@@ -8,11 +8,34 @@
  * - Screenshot capture for visual verification
  *
  * Uses Playwright for browser control with AI-powered natural language actions
+ * NOTE: Playwright is an optional dependency - not available in serverless environments
  */
 
-import { chromium, Browser, Page, BrowserContext, ConsoleMessage } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
 import { createClaudeService, ClaudeService } from '../ai/claude-service.js';
+
+// Lazy-load playwright to handle serverless environments where it's not available
+let playwrightModule: typeof import('playwright') | null = null;
+let playwrightAvailable = false;
+
+async function getPlaywright(): Promise<typeof import('playwright')> {
+    if (playwrightModule) return playwrightModule;
+    
+    try {
+        playwrightModule = await import('playwright');
+        playwrightAvailable = true;
+        return playwrightModule;
+    } catch (error) {
+        playwrightAvailable = false;
+        throw new Error('Playwright is not available in this environment. Browser automation requires a full server deployment.');
+    }
+}
+
+// Type imports for when playwright is available
+type Browser = import('playwright').Browser;
+type Page = import('playwright').Page;
+type BrowserContext = import('playwright').BrowserContext;
+type ConsoleMessage = import('playwright').ConsoleMessage;
 
 export interface ConsoleLog {
     id: string;
@@ -95,6 +118,9 @@ export class BrowserAutomationService {
         }
 
         try {
+            // Get playwright (will throw if not available)
+            const { chromium } = await getPlaywright();
+            
             // Launch browser
             this.browser = await chromium.launch({
                 headless: !this.config.headed,

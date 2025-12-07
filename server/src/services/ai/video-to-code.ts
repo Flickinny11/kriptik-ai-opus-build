@@ -3,6 +3,7 @@
  *
  * Analyzes video screen recordings and reproduces the UI/interactions as code.
  * Uses ffmpeg for frame extraction and Claude vision for UI analysis.
+ * NOTE: FFmpeg is an optional dependency - not available in serverless environments
  */
 
 import { promises as fs } from 'fs';
@@ -10,13 +11,38 @@ import { tmpdir } from 'os';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { getModelRouter } from './model-router.js';
 import { getImageToCodeService, type ImageToCodeResult } from './image-to-code.js';
 
-// Configure ffmpeg with the bundled binary
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+// Lazy-load ffmpeg to handle serverless environments where it's not available
+let ffmpegInstance: ((input?: string) => import('fluent-ffmpeg').FfmpegCommand) & {
+    ffprobe: (file: string, callback: (err: Error | null, metadata: any) => void) => void;
+    setFfmpegPath: (path: string) => void;
+} | null = null;
+let ffmpegAvailable = false;
+
+type FfmpegFunction = ((input?: string) => import('fluent-ffmpeg').FfmpegCommand) & {
+    ffprobe: (file: string, callback: (err: Error | null, metadata: any) => void) => void;
+    setFfmpegPath: (path: string) => void;
+};
+
+async function getFfmpeg(): Promise<FfmpegFunction> {
+    if (ffmpegInstance) return ffmpegInstance;
+    
+    try {
+        const ffmpegModule = await import('fluent-ffmpeg');
+        const ffmpegInstaller = await import('@ffmpeg-installer/ffmpeg');
+        
+        // fluent-ffmpeg exports the function directly
+        ffmpegInstance = ffmpegModule.default as unknown as FfmpegFunction;
+        ffmpegInstance.setFfmpegPath(ffmpegInstaller.default.path);
+        ffmpegAvailable = true;
+        return ffmpegInstance;
+    } catch (error) {
+        ffmpegAvailable = false;
+        throw new Error('FFmpeg is not available in this environment. Video processing requires a full server deployment.');
+    }
+}
 
 // =============================================================================
 // TYPES
@@ -390,6 +416,9 @@ export class VideoToCodeService extends EventEmitter {
         const framesDir = path.join(workDir, 'frames');
         await fs.mkdir(framesDir, { recursive: true });
 
+        // Get ffmpeg (will throw if not available)
+        const ffmpeg = await getFfmpeg();
+
         // Get video duration first
         const duration = await this.getVideoDuration(videoPath);
         const fps = Math.min(maxFrames / duration, 2); // Cap at 2 fps
@@ -445,15 +474,20 @@ export class VideoToCodeService extends EventEmitter {
      * Get video duration using fluent-ffmpeg
      */
     private async getVideoDuration(videoPath: string): Promise<number> {
-        return new Promise((resolve) => {
-            ffmpeg.ffprobe(videoPath, (err, metadata) => {
-                if (err || !metadata || !metadata.format || !metadata.format.duration) {
-                    resolve(30); // Default 30s if can't probe
-                    return;
-                }
-                resolve(metadata.format.duration);
+        try {
+            const ffmpeg = await getFfmpeg();
+            return new Promise((resolve) => {
+                ffmpeg.ffprobe(videoPath, (err: Error | null, metadata: { format?: { duration?: number } }) => {
+                    if (err || !metadata || !metadata.format || !metadata.format.duration) {
+                        resolve(30); // Default 30s if can't probe
+                        return;
+                    }
+                    resolve(metadata.format.duration);
+                });
             });
-        });
+        } catch {
+            return 30; // Default 30s if ffmpeg not available
+        }
     }
 
     /**
