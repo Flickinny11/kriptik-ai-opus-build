@@ -162,44 +162,44 @@ export interface CreditTopUp {
 }
 
 export const CREDIT_TOPUPS: CreditTopUp[] = [
-    { 
-        id: 'topup_100', 
-        credits: 100, 
-        price: 15, 
+    {
+        id: 'topup_100',
+        credits: 100,
+        price: 15,
         label: '$15 - 100 credits',
         pricePerCredit: 0.15,
         stripePriceId: process.env.STRIPE_TOPUP_TOPUP_100_PRICE || 'price_1SbdJ92KRfBV8ELzG1rqpBsp',
     },
-    { 
-        id: 'topup_300', 
-        credits: 300, 
-        price: 39, 
+    {
+        id: 'topup_300',
+        credits: 300,
+        price: 39,
         label: '$39 - 300 credits',
         pricePerCredit: 0.13,
         stripePriceId: process.env.STRIPE_TOPUP_TOPUP_300_PRICE || 'price_1SbdJA2KRfBV8ELzRZn1AhFQ',
         badge: 'Popular',
     },
-    { 
-        id: 'topup_500', 
-        credits: 500, 
-        price: 59, 
+    {
+        id: 'topup_500',
+        credits: 500,
+        price: 59,
         label: '$59 - 500 credits',
         pricePerCredit: 0.118,
         stripePriceId: process.env.STRIPE_TOPUP_TOPUP_500_PRICE || 'price_1SbdJA2KRfBV8ELzQvjnXqrF',
     },
-    { 
-        id: 'topup_1000', 
-        credits: 1000, 
-        price: 99, 
+    {
+        id: 'topup_1000',
+        credits: 1000,
+        price: 99,
         label: '$99 - 1000 credits',
         pricePerCredit: 0.099,
         stripePriceId: process.env.STRIPE_TOPUP_TOPUP_1000_PRICE || 'price_1SbdJA2KRfBV8ELzFAwez6U5',
         badge: 'Best Value',
     },
-    { 
-        id: 'topup_2500', 
-        credits: 2500, 
-        price: 199, 
+    {
+        id: 'topup_2500',
+        credits: 2500,
+        price: 199,
         label: '$199 - 2500 credits',
         pricePerCredit: 0.0796,
         stripePriceId: process.env.STRIPE_TOPUP_TOPUP_2500_PRICE || 'price_1SbdJB2KRfBV8ELzwV0RiS6y',

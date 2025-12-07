@@ -324,26 +324,109 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                 const customerId = session.customer as string;
                 const subscriptionId = session.subscription as string;
 
-                if (userId) {
+                // Check if this is a custom top-up
+                if (session.metadata?.type === 'custom_topup' && userId) {
+                    const credits = parseInt(session.metadata.credits || '0');
+                    
+                    if (credits > 0) {
+                        // Add credits to user account
+                        const userRecords = await db
+                            .select({ credits: users.credits })
+                            .from(users)
+                            .where(eq(users.id, userId))
+                            .limit(1);
+
+                        const currentCredits = userRecords[0]?.credits || 0;
+                        
+                        await db.update(users)
+                            .set({ credits: currentCredits + credits })
+                            .where(eq(users.id, userId));
+
+                        console.log(`Custom top-up: Added ${credits} credits to user ${userId}`);
+                    }
+                    break;
+                }
+
+                // Check if this is a preset top-up
+                if (session.metadata?.topup_id && userId) {
+                    const credits = parseInt(session.metadata.credits || '0');
+                    
+                    if (credits > 0) {
+                        const userRecords = await db
+                            .select({ credits: users.credits })
+                            .from(users)
+                            .where(eq(users.id, userId))
+                            .limit(1);
+
+                        const currentCredits = userRecords[0]?.credits || 0;
+                        
+                        await db.update(users)
+                            .set({ credits: currentCredits + credits })
+                            .where(eq(users.id, userId));
+
+                        console.log(`Top-up: Added ${credits} credits to user ${userId}`);
+                    }
+                    break;
+                }
+
+                // Otherwise it's a subscription
+                if (userId && subscriptionId) {
+                    // Determine plan from the price
+                    const planCredits: Record<string, number> = {
+                        'starter': 300,
+                        'builder': 800,
+                        'developer': 2000,
+                        'pro': 5000,
+                    };
+
+                    // Get the line items to determine the plan
+                    const stripe = getStripe();
+                    const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+                    const priceId = lineItems.data[0]?.price?.id;
+                    
+                    let plan = 'starter';
+                    let creditsPerMonth = 300;
+
+                    // Match price ID to plan
+                    if (priceId?.includes('builder') || priceId === process.env.STRIPE_PRICE_BUILDER_MONTHLY || priceId === process.env.STRIPE_PRICE_BUILDER_YEARLY) {
+                        plan = 'builder';
+                        creditsPerMonth = 800;
+                    } else if (priceId?.includes('developer') || priceId === process.env.STRIPE_PRICE_DEVELOPER_MONTHLY || priceId === process.env.STRIPE_PRICE_DEVELOPER_YEARLY) {
+                        plan = 'developer';
+                        creditsPerMonth = 2000;
+                    } else if (priceId?.includes('pro') || priceId === process.env.STRIPE_PRICE_PRO_MONTHLY || priceId === process.env.STRIPE_PRICE_PRO_YEARLY) {
+                        plan = 'pro';
+                        creditsPerMonth = 5000;
+                    }
+
                     // Update user subscription in database
                     await db.insert(subscriptions).values({
                         userId,
                         stripeCustomerId: customerId,
                         stripeSubscriptionId: subscriptionId,
-                        plan: 'pro', // Determine from price
+                        plan,
                         status: 'active',
-                        creditsPerMonth: 1000,
+                        creditsPerMonth,
                     }).onConflictDoUpdate({
                         target: subscriptions.userId,
                         set: {
                             stripeCustomerId: customerId,
                             stripeSubscriptionId: subscriptionId,
-                            plan: 'pro',
+                            plan,
                             status: 'active',
+                            creditsPerMonth,
                         },
                     });
 
-                    console.log(`Subscription created for user ${userId}`);
+                    // Also set user's credits to the plan amount
+                    await db.update(users)
+                        .set({ 
+                            credits: creditsPerMonth,
+                            tier: plan,
+                        })
+                        .where(eq(users.id, userId));
+
+                    console.log(`Subscription created for user ${userId}: ${plan} (${creditsPerMonth} credits/month)`);
                 }
                 break;
             }
@@ -754,10 +837,187 @@ router.post('/topup', async (req: Request, res: Response) => {
 router.get('/topups', async (req: Request, res: Response) => {
     try {
         const stripe = getStripeService();
-        res.json({ topups: stripe.getTopUps() });
+        res.json({ 
+            topups: stripe.getTopUps(),
+            customTopup: {
+                enabled: true,
+                minAmount: 5,
+                maxAmount: 1000,
+                creditsPerDollar: 6, // Base rate: $1 = 6 credits (16.7¢/credit)
+                bonusTiers: [
+                    { threshold: 25, bonus: 0.10 },  // 10% bonus at $25+
+                    { threshold: 50, bonus: 0.15 },  // 15% bonus at $50+
+                    { threshold: 100, bonus: 0.20 }, // 20% bonus at $100+
+                    { threshold: 250, bonus: 0.25 }, // 25% bonus at $250+
+                    { threshold: 500, bonus: 0.30 }, // 30% bonus at $500+
+                ],
+            },
+        });
     } catch (error) {
         console.error('Error fetching top-ups:', error);
         res.status(500).json({ error: 'Failed to fetch top-ups' });
+    }
+});
+
+/**
+ * POST /api/billing/topup/custom
+ * Create a checkout session for custom credit top-up amount
+ * 
+ * Body:
+ * - amount: Dollar amount (integer, min $5, no cents)
+ * 
+ * Credit calculation:
+ * - Base rate: $1 = 6 credits (16.7¢/credit)
+ * - Bonus tiers based on amount
+ */
+router.post('/topup/custom', async (req: Request, res: Response) => {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const { amount } = req.body;
+
+        // Validate amount
+        if (!amount || typeof amount !== 'number') {
+            res.status(400).json({ error: 'Amount is required and must be a number' });
+            return;
+        }
+
+        // Must be whole dollars, minimum $5
+        if (amount < 5) {
+            res.status(400).json({ error: 'Minimum top-up amount is $5' });
+            return;
+        }
+
+        if (!Number.isInteger(amount)) {
+            res.status(400).json({ error: 'Amount must be whole dollars (no cents)' });
+            return;
+        }
+
+        if (amount > 1000) {
+            res.status(400).json({ error: 'Maximum top-up amount is $1000. Contact support for larger amounts.' });
+            return;
+        }
+
+        // Calculate credits with bonus tiers
+        const baseCreditsPerDollar = 6;
+        let bonusMultiplier = 1.0;
+
+        if (amount >= 500) bonusMultiplier = 1.30;      // 30% bonus
+        else if (amount >= 250) bonusMultiplier = 1.25; // 25% bonus
+        else if (amount >= 100) bonusMultiplier = 1.20; // 20% bonus
+        else if (amount >= 50) bonusMultiplier = 1.15;  // 15% bonus
+        else if (amount >= 25) bonusMultiplier = 1.10;  // 10% bonus
+
+        const credits = Math.floor(amount * baseCreditsPerDollar * bonusMultiplier);
+        const bonusCredits = credits - (amount * baseCreditsPerDollar);
+
+        const stripe = getStripe();
+
+        // Get or create customer
+        const existingCustomers = await stripe.customers.list({ 
+            email: `user-${userId}@example.com`, 
+            limit: 1 
+        });
+        
+        let customerId: string;
+        if (existingCustomers.data.length > 0) {
+            customerId = existingCustomers.data[0].id;
+        } else {
+            const newCustomer = await stripe.customers.create({
+                email: `user-${userId}@example.com`,
+                metadata: { userId },
+            });
+            customerId = newCustomer.id;
+        }
+
+        // Create checkout session with dynamic pricing
+        const session = await stripe.checkout.sessions.create({
+            customer: customerId,
+            mode: 'payment',
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: `${credits} Credits`,
+                        description: bonusCredits > 0 
+                            ? `${amount * baseCreditsPerDollar} base + ${bonusCredits} bonus credits`
+                            : `Credit top-up for KripTik AI`,
+                    },
+                    unit_amount: amount * 100, // Convert to cents
+                },
+                quantity: 1,
+            }],
+            success_url: `${process.env.FRONTEND_URL}/dashboard?topup=success&credits=${credits}`,
+            cancel_url: `${process.env.FRONTEND_URL}/dashboard?topup=cancelled`,
+            metadata: {
+                userId,
+                type: 'custom_topup',
+                credits: credits.toString(),
+                amount: amount.toString(),
+                bonusCredits: bonusCredits.toString(),
+            },
+        });
+
+        res.json({ 
+            url: session.url,
+            credits,
+            bonusCredits,
+            pricePerCredit: (amount / credits).toFixed(3),
+        });
+    } catch (error) {
+        console.error('Error creating custom top-up session:', error);
+        res.status(500).json({ error: 'Failed to create top-up session' });
+    }
+});
+
+/**
+ * GET /api/billing/topup/calculate
+ * Calculate credits for a custom amount (preview, no checkout)
+ */
+router.get('/topup/calculate', async (req: Request, res: Response) => {
+    try {
+        const amount = parseInt(req.query.amount as string);
+
+        if (!amount || isNaN(amount) || amount < 5) {
+            res.status(400).json({ error: 'Valid amount required (minimum $5)' });
+            return;
+        }
+
+        // Calculate credits with bonus tiers
+        const baseCreditsPerDollar = 6;
+        let bonusMultiplier = 1.0;
+        let bonusTier = 'none';
+
+        if (amount >= 500) { bonusMultiplier = 1.30; bonusTier = '30% bonus'; }
+        else if (amount >= 250) { bonusMultiplier = 1.25; bonusTier = '25% bonus'; }
+        else if (amount >= 100) { bonusMultiplier = 1.20; bonusTier = '20% bonus'; }
+        else if (amount >= 50) { bonusMultiplier = 1.15; bonusTier = '15% bonus'; }
+        else if (amount >= 25) { bonusMultiplier = 1.10; bonusTier = '10% bonus'; }
+
+        const baseCredits = amount * baseCreditsPerDollar;
+        const totalCredits = Math.floor(baseCredits * bonusMultiplier);
+        const bonusCredits = totalCredits - baseCredits;
+
+        res.json({
+            amount,
+            baseCredits,
+            bonusCredits,
+            totalCredits,
+            bonusTier,
+            pricePerCredit: (amount / totalCredits).toFixed(3),
+            nextTier: amount < 25 ? { amount: 25, bonus: '10%' } :
+                      amount < 50 ? { amount: 50, bonus: '15%' } :
+                      amount < 100 ? { amount: 100, bonus: '20%' } :
+                      amount < 250 ? { amount: 250, bonus: '25%' } :
+                      amount < 500 ? { amount: 500, bonus: '30%' } : null,
+        });
+    } catch (error) {
+        console.error('Error calculating top-up:', error);
+        res.status(500).json({ error: 'Failed to calculate top-up' });
     }
 });
 
