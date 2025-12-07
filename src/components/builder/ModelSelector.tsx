@@ -21,10 +21,13 @@ export interface ModelOption {
     quality: 'good' | 'excellent' | 'best';
     costTier: 'economy' | 'standard' | 'premium';
     recommended?: boolean;
+    isNew?: boolean;
 }
 
-// Available models (matches server-side registry)
+// Available models - Updated December 7, 2025
+// Matches server-side registry
 export const AVAILABLE_MODELS: ModelOption[] = [
+    // RECOMMENDED - Krip-Toe-Nite orchestration
     {
         id: 'krip-toe-nite',
         name: '⚡ Krip-Toe-Nite',
@@ -35,6 +38,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         costTier: 'standard',
         recommended: true,
     },
+    // INTELLIGENCE TIER - December 2025 Latest
     {
         id: 'claude-opus-4.5',
         name: '🧠 Claude Opus 4.5',
@@ -54,9 +58,40 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         costTier: 'standard',
     },
     {
-        id: 'haiku-3.5',
-        name: '🚀 Claude Haiku 3.5',
-        description: 'Fastest Anthropic model',
+        id: 'gpt-5.1',
+        name: '🚀 GPT-5.1',
+        description: 'Latest OpenAI with 400K context',
+        tier: 'intelligence',
+        speed: 'medium',
+        quality: 'excellent',
+        costTier: 'standard',
+        isNew: true,
+    },
+    {
+        id: 'gemini-3-pro',
+        name: '✨ Gemini 3 Pro',
+        description: 'Google latest with visual understanding',
+        tier: 'intelligence',
+        speed: 'medium',
+        quality: 'excellent',
+        costTier: 'standard',
+        isNew: true,
+    },
+    {
+        id: 'grok-4',
+        name: '🌐 Grok 4',
+        description: 'xAI with 2M context + real-time info',
+        tier: 'intelligence',
+        speed: 'medium',
+        quality: 'excellent',
+        costTier: 'premium',
+        isNew: true,
+    },
+    // SPEED TIER - Ultra-fast responses
+    {
+        id: 'gemini-flash',
+        name: '⚡ Gemini 2.0 Flash',
+        description: 'Ultra-fast with 1M context',
         tier: 'speed',
         speed: 'fast',
         quality: 'good',
@@ -72,22 +107,42 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         costTier: 'economy',
     },
     {
-        id: 'gpt-4o',
-        name: '🎯 GPT-4o',
-        description: "OpenAI's flagship model",
-        tier: 'intelligence',
+        id: 'haiku-3.5',
+        name: '🚀 Claude Haiku 3.5',
+        description: 'Fastest Anthropic model',
+        tier: 'speed',
+        speed: 'fast',
+        quality: 'good',
+        costTier: 'economy',
+    },
+    // SPECIALIST TIER - Code-focused
+    {
+        id: 'deepseek-r1',
+        name: '🎯 DeepSeek R1',
+        description: 'Reasoning specialist with chain-of-thought',
+        tier: 'specialist',
         speed: 'medium',
         quality: 'excellent',
-        costTier: 'standard',
+        costTier: 'economy',
+        isNew: true,
     },
     {
-        id: 'gemini-2-pro',
-        name: '🌟 Gemini 2.0 Pro',
-        description: 'Great for long contexts',
-        tier: 'intelligence',
-        speed: 'medium',
+        id: 'qwen-coder-32b',
+        name: '💻 Qwen Coder 32B',
+        description: 'Excellent code quality',
+        tier: 'specialist',
+        speed: 'fast',
         quality: 'excellent',
-        costTier: 'standard',
+        costTier: 'economy',
+    },
+    {
+        id: 'codestral',
+        name: '🛠️ Codestral',
+        description: 'Fast code with fill-in-middle',
+        tier: 'specialist',
+        speed: 'fast',
+        quality: 'good',
+        costTier: 'economy',
     },
 ];
 
@@ -254,6 +309,11 @@ export function ModelSelector({
                                                 {model.recommended && (
                                                     <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] font-bold rounded">
                                                         RECOMMENDED
+                                                    </span>
+                                                )}
+                                                {model.isNew && !model.recommended && (
+                                                    <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded">
+                                                        NEW
                                                     </span>
                                                 )}
                                             </div>

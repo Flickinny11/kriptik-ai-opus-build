@@ -1899,7 +1899,7 @@ multiple frontier models for maximum speed, quality, and cost efficiency.
 
 TARGET OUTCOMES:
 - Simple tasks: <500ms perceived latency (TTFT)
-- Complex tasks: <3s perceived latency  
+- Complex tasks: <3s perceived latency
 - Quality: Matches or exceeds Claude Opus 4.5
 - Cost: 50-70% reduction vs. naive single-model approach
 

@@ -262,7 +262,7 @@ export function DeveloperModeView() {
                                                         value={githubUrl}
                                                         onChange={(e) => setGithubUrl(e.target.value)}
                                                         placeholder="https://github.com/username/repo"
-                                                        className="flex-1 px-4 py-3 rounded-lg bg-white/5 border border-white/10 
+                                                        className="flex-1 px-4 py-3 rounded-lg bg-white/5 border border-white/10
                                                                  text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400"
                                                     />
                                                     <button
@@ -412,7 +412,7 @@ export function DeveloperModeView() {
                                         <span className="text-white text-sm font-medium block">
                                             {item.label}
                                         </span>
-                                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-cyan-400 
+                                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-cyan-400
                                                                   absolute right-4 top-1/2 -translate-y-1/2
                                                                   opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </button>

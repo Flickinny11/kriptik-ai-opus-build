@@ -320,9 +320,6 @@ export function resetKripToeNiteService(): void {
 // EXPORTS
 // =============================================================================
 
-// Main service
-export { KripToeNiteService };
-
 // Types
 export * from './types.js';
 

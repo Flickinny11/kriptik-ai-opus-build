@@ -57,7 +57,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
     };
 
     return (
-        <div 
+        <div
             className="flex items-center gap-1 p-1 rounded-xl relative"
             style={{
                 background: isDarkMode
