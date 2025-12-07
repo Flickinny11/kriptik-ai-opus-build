@@ -617,7 +617,7 @@ Generate production-ready code for this feature.`;
         // Use Krip-Toe-Nite for intelligent model routing
         const ktn = getKripToeNiteService();
         let responseContent = '';
-        
+
         try {
             for await (const chunk of ktn.generate({
                 prompt,
@@ -627,7 +627,6 @@ Use TypeScript/React best practices.`,
                 context: {
                     framework: 'React',
                     language: 'TypeScript',
-                    buildPhase: phaseConfig.name,
                 },
                 maxTokens: 32000,
             })) {

@@ -58,7 +58,7 @@ export function DeveloperModeView() {
     const [prompt, setPrompt] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [githubUrl, setGithubUrl] = useState('');
-    
+
     // Generation state
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
@@ -164,7 +164,7 @@ export function DeveloperModeView() {
     // Handle generation with Krip-Toe-Nite
     const handleGenerate = useCallback(async () => {
         if (!prompt.trim() || !importedProject) return;
-        
+
         setIsGenerating(true);
         setGeneratedCode('');
         setKtnStats(null);

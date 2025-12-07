@@ -494,13 +494,6 @@ export class StripeBillingService {
     getPlans(): BillingPlan[] {
         return BILLING_PLANS;
     }
-
-    /**
-     * Get credit top-up packages
-     */
-    getTopUps() {
-        return CREDIT_TOPUPS;
-    }
 }
 
 /**

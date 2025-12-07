@@ -255,7 +255,7 @@ export default function ChatInterface() {
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
     const [showBreakdown, setShowBreakdown] = useState(false);
-    
+
     // KTN State
     const [selectedModel, setSelectedModel] = useState<ChatModel>('krip-toe-nite');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -346,7 +346,7 @@ export default function ChatInterface() {
                 setIsTyping(false);
                 setStreamController(null);
                 setKtnStats({ model: modelUsed, ttftMs, strategy: strategyUsed });
-                
+
                 // Update final message with stats
                 setMessages(prev => prev.map(m =>
                     m.id === msgId ? { ...m, model: modelUsed, ttftMs, strategy: strategyUsed } : m
@@ -394,7 +394,7 @@ export default function ChatInterface() {
                 agentType: 'krip-toe-nite',
             };
             setMessages(prev => [...prev, systemMessage]);
-            
+
             handleKtnStream(prompt);
         } else {
             // Use multi-agent orchestrator
@@ -411,7 +411,7 @@ export default function ChatInterface() {
             setIsTyping(false);
         }
     };
-    
+
     // Stop KTN stream
     const handleStopKtn = useCallback(() => {
         if (streamController) {
@@ -668,7 +668,7 @@ export default function ChatInterface() {
                                     </MessageCard>
                                 </motion.div>
                             )}
-                            
+
                             {/* KTN Stats banner after completion */}
                             {ktnStats && !isTyping && selectedModel === 'krip-toe-nite' && (
                                 <motion.div
@@ -746,7 +746,7 @@ export default function ChatInterface() {
                         </span>
                         <ChevronDown className="w-3 h-3 text-gray-500" />
                     </button>
-                    
+
                     <AnimatePresence>
                         {showModelDropdown && (
                             <motion.div
@@ -819,7 +819,7 @@ export default function ChatInterface() {
                         <div className="flex-1">
                             <textarea
                                 ref={inputRef}
-                                placeholder={selectedModel === 'krip-toe-nite' 
+                                placeholder={selectedModel === 'krip-toe-nite'
                                     ? "Ask anything... ⚡ Ultra-fast response"
                                     : "Describe what you want to build..."}
                                 value={input}

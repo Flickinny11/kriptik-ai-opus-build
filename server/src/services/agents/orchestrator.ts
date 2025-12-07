@@ -21,7 +21,12 @@ import {
     ModelRecommendation,
 } from './types.js';
 import { getContextStore, ContextStore } from './context-store.js';
-import { createAnthropicClient, getClaudeModelId } from '../../utils/anthropic-client.js';
+import {
+    getOpenRouterClient,
+    getPhaseConfig,
+    OPENROUTER_MODELS,
+    type OpenRouterModel,
+} from '../ai/openrouter-client.js';
 
 // ============================================================================
 // AGENT EXECUTORS
@@ -132,16 +137,16 @@ export class AgentOrchestrator extends EventEmitter {
     }
 
     /**
-     * Initialize Anthropic client (uses OpenRouter if direct key not available)
+     * Initialize Anthropic client via OpenRouterClient
+     * All calls route through openrouter.ai/api/v1 with phase-based configuration
      */
     private initializeClient(): void {
-        const client = createAnthropicClient();
-
-        if (client) {
-            this.client = client;
-            console.log('[AgentOrchestrator] Initialized with OpenRouter');
-        } else {
-            console.warn('No AI API key configured. Agent orchestrator will not function.');
+        try {
+            const openRouter = getOpenRouterClient();
+            this.client = openRouter.getClient();
+            console.log('[AgentOrchestrator] Initialized via OpenRouter with beta features:', openRouter.getEnabledBetas().join(', '));
+        } catch (error) {
+            console.warn('[AgentOrchestrator] No OpenRouter API key configured. Agent orchestrator will not function.');
         }
     }
 
@@ -282,7 +287,25 @@ export class AgentOrchestrator extends EventEmitter {
     }
 
     /**
-     * Run an agent task using Claude
+     * Map agent types to build phases for optimal model selection
+     */
+    private getPhaseForAgentType(agentType: AgentType): string {
+        const phaseMap: Record<AgentType, string> = {
+            planning: 'intent_lock',       // Critical - uses Opus 4.5 HIGH effort
+            coding: 'build_agent',          // Main coding - uses Sonnet 4.5
+            testing: 'error_check',         // Verification - uses Sonnet 4.5
+            deployment: 'build_orchestrator', // Coordination - uses Opus 4.5 MEDIUM
+            research: 'initialization',     // Research - uses Opus 4.5 MEDIUM
+            integration: 'build_agent',     // Integration - uses Sonnet 4.5
+            review: 'visual_verify',        // Review - uses Sonnet 4.5 HIGH
+            debug: 'error_check',           // Debug - uses Sonnet 4.5
+        };
+        return phaseMap[agentType] || 'build_agent';
+    }
+
+    /**
+     * Run an agent task using OpenRouter with phase-based model selection
+     * All calls route through openrouter.ai/api/v1 with December 2025 beta features
      */
     private async runAgentTask(
         agentType: AgentType,
@@ -304,6 +327,12 @@ export class AgentOrchestrator extends EventEmitter {
 
         const systemPrompt = AGENT_SYSTEM_PROMPTS[agentType];
 
+        // Get phase-based configuration for this agent type
+        const phase = this.getPhaseForAgentType(agentType);
+        const phaseConfig = getPhaseConfig(phase);
+        
+        console.log(`[AgentOrchestrator] Running ${agentType} task via OpenRouter - Model: ${phaseConfig.model}, Effort: ${phaseConfig.effort}`);
+
         // Build context-aware prompt
         const contextSummary = this.contextStore.getContextSummary(context.id);
 
@@ -324,13 +353,28 @@ Execute this task according to your role. Provide complete, production-ready out
 `;
 
         try {
+            // Build request with phase-based configuration
+            const openRouter = getOpenRouterClient();
+            const params = openRouter.buildRequestParams({
+                phase,
+                maxTokens: 8192,
+            });
+
             const response = await this.client.messages.create({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
+                model: phaseConfig.model,
+                max_tokens: params.max_tokens as number || 8192,
                 system: systemPrompt,
                 messages: [
                     { role: 'user', content: userPrompt }
                 ],
+                // Add extended thinking if phase config enables it
+                ...(phaseConfig.thinkingBudget > 0 ? {
+                    thinking: {
+                        type: 'enabled' as const,
+                        budget_tokens: phaseConfig.thinkingBudget,
+                    },
+                    temperature: 1, // Required for extended thinking
+                } : {}),
             });
 
             const content = response.content[0];
@@ -347,6 +391,7 @@ Execute this task according to your role. Provide complete, production-ready out
                 tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
             };
         } catch (error) {
+            console.error(`[AgentOrchestrator] OpenRouter call failed for ${agentType}:`, error);
             return {
                 taskId: task.id,
                 success: false,

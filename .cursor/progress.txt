@@ -2282,3 +2282,49 @@ Users must create their own ADMIN_SECRET for protecting admin endpoints:
 - POST /api/billing/cleanup
 Example: ADMIN_SECRET=kriptik_admin_8f7d2e9a4b1c6f3e5d8a2b7c9e4f1a3d
 
+
+═══ [2025-12-07 OpenRouter Integration Complete] ═══
+COMPLETED: Unified AI Service Routing Through OpenRouterClient
+
+VERIFICATION RESULT: All AI services now route through OpenRouter API
+
+FILES MODIFIED:
+- server/src/services/agents/orchestrator.ts
+  - Replaced createAnthropicClient import with OpenRouterClient
+  - Added getPhaseForAgentType() for phase-based model selection
+  - Updated runAgentTask() to use phase config (model, effort, thinking budget)
+  - Added logging: "[AgentOrchestrator] Running via OpenRouter - Model: X, Effort: Y"
+
+- server/src/services/automation/build-loop.ts
+  - Fixed context parameter in KTN generate call (removed invalid buildPhase property)
+
+- server/src/services/billing/stripe.ts
+  - Removed duplicate getTopUps() method
+
+ROUTING VERIFICATION:
+✅ ClaudeService → getOpenRouterClient().withContext() → openrouter.ai/api/v1
+✅ AgentOrchestrator → getOpenRouterClient().getClient() → openrouter.ai/api/v1
+✅ QueenAgent → ClaudeService → OpenRouterClient
+✅ WorkerAgent → ClaudeService → OpenRouterClient
+✅ BuildLoopOrchestrator → KripToeNiteService + ClaudeService → OpenRouterClient
+✅ DevelopmentOrchestrator → ClaudeService + KripToeNiteService → OpenRouterClient
+
+PHASE-BASED MODEL SELECTION:
+- planning → intent_lock → Opus 4.5, HIGH effort, 64K thinking
+- coding → build_agent → Sonnet 4.5, MEDIUM effort, 16K thinking
+- testing → error_check → Sonnet 4.5, MEDIUM effort, 8K thinking
+- deployment → build_orchestrator → Opus 4.5, MEDIUM effort, 16K thinking
+- review → visual_verify → Sonnet 4.5, HIGH effort, 32K thinking
+
+DECEMBER 2025 BETA FEATURES ENABLED:
+- effort-2025-11-24: Effort parameter control
+- interleaved-thinking-2025-05-14: Think between tool calls
+- context-management-2025-06-27: Memory tool + context editing
+
+CURRENT STATE:
+- TypeScript Build: PASSING (Exit 0)
+- All services unified through OpenRouter
+- Phase-based configuration active
+
+NEXT:
+- Push to GitHub for Vercel deployment
