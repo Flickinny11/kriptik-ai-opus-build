@@ -6,14 +6,15 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ status: 'ok', message: 'Vercel serverless function working!' });
     }
 
-    // Import Express app - use .js extension for ESM compatibility
-    return import('../src/index.js').then(({ default: app }) => {
+    // Import Express app from dist/ directory (compiled JS)
+    return import('../dist/index.js').then(({ default: app }) => {
         return app(req, res);
     }).catch((error) => {
+        console.error('[Vercel] Failed to load Express app:', error);
         return res.status(500).json({
             error: 'Failed to load Express app',
             message: error.message,
-            stack: error.stack
+            stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
         });
     });
 }

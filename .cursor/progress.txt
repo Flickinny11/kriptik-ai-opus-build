@@ -3414,3 +3414,58 @@ NEXT STEPS:
 2. Connect "Implement This" to build system
 3. Integrate with Clone Mode for "clone competitor feature"
 4. Add scheduled re-analysis cron job
+
+═══ [2025-12-07 OPENROUTER CLIENT FIX] ═══
+COMPLETED: Fix OpenRouter client usage in market-fit-oracle and user-twin
+
+ROOT CAUSE ANALYSIS:
+- The OpenRouterClient class does NOT have a .generate() method
+- Code was incorrectly calling: openRouterClient.generate({...})
+- PhaseConfig interface only has: model, effort, thinkingBudget, description
+- Code was incorrectly referencing: phaseConfig.maxTokens (doesn't exist)
+
+CORRECT PATTERN (from architecture):
+```typescript
+// Initialization
+private openRouter: OpenRouterClient;
+private client: Anthropic;
+
+constructor() {
+    this.openRouter = getOpenRouterClient();
+    this.client = this.openRouter.getClient();
+}
+
+// Making AI calls - use Anthropic SDK pattern
+const response = await this.client.messages.create({
+    model: phaseConfig.model,
+    max_tokens: 8000,
+    system: 'System prompt here',
+    messages: [{ role: 'user', content: prompt }],
+});
+
+// Response parsing
+const content = response.content[0];
+const text = content.type === 'text' ? content.text : '';
+```
+
+FILES FIXED:
+1. server/src/services/market/market-fit-oracle.ts
+   - Changed createOpenRouterClient → getOpenRouterClient
+   - Added Anthropic import
+   - Fixed 3 AI call sites to use client.messages.create()
+   - Added extended thinking support for gap analysis
+
+2. server/src/services/testing/user-twin.ts
+   - Changed createOpenRouterClient → getOpenRouterClient
+   - Added Anthropic import
+   - Fixed 2 AI call sites to use client.messages.create()
+
+CURRENT STATE:
+- Build: PASSING
+- Git commit: c783f00
+- Pushed to: main branch
+
+THIS SHOULD FIX:
+- TS2724: 'createOpenRouterClient' → 'getOpenRouterClient'
+- TS2339: 'maxTokens' does not exist on 'PhaseConfig'
+- Runtime 500 errors on Vercel (caused by TypeScript errors)
