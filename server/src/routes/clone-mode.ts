@@ -267,7 +267,7 @@ router.post('/generate', authMiddleware, async (req: Request, res: Response) => 
             // Update database with generated code
             await db.update(cloneModeSessions)
                 .set({
-                    status: 'generated',
+                    status: 'complete',
                     generatedCode: codeResult as any
                 })
                 .where(eq(cloneModeSessions.id, sessionId));
@@ -290,7 +290,7 @@ router.post('/generate', authMiddleware, async (req: Request, res: Response) => 
         // Update database
         await db.update(cloneModeSessions)
             .set({
-                status: 'generated',
+                status: 'complete',
                 generatedCode: codeResult as any
             })
             .where(eq(cloneModeSessions.id, sessionId));

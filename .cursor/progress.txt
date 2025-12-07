@@ -3258,3 +3258,89 @@ NEXT STEPS:
 2. Install fluent-ffmpeg for better video processing
 3. Add video preview before analysis
 4. Add support for URL-based video input
+
+═══ [2025-12-07 FFMPEG & USER TWIN IMPLEMENTATION] ═══
+COMPLETED: FFmpeg Integration & User Twin Synthetic Testing
+
+1. FFMPEG INTEGRATION:
+   - Installed fluent-ffmpeg and @ffmpeg-installer/ffmpeg packages
+   - Updated server/src/services/ai/video-to-code.ts:
+     • Replaced spawn('ffmpeg') with fluent-ffmpeg library
+     • Configured ffmpeg path from bundled binary for Vercel compatibility
+     • Updated extractFrames() to use fluent-ffmpeg API
+     • Updated getVideoDuration() to use ffmpeg.ffprobe()
+   - Production-ready video processing for Clone Mode
+
+2. USER TWIN SERVICE (Backend):
+   File: server/src/services/testing/user-twin.ts
+   
+   Interfaces:
+   - UserPersona (id, name, behavior, techLevel, accessibilityNeeds, goalPatterns)
+   - TestSession (id, projectId, sandboxUrl, personas, testPlan, results, status)
+   - TestResult (personaId, actions, issuesFound, journeyScore, screenshots)
+   - Issue (id, type, severity, title, description, reproductionSteps)
+   
+   Persona Behaviors:
+   - 'careful': Reads everything, double-checks inputs
+   - 'impatient': Rushes through, skips instructions
+   - 'explorer': Clicks everything, tests edge cases
+   - 'goal-oriented': Focused on completing tasks
+   - 'edge-case-finder': Tests boundaries, unusual inputs
+   
+   Tech Levels:
+   - 'novice', 'intermediate', 'power-user'
+   
+   Accessibility Testing:
+   - screen-reader, keyboard-only, high-contrast support
+   
+   Features:
+   - Concurrent synthetic user sessions via BrowserAutomationService
+   - AI-driven behavior using OpenRouterClient
+   - Issue detection (console errors, failed requests, a11y violations)
+   - Journey scoring (0-100 based on goal completion/friction)
+   - Screenshot capture at decision points
+   - Heatmap generation from aggregated sessions
+
+3. API ROUTES (server/src/routes/user-twin.ts):
+   - POST /api/user-twin/start - Start test session
+   - POST /api/user-twin/stop/:sessionId - Stop running test
+   - GET /api/user-twin/results/:sessionId - Get results
+   - GET /api/user-twin/stream/:sessionId - SSE progress
+   - POST /api/user-twin/personas - Create custom persona
+   - GET /api/user-twin/personas - Get all personas
+   - DELETE /api/user-twin/personas/:personaId - Delete persona
+   - GET /api/user-twin/sessions - Get project sessions
+   - GET /api/user-twin/issues/:projectId - Get all issues
+   - GET /api/user-twin/heatmap/:sessionId - Get heatmap data
+
+4. DATABASE SCHEMA (server/src/schema.ts):
+   - userTwinPersonas table (custom personas)
+   - userTwinSessions table (test session data + results JSON)
+
+5. FRONTEND COMPONENTS (src/components/testing/):
+   - UserTwinPanel.tsx: Main panel with setup/running/results views
+   - PersonaCard.tsx: Persona selection with behavior gradients
+   - TestProgressViewer.tsx: Live synthetic user action view
+   - IssueReport.tsx: Issues by severity with reproduction steps
+   - JourneyHeatmap.tsx: Funnel visualization with drop-offs
+
+6. BROWSER SERVICE ENHANCEMENT:
+   - Added getVisibleElements() method
+   - Added getPageTitle() method
+
+CURRENT STATE:
+- Build: PASSING
+- Git commit: 6ca7f8c
+- Pushed to: main branch
+
+READY FOR PRODUCTION:
+- FFmpeg video processing for Clone Mode
+- User Twin synthetic testing ready for use
+- 6 default personas included
+- Custom persona creation supported
+
+NEXT RECOMMENDED STEPS:
+1. Add User Twin button to Builder/Developer Mode UI
+2. Integrate User Twin with Ghost Mode for autonomous testing
+3. Feed discovered issues to VerificationSwarm for auto-fixing
+4. Add SpeedDial integration for quality levels

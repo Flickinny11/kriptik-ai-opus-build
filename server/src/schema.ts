@@ -1591,6 +1591,126 @@ export const learningEvolutionCycles = sqliteTable('learning_evolution_cycles', 
 });
 
 // =============================================================================
+// Market Fit Oracle
+// =============================================================================
+
+export const marketCompetitors = sqliteTable('market_competitors', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+
+    // Feature analysis
+    features: text('features', { mode: 'json' }).$type<Array<{
+        id: string;
+        name: string;
+        description: string;
+        category: string;
+        importance: number;
+        implementationComplexity: 'low' | 'medium' | 'high';
+    }>>(),
+
+    // Pricing tiers
+    pricing: text('pricing', { mode: 'json' }).$type<Array<{
+        name: string;
+        price: number;
+        billingCycle: 'monthly' | 'yearly' | 'one-time';
+        features: string[];
+        targetAudience?: string;
+    }>>(),
+
+    // Full analysis data
+    analysis: text('analysis', { mode: 'json' }).$type<{
+        description: string;
+        tagline?: string;
+        marketPosition: {
+            segment: 'enterprise' | 'mid-market' | 'smb' | 'consumer';
+            pricePoint: 'premium' | 'mid-tier' | 'budget' | 'freemium';
+            primaryDifferentiator: string;
+            targetPersona: string;
+        };
+        strengths: string[];
+        weaknesses: string[];
+        techStack?: string[];
+        designPatterns?: Array<{
+            id: string;
+            name: string;
+            category: string;
+            description: string;
+        }>;
+    }>(),
+
+    // Screenshot of competitor site
+    screenshot: text('screenshot'),
+
+    lastAnalyzed: text('last_analyzed'),
+});
+
+export const marketAnalyses = sqliteTable('market_analyses', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    targetMarket: text('target_market'),
+    appDescription: text('app_description'),
+
+    // Market gaps
+    gaps: text('gaps', { mode: 'json' }).$type<Array<{
+        id: string;
+        category: string;
+        title: string;
+        description: string;
+        competitorCoverage: Array<{
+            competitor: string;
+            competitorId: string;
+            coverage: 'none' | 'partial' | 'full';
+        }>;
+        opportunityScore: number;
+        implementationEffort: 'low' | 'medium' | 'high';
+        estimatedImpact: 'low' | 'medium' | 'high';
+        suggestedApproach?: string;
+    }>>(),
+
+    // Opportunities
+    opportunities: text('opportunities', { mode: 'json' }).$type<Array<{
+        id: string;
+        type: 'feature' | 'pricing' | 'positioning' | 'design' | 'integration';
+        title: string;
+        description: string;
+        potentialValue: 'low' | 'medium' | 'high';
+        effort: 'low' | 'medium' | 'high';
+        timeToImplement: string;
+        competitiveAdvantage: string;
+        actionItems: string[];
+    }>>(),
+
+    // Suggested features
+    suggestedFeatures: text('suggested_features', { mode: 'json' }).$type<Array<{
+        id: string;
+        name: string;
+        description: string;
+        rationale: string;
+        competitorInspiration?: string;
+        effort: 'low' | 'medium' | 'high';
+        potentialImpact: 'low' | 'medium' | 'high';
+        implementationNotes: string;
+    }>>(),
+
+    // Positioning recommendation
+    positioning: text('positioning', { mode: 'json' }).$type<{
+        currentPosition: string;
+        recommendedPosition: string;
+        valueProposition: string;
+        targetAudience: string;
+        keyMessages: string[];
+        competitiveAdvantages: string[];
+        pricingStrategy: string;
+    }>(),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// =============================================================================
 // Clone Mode Sessions (Video to Code)
 // =============================================================================
 

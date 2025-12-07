@@ -510,6 +510,10 @@ app.use("/api/clone", promptSanitizer, requireCredits(50), cloneModeRouter);
 import userTwinRouter from './routes/user-twin.js';
 app.use("/api/user-twin", requireCredits(25), userTwinRouter);
 
+// Market Fit Oracle - Competitor analysis and positioning
+import marketFitRouter from './routes/market-fit.js';
+app.use("/api/market-fit", requireCredits(30), marketFitRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
