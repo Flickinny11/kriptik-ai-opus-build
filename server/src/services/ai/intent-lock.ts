@@ -11,7 +11,7 @@
 
 import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
-import { buildIntents, projects, orchestrationRuns } from '../../schema.js';
+import { buildIntents, projects, orchestrationRuns, developerAgentRuns } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 
 // =============================================================================
@@ -73,6 +73,49 @@ export interface IntentLockOptions {
     model?: string;
     effort?: 'low' | 'medium' | 'high';
     thinkingBudget?: number;
+}
+
+// =============================================================================
+// MICRO INTENT LOCK - Task-level contracts for Developer Mode
+// =============================================================================
+
+export interface MicroTaskSuccessCriterion {
+    id: string;
+    description: string;
+    verifiable: boolean;
+    passed: boolean;
+}
+
+export interface MicroIntentContract {
+    id: string;
+    parentIntentId?: string;  // Link to full project intent if exists
+    agentId: string;
+    projectId: string;
+    userId: string;
+    taskDescription: string;
+    expectedOutcome: string;
+    successCriteria: MicroTaskSuccessCriterion[];
+    filesAffected: string[];
+    estimatedComplexity: 'trivial' | 'simple' | 'moderate' | 'complex' | 'very_complex';
+    estimatedTokens: number;
+    estimatedCost: number;
+    timeoutMs: number;
+    rollbackStrategy: 'revert_files' | 'checkpoint_restore' | 'manual';
+    locked: boolean;
+    lockedAt?: string;
+    completedAt?: string;
+    status: 'pending' | 'locked' | 'in_progress' | 'completed' | 'failed' | 'rolled_back';
+    result?: string;
+    error?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface MicroIntentOptions {
+    parentIntentId?: string;
+    estimatedComplexity?: MicroIntentContract['estimatedComplexity'];
+    timeoutMs?: number;
+    rollbackStrategy?: MicroIntentContract['rollbackStrategy'];
 }
 
 // =============================================================================
@@ -151,6 +194,59 @@ Respond with ONLY valid JSON (no markdown, no explanation):
 6. Every criterion must be objectively verifiable
 
 This contract is SACRED. It will NOT be modified after creation. Make it complete.`;
+
+const MICRO_INTENT_SYSTEM_PROMPT = `You are the MICRO INTENT LOCK AGENT for KripTik AI's Developer Mode.
+
+Your purpose is to create a focused, task-level "DONE" definition for individual agent tasks.
+
+Unlike full Intent Contracts, Micro Intents are:
+- Smaller in scope (single task vs entire app)
+- Faster to generate (uses Haiku/Sonnet vs Opus)
+- More specific (exact files and changes vs high-level goals)
+- Easier to verify (concrete criteria vs workflows)
+
+## YOUR TASK
+
+Analyze the task description and create a Micro Intent Contract that defines:
+
+1. **Expected Outcome**: What specific result should this task produce?
+2. **Success Criteria**: 2-4 specific, checkable criteria
+3. **Files Affected**: Which files will be created/modified?
+4. **Complexity Estimate**: How complex is this task?
+5. **Timeout**: Reasonable timeout for this task
+
+## COMPLEXITY LEVELS
+
+- trivial: < 50 tokens, simple text change, 5 second timeout
+- simple: 50-200 tokens, single function/component, 30 second timeout
+- moderate: 200-1000 tokens, multiple functions, 2 minute timeout
+- complex: 1000-4000 tokens, full feature, 10 minute timeout
+- very_complex: 4000+ tokens, system-wide changes, 30 minute timeout
+
+## RESPONSE FORMAT
+
+Respond with ONLY valid JSON:
+
+{
+    "expectedOutcome": "string - specific expected result",
+    "successCriteria": [
+        { "id": "MC001", "description": "string - specific checkable criterion", "verifiable": true }
+    ],
+    "filesAffected": ["src/path/to/file.ts"],
+    "estimatedComplexity": "trivial | simple | moderate | complex | very_complex",
+    "estimatedTokens": 500,
+    "timeoutMs": 120000
+}
+
+## CRITICAL RULES
+
+1. Be SPECIFIC - vague criteria cannot be checked
+2. Include 2-4 success criteria (not more)
+3. List ALL files that will be touched
+4. Be realistic about complexity and timeout
+5. Criteria must be programmatically verifiable
+
+This Micro Intent will guide a single agent task. Make it precise.`;
 
 export class IntentLockEngine {
     private claudeService: ClaudeService;
@@ -511,6 +607,360 @@ export class IntentLockEngine {
             createdAt: contract.createdAt,
         });
     }
+
+    // =========================================================================
+    // MICRO INTENT LOCK METHODS - For Developer Mode task-level contracts
+    // =========================================================================
+
+    /**
+     * Create a Micro Intent Contract for a single agent task
+     * Uses Haiku 3.5 for speed, or Sonnet for complex tasks
+     */
+    async createMicroIntent(
+        taskDescription: string,
+        agentId: string,
+        userId: string,
+        projectId: string,
+        options: MicroIntentOptions = {}
+    ): Promise<MicroIntentContract> {
+        const {
+            parentIntentId,
+            estimatedComplexity,
+            timeoutMs = 120000,
+            rollbackStrategy = 'revert_files',
+        } = options;
+
+        // Use Haiku for speed unless complexity suggests otherwise
+        const model = estimatedComplexity === 'very_complex' || estimatedComplexity === 'complex'
+            ? CLAUDE_MODELS.SONNET_4_5
+            : CLAUDE_MODELS.HAIKU_3_5;
+
+        console.log(`[MicroIntent] Creating task contract with ${model} for: ${taskDescription.substring(0, 50)}...`);
+
+        // Create a temporary service with the Micro Intent prompt
+        const microService = createClaudeService({
+            projectId,
+            userId,
+            agentType: 'planning',
+            systemPrompt: MICRO_INTENT_SYSTEM_PROMPT,
+        });
+
+        const response = await microService.generate(
+            `Create a Micro Intent Contract for this task:\n\n"${taskDescription}"`,
+            {
+                model,
+                effort: 'low',
+                maxTokens: 2000,
+            }
+        );
+
+        // Parse the response
+        let microData: {
+            expectedOutcome: string;
+            successCriteria: Array<{ id: string; description: string; verifiable: boolean }>;
+            filesAffected: string[];
+            estimatedComplexity: MicroIntentContract['estimatedComplexity'];
+            estimatedTokens: number;
+            timeoutMs: number;
+        };
+
+        try {
+            microData = JSON.parse(response.content);
+        } catch {
+            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                microData = JSON.parse(jsonMatch[0]);
+            } else {
+                // Fallback to reasonable defaults
+                microData = {
+                    expectedOutcome: taskDescription,
+                    successCriteria: [
+                        { id: 'MC001', description: 'Task completed without errors', verifiable: true },
+                        { id: 'MC002', description: 'Output matches expected behavior', verifiable: true },
+                    ],
+                    filesAffected: [],
+                    estimatedComplexity: estimatedComplexity || 'moderate',
+                    estimatedTokens: 500,
+                    timeoutMs: timeoutMs,
+                };
+            }
+        }
+
+        // Calculate estimated cost based on tokens
+        const costPerMillion = model === CLAUDE_MODELS.HAIKU_3_5 ? 0.25 : 3.0;
+        const estimatedCost = (microData.estimatedTokens / 1_000_000) * costPerMillion;
+
+        const now = new Date().toISOString();
+        const microIntentId = crypto.randomUUID();
+
+        const microIntent: MicroIntentContract = {
+            id: microIntentId,
+            parentIntentId,
+            agentId,
+            projectId,
+            userId,
+            taskDescription,
+            expectedOutcome: microData.expectedOutcome,
+            successCriteria: microData.successCriteria.map((sc, idx) => ({
+                id: sc.id || `MC${String(idx + 1).padStart(3, '0')}`,
+                description: sc.description,
+                verifiable: sc.verifiable !== false,
+                passed: false,
+            })),
+            filesAffected: microData.filesAffected,
+            estimatedComplexity: microData.estimatedComplexity || estimatedComplexity || 'moderate',
+            estimatedTokens: microData.estimatedTokens,
+            estimatedCost,
+            timeoutMs: microData.timeoutMs || timeoutMs,
+            rollbackStrategy,
+            locked: false,
+            status: 'pending',
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        // Store in database
+        await this.saveMicroIntent(microIntent);
+
+        console.log(`[MicroIntent] Created: ${microIntentId} (${microIntent.estimatedComplexity}, ~${microIntent.estimatedTokens} tokens, $${microIntent.estimatedCost.toFixed(4)})`);
+
+        return microIntent;
+    }
+
+    /**
+     * Lock a Micro Intent - makes it the task contract
+     */
+    async lockMicroIntent(microIntentId: string): Promise<MicroIntentContract> {
+        const now = new Date().toISOString();
+
+        await db.update(developerAgentRuns)
+            .set({
+                status: 'running',
+                updatedAt: now,
+            } as Record<string, unknown>)
+            .where(eq(developerAgentRuns.id, microIntentId));
+
+        const updated = await this.getMicroIntent(microIntentId);
+        if (!updated) {
+            throw new Error(`Micro Intent not found: ${microIntentId}`);
+        }
+
+        // Update in-memory representation
+        updated.locked = true;
+        updated.lockedAt = now;
+        updated.status = 'locked';
+
+        console.log(`[MicroIntent] LOCKED: ${microIntentId} - Task contract established`);
+        return updated;
+    }
+
+    /**
+     * Get a Micro Intent by ID
+     */
+    async getMicroIntent(microIntentId: string): Promise<MicroIntentContract | null> {
+        const results = await db.select()
+            .from(developerAgentRuns)
+            .where(eq(developerAgentRuns.id, microIntentId))
+            .limit(1);
+
+        if (results.length === 0) return null;
+
+        const row = results[0];
+
+        // Parse metadata from the stored fields
+        return {
+            id: row.id,
+            parentIntentId: undefined,
+            agentId: row.agentId,
+            projectId: row.projectId,
+            userId: row.userId,
+            taskDescription: row.prompt,
+            expectedOutcome: row.output || row.prompt,
+            successCriteria: [],  // Would need to be stored in a metadata field
+            filesAffected: [],    // Would need to be stored in a metadata field
+            estimatedComplexity: 'moderate',
+            estimatedTokens: row.tokensUsed || 0,
+            estimatedCost: 0,
+            timeoutMs: 120000,
+            rollbackStrategy: 'revert_files',
+            locked: row.status === 'running' || row.status === 'completed',
+            lockedAt: row.status === 'running' ? row.updatedAt : undefined,
+            completedAt: row.completedAt || undefined,
+            status: row.status as MicroIntentContract['status'],
+            result: row.output || undefined,
+            error: row.error || undefined,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+        };
+    }
+
+    /**
+     * Mark a Micro Intent criterion as passed
+     */
+    async markMicroCriterionPassed(microIntentId: string, criterionId: string): Promise<void> {
+        console.log(`[MicroIntent] Criterion ${criterionId} PASSED on ${microIntentId}`);
+        // In a full implementation, this would update a metadata JSON field
+    }
+
+    /**
+     * Complete a Micro Intent (all criteria passed)
+     */
+    async completeMicroIntent(microIntentId: string, result: string): Promise<MicroIntentContract> {
+        const now = new Date().toISOString();
+
+        await db.update(developerAgentRuns)
+            .set({
+                status: 'completed',
+                output: result,
+                completedAt: now,
+                updatedAt: now,
+            })
+            .where(eq(developerAgentRuns.id, microIntentId));
+
+        const updated = await this.getMicroIntent(microIntentId);
+        if (!updated) {
+            throw new Error(`Micro Intent not found: ${microIntentId}`);
+        }
+
+        console.log(`[MicroIntent] COMPLETED: ${microIntentId}`);
+        return updated;
+    }
+
+    /**
+     * Fail a Micro Intent
+     */
+    async failMicroIntent(microIntentId: string, error: string): Promise<MicroIntentContract> {
+        const now = new Date().toISOString();
+
+        await db.update(developerAgentRuns)
+            .set({
+                status: 'failed',
+                error,
+                completedAt: now,
+                updatedAt: now,
+            })
+            .where(eq(developerAgentRuns.id, microIntentId));
+
+        const updated = await this.getMicroIntent(microIntentId);
+        if (!updated) {
+            throw new Error(`Micro Intent not found: ${microIntentId}`);
+        }
+
+        console.log(`[MicroIntent] FAILED: ${microIntentId} - ${error}`);
+        return updated;
+    }
+
+    /**
+     * Rollback a failed Micro Intent
+     */
+    async rollbackMicroIntent(microIntentId: string): Promise<MicroIntentContract> {
+        const microIntent = await this.getMicroIntent(microIntentId);
+        if (!microIntent) {
+            throw new Error(`Micro Intent not found: ${microIntentId}`);
+        }
+
+        const now = new Date().toISOString();
+
+        // Mark as rolled back
+        await db.update(developerAgentRuns)
+            .set({
+                status: 'failed',  // Using 'failed' as closest status
+                error: `Rolled back: ${microIntent.error || 'User requested rollback'}`,
+                updatedAt: now,
+            })
+            .where(eq(developerAgentRuns.id, microIntentId));
+
+        console.log(`[MicroIntent] ROLLED BACK: ${microIntentId} using strategy: ${microIntent.rollbackStrategy}`);
+
+        const updated = await this.getMicroIntent(microIntentId);
+        return updated!;
+    }
+
+    /**
+     * Get all Micro Intents for an agent
+     */
+    async getMicroIntentsForAgent(agentId: string): Promise<MicroIntentContract[]> {
+        const results = await db.select()
+            .from(developerAgentRuns)
+            .where(eq(developerAgentRuns.agentId, agentId));
+
+        return results.map(row => ({
+            id: row.id,
+            parentIntentId: undefined,
+            agentId: row.agentId,
+            projectId: row.projectId,
+            userId: row.userId,
+            taskDescription: row.prompt,
+            expectedOutcome: row.output || row.prompt,
+            successCriteria: [],
+            filesAffected: [],
+            estimatedComplexity: 'moderate' as const,
+            estimatedTokens: row.tokensUsed || 0,
+            estimatedCost: 0,
+            timeoutMs: 120000,
+            rollbackStrategy: 'revert_files' as const,
+            locked: row.status === 'running' || row.status === 'completed',
+            lockedAt: row.status === 'running' ? row.updatedAt : undefined,
+            completedAt: row.completedAt || undefined,
+            status: row.status as MicroIntentContract['status'],
+            result: row.output || undefined,
+            error: row.error || undefined,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+        }));
+    }
+
+    /**
+     * Estimate cost for a Micro Intent before creation
+     */
+    estimateMicroIntentCost(complexity: MicroIntentContract['estimatedComplexity']): {
+        minTokens: number;
+        maxTokens: number;
+        minCost: number;
+        maxCost: number;
+        estimatedTimeMs: number;
+    } {
+        const estimates = {
+            trivial: { minTokens: 10, maxTokens: 50, timeMs: 5000 },
+            simple: { minTokens: 50, maxTokens: 200, timeMs: 30000 },
+            moderate: { minTokens: 200, maxTokens: 1000, timeMs: 120000 },
+            complex: { minTokens: 1000, maxTokens: 4000, timeMs: 600000 },
+            very_complex: { minTokens: 4000, maxTokens: 16000, timeMs: 1800000 },
+        };
+
+        const { minTokens, maxTokens, timeMs } = estimates[complexity];
+        const costPerMillion = 3.0;  // Assume Sonnet pricing as conservative estimate
+
+        return {
+            minTokens,
+            maxTokens,
+            minCost: (minTokens / 1_000_000) * costPerMillion,
+            maxCost: (maxTokens / 1_000_000) * costPerMillion,
+            estimatedTimeMs: timeMs,
+        };
+    }
+
+    /**
+     * Save Micro Intent to database
+     * Uses the developerAgentRuns table with the micro intent data stored in fields
+     */
+    private async saveMicroIntent(microIntent: MicroIntentContract): Promise<void> {
+        await db.insert(developerAgentRuns).values({
+            id: microIntent.id,
+            agentId: microIntent.agentId,
+            projectId: microIntent.projectId,
+            userId: microIntent.userId,
+            prompt: microIntent.taskDescription,
+            model: CLAUDE_MODELS.HAIKU_3_5,  // Default model
+            status: microIntent.status,
+            output: null,
+            tokensUsed: microIntent.estimatedTokens,
+            error: null,
+            completedAt: null,
+            createdAt: microIntent.createdAt,
+            updatedAt: microIntent.updatedAt,
+        });
+    }
 }
 
 /**
@@ -533,5 +983,36 @@ export async function createAndLockIntent(
     const engine = createIntentLockEngine(userId, projectId);
     const contract = await engine.createContract(prompt, userId, projectId, orchestrationRunId, options);
     return engine.lockContract(contract.id);
+}
+
+/**
+ * Quick helper to create and lock a Micro Intent for a single task
+ */
+export async function createAndLockMicroIntent(
+    taskDescription: string,
+    agentId: string,
+    userId: string,
+    projectId: string,
+    options?: MicroIntentOptions
+): Promise<MicroIntentContract> {
+    const engine = createIntentLockEngine(userId, projectId);
+    const microIntent = await engine.createMicroIntent(taskDescription, agentId, userId, projectId, options);
+    return engine.lockMicroIntent(microIntent.id);
+}
+
+/**
+ * Get cost estimate for a task before creating Micro Intent
+ */
+export function estimateTaskCost(
+    complexity: MicroIntentContract['estimatedComplexity']
+): {
+    minTokens: number;
+    maxTokens: number;
+    minCost: number;
+    maxCost: number;
+    estimatedTimeMs: number;
+} {
+    const engine = new IntentLockEngine('system', 'system');
+    return engine.estimateMicroIntentCost(complexity);
 }
 

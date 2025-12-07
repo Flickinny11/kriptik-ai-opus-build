@@ -1,6 +1,6 @@
 /**
  * Builder/Agents Mode Toggle
- * 
+ *
  * A toggle button that switches between Builder mode (chat on left, preview on right)
  * and Agents mode (preview on left, agent sidebar on right with dark theme).
  */
@@ -17,7 +17,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
     return (
         <div className="flex items-center gap-1 p-1 rounded-xl relative"
             style={{
-                background: mode === 'agents' 
+                background: mode === 'agents'
                     ? 'linear-gradient(145deg, rgba(20,20,25,0.95) 0%, rgba(15,15,20,0.98) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
                 boxShadow: mode === 'agents'
@@ -52,8 +52,8 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 onClick={() => onModeChange('builder')}
                 className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{
-                    color: mode === 'builder' 
-                        ? '#c25a00' 
+                    color: mode === 'builder'
+                        ? '#c25a00'
                         : mode === 'agents' ? 'rgba(255,255,255,0.5)' : '#666',
                 }}
             >
@@ -66,8 +66,8 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 onClick={() => onModeChange('agents')}
                 className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{
-                    color: mode === 'agents' 
-                        ? '#c8ff64' 
+                    color: mode === 'agents'
+                        ? '#c8ff64'
                         : mode === 'builder' ? 'rgba(255,255,255,0.5)' : '#666',
                 }}
             >

@@ -360,6 +360,7 @@ import tournamentRouter from './routes/tournament.js';
 import checkpointsRouter from './routes/checkpoints.js';
 import reflectionRouter from './routes/reflection.js';
 import autonomyRouter from './routes/autonomy.js';
+import developerModeRouter from './routes/developer-mode.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -475,6 +476,9 @@ app.use("/api/reflection", reflectionRouter);
 
 // Extended Autonomy - 4-hour autonomous sessions
 app.use("/api/autonomy", autonomyRouter);
+
+// Developer Mode - Individual agent management for technical users
+app.use("/api/developer-mode", developerModeRouter);
 
 // =============================================================================
 // HEALTH & STATUS

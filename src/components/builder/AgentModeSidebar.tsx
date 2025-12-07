@@ -1,53 +1,49 @@
 /**
  * Agent Mode Sidebar
- * 
+ *
  * The command center for managing AI agents in Developer Mode.
  * Features:
  * - Agent list with status, progress, and output logs
  * - Model selector (Opus 4.5, Sonnet 4.5, GPT-5 Codex, etc.)
- * - Real-time progress updates
+ * - Real-time progress updates via SSE
  * - Agent naming and management
  * - Dark theme with fluorescent yellow accents
+ *
+ * Connected to backend via useDeveloperModeStore
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Bot, Plus, Pause,
+    Bot, Plus, Pause, Play,
     CheckCircle2, XCircle, Loader2, Clock, Send,
-    ChevronDown, Pencil, FileEdit, Zap
+    ChevronDown, Pencil, FileEdit, Zap, Trash2, AlertCircle
 } from 'lucide-react';
+import {
+    useDeveloperModeStore,
+    selectAgents,
+    selectSelectedAgent,
+    selectSelectedAgentLogs,
+    selectIsLoading,
+    selectError,
+    selectCreditsUsed,
+    type AgentModel,
+    type Agent,
+    type AgentLog,
+} from '../../store/useDeveloperModeStore';
+import { useProjectStore } from '../../store/useProjectStore';
 
-// Agent types
-interface Agent {
-    id: string;
+// Available models - matches backend
+const AVAILABLE_MODELS: Array<{
+    id: AgentModel;
     name: string;
-    status: 'idle' | 'running' | 'completed' | 'failed' | 'paused' | 'waiting';
-    progress: number;
-    currentTask?: string;
-    model: string;
-    logs: AgentLog[];
-    plan?: string[];
-    branch?: string;
-    filesModified?: string[];
-    tokensUsed?: number;
-    createdAt: Date;
-}
-
-interface AgentLog {
-    id: string;
-    timestamp: Date;
-    type: 'info' | 'action' | 'success' | 'error' | 'warning';
-    message: string;
-}
-
-// Available models
-const AVAILABLE_MODELS = [
+    description: string;
+    tier: 'premium' | 'standard' | 'economy';
+}> = [
     { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', description: 'Best reasoning, complex tasks', tier: 'premium' },
     { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', description: 'Fast & capable', tier: 'standard' },
-    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', description: 'Fastest, simple tasks', tier: 'economy' },
+    { id: 'claude-haiku-3-5', name: 'Claude Haiku 3.5', description: 'Fastest, simple tasks', tier: 'economy' },
     { id: 'gpt-5-codex', name: 'GPT-5 Codex', description: "OpenAI's latest", tier: 'premium' },
-    { id: 'gpt-4-1', name: 'GPT-4.1', description: 'Reliable, well-tested', tier: 'standard' },
     { id: 'gemini-2-5-pro', name: 'Gemini 2.5 Pro', description: "Google's flagship", tier: 'premium' },
     { id: 'deepseek-r1', name: 'DeepSeek R1', description: 'Open source, cost-effective', tier: 'economy' },
 ];
@@ -74,25 +70,53 @@ export interface AgentModeSidebarProps {
 }
 
 export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
-    const [agents, setAgents] = useState<Agent[]>([
-        {
-            id: '1',
-            name: 'Agent #1',
-            status: 'idle',
-            progress: 0,
-            model: 'claude-sonnet-4-5',
-            logs: [],
-            createdAt: new Date(),
-        }
-    ]);
-    const [selectedAgentId, setSelectedAgentId] = useState<string | null>('1');
+    // Store state
+    const currentSession = useDeveloperModeStore(state => state.currentSession);
+    const agents = useDeveloperModeStore(selectAgents);
+    const selectedAgent = useDeveloperModeStore(selectSelectedAgent);
+    const agentLogs = useDeveloperModeStore(selectSelectedAgentLogs);
+    const isLoading = useDeveloperModeStore(selectIsLoading);
+    const error = useDeveloperModeStore(selectError);
+    const creditsUsed = useDeveloperModeStore(selectCreditsUsed);
+
+    // Store actions
+    const startSession = useDeveloperModeStore(state => state.startSession);
+    const deployAgent = useDeveloperModeStore(state => state.deployAgent);
+    const stopAgent = useDeveloperModeStore(state => state.stopAgent);
+    const resumeAgent = useDeveloperModeStore(state => state.resumeAgent);
+    const renameAgent = useDeveloperModeStore(state => state.renameAgent);
+    const deleteAgent = useDeveloperModeStore(state => state.deleteAgent);
+    const selectAgentAction = useDeveloperModeStore(state => state.selectAgent);
+    const changeAgentModel = useDeveloperModeStore(state => state.changeAgentModel);
+    const setError = useDeveloperModeStore(state => state.setError);
+    const loadModels = useDeveloperModeStore(state => state.loadModels);
+
+    // Project store
+    const activeProject = useProjectStore(state => state.activeProject);
+
+    // Local state
     const [inputValue, setInputValue] = useState('');
-    const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5');
+    const [selectedModel, setSelectedModel] = useState<AgentModel>('claude-sonnet-4-5');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
     const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState('');
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const modelDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Initialize session if needed
+    useEffect(() => {
+        if (activeProject && !currentSession) {
+            startSession(activeProject.id, {
+                defaultModel: selectedModel,
+                verificationMode: 'standard',
+            }).catch(console.error);
+        }
+    }, [activeProject, currentSession, startSession, selectedModel]);
+
+    // Load models on mount
+    useEffect(() => {
+        loadModels();
+    }, [loadModels]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -105,117 +129,82 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const selectedAgent = agents.find(a => a.id === selectedAgentId);
+    const handleDeployAgent = async () => {
+        if (!inputValue.trim() || !currentSession) return;
 
-    const handleDeployAgent = () => {
-        if (!inputValue.trim()) return;
-
-        const newAgentId = String(agents.length + 1);
-        const newAgent: Agent = {
-            id: newAgentId,
-            name: `Agent #${newAgentId}`,
-            status: 'running',
-            progress: 0,
-            currentTask: inputValue,
-            model: selectedModel,
-            logs: [
-                { id: '1', timestamp: new Date(), type: 'info', message: 'Agent initialized' },
-                { id: '2', timestamp: new Date(), type: 'action', message: 'Analyzing task...' },
-            ],
-            plan: [
-                'Analyze requirements',
-                'Search codebase for relevant files',
-                'Create implementation plan',
-                'Generate code changes',
-                'Run verification',
-            ],
-            branch: `kriptik/agent-${newAgentId}`,
-            createdAt: new Date(),
-        };
-
-        setAgents(prev => [...prev.map(a => a.id === '1' && a.status === 'idle' ? { ...a, status: 'idle' as const, currentTask: inputValue } : a), 
-            ...(agents.some(a => a.id === '1' && a.status === 'idle') ? [] : [newAgent])
-        ]);
-
-        // Update first idle agent or create new
-        if (agents.some(a => a.id === selectedAgentId && a.status === 'idle')) {
-            setAgents(prev => prev.map(a => 
-                a.id === selectedAgentId ? {
-                    ...a,
-                    status: 'running' as const,
-                    currentTask: inputValue,
-                    progress: 0,
-                    logs: [
-                        { id: '1', timestamp: new Date(), type: 'info', message: 'Agent initialized' },
-                        { id: '2', timestamp: new Date(), type: 'action', message: 'Analyzing task...' },
-                    ],
-                    plan: [
-                        'Analyze requirements',
-                        'Search codebase for relevant files',
-                        'Create implementation plan',
-                        'Generate code changes',
-                        'Run verification',
-                    ],
-                    branch: `kriptik/agent-${a.id}`,
-                } : a
-            ));
-        } else {
-            setAgents(prev => [...prev, newAgent]);
-            setSelectedAgentId(newAgentId);
+        try {
+            const agentNumber = agents.length + 1;
+            await deployAgent({
+                name: `Agent #${agentNumber}`,
+                taskPrompt: inputValue,
+                model: selectedModel,
+            });
+            setInputValue('');
+        } catch (err) {
+            console.error('Failed to deploy agent:', err);
         }
-
-        setInputValue('');
-
-        // Simulate progress
-        simulateAgentProgress(selectedAgentId || newAgentId);
     };
 
-    const simulateAgentProgress = (agentId: string) => {
-        const progressSteps = [
-            { progress: 15, log: { type: 'action' as const, message: 'Searching codebase...' } },
-            { progress: 30, log: { type: 'info' as const, message: 'Found 3 relevant files' } },
-            { progress: 45, log: { type: 'action' as const, message: 'Creating implementation plan...' } },
-            { progress: 60, log: { type: 'action' as const, message: 'Generating code changes...' } },
-            { progress: 80, log: { type: 'success' as const, message: 'Code changes generated' } },
-            { progress: 90, log: { type: 'action' as const, message: 'Running verification...' } },
-            { progress: 100, log: { type: 'success' as const, message: 'Verification passed ✓' } },
-        ];
+    const handleAddIdleAgent = async () => {
+        if (!currentSession) return;
 
-        progressSteps.forEach((step, index) => {
-            setTimeout(() => {
-                setAgents(prev => prev.map(a => {
-                    if (a.id === agentId) {
-                        return {
-                            ...a,
-                            progress: step.progress,
-                            status: step.progress === 100 ? 'completed' as const : 'running' as const,
-                            logs: [...a.logs, { id: String(a.logs.length + 1), timestamp: new Date(), ...step.log }],
-                            filesModified: step.progress >= 60 ? ['src/components/Example.tsx', 'src/utils/helpers.ts'] : undefined,
-                        };
-                    }
-                    return a;
-                }));
-            }, (index + 1) * 1500);
-        });
+        try {
+            const agentNumber = agents.length + 1;
+            await deployAgent({
+                name: `Agent #${agentNumber}`,
+                taskPrompt: 'Waiting for task...',
+                model: selectedModel,
+            });
+        } catch (err) {
+            console.error('Failed to add agent:', err);
+        }
     };
 
-    const handleAddAgent = () => {
-        const newId = String(agents.length + 1);
-        setAgents(prev => [...prev, {
-            id: newId,
-            name: `Agent #${newId}`,
-            status: 'idle',
-            progress: 0,
-            model: selectedModel,
-            logs: [],
-            createdAt: new Date(),
-        }]);
-        setSelectedAgentId(newId);
+    const handleRenameAgent = async (agentId: string, newName: string) => {
+        try {
+            await renameAgent(agentId, newName);
+            setEditingAgentId(null);
+        } catch (err) {
+            console.error('Failed to rename agent:', err);
+        }
     };
 
-    const handleRenameAgent = (agentId: string, newName: string) => {
-        setAgents(prev => prev.map(a => a.id === agentId ? { ...a, name: newName } : a));
-        setEditingAgentId(null);
+    const handleStopAgent = async (agentId: string) => {
+        try {
+            await stopAgent(agentId);
+        } catch (err) {
+            console.error('Failed to stop agent:', err);
+        }
+    };
+
+    const handleResumeAgent = async (agentId: string) => {
+        try {
+            await resumeAgent(agentId);
+        } catch (err) {
+            console.error('Failed to resume agent:', err);
+        }
+    };
+
+    const handleDeleteAgent = async (agentId: string) => {
+        try {
+            await deleteAgent(agentId);
+        } catch (err) {
+            console.error('Failed to delete agent:', err);
+        }
+    };
+
+    const handleModelChange = async (model: AgentModel) => {
+        setSelectedModel(model);
+        setShowModelDropdown(false);
+
+        // If an agent is selected and idle, update its model
+        if (selectedAgent && selectedAgent.status === 'idle') {
+            try {
+                await changeAgentModel(selectedAgent.id, model);
+            } catch (err) {
+                console.error('Failed to change model:', err);
+            }
+        }
     };
 
     const getStatusIcon = (status: Agent['status']) => {
@@ -240,13 +229,25 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
         }
     };
 
+    const getLogIcon = (logType: AgentLog['logType']) => {
+        switch (logType) {
+            case 'action': return <Zap className="w-3 h-3" style={{ color: accentColor }} />;
+            case 'verification': return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
+            case 'error': return <XCircle className="w-3 h-3 text-red-400" />;
+            case 'warning': return <AlertCircle className="w-3 h-3 text-amber-400" />;
+            case 'thought': return <Bot className="w-3 h-3 text-purple-400" />;
+            case 'code': return <FileEdit className="w-3 h-3" style={{ color: accentColor }} />;
+            default: return <Bot className="w-3 h-3 text-blue-400" />;
+        }
+    };
+
     return (
         <div className="h-full flex flex-col" style={darkGlassPanel}>
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/5">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div 
+                        <div
                             className="w-8 h-8 rounded-lg flex items-center justify-center"
                             style={{ background: `linear-gradient(145deg, ${accentGlow} 0%, rgba(200,255,100,0.05) 100%)` }}
                         >
@@ -276,20 +277,25 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 }}
                                 className="text-white font-semibold hover:text-white/80 flex items-center gap-1 group"
                             >
-                                {selectedAgent?.name || 'Agent'}
-                                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                {selectedAgent?.name || 'Developer Mode'}
+                                {selectedAgent && <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
                             </button>
                         )}
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Credits used */}
+                        <div className="text-xs text-white/40 px-2">
+                            {creditsUsed} credits
+                        </div>
                         <button
-                            onClick={handleAddAgent}
-                            className="p-2 rounded-lg transition-all hover:scale-105"
+                            onClick={handleAddIdleAgent}
+                            disabled={isLoading || agents.length >= 6}
+                            className="p-2 rounded-lg transition-all hover:scale-105 disabled:opacity-50"
                             style={{
                                 background: 'rgba(255,255,255,0.05)',
                                 border: '1px solid rgba(255,255,255,0.1)',
                             }}
-                            title="Add new agent"
+                            title={agents.length >= 6 ? 'Maximum 6 agents' : 'Add new agent'}
                         >
                             <Plus className="w-4 h-4 text-white/70" />
                         </button>
@@ -297,33 +303,55 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                 </div>
 
                 {/* Agent tabs */}
-                {agents.length > 1 && (
+                {agents.length > 0 && (
                     <div className="flex gap-1 mt-3 overflow-x-auto pb-1">
                         {agents.map((agent) => (
                             <button
                                 key={agent.id}
-                                onClick={() => setSelectedAgentId(agent.id)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
+                                onClick={() => selectAgentAction(agent.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all group"
                                 style={{
-                                    background: selectedAgentId === agent.id 
+                                    background: selectedAgent?.id === agent.id
                                         ? `linear-gradient(145deg, ${accentGlow} 0%, rgba(200,255,100,0.05) 100%)`
                                         : 'rgba(255,255,255,0.03)',
-                                    border: selectedAgentId === agent.id 
+                                    border: selectedAgent?.id === agent.id
                                         ? `1px solid ${accentColor}40`
                                         : '1px solid rgba(255,255,255,0.05)',
-                                    color: selectedAgentId === agent.id ? accentColor : 'rgba(255,255,255,0.6)',
+                                    color: selectedAgent?.id === agent.id ? accentColor : 'rgba(255,255,255,0.6)',
                                 }}
                             >
                                 {getStatusIcon(agent.status)}
                                 <span>{agent.name}</span>
+                                {selectedAgent?.id === agent.id && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteAgent(agent.id);
+                                        }}
+                                        className="ml-1 opacity-0 group-hover:opacity-70 hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
+                                )}
                             </button>
                         ))}
+                    </div>
+                )}
+
+                {/* Error display */}
+                {error && (
+                    <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                        <div className="flex items-center gap-2 text-xs text-red-400">
+                            <XCircle className="w-3 h-3" />
+                            <span>{error}</span>
+                            <button onClick={() => setError(null)} className="ml-auto hover:text-white">×</button>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Agent Details */}
-            {selectedAgent && (
+            {selectedAgent ? (
                 <div className="flex-1 overflow-auto">
                     {/* Status & Progress */}
                     {selectedAgent.status !== 'idle' && (
@@ -335,13 +363,33 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                         {selectedAgent.status}
                                     </span>
                                 </div>
-                                <span className="text-xs text-white/40">{selectedAgent.progress}%</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-white/40">{selectedAgent.progress.progress}%</span>
+                                    {selectedAgent.status === 'running' && (
+                                        <button
+                                            onClick={() => handleStopAgent(selectedAgent.id)}
+                                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                                            title="Stop agent"
+                                        >
+                                            <Pause className="w-3 h-3 text-white/60" />
+                                        </button>
+                                    )}
+                                    {selectedAgent.status === 'paused' && (
+                                        <button
+                                            onClick={() => handleResumeAgent(selectedAgent.id)}
+                                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                                            title="Resume agent"
+                                        >
+                                            <Play className="w-3 h-3 text-white/60" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                                 <motion.div
                                     className="h-full rounded-full"
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${selectedAgent.progress}%` }}
+                                    animate={{ width: `${selectedAgent.progress.progress}%` }}
                                     transition={{ duration: 0.3 }}
                                     style={{
                                         background: `linear-gradient(90deg, ${accentColor}80 0%, ${accentColor} 100%)`,
@@ -349,57 +397,59 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                     }}
                                 />
                             </div>
-                            {selectedAgent.currentTask && (
-                                <p className="text-xs text-white/50 mt-2 line-clamp-2">
-                                    Task: {selectedAgent.currentTask}
+                            {selectedAgent.progress.currentStep && (
+                                <p className="text-xs text-white/50 mt-2">
+                                    {selectedAgent.progress.currentStep}
+                                </p>
+                            )}
+                            {selectedAgent.taskPrompt && (
+                                <p className="text-xs text-white/40 mt-1 line-clamp-2">
+                                    Task: {selectedAgent.taskPrompt}
                                 </p>
                             )}
                         </div>
                     )}
 
-                    {/* Agent Plan */}
-                    {selectedAgent.plan && selectedAgent.plan.length > 0 && (
+                    {/* Verification Status */}
+                    {selectedAgent.verificationScore !== undefined && (
                         <div className="px-4 py-3 border-b border-white/5">
-                            <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Plan</h4>
-                            <div className="space-y-1">
-                                {selectedAgent.plan.map((step, index) => {
-                                    const isComplete = (selectedAgent.progress / 100) * selectedAgent.plan!.length > index;
-                                    const isCurrent = Math.floor((selectedAgent.progress / 100) * selectedAgent.plan!.length) === index;
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-2 text-xs"
-                                            style={{
-                                                color: isComplete ? '#34d399' : isCurrent ? accentColor : 'rgba(255,255,255,0.4)',
-                                            }}
-                                        >
-                                            {isComplete ? (
-                                                <CheckCircle2 className="w-3 h-3" />
-                                            ) : isCurrent ? (
-                                                <Loader2 className="w-3 h-3 animate-spin" />
-                                            ) : (
-                                                <div className="w-3 h-3 rounded-full border border-current opacity-40" />
-                                            )}
-                                            <span>{step}</span>
-                                        </div>
-                                    );
-                                })}
+                            <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Verification</h4>
+                            <div className="flex items-center gap-2">
+                                {selectedAgent.verificationPassed ? (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                    <XCircle className="w-4 h-4 text-red-400" />
+                                )}
+                                <span className="text-sm" style={{
+                                    color: selectedAgent.verificationPassed ? '#34d399' : '#f87171'
+                                }}>
+                                    Score: {selectedAgent.verificationScore}
+                                </span>
                             </div>
                         </div>
                     )}
 
-                    {/* Files Modified */}
-                    {selectedAgent.filesModified && selectedAgent.filesModified.length > 0 && (
+                    {/* Sandbox URL */}
+                    {selectedAgent.sandboxUrl && (
                         <div className="px-4 py-3 border-b border-white/5">
-                            <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Files Modified</h4>
-                            <div className="space-y-1">
-                                {selectedAgent.filesModified.map((file, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-xs text-white/60">
-                                        <FileEdit className="w-3 h-3" style={{ color: accentColor }} />
-                                        <span className="font-mono">{file}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Preview</h4>
+                            <a
+                                href={selectedAgent.sandboxUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs hover:underline"
+                                style={{ color: accentColor }}
+                            >
+                                {selectedAgent.sandboxUrl}
+                            </a>
+                        </div>
+                    )}
+
+                    {/* Error Display */}
+                    {selectedAgent.lastError && (
+                        <div className="px-4 py-3 border-b border-white/5">
+                            <h4 className="text-xs font-medium text-red-400 uppercase tracking-wider mb-2">Error</h4>
+                            <p className="text-xs text-red-300/80">{selectedAgent.lastError}</p>
                         </div>
                     )}
 
@@ -407,22 +457,24 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                     <div className="px-4 py-3">
                         <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Activity</h4>
                         <div className="space-y-2">
-                            {selectedAgent.logs.length === 0 ? (
+                            {agentLogs.length === 0 ? (
                                 <p className="text-xs text-white/30 italic">No activity yet. Deploy an agent to get started.</p>
                             ) : (
-                                selectedAgent.logs.map((log) => (
+                                agentLogs.slice(0, 50).map((log) => (
                                     <div key={log.id} className="flex items-start gap-2">
                                         <div className="mt-0.5">
-                                            {log.type === 'action' && <Zap className="w-3 h-3" style={{ color: accentColor }} />}
-                                            {log.type === 'success' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                                            {log.type === 'error' && <XCircle className="w-3 h-3 text-red-400" />}
-                                            {log.type === 'warning' && <Clock className="w-3 h-3 text-amber-400" />}
-                                            {log.type === 'info' && <Bot className="w-3 h-3 text-blue-400" />}
+                                            {getLogIcon(log.logType)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs text-white/70">{log.message}</p>
+                                            {log.details?.code && (
+                                                <pre className="text-[10px] text-white/50 bg-white/5 rounded p-1 mt-1 overflow-x-auto">
+                                                    {log.details.code.substring(0, 200)}
+                                                    {log.details.code.length > 200 && '...'}
+                                                </pre>
+                                            )}
                                             <p className="text-[10px] text-white/30">
-                                                {log.timestamp.toLocaleTimeString()}
+                                                {log.createdAt.toLocaleTimeString()}
                                             </p>
                                         </div>
                                     </div>
@@ -431,15 +483,24 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                         </div>
                     </div>
                 </div>
+            ) : (
+                <div className="flex-1 flex items-center justify-center p-4">
+                    <div className="text-center">
+                        <Bot className="w-12 h-12 mx-auto mb-3 text-white/20" />
+                        <p className="text-sm text-white/40">No agent selected</p>
+                        <p className="text-xs text-white/30 mt-1">Deploy an agent to get started</p>
+                    </div>
+                </div>
             )}
 
             {/* Input Area */}
             <div className="p-4 border-t border-white/5">
                 {/* Model Selector */}
-                <div className="mb-3" ref={modelDropdownRef}>
+                <div className="mb-3 relative" ref={modelDropdownRef}>
                     <button
                         onClick={() => setShowModelDropdown(!showModelDropdown)}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
+                        disabled={isLoading}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all disabled:opacity-50"
                         style={{
                             background: 'rgba(255,255,255,0.03)',
                             border: '1px solid rgba(255,255,255,0.08)',
@@ -459,7 +520,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="absolute left-4 right-4 mt-1 rounded-lg overflow-hidden z-50"
+                                className="absolute left-0 right-0 bottom-full mb-1 rounded-lg overflow-hidden z-50"
                                 style={{
                                     background: 'rgba(25,25,30,0.98)',
                                     border: '1px solid rgba(255,255,255,0.1)',
@@ -469,10 +530,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 {AVAILABLE_MODELS.map((model) => (
                                     <button
                                         key={model.id}
-                                        onClick={() => {
-                                            setSelectedModel(model.id);
-                                            setShowModelDropdown(false);
-                                        }}
+                                        onClick={() => handleModelChange(model.id)}
                                         className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
                                         style={{
                                             background: selectedModel === model.id ? accentGlow : 'transparent',
@@ -497,7 +555,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                 </div>
 
                 {/* Task Input */}
-                <div 
+                <div
                     className="relative rounded-xl overflow-hidden"
                     style={{
                         background: 'rgba(255,255,255,0.03)',
@@ -514,23 +572,32 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 handleDeployAgent();
                             }
                         }}
-                        placeholder="Describe what you want this agent to do..."
-                        className="w-full bg-transparent text-white/90 placeholder-white/30 text-sm p-3 pr-12 resize-none outline-none"
+                        disabled={isLoading || !currentSession}
+                        placeholder={
+                            !currentSession
+                                ? 'Initializing session...'
+                                : 'Describe what you want this agent to do...'
+                        }
+                        className="w-full bg-transparent text-white/90 placeholder-white/30 text-sm p-3 pr-12 resize-none outline-none disabled:opacity-50"
                         rows={3}
                         style={{ minHeight: '80px' }}
                     />
                     <button
                         onClick={handleDeployAgent}
-                        disabled={!inputValue.trim()}
+                        disabled={!inputValue.trim() || isLoading || !currentSession}
                         className="absolute right-2 bottom-2 p-2 rounded-lg transition-all disabled:opacity-40"
                         style={{
-                            background: inputValue.trim() 
+                            background: inputValue.trim() && !isLoading
                                 ? `linear-gradient(145deg, ${accentColor} 0%, ${accentColor}cc 100%)`
                                 : 'rgba(255,255,255,0.05)',
-                            boxShadow: inputValue.trim() ? `0 0 20px ${accentColor}40` : 'none',
+                            boxShadow: inputValue.trim() && !isLoading ? `0 0 20px ${accentColor}40` : 'none',
                         }}
                     >
-                        <Send className="w-4 h-4" style={{ color: inputValue.trim() ? '#000' : 'rgba(255,255,255,0.3)' }} />
+                        {isLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                        ) : (
+                            <Send className="w-4 h-4" style={{ color: inputValue.trim() ? '#000' : 'rgba(255,255,255,0.3)' }} />
+                        )}
                     </button>
                 </div>
             </div>
@@ -539,4 +606,3 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 }
 
 export default AgentModeSidebar;
-

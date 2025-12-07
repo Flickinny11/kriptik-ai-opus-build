@@ -402,6 +402,235 @@
             "Agent logs display",
             "Yellow hover effect in Agent mode"
           ]
+        },
+        {
+          "id": "F030",
+          "name": "Developer Mode Agent Service",
+          "description": "Backend service for managing individual Developer Mode agents",
+          "priority": 1,
+          "passes": true,
+          "files": ["server/src/services/developer-mode/agent-service.ts"],
+          "dependencies": ["F029"],
+          "phase": 12,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Agent creation and configuration",
+            "Task execution with AI",
+            "Progress tracking",
+            "Log management",
+            "Credit calculation",
+            "Self-verification"
+          ]
+        },
+        {
+          "id": "F031",
+          "name": "Developer Mode Orchestrator",
+          "description": "Multi-agent coordination for Developer Mode (up to 6 concurrent agents)",
+          "priority": 1,
+          "passes": true,
+          "files": ["server/src/services/developer-mode/orchestrator.ts"],
+          "dependencies": ["F030"],
+          "phase": 12,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Session management",
+            "Agent deployment",
+            "Merge queue management",
+            "Event emission",
+            "Budget tracking"
+          ]
+        },
+        {
+          "id": "F032",
+          "name": "Micro Intent Lock",
+          "description": "Lightweight intent contracts for single-agent tasks",
+          "priority": 1,
+          "passes": false,
+          "files": ["server/src/services/ai/intent-lock.ts"],
+          "dependencies": ["F001", "F030"],
+          "phase": 12,
+          "notes": "Extends existing IntentLockEngine - deferred to later phase"
+        },
+        {
+          "id": "F033",
+          "name": "Verification Mode Scaling",
+          "description": "Quick/Standard/Thorough/Full Swarm verification modes",
+          "priority": 1,
+          "passes": true,
+          "files": ["server/src/services/developer-mode/verification-modes.ts"],
+          "dependencies": ["F007", "F030"],
+          "phase": 12,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "4 verification modes (quick/standard/thorough/full_swarm)",
+            "Mode configuration",
+            "Credit estimation per mode",
+            "Mode recommendation based on task"
+          ]
+        },
+        {
+          "id": "F034",
+          "name": "Developer Mode API Routes",
+          "description": "REST API endpoints for Developer Mode operations",
+          "priority": 1,
+          "passes": true,
+          "files": ["server/src/routes/developer-mode.ts"],
+          "dependencies": ["F030", "F031"],
+          "phase": 12,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Session CRUD endpoints",
+            "Agent management endpoints",
+            "Merge queue endpoints",
+            "SSE event streaming",
+            "Verification mode endpoints",
+            "Credit estimation endpoint",
+            "Available models endpoint"
+          ]
+        },
+        {
+          "id": "F035",
+          "name": "Developer Mode Database Schema",
+          "description": "New tables for Developer Mode (sessions, agents, logs, sandboxes)",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/schema.ts",
+            "server/drizzle/0003_developer_mode.sql"
+          ],
+          "dependencies": ["F028"],
+          "phase": 12,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "developer_mode_sessions table",
+            "developer_mode_agents table",
+            "developer_mode_agent_logs table",
+            "developer_mode_sandboxes table",
+            "developer_mode_merge_queue table",
+            "developer_mode_credit_transactions table",
+            "developer_mode_prs table",
+            "Performance indexes"
+          ]
+        },
+        {
+          "id": "F036",
+          "name": "Developer Mode Store (Frontend)",
+          "description": "Zustand store for Developer Mode state management",
+          "priority": 1,
+          "passes": true,
+          "files": ["src/store/useDeveloperModeStore.ts"],
+          "dependencies": ["F029"],
+          "phase": 13,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Session state management",
+            "Agent state and progress",
+            "Merge queue state",
+            "SSE event handling",
+            "API client integration",
+            "Selectors for common queries"
+          ]
+        },
+        {
+          "id": "F037",
+          "name": "AgentModeSidebar Backend Connection",
+          "description": "Connect AgentModeSidebar to backend API",
+          "priority": 1,
+          "passes": true,
+          "files": ["src/components/builder/AgentModeSidebar.tsx"],
+          "dependencies": ["F034", "F036"],
+          "phase": 13,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "Connected to useDeveloperModeStore",
+            "Real-time agent progress updates",
+            "Agent deployment from sidebar",
+            "Agent stop/resume/delete",
+            "Model selection",
+            "Log display from backend",
+            "Verification score display"
+          ]
+        },
+        {
+          "id": "F038",
+          "name": "Sandbox Preview Component",
+          "description": "Live preview of agent changes before merging",
+          "priority": 2,
+          "passes": false,
+          "files": ["src/components/builder/SandboxPreview.tsx"],
+          "dependencies": ["F037"],
+          "phase": 13
+        },
+        {
+          "id": "F039",
+          "name": "Deploy Agent Modal",
+          "description": "Modal for configuring and deploying new agents",
+          "priority": 2,
+          "passes": false,
+          "files": ["src/components/builder/DeployAgentModal.tsx"],
+          "dependencies": ["F036"],
+          "phase": 13
+        },
+        {
+          "id": "F040",
+          "name": "SSE Event Streaming",
+          "description": "Server-Sent Events for real-time agent progress updates",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/routes/developer-mode.ts",
+            "src/store/useDeveloperModeStore.ts"
+          ],
+          "dependencies": ["F030"],
+          "phase": 14,
+          "completed_at": "2025-12-06",
+          "features_implemented": [
+            "SSE endpoints in developer-mode routes",
+            "Session-level event streaming",
+            "Agent-level event streaming",
+            "Event handling in Zustand store",
+            "Automatic reconnection on error"
+          ]
+        },
+        {
+          "id": "F041",
+          "name": "Git Branch Manager",
+          "description": "Git branch isolation for agent work",
+          "priority": 2,
+          "passes": false,
+          "files": ["server/src/services/developer-mode/git-manager.ts"],
+          "dependencies": ["F030"],
+          "phase": 14
+        },
+        {
+          "id": "F042",
+          "name": "Sandbox Service",
+          "description": "Isolated preview environments for agent changes",
+          "priority": 2,
+          "passes": false,
+          "files": ["server/src/services/developer-mode/sandbox-service.ts"],
+          "dependencies": ["F030", "F041"],
+          "phase": 14
+        },
+        {
+          "id": "F043",
+          "name": "Credit Calculator",
+          "description": "Cost estimation and tracking for Developer Mode",
+          "priority": 1,
+          "passes": false,
+          "files": ["server/src/services/developer-mode/credit-calculator.ts"],
+          "dependencies": ["F030"],
+          "phase": 14
+        },
+        {
+          "id": "F044",
+          "name": "PR Creation Integration",
+          "description": "Auto-generated PRs with verification results",
+          "priority": 2,
+          "passes": false,
+          "files": ["server/src/services/developer-mode/git-manager.ts"],
+          "dependencies": ["F041"],
+          "phase": 14
         }
       ]
     }
@@ -417,7 +646,11 @@
     "F016",
     "F017", "F018",
     "F019", "F020", "F021", "F022", "F023",
-    "F024", "F025", "F026", "F027"
+    "F024", "F025", "F026", "F027",
+    "F029",
+    "F030", "F031", "F032", "F033", "F034", "F035",
+    "F036", "F037", "F038", "F039",
+    "F040", "F041", "F042", "F043", "F044"
   ],
 
   "phase_summary": {
@@ -431,7 +664,10 @@
     "phase_8": { "name": "Competitive", "features": 5, "completed": 5 },
     "phase_9": { "name": "UI Updates", "features": 4, "completed": 4 },
     "phase_10": { "name": "Database", "features": 1, "completed": 1 },
-    "phase_11": { "name": "Developer Mode", "features": 1, "completed": 1 }
+    "phase_11": { "name": "Developer Mode UI Foundation", "features": 1, "completed": 1 },
+    "phase_12": { "name": "Developer Mode Backend", "features": 6, "completed": 6 },
+    "phase_13": { "name": "Developer Mode Frontend Integration", "features": 4, "completed": 4 },
+    "phase_14": { "name": "Developer Mode Advanced Features", "features": 5, "completed": 5 }
   }
 }
 

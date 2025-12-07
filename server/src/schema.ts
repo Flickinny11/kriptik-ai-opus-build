@@ -1340,3 +1340,334 @@ export const buildSessionProgress = sqliteTable('build_session_progress', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// DEVELOPER MODE TABLES - Individual agent management for technical users
+// Phase 12: Developer View / Developer Mode
+// =============================================================================
+
+/**
+ * Developer Mode Sessions - Top-level session for Developer Mode usage
+ * Tracks active Developer Mode sessions with up to 6 concurrent agents
+ */
+export const developerModeSessions = sqliteTable('developer_mode_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Session status
+    status: text('status').default('active').notNull(), // active, paused, completed, failed
+    startedAt: text('started_at').default(sql`(datetime('now'))`).notNull(),
+    pausedAt: text('paused_at'),
+    completedAt: text('completed_at'),
+
+    // Active agents (max 6)
+    maxConcurrentAgents: integer('max_concurrent_agents').default(6).notNull(),
+    activeAgentCount: integer('active_agent_count').default(0).notNull(),
+
+    // Session configuration
+    defaultModel: text('default_model').default('claude-sonnet-4-5'),
+    verificationMode: text('verification_mode').default('standard'), // quick, standard, thorough, full_swarm
+    autoMergeEnabled: integer('auto_merge_enabled', { mode: 'boolean' }).default(false),
+
+    // Credit tracking
+    creditsUsed: integer('credits_used').default(0).notNull(),
+    creditsEstimated: integer('credits_estimated').default(0),
+    budgetLimit: integer('budget_limit'), // Optional spending cap
+
+    // Git integration
+    baseBranch: text('base_branch').default('main'),
+    workBranch: text('work_branch'), // Feature branch for this session
+
+    // Session metrics
+    totalAgentsDeployed: integer('total_agents_deployed').default(0),
+    totalTasksCompleted: integer('total_tasks_completed').default(0),
+    totalVerificationPasses: integer('total_verification_passes').default(0),
+    totalMerges: integer('total_merges').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode Agents - Individual agents within a Developer Mode session
+ * Each agent handles a specific task with isolated sandbox
+ */
+export const developerModeAgents = sqliteTable('developer_mode_agents', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Agent identification
+    agentNumber: integer('agent_number').notNull(), // 1-6
+    name: text('name').notNull(), // User-configurable name like "Auth Agent"
+
+    // Current status
+    status: text('status').default('idle').notNull(), // idle, running, completed, waiting, failed, paused
+
+    // Task definition
+    taskPrompt: text('task_prompt'),
+    intentLockId: text('intent_lock_id').references(() => buildIntents.id), // Micro Intent Lock for this task
+
+    // Model configuration
+    model: text('model').notNull(), // claude-opus-4-5, claude-sonnet-4-5, claude-haiku-3-5, gpt-5-codex, gemini-2-5-pro, deepseek-r1
+    effortLevel: text('effort_level').default('medium'), // low, medium, high
+    thinkingBudget: integer('thinking_budget').default(8000),
+
+    // Progress tracking
+    progress: integer('progress').default(0), // 0-100
+    currentStep: text('current_step'),
+    stepsCompleted: integer('steps_completed').default(0),
+    stepsTotal: integer('steps_total').default(0),
+
+    // Git integration - worktree isolation
+    worktreePath: text('worktree_path'), // Path to isolated git worktree
+    branchName: text('branch_name'), // Agent-specific branch
+
+    // Sandbox isolation
+    sandboxId: text('sandbox_id'),
+    sandboxUrl: text('sandbox_url'), // Preview URL for this agent's work
+
+    // Verification status
+    verificationMode: text('verification_mode'), // quick, standard, thorough, full_swarm
+    verificationPassed: integer('verification_passed', { mode: 'boolean' }),
+    verificationScore: integer('verification_score'), // 0-100
+    lastVerificationAt: text('last_verification_at'),
+
+    // Merge status
+    mergeStatus: text('merge_status'), // pending, approved, merged, rejected, conflict
+    mergedAt: text('merged_at'),
+    mergeConflicts: text('merge_conflicts', { mode: 'json' }).$type<string[]>(),
+
+    // Cost tracking
+    tokensUsed: integer('tokens_used').default(0),
+    creditsUsed: integer('credits_used').default(0),
+    estimatedCredits: integer('estimated_credits').default(0),
+
+    // Timing
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    lastActivityAt: text('last_activity_at'),
+
+    // Error handling
+    lastError: text('last_error'),
+    errorCount: integer('error_count').default(0),
+    escalationLevel: integer('escalation_level').default(0), // 0-4
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode Agent Logs - Detailed logs for each agent
+ * Streams to UI for real-time visibility
+ */
+export const developerModeAgentLogs = sqliteTable('developer_mode_agent_logs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id').references(() => developerModeAgents.id).notNull(),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+
+    // Log type and level
+    logType: text('log_type').notNull(), // action, thought, code, verification, error, warning, info, debug
+    level: text('level').default('info'), // debug, info, warning, error
+
+    // Content
+    message: text('message').notNull(),
+    details: text('details', { mode: 'json' }).$type<{
+        code?: string;
+        file?: string;
+        line?: number;
+        thinking?: string;
+        toolCall?: string;
+        toolResult?: string;
+        verification?: object;
+    }>(),
+
+    // Context
+    phase: text('phase'), // planning, implementing, verifying, fixing
+    stepNumber: integer('step_number'),
+
+    // Timing
+    durationMs: integer('duration_ms'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode Sandboxes - Isolated preview environments for each agent
+ * Allows users to see agent's work before merging
+ */
+export const developerModeSandboxes = sqliteTable('developer_mode_sandboxes', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id').references(() => developerModeAgents.id).notNull(),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Sandbox configuration
+    sandboxType: text('sandbox_type').default('stackblitz'), // stackblitz, webcontainer, local
+    environment: text('environment'), // node, vite, next, etc.
+
+    // URLs
+    previewUrl: text('preview_url'),
+    editorUrl: text('editor_url'),
+
+    // State
+    status: text('status').default('creating').notNull(), // creating, ready, running, stopped, failed
+    lastHeartbeat: text('last_heartbeat'),
+
+    // Files snapshot (JSON map of path -> content)
+    filesSnapshot: text('files_snapshot', { mode: 'json' }).$type<Record<string, string>>(),
+
+    // Console/runtime state
+    consoleOutput: text('console_output', { mode: 'json' }).$type<Array<{
+        type: 'log' | 'warn' | 'error';
+        message: string;
+        timestamp: string;
+    }>>(),
+
+    // Errors
+    runtimeErrors: text('runtime_errors', { mode: 'json' }).$type<Array<{
+        message: string;
+        stack?: string;
+        file?: string;
+        line?: number;
+    }>>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode Merge Queue - Tracks pending merges from agents
+ * Allows review before merging agent work to main branch
+ */
+export const developerModeMergeQueue = sqliteTable('developer_mode_merge_queue', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id').references(() => developerModeAgents.id).notNull(),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Merge request details
+    status: text('status').default('pending').notNull(), // pending, approved, rejected, merged, conflict
+    priority: integer('priority').default(0), // Higher = more urgent
+
+    // Source/target
+    sourceBranch: text('source_branch').notNull(),
+    targetBranch: text('target_branch').notNull(),
+
+    // Changes summary
+    filesChanged: integer('files_changed').default(0),
+    additions: integer('additions').default(0),
+    deletions: integer('deletions').default(0),
+
+    // Changed files (JSON array)
+    changedFiles: text('changed_files', { mode: 'json' }).$type<Array<{
+        path: string;
+        action: 'added' | 'modified' | 'deleted';
+        additions: number;
+        deletions: number;
+    }>>(),
+
+    // Diff preview (optional, for quick review)
+    diffPreview: text('diff_preview'),
+
+    // Verification results at merge time
+    verificationResults: text('verification_results', { mode: 'json' }).$type<{
+        passed: boolean;
+        score: number;
+        agents: Record<string, { passed: boolean; score?: number }>;
+    }>(),
+
+    // Conflicts (if any)
+    conflicts: text('conflicts', { mode: 'json' }).$type<Array<{
+        file: string;
+        ourContent: string;
+        theirContent: string;
+    }>>(),
+    conflictResolution: text('conflict_resolution', { mode: 'json' }).$type<Record<string, string>>(),
+
+    // User actions
+    reviewedBy: text('reviewed_by'),
+    reviewedAt: text('reviewed_at'),
+    approvedBy: text('approved_by'),
+    approvedAt: text('approved_at'),
+    mergedAt: text('merged_at'),
+    rejectedReason: text('rejected_reason'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode Credit Transactions - Tracks credit usage per agent/task
+ * Transparent cost tracking for Developer Mode usage
+ */
+export const developerModeCreditTransactions = sqliteTable('developer_mode_credit_transactions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+    agentId: text('agent_id').references(() => developerModeAgents.id),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Transaction type
+    transactionType: text('transaction_type').notNull(), // agent_call, verification, merge, sandbox
+
+    // Cost breakdown
+    model: text('model').notNull(),
+    inputTokens: integer('input_tokens').default(0),
+    outputTokens: integer('output_tokens').default(0),
+    thinkingTokens: integer('thinking_tokens').default(0),
+    totalTokens: integer('total_tokens').default(0),
+
+    // Credits
+    creditsCharged: integer('credits_charged').notNull(),
+    creditRate: text('credit_rate'), // Rate used for calculation
+
+    // Context
+    taskDescription: text('task_description'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Developer Mode PRs - Auto-generated Pull Requests from agent work
+ * Integrates with GitHub for team collaboration
+ */
+export const developerModePRs = sqliteTable('developer_mode_prs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
+    agentId: text('agent_id').references(() => developerModeAgents.id),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // GitHub integration
+    githubPRUrl: text('github_pr_url'),
+    githubPRNumber: integer('github_pr_number'),
+    githubRepo: text('github_repo'),
+
+    // PR content
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+
+    // Labels and metadata
+    labels: text('labels', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Auto-generated sections
+    changesSummary: text('changes_summary'),
+    verificationReport: text('verification_report', { mode: 'json' }).$type<{
+        overallScore: number;
+        codeQuality: number;
+        visualScore: number;
+        securityStatus: string;
+        testsPassed: boolean;
+    }>(),
+
+    // Status
+    status: text('status').default('draft').notNull(), // draft, open, merged, closed
+
+    // Source/target branches
+    headBranch: text('head_branch').notNull(),
+    baseBranch: text('base_branch').notNull(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

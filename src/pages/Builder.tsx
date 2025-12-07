@@ -573,7 +573,7 @@ export default function Builder() {
                         <PanelGroup direction="horizontal" key={builderMode}>
                             {/* Builder Mode: Chat on LEFT, Preview on RIGHT */}
                             {/* Agents Mode: Preview on LEFT, Agent Sidebar on RIGHT */}
-                            
+
                             {builderMode === 'builder' ? (
                                 <>
                                     {/* Left Panel: Chat (Builder Mode) */}
@@ -773,9 +773,9 @@ export default function Builder() {
                                     <Panel defaultSize={activeTab === 'code' ? 30 : 35} minSize={25} maxSize={45}>
                                         <div className="h-full m-2 rounded-2xl overflow-hidden">
                                             {/* Mode Toggle at top */}
-                                            <div 
+                                            <div
                                                 className="px-4 py-3 flex items-center justify-between shrink-0"
-                                                style={{ 
+                                                style={{
                                                     background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',
                                                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                                                     borderTopLeftRadius: '16px',
