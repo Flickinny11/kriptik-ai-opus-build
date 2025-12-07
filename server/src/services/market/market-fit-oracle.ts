@@ -7,8 +7,9 @@
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+import Anthropic from '@anthropic-ai/sdk';
 import { BrowserAutomationService, createBrowserAutomationService } from '../automation/browser-service.js';
-import { createOpenRouterClient, getPhaseConfig } from '../ai/openrouter-client.js';
+import { getOpenRouterClient, getPhaseConfig, type OpenRouterClient } from '../ai/openrouter-client.js';
 
 // =============================================================================
 // TYPES
@@ -320,11 +321,14 @@ Respond in JSON format:
 
 export class MarketFitOracleService extends EventEmitter {
     private analyses: Map<string, MarketAnalysis> = new Map();
-    private openRouterClient = createOpenRouterClient();
+    private openRouter: OpenRouterClient;
+    private client: Anthropic;
     private browserService: BrowserAutomationService | null = null;
 
     constructor() {
         super();
+        this.openRouter = getOpenRouterClient();
+        this.client = this.openRouter.getClient();
     }
 
     /**
@@ -496,15 +500,17 @@ export class MarketFitOracleService extends EventEmitter {
             .replace('{appDescription}', appDescription)
             .replace('{targetMarket}', targetMarket);
 
-        const response = await this.openRouterClient.generate({
+        const response = await this.client.messages.create({
             model: phaseConfig.model,
-            systemPrompt: 'You are a market research expert. Respond only with valid JSON.',
-            userPrompt: prompt,
-            maxTokens: phaseConfig.maxTokens,
+            max_tokens: 8000,
+            system: 'You are a market research expert. Respond only with valid JSON.',
+            messages: [{ role: 'user', content: prompt }],
         });
 
         try {
-            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            const content = response.content[0];
+            const text = content.type === 'text' ? content.text : '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const data = JSON.parse(jsonMatch[0]);
                 return data.competitors || [];
@@ -559,15 +565,17 @@ export class MarketFitOracleService extends EventEmitter {
             .replace('{pageContent}', pageContent.substring(0, 5000))
             .replace('{hasScreenshot}', screenshot ? 'yes' : 'no');
 
-        const response = await this.openRouterClient.generate({
+        const response = await this.client.messages.create({
             model: phaseConfig.model,
-            systemPrompt: 'You are a competitive intelligence analyst. Respond only with valid JSON.',
-            userPrompt: prompt,
-            maxTokens: phaseConfig.maxTokens,
+            max_tokens: 8000,
+            system: 'You are a competitive intelligence analyst. Respond only with valid JSON.',
+            messages: [{ role: 'user', content: prompt }],
         });
 
         try {
-            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            const content = response.content[0];
+            const text = content.type === 'text' ? content.text : '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const data = JSON.parse(jsonMatch[0]);
 
@@ -673,16 +681,29 @@ export class MarketFitOracleService extends EventEmitter {
             .replace('{targetMarket}', targetMarket)
             .replace('{competitorSummaries}', competitorSummaries);
 
-        const response = await this.openRouterClient.generate({
+        // Build request params with extended thinking for deep analysis
+        const requestParams: Anthropic.MessageCreateParams = {
             model: phaseConfig.model,
-            systemPrompt: 'You are a strategic product advisor. Respond only with valid JSON.',
-            userPrompt: prompt,
-            maxTokens: phaseConfig.maxTokens,
-            thinkingBudget: phaseConfig.thinkingBudget,
-        });
+            max_tokens: 16000,
+            system: 'You are a strategic product advisor. Respond only with valid JSON.',
+            messages: [{ role: 'user', content: prompt }],
+        };
+
+        // Add extended thinking for better gap analysis
+        if (phaseConfig.thinkingBudget > 0) {
+            requestParams.thinking = {
+                type: 'enabled',
+                budget_tokens: phaseConfig.thinkingBudget,
+            };
+            requestParams.temperature = 1;
+        }
+
+        const response = await this.client.messages.create(requestParams);
 
         try {
-            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            const content = response.content.find(c => c.type === 'text');
+            const text = content && content.type === 'text' ? content.text : '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const data = JSON.parse(jsonMatch[0]);
 

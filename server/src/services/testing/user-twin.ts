@@ -8,13 +8,14 @@
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+import Anthropic from '@anthropic-ai/sdk';
 import {
     BrowserAutomationService,
     type ConsoleLog,
     type NetworkRequest,
     type BrowserActionResult
 } from '../automation/browser-service.js';
-import { createOpenRouterClient, getPhaseConfig } from '../ai/openrouter-client.js';
+import { getOpenRouterClient, getPhaseConfig, type OpenRouterClient } from '../ai/openrouter-client.js';
 
 // =============================================================================
 // TYPES
@@ -246,10 +247,13 @@ export const DEFAULT_PERSONAS: UserPersona[] = [
 export class UserTwinService extends EventEmitter {
     private sessions: Map<string, TestSession> = new Map();
     private activeBrowsers: Map<string, BrowserAutomationService> = new Map();
-    private openRouterClient = createOpenRouterClient();
+    private openRouter: OpenRouterClient;
+    private client: Anthropic;
 
     constructor() {
         super();
+        this.openRouter = getOpenRouterClient();
+        this.client = this.openRouter.getClient();
     }
 
     /**
@@ -579,14 +583,16 @@ If the persona has achieved their goals or explored sufficiently, use type "comp
 
         try {
             const phaseConfig = getPhaseConfig('error_check');
-            const response = await this.openRouterClient.generate({
+            const response = await this.client.messages.create({
                 model: phaseConfig.model,
-                systemPrompt,
-                userPrompt,
-                maxTokens: 1000,
+                max_tokens: 1000,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: userPrompt }],
             });
 
-            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            const content = response.content[0];
+            const text = content.type === 'text' ? content.text : '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 return JSON.parse(jsonMatch[0]);
             }
@@ -803,13 +809,15 @@ Goals completed: ${result.goalsCompleted.join(', ') || 'none'}
 Provide a 2-3 sentence summary.`;
 
         try {
-            const response = await this.openRouterClient.generate({
+            const response = await this.client.messages.create({
                 model: 'claude-3-5-haiku-latest',
-                systemPrompt,
-                userPrompt,
-                maxTokens: 200,
+                max_tokens: 200,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: userPrompt }],
             });
-            return response.content.trim();
+            const content = response.content[0];
+            const text = content.type === 'text' ? content.text : '';
+            return text.trim();
         } catch {
             return `${persona.name} performed ${result.actions.length} actions, finding ${result.issuesFound.length} issues. Journey score: ${result.journeyScore}/100.`;
         }
