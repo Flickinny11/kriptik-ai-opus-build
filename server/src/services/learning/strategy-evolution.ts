@@ -16,7 +16,6 @@ import { db } from '../../db.js';
 import { learningStrategies, learningInsights } from '../../schema.js';
 import { eq, desc, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { createAnthropicClient } from '../../utils/anthropic-client.js';
 import { EventEmitter } from 'events';
 import type {
     LearnedStrategy,
@@ -114,14 +113,12 @@ const DEFAULT_STRATEGIES: Partial<LearnedStrategy>[] = [
 // =============================================================================
 
 export class StrategyEvolutionService extends EventEmitter {
-    private anthropic: ReturnType<typeof getAnthropicClient>;
     private strategyCache: Map<StrategyDomain, LearnedStrategy[]> = new Map();
     private lastCacheRefresh: Date = new Date(0);
     private readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
     constructor() {
         super();
-        this.anthropic = getAnthropicClient();
         this.initializeDefaultStrategies();
     }
 
