@@ -96,3 +96,17 @@ export {
     type GitAwareSnapshot,
 } from './artifacts.js';
 
+// InitializerAgent - Project Memory Setup
+export {
+    InitializerAgent,
+    createInitializerAgent,
+    needsInitialization,
+    initializeProject,
+    type InitializerConfig,
+    type InitializerResult,
+    type InitializerMode,
+    type TaskDecomposition,
+    type ScaffoldingResult,
+    type InitializerEvents,
+} from './initializer-agent.js';
+
