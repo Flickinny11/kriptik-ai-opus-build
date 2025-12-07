@@ -67,7 +67,7 @@ export function VoiceRecordButton({
 
         const updateLevel = () => {
             if (!analyserRef.current) return;
-            
+
             analyserRef.current.getByteFrequencyData(dataArray);
             const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
             setAudioLevel(average / 255);

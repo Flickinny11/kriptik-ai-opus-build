@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic
+    Check, Layers, TrendingUp, Mic, Plug
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -42,6 +42,7 @@ import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPa
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { MarketFitDashboard } from '../components/market';
 import { VoiceArchitectPanel } from '../components/voice';
+import { APIAutopilotPanel } from '../components/api-autopilot';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -341,6 +342,7 @@ export default function Builder() {
     const [showGhostMode, setShowGhostMode] = useState(false);
     const [showMarketFit, setShowMarketFit] = useState(false);
     const [showVoiceArchitect, setShowVoiceArchitect] = useState(false);
+    const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -387,7 +389,7 @@ export default function Builder() {
                 <ShareModal />
                 <CommandPalette />
                 <KeyboardShortcutsPanel />
-                
+
                 {/* Market Fit Oracle - Competitor Analysis & Positioning */}
                 <MarketFitDashboard
                     isOpen={showMarketFit}
@@ -407,6 +409,17 @@ export default function Builder() {
                         setShowVoiceArchitect(false);
                     }}
                     projectId={projectId}
+                />
+
+                {/* API Autopilot - API Discovery & Integration */}
+                <APIAutopilotPanel
+                    isOpen={showAPIAutopilot}
+                    onClose={() => setShowAPIAutopilot(false)}
+                    projectId={projectId}
+                    onIntegrationComplete={(integrationId) => {
+                        console.log('API integration complete:', integrationId);
+                        setShowAPIAutopilot(false);
+                    }}
                 />
 
                 {/* Premium Liquid Glass Header */}
@@ -514,6 +527,15 @@ export default function Builder() {
                             isActive={showVoiceArchitect}
                         >
                             Voice
+                        </GlassButton>
+
+                        {/* API Autopilot - API Integration */}
+                        <GlassButton
+                            icon={Plug}
+                            onClick={() => setShowAPIAutopilot(true)}
+                            isActive={showAPIAutopilot}
+                        >
+                            APIs
                         </GlassButton>
 
                         <div className="h-4 w-px bg-white/10 mx-2" />

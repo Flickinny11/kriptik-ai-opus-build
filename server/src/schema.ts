@@ -1942,3 +1942,72 @@ export const voiceSessions = sqliteTable('voice_sessions', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// API Autopilot (API Integration Management)
+// =============================================================================
+
+export const apiIntegrations = sqliteTable('api_integrations', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    provider: text('provider').notNull(),
+
+    // API Profile
+    profile: text('profile', { mode: 'json' }).$type<{
+        id: string;
+        name: string;
+        provider: string;
+        baseUrl: string;
+        authType: 'api-key' | 'oauth2' | 'basic' | 'bearer' | 'none';
+        authConfig?: {
+            headerName?: string;
+            prefix?: string;
+            tokenUrl?: string;
+            scopes?: string[];
+        };
+        endpoints: Array<{
+            path: string;
+            method: string;
+            description: string;
+            parameters: Array<{
+                name: string;
+                in: string;
+                type: string;
+                required: boolean;
+                description?: string;
+            }>;
+            tags?: string[];
+        }>;
+        sdkAvailable: boolean;
+        sdkPackage?: string;
+        documentation: string;
+        rateLimits?: { requests: number; period: string };
+        category?: string;
+        logo?: string;
+    }>(),
+
+    // Encrypted credentials (AES-256-GCM)
+    credentials: text('credentials'),
+
+    // Generated integration code
+    generatedCode: text('generated_code', { mode: 'json' }).$type<{
+        serviceFile: string;
+        serviceContent: string;
+        typeDefinitions: string;
+        envVariables: Array<{
+            name: string;
+            description: string;
+            required: boolean;
+            example?: string;
+        }>;
+        usageExamples: string[];
+        dependencies: Array<{ name: string; version: string }>;
+    }>(),
+
+    // Status
+    status: text('status').notNull().$type<'configured' | 'testing' | 'active' | 'error'>(),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

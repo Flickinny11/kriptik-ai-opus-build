@@ -356,7 +356,7 @@ export class VoiceArchitectService extends EventEmitter {
             }
 
             const intentData = JSON.parse(jsonMatch[0]);
-            
+
             // Ensure ambiguities have IDs
             if (intentData.ambiguities) {
                 intentData.ambiguities = intentData.ambiguities.map((a: any) => ({
@@ -456,7 +456,7 @@ export class VoiceArchitectService extends EventEmitter {
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const updatedIntent = JSON.parse(jsonMatch[0]);
-                
+
                 // Remove the resolved ambiguity
                 updatedIntent.ambiguities = (updatedIntent.ambiguities || []).filter(
                     (a: any) => a.id !== ambiguityId
@@ -522,7 +522,7 @@ export class VoiceArchitectService extends EventEmitter {
 
         try {
             const phaseConfig = getPhaseConfig('intent_lock');
-            
+
             // Format clarifications
             const clarificationsSummary = session.clarifications
                 .map(c => `Q: ${c.question}\nA: ${c.userResponse}`)
@@ -675,11 +675,11 @@ const instances: Map<string, VoiceArchitectService> = new Map();
 
 export function getVoiceArchitectService(config: VoiceArchitectConfig): VoiceArchitectService {
     const key = `${config.userId}-${config.projectId || 'default'}`;
-    
+
     if (!instances.has(key)) {
         instances.set(key, new VoiceArchitectService(config));
     }
-    
+
     return instances.get(key)!;
 }
 

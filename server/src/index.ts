@@ -518,6 +518,10 @@ app.use("/api/market-fit", requireCredits(30), marketFitRouter);
 import voiceArchitectRouter from './routes/voice-architect.js';
 app.use("/api/voice", requireCredits(15), voiceArchitectRouter);
 
+// API Autopilot - API discovery and integration
+import apiAutopilotRouter from './routes/api-autopilot.js';
+app.use("/api/autopilot", requireCredits(10), apiAutopilotRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
