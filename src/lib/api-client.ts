@@ -429,6 +429,189 @@ class ApiClient {
     async getQualityReport(projectId: string): Promise<QualityCheckResult> {
         return this.fetch(`/api/quality/${projectId}/report`);
     }
+
+    // =========================================================================
+    // PROJECT IMPORT API (Developer Mode)
+    // =========================================================================
+
+    /**
+     * Import a project from various sources
+     */
+    async importProject(data: {
+        name: string;
+        source: 'zip' | 'github' | 'external';
+        file?: File;
+        url?: string;
+    }): Promise<ImportProjectResult> {
+        // For file uploads, use FormData
+        if (data.file) {
+            const formData = new FormData();
+            formData.append('file', data.file);
+            formData.append('name', data.name);
+            formData.append('source', data.source);
+
+            const response = await fetch(`${this.baseUrl}/api/projects/import`, {
+                method: 'POST',
+                headers: {
+                    ...(this.userId && { 'x-user-id': this.userId }),
+                },
+                body: formData,
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // For URL-based imports
+        return this.fetch('/api/projects/import', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    /**
+     * Import a project from GitHub repository
+     */
+    async importFromGitHub(data: {
+        url: string;
+        branch?: string;
+        name?: string;
+    }): Promise<ImportProjectResult> {
+        return this.fetch('/api/projects/import/github', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    // =========================================================================
+    // BILLING & CREDITS API
+    // =========================================================================
+
+    /**
+     * Get user's credit balance
+     */
+    async getCredits(): Promise<{ credits: number; tier: string; usedThisMonth: number }> {
+        return this.fetch('/api/billing/credits');
+    }
+
+    /**
+     * Get available pricing plans
+     */
+    async getPricing(): Promise<{
+        plans: Array<{
+            id: string;
+            name: string;
+            monthlyPrice: number;
+            creditsPerMonth: number;
+            features: string[];
+        }>;
+        topups: Array<{
+            id: string;
+            name: string;
+            price: number;
+            credits: number;
+        }>;
+    }> {
+        return this.fetch('/api/billing/pricing');
+    }
+
+    /**
+     * Create checkout session for subscription
+     */
+    async createCheckout(planId: string, interval: 'monthly' | 'yearly' = 'monthly'): Promise<{ url: string }> {
+        return this.fetch('/api/billing/checkout', {
+            method: 'POST',
+            body: JSON.stringify({ planId, interval }),
+        });
+    }
+
+    /**
+     * Create checkout session for credit top-up
+     */
+    async createTopUp(topUpId: string): Promise<{ url: string }> {
+        return this.fetch('/api/billing/topup', {
+            method: 'POST',
+            body: JSON.stringify({ topUpId }),
+        });
+    }
+
+    // =========================================================================
+    // DEVELOPER MODE API
+    // =========================================================================
+
+    /**
+     * Start a developer mode session
+     */
+    async startDeveloperSession(data: {
+        projectId: string;
+        initialPrompt?: string;
+        model?: string;
+        agentCount?: number;
+    }): Promise<{ sessionId: string; status: string }> {
+        return this.fetch('/api/developer-mode/sessions', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    /**
+     * Get developer mode session status
+     */
+    async getDeveloperSession(sessionId: string): Promise<{
+        session: {
+            id: string;
+            status: string;
+            agents: Array<{ id: string; role: string; status: string }>;
+        };
+    }> {
+        return this.fetch(`/api/developer-mode/sessions/${sessionId}`);
+    }
+
+    /**
+     * Send input to developer mode session
+     */
+    async sendToDevSession(sessionId: string, message: string): Promise<{ received: boolean }> {
+        return this.fetch(`/api/developer-mode/sessions/${sessionId}/input`, {
+            method: 'POST',
+            body: JSON.stringify({ message }),
+        });
+    }
+
+    // =========================================================================
+    // LEARNING ENGINE API
+    // =========================================================================
+
+    /**
+     * Get learning system status
+     */
+    async getLearningStatus(): Promise<{
+        data: {
+            health: string;
+            cycles: { total: number; successful: number };
+            patterns: { total: number };
+            models: { active: number };
+        };
+    }> {
+        return this.fetch('/api/learning/status');
+    }
+
+    /**
+     * Get training pipeline status
+     */
+    async getTrainingStatus(): Promise<{
+        data: {
+            totalJobs: number;
+            activeJobs: number;
+            completedJobs: number;
+        };
+    }> {
+        return this.fetch('/api/learning/training/status');
+    }
 }
 
 // Image-to-Code result type
@@ -453,6 +636,14 @@ export interface ImageToCodeResult {
         outputTokens: number;
         estimatedCost: number;
     };
+}
+
+// Import project result type
+export interface ImportProjectResult {
+    project?: Project;
+    files?: string[];
+    message?: string;
+    success: boolean;
 }
 
 // Quality check result type

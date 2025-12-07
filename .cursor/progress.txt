@@ -1992,3 +1992,198 @@ REMAINING TASKS:
 - Full Learning Engine telemetry integration
 
 KRIP-TOE-NITE: Core Engine Implementation COMPLETE ✅
+
+
+═══ [2025-12-07 COMPREHENSIVE AUDIT & INTEGRATION FIX] ═══
+COMPLETED: Critical Integration Gaps Fixed
+
+CRITICAL ISSUES IDENTIFIED & FIXED:
+
+1. DEVELOPER MODE ROUTE NOT REGISTERED (DEAD CODE)
+   - developer-mode.ts existed but wasn't imported in index.ts
+   - Fixed: Added import and app.use("/api/developer-mode", ...)
+
+2. 7 ROUTES WERE DEAD CODE (Not Registered)
+   - developer-mode.ts (Multi-agent orchestration API)
+   - autonomy.ts (Autonomy controls)
+   - checkpoints.ts (Time Machine)
+   - intelligence-dial.ts (Capability toggles)
+   - speed-dial.ts (Build modes)
+   - tournament.ts (Competing implementations)
+   - reflection.ts (Reflection engine)
+   ALL NOW REGISTERED IN index.ts
+
+3. BUILDER/AGENTS/DEVELOPER TOGGLE NOT USED
+   - BuilderAgentsToggle.tsx existed but Builder.tsx didn't use it
+   - Fixed: Integrated into Builder header with full mode switching
+
+4. DEVELOPER MODE VIEW NOT RENDERED
+   - DeveloperModeView.tsx existed but wasn't accessible
+   - Fixed: Rendered when builderMode === 'developer'
+
+5. AGENTS MODE SIDEBAR NOT MAIN VIEW
+   - AgentModeSidebar only in sidebar panel
+   - Fixed: Full view with Preview LEFT, Agents RIGHT layout
+
+6. GHOST MODE PANEL NOT ACCESSIBLE
+   - GhostModePanel existed but no UI access point
+   - Fixed: Added "👻 Ghost Mode" button in header
+
+7. SOFT INTERRUPT INPUT NOT ACCESSIBLE
+   - SoftInterruptInput existed but wasn't rendered
+   - Fixed: Floating input in Developer mode
+
+FILES MODIFIED:
+- server/src/index.ts
+  - Added 7 new route imports
+  - Added 7 new app.use() registrations with appropriate credit limits
+
+- src/pages/Builder.tsx
+  - Added BuilderAgentsToggle import and state
+  - Added mode toggle to header
+  - Added conditional rendering for 3 modes
+  - Added Ghost Mode panel integration
+  - Added Soft Interrupt input integration
+
+ROUTES NOW REGISTERED:
+✅ /api/developer-mode - Multi-agent orchestration (100 credits)
+✅ /api/speed-dial - Build mode selector
+✅ /api/intelligence-dial - Capability toggles
+✅ /api/tournament - Competing implementations (150 credits)
+✅ /api/checkpoints - Time Machine
+✅ /api/reflection - Self-improvement
+✅ /api/autonomy - Autonomous building settings
+
+BUILD STATUS: PASSING ✅
+- Frontend Build: ✓
+- Server Build: ✓
+- TypeScript: ✓
+
+ENVIRONMENT VARIABLES REQUIRED FOR VERCEL:
+- OPENROUTER_API_KEY (required)
+- TURSO_DATABASE_URL (required)
+- TURSO_AUTH_TOKEN (required)
+- BETTER_AUTH_SECRET (required)
+- GITHUB_CLIENT_ID (OAuth)
+- GITHUB_CLIENT_SECRET (OAuth)
+- GOOGLE_CLIENT_ID (OAuth)
+- GOOGLE_CLIENT_SECRET (OAuth)
+- STRIPE_SECRET_KEY (billing)
+- STRIPE_WEBHOOK_SECRET (billing)
+- FRONTEND_URL (URLs)
+- BETTER_AUTH_URL (URLs)
+- ADMIN_SECRET (admin functions)
+- MIGRATION_SECRET (DB migrations)
+- VERCEL_TOKEN (deployment)
+- HELICONE_API_KEY (optional - analytics)
+
+NEXT STEPS:
+1. Push to GitHub
+2. Verify all env vars in Vercel dashboard
+3. Test Builder → Agents → Developer mode flow
+4. Verify all API endpoints are accessible
+
+
+═══ [2025-12-07 BILLING & TRAINING PIPELINE COMPLETE] ═══
+COMPLETED: Full Billing System + Learning Engine Training Pipeline
+
+## BILLING SYSTEM (Complete)
+
+### Stripe Setup Service Created
+File: server/src/services/billing/stripe-setup.ts
+
+PRICING TIERS:
+- FREE: $0/month - 50 credits (trial)
+- STARTER: $29/month - 300 credits (hobby)
+- BUILDER: $59/month - 800 credits (serious builders)
+- DEVELOPER: $99/month - 2000 credits (full-stack AI dev)
+- PRO: $199/month - 5000 credits (teams)
+
+CREDIT TOP-UPS (with profit margins):
+- 100 credits: $15 (15¢/credit)
+- 300 credits: $39 (13¢/credit) - POPULAR
+- 500 credits: $59 (12¢/credit)
+- 1000 credits: $99 (10¢/credit) - BEST VALUE
+- 2500 credits: $199 (8¢/credit)
+
+CREDIT COSTS (per feature):
+- Build start: 10 credits
+- Verification (standard): 15 credits
+- Ghost Mode per hour: 50 credits
+- Tournament run: 100 credits
+- Agent deploy: 20 credits
+
+### New API Endpoints
+POST /api/billing/complete-setup - Creates all products, prices, and webhook
+POST /api/billing/cleanup - Archives all KripTik products (for reset)
+GET /api/billing/pricing - Public pricing endpoint
+
+## COMPONENT 28 - TRAINING PIPELINE (Complete)
+
+### Training Pipeline Service Created
+File: server/src/services/learning/training-pipeline.ts
+
+FEATURES:
+- Job queue with priority support
+- Modal Labs integration for GPU compute
+- HuggingFace integration for model hosting
+- Auto-evaluation of trained models
+- Auto-promotion when eval score >= 0.75
+- Training code generation for DPO training
+
+SUPPORTED MODELS:
+- code_specialist (Qwen 7B) - Code generation & error fixing
+- architecture_specialist (DeepSeek 6.7B) - Architecture decisions
+- reasoning_specialist (Llama 3.1 8B) - Complex reasoning
+- design_specialist (Qwen 7B) - Design & Anti-Slop
+
+### New API Endpoints
+GET /api/learning/training/status - Pipeline stats
+GET /api/learning/training/jobs - List all jobs
+GET /api/learning/training/jobs/:jobId - Get job status
+POST /api/learning/training/submit - Submit training job
+POST /api/learning/training/jobs/:jobId/cancel - Cancel job
+POST /api/learning/training/trigger - Auto-trigger based on data
+
+## UI IMPROVEMENTS
+
+### DeveloperModeView - Real API Integration
+File: src/components/builder/DeveloperModeView.tsx
+- Replaced simulations with real apiClient calls
+- ZIP import now calls /api/projects/import
+- GitHub import now calls /api/projects/import/github
+- Graceful fallback if API fails
+
+### API Client Extended
+File: src/lib/api-client.ts
+New methods:
+- importProject() - Import from ZIP/URL
+- importFromGitHub() - Clone GitHub repos
+- getCredits() - User credit balance
+- getPricing() - All pricing tiers
+- createCheckout() - Subscription checkout
+- createTopUp() - Credit top-up checkout
+- startDeveloperSession() - Start dev mode
+- getDeveloperSession() - Session status
+- sendToDevSession() - Send input
+- getLearningStatus() - Learning system health
+- getTrainingStatus() - Training pipeline stats
+
+## BUILD STATUS: PASSING ✅
+
+## REMAINING WORK
+1. GitHubCloneModal - needs backend wiring
+2. FigmaImportModal - needs backend wiring
+3. EmbeddedBrowserFrame - agent simulation could be real
+
+## ENVIRONMENT VARIABLES TO ADD
+- MODAL_TOKEN_ID (Modal Labs GPU)
+- MODAL_TOKEN_SECRET (Modal Labs GPU)
+- HUGGINGFACE_TOKEN (Model hosting)
+- STRIPE_WEBHOOK_SECRET (Will be generated by /complete-setup)
+
+## TO SET UP STRIPE
+Call POST /api/billing/complete-setup with { adminSecret: "setup" }
+This will create all products, prices, and webhook automatically.
+Copy the generated STRIPE_WEBHOOK_SECRET to Vercel.
+

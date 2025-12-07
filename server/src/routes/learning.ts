@@ -17,6 +17,7 @@ import {
     getAIJudgmentService,
     getShadowModelRegistry,
 } from '../services/learning/index.js';
+import { getTrainingPipelineService } from '../services/learning/training-pipeline.js';
 import type {
     PatternCategory,
     StrategyDomain,
@@ -508,6 +509,216 @@ router.post('/insights/:insightId/implement', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to mark insight implemented'
+        });
+    }
+});
+
+// =============================================================================
+// TRAINING PIPELINE (Component 28 - Modal/HuggingFace Integration)
+// =============================================================================
+
+/**
+ * GET /api/learning/training/status
+ * Get training pipeline status
+ */
+router.get('/training/status', async (req, res) => {
+    try {
+        const pipeline = getTrainingPipelineService();
+        const stats = await pipeline.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get training status:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get training status'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/training/jobs
+ * List all training jobs
+ */
+router.get('/training/jobs', async (req, res) => {
+    try {
+        const pipeline = getTrainingPipelineService();
+        const jobs = pipeline.listJobs();
+        res.json({ success: true, data: jobs });
+    } catch (error) {
+        console.error('[Learning API] Failed to list training jobs:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to list training jobs'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/training/jobs/:jobId
+ * Get specific job status
+ */
+router.get('/training/jobs/:jobId', async (req, res) => {
+    try {
+        const pipeline = getTrainingPipelineService();
+        const job = pipeline.getJobStatus(req.params.jobId);
+        
+        if (!job) {
+            return res.status(404).json({
+                success: false,
+                error: 'Job not found'
+            });
+        }
+        
+        res.json({ success: true, data: job });
+    } catch (error) {
+        console.error('[Learning API] Failed to get job:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get job status'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/training/submit
+ * Submit a new training job
+ * 
+ * Body:
+ * - modelType: 'code_specialist' | 'architecture_specialist' | 'reasoning_specialist' | 'design_specialist'
+ * - preferencePairs: Array of { prompt, chosen, rejected, domain }
+ * - config: Optional training config overrides
+ * - priority: 'low' | 'normal' | 'high'
+ */
+router.post('/training/submit', async (req, res) => {
+    try {
+        const { modelType, preferencePairs, config, priority } = req.body;
+        
+        if (!modelType) {
+            return res.status(400).json({
+                success: false,
+                error: 'modelType is required'
+            });
+        }
+        
+        if (!preferencePairs || !Array.isArray(preferencePairs) || preferencePairs.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'preferencePairs array is required'
+            });
+        }
+        
+        const pipeline = getTrainingPipelineService();
+        const jobId = await pipeline.submitTrainingJob({
+            modelType,
+            preferencePairs,
+            config,
+            priority,
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                jobId,
+                message: 'Training job submitted successfully'
+            }
+        });
+    } catch (error) {
+        console.error('[Learning API] Failed to submit training job:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to submit training job'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/training/jobs/:jobId/cancel
+ * Cancel a training job
+ */
+router.post('/training/jobs/:jobId/cancel', async (req, res) => {
+    try {
+        const pipeline = getTrainingPipelineService();
+        const cancelled = await pipeline.cancelJob(req.params.jobId);
+        
+        if (!cancelled) {
+            return res.status(404).json({
+                success: false,
+                error: 'Job not found or cannot be cancelled'
+            });
+        }
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Learning API] Failed to cancel job:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to cancel job'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/training/trigger
+ * Trigger automatic training based on accumulated data
+ * This checks if enough preference pairs have accumulated to justify training
+ */
+router.post('/training/trigger', async (req, res) => {
+    try {
+        const { modelType, minPairs = 500 } = req.body;
+        
+        if (!modelType) {
+            return res.status(400).json({
+                success: false,
+                error: 'modelType is required'
+            });
+        }
+        
+        // Get preference pairs from AI Judgment service
+        const judgment = getAIJudgmentService();
+        const preferences = await judgment.getRecentPreferencePairs();
+        
+        // Filter for the model type's domain
+        const domainMap: Record<string, string[]> = {
+            code_specialist: ['code', 'error_fix'],
+            architecture_specialist: ['architecture', 'code'],
+            reasoning_specialist: ['code', 'architecture', 'design', 'error_fix'],
+            design_specialist: ['design'],
+        };
+        
+        const relevantDomains = domainMap[modelType] || [];
+        const relevantPairs = preferences.filter(p => relevantDomains.includes(p.domain));
+        
+        if (relevantPairs.length < minPairs) {
+            return res.json({
+                success: false,
+                data: {
+                    message: `Not enough data to train. Have ${relevantPairs.length}, need ${minPairs}`,
+                    currentCount: relevantPairs.length,
+                    required: minPairs,
+                }
+            });
+        }
+        
+        // Submit training job
+        const pipeline = getTrainingPipelineService();
+        const jobId = await pipeline.submitTrainingJob({
+            modelType,
+            preferencePairs: relevantPairs,
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                jobId,
+                pairsUsed: relevantPairs.length,
+                message: `Training job ${jobId} submitted with ${relevantPairs.length} preference pairs`
+            }
+        });
+    } catch (error) {
+        console.error('[Learning API] Failed to trigger training:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to trigger training'
         });
     }
 });

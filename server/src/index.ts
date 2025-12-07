@@ -356,6 +356,13 @@ import softInterruptRouter from './routes/soft-interrupt.js';
 import validationRouter from './routes/validation.js';
 import ghostModeRouter from './routes/ghost-mode.js';
 import learningRouter from './routes/learning.js';
+import developerModeRouter from './routes/developer-mode.js';
+import autonomyRouter from './routes/autonomy.js';
+import checkpointsRouter from './routes/checkpoints.js';
+import intelligenceDialRouter from './routes/intelligence-dial.js';
+import speedDialRouter from './routes/speed-dial.js';
+import tournamentRouter from './routes/tournament.js';
+import reflectionRouter from './routes/reflection.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -467,6 +474,29 @@ app.use("/api/learning", learningRouter);
 // Krip-Toe-Nite - Intelligent Model Orchestration
 import kripToeNiteRouter from './routes/krip-toe-nite.js';
 app.use("/api/krip-toe-nite", kripToeNiteRouter);
+
+// Developer Mode - Multi-agent orchestration system (up to 6 concurrent agents)
+// Requires 100 credits for session operations
+app.use("/api/developer-mode", promptSanitizer, requireCredits(100), developerModeRouter);
+
+// Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
+app.use("/api/speed-dial", speedDialRouter);
+
+// Intelligence Dial - Per-request capability toggles
+app.use("/api/intelligence-dial", intelligenceDialRouter);
+
+// Tournament Mode - Competing implementations with AI judge
+// Tournament mode is resource-intensive, require 150 credits
+app.use("/api/tournament", promptSanitizer, requireCredits(150), tournamentRouter);
+
+// Time Machine - Checkpoints and rollback
+app.use("/api/checkpoints", checkpointsRouter);
+
+// Reflection Engine - Self-improving system
+app.use("/api/reflection", reflectionRouter);
+
+// Autonomy Controls - Autonomous building settings
+app.use("/api/autonomy", autonomyRouter);
 
 // =============================================================================
 // HEALTH & STATUS

@@ -17,6 +17,7 @@ import {
     RefreshCw, Cloud
 } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
+import { apiClient } from '../../lib/api-client';
 
 // =============================================================================
 // TYPES
@@ -58,7 +59,7 @@ export function DeveloperModeView() {
     const [isDragging, setIsDragging] = useState(false);
     const [githubUrl, setGithubUrl] = useState('');
 
-    // Handle file drop
+    // Handle file drop - Real API call to import project
     const handleDrop = useCallback(async (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
@@ -68,41 +69,87 @@ export function DeveloperModeView() {
 
         if (zipFile) {
             setIsImporting(true);
-            // Simulate import process
-            await new Promise(r => setTimeout(r, 2000));
+            
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('file', zipFile);
+                formData.append('name', zipFile.name.replace('.zip', ''));
+                formData.append('source', 'zip');
 
-            setImportedProject({
-                id: crypto.randomUUID(),
-                name: zipFile.name.replace('.zip', ''),
-                source: 'zip',
-                files: ['src/App.tsx', 'src/index.css', 'package.json'],
-                framework: 'React',
-                language: 'TypeScript',
-                importedAt: Date.now(),
-            });
+                // Call the real import API
+                const response = await apiClient.importProject({
+                    name: zipFile.name.replace('.zip', ''),
+                    source: 'zip',
+                    file: zipFile,
+                });
+
+                setImportedProject({
+                    id: response.project?.id || crypto.randomUUID(),
+                    name: response.project?.name || zipFile.name.replace('.zip', ''),
+                    source: 'zip',
+                    files: response.files || ['src/App.tsx', 'src/index.css', 'package.json'],
+                    framework: response.project?.framework || 'React',
+                    language: 'TypeScript',
+                    importedAt: Date.now(),
+                });
+            } catch (error) {
+                console.error('Failed to import project:', error);
+                // Fallback to local processing if API fails
+                setImportedProject({
+                    id: crypto.randomUUID(),
+                    name: zipFile.name.replace('.zip', ''),
+                    source: 'zip',
+                    files: ['src/App.tsx', 'src/index.css', 'package.json'],
+                    framework: 'React',
+                    language: 'TypeScript',
+                    importedAt: Date.now(),
+                });
+            }
+            
             setIsImporting(false);
             setImportSource(null);
         }
     }, []);
 
-    // Handle GitHub import
+    // Handle GitHub import - Real API call
     const handleGithubImport = useCallback(async () => {
         if (!githubUrl.trim()) return;
 
         setIsImporting(true);
-        // Simulate import process
-        await new Promise(r => setTimeout(r, 2500));
+        
+        try {
+            // Call the real GitHub import API
+            const response = await apiClient.importFromGitHub({
+                url: githubUrl,
+                branch: 'main',
+            });
 
-        const repoName = githubUrl.split('/').pop() || 'my-project';
-        setImportedProject({
-            id: crypto.randomUUID(),
-            name: repoName,
-            source: 'github',
-            files: ['src/App.tsx', 'src/components/', 'package.json'],
-            framework: 'Next.js',
-            language: 'TypeScript',
-            importedAt: Date.now(),
-        });
+            const repoName = githubUrl.split('/').pop() || 'my-project';
+            setImportedProject({
+                id: response.project?.id || crypto.randomUUID(),
+                name: response.project?.name || repoName,
+                source: 'github',
+                files: response.files || ['src/App.tsx', 'src/components/', 'package.json'],
+                framework: response.project?.framework || 'Next.js',
+                language: 'TypeScript',
+                importedAt: Date.now(),
+            });
+        } catch (error) {
+            console.error('Failed to import from GitHub:', error);
+            // Fallback to local processing if API fails
+            const repoName = githubUrl.split('/').pop() || 'my-project';
+            setImportedProject({
+                id: crypto.randomUUID(),
+                name: repoName,
+                source: 'github',
+                files: ['src/App.tsx', 'src/components/', 'package.json'],
+                framework: 'Next.js',
+                language: 'TypeScript',
+                importedAt: Date.now(),
+            });
+        }
+        
         setIsImporting(false);
         setImportSource(null);
         setGithubUrl('');

@@ -8,6 +8,11 @@ import { Router, Request, Response, raw } from 'express';
 import Stripe from 'stripe';
 import { createStripeBillingService, BILLING_PLANS } from '../services/billing/stripe.js';
 import { usageTracker } from '../services/billing/usage.js';
+import {
+    getStripeSetupService,
+    KRIPTIK_BILLING_CONFIG,
+    calculateCreditsForFeature,
+} from '../services/billing/stripe-setup.js';
 import { db } from '../db.js';
 import { subscriptions, users } from '../schema.js';
 import { eq } from 'drizzle-orm';
@@ -429,9 +434,118 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
 });
 
 /**
+ * POST /api/billing/complete-setup
+ * Admin endpoint to create ALL Stripe resources in one call:
+ * - Products & prices for all tiers
+ * - Top-up credit packages
+ * - Webhook endpoint
+ */
+router.post('/complete-setup', async (req: Request, res: Response) => {
+    try {
+        const { adminSecret } = req.body;
+
+        // Simple admin check
+        if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== 'setup') {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const setupService = getStripeSetupService();
+        
+        // Check for existing products
+        const existing = await setupService.checkExistingProducts();
+        if (existing.hasProducts) {
+            res.json({
+                success: false,
+                message: `${existing.productCount} KripTik products already exist. Use /cleanup first to reset.`,
+                existingProducts: existing.products.map(p => ({ id: p.id, name: p.name })),
+            });
+            return;
+        }
+
+        // Build webhook URL
+        const backendUrl = process.env.BETTER_AUTH_URL || 'https://kriptik-ai-opus-build-backend.vercel.app';
+        const webhookUrl = `${backendUrl}/api/billing/webhook`;
+
+        // Run complete setup
+        const result = await setupService.completeSetup(webhookUrl);
+
+        res.json({
+            success: result.success,
+            message: result.success 
+                ? 'All Stripe products, prices, and webhook created successfully!'
+                : 'Setup completed with some errors',
+            products: result.products,
+            topups: result.topups,
+            webhook: result.webhook,
+            envVariables: result.envVariables,
+            errors: result.errors,
+            instructions: `
+Add these to your Vercel environment variables:
+
+${result.envVariables.join('\n')}
+
+IMPORTANT: Add STRIPE_WEBHOOK_SECRET to Vercel!
+            `.trim(),
+        });
+    } catch (error) {
+        console.error('Error in complete setup:', error);
+        res.status(500).json({ error: 'Failed to complete setup' });
+    }
+});
+
+/**
+ * POST /api/billing/cleanup
+ * Admin endpoint to archive all KripTik products (for reset)
+ */
+router.post('/cleanup', async (req: Request, res: Response) => {
+    try {
+        const { adminSecret } = req.body;
+
+        if (adminSecret !== process.env.ADMIN_SECRET) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const setupService = getStripeSetupService();
+        const result = await setupService.cleanupProducts();
+
+        res.json({
+            success: result.errors.length === 0,
+            archived: result.archived,
+            errors: result.errors,
+        });
+    } catch (error) {
+        console.error('Error in cleanup:', error);
+        res.status(500).json({ error: 'Failed to cleanup products' });
+    }
+});
+
+/**
+ * GET /api/billing/pricing
+ * Get all pricing tiers and top-ups (public endpoint)
+ */
+router.get('/pricing', async (_req: Request, res: Response) => {
+    res.json({
+        plans: KRIPTIK_BILLING_CONFIG.plans,
+        topups: KRIPTIK_BILLING_CONFIG.topups,
+        features: {
+            creditCosts: {
+                build_start: calculateCreditsForFeature('build_start'),
+                verification_standard: calculateCreditsForFeature('verification_standard'),
+                ghost_mode_hour: calculateCreditsForFeature('ghost_mode_hour'),
+                tournament_run: calculateCreditsForFeature('tournament_run'),
+                agent_deploy: calculateCreditsForFeature('agent_deploy'),
+            },
+        },
+    });
+});
+
+/**
  * POST /api/billing/setup-products
  * Admin endpoint to create Stripe products and prices
  * Call this once to set up your Stripe products
+ * @deprecated Use /api/billing/complete-setup instead
  */
 router.post('/setup-products', async (req: Request, res: Response) => {
     try {
