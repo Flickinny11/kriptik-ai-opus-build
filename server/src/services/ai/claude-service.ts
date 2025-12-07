@@ -30,9 +30,6 @@ export const CLAUDE_MODELS = {
     SONNET_4_5: OPENROUTER_MODELS.SONNET_4_5, // Main coding, extended thinking
     SONNET_4: OPENROUTER_MODELS.SONNET_4,     // Standard tasks
     HAIKU_3_5: OPENROUTER_MODELS.HAIKU_3_5,   // Fast, simple tasks
-    // Backward compatibility aliases
-    HAIKU: OPENROUTER_MODELS.HAIKU_3_5,       // Alias for HAIKU_3_5
-    SONNET: OPENROUTER_MODELS.SONNET_4,       // Alias for SONNET_4
 } as const;
 
 // Model capabilities reference:
@@ -47,14 +44,14 @@ export interface GenerationContext {
     projectId: string;
     userId: string;
     sessionId?: string;
-    agentType: 'planning' | 'generation' | 'testing' | 'refinement' | 'deployment' | 'verification';
+    agentType: 'planning' | 'generation' | 'testing' | 'refinement' | 'deployment';
     existingFiles?: Map<string, string>;
     conversationHistory?: Anthropic.MessageParam[];
     systemPrompt?: string;
 }
 
 export interface GenerationOptions {
-    model?: ClaudeModel | string;  // Accept any OpenRouter model ID
+    model?: ClaudeModel;
     maxTokens?: number;           // Default: 32000, Max: 64000 for Sonnet/Opus 4.5
     temperature?: number;
     useExtendedThinking?: boolean;

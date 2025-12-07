@@ -31,7 +31,6 @@ import SandpackPreviewWindow from '../components/builder/SandpackPreview';
 import ProjectMemoryPanel from '../components/builder/ProjectMemoryPanel';
 import QualityReportModal from '../components/builder/QualityReportModal';
 import CommandPalette from '../components/builder/CommandPalette';
-import MobileViewToggle, { useMobileView } from '../components/builder/MobileViewToggle';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import DeploymentModal from '../components/deployment/DeploymentModal';
 import { PublishButton } from '../components/deployment/PublishButton';
@@ -41,14 +40,6 @@ import CollaborationHeader from '../components/collaboration/CollaborationHeader
 import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
-// Builder/Agents Mode Components
-import { BuilderAgentsToggle } from '../components/builder/BuilderAgentsToggle';
-import { AgentModeSidebar } from '../components/builder/AgentModeSidebar';
-// Ultimate AI-First Builder Architecture Components
-import { SpeedDialSelector } from '../components/builder/SpeedDialSelector';
-import { IntelligenceToggles } from '../components/builder/IntelligenceToggles';
-import { BuildPhaseIndicator } from '../components/builder/BuildPhaseIndicator';
-import { VerificationSwarmStatus } from '../components/builder/VerificationSwarmStatus';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -184,7 +175,6 @@ body {
 // Quick action items for the sidebar
 const quickActions = [
     { icon: Activity, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
-    { icon: Layers, label: 'Build Mode', description: 'Speed Dial settings', panel: 'buildconfig' },
     { icon: Cloud, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
     { icon: Database, label: 'Database', description: 'Manage schemas', panel: 'database' },
     { icon: Workflow, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
@@ -338,60 +328,10 @@ export default function Builder() {
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
-    // Builder/Agents Mode Toggle - swaps layout positions
-    const [builderMode, setBuilderMode] = useState<'builder' | 'agents'>('builder');
-    // Ultimate AI-First Builder Architecture State
-    const [showBuildConfig, setShowBuildConfig] = useState(false);
-    const [selectedBuildMode, setSelectedBuildMode] = useState<'lightning' | 'standard' | 'tournament' | 'production'>('standard');
-    const [buildPhases] = useState<Array<{
-        phase: 'intent_lock' | 'initialization' | 'parallel_build' | 'integration' | 'testing' | 'intent_satisfaction' | 'demo';
-        status: 'pending' | 'active' | 'complete' | 'failed' | 'skipped';
-        progress?: number;
-    }>>([
-        { phase: 'intent_lock', status: 'pending' },
-        { phase: 'initialization', status: 'pending' },
-        { phase: 'parallel_build', status: 'pending' },
-        { phase: 'integration', status: 'pending' },
-        { phase: 'testing', status: 'pending' },
-        { phase: 'intent_satisfaction', status: 'pending' },
-        { phase: 'demo', status: 'pending' },
-    ]);
-    const [verificationAgents, setVerificationAgents] = useState<Array<{
-        type: 'error_checker' | 'code_quality' | 'visual_verifier' | 'security_scanner' | 'placeholder_eliminator' | 'design_style';
-        status: 'idle' | 'running' | 'passed' | 'failed' | 'warning';
-        score?: number;
-        lastRun?: Date;
-        issues?: number;
-    }>>([
-        { type: 'error_checker', status: 'idle' },
-        { type: 'code_quality', status: 'idle' },
-        { type: 'visual_verifier', status: 'idle' },
-        { type: 'security_scanner', status: 'idle' },
-        { type: 'placeholder_eliminator', status: 'idle' },
-        { type: 'design_style', status: 'idle' },
-    ]);
-    const [intelligenceSettings, setIntelligenceSettings] = useState<{
-        thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
-        powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
-        speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
-        creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
-        codeVerbosity: 'minimal' | 'standard' | 'verbose';
-        designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
-    }>({
-        thinkingDepth: 'normal',
-        powerLevel: 'balanced',
-        speedPriority: 'balanced',
-        creativityLevel: 'balanced',
-        codeVerbosity: 'standard',
-        designDetail: 'standard',
-    });
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
-
-    // Mobile/tablet responsive view state with swipe gesture support
-    const { activeView, setActiveView, isMobile, swipeHandlers } = useMobileView('chat');
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
@@ -437,10 +377,10 @@ export default function Builder() {
 
                 {/* Premium Liquid Glass Header */}
                 <header
-                    className="h-12 sm:h-14 flex items-center justify-between px-2 sm:px-4 z-20 shrink-0"
+                    className="h-14 flex items-center justify-between px-4 z-20 shrink-0"
                     style={liquidGlassHeader}
                 >
-                    <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-4">
                         {/* Dashboard Button */}
                         <GlassIconButton
                             icon={LayoutDashboard}
@@ -449,71 +389,66 @@ export default function Builder() {
                             size="sm"
                         />
 
-                        <div className="h-6 w-px bg-white/10 hidden sm:block" />
+                        <div className="h-6 w-px bg-white/10" />
 
                         {/* Logo */}
                         <div
-                            className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => navigate('/dashboard')}
                         >
                             <KriptikLogo size="sm" animated={false} />
-                            <span className="font-bold text-base sm:text-lg text-white hidden md:inline">
+                            <span className="font-bold text-lg text-white hidden sm:inline">
                                 KripTik<span className="text-zinc-400">AI</span>
                             </span>
                         </div>
 
-                        <div className="h-6 w-px bg-white/10 mx-1 sm:mx-2 hidden sm:block" />
+                        <div className="h-6 w-px bg-white/10 mx-2" />
 
-                        <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-xs sm:text-sm text-zinc-400 truncate max-w-[80px] sm:max-w-none">
+                            <span className="text-sm text-zinc-400">
                                 {projectId || 'New Project'}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1 sm:gap-2">
-                        {/* Collaboration header - hidden on mobile */}
-                        <div className="hidden lg:block">
-                            <CollaborationHeader />
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <CollaborationHeader />
 
-                        <div className="h-4 w-px bg-white/10 mx-1 sm:mx-2 hidden lg:block" />
+                        <div className="h-4 w-px bg-white/10 mx-2" />
 
-                        {/* Header Buttons - Hidden on mobile/tablet */}
-                        <div className="hidden lg:flex items-center gap-2">
-                            <GlassButton
-                                icon={Activity}
-                                onClick={() => setShowAgentPanel(!showAgentPanel)}
-                                isActive={showAgentPanel}
-                            >
-                                Agents
-                            </GlassButton>
+                        {/* Header Buttons */}
+                        <GlassButton
+                            icon={Activity}
+                            onClick={() => setShowAgentPanel(!showAgentPanel)}
+                            isActive={showAgentPanel}
+                        >
+                            Agents
+                        </GlassButton>
 
-                            <GlassButton
-                                icon={Brain}
-                                onClick={() => setShowMemory(!showMemory)}
-                                isActive={showMemory}
-                            >
-                                Memory
-                            </GlassButton>
+                        <GlassButton
+                            icon={Brain}
+                            onClick={() => setShowMemory(!showMemory)}
+                            isActive={showMemory}
+                        >
+                            Memory
+                        </GlassButton>
 
-                            <GlassButton
-                                icon={Check}
-                                onClick={handleProductionCheck}
-                            >
-                                Quality Check
-                            </GlassButton>
+                        <GlassButton
+                            icon={Check}
+                            onClick={handleProductionCheck}
+                        >
+                            Quality Check
+                        </GlassButton>
 
-                            <GlassButton
-                                icon={Blocks}
-                                onClick={() => setIntegrationsOpen(true)}
-                            >
-                                Integrations
-                            </GlassButton>
+                        <GlassButton
+                            icon={Blocks}
+                            onClick={() => setIntegrationsOpen(true)}
+                        >
+                            Integrations
+                        </GlassButton>
 
-                            <div className="h-4 w-px bg-white/10 mx-2" />
-                        </div>
+                        <div className="h-4 w-px bg-white/10 mx-2" />
 
                         <GlassIconButton
                             icon={Settings}
@@ -531,14 +466,11 @@ export default function Builder() {
                     </div>
                 </header>
 
-                {/* Mobile View Toggle */}
-                <MobileViewToggle activeView={activeView} onViewChange={setActiveView} />
-
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
-                    {/* Quick Actions Sidebar - Liquid Glass (Hidden on mobile) */}
+                    {/* Quick Actions Sidebar - Liquid Glass */}
                     <div
-                        className="w-16 flex-col items-center py-4 gap-3 shrink-0 hidden lg:flex"
+                        className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
                         style={{
                             ...liquidGlassPanel,
                             borderRight: '1px solid rgba(255,255,255,0.3)',
@@ -568,313 +500,118 @@ export default function Builder() {
                         ))}
                     </div>
 
-                    {/* Desktop Layout (1024px+) - Swaps when in Agents mode */}
-                    <div className="flex-1 min-w-0 hidden lg:block">
-                        <PanelGroup direction="horizontal" key={builderMode}>
-                            {/* Builder Mode: Chat on LEFT, Preview on RIGHT */}
-                            {/* Agents Mode: Preview on LEFT, Agent Sidebar on RIGHT */}
+                    {/* Main Builder Area */}
+                    <div className="flex-1 min-w-0">
+                        <PanelGroup direction="horizontal">
+                            {/* Left Panel: Chat */}
+                            <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
+                                <div
+                                    className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
+                                    <ChatInterface />
+                                    {activeTab === 'preview' && <ActivityFeed />}
+                                </div>
+                            </Panel>
 
-                            {builderMode === 'builder' ? (
+                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
+
+                            {/* Middle Panel: File Explorer (only in code view) */}
+                            {activeTab === 'code' && (
                                 <>
-                                    {/* Left Panel: Chat (Builder Mode) */}
-                                    <Panel defaultSize={activeTab === 'code' ? 25 : 30} minSize={20}>
+                                    <Panel defaultSize={15} minSize={10} maxSize={25}>
                                         <div
-                                            className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
+                                            className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
                                             style={liquidGlassPanel}
                                         >
-                                            {/* Mode Toggle at top of chat */}
-                                            <div className="px-4 py-3 flex items-center justify-between shrink-0"
-                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                            >
-                                                <BuilderAgentsToggle mode={builderMode} onModeChange={setBuilderMode} />
-                                            </div>
-                                            <ChatInterface />
-                                            {activeTab === 'preview' && <ActivityFeed />}
+                                            <SandpackFileExplorer />
                                         </div>
                                     </Panel>
-
                                     <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
-
-                                    {/* Middle Panel: File Explorer (only in code view) */}
-                                    {activeTab === 'code' && (
-                                        <>
-                                            <Panel defaultSize={15} minSize={10} maxSize={25}>
-                                                <div
-                                                    className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
-                                                    style={liquidGlassPanel}
-                                                >
-                                                    <SandpackFileExplorer />
-                                                </div>
-                                            </Panel>
-                                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
-                                        </>
-                                    )}
-
-                                    {/* Right Panel: Preview or Code */}
-                                    <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
-                                        <div
-                                            className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
-                                            style={liquidGlassPanel}
-                                        >
-                                            {/* Tab bar */}
-                                            <div
-                                                className="px-4 py-3 flex justify-between items-center shrink-0"
-                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                            >
-                                                {/* Tabs */}
-                                                <div className="flex gap-2">
-                                                    <TabButton
-                                                        active={activeTab === 'preview'}
-                                                        onClick={() => setActiveTab('preview')}
-                                                        icon={Eye}
-                                                    >
-                                                        Preview
-                                                    </TabButton>
-                                                    <TabButton
-                                                        active={activeTab === 'code'}
-                                                        onClick={() => setActiveTab('code')}
-                                                        icon={Code2}
-                                                    >
-                                                        Code
-                                                    </TabButton>
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
-                                                        <kbd
-                                                            className="px-2 py-1 rounded-lg text-[10px] font-mono"
-                                                            style={{
-                                                                background: 'rgba(0,0,0,0.05)',
-                                                                border: '1px solid rgba(0,0,0,0.1)',
-                                                                color: '#1a1a1a',
-                                                            }}
-                                                        >
-                                                            ⌘K
-                                                        </kbd>
-                                                        <span>Quick actions</span>
-                                                    </div>
-                                                    <PublishButton
-                                                        projectId={projectId || 'new-project'}
-                                                        projectName={projectName}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Content area */}
-                                            <div className="flex-1 overflow-hidden relative min-h-0">
-                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                                    activeTab === 'preview'
-                                                        ? 'opacity-100 z-10'
-                                                        : 'opacity-0 z-0 pointer-events-none'
-                                                }`}>
-                                                    <SandpackPreviewWindow />
-                                                </div>
-                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                                    activeTab === 'code'
-                                                        ? 'opacity-100 z-10'
-                                                        : 'opacity-0 z-0 pointer-events-none'
-                                                }`}>
-                                                    <SandpackEditor />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Panel>
-                                </>
-                            ) : (
-                                <>
-                                    {/* Left Panel: Preview/Code (Agents Mode) */}
-                                    <Panel defaultSize={activeTab === 'code' ? 55 : 65} minSize={40}>
-                                        <div
-                                            className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
-                                            style={liquidGlassPanel}
-                                        >
-                                            {/* Tab bar */}
-                                            <div
-                                                className="px-4 py-3 flex justify-between items-center shrink-0"
-                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                            >
-                                                {/* Tabs */}
-                                                <div className="flex gap-2">
-                                                    <TabButton
-                                                        active={activeTab === 'preview'}
-                                                        onClick={() => setActiveTab('preview')}
-                                                        icon={Eye}
-                                                    >
-                                                        Preview
-                                                    </TabButton>
-                                                    <TabButton
-                                                        active={activeTab === 'code'}
-                                                        onClick={() => setActiveTab('code')}
-                                                        icon={Code2}
-                                                    >
-                                                        Code
-                                                    </TabButton>
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
-                                                        <kbd
-                                                            className="px-2 py-1 rounded-lg text-[10px] font-mono"
-                                                            style={{
-                                                                background: 'rgba(0,0,0,0.05)',
-                                                                border: '1px solid rgba(0,0,0,0.1)',
-                                                                color: '#1a1a1a',
-                                                            }}
-                                                        >
-                                                            ⌘K
-                                                        </kbd>
-                                                        <span>Quick actions</span>
-                                                    </div>
-                                                    <PublishButton
-                                                        projectId={projectId || 'new-project'}
-                                                        projectName={projectName}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Content area */}
-                                            <div className="flex-1 overflow-hidden relative min-h-0">
-                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                                    activeTab === 'preview'
-                                                        ? 'opacity-100 z-10'
-                                                        : 'opacity-0 z-0 pointer-events-none'
-                                                }`}>
-                                                    <SandpackPreviewWindow />
-                                                </div>
-                                                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                                    activeTab === 'code'
-                                                        ? 'opacity-100 z-10'
-                                                        : 'opacity-0 z-0 pointer-events-none'
-                                                }`}>
-                                                    <SandpackEditor />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Panel>
-
-                                    {/* Middle Panel: File Explorer (only in code view, Agents Mode) */}
-                                    {activeTab === 'code' && (
-                                        <>
-                                            <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
-                                            <Panel defaultSize={15} minSize={10} maxSize={25}>
-                                                <div
-                                                    className="h-full flex flex-col my-2 rounded-2xl overflow-hidden"
-                                                    style={liquidGlassPanel}
-                                                >
-                                                    <SandpackFileExplorer />
-                                                </div>
-                                            </Panel>
-                                        </>
-                                    )}
-
-                                    <PanelResizeHandle className="w-2 hover:bg-lime-400/30 transition-colors mx-1" />
-
-                                    {/* Right Panel: Agent Sidebar (Agents Mode) */}
-                                    <Panel defaultSize={activeTab === 'code' ? 30 : 35} minSize={25} maxSize={45}>
-                                        <div className="h-full m-2 rounded-2xl overflow-hidden">
-                                            {/* Mode Toggle at top */}
-                                            <div
-                                                className="px-4 py-3 flex items-center justify-between shrink-0"
-                                                style={{
-                                                    background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',
-                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                                    borderTopLeftRadius: '16px',
-                                                    borderTopRightRadius: '16px',
-                                                }}
-                                            >
-                                                <BuilderAgentsToggle mode={builderMode} onModeChange={setBuilderMode} />
-                                            </div>
-                                            <AgentModeSidebar />
-                                        </div>
-                                    </Panel>
                                 </>
                             )}
+
+                            {/* Right Panel: Preview or Code */}
+                            <Panel defaultSize={activeTab === 'code' ? 60 : 70} minSize={40}>
+                                <div
+                                    className="h-full flex flex-col relative m-2 rounded-2xl overflow-hidden"
+                                    style={liquidGlassPanel}
+                                >
+                                    {/* Tab bar */}
+                                    <div
+                                        className="px-4 py-3 flex justify-between items-center shrink-0"
+                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                                    >
+                                        {/* Tabs */}
+                                        <div className="flex gap-2">
+                                            <TabButton
+                                                active={activeTab === 'preview'}
+                                                onClick={() => setActiveTab('preview')}
+                                                icon={Eye}
+                                            >
+                                                Preview
+                                            </TabButton>
+                                            <TabButton
+                                                active={activeTab === 'code'}
+                                                onClick={() => setActiveTab('code')}
+                                                icon={Code2}
+                                            >
+                                                Code
+                                            </TabButton>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-xs flex items-center gap-2" style={{ color: '#666' }}>
+                                                <kbd
+                                                    className="px-2 py-1 rounded-lg text-[10px] font-mono"
+                                                    style={{
+                                                        background: 'rgba(0,0,0,0.05)',
+                                                        border: '1px solid rgba(0,0,0,0.1)',
+                                                        color: '#1a1a1a',
+                                                    }}
+                                                >
+                                                    ⌘K
+                                                </kbd>
+                                                <span>Quick actions</span>
+                                            </div>
+                                            <PublishButton
+                                                projectId={projectId || 'new-project'}
+                                                projectName={projectName}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Content area */}
+                                    <div className="flex-1 overflow-hidden relative min-h-0">
+                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                            activeTab === 'preview'
+                                                ? 'opacity-100 z-10'
+                                                : 'opacity-0 z-0 pointer-events-none'
+                                        }`}>
+                                            <SandpackPreviewWindow />
+                                        </div>
+                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
+                                            activeTab === 'code'
+                                                ? 'opacity-100 z-10'
+                                                : 'opacity-0 z-0 pointer-events-none'
+                                        }`}>
+                                            <SandpackEditor />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Panel>
                         </PanelGroup>
                     </div>
 
-                    {/* Mobile/Tablet Layout (< 1024px) with swipe gestures */}
-                    <div
-                        className="flex-1 min-w-0 lg:hidden relative touch-pan-y"
-                        onTouchStart={(e) => swipeHandlers.onTouchStart(e.nativeEvent)}
-                        onTouchMove={(e) => swipeHandlers.onTouchMove(e.nativeEvent)}
-                        onTouchEnd={() => swipeHandlers.onTouchEnd()}
-                    >
-                        {/* Mobile Chat View - 250ms transition with scale 0.98 -> 1 */}
-                        <motion.div
-                            initial={false}
-                            animate={{
-                                opacity: activeView === 'chat' ? 1 : 0,
-                                x: activeView === 'chat' ? 0 : -20,
-                                scale: activeView === 'chat' ? 1 : 0.98,
-                            }}
-                            transition={{
-                                duration: 0.25,
-                                ease: [0.25, 0.1, 0.25, 1], // ease-out
-                            }}
-                            className={`absolute inset-0 flex flex-col ${
-                                activeView === 'chat' ? 'z-10' : 'z-0 pointer-events-none'
-                            }`}
-                            style={{
-                                paddingTop: '72px', // Space for MobileViewToggle + swipe hint
-                                willChange: 'transform, opacity', // GPU acceleration
-                            }}
-                        >
-                            <div
-                                className="flex-1 flex flex-col mx-2 mb-2 rounded-2xl overflow-hidden"
-                                style={{
-                                    ...liquidGlassPanel,
-                                    // Maintain blur during transitions
-                                    backfaceVisibility: 'hidden',
-                                    transform: 'translateZ(0)',
-                                }}
-                            >
-                                <ChatInterface />
-                            </div>
-                        </motion.div>
-
-                        {/* Mobile Preview View - 250ms transition with scale 0.98 -> 1 */}
-                        <motion.div
-                            initial={false}
-                            animate={{
-                                opacity: activeView === 'preview' ? 1 : 0,
-                                x: activeView === 'preview' ? 0 : 20,
-                                scale: activeView === 'preview' ? 1 : 0.98,
-                            }}
-                            transition={{
-                                duration: 0.25,
-                                ease: [0.25, 0.1, 0.25, 1], // ease-out
-                            }}
-                            className={`absolute inset-0 flex flex-col ${
-                                activeView === 'preview' ? 'z-10' : 'z-0 pointer-events-none'
-                            }`}
-                            style={{
-                                paddingTop: '72px', // Space for MobileViewToggle + swipe hint
-                                willChange: 'transform, opacity', // GPU acceleration
-                            }}
-                        >
-                            <div
-                                className="flex-1 flex flex-col mx-2 mb-2 rounded-2xl overflow-hidden"
-                                style={{
-                                    ...liquidGlassPanel,
-                                    // Maintain blur during transitions
-                                    backfaceVisibility: 'hidden',
-                                    transform: 'translateZ(0)',
-                                }}
-                            >
-                                <SandpackPreviewWindow isMobileView={true} />
-                            </div>
-                        </motion.div>
-                    </div>
-
-                    {/* Quick Action Panel - Hidden on mobile/tablet */}
+                    {/* Quick Action Panel */}
                     <AnimatePresence>
-                        {activeQuickAction && !isMobile && (
+                        {activeQuickAction && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 340, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
+                                className="shrink-0 overflow-hidden m-2"
                             >
                                 <div
                                     className="w-[324px] h-full flex flex-col rounded-2xl overflow-hidden"
@@ -907,15 +644,15 @@ export default function Builder() {
                         )}
                     </AnimatePresence>
 
-                    {/* Autonomous Agents Panel - Hidden on mobile/tablet */}
+                    {/* Autonomous Agents Panel */}
                     <AnimatePresence>
-                        {showAgentPanel && !isMobile && (
+                        {showAgentPanel && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 420, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
+                                className="shrink-0 overflow-hidden m-2"
                             >
                                 <div
                                     className="w-[404px] h-full rounded-2xl overflow-hidden"
@@ -927,104 +664,21 @@ export default function Builder() {
                         )}
                     </AnimatePresence>
 
-                    {/* Memory Panel - Hidden on mobile/tablet */}
+                    {/* Memory Panel */}
                     <AnimatePresence>
-                        {showMemory && !isMobile && (
+                        {showMemory && (
                             <motion.div
                                 initial={{ width: 0, opacity: 0 }}
                                 animate={{ width: 320, opacity: 1 }}
                                 exit={{ width: 0, opacity: 0 }}
                                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 m-2 hidden lg:block"
+                                className="shrink-0 m-2"
                             >
                                 <div
                                     className="w-[304px] h-full rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
                                     <ProjectMemoryPanel />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Build Configuration Panel - Ultimate AI-First Builder */}
-                    <AnimatePresence>
-                        {(activeQuickAction === 'buildconfig' || showBuildConfig) && !isMobile && (
-                            <motion.div
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 420, opacity: 1 }}
-                                exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2 hidden lg:block"
-                            >
-                                <div
-                                    className="w-[404px] h-full rounded-2xl overflow-auto"
-                                    style={liquidGlassPanel}
-                                >
-                                    <div className="p-4 space-y-4">
-                                        {/* Header */}
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-semibold text-zinc-800">
-                                                Build Configuration
-                                            </h3>
-                                            <button
-                                                onClick={() => {
-                                                    setShowBuildConfig(false);
-                                                    setActiveQuickAction(null);
-                                                }}
-                                                className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
-                                            >
-                                                <X className="w-4 h-4 text-zinc-500" />
-                                            </button>
-                                        </div>
-
-                                        {/* Build Phase Indicator */}
-                                        <div className="bg-white/50 rounded-xl p-3">
-                                            <BuildPhaseIndicator
-                                                phases={buildPhases}
-                                                compact={true}
-                                            />
-                                        </div>
-
-                                        {/* Speed Dial Selector */}
-                                        <SpeedDialSelector
-                                            selectedMode={selectedBuildMode}
-                                            onModeChange={setSelectedBuildMode}
-                                        />
-
-                                        {/* Intelligence Toggles */}
-                                        <IntelligenceToggles
-                                            settings={intelligenceSettings}
-                                            onSettingsChange={setIntelligenceSettings}
-                                            compact={true}
-                                        />
-
-                                        {/* Verification Swarm Status */}
-                                        <div className="pt-2">
-                                            <VerificationSwarmStatus
-                                                agents={verificationAgents}
-                                                compact={true}
-                                                onRerun={() => {
-                                                    // Trigger verification rerun
-                                                    console.log('Rerunning verification swarm...');
-                                                    setVerificationAgents(agents =>
-                                                        agents.map(a => ({ ...a, status: 'running' as const }))
-                                                    );
-                                                    // Simulate completion after 2 seconds
-                                                    setTimeout(() => {
-                                                        setVerificationAgents(agents =>
-                                                            agents.map(a => ({
-                                                                ...a,
-                                                                status: Math.random() > 0.2 ? 'passed' as const : 'warning' as const,
-                                                                score: Math.floor(Math.random() * 20) + 80,
-                                                                lastRun: new Date(),
-                                                            }))
-                                                        );
-                                                    }, 2000);
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
                                 </div>
                             </motion.div>
                         )}

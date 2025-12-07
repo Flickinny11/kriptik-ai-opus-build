@@ -141,12 +141,8 @@ function GlassIconButton({
     );
 }
 
-interface SandpackPreviewWindowProps {
-    isMobileView?: boolean;
-}
-
-export default function SandpackPreviewWindow({ isMobileView = false }: SandpackPreviewWindowProps) {
-    const [viewport, setViewport] = useState<ViewportSize>(isMobileView ? 'mobile' : 'desktop');
+export default function SandpackPreviewWindow() {
+    const [viewport, setViewport] = useState<ViewportSize>('desktop');
     const [showConsole, setShowConsole] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const { isSelectionMode, toggleSelectionMode } = useEditorStore();

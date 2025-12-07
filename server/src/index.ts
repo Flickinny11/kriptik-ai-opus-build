@@ -351,16 +351,6 @@ import userSettingsRouter from './routes/user-settings.js';
 import fixMyAppRouter from './routes/fix-my-app.js';
 import dbMigrateRouter from './routes/db-migrate.js';
 import adminRouter from './routes/admin.js';
-import learningRouter from './routes/learning.js';
-
-// Ultimate AI-First Builder Architecture Routes
-import speedDialRouter from './routes/speed-dial.js';
-import intelligenceDialRouter from './routes/intelligence-dial.js';
-import tournamentRouter from './routes/tournament.js';
-import checkpointsRouter from './routes/checkpoints.js';
-import reflectionRouter from './routes/reflection.js';
-import autonomyRouter from './routes/autonomy.js';
-import developerModeRouter from './routes/developer-mode.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -451,34 +441,6 @@ app.use("/api/db", dbMigrateRouter);
 
 // Admin routes (protected by admin secret header)
 app.use("/api/admin", adminRouter);
-
-// Autonomous Learning Engine
-app.use("/api/learning", learningRouter);
-
-// =============================================================================
-// ULTIMATE AI-FIRST BUILDER ARCHITECTURE ROUTES
-// =============================================================================
-
-// Speed Dial - 4 build modes (Lightning/Standard/Tournament/Production)
-app.use("/api/speed-dial", speedDialRouter);
-
-// Intelligence Dial - Per-request AI capability toggles
-app.use("/api/intelligence-dial", intelligenceDialRouter);
-
-// Tournament Mode - Competing AI implementations with judge panel
-app.use("/api/tournament", tournamentRouter);
-
-// Time Machine Checkpoints - State snapshots and rollback
-app.use("/api/checkpoints", checkpointsRouter);
-
-// Infinite Reflection Engine - Self-healing loop
-app.use("/api/reflection", reflectionRouter);
-
-// Extended Autonomy - 4-hour autonomous sessions
-app.use("/api/autonomy", autonomyRouter);
-
-// Developer Mode - Individual agent management for technical users
-app.use("/api/developer-mode", developerModeRouter);
 
 // =============================================================================
 // HEALTH & STATUS
