@@ -5,7 +5,6 @@
  * Controls auto-capture, pattern usage, and display preferences.
  */
 
-import { useState } from 'react';
 import {
     Brain,
     Layers,
@@ -18,7 +17,6 @@ import {
     AlertCircle,
     Beaker,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useLearningStore, type LearningPreferences } from '../../store/useLearningStore';
 
 // =============================================================================
