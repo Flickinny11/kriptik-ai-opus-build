@@ -19,7 +19,7 @@ import {
     ExternalLink, GitBranch, CheckCircle2, XCircle,
     Maximize2, Minimize2, Code2, Eye, Split, Play, Pause
 } from 'lucide-react';
-import { useDeveloperModeStore } from '../../store/useDeveloperModeStore';
+import { useDeveloperModeStore, selectAgents, selectSelectedAgent } from '../../store/useDeveloperModeStore';
 
 // Dark glass styling to match AgentModeSidebar
 const darkGlassPanel = {
@@ -98,7 +98,9 @@ export function AgentSandboxPreview({
     isFullscreen = false,
     onToggleFullscreen
 }: AgentSandboxPreviewProps) {
-    const { agents, selectedAgentId } = useDeveloperModeStore();
+    const agents = useDeveloperModeStore(selectAgents);
+    const selectedAgentFromStore = useDeveloperModeStore(selectSelectedAgent);
+    const selectedAgentId = useDeveloperModeStore(state => state.selectedAgentId);
     const [viewport, setViewport] = useState<ViewportSize>('desktop');
     const [viewMode, setViewMode] = useState<ViewMode>('preview');
     const [showConsole, setShowConsole] = useState(false);
@@ -108,7 +110,7 @@ export function AgentSandboxPreview({
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
     const activeAgentId = agentId || selectedAgentId;
-    const activeAgent = agents.find(a => a.id === activeAgentId);
+    const activeAgent = agentId ? agents.find(a => a.id === activeAgentId) : selectedAgentFromStore;
 
     // Simulate console logs from agent activity
     useEffect(() => {

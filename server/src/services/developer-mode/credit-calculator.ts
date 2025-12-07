@@ -9,7 +9,7 @@
  */
 
 import { db } from '../../db.js';
-import { developerAgentRuns, developerAgentMetrics } from '../../schema.js';
+import { developerModeAgents, developerModeCreditTransactions } from '../../schema.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 
 // =============================================================================
@@ -299,13 +299,18 @@ export class CreditCalculatorService {
         };
 
         // Store in database
-        await db.insert(developerAgentMetrics).values({
+        await db.insert(developerModeCreditTransactions).values({
             id: record.id,
-            agentId,
-            runId,
-            tokensUsed: record.totalTokens,
-            cost: record.totalCost,
-            durationMs,
+            sessionId: runId || 'unknown-session',  // Map runId to sessionId
+            agentId: agentId || null,
+            userId: this.userId,
+            transactionType: 'agent_call',
+            model: modelId,
+            inputTokens,
+            outputTokens,
+            totalTokens: record.totalTokens,
+            creditsCharged: Math.ceil(record.totalCost * 100),  // Convert to credits (cents)
+            taskDescription: `Agent ${agentId} run`,
             createdAt: now,
         });
 
@@ -321,14 +326,14 @@ export class CreditCalculatorService {
         startDate?: Date,
         endDate?: Date
     ): Promise<UsageSummary> {
-        const conditions = [eq(developerAgentMetrics.agentId, this.projectId)];
+        const conditions = [eq(developerModeCreditTransactions.userId, this.userId)];
 
         if (startDate) {
-            conditions.push(gte(developerAgentMetrics.createdAt, startDate.toISOString()));
+            conditions.push(gte(developerModeCreditTransactions.createdAt, startDate.toISOString()));
         }
 
         const metrics = await db.select()
-            .from(developerAgentMetrics)
+            .from(developerModeCreditTransactions)
             .where(and(...conditions));
 
         // Aggregate metrics
@@ -338,8 +343,8 @@ export class CreditCalculatorService {
         const byDay: Record<string, { tokens: number; cost: number; runs: number }> = {};
 
         for (const metric of metrics) {
-            const tokens = metric.tokensUsed || 0;
-            const cost = metric.cost || 0;
+            const tokens = metric.totalTokens || 0;
+            const cost = (metric.creditsCharged || 0) / 100;  // Convert credits to dollars
 
             totalTokens += tokens;
             totalCost += cost;
@@ -356,8 +361,8 @@ export class CreditCalculatorService {
 
         // Get model breakdown from runs
         const runs = await db.select()
-            .from(developerAgentRuns)
-            .where(eq(developerAgentRuns.projectId, this.projectId));
+            .from(developerModeAgents)
+            .where(eq(developerModeAgents.projectId, this.projectId));
 
         for (const run of runs) {
             const model = run.model || 'unknown';

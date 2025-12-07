@@ -32,6 +32,7 @@ import {
     type AgentLog,
 } from '../../store/useDeveloperModeStore';
 import { useProjectStore } from '../../store/useProjectStore';
+import DeployAgentModal, { type DeployConfig } from './DeployAgentModal';
 
 // Available models - matches backend
 const AVAILABLE_MODELS: Array<{
@@ -92,9 +93,10 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
     const loadModels = useDeveloperModeStore(state => state.loadModels);
 
     // Project store
-    const activeProject = useProjectStore(state => state.activeProject);
+    const currentProject = useProjectStore(state => state.currentProject);
 
     // Local state
+    const [showDeployModal, setShowDeployModal] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [selectedModel, setSelectedModel] = useState<AgentModel>('claude-sonnet-4-5');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -105,13 +107,13 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 
     // Initialize session if needed
     useEffect(() => {
-        if (activeProject && !currentSession) {
-            startSession(activeProject.id, {
+        if (currentProject && !currentSession) {
+            startSession(currentProject.id, {
                 defaultModel: selectedModel,
                 verificationMode: 'standard',
             }).catch(console.error);
         }
-    }, [activeProject, currentSession, startSession, selectedModel]);
+    }, [currentProject, currentSession, startSession, selectedModel]);
 
     // Load models on mount
     useEffect(() => {
@@ -207,6 +209,36 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
         }
     };
 
+    const handleDeployFromModal = async (config: DeployConfig) => {
+        if (!currentSession) return;
+
+        try {
+            const agentNumber = agents.length + 1;
+            // Map the model ID to our AgentModel type
+            const modelMapping: Record<string, AgentModel> = {
+                'anthropic/claude-opus-4.5': 'claude-opus-4-5',
+                'anthropic/claude-sonnet-4.5': 'claude-sonnet-4-5',
+                'anthropic/claude-3.5-haiku': 'claude-haiku-3-5',
+                'openai/gpt-4o': 'gpt-5-codex',
+                'google/gemini-2.0-flash-thinking-exp': 'gemini-2-5-pro',
+                'deepseek/deepseek-chat-v3-0324': 'deepseek-r1',
+            };
+            const mappedModel = modelMapping[config.model] || 'claude-sonnet-4-5';
+
+            await deployAgent({
+                name: `Agent #${agentNumber}`,
+                taskPrompt: config.taskDescription,
+                model: mappedModel,
+                verificationMode: config.verificationMode === 'quick' ? 'quick' :
+                    config.verificationMode === 'standard' ? 'standard' :
+                    config.verificationMode === 'strict' ? 'thorough' : 'full_swarm',
+            });
+            setShowDeployModal(false);
+        } catch (err) {
+            console.error('Failed to deploy agent from modal:', err);
+        }
+    };
+
     const getStatusIcon = (status: Agent['status']) => {
         switch (status) {
             case 'running': return <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />;
@@ -288,6 +320,18 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             {creditsUsed} credits
                         </div>
                         <button
+                            onClick={() => setShowDeployModal(true)}
+                            disabled={isLoading || agents.length >= 6}
+                            className="px-3 py-1.5 rounded-lg transition-all hover:scale-105 disabled:opacity-50 text-xs font-medium"
+                            style={{
+                                background: `linear-gradient(145deg, ${accentColor}cc 0%, ${accentColor}99 100%)`,
+                                color: '#000',
+                            }}
+                            title={agents.length >= 6 ? 'Maximum 6 agents' : 'Deploy new agent'}
+                        >
+                            Deploy
+                        </button>
+                        <button
                             onClick={handleAddIdleAgent}
                             disabled={isLoading || agents.length >= 6}
                             className="p-2 rounded-lg transition-all hover:scale-105 disabled:opacity-50"
@@ -295,7 +339,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 background: 'rgba(255,255,255,0.05)',
                                 border: '1px solid rgba(255,255,255,0.1)',
                             }}
-                            title={agents.length >= 6 ? 'Maximum 6 agents' : 'Add new agent'}
+                            title={agents.length >= 6 ? 'Maximum 6 agents' : 'Add idle agent'}
                         >
                             <Plus className="w-4 h-4 text-white/70" />
                         </button>
@@ -601,6 +645,13 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                     </button>
                 </div>
             </div>
+
+            {/* Deploy Agent Modal */}
+            <DeployAgentModal
+                isOpen={showDeployModal}
+                onClose={() => setShowDeployModal(false)}
+                onDeploy={handleDeployFromModal}
+            />
         </div>
     );
 }

@@ -11,7 +11,7 @@
 
 import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
-import { buildIntents, projects, orchestrationRuns, developerAgentRuns } from '../../schema.js';
+import { buildIntents, projects, orchestrationRuns, developerModeAgents } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 
 // =============================================================================
@@ -733,12 +733,12 @@ export class IntentLockEngine {
     async lockMicroIntent(microIntentId: string): Promise<MicroIntentContract> {
         const now = new Date().toISOString();
 
-        await db.update(developerAgentRuns)
+        await db.update(developerModeAgents)
             .set({
                 status: 'running',
                 updatedAt: now,
             } as Record<string, unknown>)
-            .where(eq(developerAgentRuns.id, microIntentId));
+            .where(eq(developerModeAgents.id, microIntentId));
 
         const updated = await this.getMicroIntent(microIntentId);
         if (!updated) {
@@ -756,26 +756,27 @@ export class IntentLockEngine {
 
     /**
      * Get a Micro Intent by ID
+     * Maps developerModeAgents columns to MicroIntentContract fields
      */
     async getMicroIntent(microIntentId: string): Promise<MicroIntentContract | null> {
         const results = await db.select()
-            .from(developerAgentRuns)
-            .where(eq(developerAgentRuns.id, microIntentId))
+            .from(developerModeAgents)
+            .where(eq(developerModeAgents.id, microIntentId))
             .limit(1);
 
         if (results.length === 0) return null;
 
         const row = results[0];
 
-        // Parse metadata from the stored fields
+        // Map developerModeAgents columns to MicroIntentContract
         return {
             id: row.id,
-            parentIntentId: undefined,
-            agentId: row.agentId,
+            parentIntentId: row.intentLockId || undefined,
+            agentId: row.id,  // The agent IS the micro intent
             projectId: row.projectId,
             userId: row.userId,
-            taskDescription: row.prompt,
-            expectedOutcome: row.output || row.prompt,
+            taskDescription: row.taskPrompt || '',
+            expectedOutcome: row.currentStep || row.taskPrompt || '',
             successCriteria: [],  // Would need to be stored in a metadata field
             filesAffected: [],    // Would need to be stored in a metadata field
             estimatedComplexity: 'moderate',
@@ -787,8 +788,8 @@ export class IntentLockEngine {
             lockedAt: row.status === 'running' ? row.updatedAt : undefined,
             completedAt: row.completedAt || undefined,
             status: row.status as MicroIntentContract['status'],
-            result: row.output || undefined,
-            error: row.error || undefined,
+            result: row.currentStep || undefined,
+            error: row.lastError || undefined,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
         };
@@ -808,14 +809,14 @@ export class IntentLockEngine {
     async completeMicroIntent(microIntentId: string, result: string): Promise<MicroIntentContract> {
         const now = new Date().toISOString();
 
-        await db.update(developerAgentRuns)
+        await db.update(developerModeAgents)
             .set({
                 status: 'completed',
-                output: result,
+                currentStep: result,  // Store result in currentStep since no output field
                 completedAt: now,
                 updatedAt: now,
             })
-            .where(eq(developerAgentRuns.id, microIntentId));
+            .where(eq(developerModeAgents.id, microIntentId));
 
         const updated = await this.getMicroIntent(microIntentId);
         if (!updated) {
@@ -832,14 +833,14 @@ export class IntentLockEngine {
     async failMicroIntent(microIntentId: string, error: string): Promise<MicroIntentContract> {
         const now = new Date().toISOString();
 
-        await db.update(developerAgentRuns)
+        await db.update(developerModeAgents)
             .set({
                 status: 'failed',
-                error,
+                lastError: error,  // Use lastError instead of error
                 completedAt: now,
                 updatedAt: now,
             })
-            .where(eq(developerAgentRuns.id, microIntentId));
+            .where(eq(developerModeAgents.id, microIntentId));
 
         const updated = await this.getMicroIntent(microIntentId);
         if (!updated) {
@@ -862,13 +863,13 @@ export class IntentLockEngine {
         const now = new Date().toISOString();
 
         // Mark as rolled back
-        await db.update(developerAgentRuns)
+        await db.update(developerModeAgents)
             .set({
                 status: 'failed',  // Using 'failed' as closest status
-                error: `Rolled back: ${microIntent.error || 'User requested rollback'}`,
+                lastError: `Rolled back: ${microIntent.error || 'User requested rollback'}`,
                 updatedAt: now,
             })
-            .where(eq(developerAgentRuns.id, microIntentId));
+            .where(eq(developerModeAgents.id, microIntentId));
 
         console.log(`[MicroIntent] ROLLED BACK: ${microIntentId} using strategy: ${microIntent.rollbackStrategy}`);
 
@@ -877,21 +878,21 @@ export class IntentLockEngine {
     }
 
     /**
-     * Get all Micro Intents for an agent
+     * Get all Micro Intents for a session (agents are the micro intents in this schema)
      */
-    async getMicroIntentsForAgent(agentId: string): Promise<MicroIntentContract[]> {
+    async getMicroIntentsForAgent(sessionId: string): Promise<MicroIntentContract[]> {
         const results = await db.select()
-            .from(developerAgentRuns)
-            .where(eq(developerAgentRuns.agentId, agentId));
+            .from(developerModeAgents)
+            .where(eq(developerModeAgents.sessionId, sessionId));
 
         return results.map(row => ({
             id: row.id,
-            parentIntentId: undefined,
-            agentId: row.agentId,
+            parentIntentId: row.intentLockId || undefined,
+            agentId: row.id,
             projectId: row.projectId,
             userId: row.userId,
-            taskDescription: row.prompt,
-            expectedOutcome: row.output || row.prompt,
+            taskDescription: row.taskPrompt || '',
+            expectedOutcome: row.currentStep || row.taskPrompt || '',
             successCriteria: [],
             filesAffected: [],
             estimatedComplexity: 'moderate' as const,
@@ -903,8 +904,8 @@ export class IntentLockEngine {
             lockedAt: row.status === 'running' ? row.updatedAt : undefined,
             completedAt: row.completedAt || undefined,
             status: row.status as MicroIntentContract['status'],
-            result: row.output || undefined,
-            error: row.error || undefined,
+            result: row.currentStep || undefined,
+            error: row.lastError || undefined,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
         }));
@@ -942,20 +943,27 @@ export class IntentLockEngine {
 
     /**
      * Save Micro Intent to database
-     * Uses the developerAgentRuns table with the micro intent data stored in fields
+     * Creates a developerModeAgents record representing this micro intent/task
      */
     private async saveMicroIntent(microIntent: MicroIntentContract): Promise<void> {
-        await db.insert(developerAgentRuns).values({
+        // Note: This requires a sessionId - in a full implementation,
+        // we would pass the sessionId when creating micro intents
+        const sessionId = microIntent.parentIntentId || 'micro-intent-session';
+
+        await db.insert(developerModeAgents).values({
             id: microIntent.id,
-            agentId: microIntent.agentId,
+            sessionId,
             projectId: microIntent.projectId,
             userId: microIntent.userId,
-            prompt: microIntent.taskDescription,
+            agentNumber: 1,  // Default agent number
+            name: `Task: ${microIntent.taskDescription.substring(0, 30)}...`,
+            taskPrompt: microIntent.taskDescription,
+            intentLockId: microIntent.parentIntentId || null,
             model: CLAUDE_MODELS.HAIKU_3_5,  // Default model
             status: microIntent.status,
-            output: null,
+            currentStep: null,
             tokensUsed: microIntent.estimatedTokens,
-            error: null,
+            lastError: null,
             completedAt: null,
             createdAt: microIntent.createdAt,
             updatedAt: microIntent.updatedAt,

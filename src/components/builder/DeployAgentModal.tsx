@@ -16,7 +16,7 @@ import {
     ChevronDown, AlertTriangle, CheckCircle2, Loader2,
     Sparkles, Target, Cpu, Brain
 } from 'lucide-react';
-import { useDeveloperModeStore, AvailableModel } from '../../store/useDeveloperModeStore';
+import { useDeveloperModeStore, selectAvailableModels, type ModelInfo } from '../../store/useDeveloperModeStore';
 
 // Dark glass styling
 const darkGlassPanel = {
@@ -75,13 +75,35 @@ export interface DeployConfig {
     estimatedComplexity: ComplexityLevel;
 }
 
+// Default available models (used if store doesn't have any loaded)
+const DEFAULT_MODELS: ModelInfo[] = [
+    { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Best reasoning, complex tasks', creditsPerTask: 50, recommended: ['complex architecture'] },
+    { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Fast & capable', creditsPerTask: 20, recommended: ['feature implementation'] },
+    { id: 'claude-haiku-3-5', name: 'Claude Haiku 3.5', provider: 'Anthropic', description: 'Fastest, simple tasks', creditsPerTask: 5, recommended: ['simple fixes'] },
+    { id: 'gpt-5-codex', name: 'GPT-5 Codex', provider: 'OpenAI', description: "OpenAI's latest", creditsPerTask: 25, recommended: ['code generation'] },
+    { id: 'gemini-2-5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: "Google's flagship", creditsPerTask: 15, recommended: ['visual analysis'] },
+    { id: 'deepseek-r1', name: 'DeepSeek R1', provider: 'DeepSeek', description: 'Open source, cost-effective', creditsPerTask: 8, recommended: ['analysis'] },
+];
+
 export function DeployAgentModal({
     isOpen,
     onClose,
     onDeploy,
     existingAgentId
 }: DeployAgentModalProps) {
-    const { AVAILABLE_MODELS, agents } = useDeveloperModeStore();
+    const storeModels = useDeveloperModeStore(selectAvailableModels);
+    const agents = useDeveloperModeStore(state => state.currentSession?.agents || []);
+    const loadModels = useDeveloperModeStore(state => state.loadModels);
+
+    // Use store models if available, otherwise use defaults
+    const AVAILABLE_MODELS = storeModels.length > 0 ? storeModels : DEFAULT_MODELS;
+
+    // Load models on mount if not already loaded
+    useEffect(() => {
+        if (storeModels.length === 0) {
+            loadModels();
+        }
+    }, [storeModels.length, loadModels]);
 
     const [taskDescription, setTaskDescription] = useState('');
     const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[1]?.id || 'anthropic/claude-sonnet-4.5');
@@ -268,7 +290,7 @@ export function DeployAgentModal({
                                             boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
                                         }}
                                     >
-                                        {AVAILABLE_MODELS.map((model: AvailableModel) => (
+                                        {AVAILABLE_MODELS.map((model: ModelInfo) => (
                                             <button
                                                 key={model.id}
                                                 onClick={() => {
@@ -285,11 +307,11 @@ export function DeployAgentModal({
                                                     <div className="text-xs text-white/40">{model.description}</div>
                                                 </div>
                                                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                                                    model.tier === 'premium' ? 'bg-amber-500/20 text-amber-400' :
-                                                    model.tier === 'standard' ? 'bg-blue-500/20 text-blue-400' :
+                                                    model.creditsPerTask >= 40 ? 'bg-amber-500/20 text-amber-400' :
+                                                    model.creditsPerTask >= 15 ? 'bg-blue-500/20 text-blue-400' :
                                                     'bg-emerald-500/20 text-emerald-400'
                                                 }`}>
-                                                    {model.tier}
+                                                    {model.creditsPerTask >= 40 ? 'premium' : model.creditsPerTask >= 15 ? 'standard' : 'economy'}
                                                 </span>
                                             </button>
                                         ))}

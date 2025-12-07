@@ -71,6 +71,8 @@ export interface Agent {
     mergeStatus?: string;
     sandboxUrl?: string;
     lastError?: string;
+    branch?: string;
+    filesModified?: string[];
     createdAt: Date;
     updatedAt: Date;
 }
