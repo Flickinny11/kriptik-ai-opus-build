@@ -4,6 +4,11 @@
  * Handles saving, loading, and summarizing shared contexts.
  * Enables continuous conversations across sessions.
  * Uses in-memory cache with file-based persistence.
+ *
+ * NOW WITH ARTIFACT MANAGER INTEGRATION:
+ * - Syncs context saves with ArtifactManager
+ * - Updates build state artifacts on context changes
+ * - Maintains consistency between contexts and memory harness
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +20,11 @@ import {
     ContextCheckpoint,
     Message,
 } from './types.js';
+// Memory Harness Integration
+import {
+    createArtifactManager,
+    type ArtifactManager,
+} from '../ai/artifacts.js';
 
 // In-memory context cache
 const contextCache = new Map<string, SharedContext>();
@@ -34,7 +44,7 @@ async function ensureContextsDir(): Promise<void> {
 // ============================================================================
 
 /**
- * Save context to file system
+ * Save context to file system and sync with ArtifactManager
  */
 export async function saveContext(context: SharedContext): Promise<void> {
     await ensureContextsDir();
@@ -64,8 +74,63 @@ export async function saveContext(context: SharedContext): Promise<void> {
 
         // Also save index entry
         await saveContextIndex(context);
+
+        // Sync with ArtifactManager (Memory Harness Integration)
+        await syncContextWithArtifacts(context);
     } catch (error) {
         console.error('Error saving context:', error);
+    }
+}
+
+/**
+ * Sync context with ArtifactManager for memory harness integration
+ */
+async function syncContextWithArtifacts(context: SharedContext): Promise<void> {
+    try {
+        const artifactManager = createArtifactManager(
+            context.projectId,
+            context.sessionId,
+            context.userId
+        );
+
+        // Determine build status from workflow and project state
+        let buildStatus: 'in_progress' | 'complete' | 'failed' = 'in_progress';
+        const workflowStatus = context.activeWorkflow?.status;
+        if (workflowStatus === 'approved' || workflowStatus === 'running') {
+            // Running or approved means in progress
+            buildStatus = 'in_progress';
+        } else if (workflowStatus === 'failed' || context.projectState.buildStatus === 'error') {
+            buildStatus = 'failed';
+        }
+
+        // Map project build status to artifact build status
+        const projectBuildStatus = context.projectState.buildStatus;
+        let mappedBuildStatus: 'unknown' | 'passing' | 'failing' = 'unknown';
+        if (projectBuildStatus === 'success') {
+            mappedBuildStatus = 'passing';
+        } else if (projectBuildStatus === 'error') {
+            mappedBuildStatus = 'failing';
+        }
+
+        // Update build state artifact
+        await artifactManager.saveBuildState({
+            phase: context.activeWorkflow?.name || 'agents',
+            status: buildStatus,
+            devServer: 'stopped',
+            build: mappedBuildStatus,
+            tests: {
+                passing: context.completedTasks?.length || 0,
+                failing: 0,
+                pending: context.taskQueue?.filter(t => t.status === 'pending').length || 0,
+            },
+            lastCommit: null,
+        });
+
+        // Log the sync
+        console.log(`[ContextPersistence] Synced context ${context.id} with ArtifactManager`);
+    } catch (error) {
+        // Don't fail the save if artifact sync fails
+        console.warn(`[ContextPersistence] Failed to sync with ArtifactManager: ${error}`);
     }
 }
 

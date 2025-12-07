@@ -3,6 +3,12 @@
  *
  * Coordinates multiple specialized AI agents working concurrently.
  * Manages task distribution, agent lifecycle, and result aggregation.
+ *
+ * NOW WITH MEMORY HARNESS INTEGRATION:
+ * - InitializerAgent for project setup
+ * - CodingAgentWrapper for task execution
+ * - Persistent artifacts for cross-agent coordination
+ * - All AI calls route through OpenRouter
  */
 
 import { EventEmitter } from 'events';
@@ -33,6 +39,27 @@ import {
     type KripToeNiteFacade,
     type RequestContext as KTNRequestContext,
 } from '../ai/krip-toe-nite/index.js';
+// Memory Harness Integration
+import {
+    createInitializerAgent,
+    needsInitialization,
+    type InitializerResult,
+} from '../ai/initializer-agent.js';
+import {
+    loadProjectContext,
+    hasProjectContext,
+    formatContextForPrompt,
+    type LoadedContext,
+} from '../ai/context-loader.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+    type TaskItem,
+} from '../ai/artifacts.js';
+import {
+    createCodingAgentWrapper,
+    type CodingAgentWrapper,
+} from '../ai/coding-agent-wrapper.js';
 
 // ============================================================================
 // AGENT EXECUTORS
@@ -136,6 +163,11 @@ export class AgentOrchestrator extends EventEmitter {
     private isRunning: Map<string, boolean> = new Map();
     private executionLoops: Map<string, NodeJS.Timeout> = new Map();
 
+    // Memory Harness
+    private artifactManagers: Map<string, ArtifactManager> = new Map();
+    private loadedContexts: Map<string, LoadedContext> = new Map();
+    private projectPaths: Map<string, string> = new Map();
+
     constructor() {
         super();
         this.contextStore = getContextStore();
@@ -158,17 +190,155 @@ export class AgentOrchestrator extends EventEmitter {
 
     /**
      * Start orchestration for a context
+     *
+     * Now integrates with memory harness:
+     * - Checks for existing project context
+     * - Runs InitializerAgent if needed
+     * - Loads persistent artifacts for cross-agent coordination
      */
-    async startOrchestration(contextId: string): Promise<void> {
+    async startOrchestration(contextId: string, prompt?: string): Promise<void> {
         if (this.isRunning.get(contextId)) {
             return;  // Already running
+        }
+
+        const context = this.contextStore.getContext(contextId);
+        if (!context) {
+            throw new Error(`Context ${contextId} not found`);
         }
 
         this.isRunning.set(contextId, true);
         this.emit('orchestration:started', { contextId });
 
+        // Initialize memory harness for this orchestration
+        const projectPath = `/tmp/kriptik-agents/${context.projectId}`;
+        this.projectPaths.set(contextId, projectPath);
+
+        // Check for existing context artifacts
+        const hasContext = await hasProjectContext(projectPath);
+
+        if (!hasContext && prompt) {
+            // Fresh start - run InitializerAgent
+            await this.runInitializerAgentForContext(contextId, context, prompt, projectPath);
+        } else if (hasContext) {
+            // Load existing context from artifacts
+            await this.loadContextFromArtifacts(contextId, context, projectPath);
+        }
+
+        // Initialize artifact manager for this session
+        const artifactManager = createArtifactManager(
+            context.projectId,
+            context.sessionId,
+            context.userId
+        );
+        this.artifactManagers.set(contextId, artifactManager);
+
+        // Write orchestration start to progress log
+        await artifactManager.appendProgressEntry({
+            agentId: 'orchestrator',
+            agentType: 'orchestrator',
+            action: 'Started Agents Mode orchestration',
+            completed: ['Memory harness initialized', hasContext ? 'Context loaded from artifacts' : 'Fresh context created'],
+            filesModified: [],
+            nextSteps: ['Distribute tasks to Queens', 'Monitor worker progress'],
+        });
+
         // Start the execution loop
         this.runExecutionLoop(contextId);
+    }
+
+    /**
+     * Run InitializerAgent for a new orchestration
+     */
+    private async runInitializerAgentForContext(
+        contextId: string,
+        context: SharedContext,
+        prompt: string,
+        projectPath: string
+    ): Promise<void> {
+        this.emit('orchestration:initializing', { contextId, mode: 'initializer_agent' });
+
+        const initializer = createInitializerAgent({
+            projectId: context.projectId,
+            userId: context.userId,
+            orchestrationRunId: context.sessionId,
+            projectPath,
+            mode: 'new_build',
+        });
+
+        // Forward initializer events
+        initializer.on('intent_created', (data) => {
+            this.emit('orchestration:intent_created', { contextId, ...data });
+        });
+        initializer.on('tasks_decomposed', (data) => {
+            this.emit('orchestration:tasks_decomposed', { contextId, ...data });
+        });
+
+        const result: InitializerResult = await initializer.initialize(prompt);
+
+        if (!result.success) {
+            throw new Error(`InitializerAgent failed: ${result.error}`);
+        }
+
+        console.log(`[AgentOrchestrator] InitializerAgent created ${result.taskCount} tasks`);
+
+        // Load the newly created context
+        const loadedContext = await loadProjectContext(projectPath);
+        this.loadedContexts.set(contextId, loadedContext);
+
+        this.emit('orchestration:initialized', {
+            contextId,
+            taskCount: result.taskCount,
+            artifacts: result.artifactsCreated,
+        });
+    }
+
+    /**
+     * Load existing context from artifacts
+     */
+    private async loadContextFromArtifacts(
+        contextId: string,
+        context: SharedContext,
+        projectPath: string
+    ): Promise<void> {
+        const loadedContext = await loadProjectContext(projectPath);
+        this.loadedContexts.set(contextId, loadedContext);
+
+        console.log(`[AgentOrchestrator] Loaded existing context: ${loadedContext.taskList?.completedTasks || 0} tasks completed`);
+
+        this.emit('orchestration:resumed', {
+            contextId,
+            completedTasks: loadedContext.taskList?.completedTasks || 0,
+            totalTasks: loadedContext.taskList?.totalTasks || 0,
+        });
+    }
+
+    /**
+     * Get context-enhanced system prompt for agents
+     */
+    getContextEnhancedPrompt(contextId: string, basePrompt: string): string {
+        const loadedContext = this.loadedContexts.get(contextId);
+        if (!loadedContext) {
+            return basePrompt;
+        }
+
+        const contextSection = formatContextForPrompt(loadedContext);
+
+        return `${basePrompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROJECT CONTEXT (Loaded from persistent artifacts)
+═══════════════════════════════════════════════════════════════════════════════
+
+${contextSection}
+
+═══════════════════════════════════════════════════════════════════════════════
+You are part of a multi-agent orchestration. The context above shows:
+- What has been completed (progress log)
+- What tasks remain (task list)
+- Project decisions and state
+
+Coordinate with other agents using the shared artifact system.
+═══════════════════════════════════════════════════════════════════════════════`;
     }
 
     /**
@@ -312,6 +482,11 @@ export class AgentOrchestrator extends EventEmitter {
     /**
      * Run an agent task using OpenRouter with phase-based model selection
      * All calls route through openrouter.ai/api/v1 with December 2025 beta features
+     *
+     * NOW WITH MEMORY HARNESS:
+     * - Uses CodingAgentWrapper for context-aware execution
+     * - Updates artifacts on task completion
+     * - Commits changes to git
      */
     private async runAgentTask(
         agentType: AgentType,
@@ -331,12 +506,34 @@ export class AgentOrchestrator extends EventEmitter {
             };
         }
 
-        const systemPrompt = AGENT_SYSTEM_PROMPTS[agentType];
+        // Get memory harness resources
+        const projectPath = this.projectPaths.get(context.id) || `/tmp/kriptik-agents/${context.projectId}`;
+        const artifactManager = this.artifactManagers.get(context.id);
 
-        // Build context-aware prompt
-        const contextSummary = this.contextStore.getContextSummary(context.id);
+        // Create coding agent wrapper for this task
+        const codingAgent = createCodingAgentWrapper({
+            projectId: context.projectId,
+            userId: context.userId,
+            orchestrationRunId: context.sessionId,
+            projectPath,
+            agentType: agentType,
+            agentId: `${agentType}-${task.id}`,
+        });
 
-        const userPrompt = `
+        try {
+            // Load context from artifacts
+            await codingAgent.startSession();
+
+            // Get base system prompt
+            const baseSystemPrompt = AGENT_SYSTEM_PROMPTS[agentType];
+
+            // Enhance with loaded context
+            const systemPrompt = codingAgent.getSystemPromptWithContext(baseSystemPrompt);
+
+            // Build context-aware prompt
+            const contextSummary = this.contextStore.getContextSummary(context.id);
+
+            const userPrompt = `
 ## Current Context
 ${contextSummary}
 
@@ -352,7 +549,6 @@ ${JSON.stringify(task.input, null, 2)}
 Execute this task according to your role. Provide complete, production-ready output.
 `;
 
-        try {
             // Use Krip-Toe-Nite for intelligent model routing based on agent type
             const ktnContext: KTNRequestContext = {
                 projectId: context.projectId,
@@ -360,7 +556,7 @@ Execute this task according to your role. Provide complete, production-ready out
                 sessionId: context.sessionId,
             };
 
-            console.log(`[AgentOrchestrator] Running ${agentType} task via KripToeNite`);
+            console.log(`[AgentOrchestrator] Running ${agentType} task via KripToeNite with context`);
 
             // Execute using KTN with agent-type-specific routing
             const ktnResult = await executeForAgent(agentType, userPrompt, ktnContext);
@@ -371,6 +567,40 @@ Execute this task according to your role. Provide complete, production-ready out
 
             // Parse output based on task type
             const output = this.parseTaskOutput(task.type, outputText);
+
+            // Record any file changes from the output
+            const filesModified: string[] = [];
+            if (output.files && Array.isArray(output.files)) {
+                for (const file of output.files as Array<{ path: string }>) {
+                    if (file.path) {
+                        codingAgent.recordFileChange(file.path, 'create');
+                        filesModified.push(file.path);
+                    }
+                }
+            }
+
+            // Complete task in memory harness (updates artifacts, commits to git)
+            await codingAgent.completeTask({
+                summary: `${agentType}: ${task.title}`,
+                filesModified,
+                nextSteps: this.determineNextStepsForAgent(agentType, task),
+            });
+
+            await codingAgent.endSession();
+
+            // Update progress log with multi-agent activity format
+            if (artifactManager) {
+                await artifactManager.appendProgressEntry({
+                    agentId: `${agentType}-${task.id}`,
+                    agentType,
+                    taskId: task.id,
+                    action: `Completed: ${task.title}`,
+                    completed: [task.title],
+                    filesModified,
+                    nextSteps: this.determineNextStepsForAgent(agentType, task),
+                    notes: `Model: ${ktnResult.model}, Strategy: ${ktnResult.strategy}`,
+                });
+            }
 
             return {
                 taskId: task.id,
@@ -387,6 +617,23 @@ Execute this task according to your role. Provide complete, production-ready out
             };
         } catch (error) {
             console.error(`[AgentOrchestrator] KripToeNite call failed for ${agentType}:`, error);
+
+            // Record failure in artifacts
+            if (artifactManager) {
+                await artifactManager.appendProgressEntry({
+                    agentId: `${agentType}-${task.id}`,
+                    agentType,
+                    taskId: task.id,
+                    action: `FAILED: ${task.title}`,
+                    completed: [],
+                    filesModified: [],
+                    blockers: [(error as Error).message],
+                    nextSteps: ['Retry or escalate'],
+                });
+            }
+
+            await codingAgent.endSession();
+
             return {
                 taskId: task.id,
                 success: false,
@@ -395,6 +642,23 @@ Execute this task according to your role. Provide complete, production-ready out
                 tokensUsed: 0,
             };
         }
+    }
+
+    /**
+     * Determine next steps based on agent type and task
+     */
+    private determineNextStepsForAgent(agentType: AgentType, task: Task): string[] {
+        const nextStepsMap: Partial<Record<AgentType, string[]>> = {
+            planning: ['Review plan with user', 'Assign tasks to coding agents'],
+            coding: ['Run tests', 'Code review', 'Deploy if ready'],
+            testing: ['Fix failing tests', 'Proceed to deployment'],
+            deployment: ['Monitor health', 'Run smoke tests'],
+            research: ['Integrate recommended models', 'Update configuration'],
+            review: ['Apply suggested fixes', 'Re-run review'],
+            debug: ['Apply fix', 'Verify resolution'],
+            integration: ['Test integration', 'Configure webhooks'],
+        };
+        return nextStepsMap[agentType] || ['Continue with next task'];
     }
 
     /**

@@ -6,6 +6,11 @@
  *
  * NOW USING: OpenRouterClient with phase-based configuration
  * All AI calls route through openrouter.ai/api/v1
+ *
+ * MEMORY HARNESS INTEGRATION:
+ * - Uses CodingAgentWrapper for context-aware execution
+ * - Updates artifacts on task completion
+ * - Commits changes to git
  */
 
 import { EventEmitter } from 'events';
@@ -34,6 +39,15 @@ import {
     type ErrorEscalationEngine,
     type BuildError,
 } from '../../automation/error-escalation.js';
+// Memory Harness Integration
+import {
+    createCodingAgentWrapper,
+    type CodingAgentWrapper,
+} from '../../ai/coding-agent-wrapper.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+} from '../../ai/artifacts.js';
 
 export class WorkerAgent extends EventEmitter {
     private id: AgentId;
@@ -46,6 +60,13 @@ export class WorkerAgent extends EventEmitter {
     private sandbox: SandboxInstance | null = null;
     private sandboxService: SandboxService | null = null;
     private errorEscalation: ErrorEscalationEngine | null = null;
+
+    // Memory Harness
+    private projectPath: string;
+    private projectId: string;
+    private userId: string;
+    private orchestrationRunId: string;
+    private artifactManager: ArtifactManager | null = null;
 
     constructor(
         id: AgentId,
@@ -61,12 +82,27 @@ export class WorkerAgent extends EventEmitter {
         this.systemPrompt = getAgentPrompt(type);
         this.phase = phase;
 
+        // Memory harness setup
+        // Note: orchestration SharedContext doesn't have projectId/userId/sessionId directly
+        // Generate IDs for memory harness
+        this.projectId = `project-${id.substring(0, 8)}`;
+        this.userId = 'system';
+        this.orchestrationRunId = uuidv4();
+        this.projectPath = `/tmp/kriptik-worker-${this.projectId}`;
+
+        // Initialize artifact manager
+        this.artifactManager = createArtifactManager(
+            this.projectId,
+            this.orchestrationRunId,
+            this.userId
+        );
+
         // Initialize sandbox service for isolated testing
         try {
             this.sandboxService = createSandboxService({
                 basePort: 3300 + Math.floor(Math.random() * 100),
                 maxSandboxes: 5,
-                projectPath: `/tmp/worker-${this.id}`,
+                projectPath: this.projectPath,
                 framework: 'vite',
             });
         } catch (e) {
@@ -77,7 +113,7 @@ export class WorkerAgent extends EventEmitter {
     }
 
     /**
-     * Execute a task
+     * Execute a task using CodingAgentWrapper for memory harness integration
      * Uses Error Escalation for automatic retry on failures
      */
     async execute(task: Task): Promise<Artifact[]> {
@@ -87,6 +123,16 @@ export class WorkerAgent extends EventEmitter {
 
         this.busy = true;
         this.log(`Starting task: ${task.name}`);
+
+        // Create CodingAgentWrapper for this task
+        const codingAgent = createCodingAgentWrapper({
+            projectId: this.projectId,
+            userId: this.userId,
+            orchestrationRunId: this.orchestrationRunId,
+            projectPath: this.projectPath,
+            agentType: `worker-${this.type}`,
+            agentId: `${this.type}-${task.id}`,
+        });
 
         // Broadcast task start via WebSocket
         const wsSync = getWebSocketSyncService();
@@ -99,11 +145,14 @@ export class WorkerAgent extends EventEmitter {
         });
 
         try {
+            // Load context from artifacts
+            await codingAgent.startSession();
+
             // Initialize sandbox for this worker if available
             if (this.sandboxService) {
                 try {
                     await this.sandboxService.initialize();
-                    this.sandbox = await this.sandboxService.createSandbox(this.id, `/tmp/worker-${this.id}`);
+                    this.sandbox = await this.sandboxService.createSandbox(this.id, this.projectPath);
 
                     wsSync.broadcast(contextId, 'worker-sandbox-ready', {
                         workerId: this.id,
@@ -114,13 +163,28 @@ export class WorkerAgent extends EventEmitter {
                 }
             }
 
-            const artifacts = await this.generateArtifacts(task);
+            // Generate artifacts using context-aware prompts
+            const artifacts = await this.generateArtifactsWithContext(task, codingAgent);
             await this.validateArtifacts(artifacts);
+
+            // Record file changes in memory harness
+            for (const artifact of artifacts) {
+                codingAgent.recordFileChange(artifact.path, 'create');
+            }
 
             // Test in sandbox if available
             if (this.sandbox && this.sandbox.status === 'running') {
                 await this.testInSandbox(artifacts);
             }
+
+            // Complete task in memory harness (updates artifacts, commits to git)
+            await codingAgent.completeTask({
+                summary: `${this.type}: ${task.name}`,
+                filesCreated: artifacts.map(a => a.path),
+                nextSteps: ['Validate artifacts', 'Proceed to next task'],
+            });
+
+            await codingAgent.endSession();
 
             // Broadcast task complete
             wsSync.broadcast(contextId, 'worker-task-completed', {
@@ -135,12 +199,16 @@ export class WorkerAgent extends EventEmitter {
             return artifacts;
 
         } catch (error) {
+            // Record failure in memory harness
+            await codingAgent.blockTask((error as Error).message, ['Retry or escalate']);
+            await codingAgent.endSession();
+
             // Use Error Escalation for automatic retry
             if (!this.errorEscalation) {
                 this.errorEscalation = createErrorEscalationEngine(
-                    this.id, // orchestrationRunId
-                    'project-' + this.id.substring(0, 8), // projectId
-                    'system' // userId
+                    this.orchestrationRunId,
+                    this.projectId,
+                    this.userId
                 );
             }
 
@@ -173,8 +241,28 @@ export class WorkerAgent extends EventEmitter {
                 if (escalationResult.success && escalationResult.fix) {
                     // Retry with the fix
                     this.log(`Escalation resolved at Level ${escalationResult.level}, retrying task`);
-                    const artifacts = await this.generateArtifacts(task);
+
+                    // Create new coding agent for retry
+                    const retryCodingAgent = createCodingAgentWrapper({
+                        projectId: this.projectId,
+                        userId: this.userId,
+                        orchestrationRunId: this.orchestrationRunId,
+                        projectPath: this.projectPath,
+                        agentType: `worker-${this.type}`,
+                        agentId: `${this.type}-${task.id}-retry`,
+                    });
+
+                    await retryCodingAgent.startSession();
+                    const artifacts = await this.generateArtifactsWithContext(task, retryCodingAgent);
                     await this.validateArtifacts(artifacts);
+
+                    await retryCodingAgent.completeTask({
+                        summary: `${this.type}: ${task.name} (retry after escalation)`,
+                        filesCreated: artifacts.map(a => a.path),
+                        nextSteps: ['Validate artifacts', 'Proceed to next task'],
+                    });
+                    await retryCodingAgent.endSession();
+
                     return artifacts;
                 }
             } catch (escalationError) {
@@ -195,6 +283,102 @@ export class WorkerAgent extends EventEmitter {
                 }
             }
         }
+    }
+
+    /**
+     * Generate artifacts using CodingAgentWrapper for context-aware prompts
+     */
+    private async generateArtifactsWithContext(task: Task, codingAgent: CodingAgentWrapper): Promise<Artifact[]> {
+        const workerSpecificPrompt = this.getWorkerSpecificPrompt(task);
+        const phaseConfig = getPhaseConfig(this.phase);
+
+        // Get system prompt with context injected
+        const systemPrompt = codingAgent.getSystemPromptWithContext(this.systemPrompt);
+
+        const prompt = `${workerSpecificPrompt}
+
+TASK: ${task.name}
+DESCRIPTION: ${task.description}
+
+CRITICAL REQUIREMENTS:
+1. Generate PRODUCTION-READY code only
+2. NO placeholders (TODO, FIXME, example.com, test-key, etc.)
+3. NO mock data or hardcoded values that should be config
+4. Include comprehensive error handling
+5. Use TypeScript with strict types
+6. Follow the project's established patterns
+
+OUTPUT FORMAT:
+Return a JSON array of complete file artifacts:
+\`\`\`json
+[
+  {
+    "path": "src/path/to/file.ts",
+    "type": "file",
+    "language": "typescript",
+    "content": "// Complete implementation..."
+  }
+]
+\`\`\`
+
+Generate all files needed to fully implement this task.`;
+
+        // Use OpenRouter with phase configuration
+        const client = this.openRouter.withContext({
+            agentType: this.type,
+            feature: task.name,
+            phase: this.phase,
+        });
+
+        const result = await client.messages.create({
+            model: phaseConfig.model,
+            max_tokens: 16000,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+        });
+
+        // Parse response
+        const responseText = result.content[0]?.type === 'text' ? result.content[0].text : '';
+        let artifacts: Artifact[] = [];
+
+        try {
+            // Extract JSON from response
+            const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) ||
+                             responseText.match(/\[[\s\S]*\]/);
+
+            if (jsonMatch) {
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                const parsed = JSON.parse(jsonStr) as Array<{
+                    path: string;
+                    type: string;
+                    language: string;
+                    content: string;
+                }>;
+
+                artifacts = parsed.map(r => ({
+                    id: uuidv4(),
+                    taskId: task.id,
+                    type: this.mapArtifactType(r.type),
+                    path: r.path,
+                    content: r.content,
+                    language: r.language,
+                    validated: false,
+                }));
+
+                // Emit artifact creation events
+                for (const artifact of artifacts) {
+                    this.emit('artifact_created', {
+                        workerId: this.id,
+                        workerType: this.type,
+                        artifact: { path: artifact.path, type: artifact.type },
+                    });
+                }
+            }
+        } catch (parseError) {
+            this.log(`Warning: Failed to parse artifacts JSON: ${(parseError as Error).message}`);
+        }
+
+        return artifacts;
     }
 
     /**

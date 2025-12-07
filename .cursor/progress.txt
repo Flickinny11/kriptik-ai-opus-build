@@ -3055,3 +3055,73 @@ CURRENT STATE:
 
 NEXT: Continue with Agents Mode integration
 ═════════════════════════════════════════
+
+═══ [2025-12-07 AGENTS MODE INTEGRATION] ═══
+COMPLETED: Memory Harness Integration into Agents Mode (Queen/Worker)
+
+FILES MODIFIED:
+- server/src/services/agents/orchestrator.ts
+- server/src/services/agents/context-persistence.ts
+- server/src/services/orchestration/agents/queen-agent.ts
+- server/src/services/orchestration/agents/worker-agent.ts
+
+CHANGES IMPLEMENTED:
+
+1. AgentOrchestrator Updates:
+   - Added InitializerAgent integration for new orchestration sessions
+   - New method: startOrchestration(contextId, prompt) - checks for/creates context
+   - New method: runInitializerAgentForContext() - initializes memory artifacts
+   - New method: loadContextFromArtifacts() - loads existing context
+   - New method: getContextEnhancedPrompt() - injects context into prompts
+   - New method: determineNextStepsForAgent() - determines next steps per agent type
+   - runAgentTask() now uses CodingAgentWrapper for context-aware execution
+   - All tasks update artifacts on completion
+
+2. QueenAgent Updates:
+   - Added memory harness properties (projectPath, artifactManager, loadedContext)
+   - New method: startSession() - loads context from artifacts
+   - New method: buildSystemPromptWithContext() - injects context into queen prompts
+   - executeTask() now records task coordination in artifacts
+   - Updates progress log with task delegation and completion
+
+3. WorkerAgent Updates:
+   - Added memory harness properties
+   - execute() now uses CodingAgentWrapper for task execution
+   - New method: generateArtifactsWithContext() - context-aware artifact generation
+   - Records file changes in memory harness
+   - Updates artifacts on task completion/failure
+   - Commits changes to git via CodingAgentWrapper
+
+4. ContextPersistence Updates:
+   - New function: syncContextWithArtifacts() - syncs context saves with ArtifactManager
+   - saveContext() now updates build state artifacts
+   - Maintains consistency between contexts and memory harness
+
+5. Multi-Agent Progress Log Format:
+   ═══ AGENTS MODE SESSION - {timestamp} ═══
+   ACTIVE QUEENS:
+   - Infrastructure Queen: {status}
+   - Development Queen: {status}
+   - Design Queen: {status}
+   - Quality Queen: {status}
+   
+   ═══ WORKER ACTIVITY ═══
+   [{Worker Type} #{id}] - {timestamp}
+   TASK: {task name}
+   STATUS: {Complete/In Progress}
+   FILES: {files modified}
+   COMMIT: {hash}
+
+SHARED ARTIFACTS ENABLE:
+- Queens see what workers have done
+- Workers see full project context
+- New agents can pick up where others left off
+- Full audit trail of who did what
+
+CURRENT STATE:
+- Build: Passing ✓
+- TypeScript: No errors ✓
+- Memory Harness: Integrated with Agents Mode ✓
+
+NEXT: Resume mode integration or additional features
+═════════════════════════════════════════

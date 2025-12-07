@@ -6,6 +6,11 @@
  *
  * NOW USING: OpenRouterClient with phase-based configuration
  * All AI calls route through openrouter.ai/api/v1
+ *
+ * MEMORY HARNESS INTEGRATION:
+ * - Loads context from artifacts at session start
+ * - Updates artifacts with task coordination
+ * - Workers use CodingAgentWrapper
  */
 
 import { EventEmitter } from 'events';
@@ -28,6 +33,17 @@ import {
 import { getWebSocketSyncService } from '../../agents/websocket-sync.js';
 import { createVerificationSwarm, type VerificationSwarm } from '../../verification/swarm.js';
 import { WorkerAgent } from './worker-agent.js';
+// Memory Harness Integration
+import {
+    loadProjectContext,
+    formatContextForPrompt,
+    hasProjectContext,
+    type LoadedContext,
+} from '../../ai/context-loader.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+} from '../../ai/artifacts.js';
 
 // Worker type to build phase mapping for optimal model selection
 const WORKER_PHASE_MAP: Record<string, string> = {
@@ -58,10 +74,19 @@ export class QueenAgent extends EventEmitter {
     private systemPrompt: string;
     private verificationSwarm: VerificationSwarm | null = null;
 
+    // Memory Harness
+    private loadedContext: LoadedContext | null = null;
+    private artifactManager: ArtifactManager | null = null;
+    private projectPath: string;
+    private projectId: string;
+    private userId: string;
+    private orchestrationRunId: string;
+
     constructor(
         id: AgentId,
         type: AgentType,
-        sharedContext: SharedContext
+        sharedContext: SharedContext,
+        projectPath?: string
     ) {
         super();
         this.id = id;
@@ -70,18 +95,89 @@ export class QueenAgent extends EventEmitter {
         this.sharedContext = sharedContext;
         this.systemPrompt = getAgentPrompt(type);
 
+        // Memory harness setup
+        // Note: orchestration SharedContext doesn't have projectId/userId/sessionId directly
+        // Generate IDs for memory harness
+        this.projectId = `project-${id.substring(0, 8)}`;
+        this.userId = 'system';
+        this.orchestrationRunId = uuidv4();
+        this.projectPath = projectPath || `/tmp/kriptik-queen-${this.projectId}`;
+
+        // Initialize artifact manager
+        this.artifactManager = createArtifactManager(
+            this.projectId,
+            this.orchestrationRunId,
+            this.userId
+        );
+
         // Initialize verification swarm for output validation
-        // Note: Using generic IDs since SharedContext doesn't have these directly
         this.verificationSwarm = createVerificationSwarm(
-            uuidv4(), // orchestrationRunId
-            'project-' + uuidv4().substring(0, 8), // projectId
-            'system' // userId
+            this.orchestrationRunId,
+            this.projectId,
+            this.userId
         );
 
         // Spawn workers based on queen type
         this.spawnWorkers();
 
         console.log(`[QueenAgent] ${type} initialized via OpenRouter with ${this.workers.size} workers`);
+    }
+
+    /**
+     * Start a new session by loading context from artifacts
+     */
+    async startSession(): Promise<void> {
+        // Load project context from artifacts
+        const hasContext = await hasProjectContext(this.projectPath);
+
+        if (hasContext) {
+            this.loadedContext = await loadProjectContext(this.projectPath);
+            this.log(`Loaded context: ${this.loadedContext.taskList?.completedTasks || 0} tasks completed`);
+        }
+
+        // Build system prompt with context
+        this.systemPrompt = this.buildSystemPromptWithContext(getAgentPrompt(this.type));
+
+        // Log session start in artifacts
+        await this.artifactManager?.appendProgressEntry({
+            agentId: this.id,
+            agentType: this.type,
+            action: `${this.type} Queen session started`,
+            completed: ['Context loaded', 'Workers spawned'],
+            filesModified: [],
+            nextSteps: ['Coordinate workers', 'Execute assigned tasks'],
+        });
+
+        this.emit('session_started', { queenType: this.type, hasContext });
+    }
+
+    /**
+     * Build system prompt with injected context
+     */
+    private buildSystemPromptWithContext(basePrompt: string): string {
+        if (!this.loadedContext) {
+            return basePrompt;
+        }
+
+        const contextSection = formatContextForPrompt(this.loadedContext);
+
+        return `${basePrompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROJECT CONTEXT (Loaded from persistent artifacts)
+═══════════════════════════════════════════════════════════════════════════════
+
+${contextSection}
+
+═══════════════════════════════════════════════════════════════════════════════
+You are a ${this.type} Queen agent coordinating workers on this project.
+Use the context above to understand current state and assign appropriate tasks.
+
+ACTIVE WORKERS:
+${Array.from(this.workers.keys()).map(w => `- ${w}`).join('\n')}
+
+Your job is to coordinate workers efficiently, track progress, and ensure quality.
+═══════════════════════════════════════════════════════════════════════════════`;
     }
 
     /**
@@ -124,21 +220,63 @@ export class QueenAgent extends EventEmitter {
 
     /**
      * Execute a task by dispatching to appropriate worker
+     *
+     * Now updates artifacts with task coordination:
+     * - Records task assignment
+     * - Tracks worker progress
+     * - Updates task list on completion
      */
     async executeTask(task: Task): Promise<Artifact[]> {
         this.log(`Received task: ${task.name}`);
+
+        // Record task reception in artifacts
+        await this.artifactManager?.appendProgressEntry({
+            agentId: this.id,
+            agentType: this.type,
+            taskId: task.id,
+            action: `Received task: ${task.name}`,
+            completed: [],
+            filesModified: [],
+            nextSteps: ['Assign to worker or execute directly'],
+        });
 
         // Determine best worker for this task
         const worker = this.selectWorker(task);
 
         if (!worker) {
             // If no specific worker, queen handles it directly
+            this.log(`No suitable worker, executing directly`);
             return this.executeDirectly(task);
         }
 
+        // Record task delegation in artifacts
+        const workerType = worker.getType();
+        await this.artifactManager?.appendProgressEntry({
+            agentId: this.id,
+            agentType: this.type,
+            taskId: task.id,
+            action: `Delegating to ${workerType}`,
+            completed: [`Task assigned: ${task.name}`],
+            filesModified: [],
+            nextSteps: [`${workerType} to complete task`],
+        });
+
         // Delegate to worker
-        this.log(`Delegating to worker: ${worker.getType()}`);
-        return worker.execute(task);
+        this.log(`Delegating to worker: ${workerType}`);
+        const artifacts = await worker.execute(task);
+
+        // Record task completion in artifacts
+        await this.artifactManager?.appendProgressEntry({
+            agentId: this.id,
+            agentType: this.type,
+            taskId: task.id,
+            action: `Worker ${workerType} completed task`,
+            completed: [`${task.name}: ${artifacts.length} artifacts`],
+            filesModified: artifacts.map(a => a.path),
+            nextSteps: ['Verify artifacts', 'Proceed to next task'],
+        });
+
+        return artifacts;
     }
 
     /**
