@@ -1,9 +1,9 @@
 /**
  * Stripe Complete Setup Service
- * 
+ *
  * Creates all Stripe products, prices, webhooks, and top-ups
  * programmatically. Run once to initialize, then use the generated IDs.
- * 
+ *
  * KripTik AI Billing Tiers:
  * - Free: 50 credits/month (for trial)
  * - Starter: $29/month - 300 credits (hobby projects)
@@ -11,7 +11,7 @@
  * - Developer: $99/month - 2000 credits (full-stack AI dev)
  * - Pro: $199/month - 5000 credits (teams & power users)
  * - Enterprise: Custom pricing
- * 
+ *
  * Top-ups:
  * - 100 credits: $15 (15¢/credit)
  * - 300 credits: $39 (13¢/credit)

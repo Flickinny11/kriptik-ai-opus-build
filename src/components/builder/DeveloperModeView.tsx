@@ -69,7 +69,7 @@ export function DeveloperModeView() {
 
         if (zipFile) {
             setIsImporting(true);
-            
+
             try {
                 // Create FormData for file upload
                 const formData = new FormData();
@@ -106,7 +106,7 @@ export function DeveloperModeView() {
                     importedAt: Date.now(),
                 });
             }
-            
+
             setIsImporting(false);
             setImportSource(null);
         }
@@ -117,7 +117,7 @@ export function DeveloperModeView() {
         if (!githubUrl.trim()) return;
 
         setIsImporting(true);
-        
+
         try {
             // Call the real GitHub import API
             const response = await apiClient.importFromGitHub({
@@ -149,7 +149,7 @@ export function DeveloperModeView() {
                 importedAt: Date.now(),
             });
         }
-        
+
         setIsImporting(false);
         setImportSource(null);
         setGithubUrl('');

@@ -451,7 +451,7 @@ router.post('/complete-setup', async (req: Request, res: Response) => {
         }
 
         const setupService = getStripeSetupService();
-        
+
         // Check for existing products
         const existing = await setupService.checkExistingProducts();
         if (existing.hasProducts) {
@@ -472,7 +472,7 @@ router.post('/complete-setup', async (req: Request, res: Response) => {
 
         res.json({
             success: result.success,
-            message: result.success 
+            message: result.success
                 ? 'All Stripe products, prices, and webhook created successfully!'
                 : 'Setup completed with some errors',
             products: result.products,

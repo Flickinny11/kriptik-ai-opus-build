@@ -1,12 +1,12 @@
 /**
  * Training Pipeline Service
- * 
+ *
  * Connects the Learning Engine to actual GPU compute for model training.
  * Integrates with:
  * - Modal Labs (serverless GPU)
  * - HuggingFace (model hosting)
  * - RunPod (alternative GPU)
- * 
+ *
  * This service handles:
  * 1. Preparing training data from preference pairs
  * 2. Launching training jobs on GPU providers
@@ -28,12 +28,22 @@ import { HuggingFaceService } from '../ml/huggingface.js';
 import type {
     PreferencePair,
     TrainingConfig,
-    TrainingMetrics,
 } from './types.js';
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+// Extended training metrics for internal pipeline use
+export interface PipelineTrainingMetrics {
+    trainLoss?: number;
+    evalLoss?: number;
+    evalAccuracy?: number;
+    epochMetrics?: Array<{ epoch: number; loss: number }>;
+    // Extended fields for pipeline tracking
+    evalScore?: number;
+    trainTimeSeconds?: number;
+}
 
 export interface TrainingJobRequest {
     modelType: ShadowModelType;
@@ -48,7 +58,7 @@ export interface TrainingJobStatus {
     status: 'queued' | 'preparing' | 'training' | 'evaluating' | 'uploading' | 'completed' | 'failed';
     progress: number;
     currentStep?: string;
-    metrics?: TrainingMetrics;
+    metrics?: PipelineTrainingMetrics;
     error?: string;
     startedAt?: Date;
     completedAt?: Date;
@@ -235,7 +245,7 @@ export class TrainingPipelineService extends EventEmitter {
     private async executeTrainingJob(request: TrainingJobRequest): Promise<void> {
         const job = Array.from(this.activeJobs.values())
             .find(j => j.modelType === request.modelType && j.status === 'queued');
-        
+
         if (!job) return;
 
         try {
@@ -279,8 +289,8 @@ export class TrainingPipelineService extends EventEmitter {
             });
 
             // Execute training based on provider
-            let trainingResult: { metrics: TrainingMetrics; adapterPath: string };
-            
+            let trainingResult: { metrics: PipelineTrainingMetrics; adapterPath: string };
+
             if (this.config.computeProvider === 'modal' && this.modalService) {
                 trainingResult = await this.trainWithModal(
                     request.modelType,
@@ -345,9 +355,8 @@ export class TrainingPipelineService extends EventEmitter {
                 'ready',
                 job.metrics?.evalScore,
                 {
-                    finalLoss: job.metrics?.trainLoss || 0,
-                    evalLoss: job.metrics?.evalLoss,
-                    trainTime: job.metrics?.trainTime || 0,
+                    codeQuality: job.metrics?.evalScore,
+                    firstAttemptSuccess: job.metrics?.evalAccuracy,
                 }
             );
 
@@ -381,13 +390,13 @@ export class TrainingPipelineService extends EventEmitter {
         trainingData: { prompt: string; chosen: string; rejected: string }[],
         config: TrainingConfig,
         job: TrainingJobStatus
-    ): Promise<{ metrics: TrainingMetrics; adapterPath: string }> {
+    ): Promise<{ metrics: PipelineTrainingMetrics; adapterPath: string }> {
         if (!this.modalService) {
             throw new Error('Modal service not initialized');
         }
 
         const modelConfig = SHADOW_MODEL_CONFIGS[modelType];
-        
+
         // Generate Modal app code for training
         const trainingCode = this.generateTrainingCode(
             modelConfig.baseModel,
@@ -431,10 +440,10 @@ export class TrainingPipelineService extends EventEmitter {
         // 2. Deploy and run the Modal app
         // 3. Monitor progress via Modal's API
         // 4. Download the trained adapter
-        
+
         // For now, simulate the training time based on data size
         const estimatedMinutes = Math.ceil(trainingData.length / 100) * 5;
-        
+
         // Simulate progress updates
         for (let i = 0; i < 10; i++) {
             await new Promise(r => setTimeout(r, Math.min(estimatedMinutes * 6000, 30000) / 10));
@@ -447,7 +456,7 @@ export class TrainingPipelineService extends EventEmitter {
             metrics: {
                 trainLoss: 0.15 + Math.random() * 0.1,
                 evalLoss: 0.18 + Math.random() * 0.1,
-                trainTime: estimatedMinutes * 60,
+                trainTimeSeconds: estimatedMinutes * 60,
             },
             adapterPath: `modal://${modalRequest.name}/adapter`,
         };
@@ -457,10 +466,10 @@ export class TrainingPipelineService extends EventEmitter {
         modelType: ShadowModelType,
         dataCount: number,
         job: TrainingJobStatus
-    ): Promise<{ metrics: TrainingMetrics; adapterPath: string }> {
+    ): Promise<{ metrics: PipelineTrainingMetrics; adapterPath: string }> {
         // Simulate training for development/testing
         const estimatedMinutes = Math.ceil(dataCount / 200);
-        
+
         for (let i = 0; i < 5; i++) {
             await new Promise(r => setTimeout(r, 2000));
             job.progress = 30 + (i * 8);
@@ -472,7 +481,7 @@ export class TrainingPipelineService extends EventEmitter {
             metrics: {
                 trainLoss: 0.12 + Math.random() * 0.08,
                 evalLoss: 0.15 + Math.random() * 0.1,
-                trainTime: estimatedMinutes * 60,
+                trainTimeSeconds: estimatedMinutes * 60,
             },
             adapterPath: `local://models/${modelType}/adapter`,
         };
@@ -492,19 +501,19 @@ export class TrainingPipelineService extends EventEmitter {
         // 2. Run inference on eval pairs
         // 3. Compare outputs to expected (chosen) responses
         // 4. Calculate accuracy/preference alignment
-        
+
         // For now, use AI judgment to estimate quality
         // by comparing a sample of generations
-        
+
         let correctPredictions = 0;
         const sampleSize = Math.min(evalPairs.length, 20);
-        
+
         for (let i = 0; i < sampleSize; i++) {
             const pair = evalPairs[i];
-            
+
             // Simulate model output (in production, run actual inference)
             const simulatedOutput = Math.random() > 0.3 ? pair.chosen : pair.rejected;
-            
+
             // Check if model preferred the correct response
             if (simulatedOutput === pair.chosen) {
                 correctPredictions++;
@@ -512,7 +521,7 @@ export class TrainingPipelineService extends EventEmitter {
         }
 
         const accuracy = correctPredictions / sampleSize;
-        
+
         // Add some noise for realism
         return Math.min(1, accuracy + (Math.random() * 0.1 - 0.05));
     }
@@ -525,12 +534,12 @@ export class TrainingPipelineService extends EventEmitter {
         // Select GPU based on model size requirements
         const modelConfig = SHADOW_MODEL_CONFIGS[modelType];
         const baseModel = modelConfig.baseModel;
-        
+
         // 7B models can run on A10G
         if (baseModel.includes('7B') || baseModel.includes('6.7b')) {
             return 'A10G';
         }
-        
+
         // Larger models need A100
         return 'A100';
     }
@@ -610,16 +619,16 @@ return {"status": "completed", "path": "./output/adapter"}
         totalCost: number;
     }> {
         const jobs = Array.from(this.activeJobs.values());
-        
+
         const completed = jobs.filter(j => j.status === 'completed');
         const totalTrainingTime = completed.reduce(
-            (sum, j) => sum + (j.metrics?.trainTime || 0),
+            (sum, j) => sum + (j.metrics?.trainTimeSeconds || 0),
             0
         );
 
         return {
             totalJobs: jobs.length,
-            activeJobs: jobs.filter(j => 
+            activeJobs: jobs.filter(j =>
                 ['preparing', 'training', 'evaluating', 'uploading'].includes(j.status)
             ).length,
             queuedJobs: jobs.filter(j => j.status === 'queued').length,

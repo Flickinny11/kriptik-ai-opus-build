@@ -561,14 +561,14 @@ router.get('/training/jobs/:jobId', async (req, res) => {
     try {
         const pipeline = getTrainingPipelineService();
         const job = pipeline.getJobStatus(req.params.jobId);
-        
+
         if (!job) {
             return res.status(404).json({
                 success: false,
                 error: 'Job not found'
             });
         }
-        
+
         res.json({ success: true, data: job });
     } catch (error) {
         console.error('[Learning API] Failed to get job:', error);
@@ -582,7 +582,7 @@ router.get('/training/jobs/:jobId', async (req, res) => {
 /**
  * POST /api/learning/training/submit
  * Submit a new training job
- * 
+ *
  * Body:
  * - modelType: 'code_specialist' | 'architecture_specialist' | 'reasoning_specialist' | 'design_specialist'
  * - preferencePairs: Array of { prompt, chosen, rejected, domain }
@@ -592,21 +592,21 @@ router.get('/training/jobs/:jobId', async (req, res) => {
 router.post('/training/submit', async (req, res) => {
     try {
         const { modelType, preferencePairs, config, priority } = req.body;
-        
+
         if (!modelType) {
             return res.status(400).json({
                 success: false,
                 error: 'modelType is required'
             });
         }
-        
+
         if (!preferencePairs || !Array.isArray(preferencePairs) || preferencePairs.length === 0) {
             return res.status(400).json({
                 success: false,
                 error: 'preferencePairs array is required'
             });
         }
-        
+
         const pipeline = getTrainingPipelineService();
         const jobId = await pipeline.submitTrainingJob({
             modelType,
@@ -614,7 +614,7 @@ router.post('/training/submit', async (req, res) => {
             config,
             priority,
         });
-        
+
         res.json({
             success: true,
             data: {
@@ -639,14 +639,14 @@ router.post('/training/jobs/:jobId/cancel', async (req, res) => {
     try {
         const pipeline = getTrainingPipelineService();
         const cancelled = await pipeline.cancelJob(req.params.jobId);
-        
+
         if (!cancelled) {
             return res.status(404).json({
                 success: false,
                 error: 'Job not found or cannot be cancelled'
             });
         }
-        
+
         res.json({ success: true });
     } catch (error) {
         console.error('[Learning API] Failed to cancel job:', error);
@@ -665,53 +665,63 @@ router.post('/training/jobs/:jobId/cancel', async (req, res) => {
 router.post('/training/trigger', async (req, res) => {
     try {
         const { modelType, minPairs = 500 } = req.body;
-        
+
         if (!modelType) {
             return res.status(400).json({
                 success: false,
                 error: 'modelType is required'
             });
         }
-        
-        // Get preference pairs from AI Judgment service
+
+        // Get unused preference pairs from AI Judgment service
         const judgment = getAIJudgmentService();
-        const preferences = await judgment.getRecentPreferencePairs();
         
         // Filter for the model type's domain
-        const domainMap: Record<string, string[]> = {
+        const domainMap: Record<string, PreferenceDomain[]> = {
             code_specialist: ['code', 'error_fix'],
             architecture_specialist: ['architecture', 'code'],
             reasoning_specialist: ['code', 'architecture', 'design', 'error_fix'],
             design_specialist: ['design'],
         };
-        
+
         const relevantDomains = domainMap[modelType] || [];
-        const relevantPairs = preferences.filter(p => relevantDomains.includes(p.domain));
         
-        if (relevantPairs.length < minPairs) {
+        // Get unused preference pairs for each relevant domain
+        const allPairs: Array<{ domain: PreferenceDomain; prompt: string; chosen: string; rejected: string }> = [];
+        for (const domain of relevantDomains) {
+            const pairs = await judgment.getUnusedPreferencePairs(domain, 2000);
+            allPairs.push(...pairs.map((p: { domain: PreferenceDomain; prompt: string; chosen: string; rejected: string }) => ({
+                domain: p.domain,
+                prompt: p.prompt,
+                chosen: p.chosen,
+                rejected: p.rejected,
+            })));
+        }
+
+        if (allPairs.length < minPairs) {
             return res.json({
                 success: false,
                 data: {
-                    message: `Not enough data to train. Have ${relevantPairs.length}, need ${minPairs}`,
-                    currentCount: relevantPairs.length,
+                    message: `Not enough data to train. Have ${allPairs.length}, need ${minPairs}`,
+                    currentCount: allPairs.length,
                     required: minPairs,
                 }
             });
         }
-        
+
         // Submit training job
         const pipeline = getTrainingPipelineService();
         const jobId = await pipeline.submitTrainingJob({
             modelType,
-            preferencePairs: relevantPairs,
+            preferencePairs: allPairs as any, // Convert to full PreferencePair format
         });
-        
+
         res.json({
             success: true,
             data: {
                 jobId,
-                pairsUsed: relevantPairs.length,
-                message: `Training job ${jobId} submitted with ${relevantPairs.length} preference pairs`
+                pairsUsed: allPairs.length,
+                message: `Training job ${jobId} submitted with ${allPairs.length} preference pairs`
             }
         });
     } catch (error) {
