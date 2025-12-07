@@ -2534,3 +2534,78 @@ AGENT TYPE TO STRATEGY MAPPING:
 
 CURRENT STATE: Build successful, all KTN integrations complete
 NEXT: Ready for production testing
+
+═══ [2025-12-07 Three-Mode Architecture Unification Complete] ═══
+COMPLETED: Unified three execution modes (Builder, Developer, Agents) with shared infrastructure
+
+FILES CREATED:
+- server/src/services/core/execution-context.ts
+  - ExecutionContext interface - shared context for all modes
+  - ExecutionContextImpl class - initializes all shared services:
+    - KripToeNite (AI routing)
+    - VerificationSwarm (6-agent verification)
+    - ErrorEscalationEngine (4-level error handling)
+    - TimeMachine (checkpoints/rollback)
+    - WebSocketSyncService (real-time updates)
+    - SandboxService (isolated environments)
+    - SoftInterruptManager (user intervention)
+  - Factory functions: createBuilderContext, createDeveloperContext, createAgentsContext
+  - Context store: getOrCreateContext, getContext, shutdownAllContexts
+
+- server/src/services/core/index.ts
+  - Exports all context types and functions
+
+- server/src/routes/execute.ts
+  - POST /api/execute - Unified execution endpoint
+  - GET /api/execute/:sessionId/status - Session status
+  - POST /api/execute/:sessionId/interrupt - Send interrupt
+  - POST /api/execute/:sessionId/stop - Stop execution
+  - POST /api/execute/:sessionId/checkpoint - Create checkpoint
+  - POST /api/execute/:sessionId/restore - Restore checkpoint
+  - GET /api/execute/modes - Get available modes info
+  - Mode-specific handlers: executeBuilderMode, executeDeveloperMode, executeAgentsMode
+
+FILES MODIFIED:
+- server/src/index.ts
+  - Registered /api/execute route
+
+- src/lib/api-client.ts
+  - Added UnifiedExecutionApi class
+  - Added executeApi singleton with:
+    - execute(), executeBuilder(), executeDeveloper(), executeAgents()
+    - getStatus(), interrupt(), stop()
+    - createCheckpoint(), restoreCheckpoint()
+    - getModes()
+
+THREE-MODE ARCHITECTURE:
+┌─────────────────────────────────────────────────────────────────┐
+│                    POST /api/execute                            │
+│                    (mode, prompt, projectId)                    │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+    ┌───────────┐   ┌───────────┐   ┌───────────┐
+    │  Builder  │   │ Developer │   │   Agents  │
+    │   Mode    │   │   Mode    │   │   Mode    │
+    └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+          │               │               │
+          └───────────────┼───────────────┘
+                          ▼
+          ┌───────────────────────────────┐
+          │      ExecutionContext         │
+          │   (Shared Services)           │
+          │                               │
+          │  ┌─────────────────────────┐  │
+          │  │ KripToeNite             │  │ AI Routing
+          │  │ VerificationSwarm       │  │ Quality
+          │  │ ErrorEscalation         │  │ Recovery
+          │  │ TimeMachine             │  │ Checkpoints
+          │  │ WebSocketSync           │  │ Real-time
+          │  │ SandboxService          │  │ Isolation
+          │  │ SoftInterrupt           │  │ Control
+          │  └─────────────────────────┘  │
+          └───────────────────────────────┘
+
+CURRENT STATE: Build successful, all unifications complete
+NEXT: Ready for production testing

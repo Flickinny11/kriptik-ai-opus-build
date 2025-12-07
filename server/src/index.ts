@@ -475,6 +475,10 @@ app.use("/api/learning", learningRouter);
 import kripToeNiteRouter from './routes/krip-toe-nite.js';
 app.use("/api/krip-toe-nite", kripToeNiteRouter);
 
+// Unified Execution - Three-Mode Architecture (Builder, Developer, Agents)
+import executeRouter from './routes/execute.js';
+app.use("/api/execute", promptSanitizer, requireCredits(100), executeRouter);
+
 // Developer Mode - Multi-agent orchestration system (up to 6 concurrent agents)
 // Requires 100 credits for session operations
 app.use("/api/developer-mode", promptSanitizer, requireCredits(100), developerModeRouter);

@@ -1065,8 +1065,217 @@ export interface QualityCheckResult {
     }>;
 }
 
+// =============================================================================
+// UNIFIED EXECUTION API - Three-Mode Architecture
+// =============================================================================
+
+export type ExecutionMode = 'builder' | 'developer' | 'agents';
+
+export interface ExecuteRequest {
+    mode: ExecutionMode;
+    projectId?: string;
+    userId: string;
+    prompt: string;
+    sessionId?: string;
+    framework?: string;
+    language?: string;
+    projectPath?: string;
+    options?: {
+        forceModel?: string;
+        forceStrategy?: string;
+        enableVisualVerification?: boolean;
+        enableCheckpoints?: boolean;
+    };
+}
+
+export interface ExecuteResponse {
+    success: boolean;
+    sessionId: string;
+    projectId: string;
+    mode: ExecutionMode;
+    websocketChannel: string;
+    initialAnalysis?: {
+        taskType: string;
+        complexity: string;
+        strategy: string;
+        estimatedCost: number;
+    };
+    error?: string;
+}
+
+export interface ExecutionStatusResponse {
+    success: boolean;
+    mode: ExecutionMode;
+    projectId: string;
+    sessionId: string;
+    isActive: boolean;
+    createdAt: string;
+}
+
+export interface ExecutionModesResponse {
+    success: boolean;
+    modes: Array<{
+        id: ExecutionMode;
+        name: string;
+        description: string;
+        features: string[];
+        useCases: string[];
+    }>;
+}
+
+class UnifiedExecutionApi {
+    private baseUrl: string;
+    private getUserId: () => string | null;
+
+    constructor(baseUrl: string, getUserId: () => string | null) {
+        this.baseUrl = baseUrl;
+        this.getUserId = getUserId;
+    }
+
+    private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...(this.getUserId() && { 'x-user-id': this.getUserId()! }),
+        };
+
+        const response = await fetch(`${this.baseUrl}${path}`, {
+            ...options,
+            headers: { ...headers, ...options.headers },
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Request failed' }));
+            throw new Error(error.message || `HTTP ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Start execution in any mode
+     * Returns immediately with session info; subscribe to WebSocket for updates
+     */
+    async execute(request: ExecuteRequest): Promise<ExecuteResponse> {
+        return this.fetch('/api/execute', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
+    /**
+     * Get status of an execution session
+     */
+    async getStatus(sessionId: string, projectId: string): Promise<ExecutionStatusResponse> {
+        return this.fetch(`/api/execute/${sessionId}/status?projectId=${encodeURIComponent(projectId)}`);
+    }
+
+    /**
+     * Send an interrupt to a running execution
+     */
+    async interrupt(
+        sessionId: string,
+        projectId: string,
+        message: string,
+        type: 'HALT' | 'CONTEXT_ADD' | 'COURSE_CORRECT' | 'BACKTRACK' | 'QUEUE' | 'CLARIFICATION' = 'CONTEXT_ADD'
+    ): Promise<{ success: boolean; interruptId: string }> {
+        return this.fetch(`/api/execute/${sessionId}/interrupt`, {
+            method: 'POST',
+            body: JSON.stringify({ projectId, message, type }),
+        });
+    }
+
+    /**
+     * Stop a running execution
+     */
+    async stop(sessionId: string, projectId: string): Promise<{ success: boolean; message: string }> {
+        return this.fetch(`/api/execute/${sessionId}/stop`, {
+            method: 'POST',
+            body: JSON.stringify({ projectId }),
+        });
+    }
+
+    /**
+     * Create a checkpoint
+     */
+    async createCheckpoint(sessionId: string, projectId: string, label?: string): Promise<{ success: boolean; checkpointId: string; label: string }> {
+        return this.fetch(`/api/execute/${sessionId}/checkpoint`, {
+            method: 'POST',
+            body: JSON.stringify({ projectId, label }),
+        });
+    }
+
+    /**
+     * Restore a checkpoint
+     */
+    async restoreCheckpoint(sessionId: string, projectId: string, checkpointId: string): Promise<{ success: boolean; message: string }> {
+        return this.fetch(`/api/execute/${sessionId}/restore`, {
+            method: 'POST',
+            body: JSON.stringify({ projectId, checkpointId }),
+        });
+    }
+
+    /**
+     * Get available execution modes
+     */
+    async getModes(): Promise<ExecutionModesResponse> {
+        return this.fetch('/api/execute/modes');
+    }
+
+    /**
+     * Execute in Builder Mode (shorthand)
+     */
+    async executeBuilder(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
+        const userId = this.getUserId();
+        if (!userId) throw new Error('User ID required');
+        
+        return this.execute({
+            mode: 'builder',
+            prompt,
+            projectId,
+            userId,
+            options,
+        });
+    }
+
+    /**
+     * Execute in Developer Mode (shorthand)
+     */
+    async executeDeveloper(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
+        const userId = this.getUserId();
+        if (!userId) throw new Error('User ID required');
+        
+        return this.execute({
+            mode: 'developer',
+            prompt,
+            projectId,
+            userId,
+            options,
+        });
+    }
+
+    /**
+     * Execute in Agents Mode (shorthand)
+     */
+    async executeAgents(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
+        const userId = this.getUserId();
+        if (!userId) throw new Error('User ID required');
+        
+        return this.execute({
+            mode: 'agents',
+            prompt,
+            projectId,
+            userId,
+            options,
+        });
+    }
+}
+
 // Singleton instance
 export const apiClient = new ApiClient(API_BASE_URL);
+
+// Unified Execution API
+export const executeApi = new UnifiedExecutionApi(API_BASE_URL, () => apiClient.getUserId());
 
 // Helper to set user ID from auth
 export function setApiUserId(userId: string | null): void {
