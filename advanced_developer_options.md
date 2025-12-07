@@ -4,10 +4,10 @@
 
 This document outlines the complete implementation plan for integrating advanced AI-first builder features into KripTik AI. These features are designed to position KripTik AI as the undisputed leader in AI-assisted development, surpassing competitors like Cursor, Bolt, Lovable, and Replit.
 
-**Version**: 3.0  
-**Created**: 2025-12-07  
-**Total New Features**: 14 major systems  
-**Estimated Implementation**: 16-20 weeks  
+**Version**: 3.0
+**Created**: 2025-12-07
+**Total New Features**: 14 major systems
+**Estimated Implementation**: 16-20 weeks
 
 ---
 
@@ -54,24 +54,24 @@ export const softInterruptQueue = sqliteTable('soft_interrupt_queue', {
     sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
     agentId: text('agent_id').references(() => developerModeAgents.id),
     userId: text('user_id').references(() => users.id).notNull(),
-    
+
     // Input classification
     inputText: text('input_text').notNull(),
     classification: text('classification').notNull(), // HALT, CONTEXT_ADD, COURSE_CORRECT, BACKTRACK, QUEUE, CLARIFICATION
     confidence: integer('confidence').default(0), // 0-100
-    
+
     // Processing state
     status: text('status').default('pending').notNull(), // pending, injected, processed, discarded
     priority: integer('priority').default(5), // 1-10, higher = more urgent
-    
+
     // For BACKTRACK
     rollbackSteps: integer('rollback_steps'),
-    
+
     // Timing
     classifiedAt: text('classified_at'),
     processedAt: text('processed_at'),
     toolBoundaryId: text('tool_boundary_id'), // Which tool boundary processed this
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -82,15 +82,15 @@ export const liveContextBuffer = sqliteTable('live_context_buffer', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     agentId: text('agent_id').references(() => developerModeAgents.id).notNull(),
     sessionId: text('session_id').references(() => developerModeSessions.id).notNull(),
-    
+
     // Context content
     contextType: text('context_type').notNull(), // user_input, system_event, memory_update
     content: text('content').notNull(),
-    
+
     // State
     injected: integer('injected', { mode: 'boolean' }).default(false),
     injectedAt: text('injected_at'),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -100,24 +100,24 @@ export const liveContextBuffer = sqliteTable('live_context_buffer', {
 export const softInterruptSettings = sqliteTable('soft_interrupt_settings', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull().unique(),
-    
+
     // Enabled features
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
     autoClassify: integer('auto_classify', { mode: 'boolean' }).default(true),
     showClassificationBadge: integer('show_classification_badge', { mode: 'boolean' }).default(true),
-    
+
     // Classification model
     classifierModel: text('classifier_model').default('claude-haiku-3-5'), // Fast for classification
-    
+
     // Default behaviors
     defaultHaltOnPanic: integer('default_halt_on_panic', { mode: 'boolean' }).default(true),
     queueLowPriorityByDefault: integer('queue_low_priority_by_default', { mode: 'boolean' }).default(true),
-    
+
     // Keyboard shortcuts
     haltShortcut: text('halt_shortcut').default('cmd+.'), // Hard stop
     queueShortcut: text('queue_shortcut').default('alt+enter'), // Queue message
     injectShortcut: text('inject_shortcut').default('cmd+enter'), // Immediate inject
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -130,7 +130,7 @@ export const softInterruptSettings = sqliteTable('soft_interrupt_settings', {
 ```typescript
 /**
  * SoftInterruptManager - Manages non-blocking user input during agent execution
- * 
+ *
  * Architecture:
  * 1. User input → WebSocket → IntakeClassifier (Haiku, <200ms)
  * 2. Classification → InterruptDispatcher
@@ -150,12 +150,12 @@ export class SoftInterruptManager {
     private liveContext: Map<string, string[]> = new Map(); // agentId -> context array
     private replanFlags: Map<string, boolean> = new Map();
     private pendingInputs: Map<string, ClassifiedInput[]> = new Map();
-    
+
     constructor(
         private db: Database,
         private openRouterClient: OpenRouterClient,
     ) {}
-    
+
     /**
      * Called when user types during agent execution
      */
@@ -167,7 +167,7 @@ export class SoftInterruptManager {
     ): Promise<ClassifiedInput> {
         // Use Haiku for fast classification (<200ms)
         const classification = await this.classifyInput(input, agentId);
-        
+
         // Store in database
         await this.db.insert(softInterruptQueue).values({
             sessionId,
@@ -181,7 +181,7 @@ export class SoftInterruptManager {
             classifiedAt: new Date().toISOString(),
             status: 'pending',
         });
-        
+
         // Dispatch based on classification
         switch (classification.type) {
             case 'HALT':
@@ -204,21 +204,21 @@ export class SoftInterruptManager {
                 this.emitEvent(agentId, 'clarification_needed', { input, classification });
                 break;
         }
-        
+
         return classification;
     }
-    
+
     /**
      * Called at every tool boundary (content_block_stop in streaming)
      */
     async onToolBoundary(agentId: string, currentState: AgentState): Promise<BoundaryAction> {
         const liveContext = this.liveContext.get(agentId) || [];
-        
+
         if (liveContext.length > 0) {
             // Inject accumulated context
             currentState.systemContext += `\n\n[LIVE USER UPDATE - ${new Date().toISOString()}]:\n${liveContext.join('\n')}`;
             this.liveContext.set(agentId, []);
-            
+
             // Update database
             await this.db.update(liveContextBuffer)
                 .set({ injected: true, injectedAt: new Date().toISOString() })
@@ -227,21 +227,21 @@ export class SoftInterruptManager {
                     eq(liveContextBuffer.injected, false)
                 ));
         }
-        
+
         if (this.replanFlags.get(agentId)) {
             this.replanFlags.set(agentId, false);
             return { action: 'REPLAN', context: currentState };
         }
-        
+
         return { action: 'CONTINUE' };
     }
-    
+
     /**
      * Classify input using Claude Haiku for speed
      */
     private async classifyInput(input: string, agentId: string): Promise<ClassifiedInput> {
         const agentState = await this.getAgentState(agentId);
-        
+
         const response = await this.openRouterClient.chat({
             model: 'anthropic/claude-3.5-haiku',
             messages: [{
@@ -252,10 +252,10 @@ export class SoftInterruptManager {
             }],
             response_format: { type: 'json_object' },
         });
-        
+
         return JSON.parse(response.content);
     }
-    
+
     private addToLiveContext(agentId: string, content: string): void {
         const existing = this.liveContext.get(agentId) || [];
         existing.push(content);
@@ -287,7 +287,7 @@ Respond with JSON: { "type": "...", "confidence": 0.0-1.0, "rollbackSteps": N (i
 ```typescript
 /**
  * SoftInterruptInput - Enhanced chat input with interrupt capabilities
- * 
+ *
  * Shows classification badge as user types
  * Keyboard shortcuts for different interrupt modes
  * Visual feedback when input is queued vs injected
@@ -307,22 +307,22 @@ const CLASSIFICATION_COLORS = {
     CLARIFICATION: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', icon: MessageCircle },
 };
 
-export function SoftInterruptInput({ 
-    onSubmit, 
+export function SoftInterruptInput({
+    onSubmit,
     agentRunning = false,
     settings,
 }: SoftInterruptInputProps) {
     const [input, setInput] = useState('');
     const [classification, setClassification] = useState<ClassifiedInput | null>(null);
     const [isClassifying, setIsClassifying] = useState(false);
-    
+
     // Debounced classification as user types
     useEffect(() => {
         if (!agentRunning || !input.trim() || !settings?.autoClassify) {
             setClassification(null);
             return;
         }
-        
+
         const timer = setTimeout(async () => {
             setIsClassifying(true);
             try {
@@ -332,10 +332,10 @@ export function SoftInterruptInput({
                 setIsClassifying(false);
             }
         }, 300);
-        
+
         return () => clearTimeout(timer);
     }, [input, agentRunning, settings?.autoClassify]);
-    
+
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         // Cmd+. = HALT
         if ((e.metaKey || e.ctrlKey) && e.key === '.') {
@@ -362,9 +362,9 @@ export function SoftInterruptInput({
             setInput('');
         }
     }, [input, classification, onSubmit]);
-    
+
     const ClassificationIcon = classification ? CLASSIFICATION_COLORS[classification.type]?.icon : Send;
-    
+
     return (
         <div className="relative">
             {/* Classification Badge */}
@@ -382,7 +382,7 @@ export function SoftInterruptInput({
                     </motion.div>
                 )}
             </AnimatePresence>
-            
+
             {/* Input Field */}
             <div className="glass-input flex items-center gap-2 px-4 py-3">
                 <input
@@ -390,13 +390,13 @@ export function SoftInterruptInput({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={agentRunning 
-                        ? "Steer the agent... (⌘+. halt, ⌥+↵ queue, ⌘+↵ inject)" 
+                    placeholder={agentRunning
+                        ? "Steer the agent... (⌘+. halt, ⌥+↵ queue, ⌘+↵ inject)"
                         : "Describe what you want to build..."}
                     className="flex-1 bg-transparent border-none outline-none"
                     style={{ color: '#1a1a1a' }}
                 />
-                
+
                 {isClassifying ? (
                     <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
                 ) : (
@@ -408,7 +408,7 @@ export function SoftInterruptInput({
                     </button>
                 )}
             </div>
-            
+
             {/* Agent Running Indicator */}
             {agentRunning && (
                 <div className="absolute right-4 -top-1 flex items-center gap-1.5">
@@ -439,10 +439,10 @@ const router = Router();
 router.post('/submit', requireAuth, async (req, res) => {
     const { sessionId, agentId, input, forceClassification } = req.body;
     const userId = req.user.id;
-    
+
     const manager = getSoftInterruptManager();
     const classification = await manager.onUserInput(sessionId, agentId, userId, input);
-    
+
     res.json({ classification });
 });
 
@@ -456,7 +456,7 @@ router.get('/pending/:sessionId', requireAuth, async (req, res) => {
             eq(softInterruptQueue.status, 'pending')
         ))
         .orderBy(desc(softInterruptQueue.priority), asc(softInterruptQueue.createdAt));
-    
+
     res.json({ pending });
 });
 
@@ -466,7 +466,7 @@ router.get('/settings', requireAuth, async (req, res) => {
         .from(softInterruptSettings)
         .where(eq(softInterruptSettings.userId, req.user.id))
         .get();
-    
+
     res.json({ settings: settings || getDefaultSettings() });
 });
 
@@ -478,12 +478,12 @@ router.patch('/settings', requireAuth, async (req, res) => {
             target: softInterruptSettings.userId,
             set: { ...updates, updatedAt: new Date().toISOString() }
         });
-    
+
     const settings = await db.select()
         .from(softInterruptSettings)
         .where(eq(softInterruptSettings.userId, req.user.id))
         .get();
-    
+
     res.json({ settings });
 });
 
@@ -492,7 +492,7 @@ router.post('/classify-preview', requireAuth, async (req, res) => {
     const { input, agentId } = req.body;
     const manager = getSoftInterruptManager();
     const classification = await manager.classifyInputPreview(input, agentId);
-    
+
     res.json({ classification });
 });
 
@@ -516,17 +516,17 @@ Proactively validate code against deployment platform requirements during develo
  */
 export const deploymentProfiles = sqliteTable('deployment_profiles', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    
+
     // Profile identification
     platform: text('platform').notNull().unique(), // vercel, netlify, cloudflare_pages, app_store, play_store, aws_amplify
     displayName: text('display_name').notNull(),
     icon: text('icon'),
-    
+
     // Build configuration
     buildCommand: text('build_command').default('npm run build'),
     outputDirectory: text('output_directory').default('dist'),
     installCommand: text('install_command').default('npm install'),
-    
+
     // Runtime requirements (JSON)
     runtimeRequirements: text('runtime_requirements', { mode: 'json' }).$type<{
         nodeVersions: string[];
@@ -534,7 +534,7 @@ export const deploymentProfiles = sqliteTable('deployment_profiles', {
         maxFunctionTimeout?: number;
         maxBundleSize?: string;
     }>(),
-    
+
     // Environment schema (JSON)
     environmentSchema: text('environment_schema', { mode: 'json' }).$type<Record<string, {
         required: boolean;
@@ -542,7 +542,7 @@ export const deploymentProfiles = sqliteTable('deployment_profiles', {
         minLength?: number;
         pattern?: string;
     }>>(),
-    
+
     // Constraints (JSON array)
     constraints: text('constraints', { mode: 'json' }).$type<Array<{
         id: string;
@@ -552,15 +552,15 @@ export const deploymentProfiles = sqliteTable('deployment_profiles', {
         message: string;
         autoFix?: boolean;
     }>>().notNull(),
-    
+
     // Reserved/forbidden patterns
     reservedEnvVars: text('reserved_env_vars', { mode: 'json' }).$type<string[]>().default([]),
     forbiddenAPIs: text('forbidden_apis', { mode: 'json' }).$type<string[]>().default([]),
-    
+
     // Metadata
     lastUpdated: text('last_updated'), // When constraints were last synced from platform docs
     docsUrl: text('docs_url'),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -572,15 +572,15 @@ export const projectDeploymentTargets = sqliteTable('project_deployment_targets'
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     projectId: text('project_id').references(() => projects.id).notNull(),
     profileId: text('profile_id').references(() => deploymentProfiles.id).notNull(),
-    
+
     // Target-specific configuration
     customConfig: text('custom_config', { mode: 'json' }),
-    
+
     // Validation results
     lastValidatedAt: text('last_validated_at'),
     validationPassed: integer('validation_passed', { mode: 'boolean' }),
     validationScore: integer('validation_score'), // 0-100
-    
+
     // Issues found (JSON array)
     issues: text('issues', { mode: 'json' }).$type<Array<{
         constraintId: string;
@@ -590,7 +590,7 @@ export const projectDeploymentTargets = sqliteTable('project_deployment_targets'
         severity: 'error' | 'warning';
         autoFixable?: boolean;
     }>>().default([]),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -601,22 +601,22 @@ export const projectDeploymentTargets = sqliteTable('project_deployment_targets'
 export const preFlightSettings = sqliteTable('pre_flight_settings', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull().unique(),
-    
+
     // Enabled features
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
     validateOnSave: integer('validate_on_save', { mode: 'boolean' }).default(true),
     validateBeforeDeploy: integer('validate_before_deploy', { mode: 'boolean' }).default(true),
     blockDeployOnErrors: integer('block_deploy_on_errors', { mode: 'boolean' }).default(true),
-    
+
     // Simulation settings
     simulateBuild: integer('simulate_build', { mode: 'boolean' }).default(true),
     caseSensitivityCheck: integer('case_sensitivity_check', { mode: 'boolean' }).default(true),
     envVarValidation: integer('env_var_validation', { mode: 'boolean' }).default(true),
-    
+
     // Auto-fix settings
     autoFixEnabled: integer('auto_fix_enabled', { mode: 'boolean' }).default(false),
     autoFixPrompt: integer('auto_fix_prompt', { mode: 'boolean' }).default(true),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -629,7 +629,7 @@ export const preFlightSettings = sqliteTable('pre_flight_settings', {
 ```typescript
 /**
  * PreFlightValidator - Multi-layer validation system for deployment platforms
- * 
+ *
  * Layer 1: Real-time constraints (during development)
  * Layer 2: Pre-flight simulation (before deployment)
  * Layer 3: Platform-specific deep checks
@@ -660,7 +660,7 @@ export class PreFlightValidator {
         private db: Database,
         private openRouterClient: OpenRouterClient,
     ) {}
-    
+
     /**
      * Full validation against target platforms
      */
@@ -669,16 +669,16 @@ export class PreFlightValidator {
         targetPlatforms: string[]
     ): Promise<Map<string, ValidationResult>> {
         const results = new Map<string, ValidationResult>();
-        
+
         for (const platform of targetPlatforms) {
             const profile = await this.getProfile(platform);
             if (!profile) continue;
-            
+
             const issues: ValidationIssue[] = [];
-            
+
             // Layer 1: Static Analysis
             issues.push(...await this.runStaticAnalysis(projectId, profile));
-            
+
             // Layer 2: Build Simulation
             const buildResult = await this.simulateBuild(projectId, profile);
             if (!buildResult.success) {
@@ -692,18 +692,18 @@ export class PreFlightValidator {
                     autoFixable: false,
                 })));
             }
-            
+
             // Layer 3: Platform-Specific
             issues.push(...await this.runPlatformChecks(projectId, profile));
-            
+
             // Layer 4: Environment Validation
             issues.push(...await this.validateEnvironment(projectId, profile));
-            
+
             // Calculate score
             const errorCount = issues.filter(i => i.severity === 'error').length;
             const warningCount = issues.filter(i => i.severity === 'warning').length;
             const score = Math.max(0, 100 - (errorCount * 20) - (warningCount * 5));
-            
+
             results.set(platform, {
                 passed: errorCount === 0,
                 score,
@@ -712,10 +712,10 @@ export class PreFlightValidator {
                 simulatedBuild: buildResult,
             });
         }
-        
+
         return results;
     }
-    
+
     /**
      * Real-time validation on file change
      */
@@ -726,11 +726,11 @@ export class PreFlightValidator {
     ): Promise<ValidationIssue[]> {
         const targets = await this.getProjectTargets(projectId);
         const allIssues: ValidationIssue[] = [];
-        
+
         for (const target of targets) {
             const profile = await this.getProfile(target.profileId);
             if (!profile) continue;
-            
+
             // Check file against constraints
             for (const constraint of profile.constraints) {
                 if (constraint.type === 'code-pattern' && constraint.pattern) {
@@ -750,10 +750,10 @@ export class PreFlightValidator {
                 }
             }
         }
-        
+
         return allIssues;
     }
-    
+
     /**
      * Simulate build in isolated environment
      */
@@ -768,7 +768,7 @@ export class PreFlightValidator {
             caseSensitiveFS: true, // Simulate Linux
             environment: this.getMockedEnvVars(profile),
         });
-        
+
         try {
             await sandbox.start();
             const result = await sandbox.exec(profile.buildCommand || 'npm run build');
@@ -792,7 +792,7 @@ export class PreFlightValidator {
 ```typescript
 /**
  * PlatformValidatorPanel - Shows deployment platform validation status
- * 
+ *
  * Features:
  * - Platform selection checkboxes
  * - Real-time validation status
@@ -819,7 +819,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
     const [validationResults, setValidationResults] = useState<Map<string, ValidationResult>>(new Map());
     const [isValidating, setIsValidating] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    
+
     const runValidation = async () => {
         setIsValidating(true);
         try {
@@ -834,7 +834,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
             setIsValidating(false);
         }
     };
-    
+
     const handleAutoFix = async (platform: string, issueId: string) => {
         await fetch('/api/validation/auto-fix', {
             method: 'POST',
@@ -843,17 +843,17 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
         });
         await runValidation(); // Re-validate after fix
     };
-    
+
     // Calculate overall status
     const overallPassed = Array.from(validationResults.values()).every(r => r.passed);
     const totalErrors = Array.from(validationResults.values()).reduce(
         (sum, r) => sum + r.issues.filter(i => i.severity === 'error').length, 0
     );
-    
+
     return (
         <div className="glass-panel">
             {/* Header */}
-            <div 
+            <div
                 className="p-4 flex items-center justify-between cursor-pointer"
                 onClick={() => setExpanded(!expanded)}
             >
@@ -861,7 +861,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                     <Server className="w-5 h-5 text-amber-500" />
                     <span className="font-medium">Deployment Validation</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     {isValidating ? (
                         <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
@@ -875,7 +875,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                     )}
                 </div>
             </div>
-            
+
             {/* Expanded Content */}
             <AnimatePresence>
                 {expanded && (
@@ -907,7 +907,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                                     </button>
                                 ))}
                             </div>
-                            
+
                             {/* Validate Button */}
                             <button
                                 onClick={runValidation}
@@ -926,7 +926,7 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                                     </>
                                 )}
                             </button>
-                            
+
                             {/* Results */}
                             {validationResults.size > 0 && (
                                 <div className="space-y-3">
@@ -934,10 +934,10 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                                         <div key={platform} className="glass-panel p-3">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <img 
-                                                        src={PLATFORM_ICONS[platform as keyof typeof PLATFORM_ICONS]} 
-                                                        alt={platform} 
-                                                        className="w-4 h-4" 
+                                                    <img
+                                                        src={PLATFORM_ICONS[platform as keyof typeof PLATFORM_ICONS]}
+                                                        alt={platform}
+                                                        className="w-4 h-4"
                                                     />
                                                     <span className="font-medium capitalize">
                                                         {platform.replace('_', ' ')}
@@ -954,16 +954,16 @@ export function PlatformValidatorPanel({ projectId }: { projectId: string }) {
                                                     )}
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Issues List */}
                                             {result.issues.length > 0 && (
                                                 <div className="space-y-2 mt-2">
                                                     {result.issues.slice(0, 5).map(issue => (
-                                                        <div 
+                                                        <div
                                                             key={issue.id}
                                                             className={`p-2 rounded text-xs flex items-start justify-between ${
-                                                                issue.severity === 'error' 
-                                                                    ? 'bg-red-500/10 text-red-300' 
+                                                                issue.severity === 'error'
+                                                                    ? 'bg-red-500/10 text-red-300'
                                                                     : 'bg-amber-500/10 text-amber-300'
                                                             }`}
                                                         >
@@ -1022,49 +1022,49 @@ export const ghostSessions = sqliteTable('ghost_sessions', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     projectId: text('project_id').references(() => projects.id).notNull(),
     userId: text('user_id').references(() => users.id).notNull(),
-    
+
     // Session configuration
     prompt: text('prompt').notNull(),
     buildMode: text('build_mode').default('standard'), // lightning, standard, tournament, production
     maxDurationMinutes: integer('max_duration_minutes').default(120),
-    
+
     // Status
     status: text('status').default('running').notNull(), // running, paused, completed, failed, cancelled
     progress: integer('progress').default(0), // 0-100
     currentPhase: text('current_phase'),
-    
+
     // Wake conditions (JSON array)
     wakeConditions: text('wake_conditions', { mode: 'json' }).$type<Array<{
         type: 'error' | 'completion' | 'question' | 'checkpoint' | 'budget';
         threshold?: number;
         message?: string;
     }>>().default([]),
-    
+
     // Replay data
     replayEventsCount: integer('replay_events_count').default(0),
     lastReplayEventAt: text('last_replay_event_at'),
-    
+
     // Results
     outcome: text('outcome'), // success, partial, failed
     outcomeDetails: text('outcome_details', { mode: 'json' }),
     issuesResolved: integer('issues_resolved').default(0),
     issuesPending: integer('issues_pending').default(0),
-    
+
     // Notifications
     notificationSent: integer('notification_sent', { mode: 'boolean' }).default(false),
     notificationChannel: text('notification_channel'), // email, sms, slack, discord
-    
+
     // Timing
     startedAt: text('started_at').default(sql`(datetime('now'))`).notNull(),
     pausedAt: text('paused_at'),
     completedAt: text('completed_at'),
     lastActivityAt: text('last_activity_at'),
-    
+
     // Cost tracking
     creditsUsed: integer('credits_used').default(0),
     creditsEstimated: integer('credits_estimated'),
     budgetLimit: integer('budget_limit'),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -1074,19 +1074,19 @@ export const ghostSessions = sqliteTable('ghost_sessions', {
 export const ghostSessionEvents = sqliteTable('ghost_session_events', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     sessionId: text('session_id').references(() => ghostSessions.id).notNull(),
-    
+
     // Event details
     eventType: text('event_type').notNull(), // action, thought, code_change, verification, error, decision, milestone
     eventData: text('event_data', { mode: 'json' }).notNull(),
-    
+
     // For video replay
     timestamp: text('timestamp').notNull(),
     durationMs: integer('duration_ms'),
-    
+
     // Visual context
     screenshotPath: text('screenshot_path'),
     codeSnapshot: text('code_snapshot', { mode: 'json' }),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -1096,33 +1096,33 @@ export const ghostSessionEvents = sqliteTable('ghost_session_events', {
 export const ghostModeSettings = sqliteTable('ghost_mode_settings', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull().unique(),
-    
+
     // Enabled features
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
     autoStartOnClose: integer('auto_start_on_close', { mode: 'boolean' }).default(false),
-    
+
     // Default configuration
     defaultMaxDuration: integer('default_max_duration').default(120), // minutes
     defaultBudgetLimit: integer('default_budget_limit'), // credits
     defaultBuildMode: text('default_build_mode').default('standard'),
-    
+
     // Wake conditions
     wakeOnError: integer('wake_on_error', { mode: 'boolean' }).default(true),
     wakeOnQuestion: integer('wake_on_question', { mode: 'boolean' }).default(true),
     wakeOnCompletion: integer('wake_on_completion', { mode: 'boolean' }).default(true),
     wakeOnBudgetThreshold: integer('wake_on_budget_threshold').default(80), // percentage
-    
+
     // Notification preferences
     notificationChannel: text('notification_channel').default('email'),
     notificationEmail: text('notification_email'),
     notificationPhone: text('notification_phone'),
     slackWebhook: text('slack_webhook'),
     discordWebhook: text('discord_webhook'),
-    
+
     // Checkpoint settings
     checkpointInterval: integer('checkpoint_interval').default(15), // minutes
     maxCheckpoints: integer('max_checkpoints').default(20),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -1135,7 +1135,7 @@ export const ghostModeSettings = sqliteTable('ghost_mode_settings', {
 ```typescript
 /**
  * GhostModeController - Manages autonomous background build sessions
- * 
+ *
  * Features:
  * - Persists agent state when user disconnects
  * - Continues building autonomously
@@ -1146,7 +1146,7 @@ export const ghostModeSettings = sqliteTable('ghost_mode_settings', {
 
 export class GhostModeController {
     private activeSessions: Map<string, GhostSession> = new Map();
-    
+
     constructor(
         private db: Database,
         private orchestrator: DeveloperModeOrchestrator,
@@ -1156,7 +1156,7 @@ export class GhostModeController {
         // Resume any running sessions on server start
         this.resumeRunningSessions();
     }
-    
+
     /**
      * Start a new Ghost Mode session
      */
@@ -1176,26 +1176,26 @@ export class GhostModeController {
             budgetLimit: config.budgetLimit,
             status: 'running',
         }).returning().get();
-        
+
         // Start autonomous execution
         this.executeSession(session);
-        
+
         return session;
     }
-    
+
     /**
      * Execute session autonomously
      */
     private async executeSession(session: GhostSession): Promise<void> {
         this.activeSessions.set(session.id, session);
-        
+
         const eventEmitter = new EventEmitter();
-        
+
         // Record all events for replay
         eventEmitter.on('*', async (eventType, data) => {
             await this.recordEvent(session.id, eventType, data);
         });
-        
+
         try {
             // Use existing Developer Mode orchestrator
             const result = await this.orchestrator.executeBuild({
@@ -1209,20 +1209,20 @@ export class GhostModeController {
                 onError: (error) => this.handleError(session, error),
                 onQuestion: (question) => this.handleQuestion(session, question),
             });
-            
+
             await this.completeSession(session, result);
-            
+
         } catch (error) {
             await this.failSession(session, error);
         }
     }
-    
+
     /**
      * Handle error during autonomous execution
      */
     private async handleError(session: GhostSession, error: Error): Promise<void> {
         const shouldWake = session.wakeConditions?.some(c => c.type === 'error');
-        
+
         if (shouldWake) {
             // Pause session and notify user
             await this.pauseSession(session.id);
@@ -1234,7 +1234,7 @@ export class GhostModeController {
             // Try to self-heal using error escalation
             const escalation = createErrorEscalationEngine(this.db, this.openRouterClient);
             const fixed = await escalation.attemptFix(error);
-            
+
             if (!fixed) {
                 await this.pauseSession(session.id);
                 await this.notifyUser(session, 'error', {
@@ -1244,7 +1244,7 @@ export class GhostModeController {
             }
         }
     }
-    
+
     /**
      * Get session replay for returning user
      */
@@ -1253,13 +1253,13 @@ export class GhostModeController {
             .from(ghostSessions)
             .where(eq(ghostSessions.id, sessionId))
             .get();
-        
+
         const events = await this.db.select()
             .from(ghostSessionEvents)
             .where(eq(ghostSessionEvents.sessionId, sessionId))
             .orderBy(asc(ghostSessionEvents.timestamp))
             .all();
-        
+
         return {
             session,
             events,
@@ -1267,7 +1267,7 @@ export class GhostModeController {
             videoTimeline: this.generateVideoTimeline(events),
         };
     }
-    
+
     /**
      * Generate human-readable summary
      */
@@ -1276,7 +1276,7 @@ export class GhostModeController {
         const actions = events.filter(e => e.eventType === 'action').length;
         const errors = events.filter(e => e.eventType === 'error').length;
         const resolved = events.filter(e => e.eventType === 'error_resolved').length;
-        
+
         return `
 ## Ghost Mode Session Summary
 
@@ -1306,7 +1306,7 @@ ${this.extractModifiedFiles(events).slice(0, 10).join('\n')}
 ```typescript
 /**
  * GhostModePanel - Control panel for autonomous background building
- * 
+ *
  * Features:
  * - Start/pause/resume Ghost Mode
  * - Configure wake conditions
@@ -1328,12 +1328,12 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
         wakeConditions: ['error', 'completion', 'question'],
         notificationChannel: 'email',
     });
-    
+
     // Check for active session on mount
     useEffect(() => {
         checkActiveSession();
     }, [projectId]);
-    
+
     const checkActiveSession = async () => {
         const response = await fetch(`/api/ghost-mode/active/${projectId}`);
         const data = await response.json();
@@ -1344,14 +1344,14 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
             }
         }
     };
-    
+
     const loadReplay = async (sessionId: string) => {
         const response = await fetch(`/api/ghost-mode/replay/${sessionId}`);
         const data = await response.json();
         setReplayData(data.replay);
         setShowReplay(true);
     };
-    
+
     const startGhostMode = async () => {
         const response = await fetch('/api/ghost-mode/start', {
             method: 'POST',
@@ -1361,7 +1361,7 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
         const data = await response.json();
         setActiveSession(data.session);
     };
-    
+
     return (
         <div className="glass-panel overflow-hidden">
             {/* Header */}
@@ -1375,24 +1375,24 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
                         </span>
                     )}
                 </div>
-                
+
                 {activeSession?.status === 'running' && (
                     <div className="text-xs text-gray-400">
                         {activeSession.progress}% • {activeSession.creditsUsed} credits used
                     </div>
                 )}
             </div>
-            
+
             {/* Content */}
             <div className="p-4 space-y-4">
                 {!activeSession ? (
                     // Configuration UI
                     <>
                         <p className="text-sm text-gray-400">
-                            Let KripTik AI continue building while you're away. 
+                            Let KripTik AI continue building while you're away.
                             You'll be notified when it needs your input.
                         </p>
-                        
+
                         {/* Duration */}
                         <div>
                             <label className="text-sm font-medium mb-2 block">Max Duration</label>
@@ -1410,7 +1410,7 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
                                 ))}
                             </div>
                         </div>
-                        
+
                         {/* Wake Conditions */}
                         <div>
                             <label className="text-sm font-medium mb-2 block">Wake Me If...</label>
@@ -1440,7 +1440,7 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
                                 ))}
                             </div>
                         </div>
-                        
+
                         {/* Start Button */}
                         <button
                             onClick={startGhostMode}
@@ -1452,7 +1452,7 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
                     </>
                 ) : showReplay && replayData ? (
                     // Replay UI
-                    <GhostModeReplay 
+                    <GhostModeReplay
                         replay={replayData}
                         onResume={() => resumeSession(activeSession.id)}
                         onDiscard={() => discardSession(activeSession.id)}
@@ -1471,7 +1471,7 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
                                 animate={{ width: `${activeSession.progress}%` }}
                             />
                         </div>
-                        
+
                         <div className="flex gap-2">
                             <button
                                 onClick={() => pauseSession(activeSession.id)}
@@ -1499,14 +1499,14 @@ export function GhostModePanel({ projectId }: { projectId: string }) {
 function GhostModeReplay({ replay, onResume, onDiscard }: GhostModeReplayProps) {
     const [playbackPosition, setPlaybackPosition] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
-    
+
     return (
         <div className="space-y-4">
             {/* Summary */}
             <div className="prose prose-sm prose-invert">
                 <div dangerouslySetInnerHTML={{ __html: marked(replay.summary) }} />
             </div>
-            
+
             {/* Timeline */}
             <div className="relative h-2 bg-gray-700 rounded-full">
                 {replay.events.map((event, i) => (
@@ -1526,7 +1526,7 @@ function GhostModeReplay({ replay, onResume, onDiscard }: GhostModeReplayProps) 
                     style={{ left: `${playbackPosition}%` }}
                 />
             </div>
-            
+
             {/* Playback Controls */}
             <div className="flex items-center gap-2">
                 <button
@@ -1539,7 +1539,7 @@ function GhostModeReplay({ replay, onResume, onDiscard }: GhostModeReplayProps) 
                     {formatDuration(replay.session.completedAt - replay.session.startedAt)}
                 </span>
             </div>
-            
+
             {/* Actions */}
             <div className="flex gap-2 pt-4 border-t border-gray-700">
                 {replay.session.issuesPending > 0 && (
@@ -1727,7 +1727,7 @@ This new settings page will consolidate all advanced feature configurations:
 ```typescript
 /**
  * AdvancedDeveloperSettings - Comprehensive settings for all advanced features
- * 
+ *
  * Sections:
  * 1. Soft Interrupt System
  * 2. Pre-Deployment Validation
@@ -1849,7 +1849,7 @@ All features will be gated behind feature flags stored in `userSettings`:
 export const advancedFeatureFlags = sqliteTable('advanced_feature_flags', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull().unique(),
-    
+
     // Feature flags (all default false for gradual rollout)
     softInterruptEnabled: integer('soft_interrupt_enabled', { mode: 'boolean' }).default(false),
     preFlightValidationEnabled: integer('pre_flight_validation_enabled', { mode: 'boolean' }).default(false),
@@ -1863,10 +1863,10 @@ export const advancedFeatureFlags = sqliteTable('advanced_feature_flags', {
     apiAutopilotEnabled: integer('api_autopilot_enabled', { mode: 'boolean' }).default(false),
     adaptiveUIEnabled: integer('adaptive_ui_enabled', { mode: 'boolean' }).default(false),
     universalExportEnabled: integer('universal_export_enabled', { mode: 'boolean' }).default(false),
-    
+
     // Tier-based access
     tier: text('tier').default('free'), // free, pro, enterprise
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });

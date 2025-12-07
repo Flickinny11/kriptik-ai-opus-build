@@ -199,12 +199,12 @@ export class DeveloperModeOrchestrator extends EventEmitter {
             startedAt: new Date(row.startedAt),
             pausedAt: row.pausedAt ? new Date(row.pausedAt) : undefined,
             completedAt: row.completedAt ? new Date(row.completedAt) : undefined,
-            maxConcurrentAgents: row.maxConcurrentAgents,
-            activeAgentCount: row.activeAgentCount,
+            maxConcurrentAgents: row.maxConcurrentAgents ?? 6,
+            activeAgentCount: row.activeAgentCount ?? 0,
             defaultModel: row.defaultModel as AgentModel || 'claude-sonnet-4-5',
             verificationMode: (row.verificationMode as VerificationMode) || 'standard',
             autoMergeEnabled: row.autoMergeEnabled ?? false,
-            creditsUsed: row.creditsUsed,
+            creditsUsed: row.creditsUsed ?? 0,
             creditsEstimated: row.creditsEstimated ?? 0,
             budgetLimit: row.budgetLimit ?? undefined,
             baseBranch: row.baseBranch || 'main',
@@ -412,8 +412,8 @@ export class DeveloperModeOrchestrator extends EventEmitter {
             .update(developerModeMergeQueue)
             .set({
                 status: 'approved',
-                approvedBy: userId,
-                approvedAt: now,
+                reviewedBy: userId,
+                reviewedAt: now,
                 updatedAt: now,
             })
             .where(eq(developerModeMergeQueue.id, mergeId));
@@ -441,7 +441,6 @@ export class DeveloperModeOrchestrator extends EventEmitter {
                 status: 'rejected',
                 reviewedBy: userId,
                 reviewedAt: now,
-                rejectedReason: reason,
                 updatedAt: now,
             })
             .where(eq(developerModeMergeQueue.id, mergeId));
@@ -737,7 +736,7 @@ export class DeveloperModeOrchestrator extends EventEmitter {
                 defaultBranch: session.baseBranch || 'main',
             });
             const diffStats = await gitManager.getAgentDiffStats(agent.id, session.baseBranch);
-            
+
             filesChanged = diffStats.filesChanged;
             additions = diffStats.additions;
             deletions = diffStats.deletions;

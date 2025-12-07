@@ -95,7 +95,7 @@ export const SPEED_DIAL_CONFIGS: Record<BuildMode, SpeedDialConfig> = {
 
         planningModel: CLAUDE_MODELS.SONNET_4_5,
         buildModel: CLAUDE_MODELS.SONNET_4_5,
-        verificationModel: CLAUDE_MODELS.HAIKU,
+        verificationModel: CLAUDE_MODELS.HAIKU_3_5,
 
         planningEffort: 'low',
         buildEffort: 'medium',

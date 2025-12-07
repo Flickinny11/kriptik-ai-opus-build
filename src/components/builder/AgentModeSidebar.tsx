@@ -17,7 +17,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bot, Plus, Pause, Play,
     CheckCircle2, XCircle, Loader2, Clock, Send,
-    ChevronDown, Pencil, FileEdit, Zap, Trash2, AlertCircle
+    ChevronDown, Pencil, FileEdit, Zap, Trash2, AlertCircle,
+    Settings
 } from 'lucide-react';
 import {
     useDeveloperModeStore,
@@ -33,6 +34,7 @@ import {
 } from '../../store/useDeveloperModeStore';
 import { useProjectStore } from '../../store/useProjectStore';
 import DeployAgentModal, { type DeployConfig } from './DeployAgentModal';
+import { DeveloperModeSettings } from '../settings/DeveloperModeSettings';
 
 // Available models - matches backend
 const AVAILABLE_MODELS: Array<{
@@ -97,6 +99,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 
     // Local state
     const [showDeployModal, setShowDeployModal] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [selectedModel, setSelectedModel] = useState<AgentModel>('claude-sonnet-4-5');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -342,6 +345,17 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             title={agents.length >= 6 ? 'Maximum 6 agents' : 'Add idle agent'}
                         >
                             <Plus className="w-4 h-4 text-white/70" />
+                        </button>
+                        <button
+                            onClick={() => setShowSettings(true)}
+                            className="p-2 rounded-lg transition-all hover:scale-105"
+                            style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                            }}
+                            title="Developer Mode Settings"
+                        >
+                            <Settings className="w-4 h-4 text-white/70" />
                         </button>
                     </div>
                 </div>
@@ -651,6 +665,12 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                 isOpen={showDeployModal}
                 onClose={() => setShowDeployModal(false)}
                 onDeploy={handleDeployFromModal}
+            />
+
+            {/* Developer Mode Settings Modal */}
+            <DeveloperModeSettings
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
             />
         </div>
     );

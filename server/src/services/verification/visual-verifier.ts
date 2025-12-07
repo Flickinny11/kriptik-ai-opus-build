@@ -532,7 +532,7 @@ ${screenshots.map(s => `- ${s.viewport} viewport`).join('\n')}
 
 Provide a brief (2-3 sentences) summary of the visual quality and any concerns.`,
                 {
-                    model: CLAUDE_MODELS.HAIKU,
+                    model: CLAUDE_MODELS.HAIKU_3_5,
                     maxTokens: 200,
                     useExtendedThinking: false,
                 }

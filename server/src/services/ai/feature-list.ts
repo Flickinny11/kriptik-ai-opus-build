@@ -17,6 +17,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../../db.js';
 import { featureProgress, buildIntents } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
+import type { OpenRouterModel } from './openrouter-client.js';
 import type { IntentContract } from './intent-lock.js';
 
 // =============================================================================
@@ -85,7 +86,7 @@ export interface FeatureListSummary {
 }
 
 export interface GenerateFeatureListOptions {
-    model?: string;
+    model?: OpenRouterModel;
     thinkingBudget?: number;
 }
 
@@ -372,8 +373,8 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
 
         await db.update(featureProgress)
             .set({
-                verificationStatus,
-                verificationScores,
+                verificationStatus: verificationStatus as any,
+                verificationScores: verificationScores as any,
                 updatedAt: now,
             })
             .where(and(
@@ -579,8 +580,8 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
             passes: row.passes,
             assignedAgent: row.assignedAgent,
             assignedAt: row.assignedAt,
-            verificationStatus: row.verificationStatus as FeatureVerificationStatus,
-            verificationScores: row.verificationScores as FeatureVerificationScores | null,
+            verificationStatus: row.verificationStatus as unknown as FeatureVerificationStatus,
+            verificationScores: row.verificationScores as unknown as FeatureVerificationScores | null,
             buildAttempts: row.buildAttempts ?? 0,
             lastBuildAt: row.lastBuildAt,
             passedAt: row.passedAt,
@@ -593,6 +594,7 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
      * Save a feature to the database
      */
     private async saveFeature(feature: Feature): Promise<void> {
+        // Using `as any` for type assertion - Drizzle schema types don't fully match runtime behavior
         await db.insert(featureProgress).values({
             id: feature.id,
             buildIntentId: feature.buildIntentId,
@@ -602,20 +604,20 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
             category: feature.category,
             description: feature.description,
             priority: feature.priority,
-            implementationSteps: feature.implementationSteps,
-            visualRequirements: feature.visualRequirements,
-            filesModified: feature.filesModified,
+            implementationSteps: feature.implementationSteps as any,
+            visualRequirements: feature.visualRequirements as any,
+            filesModified: feature.filesModified as any,
             passes: feature.passes,
             assignedAgent: feature.assignedAgent,
             assignedAt: feature.assignedAt,
-            verificationStatus: feature.verificationStatus,
-            verificationScores: feature.verificationScores,
+            verificationStatus: feature.verificationStatus as any,
+            verificationScores: feature.verificationScores as any,
             buildAttempts: feature.buildAttempts,
             lastBuildAt: feature.lastBuildAt,
             passedAt: feature.passedAt,
             createdAt: feature.createdAt,
             updatedAt: feature.updatedAt,
-        });
+        } as any);
     }
 }
 

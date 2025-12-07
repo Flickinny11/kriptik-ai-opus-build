@@ -28,6 +28,11 @@ import {
 import { eq, and, desc } from 'drizzle-orm';
 import { OpenRouterClient, OPENROUTER_MODELS, EffortLevel } from '../ai/openrouter-client.js';
 import { Anthropic } from '@anthropic-ai/sdk';
+import {
+    developerModeProjectRules,
+    developerModeUserRules,
+    developerModeProjectContext,
+} from '../../schema.js';
 
 // =============================================================================
 // TYPES
@@ -181,6 +186,128 @@ For each file change, provide:
 
 Remember: Your code will go through a 6-agent verification swarm before merge.
 Quality matters more than speed.`;
+
+// =============================================================================
+// RULES FETCHING - Inject project/user rules into agent prompts
+// =============================================================================
+
+/**
+ * Fetch and format project rules for injection into agent system prompt
+ */
+async function getProjectRulesForPrompt(projectId: string, userId: string): Promise<string> {
+    try {
+        const rules = await db.select()
+            .from(developerModeProjectRules)
+            .where(and(
+                eq(developerModeProjectRules.projectId, projectId),
+                eq(developerModeProjectRules.userId, userId),
+                eq(developerModeProjectRules.isActive, true)
+            ))
+            .orderBy(desc(developerModeProjectRules.priority));
+
+        if (rules.length === 0) return '';
+
+        return `
+## PROJECT RULES (MUST FOLLOW STRICTLY)
+These rules are set by the project owner. You MUST follow them in all code you generate.
+
+${rules.map(r => r.rulesContent).join('\n\n')}
+
+---`;
+    } catch (error) {
+        console.error('Failed to fetch project rules:', error);
+        return '';
+    }
+}
+
+/**
+ * Fetch and format user rules for injection into agent system prompt
+ */
+async function getUserRulesForPrompt(userId: string): Promise<string> {
+    try {
+        const [userRules] = await db.select()
+            .from(developerModeUserRules)
+            .where(eq(developerModeUserRules.userId, userId))
+            .limit(1);
+
+        if (!userRules?.globalRulesContent) return '';
+
+        return `
+## USER CODING PREFERENCES
+The user has specified these coding preferences. Follow them when applicable.
+
+${userRules.globalRulesContent}
+
+---`;
+    } catch (error) {
+        console.error('Failed to fetch user rules:', error);
+        return '';
+    }
+}
+
+/**
+ * Fetch and format project context for injection into agent system prompt
+ */
+async function getProjectContextForPrompt(projectId: string): Promise<string> {
+    try {
+        const [context] = await db.select()
+            .from(developerModeProjectContext)
+            .where(eq(developerModeProjectContext.projectId, projectId))
+            .limit(1);
+
+        if (!context || context.status !== 'completed') return '';
+
+        let contextPrompt = `
+## PROJECT CONTEXT (Auto-analyzed)
+`;
+        if (context.framework) contextPrompt += `Framework: ${context.framework}\n`;
+        if (context.language) contextPrompt += `Language: ${context.language}\n`;
+        if (context.patterns) {
+            const patterns = context.patterns as Record<string, string>;
+            if (patterns.stateManagement) contextPrompt += `State Management: ${patterns.stateManagement}\n`;
+            if (patterns.styling) contextPrompt += `Styling: ${patterns.styling}\n`;
+            if (patterns.routing) contextPrompt += `Routing: ${patterns.routing}\n`;
+        }
+        if (context.conventions) {
+            const conventions = context.conventions as Record<string, unknown>;
+            contextPrompt += `Code Style: ${conventions.quotes || 'single'} quotes, ${conventions.semicolons ? 'with' : 'no'} semicolons, ${conventions.indentation} indentation\n`;
+        }
+        contextPrompt += '\n---';
+
+        return contextPrompt;
+    } catch (error) {
+        console.error('Failed to fetch project context:', error);
+        return '';
+    }
+}
+
+/**
+ * Build complete system prompt with rules injected
+ */
+async function buildAgentSystemPrompt(projectId: string, userId: string): Promise<string> {
+    const [projectRules, userRules, projectContext] = await Promise.all([
+        getProjectRulesForPrompt(projectId, userId),
+        getUserRulesForPrompt(userId),
+        getProjectContextForPrompt(projectId),
+    ]);
+
+    // Combine base prompt with injected rules
+    let fullPrompt = DEVELOPER_MODE_AGENT_SYSTEM_PROMPT;
+
+    if (projectContext) {
+        fullPrompt += '\n\n' + projectContext;
+    }
+
+    if (projectRules) {
+        fullPrompt += '\n\n' + projectRules;
+    }
+
+    if (userRules) {
+        fullPrompt += '\n\n' + userRules;
+    }
+
+    return fullPrompt;
+}
 
 // =============================================================================
 // AGENT SERVICE
@@ -468,10 +595,13 @@ export class DeveloperModeAgentService extends EventEmitter {
         const fileList = projectFiles.map(f => f.path).join('\n');
         const relevantFiles = projectFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring(0, 1000)}`).join('\n\n');
 
+        // Build system prompt with injected rules
+        const systemPrompt = await buildAgentSystemPrompt(agent.projectId, agent.userId);
+
         const response = await client.messages.create({
             model: MODEL_MAP[agent.model],
             max_tokens: 4096,
-            system: DEVELOPER_MODE_AGENT_SYSTEM_PROMPT,
+            system: systemPrompt,
             messages: [
                 {
                     role: 'user',
@@ -551,10 +681,13 @@ Keep steps focused and minimal. Each step should modify exactly one file.`,
         const existingFile = projectFiles.find(f => f.path === step.file);
         const existingContent = existingFile?.content || '';
 
+        // Build system prompt with injected rules
+        const systemPrompt = await buildAgentSystemPrompt(agent.projectId, agent.userId);
+
         const response = await client.messages.create({
             model: MODEL_MAP[agent.model],
             max_tokens: 8192,
-            system: DEVELOPER_MODE_AGENT_SYSTEM_PROMPT,
+            system: systemPrompt,
             messages: [
                 {
                     role: 'user',
@@ -1026,7 +1159,6 @@ ${projectFiles.map(f => `--- ${f.path} ---\n${f.content.substring(0, 2000)}`).jo
         taskDescription: string
     ): Promise<void> {
         await db.insert(developerModeCreditTransactions).values({
-            id: uuidv4(),
             sessionId: agent.sessionId,
             agentId: agent.id,
             userId: agent.userId,
@@ -1037,9 +1169,7 @@ ${projectFiles.map(f => `--- ${f.path} ---\n${f.content.substring(0, 2000)}`).jo
             thinkingTokens: tokens.thinking,
             totalTokens: tokens.total,
             creditsCharged: credits,
-            creditRate: JSON.stringify(MODEL_CREDIT_RATES[agent.model]),
-            taskDescription: taskDescription.substring(0, 200),
-            createdAt: new Date().toISOString(),
+            description: taskDescription.substring(0, 200),
         });
 
         // Update session total

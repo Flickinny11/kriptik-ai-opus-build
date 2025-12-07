@@ -19,7 +19,7 @@
 
 import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
-import { getOpenRouterClient, OPENROUTER_MODELS, type EffortLevel } from './openrouter-client.js';
+import { getOpenRouterClient, OPENROUTER_MODELS, type EffortLevel, type OpenRouterModel } from './openrouter-client.js';
 import { getDesignTokenPrompt } from './design-tokens.js';
 import { getIconSuggestionPrompt } from './icon-mapper.js';
 import { getComponentRegistry } from '../templates/component-registry.js';
@@ -44,14 +44,14 @@ export interface GenerationContext {
     projectId: string;
     userId: string;
     sessionId?: string;
-    agentType: 'planning' | 'generation' | 'testing' | 'refinement' | 'deployment';
+    agentType: 'planning' | 'generation' | 'testing' | 'refinement' | 'deployment' | 'verification';
     existingFiles?: Map<string, string>;
     conversationHistory?: Anthropic.MessageParam[];
     systemPrompt?: string;
 }
 
 export interface GenerationOptions {
-    model?: ClaudeModel;
+    model?: OpenRouterModel;      // Accepts any OpenRouter model (Claude, GPT-4o, Gemini, etc.)
     maxTokens?: number;           // Default: 32000, Max: 64000 for Sonnet/Opus 4.5
     temperature?: number;
     useExtendedThinking?: boolean;

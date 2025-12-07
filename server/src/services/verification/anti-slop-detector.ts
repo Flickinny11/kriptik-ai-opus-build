@@ -622,7 +622,7 @@ Respond with ONLY a number 0-100. No explanation.`;
 
         try {
             const response = await this.claudeService.generate(prompt, {
-                model: CLAUDE_MODELS.HAIKU,
+                model: CLAUDE_MODELS.HAIKU_3_5,
                 maxTokens: 10,
                 useExtendedThinking: false,
             });

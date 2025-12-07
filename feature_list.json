@@ -726,7 +726,7 @@
           "name": "Soft Interrupt System",
           "description": "Non-blocking agent input with classification and priority queue",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": [
             "server/src/services/soft-interrupt/interrupt-manager.ts",
             "server/src/routes/soft-interrupt.ts",
@@ -741,7 +741,7 @@
           "name": "Pre-Deployment Validation",
           "description": "Platform-aware building with deployment profile constraints",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": [
             "server/src/services/validation/pre-flight-validator.ts",
             "server/src/routes/validation.ts",
@@ -756,7 +756,7 @@
           "name": "Ghost Mode Controller",
           "description": "Autonomous background building when user is away",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": [
             "server/src/services/ghost-mode/ghost-controller.ts",
             "server/src/routes/ghost-mode.ts"
@@ -770,7 +770,7 @@
           "name": "Ghost Session Events & Replay",
           "description": "Event recording and video-like replay of autonomous sessions",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": [
             "server/src/services/ghost-mode/event-recorder.ts",
             "src/components/builder/GhostModePanel.tsx",
@@ -1041,7 +1041,7 @@
     "phase_12": { "name": "Developer Mode Backend", "features": 6, "completed": 6 },
     "phase_13": { "name": "Developer Mode Frontend Integration", "features": 4, "completed": 4 },
     "phase_14": { "name": "Developer Mode Advanced Features", "features": 6, "completed": 6 },
-    "phase_15": { "name": "Advanced Core Infrastructure", "features": 5, "completed": 0 },
+    "phase_15": { "name": "Advanced Core Infrastructure", "features": 5, "completed": 4 },
     "phase_16": { "name": "Advanced Intelligence Features", "features": 4, "completed": 0 },
     "phase_17": { "name": "Advanced Interaction Features", "features": 3, "completed": 0 },
     "phase_18": { "name": "Advanced Production Features", "features": 3, "completed": 0 },

@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
 import { buildIntents, projects, orchestrationRuns, developerModeAgents } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
+import type { OpenRouterModel } from './openrouter-client.js';
 
 // =============================================================================
 // TYPES
@@ -70,7 +71,7 @@ export interface IntentContract {
 }
 
 export interface IntentLockOptions {
-    model?: string;
+    model?: OpenRouterModel;
     effort?: 'low' | 'medium' | 'high';
     thinkingBudget?: number;
 }
@@ -390,10 +391,10 @@ export class IntentLockEngine {
             appType: row.appType,
             appSoul: row.appSoul as IntentAppSoul,
             coreValueProp: row.coreValueProp,
-            successCriteria: row.successCriteria as SuccessCriterion[],
-            userWorkflows: row.userWorkflows as UserWorkflow[],
-            visualIdentity: row.visualIdentity as VisualIdentity,
-            antiPatterns: row.antiPatterns as string[],
+            successCriteria: row.successCriteria as unknown as SuccessCriterion[],
+            userWorkflows: row.userWorkflows as unknown as UserWorkflow[],
+            visualIdentity: row.visualIdentity as unknown as VisualIdentity,
+            antiPatterns: row.antiPatterns as unknown as string[],
             locked: row.locked,
             lockedAt: row.lockedAt || undefined,
             originalPrompt: row.originalPrompt,
@@ -449,7 +450,7 @@ export class IntentLockEngine {
 
         await db.update(buildIntents)
             .set({
-                successCriteria: contract.successCriteria,
+                successCriteria: contract.successCriteria as any,
             })
             .where(eq(buildIntents.id, contractId));
 
@@ -474,7 +475,7 @@ export class IntentLockEngine {
 
         await db.update(buildIntents)
             .set({
-                userWorkflows: contract.userWorkflows,
+                userWorkflows: contract.userWorkflows as any,
             })
             .where(eq(buildIntents.id, contractId));
 
@@ -587,6 +588,7 @@ export class IntentLockEngine {
      * Save contract to database
      */
     private async saveContract(contract: IntentContract): Promise<void> {
+        // Using `as any` for type assertion - Drizzle schema types don't fully match runtime behavior
         await db.insert(buildIntents).values({
             id: contract.id,
             projectId: contract.projectId,
@@ -595,17 +597,17 @@ export class IntentLockEngine {
             appType: contract.appType,
             appSoul: contract.appSoul,
             coreValueProp: contract.coreValueProp,
-            successCriteria: contract.successCriteria,
-            userWorkflows: contract.userWorkflows,
-            visualIdentity: contract.visualIdentity,
-            antiPatterns: contract.antiPatterns,
+            successCriteria: contract.successCriteria as any,
+            userWorkflows: contract.userWorkflows as any,
+            visualIdentity: contract.visualIdentity as any,
+            antiPatterns: contract.antiPatterns as any,
             locked: contract.locked,
             lockedAt: contract.lockedAt,
             originalPrompt: contract.originalPrompt,
             generatedBy: contract.generatedBy,
             thinkingTokensUsed: contract.thinkingTokensUsed,
             createdAt: contract.createdAt,
-        });
+        } as any);
     }
 
     // =========================================================================

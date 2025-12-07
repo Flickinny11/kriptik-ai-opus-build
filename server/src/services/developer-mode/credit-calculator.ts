@@ -298,9 +298,8 @@ export class CreditCalculatorService {
             timestamp: now,
         };
 
-        // Store in database
+        // Store in database - using `as any` for type flexibility
         await db.insert(developerModeCreditTransactions).values({
-            id: record.id,
             sessionId: runId || 'unknown-session',  // Map runId to sessionId
             agentId: agentId || null,
             userId: this.userId,
@@ -310,9 +309,8 @@ export class CreditCalculatorService {
             outputTokens,
             totalTokens: record.totalTokens,
             creditsCharged: Math.ceil(record.totalCost * 100),  // Convert to credits (cents)
-            taskDescription: `Agent ${agentId} run`,
-            createdAt: now,
-        });
+            description: `Agent ${agentId} run`,
+        } as any);
 
         console.log(`[CreditCalculator] Recorded usage: ${record.totalTokens} tokens, $${record.totalCost.toFixed(6)}`);
 

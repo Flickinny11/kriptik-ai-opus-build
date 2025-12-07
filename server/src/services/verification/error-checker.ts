@@ -468,7 +468,7 @@ ${contextLines}
 
 Provide a brief, actionable fix suggestion in 1-2 sentences.`,
                     {
-                        model: CLAUDE_MODELS.HAIKU,
+                        model: CLAUDE_MODELS.HAIKU_3_5,
                         maxTokens: 150,
                         useExtendedThinking: false,
                     }

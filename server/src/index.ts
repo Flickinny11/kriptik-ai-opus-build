@@ -351,6 +351,11 @@ import userSettingsRouter from './routes/user-settings.js';
 import fixMyAppRouter from './routes/fix-my-app.js';
 import dbMigrateRouter from './routes/db-migrate.js';
 import adminRouter from './routes/admin.js';
+import developerSettingsRouter from './routes/developer-settings.js';
+import softInterruptRouter from './routes/soft-interrupt.js';
+import validationRouter from './routes/validation.js';
+import ghostModeRouter from './routes/ghost-mode.js';
+import learningRouter from './routes/learning.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -441,6 +446,23 @@ app.use("/api/db", dbMigrateRouter);
 
 // Admin routes (protected by admin secret header)
 app.use("/api/admin", adminRouter);
+
+// Developer Mode Settings (project rules, user rules, feedback)
+app.use("/api/developer-settings", developerSettingsRouter);
+
+// Advanced Developer Options (F046-F064)
+// Soft Interrupt System - Non-blocking agent input
+app.use("/api/soft-interrupt", softInterruptRouter);
+
+// Pre-Deployment Validation - Platform-aware building
+app.use("/api/validation", validationRouter);
+
+// Ghost Mode - Autonomous background building
+// Requires significant resources, 150 credits
+app.use("/api/ghost-mode", promptSanitizer, requireCredits(150), ghostModeRouter);
+
+// Autonomous Learning Engine - System status, patterns, strategies, insights
+app.use("/api/learning", learningRouter);
 
 // =============================================================================
 // HEALTH & STATUS

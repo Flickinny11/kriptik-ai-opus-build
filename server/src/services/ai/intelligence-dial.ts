@@ -94,7 +94,7 @@ const THINKING_CONFIGS = {
 
 const POWER_CONFIGS = {
     economy: {
-        model: CLAUDE_MODELS.HAIKU,
+        model: CLAUDE_MODELS.HAIKU_3_5,
         effort: 'low' as const,
         description: 'Fastest, cheapest, good for simple tasks',
     },

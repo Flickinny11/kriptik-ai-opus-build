@@ -1,15 +1,15 @@
 /**
  * Soft Interrupt Input Component
- * 
+ *
  * Allows users to communicate with agents mid-execution without
  * hard-stopping them. Shows classification feedback and queue status.
- * 
+ *
  * F046: Soft Interrupt System Frontend
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   MessageSquarePlus,
   Send,
   AlertCircle,
@@ -27,13 +27,12 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDeveloperModeStore } from '@/store/useDeveloperModeStore';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-type InterruptType = 
+type InterruptType =
   | 'HALT'
   | 'CONTEXT_ADD'
   | 'COURSE_CORRECT'
@@ -72,12 +71,12 @@ interface InterruptApplicationResult {
 // HELPER COMPONENTS
 // =============================================================================
 
-const InterruptTypeIcon: React.FC<{ type: InterruptType; className?: string }> = ({ 
-  type, 
-  className 
+const InterruptTypeIcon: React.FC<{ type: InterruptType; className?: string }> = ({
+  type,
+  className
 }) => {
   const iconProps = { className: cn('w-4 h-4', className) };
-  
+
   switch (type) {
     case 'HALT':
       return <Pause {...iconProps} />;
@@ -181,8 +180,6 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
   const [showFeedback, setShowFeedback] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { currentSession, agents } = useDeveloperModeStore();
-
   // Fetch interrupt history on mount
   useEffect(() => {
     if (sessionId) {
@@ -223,21 +220,21 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         const interrupt = data.interrupt as ClassifiedInterrupt;
         setInterruptHistory(prev => [interrupt, ...prev]);
         setLastResult({
           success: true,
           interruptId: interrupt.id,
-          action: interrupt.type === 'HALT' ? 'applied' : 
+          action: interrupt.type === 'HALT' ? 'applied' :
                   interrupt.type === 'QUEUE' ? 'queued' : 'applied',
           agentResponse: getAgentResponseForType(interrupt.type)
         });
         setShowFeedback(true);
         setMessage('');
         onInterruptSubmitted?.(interrupt);
-        
+
         // Auto-hide feedback after 3 seconds
         setTimeout(() => setShowFeedback(false), 3000);
       }
@@ -352,8 +349,8 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
           >
             <div className={cn(
               'p-3 rounded-lg border',
-              lastResult.success 
-                ? 'bg-emerald-500/10 border-emerald-500/30' 
+              lastResult.success
+                ? 'bg-emerald-500/10 border-emerald-500/30'
                 : 'bg-red-500/10 border-red-500/30'
             )}>
               <div className="flex items-start gap-2">
@@ -375,7 +372,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
                     </p>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={() => setShowFeedback(false)}
                   className="text-slate-500 hover:text-slate-300"
                 >
@@ -404,7 +401,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
               )}
             </span>
           </button>
-          
+
           <AnimatePresence>
             {isHistoryExpanded && (
               <motion.div

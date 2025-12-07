@@ -12,5 +12,5 @@ export {
   type ClassifiedInterrupt,
   type AgentExecutionContext,
   type InterruptApplicationResult
-} from './interrupt-manager';
+} from './interrupt-manager.js';
 

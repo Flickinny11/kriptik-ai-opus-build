@@ -17,9 +17,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Smartphone, Tablet, Monitor, Terminal,
     ExternalLink, GitBranch, CheckCircle2, XCircle,
-    Maximize2, Minimize2, Code2, Eye, Split, Play, Pause
+    Maximize2, Minimize2, Code2, Eye, Split, Play, Pause,
+    MessageSquare, GitPullRequest
 } from 'lucide-react';
 import { useDeveloperModeStore, selectAgents, selectSelectedAgent } from '../../store/useDeveloperModeStore';
+import { RequestChangesModal } from './RequestChangesModal';
 
 // Dark glass styling to match AgentModeSidebar
 const darkGlassPanel = {
@@ -106,6 +108,7 @@ export function AgentSandboxPreview({
     const [showConsole, setShowConsole] = useState(false);
     const [isAutoRefresh, setIsAutoRefresh] = useState(true);
     const [consoleLogs, setConsoleLogs] = useState<Array<{ type: 'log' | 'error' | 'warn'; message: string; timestamp: string }>>([]);
+    const [showRequestChanges, setShowRequestChanges] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
@@ -533,6 +536,69 @@ export function AgentSandboxPreview({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Action Buttons - Show when agent is completed */}
+            {activeAgent?.status === 'completed' && (
+                <div
+                    className="shrink-0 p-4 flex items-center justify-between"
+                    style={{
+                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                        background: 'rgba(20,20,25,0.98)',
+                    }}
+                >
+                    <div className="flex items-center gap-2">
+                        {activeAgent.verificationPassed ? (
+                            <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Verified ({activeAgent.verificationScore}/100)
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                                <XCircle className="w-3 h-3" />
+                                Pending Verification
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowRequestChanges(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all hover:bg-white/5 border border-white/10"
+                            style={{ color: 'rgba(255,255,255,0.6)' }}
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                            Request Changes
+                        </button>
+                        <button
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+                            style={{
+                                background: `linear-gradient(145deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                color: '#000',
+                            }}
+                        >
+                            <GitPullRequest className="w-4 h-4" />
+                            Approve & Create PR
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Changes Modal */}
+            <RequestChangesModal
+                isOpen={showRequestChanges}
+                onClose={() => setShowRequestChanges(false)}
+                agent={activeAgent ? {
+                    id: activeAgent.id,
+                    name: activeAgent.name,
+                    status: activeAgent.status,
+                    verificationScore: activeAgent.verificationScore,
+                    verificationPassed: activeAgent.verificationPassed,
+                    buildAttempts: activeAgent.buildAttempts,
+                } : null}
+                onSubmit={(agentId, iterationNumber) => {
+                    console.log(`Agent ${agentId} iteration ${iterationNumber} started`);
+                    // TODO: Trigger agent restart with new prompt
+                }}
+            />
         </div>
     );
 }

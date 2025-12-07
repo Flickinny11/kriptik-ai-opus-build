@@ -488,7 +488,7 @@ If it's a TODO, suggest what the completed implementation should be.
 If it's placeholder text, suggest appropriate real content.
 If it's debug code, suggest removal or proper logging.`,
                     {
-                        model: CLAUDE_MODELS.HAIKU,
+                        model: CLAUDE_MODELS.HAIKU_3_5,
                         maxTokens: 150,
                         useExtendedThinking: false,
                     }

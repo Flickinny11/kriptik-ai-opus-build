@@ -66,7 +66,7 @@ After comprehensive analysis of the Developer_View_Concept specification against
 ```
 src/components/settings/DeveloperModeSettings.tsx     # Main settings component
 src/components/settings/ProjectRulesEditor.tsx        # Project rules input
-src/components/settings/UserRulesEditor.tsx           # User rules input  
+src/components/settings/UserRulesEditor.tsx           # User rules input
 src/components/settings/VerificationPreferences.tsx   # Verification config
 src/components/settings/ModelPreferences.tsx          # Default model selection
 server/src/routes/developer-settings.ts               # API routes
@@ -79,7 +79,7 @@ export const developerModeProjectRules = sqliteTable('developer_mode_project_rul
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     projectId: text('project_id').references(() => projects.id).notNull(),
     userId: text('user_id').references(() => users.id).notNull(),
-    
+
     // Rule content
     rulesContent: text('rules_content').notNull(), // Markdown/text rules
     rulesJson: text('rules_json', { mode: 'json' }).$type<{
@@ -93,11 +93,11 @@ export const developerModeProjectRules = sqliteTable('developer_mode_project_rul
         patterns: string[];
         avoidPatterns: string[];
     }>(),
-    
+
     // Rule status
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     priority: integer('priority').default(0),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -105,10 +105,10 @@ export const developerModeProjectRules = sqliteTable('developer_mode_project_rul
 export const developerModeUserRules = sqliteTable('developer_mode_user_rules', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull(),
-    
+
     // Global user rules
     globalRulesContent: text('global_rules_content'),
-    
+
     // Preferences
     defaultModel: text('default_model').default('claude-sonnet-4-5'),
     defaultVerificationMode: text('default_verification_mode').default('standard'),
@@ -119,12 +119,12 @@ export const developerModeUserRules = sqliteTable('developer_mode_user_rules', {
     maxAutoFixAttempts: integer('max_auto_fix_attempts').default(3),
     includeTestsInContext: integer('include_tests_in_context', { mode: 'boolean' }).default(true),
     requireScreenshotProof: integer('require_screenshot_proof', { mode: 'boolean' }).default(false),
-    
+
     // Notification preferences
     notifyOnAgentComplete: integer('notify_on_agent_complete', { mode: 'boolean' }).default(true),
     notifyOnVerificationFail: integer('notify_on_verification_fail', { mode: 'boolean' }).default(true),
     notifyOnMergeReady: integer('notify_on_merge_ready', { mode: 'boolean' }).default(true),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -194,9 +194,9 @@ async getProjectRules(projectId: string, userId: string): Promise<string> {
             eq(developerModeProjectRules.isActive, true)
         ))
         .orderBy(desc(developerModeProjectRules.priority));
-    
+
     if (rules.length === 0) return '';
-    
+
     return `
 ## PROJECT RULES (MUST FOLLOW)
 These rules are set by the project owner. Follow them strictly.
@@ -209,9 +209,9 @@ async getUserRules(userId: string): Promise<string> {
     const [userRules] = await db.select()
         .from(developerModeUserRules)
         .where(eq(developerModeUserRules.userId, userId));
-    
+
     if (!userRules?.globalRulesContent) return '';
-    
+
     return `
 ## USER PREFERENCES (Follow these coding preferences)
 ${userRules.globalRulesContent}
@@ -282,7 +282,7 @@ server/src/routes/agent-feedback.ts
 router.post('/agents/:agentId/feedback', async (req, res) => {
     const { agentId } = req.params;
     const { feedback, priority, keepChanges, tags } = req.body;
-    
+
     // Store feedback for learning
     await db.insert(developerModeAgentLogs).values({
         agentId,
@@ -290,23 +290,23 @@ router.post('/agents/:agentId/feedback', async (req, res) => {
         content: JSON.stringify({ feedback, priority, tags }),
         createdAt: new Date().toISOString(),
     });
-    
+
     // Update agent micro-intent with new success criteria
     const agent = await db.select()
         .from(developerModeAgents)
         .where(eq(developerModeAgents.id, agentId))
         .limit(1);
-    
+
     const currentPrompt = agent[0].taskPrompt;
     const newPrompt = `${currentPrompt}
 
 ## ADDITIONAL REQUIREMENTS (From User Feedback)
 Priority: ${priority}
 ${feedback}`;
-    
+
     // Restart agent with updated prompt
     await orchestrator.restartAgentWithFeedback(agentId, newPrompt, keepChanges);
-    
+
     // Store in memory for learning
     await learningEngine.recordFeedback({
         projectId: agent[0].projectId,
@@ -314,7 +314,7 @@ ${feedback}`;
         feedback,
         tags,
     });
-    
+
     res.json({ success: true, iterationNumber: agent[0].buildAttempts + 1 });
 });
 ```
@@ -467,19 +467,19 @@ server/src/services/developer-mode/context-generator.ts
 export interface ProjectContext {
     projectId: string;
     analyzedAt: string;
-    
+
     // Tech stack
     framework: string;
     language: string;
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
-    
+
     // Structure
     sourceDirectory: string;
     componentPaths: string[];
     testPaths: string[];
     configFiles: string[];
-    
+
     // Patterns detected
     patterns: {
         stateManagement: string | null;
@@ -488,7 +488,7 @@ export interface ProjectContext {
         apiClient: string | null;
         testing: string | null;
     };
-    
+
     // Code conventions
     conventions: {
         indentation: 'tabs' | 'spaces';
@@ -497,7 +497,7 @@ export interface ProjectContext {
         semicolons: boolean;
         componentStyle: 'functional' | 'class' | 'mixed';
     };
-    
+
     // Issues detected
     issues: Array<{
         type: 'security' | 'quality' | 'placeholder' | 'deprecated';
@@ -506,7 +506,7 @@ export interface ProjectContext {
         description: string;
         severity: 'low' | 'medium' | 'high' | 'critical';
     }>;
-    
+
     // Component relationships
     componentGraph: Record<string, string[]>;
 }

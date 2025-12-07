@@ -178,7 +178,7 @@ export class TimeMachine {
             triggerReason: options.triggerReason || 'manual',
         };
 
-        // Store in database
+        // Store in database - using `as any` for JSON column type flexibility
         await db.insert(buildCheckpoints).values({
             id: checkpoint.id,
             orchestrationRunId: checkpoint.buildId, // Map to actual schema column
@@ -212,13 +212,13 @@ export class TimeMachine {
                 name: 'screenshot',
                 base64: s,
                 timestamp: new Date().toISOString(),
-            })) || [],
+            })) as any || [],
             agentMemorySnapshot: checkpoint.agentMemory ? {
                 buildAgentContext: checkpoint.agentMemory.contextCache,
                 issueResolutions: {},
             } : null,
             fileChecksums: {}, // Would store file checksums in production
-        });
+        } as any);
 
         console.log(`[TimeMachine] Created checkpoint ${checkpoint.id} for phase "${phase}"`);
 

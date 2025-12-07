@@ -1,12 +1,12 @@
 /**
  * Soft Interrupt System API Routes
- * 
+ *
  * F046: Non-blocking agent input endpoints
  */
 
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { createSoftInterruptManager } from '../services/soft-interrupt';
+import { authMiddleware } from '../middleware/auth.js';
+import { createSoftInterruptManager } from '../services/soft-interrupt/index.js';
 
 const router = Router();
 const interruptManager = createSoftInterruptManager();
@@ -54,7 +54,7 @@ router.get('/pending/:sessionId', authMiddleware, async (req, res) => {
     const { sessionId } = req.params;
 
     const interrupts = await interruptManager.getInterruptHistory(sessionId);
-    const pending = interrupts.filter(i => i.status === 'pending');
+    const pending = interrupts.filter((i: { status: string }) => i.status === 'pending');
 
     res.json({
       success: true,
@@ -109,12 +109,13 @@ router.post('/apply', authMiddleware, async (req, res) => {
 
     // Find the interrupt in history
     // This is a simplified implementation - in production you'd store interrupts in DB
-    const allSessions = Array.from((interruptManager as any).interruptQueue.keys());
+    const interruptManagerAny = interruptManager as unknown as { interruptQueue: Map<string, unknown[]> };
+    const allSessions = Array.from(interruptManagerAny.interruptQueue.keys());
     let targetInterrupt = null;
-    
+
     for (const sessionId of allSessions) {
       const interrupts = await interruptManager.getInterruptHistory(sessionId);
-      targetInterrupt = interrupts.find(i => i.id === interruptId);
+      targetInterrupt = interrupts.find((interrupt: { id: string }) => interrupt.id === interruptId);
       if (targetInterrupt) break;
     }
 

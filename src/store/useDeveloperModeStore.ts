@@ -73,6 +73,9 @@ export interface Agent {
     lastError?: string;
     branch?: string;
     filesModified?: string[];
+    buildAttempts?: number;
+    errorCount?: number;
+    escalationLevel?: number;
     createdAt: Date;
     updatedAt: Date;
 }
