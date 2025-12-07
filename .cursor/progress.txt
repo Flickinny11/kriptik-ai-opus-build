@@ -2187,3 +2187,98 @@ Call POST /api/billing/complete-setup with { adminSecret: "setup" }
 This will create all products, prices, and webhook automatically.
 Copy the generated STRIPE_WEBHOOK_SECRET to Vercel.
 
+═══ [2025-12-07 KRIP-TOE-NITE FULL INTEGRATION] ═══
+COMPLETED: Krip-Toe-Nite Integrated Throughout Application
+
+## FRONTEND INTEGRATIONS
+
+### ChatInterface.tsx (Builder Chat)
+- Added model selector dropdown (KTN default, Multi-Agent option)
+- Streaming support with SSE via streamKripToeNite()
+- TTFT (Time To First Token) display: "⚡ First token in 150ms"
+- Model/strategy info banner after completion
+- Stop generation button for streaming
+- KTN stats display in typing indicator
+
+### DeveloperModeView.tsx (Developer Mode)
+- Full KTN API integration for code generation
+- Streaming code output with live cursor
+- Generation stats banner with TTFT and model info
+- Stop/cancel functionality
+- Context injection (framework, language, file count)
+
+### AgentModeSidebar.tsx (Agent Management)
+- Added 'krip-toe-nite' as top model option (⚡ indicator)
+- New 'intelligent' tier designation
+- KTN is now recommended default model
+
+### useDeveloperModeStore.ts (State Management)
+- Added 'krip-toe-nite' to AgentModel type
+- Full type support across the application
+
+## API CLIENT ADDITIONS
+
+File: src/lib/api-client.ts
+
+New Methods:
+- generateKripToeNite(data) - Sync generation
+- streamKripToeNite(data, onChunk, onComplete, onError) - SSE streaming
+- analyzeKripToeNite(prompt, context) - Prompt analysis
+- getKripToeNiteModels() - Available models list
+- getKripToeNiteStats() - Service statistics
+- checkKripToeNiteHealth() - Health check
+
+New Types:
+- KripToeNiteChunk - Streaming chunk interface
+- KripToeNiteResponse - Sync response interface
+
+## BACKEND INTEGRATIONS
+
+### build-loop.ts (6-Phase Build)
+- buildFeature() now uses KTN for code generation
+- Falls back to Claude if KTN fails
+- Context injection for intelligent routing:
+  - framework: 'React'
+  - language: 'TypeScript'
+  - buildPhase: from config
+
+### development-orchestrator.ts (Orchestration)
+- Initialized KripToeNiteService instance
+- Ready for future integration points
+
+## CUSTOM TOP-UP FEATURE
+
+File: server/src/routes/billing.ts
+
+New Endpoints:
+- POST /api/billing/topup/custom - Custom amount top-up ($5-$1000)
+- GET /api/billing/topup/calculate - Preview credits before purchase
+
+Credit Calculation with Tiered Bonuses:
+| Amount    | Base Rate | Bonus  | Example               |
+|-----------|-----------|--------|-----------------------|
+| $5-24     | 6/$       | 0%     | $10 → 60 credits      |
+| $25-49    | 6/$       | +10%   | $25 → 165 credits     |
+| $50-99    | 6/$       | +15%   | $50 → 345 credits     |
+| $100-249  | 6/$       | +20%   | $100 → 720 credits    |
+| $250-499  | 6/$       | +25%   | $250 → 1,875 credits  |
+| $500-1000 | 6/$       | +30%   | $500 → 3,900 credits  |
+
+Webhook Updates:
+- Handles custom_topup metadata
+- Handles preset top-up metadata
+- Improved subscription plan detection from price IDs
+- Updates user credits and tier correctly
+
+## BUILD STATUS: PASSING ✅
+
+## COMMITS
+- 351c608: feat: Add custom credit top-up with tiered bonuses
+- b0a324e: feat: Integrate Krip-Toe-Nite throughout the application
+
+## ADMIN_SECRET
+Users must create their own ADMIN_SECRET for protecting admin endpoints:
+- POST /api/billing/complete-setup
+- POST /api/billing/cleanup
+Example: ADMIN_SECRET=kriptik_admin_8f7d2e9a4b1c6f3e5d8a2b7c9e4f1a3d
+
