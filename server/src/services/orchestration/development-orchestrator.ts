@@ -36,6 +36,7 @@ import {
 import { getAgentPrompt, getContextInjectionPrompt } from './prompts.js';
 import { QueenAgent } from './agents/queen-agent.js';
 import { ClaudeService } from '../ai/claude-service.js';
+import { getKripToeNiteService, type KripToeNiteService } from '../ai/krip-toe-nite/index.js';
 
 export interface OrchestratorConfig {
     maxConcurrentTasks: number;
@@ -54,6 +55,7 @@ export interface ProjectRequest {
 export class DevelopmentOrchestrator extends EventEmitter {
     private config: OrchestratorConfig;
     private claudeService: ClaudeService;
+    private ktnService: KripToeNiteService;
     private agents: Map<AgentId, Agent> = new Map();
     private queens: Map<TaskType, QueenAgent> = new Map();
     private currentPlan: ExecutionPlan | null = null;
@@ -65,6 +67,7 @@ export class DevelopmentOrchestrator extends EventEmitter {
     constructor(claudeService: ClaudeService, config?: Partial<OrchestratorConfig>) {
         super();
         this.claudeService = claudeService;
+        this.ktnService = getKripToeNiteService();
         this.config = {
             maxConcurrentTasks: config?.maxConcurrentTasks ?? 4,
             qualityGateEnabled: config?.qualityGateEnabled ?? true,

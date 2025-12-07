@@ -42,6 +42,9 @@ import {
 import {
     getPhaseConfig,
 } from '../ai/openrouter-client.js';
+import {
+    getKripToeNiteService,
+} from '../ai/krip-toe-nite/index.js';
 
 // =============================================================================
 // TYPES
@@ -611,16 +614,41 @@ ${feature.visualRequirements.map(r => `- ${r}`).join('\n')}
 
 Generate production-ready code for this feature.`;
 
-        // Generate code using Claude
-        const response = await this.claudeService.generate(prompt, {
-            model: phaseConfig.model,
-            maxTokens: 32000,
-            useExtendedThinking: true,
-            thinkingBudgetTokens: phaseConfig.thinkingBudget,
-        });
+        // Use Krip-Toe-Nite for intelligent model routing
+        const ktn = getKripToeNiteService();
+        let responseContent = '';
+        
+        try {
+            for await (const chunk of ktn.generate({
+                prompt,
+                systemPrompt: `You are an expert developer building production-ready features.
+Generate complete, working code. Include all necessary imports.
+Use TypeScript/React best practices.`,
+                context: {
+                    framework: 'React',
+                    language: 'TypeScript',
+                    buildPhase: phaseConfig.name,
+                },
+                maxTokens: 32000,
+            })) {
+                if (chunk.type === 'text') {
+                    responseContent += chunk.content;
+                }
+            }
+        } catch (error) {
+            // Fallback to Claude service if KTN fails
+            console.warn('[BuildLoop] KTN failed, falling back to Claude:', error);
+            const response = await this.claudeService.generate(prompt, {
+                model: phaseConfig.model,
+                maxTokens: 32000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: phaseConfig.thinkingBudget,
+            });
+            responseContent = response.content;
+        }
 
         // Parse and save files
-        const files = this.claudeService.parseFileOperations(response.content);
+        const files = this.claudeService.parseFileOperations(responseContent);
         const filePaths = files.map(f => f.path);
 
         await this.featureManager.addFilesModified(feature.featureId, filePaths);

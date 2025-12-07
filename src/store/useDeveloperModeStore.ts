@@ -20,6 +20,7 @@ import { devtools } from 'zustand/middleware';
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'waiting' | 'failed' | 'paused';
 
 export type AgentModel =
+    | 'krip-toe-nite'
     | 'claude-opus-4-5'
     | 'claude-sonnet-4-5'
     | 'claude-haiku-3-5'

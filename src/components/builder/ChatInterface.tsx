@@ -8,11 +8,11 @@
  * - Liquid Glass 3D styling throughout
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send, Paperclip, StopCircle, Pause, Play,
-    User, Loader2, ArrowRight, Image, Wand2
+    User, Loader2, ArrowRight, Image, Wand2, Zap, ChevronDown
 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { orchestrator } from '../../lib/AgentOrchestrator';
@@ -24,6 +24,7 @@ import { useCostStore } from '../../store/useCostStore';
 import CostEstimatorModal from '../cost/CostEstimatorModal';
 import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
+import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 
 interface Message {
     id: string;
@@ -31,7 +32,33 @@ interface Message {
     content: string;
     timestamp: Date;
     agentType?: string;
+    model?: string;
+    ttftMs?: number;
+    strategy?: string;
 }
+
+// Available models for the chat
+type ChatModel = 'krip-toe-nite' | 'orchestrator';
+
+const CHAT_MODELS: Array<{
+    id: ChatModel;
+    name: string;
+    description: string;
+    icon: React.ReactNode;
+}> = [
+    {
+        id: 'krip-toe-nite',
+        name: 'Krip-Toe-Nite',
+        description: 'Ultra-fast intelligent routing',
+        icon: <Zap className="w-4 h-4 text-yellow-500" />,
+    },
+    {
+        id: 'orchestrator',
+        name: 'Multi-Agent',
+        description: 'Full orchestrated build',
+        icon: <Wand2 className="w-4 h-4 text-orange-500" />,
+    },
+];
 
 const suggestions = [
     "Build a dashboard with analytics charts",
@@ -228,6 +255,12 @@ export default function ChatInterface() {
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
     const [showBreakdown, setShowBreakdown] = useState(false);
+    
+    // KTN State
+    const [selectedModel, setSelectedModel] = useState<ChatModel>('krip-toe-nite');
+    const [showModelDropdown, setShowModelDropdown] = useState(false);
+    const [streamController, setStreamController] = useState<AbortController | null>(null);
+    const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -260,11 +293,84 @@ export default function ChatInterface() {
         setShowCostEstimator(true);
     };
 
+    // KTN streaming handler
+    const handleKtnStream = useCallback((prompt: string) => {
+        const msgId = `msg-${Date.now() + 2}`;
+        let content = '';
+        let firstChunk = true;
+        let ttftMs: number | undefined;
+        let modelUsed: string | undefined;
+        let strategyUsed: string | undefined;
+        const startTime = Date.now();
+
+        // Add initial assistant message
+        setMessages(prev => [...prev, {
+            id: msgId,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date(),
+            agentType: 'krip-toe-nite',
+        }]);
+
+        const controller = apiClient.streamKripToeNite(
+            {
+                prompt,
+                context: {
+                    framework: 'React',
+                    language: 'TypeScript',
+                },
+            },
+            (chunk: KripToeNiteChunk) => {
+                if (firstChunk && chunk.type === 'text') {
+                    firstChunk = false;
+                    ttftMs = Date.now() - startTime;
+                }
+
+                if (chunk.type === 'text') {
+                    content += chunk.content;
+                    setMessages(prev => prev.map(m =>
+                        m.id === msgId ? { ...m, content } : m
+                    ));
+                }
+
+                if (chunk.type === 'status' || chunk.metadata) {
+                    modelUsed = chunk.model || modelUsed;
+                    strategyUsed = chunk.strategy || strategyUsed;
+                    if (chunk.metadata?.ttftMs) {
+                        ttftMs = chunk.metadata.ttftMs as number;
+                    }
+                }
+            },
+            () => {
+                // On complete
+                setIsTyping(false);
+                setStreamController(null);
+                setKtnStats({ model: modelUsed, ttftMs, strategy: strategyUsed });
+                
+                // Update final message with stats
+                setMessages(prev => prev.map(m =>
+                    m.id === msgId ? { ...m, model: modelUsed, ttftMs, strategy: strategyUsed } : m
+                ));
+            },
+            (error) => {
+                console.error('KTN stream error:', error);
+                setIsTyping(false);
+                setStreamController(null);
+                setMessages(prev => prev.map(m =>
+                    m.id === msgId ? { ...m, content: `Error: ${error.message}` } : m
+                ));
+            }
+        );
+
+        setStreamController(controller);
+    }, []);
+
     const confirmGeneration = async () => {
         if (!pendingPrompt) return;
 
         setShowCostEstimator(false);
         resetSessionCost();
+        setKtnStats(null);
 
         const userMessage: Message = {
             id: `msg-${Date.now()}`,
@@ -274,21 +380,46 @@ export default function ChatInterface() {
         };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
+        const prompt = pendingPrompt;
         setPendingPrompt(null);
         setIsTyping(true);
 
-        const systemMessage: Message = {
-            id: `msg-${Date.now() + 1}`,
-            role: 'system',
-            content: 'Starting multi-agent orchestration...',
-            timestamp: new Date(),
-            agentType: 'orchestrator',
-        };
-        setMessages(prev => [...prev, systemMessage]);
+        // Use Krip-Toe-Nite for fast intelligent routing
+        if (selectedModel === 'krip-toe-nite') {
+            const systemMessage: Message = {
+                id: `msg-${Date.now() + 1}`,
+                role: 'system',
+                content: '⚡ Using Krip-Toe-Nite intelligent routing...',
+                timestamp: new Date(),
+                agentType: 'krip-toe-nite',
+            };
+            setMessages(prev => [...prev, systemMessage]);
+            
+            handleKtnStream(prompt);
+        } else {
+            // Use multi-agent orchestrator
+            const systemMessage: Message = {
+                id: `msg-${Date.now() + 1}`,
+                role: 'system',
+                content: 'Starting multi-agent orchestration...',
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            };
+            setMessages(prev => [...prev, systemMessage]);
 
-        await orchestrator.start(pendingPrompt);
-        setIsTyping(false);
+            await orchestrator.start(prompt);
+            setIsTyping(false);
+        }
     };
+    
+    // Stop KTN stream
+    const handleStopKtn = useCallback(() => {
+        if (streamController) {
+            streamController.abort();
+            setStreamController(null);
+            setIsTyping(false);
+        }
+    }, [streamController]);
 
     const handlePauseResume = () => {
         if (globalStatus === 'running') {
@@ -489,7 +620,7 @@ export default function ChatInterface() {
                                 ))}
                             </AnimatePresence>
 
-                            {/* Typing indicator */}
+                            {/* Typing indicator with KTN stats */}
                             {isTyping && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
@@ -499,19 +630,62 @@ export default function ChatInterface() {
                                     <div
                                         className="w-8 h-8 rounded-lg flex items-center justify-center"
                                         style={{
-                                            background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
-                                            boxShadow: `0 2px 8px rgba(255, 140, 100, 0.15)`,
+                                            background: selectedModel === 'krip-toe-nite'
+                                                ? 'linear-gradient(145deg, rgba(250,204,21,0.6) 0%, rgba(234,179,8,0.45) 100%)'
+                                                : 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
+                                            boxShadow: selectedModel === 'krip-toe-nite'
+                                                ? `0 2px 8px rgba(234, 179, 8, 0.25)`
+                                                : `0 2px 8px rgba(255, 140, 100, 0.15)`,
                                         }}
                                     >
-                                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#92400e' }} />
+                                        {selectedModel === 'krip-toe-nite' ? (
+                                            <Zap className="w-4 h-4 animate-pulse" style={{ color: '#92400e' }} />
+                                        ) : (
+                                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#92400e' }} />
+                                        )}
                                     </div>
                                     <MessageCard>
-                                        <div className="flex gap-1.5 py-1">
-                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '0ms' }} />
-                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '150ms' }} />
-                                            <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#c25a00', animationDelay: '300ms' }} />
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex gap-1.5 py-1">
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '0ms' }} />
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '150ms' }} />
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '300ms' }} />
+                                            </div>
+                                            {selectedModel === 'krip-toe-nite' && ktnStats?.ttftMs && (
+                                                <span className="text-xs text-yellow-600 font-medium">
+                                                    ⚡ {ktnStats.ttftMs}ms
+                                                </span>
+                                            )}
                                         </div>
+                                        {selectedModel === 'krip-toe-nite' && streamController && (
+                                            <button
+                                                onClick={handleStopKtn}
+                                                className="text-xs text-red-500 hover:text-red-600 mt-1"
+                                            >
+                                                Stop generation
+                                            </button>
+                                        )}
                                     </MessageCard>
+                                </motion.div>
+                            )}
+                            
+                            {/* KTN Stats banner after completion */}
+                            {ktnStats && !isTyping && selectedModel === 'krip-toe-nite' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-center gap-3 py-2 px-4 rounded-xl mx-auto"
+                                    style={{
+                                        background: 'linear-gradient(145deg, rgba(250,204,21,0.15) 0%, rgba(234,179,8,0.1) 100%)',
+                                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                                    }}
+                                >
+                                    <Zap className="w-4 h-4 text-yellow-600" />
+                                    <span className="text-xs text-yellow-700 font-medium">
+                                        {ktnStats.ttftMs ? `First token in ${ktnStats.ttftMs}ms` : 'Completed'}
+                                        {ktnStats.model && ` via ${ktnStats.model.split('/').pop()}`}
+                                        {ktnStats.strategy && ` (${ktnStats.strategy})`}
+                                    </span>
                                 </motion.div>
                             )}
                         </div>
@@ -556,6 +730,66 @@ export default function ChatInterface() {
                 className="p-4 shrink-0"
                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
             >
+                {/* Model Selector */}
+                <div className="mb-3 relative">
+                    <button
+                        onClick={() => setShowModelDropdown(!showModelDropdown)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:bg-white/50"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                        }}
+                    >
+                        {CHAT_MODELS.find(m => m.id === selectedModel)?.icon}
+                        <span className="font-medium" style={{ color: '#1a1a1a' }}>
+                            {CHAT_MODELS.find(m => m.id === selectedModel)?.name}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-gray-500" />
+                    </button>
+                    
+                    <AnimatePresence>
+                        {showModelDropdown && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                className="absolute bottom-full mb-2 left-0 z-50 rounded-xl p-1 min-w-[200px]"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)',
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
+                                    backdropFilter: 'blur(20px)',
+                                }}
+                            >
+                                {CHAT_MODELS.map((model) => (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => {
+                                            setSelectedModel(model.id);
+                                            setShowModelDropdown(false);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                                            selectedModel === model.id ? 'bg-orange-50' : 'hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {model.icon}
+                                        <div className="text-left">
+                                            <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
+                                                {model.name}
+                                            </div>
+                                            <div className="text-[10px]" style={{ color: '#666' }}>
+                                                {model.description}
+                                            </div>
+                                        </div>
+                                        {selectedModel === model.id && (
+                                            <div className="ml-auto w-2 h-2 rounded-full bg-orange-500" />
+                                        )}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
                 {/* Glass Input Container */}
                 <div
                     className="rounded-2xl p-3 transition-all duration-300"
@@ -585,11 +819,13 @@ export default function ChatInterface() {
                         <div className="flex-1">
                             <textarea
                                 ref={inputRef}
-                                placeholder="Describe what you want to build..."
+                                placeholder={selectedModel === 'krip-toe-nite' 
+                                    ? "Ask anything... ⚡ Ultra-fast response"
+                                    : "Describe what you want to build..."}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                disabled={globalStatus !== 'idle'}
+                                disabled={globalStatus !== 'idle' && !streamController}
                                 rows={1}
                                 className="w-full resize-none bg-transparent border-none px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
                                 style={{
@@ -601,15 +837,25 @@ export default function ChatInterface() {
                             />
                         </div>
 
-                        {/* Send Button */}
-                        <GlassButton
-                            onClick={handleSend}
-                            disabled={globalStatus !== 'idle' || !input.trim()}
-                            variant="primary"
-                            size="md"
-                        >
-                            <Send className="h-4 w-4" style={{ color: '#92400e' }} />
-                        </GlassButton>
+                        {/* Send/Stop Button */}
+                        {streamController ? (
+                            <GlassButton
+                                onClick={handleStopKtn}
+                                variant="danger"
+                                size="md"
+                            >
+                                <StopCircle className="h-4 w-4" style={{ color: '#dc2626' }} />
+                            </GlassButton>
+                        ) : (
+                            <GlassButton
+                                onClick={handleSend}
+                                disabled={globalStatus !== 'idle' || !input.trim()}
+                                variant="primary"
+                                size="md"
+                            >
+                                <Send className="h-4 w-4" style={{ color: '#92400e' }} />
+                            </GlassButton>
+                        )}
                     </div>
                 </div>
 
@@ -621,6 +867,12 @@ export default function ChatInterface() {
                     <span>Press Enter to send</span>
                     <span style={{ color: '#ccc' }}>•</span>
                     <span>Shift+Enter for new line</span>
+                    {selectedModel === 'krip-toe-nite' && (
+                        <>
+                            <span style={{ color: '#ccc' }}>•</span>
+                            <span className="text-yellow-600">⚡ Krip-Toe-Nite</span>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

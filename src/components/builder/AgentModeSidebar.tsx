@@ -36,13 +36,14 @@ import { useProjectStore } from '../../store/useProjectStore';
 import DeployAgentModal, { type DeployConfig } from './DeployAgentModal';
 import { DeveloperModeSettings } from '../settings/DeveloperModeSettings';
 
-// Available models - matches backend
+// Available models - matches backend + Krip-Toe-Nite
 const AVAILABLE_MODELS: Array<{
-    id: AgentModel;
+    id: AgentModel | 'krip-toe-nite';
     name: string;
     description: string;
-    tier: 'premium' | 'standard' | 'economy';
+    tier: 'premium' | 'standard' | 'economy' | 'intelligent';
 }> = [
+    { id: 'krip-toe-nite', name: '⚡ Krip-Toe-Nite', description: 'Intelligent routing, ultra-fast', tier: 'intelligent' },
     { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', description: 'Best reasoning, complex tasks', tier: 'premium' },
     { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', description: 'Fast & capable', tier: 'standard' },
     { id: 'claude-haiku-3-5', name: 'Claude Haiku 3.5', description: 'Fastest, simple tasks', tier: 'economy' },

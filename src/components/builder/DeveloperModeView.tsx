@@ -9,15 +9,15 @@
  * - NLP-based modifications
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Upload, Github, ExternalLink, Folder, FileCode2,
     Zap, Play, X, Check, AlertCircle, ChevronRight,
-    RefreshCw, Cloud
+    RefreshCw, Cloud, StopCircle, Loader2
 } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
-import { apiClient } from '../../lib/api-client';
+import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 
 // =============================================================================
 // TYPES
@@ -58,6 +58,12 @@ export function DeveloperModeView() {
     const [prompt, setPrompt] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [githubUrl, setGithubUrl] = useState('');
+    
+    // Generation state
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatedCode, setGeneratedCode] = useState('');
+    const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
+    const streamControllerRef = useRef<AbortController | null>(null);
 
     // Handle file drop - Real API call to import project
     const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -155,13 +161,80 @@ export function DeveloperModeView() {
         setGithubUrl('');
     }, [githubUrl]);
 
-    // Handle generation
+    // Handle generation with Krip-Toe-Nite
     const handleGenerate = useCallback(async () => {
-        if (!prompt.trim()) return;
-        // This would trigger the Krip-Toe-Nite service
-        console.log('Generating with model:', selectedModel);
-        console.log('Prompt:', prompt);
-    }, [prompt, selectedModel]);
+        if (!prompt.trim() || !importedProject) return;
+        
+        setIsGenerating(true);
+        setGeneratedCode('');
+        setKtnStats(null);
+
+        const startTime = Date.now();
+        let content = '';
+        let firstChunk = true;
+        let ttftMs: number | undefined;
+        let modelUsed: string | undefined;
+        let strategyUsed: string | undefined;
+
+        // Build context from imported project
+        const context = {
+            framework: importedProject.framework || 'React',
+            language: importedProject.language || 'TypeScript',
+            fileCount: importedProject.files.length,
+            buildPhase: 'development',
+        };
+
+        // Use KTN streaming API
+        const controller = apiClient.streamKripToeNite(
+            {
+                prompt: `Project: ${importedProject.name}\n\nFiles: ${importedProject.files.join(', ')}\n\nTask: ${prompt}`,
+                systemPrompt: 'You are an expert developer helping to enhance an existing project. Generate clean, production-ready code.',
+                context,
+            },
+            (chunk: KripToeNiteChunk) => {
+                if (firstChunk && chunk.type === 'text') {
+                    firstChunk = false;
+                    ttftMs = Date.now() - startTime;
+                }
+
+                if (chunk.type === 'text') {
+                    content += chunk.content;
+                    setGeneratedCode(content);
+                }
+
+                if (chunk.type === 'status' || chunk.metadata) {
+                    modelUsed = chunk.model || modelUsed;
+                    strategyUsed = chunk.strategy || strategyUsed;
+                    if (chunk.metadata?.ttftMs) {
+                        ttftMs = chunk.metadata.ttftMs as number;
+                    }
+                }
+            },
+            () => {
+                // On complete
+                setIsGenerating(false);
+                streamControllerRef.current = null;
+                setKtnStats({ model: modelUsed, ttftMs, strategy: strategyUsed });
+            },
+            (error) => {
+                console.error('KTN generation error:', error);
+                setIsGenerating(false);
+                streamControllerRef.current = null;
+                setGeneratedCode(`Error: ${error.message}`);
+            }
+        );
+
+        streamControllerRef.current = controller;
+    }, [prompt, importedProject]);
+
+    // Stop generation
+    const handleStopGeneration = useCallback(() => {
+        if (streamControllerRef.current) {
+            streamControllerRef.current.abort();
+            streamControllerRef.current = null;
+            setIsGenerating(false);
+        }
+    }, []);
 
     return (
         <div className="h-full flex flex-col" style={darkGlassPanel}>
@@ -425,21 +498,86 @@ export function DeveloperModeView() {
                                         </span>
                                     </div>
 
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={!prompt.trim()}
-                                        className="flex items-center gap-2 px-6 py-3 rounded-xl
-                                                 bg-gradient-to-r from-cyan-500 to-cyan-400
-                                                 text-black font-semibold
-                                                 hover:from-cyan-400 hover:to-cyan-300
-                                                 disabled:opacity-50 disabled:cursor-not-allowed
-                                                 transition-all duration-200"
-                                    >
-                                        <Play className="w-5 h-5" />
-                                        Generate
-                                    </button>
+                                    {isGenerating ? (
+                                        <button
+                                            onClick={handleStopGeneration}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl
+                                                     bg-gradient-to-r from-red-500 to-red-400
+                                                     text-white font-semibold
+                                                     hover:from-red-400 hover:to-red-300
+                                                     transition-all duration-200"
+                                        >
+                                            <StopCircle className="w-5 h-5" />
+                                            Stop
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleGenerate}
+                                            disabled={!prompt.trim()}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl
+                                                     bg-gradient-to-r from-cyan-500 to-cyan-400
+                                                     text-black font-semibold
+                                                     hover:from-cyan-400 hover:to-cyan-300
+                                                     disabled:opacity-50 disabled:cursor-not-allowed
+                                                     transition-all duration-200"
+                                        >
+                                            <Play className="w-5 h-5" />
+                                            Generate
+                                        </button>
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Generation Output */}
+                            {(generatedCode || isGenerating) && (
+                                <div className="space-y-3">
+                                    {/* KTN Stats Banner */}
+                                    {ktnStats && !isGenerating && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30"
+                                        >
+                                            <Zap className="w-4 h-4 text-yellow-400" />
+                                            <span className="text-yellow-400 text-sm">
+                                                ⚡ {ktnStats.ttftMs ? `First token in ${ktnStats.ttftMs}ms` : 'Completed'}
+                                                {ktnStats.model && ` via ${ktnStats.model.split('/').pop()}`}
+                                                {ktnStats.strategy && ` (${ktnStats.strategy})`}
+                                            </span>
+                                        </motion.div>
+                                    )}
+
+                                    {/* Loading indicator */}
+                                    {isGenerating && !generatedCode && (
+                                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                                            <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+                                            <span className="text-cyan-400 text-sm">Generating with Krip-Toe-Nite...</span>
+                                        </div>
+                                    )}
+
+                                    {/* Code Output */}
+                                    <div className="relative rounded-xl overflow-hidden">
+                                        <div className="absolute top-0 left-0 right-0 px-4 py-2 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                                            <span className="text-xs text-gray-400 font-mono">Generated Code</span>
+                                            {isGenerating && (
+                                                <span className="flex items-center gap-2 text-xs text-cyan-400">
+                                                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                                    Streaming...
+                                                </span>
+                                            )}
+                                        </div>
+                                        <pre
+                                            className="p-4 pt-12 max-h-96 overflow-auto bg-black/40 text-sm font-mono text-gray-300"
+                                            style={{ tabSize: 2 }}
+                                        >
+                                            {generatedCode || 'Waiting for response...'}
+                                            {isGenerating && (
+                                                <span className="animate-pulse">▊</span>
+                                            )}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Quick Actions */}
                             <div className="grid grid-cols-3 gap-3">

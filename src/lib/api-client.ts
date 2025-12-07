@@ -612,6 +612,195 @@ class ApiClient {
     }> {
         return this.fetch('/api/learning/training/status');
     }
+
+    // =========================================================================
+    // KRIP-TOE-NITE API (Intelligent Model Orchestration)
+    // =========================================================================
+
+    /**
+     * Generate response with Krip-Toe-Nite intelligent routing
+     * Returns SSE stream - use streamKripToeNite for streaming
+     */
+    async generateKripToeNite(data: {
+        prompt: string;
+        systemPrompt?: string;
+        context?: {
+            framework?: string;
+            language?: string;
+            fileCount?: number;
+            buildPhase?: string;
+            complexity?: string;
+        };
+        maxTokens?: number;
+        temperature?: number;
+    }): Promise<KripToeNiteResponse> {
+        return this.fetch('/api/krip-toe-nite/generate/sync', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    /**
+     * Stream Krip-Toe-Nite generation via SSE
+     * Callback receives chunks as they arrive
+     */
+    streamKripToeNite(
+        data: {
+            prompt: string;
+            systemPrompt?: string;
+            context?: {
+                framework?: string;
+                language?: string;
+                fileCount?: number;
+                buildPhase?: string;
+                complexity?: string;
+            };
+            maxTokens?: number;
+            temperature?: number;
+        },
+        onChunk: (chunk: KripToeNiteChunk) => void,
+        onComplete?: () => void,
+        onError?: (error: Error) => void
+    ): AbortController {
+        const controller = new AbortController();
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...(this.userId && { 'x-user-id': this.userId }),
+        };
+
+        fetch(`${this.baseUrl}/api/krip-toe-nite/generate`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+            signal: controller.signal,
+        }).then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`KTN error: ${response.status}`);
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') {
+                                onComplete?.();
+                                return;
+                            }
+                            try {
+                                const chunk = JSON.parse(data) as KripToeNiteChunk;
+                                onChunk(chunk);
+                            } catch {
+                                // Skip malformed JSON
+                            }
+                        }
+                    }
+                }
+                onComplete?.();
+            } catch (err) {
+                if (err instanceof Error && err.name !== 'AbortError') {
+                    onError?.(err);
+                }
+            }
+        }).catch((err) => {
+            if (err.name !== 'AbortError') {
+                onError?.(err);
+            }
+        });
+
+        return controller;
+    }
+
+    /**
+     * Analyze prompt to see routing decision without generating
+     */
+    async analyzeKripToeNite(prompt: string, context?: Record<string, unknown>): Promise<{
+        success: boolean;
+        analysis: {
+            taskType: string;
+            complexity: string;
+            isDesignHeavy: boolean;
+            isCritical: boolean;
+            reason: string;
+        };
+        routing: {
+            strategy: string;
+            primaryModel: string;
+            parallelModel?: string;
+            reasoning: string;
+        };
+        estimatedCost: number;
+    }> {
+        return this.fetch('/api/krip-toe-nite/analyze', {
+            method: 'POST',
+            body: JSON.stringify({ prompt, context }),
+        });
+    }
+
+    /**
+     * Get available models from Krip-Toe-Nite
+     */
+    async getKripToeNiteModels(): Promise<{
+        success: boolean;
+        models: Array<{
+            id: string;
+            name: string;
+            tier: string;
+            maxTokens: number;
+            costPer1MInput: number;
+            costPer1MOutput: number;
+            supportsStreaming: boolean;
+            capabilities: string[];
+        }>;
+        recommended: string;
+    }> {
+        return this.fetch('/api/krip-toe-nite/models');
+    }
+
+    /**
+     * Get Krip-Toe-Nite service statistics
+     */
+    async getKripToeNiteStats(): Promise<{
+        success: boolean;
+        stats: {
+            requestCount: number;
+            totalCost: number;
+            totalTokens: number;
+            averageCostPerRequest: number;
+            averageTokensPerRequest: number;
+        };
+    }> {
+        return this.fetch('/api/krip-toe-nite/stats');
+    }
+
+    /**
+     * Health check for Krip-Toe-Nite service
+     */
+    async checkKripToeNiteHealth(): Promise<{
+        status: string;
+        service: string;
+        version: string;
+        requestCount: number;
+        uptime: number;
+    }> {
+        return this.fetch('/api/krip-toe-nite/health');
+    }
 }
 
 // Image-to-Code result type
@@ -635,6 +824,53 @@ export interface ImageToCodeResult {
         inputTokens: number;
         outputTokens: number;
         estimatedCost: number;
+    };
+}
+
+// Krip-Toe-Nite types
+export interface KripToeNiteChunk {
+    type: 'text' | 'status' | 'error' | 'metadata' | 'complete';
+    content: string;
+    model?: string;
+    strategy?: string;
+    timestamp?: number;
+    metadata?: {
+        ttftMs?: number;
+        isEnhancement?: boolean;
+        modelSwitched?: boolean;
+        [key: string]: unknown;
+    };
+}
+
+export interface KripToeNiteResponse {
+    success: boolean;
+    response: {
+        id: string;
+        content: string;
+        model: string;
+        modelConfig: {
+            id: string;
+            name: string;
+            tier: string;
+        };
+        usage: {
+            inputTokens: number;
+            outputTokens: number;
+            totalTokens: number;
+            estimatedCost: number;
+        };
+        taskAnalysis: {
+            taskType: string;
+            complexity: string;
+        };
+        routingDecision: {
+            strategy: string;
+            primaryModel: { id: string; name: string };
+            reasoning: string;
+        };
+        latencyMs: number;
+        strategy: string;
+        wasEnhanced: boolean;
     };
 }
 

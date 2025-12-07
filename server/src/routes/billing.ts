@@ -327,7 +327,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                 // Check if this is a custom top-up
                 if (session.metadata?.type === 'custom_topup' && userId) {
                     const credits = parseInt(session.metadata.credits || '0');
-                    
+
                     if (credits > 0) {
                         // Add credits to user account
                         const userRecords = await db
@@ -337,7 +337,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                             .limit(1);
 
                         const currentCredits = userRecords[0]?.credits || 0;
-                        
+
                         await db.update(users)
                             .set({ credits: currentCredits + credits })
                             .where(eq(users.id, userId));
@@ -350,7 +350,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                 // Check if this is a preset top-up
                 if (session.metadata?.topup_id && userId) {
                     const credits = parseInt(session.metadata.credits || '0');
-                    
+
                     if (credits > 0) {
                         const userRecords = await db
                             .select({ credits: users.credits })
@@ -359,7 +359,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                             .limit(1);
 
                         const currentCredits = userRecords[0]?.credits || 0;
-                        
+
                         await db.update(users)
                             .set({ credits: currentCredits + credits })
                             .where(eq(users.id, userId));
@@ -383,7 +383,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                     const stripe = getStripe();
                     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
                     const priceId = lineItems.data[0]?.price?.id;
-                    
+
                     let plan = 'starter';
                     let creditsPerMonth = 300;
 
@@ -420,7 +420,7 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
 
                     // Also set user's credits to the plan amount
                     await db.update(users)
-                        .set({ 
+                        .set({
                             credits: creditsPerMonth,
                             tier: plan,
                         })
@@ -837,7 +837,7 @@ router.post('/topup', async (req: Request, res: Response) => {
 router.get('/topups', async (req: Request, res: Response) => {
     try {
         const stripe = getStripeService();
-        res.json({ 
+        res.json({
             topups: stripe.getTopUps(),
             customTopup: {
                 enabled: true,
@@ -862,10 +862,10 @@ router.get('/topups', async (req: Request, res: Response) => {
 /**
  * POST /api/billing/topup/custom
  * Create a checkout session for custom credit top-up amount
- * 
+ *
  * Body:
  * - amount: Dollar amount (integer, min $5, no cents)
- * 
+ *
  * Credit calculation:
  * - Base rate: $1 = 6 credits (16.7¢/credit)
  * - Bonus tiers based on amount
@@ -918,11 +918,11 @@ router.post('/topup/custom', async (req: Request, res: Response) => {
         const stripe = getStripe();
 
         // Get or create customer
-        const existingCustomers = await stripe.customers.list({ 
-            email: `user-${userId}@example.com`, 
-            limit: 1 
+        const existingCustomers = await stripe.customers.list({
+            email: `user-${userId}@example.com`,
+            limit: 1
         });
-        
+
         let customerId: string;
         if (existingCustomers.data.length > 0) {
             customerId = existingCustomers.data[0].id;
@@ -943,7 +943,7 @@ router.post('/topup/custom', async (req: Request, res: Response) => {
                     currency: 'usd',
                     product_data: {
                         name: `${credits} Credits`,
-                        description: bonusCredits > 0 
+                        description: bonusCredits > 0
                             ? `${amount * baseCreditsPerDollar} base + ${bonusCredits} bonus credits`
                             : `Credit top-up for KripTik AI`,
                     },
@@ -962,7 +962,7 @@ router.post('/topup/custom', async (req: Request, res: Response) => {
             },
         });
 
-        res.json({ 
+        res.json({
             url: session.url,
             credits,
             bonusCredits,
