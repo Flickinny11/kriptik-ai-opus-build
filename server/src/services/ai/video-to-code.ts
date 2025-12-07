@@ -28,11 +28,11 @@ type FfmpegFunction = ((input?: string) => import('fluent-ffmpeg').FfmpegCommand
 
 async function getFfmpeg(): Promise<FfmpegFunction> {
     if (ffmpegInstance) return ffmpegInstance;
-    
+
     try {
         const ffmpegModule = await import('fluent-ffmpeg');
         const ffmpegInstaller = await import('@ffmpeg-installer/ffmpeg');
-        
+
         // fluent-ffmpeg exports the function directly
         ffmpegInstance = ffmpegModule.default as unknown as FfmpegFunction;
         ffmpegInstance.setFfmpegPath(ffmpegInstaller.default.path);

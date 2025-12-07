@@ -20,7 +20,7 @@ let playwrightAvailable = false;
 
 async function getPlaywright(): Promise<typeof import('playwright')> {
     if (playwrightModule) return playwrightModule;
-    
+
     try {
         playwrightModule = await import('playwright');
         playwrightAvailable = true;
@@ -120,7 +120,7 @@ export class BrowserAutomationService {
         try {
             // Get playwright (will throw if not available)
             const { chromium } = await getPlaywright();
-            
+
             // Launch browser
             this.browser = await chromium.launch({
                 headless: !this.config.headed,

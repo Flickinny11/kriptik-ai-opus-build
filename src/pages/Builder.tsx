@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers
+    Check, Layers, TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -40,6 +40,7 @@ import CollaborationHeader from '../components/collaboration/CollaborationHeader
 import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
+import { MarketFitDashboard } from '../components/market';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -337,6 +338,7 @@ export default function Builder() {
     const [showAgentPanel, setShowAgentPanel] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
     const [showGhostMode, setShowGhostMode] = useState(false);
+    const [showMarketFit, setShowMarketFit] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -383,6 +385,14 @@ export default function Builder() {
                 <ShareModal />
                 <CommandPalette />
                 <KeyboardShortcutsPanel />
+                
+                {/* Market Fit Oracle - Competitor Analysis & Positioning */}
+                <MarketFitDashboard
+                    isOpen={showMarketFit}
+                    onClose={() => setShowMarketFit(false)}
+                    projectId={projectId || 'default'}
+                    projectDescription="AI-powered application builder"
+                />
 
                 {/* Premium Liquid Glass Header */}
                 <header
@@ -471,6 +481,15 @@ export default function Builder() {
                             isActive={showGhostMode}
                         >
                             👻 Ghost Mode
+                        </GlassButton>
+
+                        {/* Market Fit Oracle - Competitor Analysis */}
+                        <GlassButton
+                            icon={TrendingUp}
+                            onClick={() => setShowMarketFit(true)}
+                            isActive={showMarketFit}
+                        >
+                            Market Fit
                         </GlassButton>
 
                         <div className="h-4 w-px bg-white/10 mx-2" />
