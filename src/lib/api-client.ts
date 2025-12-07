@@ -1228,7 +1228,7 @@ class UnifiedExecutionApi {
     async executeBuilder(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
         const userId = this.getUserId();
         if (!userId) throw new Error('User ID required');
-        
+
         return this.execute({
             mode: 'builder',
             prompt,
@@ -1244,7 +1244,7 @@ class UnifiedExecutionApi {
     async executeDeveloper(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
         const userId = this.getUserId();
         if (!userId) throw new Error('User ID required');
-        
+
         return this.execute({
             mode: 'developer',
             prompt,
@@ -1260,7 +1260,7 @@ class UnifiedExecutionApi {
     async executeAgents(prompt: string, projectId?: string, options?: ExecuteRequest['options']): Promise<ExecuteResponse> {
         const userId = this.getUserId();
         if (!userId) throw new Error('User ID required');
-        
+
         return this.execute({
             mode: 'agents',
             prompt,

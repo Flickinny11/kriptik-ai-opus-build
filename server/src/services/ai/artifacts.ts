@@ -9,16 +9,21 @@
  * - feature_list.json: Feature tracking with passes: true/false
  * - style_guide.json: Design system from App Soul
  * - .cursor/progress.txt: Human-readable session log
+ * - .cursor/tasks/task_list.json: Task queue management
+ * - .cursor/tasks/current_task.json: Currently executing task
  * - .cursor/memory/build_state.json: Current build state
  * - .cursor/memory/verification_history.json: Verification results
  * - .cursor/memory/issue_resolutions.json: How issues were resolved
+ *
+ * Reference: Anthropic's "Effective Harnesses for Long-Running Agents"
  */
 
 import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
-import { projectContexts, files, orchestrationRuns } from '../../schema.js';
+import { files } from '../../schema.js';
 import type { IntentContract } from './intent-lock.js';
 import type { FeatureListSummary } from './feature-list.js';
+import { commitChanges, getLastCommitHash } from './git-helper.js';
 
 // =============================================================================
 // TYPES
@@ -76,9 +81,69 @@ export interface ProjectArtifacts {
     featureListJson: string | null;
     styleGuideJson: string | null;
     progressTxt: string | null;
+    taskListJson: string | null;
+    currentTaskJson: string | null;
     buildStateJson: string | null;
     verificationHistoryJson: string | null;
     issueResolutionsJson: string | null;
+}
+
+// =============================================================================
+// TASK MANAGEMENT TYPES
+// =============================================================================
+
+export interface TaskItem {
+    id: string;
+    description: string;
+    category: 'setup' | 'feature' | 'integration' | 'testing' | 'deployment';
+    status: 'pending' | 'in_progress' | 'complete' | 'blocked';
+    priority: number;
+    assignedAgent?: string;
+    startedAt?: string;
+    completedAt?: string;
+    blockedReason?: string;
+    dependencies?: string[]; // task IDs this depends on
+    summary?: string; // Completion summary
+}
+
+export interface TaskListState {
+    projectId: string;
+    orchestrationRunId: string;
+    tasks: TaskItem[];
+    currentTaskIndex: number;
+    totalTasks: number;
+    completedTasks: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CurrentTask {
+    taskId: string;
+    description: string;
+    assignedAgent: string;
+    assignedAt: string;
+    context: string; // What the agent needs to know
+    expectedOutput: string; // What success looks like
+}
+
+export interface ProgressEntry {
+    agentId: string;
+    agentType: string;
+    taskId?: string;
+    action: string;
+    completed: string[];
+    filesModified: string[];
+    gitCommit?: string;
+    nextSteps: string[];
+    blockers?: string[];
+    notes?: string;
+}
+
+export interface GitAwareSnapshot {
+    snapshotId: string;
+    commitHash: string;
+    artifacts: ProjectArtifacts;
+    timestamp: string;
 }
 
 // =============================================================================
@@ -322,6 +387,8 @@ Each session records what was completed, current state, and next steps.
             featureListJson: await this.getArtifact('feature_list.json'),
             styleGuideJson: await this.getArtifact('style_guide.json'),
             progressTxt: await this.getArtifact('.cursor/progress.txt'),
+            taskListJson: await this.getArtifact('.cursor/tasks/task_list.json'),
+            currentTaskJson: await this.getArtifact('.cursor/tasks/current_task.json'),
             buildStateJson: await this.getArtifact('.cursor/memory/build_state.json'),
             verificationHistoryJson: await this.getArtifact('.cursor/memory/verification_history.json'),
             issueResolutionsJson: await this.getArtifact('.cursor/memory/issue_resolutions.json'),
@@ -466,6 +533,340 @@ Each session records what was completed, current state, and next steps.
             html: 'html',
         };
         return mapping[ext || ''] || 'text';
+    }
+
+    // =========================================================================
+    // TASK LIST MANAGEMENT
+    // =========================================================================
+
+    /**
+     * Initialize task list with a set of tasks
+     */
+    async initializeTaskList(tasks: Omit<TaskItem, 'id' | 'status'>[]): Promise<void> {
+        const now = new Date().toISOString();
+        const taskItems: TaskItem[] = tasks.map((task, index) => ({
+            ...task,
+            id: `task-${index + 1}-${Date.now()}`,
+            status: 'pending' as const,
+        }));
+
+        const taskList: TaskListState = {
+            projectId: this.projectId,
+            orchestrationRunId: this.orchestrationRunId,
+            tasks: taskItems,
+            currentTaskIndex: 0,
+            totalTasks: taskItems.length,
+            completedTasks: 0,
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        await this.saveArtifact('.cursor/tasks/task_list.json', JSON.stringify(taskList, null, 2));
+        console.log(`[Artifacts] Initialized task list with ${taskItems.length} tasks`);
+    }
+
+    /**
+     * Get the current task list
+     */
+    async getTaskList(): Promise<TaskListState | null> {
+        const content = await this.getArtifact('.cursor/tasks/task_list.json');
+        if (!content) return null;
+        try {
+            return JSON.parse(content);
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Get the next pending task that has all dependencies satisfied
+     */
+    async getNextPendingTask(): Promise<TaskItem | null> {
+        const taskList = await this.getTaskList();
+        if (!taskList) return null;
+
+        const completedIds = new Set(
+            taskList.tasks
+                .filter(t => t.status === 'complete')
+                .map(t => t.id)
+        );
+
+        // Find first pending task with satisfied dependencies
+        const pendingTasks = taskList.tasks
+            .filter(t => t.status === 'pending')
+            .sort((a, b) => a.priority - b.priority);
+
+        for (const task of pendingTasks) {
+            const deps = task.dependencies || [];
+            const allDepsSatisfied = deps.every(depId => completedIds.has(depId));
+            if (allDepsSatisfied) {
+                return task;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Mark a task as in progress
+     */
+    async markTaskInProgress(taskId: string, agentId: string): Promise<void> {
+        const taskList = await this.getTaskList();
+        if (!taskList) {
+            throw new Error('Task list not found');
+        }
+
+        const task = taskList.tasks.find(t => t.id === taskId);
+        if (!task) {
+            throw new Error(`Task ${taskId} not found`);
+        }
+
+        task.status = 'in_progress';
+        task.assignedAgent = agentId;
+        task.startedAt = new Date().toISOString();
+        taskList.updatedAt = new Date().toISOString();
+
+        await this.saveArtifact('.cursor/tasks/task_list.json', JSON.stringify(taskList, null, 2));
+        console.log(`[Artifacts] Task ${taskId} marked in progress by ${agentId}`);
+    }
+
+    /**
+     * Mark a task as complete
+     */
+    async markTaskComplete(taskId: string, summary: string): Promise<void> {
+        const taskList = await this.getTaskList();
+        if (!taskList) {
+            throw new Error('Task list not found');
+        }
+
+        const task = taskList.tasks.find(t => t.id === taskId);
+        if (!task) {
+            throw new Error(`Task ${taskId} not found`);
+        }
+
+        task.status = 'complete';
+        task.completedAt = new Date().toISOString();
+        task.summary = summary;
+        taskList.completedTasks = taskList.tasks.filter(t => t.status === 'complete').length;
+        taskList.updatedAt = new Date().toISOString();
+
+        await this.saveArtifact('.cursor/tasks/task_list.json', JSON.stringify(taskList, null, 2));
+        console.log(`[Artifacts] Task ${taskId} marked complete: ${summary}`);
+    }
+
+    /**
+     * Mark a task as blocked
+     */
+    async markTaskBlocked(taskId: string, reason: string): Promise<void> {
+        const taskList = await this.getTaskList();
+        if (!taskList) {
+            throw new Error('Task list not found');
+        }
+
+        const task = taskList.tasks.find(t => t.id === taskId);
+        if (!task) {
+            throw new Error(`Task ${taskId} not found`);
+        }
+
+        task.status = 'blocked';
+        task.blockedReason = reason;
+        taskList.updatedAt = new Date().toISOString();
+
+        await this.saveArtifact('.cursor/tasks/task_list.json', JSON.stringify(taskList, null, 2));
+        console.log(`[Artifacts] Task ${taskId} marked blocked: ${reason}`);
+    }
+
+    /**
+     * Add a new task to the task list
+     * @returns The ID of the new task
+     */
+    async addTask(task: Omit<TaskItem, 'id'>): Promise<string> {
+        let taskList = await this.getTaskList();
+
+        if (!taskList) {
+            // Initialize empty task list first
+            taskList = {
+                projectId: this.projectId,
+                orchestrationRunId: this.orchestrationRunId,
+                tasks: [],
+                currentTaskIndex: 0,
+                totalTasks: 0,
+                completedTasks: 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+        }
+
+        const newId = `task-${taskList.tasks.length + 1}-${Date.now()}`;
+        const newTask: TaskItem = {
+            ...task,
+            id: newId,
+        };
+
+        taskList.tasks.push(newTask);
+        taskList.totalTasks = taskList.tasks.length;
+        taskList.updatedAt = new Date().toISOString();
+
+        await this.saveArtifact('.cursor/tasks/task_list.json', JSON.stringify(taskList, null, 2));
+        console.log(`[Artifacts] Added new task: ${newId} - ${task.description}`);
+
+        return newId;
+    }
+
+    // =========================================================================
+    // CURRENT TASK TRACKING
+    // =========================================================================
+
+    /**
+     * Set the current task being worked on
+     */
+    async setCurrentTask(task: CurrentTask): Promise<void> {
+        await this.saveArtifact('.cursor/tasks/current_task.json', JSON.stringify(task, null, 2));
+        console.log(`[Artifacts] Current task set: ${task.taskId} - ${task.description}`);
+    }
+
+    /**
+     * Get the current task being worked on
+     */
+    async getCurrentTask(): Promise<CurrentTask | null> {
+        const content = await this.getArtifact('.cursor/tasks/current_task.json');
+        if (!content) return null;
+        try {
+            return JSON.parse(content);
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Clear the current task (when complete or reassigning)
+     */
+    async clearCurrentTask(): Promise<void> {
+        // Save empty object to indicate no current task
+        await this.saveArtifact('.cursor/tasks/current_task.json', JSON.stringify(null));
+        console.log('[Artifacts] Current task cleared');
+    }
+
+    // =========================================================================
+    // ENHANCED PROGRESS LOGGING (Append-only)
+    // =========================================================================
+
+    /**
+     * Append a progress entry to the progress log
+     * This is an append-only log for context continuity
+     */
+    async appendProgressEntry(entry: ProgressEntry): Promise<void> {
+        const timestamp = new Date().toISOString();
+
+        // Format the entry as a clear, parseable block
+        const formattedEntry = `
+═══ [${timestamp}] ═══
+AGENT: ${entry.agentId} ${entry.agentType}
+${entry.taskId ? `TASK: ${entry.taskId}` : ''}
+COMPLETED: ${entry.action}
+${entry.completed.length > 0 ? entry.completed.map(c => `- ${c}`).join('\n') : ''}
+FILES MODIFIED: ${entry.filesModified.join(', ') || 'None'}
+${entry.gitCommit ? `GIT COMMIT: ${entry.gitCommit}` : ''}
+NEXT: ${entry.nextSteps.join(', ') || 'Continue with plan'}
+${entry.blockers?.length ? `BLOCKERS: ${entry.blockers.join(', ')}` : ''}
+${entry.notes ? `NOTES: ${entry.notes}` : ''}
+CONTEXT: Session active, context persisted to artifacts
+`;
+
+        // Append to existing progress file
+        const existing = await this.getArtifact('.cursor/progress.txt');
+        const newContent = existing
+            ? `${existing}\n${formattedEntry}`
+            : this.createProgressFileHeader() + formattedEntry;
+
+        await this.saveArtifact('.cursor/progress.txt', newContent);
+        console.log(`[Artifacts] Appended progress entry for ${entry.agentType}`);
+    }
+
+    // =========================================================================
+    // GIT-AWARE SNAPSHOTS
+    // =========================================================================
+
+    /**
+     * Create a git-aware snapshot with commit
+     * @param commitMessage - Message for the git commit
+     * @param projectPath - Path to the project directory (for git operations)
+     */
+    async createGitAwareSnapshot(
+        commitMessage: string,
+        projectPath?: string
+    ): Promise<GitAwareSnapshot> {
+        const timestamp = new Date().toISOString();
+        const snapshotId = `snapshot-${Date.now()}`;
+
+        // Get all current artifacts
+        const artifacts = await this.getAllArtifacts();
+
+        // Commit changes if project path is provided
+        let commitHash = '';
+        if (projectPath) {
+            try {
+                commitHash = await commitChanges(projectPath, commitMessage);
+            } catch (error) {
+                console.warn('[Artifacts] Git commit failed:', error);
+                // Try to get last commit hash anyway
+                const lastHash = await getLastCommitHash(projectPath);
+                commitHash = lastHash || '';
+            }
+        }
+
+        // Create snapshot record
+        const snapshot: GitAwareSnapshot = {
+            snapshotId,
+            commitHash,
+            artifacts,
+            timestamp,
+        };
+
+        // Save snapshot to memory
+        const existingSnapshots = await this.getSnapshots();
+        existingSnapshots.push(snapshot);
+
+        await this.saveArtifact(
+            '.cursor/memory/snapshots.json',
+            JSON.stringify(existingSnapshots.slice(-10), null, 2) // Keep last 10
+        );
+
+        // Append to progress log
+        await this.appendProgressEntry({
+            agentId: 'system',
+            agentType: 'snapshot',
+            action: `Created snapshot: ${commitMessage}`,
+            completed: [`Snapshot ${snapshotId} created`],
+            filesModified: [],
+            gitCommit: commitHash || undefined,
+            nextSteps: ['Continue with build'],
+        });
+
+        console.log(`[Artifacts] Created git-aware snapshot: ${snapshotId} (${commitHash || 'no commit'})`);
+
+        return snapshot;
+    }
+
+    /**
+     * Get all snapshots
+     */
+    async getSnapshots(): Promise<GitAwareSnapshot[]> {
+        const content = await this.getArtifact('.cursor/memory/snapshots.json');
+        if (!content) return [];
+        try {
+            return JSON.parse(content);
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Get the latest snapshot
+     */
+    async getLatestSnapshot(): Promise<GitAwareSnapshot | null> {
+        const snapshots = await this.getSnapshots();
+        return snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
     }
 }
 
