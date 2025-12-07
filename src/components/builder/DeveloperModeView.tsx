@@ -730,8 +730,8 @@ export function DeveloperModeView() {
                                         <span>
                                             Using{' '}
                                             <span className="text-cyan-400 font-medium">
-                                                {selectedModel === 'krip-toe-nite' 
-                                                    ? 'Krip-Toe-Nite' 
+                                                {selectedModel === 'krip-toe-nite'
+                                                    ? 'Krip-Toe-Nite'
                                                     : selectedModel.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                             </span>
                                             {selectedModel === 'krip-toe-nite' && (

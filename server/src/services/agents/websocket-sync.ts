@@ -394,6 +394,110 @@ export class WebSocketSyncService {
             done,
         });
     }
+
+    // =========================================================================
+    // AGENT MODE SPECIFIC BROADCASTS
+    // =========================================================================
+
+    /**
+     * Send build phase transition
+     */
+    sendPhaseChange(contextId: string, phase: string, progress: number, status: string): void {
+        this.broadcast(contextId, 'phase-change', {
+            phase,
+            progress,
+            status,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    /**
+     * Send verification swarm result
+     */
+    sendVerificationResult(contextId: string, result: {
+        featureId: string;
+        verdict: string;
+        score: number;
+        blockers: string[];
+    }): void {
+        this.broadcast(contextId, 'verification-result', result);
+    }
+
+    /**
+     * Send error escalation progress
+     */
+    sendEscalationProgress(contextId: string, escalation: {
+        level: number;
+        description: string;
+        inProgress: boolean;
+        resolved?: boolean;
+    }): void {
+        this.broadcast(contextId, 'escalation-progress', escalation);
+    }
+
+    /**
+     * Send sandbox URL update
+     */
+    sendSandboxUpdate(contextId: string, agentId: string, sandboxUrl: string, status: string): void {
+        this.broadcast(contextId, 'sandbox-update', {
+            agentId,
+            sandboxUrl,
+            status,
+        });
+    }
+
+    /**
+     * Send worker agent status
+     */
+    sendWorkerStatus(contextId: string, worker: {
+        id: string;
+        type: string;
+        status: string;
+        currentTask?: string;
+        progress?: number;
+    }): void {
+        this.broadcast(contextId, 'worker-status', worker);
+    }
+
+    /**
+     * Send queen agent coordination update
+     */
+    sendQueenUpdate(contextId: string, queen: {
+        type: string;
+        activeWorkers: number;
+        completedTasks: number;
+        pendingTasks: number;
+    }): void {
+        this.broadcast(contextId, 'queen-update', queen);
+    }
+
+    /**
+     * Send artifact creation notification
+     */
+    sendArtifactCreated(contextId: string, artifact: {
+        agentId: string;
+        agentType: string;
+        path: string;
+        type: string;
+        validated: boolean;
+    }): void {
+        this.broadcast(contextId, 'artifact-created', artifact);
+    }
+
+    /**
+     * Send build loop progress
+     */
+    sendBuildProgress(contextId: string, progress: {
+        currentPhase: string;
+        currentStage: string;
+        featuresPending: number;
+        featuresCompleted: number;
+        featuresFailed: number;
+        currentFeature?: string;
+        overallProgress: number;
+    }): void {
+        this.broadcast(contextId, 'build-progress', progress);
+    }
     
     /**
      * Get connected client count for a context

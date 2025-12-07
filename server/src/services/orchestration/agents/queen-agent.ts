@@ -3,6 +3,9 @@
  *
  * Coordinates worker agents for a specific domain (infrastructure, development, design, quality).
  * Receives tasks from the orchestrator and dispatches to appropriate workers.
+ * 
+ * NOW USING: OpenRouterClient with phase-based configuration
+ * All AI calls route through openrouter.ai/api/v1
  */
 
 import { EventEmitter } from 'events';
@@ -16,49 +19,93 @@ import {
     Agent,
 } from '../types.js';
 import { getAgentPrompt, getContextInjectionPrompt } from '../prompts.js';
-import { ClaudeService } from '../../ai/claude-service.js';
+import {
+    getOpenRouterClient,
+    getPhaseConfig,
+    type OpenRouterClient,
+    type OpenRouterModel,
+} from '../../ai/openrouter-client.js';
+import { getWebSocketSyncService } from '../../agents/websocket-sync.js';
+import { createVerificationSwarm, type VerificationSwarm } from '../../verification/swarm.js';
 import { WorkerAgent } from './worker-agent.js';
+
+// Worker type to build phase mapping for optimal model selection
+const WORKER_PHASE_MAP: Record<string, string> = {
+    'vpc_architect': 'build_agent',
+    'database_engineer': 'build_agent',
+    'security_specialist': 'visual_verify',  // Higher reasoning for security
+    'deploy_master': 'build_agent',
+    'api_engineer': 'build_agent',
+    'frontend_engineer': 'build_agent',
+    'auth_specialist': 'build_agent',
+    'integration_engineer': 'build_agent',
+    'ui_architect': 'visual_verify',         // Design needs higher reasoning
+    'motion_designer': 'build_agent',
+    'responsive_engineer': 'build_agent',
+    'a11y_specialist': 'error_check',
+    'test_engineer': 'error_check',
+    'e2e_tester': 'error_check',
+    'code_reviewer': 'intent_satisfaction',  // Critical judgment
+    'security_auditor': 'intent_satisfaction',
+};
 
 export class QueenAgent extends EventEmitter {
     private id: AgentId;
     private type: AgentType;
-    private claudeService: ClaudeService;
+    private openRouter: OpenRouterClient;
     private sharedContext: SharedContext;
     private workers: Map<AgentType, WorkerAgent> = new Map();
     private systemPrompt: string;
+    private verificationSwarm: VerificationSwarm | null = null;
 
     constructor(
         id: AgentId,
         type: AgentType,
-        claudeService: ClaudeService,
         sharedContext: SharedContext
     ) {
         super();
         this.id = id;
         this.type = type;
-        this.claudeService = claudeService;
+        this.openRouter = getOpenRouterClient();
         this.sharedContext = sharedContext;
         this.systemPrompt = getAgentPrompt(type);
 
+        // Initialize verification swarm for output validation
+        // Note: Using generic IDs since SharedContext doesn't have these directly
+        this.verificationSwarm = createVerificationSwarm(
+            uuidv4(), // orchestrationRunId
+            'project-' + uuidv4().substring(0, 8), // projectId
+            'system' // userId
+        );
+
         // Spawn workers based on queen type
         this.spawnWorkers();
+
+        console.log(`[QueenAgent] ${type} initialized via OpenRouter with ${this.workers.size} workers`);
     }
 
     /**
      * Spawn worker agents based on queen type
+     * Workers now use OpenRouterClient with phase-based configuration
      */
     private spawnWorkers(): void {
         const workerTypes = this.getWorkerTypes();
 
         for (const workerType of workerTypes) {
+            const phase = WORKER_PHASE_MAP[workerType] || 'build_agent';
             const worker = new WorkerAgent(
                 uuidv4(),
                 workerType,
-                this.claudeService,
-                this.sharedContext
+                this.sharedContext,
+                phase
             );
             this.workers.set(workerType, worker);
-            this.log(`Spawned worker: ${workerType}`);
+            
+            // Forward worker events for WebSocket broadcast
+            worker.on('log', (data) => this.emit('worker_log', { ...data, queenType: this.type }));
+            worker.on('artifact_created', (data) => this.emit('artifact_created', data));
+            
+            this.log(`Spawned worker: ${workerType} (phase: ${phase})`);
         }
     }
 
@@ -159,11 +206,13 @@ export class QueenAgent extends EventEmitter {
 
     /**
      * Execute task directly as queen (when no worker is appropriate)
+     * Uses OpenRouter with phase-based configuration
      */
     private async executeDirectly(task: Task): Promise<Artifact[]> {
         this.log(`Executing directly: ${task.name}`);
 
         const contextPrompt = getContextInjectionPrompt(this.sharedContext);
+        const phaseConfig = getPhaseConfig('build_agent');
 
         const taskPrompt = `Execute this task and generate production-ready code:
 
@@ -192,22 +241,135 @@ Return a JSON array of artifacts:
 
 Generate all necessary files to complete this task.`;
 
-        const response = await this.claudeService.generateStructured<Array<{
-            path: string;
-            type: Artifact['type'];
-            language: string;
-            content: string;
-        }>>(taskPrompt, this.systemPrompt);
+        // Use OpenRouter with phase configuration
+        const client = this.openRouter.withContext({
+            agentType: this.type,
+            feature: 'queen_direct_execute',
+            phase: 'build_agent',
+        });
 
-        return response.map(r => ({
-            id: uuidv4(),
-            taskId: task.id,
-            type: r.type,
-            path: r.path,
-            content: r.content,
-            language: r.language,
-            validated: false,
-        }));
+        const result = await client.messages.create({
+            model: phaseConfig.model,
+            max_tokens: 16000,
+            system: this.systemPrompt,
+            messages: [{ role: 'user', content: taskPrompt }],
+        });
+
+        // Parse response
+        const responseText = result.content[0]?.type === 'text' ? result.content[0].text : '';
+        let artifacts: Artifact[] = [];
+
+        try {
+            // Extract JSON from response
+            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]) as Array<{
+                    path: string;
+                    type: Artifact['type'];
+                    language: string;
+                    content: string;
+                }>;
+
+                artifacts = parsed.map(r => ({
+                    id: uuidv4(),
+                    taskId: task.id,
+                    type: r.type,
+                    path: r.path,
+                    content: r.content,
+                    language: r.language,
+                    validated: false,
+                }));
+            }
+        } catch (parseError) {
+            this.log(`Warning: Failed to parse artifacts JSON: ${(parseError as Error).message}`);
+        }
+
+        // Run verification swarm on generated artifacts
+        if (this.verificationSwarm && artifacts.length > 0) {
+            await this.verifyArtifacts(artifacts, task);
+        }
+
+        // Broadcast artifact creation via WebSocket
+        const wsSync = getWebSocketSyncService();
+        const contextId = this.id; // Use queen's ID as context ID
+        for (const artifact of artifacts) {
+            wsSync.broadcast(contextId, 'artifact-created', {
+                queenType: this.type,
+                taskId: task.id,
+                artifact: { path: artifact.path, type: artifact.type, validated: artifact.validated },
+            });
+        }
+
+        return artifacts;
+    }
+
+    /**
+     * Verify generated artifacts using the Verification Swarm
+     */
+    private async verifyArtifacts(artifacts: Artifact[], task: Task): Promise<void> {
+        if (!this.verificationSwarm) return;
+
+        // Create file map for verification
+        const fileContents = new Map<string, string>();
+        for (const artifact of artifacts) {
+            if (artifact.content) {
+                fileContents.set(artifact.path, artifact.content);
+            }
+        }
+
+        // Create a pseudo-feature for verification that matches the Feature type
+        const pseudoFeature = {
+            featureId: task.id,
+            name: task.name,
+            description: task.description,
+            category: 'core' as const,
+            priority: 1,
+            status: 'building' as const,
+            implementationSteps: [] as string[],
+            visualRequirements: [] as string[],
+            buildAttempts: 0,
+            // Additional required fields with defaults
+            id: task.id,
+            buildIntentId: 'temp',
+            orchestrationRunId: 'temp',
+            projectId: 'temp',
+            isCore: true,
+            dependencies: [],
+            isVisuallyCritical: false,
+            assignedAgent: null,
+            passes: false,
+            errorHistory: [],
+            codeSnippets: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        try {
+            const verdict = await this.verificationSwarm.verifyFeature(pseudoFeature as any, fileContents);
+
+            // Update artifact validation status based on verdict
+            for (const artifact of artifacts) {
+                artifact.validated = verdict.verdict === 'APPROVED';
+                if (!artifact.validated) {
+                    artifact.validationErrors = verdict.blockers;
+                }
+            }
+
+            this.log(`Verification result: ${verdict.verdict} (score: ${verdict.overallScore})`);
+
+            // Broadcast verification result
+            const wsSync = getWebSocketSyncService();
+            const contextId = this.id;
+            wsSync.broadcast(contextId, 'verification-result', {
+                queenType: this.type,
+                taskId: task.id,
+                verdict: verdict.verdict,
+                score: verdict.overallScore,
+                blockers: verdict.blockers,
+            });
+        } catch (verifyError) {
+            this.log(`Verification failed: ${(verifyError as Error).message}`);
+        }
     }
 
     /**

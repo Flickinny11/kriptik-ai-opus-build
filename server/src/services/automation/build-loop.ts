@@ -79,6 +79,10 @@ import {
     createCheckpointScheduler,
     type CheckpointData,
 } from '../checkpoints/time-machine.js';
+import {
+    getWebSocketSyncService,
+    type WebSocketSyncService,
+} from '../agents/websocket-sync.js';
 
 // =============================================================================
 // TYPES
@@ -218,6 +222,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private timeMachine: TimeMachine;
     private checkpointScheduler: CheckpointScheduler;
 
+    // WebSocket sync for real-time updates
+    private wsSync: WebSocketSyncService;
+
     // File contents cache for verification
     private projectFiles: Map<string, string> = new Map();
 
@@ -280,6 +287,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
             this.timeMachine,
             BUILD_MODE_CONFIGS[mode].checkpointIntervalMinutes
         );
+
+        // Initialize WebSocket sync for real-time updates
+        this.wsSync = getWebSocketSyncService();
 
         console.log(`[BuildLoop] Initialized with real automation services (mode: ${mode})`);
     }
@@ -1451,11 +1461,65 @@ Would the user be satisfied with this result?`;
         this.state.currentPhase = phase;
         this.state.currentPhaseStartedAt = new Date();
         this.emitEvent('phase_start', { phase });
+
+        // Broadcast via WebSocket for real-time frontend updates
+        this.wsSync.sendPhaseChange(
+            this.state.projectId,
+            phase,
+            this.calculateOverallProgress(),
+            this.state.status
+        );
+
+        this.wsSync.sendBuildProgress(this.state.projectId, {
+            currentPhase: phase,
+            currentStage: this.state.currentStage,
+            featuresPending: this.state.featureSummary?.pending || 0,
+            featuresCompleted: this.state.featureSummary?.passed || 0,
+            featuresFailed: this.state.featureSummary?.failed || 0,
+            overallProgress: this.calculateOverallProgress(),
+        });
     }
 
     private completePhase(phase: BuildLoopPhase): void {
         this.state.phasesCompleted.push(phase);
         this.state.currentPhaseDurationMs = Date.now() - (this.state.currentPhaseStartedAt?.getTime() || Date.now());
+
+        // Broadcast phase completion via WebSocket
+        this.wsSync.sendPhaseChange(
+            this.state.projectId,
+            phase,
+            this.calculateOverallProgress(),
+            'completed'
+        );
+    }
+
+    /**
+     * Calculate overall build progress as a percentage
+     */
+    private calculateOverallProgress(): number {
+        const phaseWeights: Record<BuildLoopPhase, number> = {
+            'intent_lock': 10,
+            'initialization': 15,
+            'parallel_build': 40,
+            'integration_check': 10,
+            'functional_test': 10,
+            'intent_satisfaction': 10,
+            'browser_demo': 5,
+            'complete': 100,
+            'failed': 0,
+        };
+
+        let progress = 0;
+        for (const completedPhase of this.state.phasesCompleted) {
+            progress += phaseWeights[completedPhase] || 0;
+        }
+
+        // Add partial progress for current phase
+        if (this.state.currentPhase !== 'complete' && this.state.currentPhase !== 'failed') {
+            progress += this.state.stageProgress * (phaseWeights[this.state.currentPhase] / 100);
+        }
+
+        return Math.min(100, Math.round(progress));
     }
 
     private emitEvent(type: BuildLoopEvent['type'], data: Record<string, unknown>): void {

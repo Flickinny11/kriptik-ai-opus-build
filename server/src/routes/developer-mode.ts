@@ -107,7 +107,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         if (sessionId) {
             const manager = getInterruptManager();
             const interrupts = await manager.getInterruptsAtToolBoundary(sessionId, req.user!.id);
-            
+
             if (interrupts.length > 0) {
                 for (const interrupt of interrupts) {
                     const result = await manager.applyInterrupt(interrupt, req.user!.id);
@@ -163,7 +163,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
         } else {
             // Use OpenRouterClient with specific model via Anthropic SDK
             const client = getOpenRouterClient();
-            
+
             // Map model IDs to OpenRouter models
             const modelMap: Record<string, OpenRouterModel> = {
                 'claude-opus-4-5': OPENROUTER_MODELS.OPUS_4_5,
@@ -283,7 +283,7 @@ router.get('/generate/stream', requireAuth, async (req: Request, res: Response) 
 
             const ttftMs = Date.now() - startTime;
             const content = result.content[0]?.type === 'text' ? result.content[0].text : '';
-            
+
             res.write(`data: ${JSON.stringify({ type: 'ttft', ttftMs })}\n\n`);
             res.write(`data: ${JSON.stringify({ type: 'text', content })}\n\n`);
             res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
@@ -317,7 +317,7 @@ router.post('/sandbox', requireAuth, async (req: Request, res: Response) => {
         await service.initialize();
 
         let sandbox = service.getSandbox(sessionId);
-        
+
         if (!sandbox) {
             sandbox = await service.createSandbox(
                 sessionId,
@@ -380,7 +380,7 @@ router.post('/sandbox/:sessionId/restart', requireAuth, async (req: Request, res
         await service.restartSandbox(req.params.sessionId);
 
         const sandbox = service.getSandbox(req.params.sessionId);
-        
+
         res.json({
             success: true,
             sandbox: sandbox ? {

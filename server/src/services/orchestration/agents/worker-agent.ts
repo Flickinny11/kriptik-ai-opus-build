@@ -3,6 +3,9 @@
  *
  * Specialized agent that performs atomic tasks within a specific domain.
  * Each worker type has specialized prompts and output formats.
+ * 
+ * NOW USING: OpenRouterClient with phase-based configuration
+ * All AI calls route through openrouter.ai/api/v1
  */
 
 import { EventEmitter } from 'events';
@@ -15,32 +18,67 @@ import {
     SharedContext,
 } from '../types.js';
 import { getAgentPrompt, getContextInjectionPrompt } from '../prompts.js';
-import { ClaudeService } from '../../ai/claude-service.js';
+import {
+    getOpenRouterClient,
+    getPhaseConfig,
+    type OpenRouterClient,
+} from '../../ai/openrouter-client.js';
+import { getWebSocketSyncService } from '../../agents/websocket-sync.js';
+import {
+    createSandboxService,
+    type SandboxService,
+    type SandboxInstance,
+} from '../../developer-mode/sandbox-service.js';
+import {
+    createErrorEscalationEngine,
+    type ErrorEscalationEngine,
+    type BuildError,
+} from '../../automation/error-escalation.js';
 
 export class WorkerAgent extends EventEmitter {
     private id: AgentId;
     private type: AgentType;
-    private claudeService: ClaudeService;
+    private openRouter: OpenRouterClient;
     private sharedContext: SharedContext;
     private systemPrompt: string;
     private busy = false;
+    private phase: string;
+    private sandbox: SandboxInstance | null = null;
+    private sandboxService: SandboxService | null = null;
+    private errorEscalation: ErrorEscalationEngine | null = null;
 
     constructor(
         id: AgentId,
         type: AgentType,
-        claudeService: ClaudeService,
-        sharedContext: SharedContext
+        sharedContext: SharedContext,
+        phase: string = 'build_agent'
     ) {
         super();
         this.id = id;
         this.type = type;
-        this.claudeService = claudeService;
+        this.openRouter = getOpenRouterClient();
         this.sharedContext = sharedContext;
         this.systemPrompt = getAgentPrompt(type);
+        this.phase = phase;
+
+        // Initialize sandbox service for isolated testing
+        try {
+            this.sandboxService = createSandboxService({
+                basePort: 3300 + Math.floor(Math.random() * 100),
+                maxSandboxes: 5,
+                projectPath: `/tmp/worker-${this.id}`,
+                framework: 'vite',
+            });
+        } catch (e) {
+            // Sandbox creation is optional
+        }
+
+        console.log(`[WorkerAgent] ${type} initialized via OpenRouter (phase: ${phase})`);
     }
 
     /**
      * Execute a task
+     * Uses Error Escalation for automatic retry on failures
      */
     async execute(task: Task): Promise<Artifact[]> {
         if (this.busy) {
@@ -50,22 +88,123 @@ export class WorkerAgent extends EventEmitter {
         this.busy = true;
         this.log(`Starting task: ${task.name}`);
 
+        // Broadcast task start via WebSocket
+        const wsSync = getWebSocketSyncService();
+        const contextId = this.id; // Use worker's ID as context ID
+        wsSync.broadcast(contextId, 'worker-task-started', {
+            workerId: this.id,
+            workerType: this.type,
+            taskId: task.id,
+            taskName: task.name,
+        });
+
         try {
+            // Initialize sandbox for this worker if available
+            if (this.sandboxService) {
+                try {
+                    await this.sandboxService.initialize();
+                    this.sandbox = await this.sandboxService.createSandbox(this.id, `/tmp/worker-${this.id}`);
+                    
+                    wsSync.broadcast(contextId, 'worker-sandbox-ready', {
+                        workerId: this.id,
+                        sandboxUrl: this.sandbox.url,
+                    });
+                } catch (e) {
+                    this.log(`Sandbox init skipped: ${(e as Error).message}`);
+                }
+            }
+
             const artifacts = await this.generateArtifacts(task);
             await this.validateArtifacts(artifacts);
+
+            // Test in sandbox if available
+            if (this.sandbox && this.sandbox.status === 'running') {
+                await this.testInSandbox(artifacts);
+            }
+
+            // Broadcast task complete
+            wsSync.broadcast(contextId, 'worker-task-completed', {
+                workerId: this.id,
+                workerType: this.type,
+                taskId: task.id,
+                artifactCount: artifacts.length,
+                validated: artifacts.every(a => a.validated),
+            });
+
             this.log(`Completed task: ${task.name} (${artifacts.length} artifacts)`);
             return artifacts;
+
+        } catch (error) {
+            // Use Error Escalation for automatic retry
+            if (!this.errorEscalation) {
+                this.errorEscalation = createErrorEscalationEngine(
+                    this.id, // orchestrationRunId
+                    'project-' + this.id.substring(0, 8), // projectId
+                    'system' // userId
+                );
+            }
+
+            this.log(`Task failed, escalating: ${(error as Error).message}`);
+
+            wsSync.broadcast(contextId, 'worker-task-error', {
+                workerId: this.id,
+                workerType: this.type,
+                taskId: task.id,
+                error: (error as Error).message,
+                escalating: true,
+            });
+
+            try {
+                // Create a BuildError for escalation
+                const buildError: BuildError = {
+                    id: uuidv4(),
+                    featureId: task.id,
+                    category: 'runtime_error',
+                    message: (error as Error).message,
+                    stack: (error as Error).stack,
+                    timestamp: new Date(),
+                };
+
+                // Create file contents map from task context
+                const fileContents = new Map<string, string>();
+                
+                const escalationResult = await this.errorEscalation.fixError(buildError, fileContents);
+
+                if (escalationResult.success && escalationResult.fix) {
+                    // Retry with the fix
+                    this.log(`Escalation resolved at Level ${escalationResult.level}, retrying task`);
+                    const artifacts = await this.generateArtifacts(task);
+                    await this.validateArtifacts(artifacts);
+                    return artifacts;
+                }
+            } catch (escalationError) {
+                this.log(`Escalation failed: ${(escalationError as Error).message}`);
+            }
+
+            throw error;
         } finally {
             this.busy = false;
+
+            // Cleanup sandbox
+            if (this.sandbox && this.sandboxService) {
+                try {
+                    await this.sandboxService.removeSandbox(this.id);
+                    this.sandbox = null;
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
+            }
         }
     }
 
     /**
      * Generate artifacts for a task
+     * Uses OpenRouterClient with phase-based configuration
      */
     private async generateArtifacts(task: Task): Promise<Artifact[]> {
         const contextPrompt = getContextInjectionPrompt(this.sharedContext);
         const workerSpecificPrompt = this.getWorkerSpecificPrompt(task);
+        const phaseConfig = getPhaseConfig(this.phase);
 
         const prompt = `${workerSpecificPrompt}
 
@@ -97,22 +236,82 @@ Return a JSON array of complete file artifacts:
 
 Generate all files needed to fully implement this task.`;
 
-        const response = await this.claudeService.generateStructured<Array<{
-            path: string;
-            type: string;
-            language: string;
-            content: string;
-        }>>(prompt, this.systemPrompt);
+        // Use OpenRouter with phase configuration
+        const client = this.openRouter.withContext({
+            agentType: this.type,
+            feature: task.name,
+            phase: this.phase,
+        });
 
-        return response.map(r => ({
-            id: uuidv4(),
-            taskId: task.id,
-            type: this.mapArtifactType(r.type),
-            path: r.path,
-            content: r.content,
-            language: r.language,
-            validated: false,
-        }));
+        const result = await client.messages.create({
+            model: phaseConfig.model,
+            max_tokens: 16000,
+            system: this.systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+        });
+
+        // Parse response
+        const responseText = result.content[0]?.type === 'text' ? result.content[0].text : '';
+        let artifacts: Artifact[] = [];
+
+        try {
+            // Extract JSON from response
+            const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) ||
+                             responseText.match(/\[[\s\S]*\]/);
+            
+            if (jsonMatch) {
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                const parsed = JSON.parse(jsonStr) as Array<{
+                    path: string;
+                    type: string;
+                    language: string;
+                    content: string;
+                }>;
+
+                artifacts = parsed.map(r => ({
+                    id: uuidv4(),
+                    taskId: task.id,
+                    type: this.mapArtifactType(r.type),
+                    path: r.path,
+                    content: r.content,
+                    language: r.language,
+                    validated: false,
+                }));
+
+                // Emit artifact creation events
+                for (const artifact of artifacts) {
+                    this.emit('artifact_created', {
+                        workerId: this.id,
+                        workerType: this.type,
+                        artifact: { path: artifact.path, type: artifact.type },
+                    });
+                }
+            }
+        } catch (parseError) {
+            this.log(`Warning: Failed to parse artifacts JSON: ${(parseError as Error).message}`);
+        }
+
+        return artifacts;
+    }
+
+    /**
+     * Test generated artifacts in the sandbox
+     */
+    private async testInSandbox(artifacts: Artifact[]): Promise<void> {
+        if (!this.sandbox || !this.sandboxService) return;
+
+        try {
+            // Trigger HMR update for each changed file
+            for (const artifact of artifacts) {
+                if (artifact.path.endsWith('.ts') || artifact.path.endsWith('.tsx')) {
+                    await this.sandboxService.triggerHMRUpdate(this.id, artifact.path);
+                }
+            }
+
+            this.log(`Sandbox test triggered for ${artifacts.length} artifacts`);
+        } catch (e) {
+            this.log(`Sandbox test failed: ${(e as Error).message}`);
+        }
     }
 
     /**

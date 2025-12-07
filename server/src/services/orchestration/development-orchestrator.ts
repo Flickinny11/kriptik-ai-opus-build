@@ -472,10 +472,10 @@ Return as JSON array of Epics. Be thorough and realistic.`;
         ];
 
         for (const { type, agentType } of queenTypes) {
+            // QueenAgent now uses OpenRouter internally, no need to pass ClaudeService
             const queen = new QueenAgent(
                 uuidv4(),
                 agentType,
-                this.claudeService,
                 this.sharedContext
             );
 
