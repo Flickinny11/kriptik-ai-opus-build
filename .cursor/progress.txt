@@ -1251,3 +1251,49 @@ feat(developer-mode): Complete Developer Mode implementation
 - Integrate credit calculator for transparent pricing
 - Support PR creation for GitHub/GitLab/Bitbucket
 - Connect frontend to backend via Zustand store
+
+═══ [2025-12-07 WIRING & INTEGRATION COMPLETE] ═══
+COMPLETED: Wired Developer Mode to Agents Toggle & Fixed Schema Mappings
+
+CHANGES MADE:
+1. AgentModeSidebar Integration:
+   - Added DeployAgentModal import and button
+   - Fixed useProjectStore to use currentProject
+   - Added handleDeployFromModal callback
+   - Connect to useDeveloperModeStore for state management
+
+2. Schema Column Fixes (intent-lock.ts):
+   - Fixed getMicroIntent to map developerModeAgents columns correctly
+   - Fixed completeMicroIntent, failMicroIntent, rollbackMicroIntent
+   - Fixed getMicroIntentsForAgent to use sessionId
+   - Fixed saveMicroIntent to create proper records
+
+3. Schema Column Fixes (credit-calculator.ts):
+   - Fixed insert to use correct column names
+   - Fixed getUsageSummary to use totalTokens and creditsCharged
+
+4. Store Updates:
+   - Added branch and filesModified to Agent interface
+   - Fixed AgentSandboxPreview selectors
+
+FILES MODIFIED:
+- src/components/builder/AgentModeSidebar.tsx (Deploy modal integration)
+- src/components/builder/DeployAgentModal.tsx (Model selection fix)
+- src/components/builder/AgentSandboxPreview.tsx (Store selector fix)
+- src/store/useDeveloperModeStore.ts (Agent interface additions)
+- server/src/services/ai/intent-lock.ts (Schema column fixes)
+- server/src/services/developer-mode/credit-calculator.ts (Schema column fixes)
+
+BUILD STATUS: ✓ Both frontend and server TypeScript pass
+
+ARCHITECTURE VERIFICATION:
+The Developer Mode is now properly wired to:
+- Agents toggle in Builder.tsx (builderMode state)
+- AgentModeSidebar shows when agents mode is active
+- AgentModeSidebar connects to backend via useDeveloperModeStore
+- DeployAgentModal for advanced agent configuration
+- AgentSandboxPreview for live preview of agent work
+- Backend routes at /api/developer-mode/*
+- All developer-mode services (orchestrator, verification, credits, git, sandbox)
+
+GIT COMMIT: fix: Wire Developer Mode to agents toggle and fix schema mappings

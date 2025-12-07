@@ -1,9 +1,9 @@
 {
   "project": "KripTik AI Ultimate Builder Architecture",
-  "version": "2.1",
-  "last_updated": "2025-12-06",
-  "total_features": 29,
-  "completed": 29,
+  "version": "2.2",
+  "last_updated": "2025-12-07",
+  "total_features": 45,
+  "completed": 45,
   "in_progress": 0,
   "pending": 0,
 
@@ -556,20 +556,41 @@
           "name": "Sandbox Preview Component",
           "description": "Live preview of agent changes before merging",
           "priority": 2,
-          "passes": false,
-          "files": ["src/components/builder/SandboxPreview.tsx"],
+          "passes": true,
+          "files": ["src/components/builder/AgentSandboxPreview.tsx"],
           "dependencies": ["F037"],
-          "phase": 13
+          "phase": 13,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "Live code preview iframe",
+            "Viewport switching (desktop/tablet/mobile)",
+            "Console log display",
+            "Code diff view",
+            "Branch indicator",
+            "Auto-refresh toggle",
+            "Fullscreen mode"
+          ]
         },
         {
           "id": "F039",
           "name": "Deploy Agent Modal",
           "description": "Modal for configuring and deploying new agents",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["src/components/builder/DeployAgentModal.tsx"],
           "dependencies": ["F036"],
-          "phase": 13
+          "phase": 13,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "Task description input",
+            "Model selection with tier badges",
+            "Verification mode selection",
+            "Git branch configuration",
+            "Auto-generated branch names",
+            "Cost estimation display",
+            "Time estimation display",
+            "Complexity badge display"
+          ]
         },
         {
           "id": "F040",
@@ -597,40 +618,103 @@
           "name": "Git Branch Manager",
           "description": "Git branch isolation for agent work",
           "priority": 2,
-          "passes": false,
-          "files": ["server/src/services/developer-mode/git-manager.ts"],
+          "passes": true,
+          "files": ["server/src/services/developer-mode/git-branch-manager.ts"],
           "dependencies": ["F030"],
-          "phase": 14
+          "phase": 14,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "Worktree creation and management",
+            "Branch checkout and creation",
+            "Commit with author info",
+            "Branch merging with conflict detection",
+            "Cherry-pick support",
+            "Diff generation",
+            "Worktree cleanup"
+          ]
         },
         {
           "id": "F042",
           "name": "Sandbox Service",
           "description": "Isolated preview environments for agent changes",
           "priority": 2,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/developer-mode/sandbox-service.ts"],
           "dependencies": ["F030", "F041"],
-          "phase": 14
+          "phase": 14,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "Sandbox instance creation",
+            "File syncing from worktree",
+            "Dev server management",
+            "Port allocation",
+            "Hot reload support",
+            "Console log capture",
+            "Automatic cleanup on agent completion"
+          ]
         },
         {
           "id": "F043",
           "name": "Credit Calculator",
           "description": "Cost estimation and tracking for Developer Mode",
           "priority": 1,
-          "passes": false,
+          "passes": true,
           "files": ["server/src/services/developer-mode/credit-calculator.ts"],
           "dependencies": ["F030"],
-          "phase": 14
+          "phase": 14,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "Per-model pricing configuration",
+            "Input/output/thinking token tracking",
+            "Cost estimation before deployment",
+            "Usage recording to database",
+            "Usage summary by session/agent",
+            "Credit balance checking",
+            "Budget limit enforcement"
+          ]
         },
         {
           "id": "F044",
           "name": "PR Creation Integration",
           "description": "Auto-generated PRs with verification results",
           "priority": 2,
-          "passes": false,
-          "files": ["server/src/services/developer-mode/git-manager.ts"],
+          "passes": true,
+          "files": ["server/src/services/developer-mode/pr-integration.ts"],
           "dependencies": ["F041"],
-          "phase": 14
+          "phase": 14,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "GitHub PR creation",
+            "GitLab MR support",
+            "Bitbucket PR support",
+            "Verification results in PR description",
+            "Branch cleanup after merge",
+            "PR status polling",
+            "Label and reviewer assignment"
+          ]
+        },
+        {
+          "id": "F045",
+          "name": "Micro Intent Lock",
+          "description": "Task-level contracts for Developer Mode agents",
+          "priority": 1,
+          "passes": true,
+          "files": ["server/src/services/ai/intent-lock.ts"],
+          "dependencies": ["F001", "F030"],
+          "phase": 14,
+          "completed_at": "2025-12-07",
+          "features_implemented": [
+            "MicroIntentContract interface",
+            "Task-level success criteria",
+            "Estimated complexity tracking",
+            "Token and cost estimation",
+            "Timeout and rollback strategy",
+            "Micro intent creation API",
+            "Micro intent locking",
+            "Satisfaction checking",
+            "Criterion pass tracking",
+            "Workflow verification"
+          ]
         }
       ]
     }
@@ -650,7 +734,7 @@
     "F029",
     "F030", "F031", "F032", "F033", "F034", "F035",
     "F036", "F037", "F038", "F039",
-    "F040", "F041", "F042", "F043", "F044"
+    "F040", "F041", "F042", "F043", "F044", "F045"
   ],
 
   "phase_summary": {
@@ -667,7 +751,7 @@
     "phase_11": { "name": "Developer Mode UI Foundation", "features": 1, "completed": 1 },
     "phase_12": { "name": "Developer Mode Backend", "features": 6, "completed": 6 },
     "phase_13": { "name": "Developer Mode Frontend Integration", "features": 4, "completed": 4 },
-    "phase_14": { "name": "Developer Mode Advanced Features", "features": 5, "completed": 5 }
+    "phase_14": { "name": "Developer Mode Advanced Features", "features": 6, "completed": 6 }
   }
 }
 
