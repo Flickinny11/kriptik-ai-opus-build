@@ -8,6 +8,11 @@
  * - Build Loop integration for complex rebuilds
  * - Feature-by-feature progress tracking
  *
+ * NOW WITH MEMORY HARNESS INTEGRATION:
+ * - CodingAgentWrapper for context-aware fix iterations
+ * - Persistent artifacts for fix diagnosis and progress
+ * - OpenRouter routing for all AI calls
+ *
  * Part of Phase 6: Enhanced Fix My App Flow
  */
 
@@ -16,10 +21,33 @@ import { v4 as uuidv4 } from 'uuid';
 import { createClaudeService, type ClaudeService, CLAUDE_MODELS } from '../ai/claude-service.js';
 import { createIntentLockEngine, type IntentContract } from '../ai/intent-lock.js';
 import { createFeatureListManager, type Feature, type FeatureVerificationStatus, type FeatureVerificationScores } from '../ai/feature-list.js';
-import { createArtifactManager, type ArtifactManager } from '../ai/artifacts.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+    type TaskItem,
+} from '../ai/artifacts.js';
 import { createVerificationSwarm, type VerificationSwarm, type CombinedVerificationResult, type VerificationIssue } from '../verification/swarm.js';
 import { createErrorEscalationEngine, type ErrorEscalationEngine, type BuildError, type ErrorCategory } from '../automation/error-escalation.js';
 import { getDesignTokenPrompt } from '../ai/design-tokens.js';
+// Memory Harness Integration
+import {
+    createCodingAgentWrapper,
+    type CodingAgentWrapper,
+    type TaskResult,
+} from '../ai/coding-agent-wrapper.js';
+import {
+    loadProjectContext,
+    hasProjectContext,
+    type LoadedContext,
+} from '../ai/context-loader.js';
+import {
+    getOpenRouterClient,
+    getPhaseConfig,
+} from '../ai/openrouter-client.js';
+import {
+    getKripToeNite,
+    type KripToeNiteFacade,
+} from '../ai/krip-toe-nite/index.js';
 import type {
     FixStrategy,
     IntentSummary,
@@ -41,6 +69,9 @@ export interface EnhancedFixExecutorConfig {
     enableVerificationSwarm?: boolean;
     enableErrorEscalation?: boolean;
     maxEscalationAttempts?: number;
+    // Memory Harness options
+    projectPath?: string;
+    useCodingAgentWrapper?: boolean;
 }
 
 export class EnhancedFixExecutor extends EventEmitter {
@@ -72,6 +103,13 @@ export class EnhancedFixExecutor extends EventEmitter {
     // Build intent ID for tracking
     private buildIntentId?: string;
 
+    // Memory Harness
+    private projectPath: string;
+    private useCodingAgentWrapper: boolean;
+    private openRouterClient: ReturnType<typeof getOpenRouterClient>;
+    private ktn: KripToeNiteFacade;
+    private loadedContext: LoadedContext | null = null;
+
     constructor(config: EnhancedFixExecutorConfig) {
         super();
         this.userId = config.userId;
@@ -86,7 +124,13 @@ export class EnhancedFixExecutor extends EventEmitter {
         this.enableErrorEscalation = config.enableErrorEscalation ?? true;
         this.maxEscalationAttempts = config.maxEscalationAttempts ?? 12; // 3 attempts per level * 4 levels
 
-        // Initialize Claude services
+        // Memory Harness configuration
+        this.projectPath = config.projectPath || `/tmp/kriptik-fix/${config.projectId}`;
+        this.useCodingAgentWrapper = config.useCodingAgentWrapper ?? true;
+        this.openRouterClient = getOpenRouterClient();
+        this.ktn = getKripToeNite();
+
+        // Initialize Claude services (as fallback)
         this.claudeService = createClaudeService({
             agentType: 'generation',
             projectId: config.projectId,
@@ -218,6 +262,8 @@ Always explain your reasoning and provide detailed plans.`;
 
     /**
      * Execute the enhanced fix strategy with verification and self-healing
+     *
+     * Now uses CodingAgentWrapper for context-aware fix iterations
      */
     async execute(): Promise<Map<string, string>> {
         try {
@@ -227,27 +273,38 @@ Always explain your reasoning and provide detailed plans.`;
             // Step 0: Create Intent Lock from analysis
             await this.createIntentLock();
 
+            // Step 0.5: Load or create context artifacts
+            if (this.useCodingAgentWrapper) {
+                await this.initializeContextArtifacts();
+            }
+
             // Step 1: Clone UI files if user wants to keep their UI
             if (this.preferences?.uiPreference === 'keep_ui') {
                 await this.cloneUIFiles();
             }
 
             // Step 2: Execute the appropriate fix strategy with verification
-            switch (this.strategy.approach) {
-                case 'repair':
-                    await this.executeVerifiedRepair();
-                    break;
-                case 'rebuild_partial':
-                    await this.executeVerifiedPartialRebuild();
-                    break;
-                case 'rebuild_full':
-                    if (this.preferences?.uiPreference === 'keep_ui') {
-                        this.log('User requested keeping UI - switching to partial rebuild');
+            if (this.useCodingAgentWrapper) {
+                // Use CodingAgentWrapper for context-aware execution
+                await this.executeWithCodingAgent();
+            } else {
+                // Fallback to legacy execution
+                switch (this.strategy.approach) {
+                    case 'repair':
+                        await this.executeVerifiedRepair();
+                        break;
+                    case 'rebuild_partial':
                         await this.executeVerifiedPartialRebuild();
-                    } else {
-                        await this.executeVerifiedFullRebuild();
-                    }
-                    break;
+                        break;
+                    case 'rebuild_full':
+                        if (this.preferences?.uiPreference === 'keep_ui') {
+                            this.log('User requested keeping UI - switching to partial rebuild');
+                            await this.executeVerifiedPartialRebuild();
+                        } else {
+                            await this.executeVerifiedFullRebuild();
+                        }
+                        break;
+                }
             }
 
             // Step 3: Merge cloned UI files back (if keeping UI)
@@ -276,6 +333,292 @@ Always explain your reasoning and provide detailed plans.`;
             this.emit('error', error instanceof Error ? error : new Error(String(error)));
             throw error;
         }
+    }
+
+    /**
+     * Initialize context artifacts for Fix My App mode
+     */
+    private async initializeContextArtifacts(): Promise<void> {
+        this.emitProgress(1, 'Initializing fix context artifacts');
+
+        // Check if context already exists
+        const hasContext = await hasProjectContext(this.projectPath);
+
+        if (hasContext) {
+            // Load existing context
+            this.loadedContext = await loadProjectContext(this.projectPath);
+            this.log(`Loaded existing context: ${this.loadedContext.taskList?.completedTasks || 0} tasks completed`);
+        } else {
+            // Initialize artifacts with fix-specific data
+            const contract = await this.intentLockEngine!.getContract(this.buildIntentId!);
+            if (contract) {
+                await this.artifactManager?.initializeArtifacts(contract);
+            }
+
+            // Initialize fix tasks manually
+            for (const task of this.createFixTasks()) {
+                await this.artifactManager?.addTask({
+                    description: task.description,
+                    category: task.category,
+                    status: task.status,
+                    priority: task.priority,
+                });
+            }
+
+            // Create diagnosis artifacts
+            await this.createDiagnosisArtifacts();
+
+            this.log('Initialized fresh fix context artifacts');
+        }
+    }
+
+    /**
+     * Create fix tasks from gaps and strategy
+     */
+    private createFixTasks(): TaskItem[] {
+        const tasks: TaskItem[] = [];
+
+        this.strategy.featuresToFix.forEach((fix, index) => {
+            tasks.push({
+                id: uuidv4(),
+                description: `Fix: ${fix.featureName} - ${fix.description}`,
+                category: 'feature',
+                status: 'pending',
+                priority: index + 1, // Use index as priority since FeatureFix doesn't have priority
+            });
+        });
+
+        return tasks;
+    }
+
+    /**
+     * Create diagnosis artifacts for Fix My App mode
+     */
+    private async createDiagnosisArtifacts(): Promise<void> {
+        if (!this.artifactManager) return;
+
+        // Create what_went_wrong.json
+        const whatWentWrong = {
+            summary: `Project has ${this.gaps.length} implementation gaps`,
+            rootCauses: this.gaps.map(g => g.details),
+            brokenFeatures: this.strategy.featuresToFix.map(f => ({
+                id: f.featureId,
+                name: f.featureName,
+                description: f.description,
+            })),
+            errorPatterns: this.gaps.map(g => `${g.featureId}: ${g.status} - ${g.details}`),
+            missingImplementations: this.gaps.filter(g => g.severity === 'critical').map(g => ({
+                feature: g.featureId,
+                details: g.details,
+                suggestedFix: g.suggestedFix,
+            })),
+            analyzedAt: new Date().toISOString(),
+        };
+
+        await this.artifactManager.saveArtifact(
+            '.cursor/diagnosis/what_went_wrong.json',
+            JSON.stringify(whatWentWrong, null, 2)
+        );
+
+        // Create original_intent.json
+        const originalIntent = {
+            inferredFromChatHistory: true,
+            corePurpose: this.intent.corePurpose,
+            requestedFeatures: [
+                ...this.intent.primaryFeatures.map(f => ({ name: f.name, description: f.description, priority: 'primary' })),
+                ...this.intent.secondaryFeatures.map(f => ({ name: f.name, description: f.description, priority: 'secondary' })),
+            ],
+            designPreferences: this.intent.designPreferences,
+            technicalRequirements: this.intent.technicalRequirements,
+        };
+
+        await this.artifactManager.saveArtifact(
+            '.cursor/diagnosis/original_intent.json',
+            JSON.stringify(originalIntent, null, 2)
+        );
+
+        this.log('Created diagnosis artifacts');
+    }
+
+    /**
+     * Execute fix using CodingAgentWrapper for context-aware iterations
+     */
+    private async executeWithCodingAgent(): Promise<void> {
+        this.emitProgress(10, 'Starting context-aware fix execution');
+
+        // Create coding agent wrapper for this fix session
+        const codingAgent = createCodingAgentWrapper({
+            projectId: this.projectId,
+            userId: this.userId,
+            orchestrationRunId: this.orchestrationRunId,
+            projectPath: this.projectPath,
+            agentType: 'fix',
+            agentId: `fix-${this.strategy.approach}-${Date.now()}`,
+        });
+
+        // Load context from artifacts (includes diagnosis)
+        await codingAgent.startSession();
+
+        // Write initial progress entry
+        await this.artifactManager?.appendProgressEntry({
+            agentId: codingAgent.getConfig().agentId || 'fix-agent',
+            agentType: 'fix',
+            action: 'Starting Fix My App session',
+            completed: ['Loaded context', 'Diagnosis artifacts available'],
+            filesModified: [],
+            nextSteps: this.strategy.featuresToFix.map(f => `Fix: ${f.featureName}`),
+        });
+
+        // Work through fix tasks one at a time
+        let task = await codingAgent.claimTask();
+        const totalTasks = this.strategy.featuresToFix.length;
+        let completedTasks = 0;
+
+        while (task && completedTasks < totalTasks) {
+            const progress = 10 + (completedTasks / totalTasks) * 70;
+            this.emitProgress(progress, `Fixing: ${task.description}`);
+
+            // Get system prompt with full context
+            const systemPrompt = codingAgent.getSystemPromptWithContext(this.buildSystemPrompt());
+
+            // Find the corresponding gap
+            const fix = this.strategy.featuresToFix[completedTasks];
+            const gap = this.gaps.find(g => g.featureId === fix?.featureId);
+
+            // Generate fix using KripToeNite
+            let fixContent = '';
+            try {
+                const result = await this.ktn.buildFeature(
+                    `Fix this issue: ${task.description}\n\nDetails: ${gap?.details || 'N/A'}\nSuggested approach: ${gap?.suggestedFix || 'N/A'}`,
+                    {
+                        projectId: this.projectId,
+                        userId: this.userId,
+                        framework: 'React',
+                        language: 'TypeScript',
+                    }
+                );
+                fixContent = result.content;
+                this.log(`KTN fix generated: strategy=${result.strategy}, model=${result.model}`);
+            } catch (ktnError) {
+                // Fallback to Claude
+                this.log('KTN failed, using Claude fallback');
+                const response = await this.claudeService.generate(
+                    `${systemPrompt}\n\nFix this: ${task.description}\n\nGap details: ${gap?.details || 'N/A'}`,
+                    {
+                        model: CLAUDE_MODELS.OPUS_4_5,
+                        maxTokens: 32000,
+                        useExtendedThinking: true,
+                        thinkingBudgetTokens: 16000,
+                    }
+                );
+                fixContent = response.content;
+            }
+
+            // Parse files from response
+            const parsedFiles = this.parseFixResponse(fixContent);
+            const filesModified: string[] = [];
+
+            for (const file of parsedFiles) {
+                this.generatedFiles.set(file.path, file.content);
+                codingAgent.recordFileChange(file.path, 'modify', file.content);
+                filesModified.push(file.path);
+                this.emitFile(file.path, 'update', file.content.substring(0, 200));
+            }
+
+            // Run verification if enabled
+            if (this.enableVerificationSwarm && this.verificationSwarm && fix) {
+                const feature = this.createVerificationFeature(fix.featureId, fix.featureName, filesModified);
+                const verificationResult = await this.verificationSwarm.verifyFeature(feature, this.generatedFiles);
+
+                // Record verification in artifacts
+                await this.artifactManager?.addVerificationEntry({
+                    featureId: task.id,
+                    agentType: 'verification_swarm',
+                    result: verificationResult.allPassed ? 'passed' : 'failed',
+                    score: verificationResult.overallScore,
+                    details: verificationResult.verdict,
+                });
+
+                if (!verificationResult.allPassed && this.enableErrorEscalation && this.errorEscalationService) {
+                    // Escalate to fix issues
+                    const issues = this.extractVerificationIssues(verificationResult);
+                    const buildError: BuildError = {
+                        id: uuidv4(),
+                        featureId: fix.featureId,
+                        category: 'syntax_error' as ErrorCategory,
+                        message: verificationResult.verdict,
+                        context: { issues: issues.map(i => i.description) },
+                        timestamp: new Date(),
+                    };
+
+                    const escalationResult = await this.errorEscalationService.fixError(
+                        buildError,
+                        this.generatedFiles,
+                        feature
+                    );
+
+                    if (escalationResult.success && escalationResult.fix) {
+                        for (const change of escalationResult.fix.changes) {
+                            if (change.action === 'create' || change.action === 'update') {
+                                this.generatedFiles.set(change.path, change.newContent || '');
+                                codingAgent.recordFileChange(change.path, 'modify', change.newContent);
+                            }
+                        }
+                        this.log(`Fixed after level ${escalationResult.level} escalation`);
+                    }
+                }
+            }
+
+            // Complete task (updates artifacts, commits to git)
+            await codingAgent.completeTask({
+                summary: `Fixed: ${task.description}`,
+                filesModified,
+                nextSteps: completedTasks < totalTasks - 1
+                    ? [`Continue with next fix`]
+                    : ['Run final verification'],
+            });
+
+            // Get next task
+            completedTasks++;
+            task = await codingAgent.claimTask();
+        }
+
+        // End coding agent session
+        await codingAgent.endSession();
+
+        this.log(`Fix execution complete: ${completedTasks} tasks processed`);
+    }
+
+    /**
+     * Parse fix response to extract file changes
+     */
+    private parseFixResponse(content: string): Array<{ path: string; content: string }> {
+        const files: Array<{ path: string; content: string }> = [];
+
+        // Match multi-file format
+        const filePattern = /===\s*FILE:\s*([^\n=]+)\s*===\s*\n```(?:\w+)?\n([\s\S]*?)```/g;
+        let match;
+
+        while ((match = filePattern.exec(content)) !== null) {
+            files.push({
+                path: match[1].trim(),
+                content: match[2].trim(),
+            });
+        }
+
+        // Also match simpler code block format
+        if (files.length === 0) {
+            const codeMatch = content.match(/```(?:tsx?|typescript|javascript|jsx)?\n([\s\S]*?)```/);
+            if (codeMatch) {
+                // Try to infer file path from context
+                files.push({
+                    path: 'src/fix.tsx',
+                    content: codeMatch[1].trim(),
+                });
+            }
+        }
+
+        return files;
     }
 
     /**

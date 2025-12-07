@@ -3,6 +3,11 @@
  *
  * Orchestrates the entire "Fix My App" flow from import to verification.
  * Manages session state and coordinates all services.
+ *
+ * NOW WITH MEMORY HARNESS INTEGRATION:
+ * - InitializerAgent for project analysis and artifact creation
+ * - CodingAgentWrapper integration via EnhancedFixExecutor
+ * - Persistent diagnosis artifacts
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +40,22 @@ import type {
 } from './types.js';
 import { SOURCE_REGISTRY, sourceHasContext } from './types.js';
 import { createChatParser, ChatParser } from './chat-parser.js';
+// Memory Harness Integration
+import {
+    createInitializerAgent,
+    needsInitialization,
+    type InitializerAgent,
+    type InitializerResult,
+} from '../ai/initializer-agent.js';
+import {
+    loadProjectContext,
+    hasProjectContext,
+    type LoadedContext,
+} from '../ai/context-loader.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+} from '../ai/artifacts.js';
 
 // In-memory session store (in production, use Redis)
 const sessions = new Map<string, FixSession>();
@@ -52,10 +73,18 @@ export class ImportController extends EventEmitter {
     private sarcasticNotifier?: SarcasticNotifier;
     private useEnhancedExecutor: boolean = true; // Enable enhanced executor by default
 
+    // Memory Harness
+    private initializerAgent?: InitializerAgent;
+    private artifactManager?: ArtifactManager;
+    private loadedContext: LoadedContext | null = null;
+    private projectPath: string = '';
+    private orchestrationRunId: string;
+
     constructor(userId: string, sessionId?: string) {
         super();
         this.userId = userId;
         this.sessionId = sessionId || uuidv4();
+        this.orchestrationRunId = `fix-${this.sessionId}`;
 
         // Get or create session
         if (sessionId && sessions.has(sessionId)) {
@@ -595,7 +624,7 @@ export class ImportController extends EventEmitter {
     // ===========================================================================
 
     /**
-     * Run complete analysis
+     * Run complete analysis using InitializerAgent for memory harness integration
      */
     async runAnalysis(): Promise<{
         intentSummary: IntentSummary;
@@ -610,6 +639,29 @@ export class ImportController extends EventEmitter {
 
         this.session.status = 'analyzing';
         this.initializeServices();
+
+        // Set project path for memory harness
+        this.projectPath = `/tmp/kriptik-fix/${this.session.projectId}`;
+
+        // Initialize artifact manager
+        this.artifactManager = createArtifactManager(
+            this.session.projectId,
+            this.orchestrationRunId,
+            this.userId
+        );
+
+        // Check if we should use InitializerAgent for fresh analysis
+        const projectFiles = await this.getProjectFiles();
+        const needsInit = await needsInitialization(this.projectPath);
+
+        if (needsInit) {
+            this.log('Running InitializerAgent for Fix My App analysis...');
+            await this.runInitializerAgentAnalysis(projectFiles);
+        } else {
+            // Load existing context
+            this.log('Loading existing context from artifacts...');
+            this.loadedContext = await loadProjectContext(this.projectPath);
+        }
 
         // Step 1: Analyze intent
         this.emitProgress(30, 'Analyzing user intent');
@@ -635,7 +687,6 @@ export class ImportController extends EventEmitter {
         // Step 3: Analyze implementation gaps
         this.emitProgress(55, 'Analyzing implementation gaps');
         this.log('Comparing intent to implementation...');
-        const projectFiles = await this.getProjectFiles();
         const implementationGaps = await this.intentAnalyzer!.analyzeImplementationGaps(
             intentSummary,
             projectFiles
@@ -666,6 +717,9 @@ export class ImportController extends EventEmitter {
             errorTimeline
         );
 
+        // Step 7: Write progress log to artifacts
+        await this.writeAnalysisProgressLog(intentSummary, errorTimeline, implementationGaps, recommendedStrategy);
+
         this.session.status = 'strategy_selection';
         this.emitProgress(80, 'Analysis complete');
 
@@ -676,6 +730,154 @@ export class ImportController extends EventEmitter {
             recommendedStrategy,
             alternativeStrategies,
         };
+    }
+
+    /**
+     * Run InitializerAgent in fix_my_app mode for initial analysis
+     */
+    private async runInitializerAgentAnalysis(projectFiles: Map<string, string>): Promise<void> {
+        this.emitProgress(25, 'Running InitializerAgent for analysis');
+
+        this.initializerAgent = createInitializerAgent({
+            projectId: this.session.projectId!,
+            userId: this.userId,
+            orchestrationRunId: this.orchestrationRunId,
+            projectPath: this.projectPath,
+            mode: 'fix_my_app',
+        });
+
+        // Forward InitializerAgent events
+        this.initializerAgent.on('intent_created', (data) => {
+            this.emit('analysis:intent-created', { sessionId: this.sessionId, ...data });
+        });
+        this.initializerAgent.on('tasks_decomposed', (data) => {
+            this.emit('analysis:tasks-decomposed', { sessionId: this.sessionId, ...data });
+        });
+        this.initializerAgent.on('scaffolding_complete', (data) => {
+            this.emit('analysis:diagnosis-complete', { sessionId: this.sessionId, ...data });
+        });
+
+        // Extract error logs from chat history for diagnosis
+        const errorLogs = this.extractErrorLogsFromChat(this.session.context.raw.chatHistory);
+
+        // Run initialization for fix mode
+        const result: InitializerResult = await this.initializerAgent.initializeForFix(
+            projectFiles,
+            this.formatChatHistoryForAnalysis(),
+            errorLogs
+        );
+
+        if (!result.success) {
+            this.log(`Warning: InitializerAgent analysis had issues: ${result.error}`);
+        } else {
+            this.log(`InitializerAgent created ${result.taskCount} fix tasks`);
+        }
+
+        // Load the created context
+        this.loadedContext = await loadProjectContext(this.projectPath);
+    }
+
+    /**
+     * Extract error logs from chat history
+     */
+    private extractErrorLogsFromChat(chatHistory: ChatMessage[]): string[] {
+        const errorPatterns = [
+            /error:/i,
+            /Error:/,
+            /failed/i,
+            /exception/i,
+            /TypeError/i,
+            /ReferenceError/i,
+            /SyntaxError/i,
+            /Cannot find/i,
+            /is not defined/i,
+            /Module not found/i,
+        ];
+
+        const errors: string[] = [];
+
+        for (const msg of chatHistory) {
+            const content = msg.content;
+            for (const pattern of errorPatterns) {
+                if (pattern.test(content)) {
+                    // Extract the relevant error line
+                    const lines = content.split('\n');
+                    for (const line of lines) {
+                        if (pattern.test(line)) {
+                            errors.push(line.trim());
+                        }
+                    }
+                }
+            }
+        }
+
+        return errors.slice(0, 50); // Limit to 50 errors
+    }
+
+    /**
+     * Format chat history for analysis
+     */
+    private formatChatHistoryForAnalysis(): string {
+        return this.session.context.raw.chatHistory
+            .map(msg => `[${msg.role}]: ${msg.content}`)
+            .join('\n\n');
+    }
+
+    /**
+     * Write analysis progress to artifacts
+     */
+    private async writeAnalysisProgressLog(
+        intentSummary: IntentSummary,
+        errorTimeline: ErrorTimeline,
+        gaps: ImplementationGap[],
+        strategy: FixStrategy
+    ): Promise<void> {
+        if (!this.artifactManager) return;
+
+        const progressEntry = `
+═══ FIX MY APP SESSION - ${new Date().toISOString()} ═══
+MODE: fix_my_app
+IMPORTED FROM: ${this.session.source}
+SESSION ID: ${this.sessionId}
+
+DIAGNOSIS:
+- Root Cause: ${errorTimeline.rootCause || 'Multiple issues detected'}
+- Broken Features: ${gaps.filter(g => g.severity === 'critical').map(g => g.featureId).join(', ') || 'None critical'}
+- Missing Implementations: ${gaps.filter(g => g.severity === 'major').length} major severity gaps
+
+ORIGINAL INTENT (inferred):
+- User wanted: ${intentSummary.corePurpose}
+- Expected features: ${intentSummary.primaryFeatures.map(f => f.name).join(', ')}
+
+ERROR TIMELINE:
+- Total Errors: ${errorTimeline.errorCount}
+- Cascading Failures: ${errorTimeline.cascadingFailures ? 'Yes' : 'No'}
+
+FIX PLAN: ${strategy.featuresToFix.length} tasks created
+${strategy.featuresToFix.map((f, i) => `${i + 1}. ${f.featureName}: ${f.description}`).join('\n')}
+
+RECOMMENDED APPROACH: ${strategy.approach}
+CONFIDENCE: ${Math.round(strategy.confidence * 100)}%
+
+═════════════════════════════════════════
+`;
+
+        await this.artifactManager.appendProgressEntry({
+            agentId: 'import-controller',
+            agentType: 'orchestrator',
+            action: 'Fix My App Analysis Complete',
+            completed: [
+                'Intent analysis',
+                'Error archaeology',
+                'Gap analysis',
+                'Strategy determination',
+            ],
+            filesModified: [],
+            nextSteps: strategy.featuresToFix.map(f => `Fix: ${f.featureName}`),
+            notes: progressEntry,
+        });
+
+        this.log('Analysis progress logged to artifacts');
     }
 
     private initializeServices(): void {
@@ -836,7 +1038,7 @@ export class ImportController extends EventEmitter {
 
         if (this.useEnhancedExecutor) {
             // Use Enhanced Fix Executor with verification swarm and error escalation
-            this.log('Using Enhanced Fix Executor with verification swarm and error escalation');
+            this.log('Using Enhanced Fix Executor with verification swarm, error escalation, and memory harness');
 
             this.enhancedFixExecutor = createEnhancedFixExecutor({
                 userId: this.userId,
@@ -848,7 +1050,10 @@ export class ImportController extends EventEmitter {
                 preferences: this.session.preferences,
                 enableVerificationSwarm: true,
                 enableErrorEscalation: true,
-                maxEscalationAttempts: 12
+                maxEscalationAttempts: 12,
+                // Memory Harness options
+                projectPath: this.projectPath,
+                useCodingAgentWrapper: true,
             });
 
             // Forward events
