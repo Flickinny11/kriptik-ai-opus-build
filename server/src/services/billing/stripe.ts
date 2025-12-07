@@ -48,7 +48,7 @@ export interface BillingPlan {
     highlighted?: boolean;
 }
 
-// KripTik AI Plans - Updated tiers
+// KripTik AI Plans - Production Pricing (matched with Stripe products)
 export const BILLING_PLANS: BillingPlan[] = [
     {
         id: 'free',
@@ -56,11 +56,11 @@ export const BILLING_PLANS: BillingPlan[] = [
         description: 'Explore AI-powered development',
         priceMonthly: 0,
         priceYearly: 0,
-        credits: 25,
+        credits: 50,
         features: [
-            '25 credits to start',
+            '50 credits to start',
             'Basic AI generation',
-            'Frontend builds only',
+            'Builder mode only',
             '1 active project',
             'Community support',
             'Preview deployments',
@@ -72,101 +72,138 @@ export const BILLING_PLANS: BillingPlan[] = [
         id: 'starter',
         name: 'Starter',
         description: 'Perfect for hobby projects',
-        priceMonthly: 19,
-        priceYearly: 190,
-        credits: 200,
+        priceMonthly: 29,
+        priceYearly: 279, // 20% off
+        credits: 300,
         features: [
-            '200 credits/month',
-            'AI code generation',
-            'Frontend + basic backend',
-            '3 active projects',
+            '300 credits/month',
+            'Builder + Developer modes',
+            '5 active projects',
+            'Basic verification',
             'Email support',
             'Preview deployments',
-            'Basic integrations (auth, database)',
-            'Export to GitHub',
+            'GitHub export',
         ],
-        stripePriceIdMonthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || '',
-        stripePriceIdYearly: process.env.STRIPE_PRICE_STARTER_YEARLY || '',
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || 'price_1SbdJ72KRfBV8ELzlRjJh3ok',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_STARTER_YEARLY || 'price_1SbdJ82KRfBV8ELzgEFGtC4J',
     },
     {
         id: 'builder',
         name: 'Builder',
         description: 'For serious builders',
-        priceMonthly: 39,
-        priceYearly: 390,
-        credits: 500,
-        features: [
-            '500 credits/month',
-            'Everything in Starter',
-            'Full backend development',
-            '10 active projects',
-            'Priority email support',
-            'Production deployments',
-            'Advanced integrations',
-            'Image-to-code generation',
-            'Custom themes',
-            'API access',
-        ],
-        stripePriceIdMonthly: process.env.STRIPE_PRICE_BUILDER_MONTHLY || '',
-        stripePriceIdYearly: process.env.STRIPE_PRICE_BUILDER_YEARLY || '',
+        priceMonthly: 59,
+        priceYearly: 569, // 20% off
+        credits: 800,
         badge: 'Popular',
         highlighted: true,
+        features: [
+            '800 credits/month',
+            'All modes (Builder, Agents, Developer)',
+            '15 active projects',
+            'Full verification swarm',
+            'Ghost Mode (background building)',
+            'Priority support',
+            'All integrations',
+        ],
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_BUILDER_MONTHLY || 'price_1SbdJ82KRfBV8ELz6kiKK5cW',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_BUILDER_YEARLY || 'price_1SbdJ82KRfBV8ELzqkvXeoQQ',
     },
     {
         id: 'developer',
         name: 'Developer',
         description: 'Full-stack AI development',
-        priceMonthly: 59,
-        priceYearly: 590,
-        credits: 1000,
+        priceMonthly: 99,
+        priceYearly: 950, // 20% off
+        credits: 2000,
         features: [
-            '1,000 credits/month',
+            '2,000 credits/month',
             'Everything in Builder',
-            'GPU deployments (RunPod)',
+            '6 concurrent agents',
             'Unlimited projects',
-            'Priority support',
-            'Container orchestration',
-            'Multi-model workflows',
-            'Self-healing apps',
-            'Custom domains',
-            'Team sharing (up to 3)',
+            'Tournament mode',
+            'Learning engine insights',
+            'Pre-deployment validation',
+            'Dedicated support',
         ],
-        stripePriceIdMonthly: process.env.STRIPE_PRICE_DEVELOPER_MONTHLY || '',
-        stripePriceIdYearly: process.env.STRIPE_PRICE_DEVELOPER_YEARLY || '',
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_DEVELOPER_MONTHLY || 'price_1SbdJ82KRfBV8ELz81y23bnC',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_DEVELOPER_YEARLY || 'price_1SbdJ92KRfBV8ELzaCdBIzEe',
     },
     {
         id: 'pro',
         name: 'Pro',
-        description: 'For power users & teams',
-        priceMonthly: 89,
-        priceYearly: 890,
-        credits: 2500,
-        features: [
-            '2,500 credits/month',
-            'Everything in Developer',
-            'Dedicated GPU instances',
-            'White-label option',
-            '24/7 priority support',
-            'Custom AI training',
-            'Advanced analytics',
-            'Team collaboration (unlimited)',
-            'SSO/SAML',
-            'SLA guarantee',
-            'Early access to features',
-        ],
-        stripePriceIdMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
-        stripePriceIdYearly: process.env.STRIPE_PRICE_PRO_YEARLY || '',
+        description: 'For teams & power users',
+        priceMonthly: 199,
+        priceYearly: 1900, // 20% off
+        credits: 5000,
         badge: 'Best Value',
+        features: [
+            '5,000 credits/month',
+            'Everything in Developer',
+            'Team collaboration',
+            'Custom integrations',
+            'API access',
+            'Dedicated account manager',
+            'SLA guarantee',
+        ],
+        stripePriceIdMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_1SbdJ92KRfBV8ELzDKKzJZM3',
+        stripePriceIdYearly: process.env.STRIPE_PRICE_PRO_YEARLY || 'price_1SbdJ92KRfBV8ELzkYeubN3K',
     },
 ];
 
-// Top-up credit packages
-export const CREDIT_TOPUPS = [
-    { id: 'topup_5', credits: 25, price: 5, label: '$5 - 25 credits' },
-    { id: 'topup_10', credits: 55, price: 10, label: '$10 - 55 credits', badge: '+10% bonus' },
-    { id: 'topup_25', credits: 150, price: 25, label: '$25 - 150 credits', badge: '+20% bonus' },
-    { id: 'topup_50', credits: 325, price: 50, label: '$50 - 325 credits', badge: '+30% bonus' },
-    { id: 'topup_100', credits: 700, price: 100, label: '$100 - 700 credits', badge: '+40% bonus' },
+// Top-up credit packages (with actual Stripe price IDs)
+export interface CreditTopUp {
+    id: string;
+    credits: number;
+    price: number;
+    label: string;
+    pricePerCredit: number;
+    stripePriceId: string;
+    badge?: string;
+}
+
+export const CREDIT_TOPUPS: CreditTopUp[] = [
+    { 
+        id: 'topup_100', 
+        credits: 100, 
+        price: 15, 
+        label: '$15 - 100 credits',
+        pricePerCredit: 0.15,
+        stripePriceId: process.env.STRIPE_TOPUP_TOPUP_100_PRICE || 'price_1SbdJ92KRfBV8ELzG1rqpBsp',
+    },
+    { 
+        id: 'topup_300', 
+        credits: 300, 
+        price: 39, 
+        label: '$39 - 300 credits',
+        pricePerCredit: 0.13,
+        stripePriceId: process.env.STRIPE_TOPUP_TOPUP_300_PRICE || 'price_1SbdJA2KRfBV8ELzRZn1AhFQ',
+        badge: 'Popular',
+    },
+    { 
+        id: 'topup_500', 
+        credits: 500, 
+        price: 59, 
+        label: '$59 - 500 credits',
+        pricePerCredit: 0.118,
+        stripePriceId: process.env.STRIPE_TOPUP_TOPUP_500_PRICE || 'price_1SbdJA2KRfBV8ELzQvjnXqrF',
+    },
+    { 
+        id: 'topup_1000', 
+        credits: 1000, 
+        price: 99, 
+        label: '$99 - 1000 credits',
+        pricePerCredit: 0.099,
+        stripePriceId: process.env.STRIPE_TOPUP_TOPUP_1000_PRICE || 'price_1SbdJA2KRfBV8ELzFAwez6U5',
+        badge: 'Best Value',
+    },
+    { 
+        id: 'topup_2500', 
+        credits: 2500, 
+        price: 199, 
+        label: '$199 - 2500 credits',
+        pricePerCredit: 0.0796,
+        stripePriceId: process.env.STRIPE_TOPUP_TOPUP_2500_PRICE || 'price_1SbdJB2KRfBV8ELzwV0RiS6y',
+    },
 ];
 
 /**
@@ -314,24 +351,43 @@ export class StripeBillingService {
             throw new Error('Invalid top-up package');
         }
 
-        const body = new URLSearchParams({
-            customer: data.customerId,
-            'line_items[0][price_data][currency]': 'usd',
-            'line_items[0][price_data][product_data][name]': `${topUp.credits} Credits`,
-            'line_items[0][price_data][product_data][description]': `Credit top-up for KripTik AI`,
-            'line_items[0][price_data][unit_amount]': (topUp.price * 100).toString(),
-            'line_items[0][quantity]': '1',
-            mode: 'payment',
-            success_url: data.successUrl,
-            cancel_url: data.cancelUrl,
-            [`metadata[topup_id]`]: data.topUpId,
-            [`metadata[credits]`]: topUp.credits.toString(),
-        });
+        // Use pre-created Stripe price if available, otherwise create dynamically
+        const body = topUp.stripePriceId
+            ? new URLSearchParams({
+                customer: data.customerId,
+                'line_items[0][price]': topUp.stripePriceId,
+                'line_items[0][quantity]': '1',
+                mode: 'payment',
+                success_url: data.successUrl,
+                cancel_url: data.cancelUrl,
+                [`metadata[topup_id]`]: data.topUpId,
+                [`metadata[credits]`]: topUp.credits.toString(),
+            })
+            : new URLSearchParams({
+                customer: data.customerId,
+                'line_items[0][price_data][currency]': 'usd',
+                'line_items[0][price_data][product_data][name]': `${topUp.credits} Credits`,
+                'line_items[0][price_data][product_data][description]': `Credit top-up for KripTik AI`,
+                'line_items[0][price_data][unit_amount]': (topUp.price * 100).toString(),
+                'line_items[0][quantity]': '1',
+                mode: 'payment',
+                success_url: data.successUrl,
+                cancel_url: data.cancelUrl,
+                [`metadata[topup_id]`]: data.topUpId,
+                [`metadata[credits]`]: topUp.credits.toString(),
+            });
 
         return this.request<{ id: string; url: string }>('/checkout/sessions', {
             method: 'POST',
             body: body.toString(),
         });
+    }
+
+    /**
+     * Get available top-up packages
+     */
+    getTopUps(): CreditTopUp[] {
+        return CREDIT_TOPUPS;
     }
 
     /**

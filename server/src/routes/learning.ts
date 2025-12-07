@@ -675,7 +675,7 @@ router.post('/training/trigger', async (req, res) => {
 
         // Get unused preference pairs from AI Judgment service
         const judgment = getAIJudgmentService();
-        
+
         // Filter for the model type's domain
         const domainMap: Record<string, PreferenceDomain[]> = {
             code_specialist: ['code', 'error_fix'],
@@ -685,7 +685,7 @@ router.post('/training/trigger', async (req, res) => {
         };
 
         const relevantDomains = domainMap[modelType] || [];
-        
+
         // Get unused preference pairs for each relevant domain
         const allPairs: Array<{ domain: PreferenceDomain; prompt: string; chosen: string; rejected: string }> = [];
         for (const domain of relevantDomains) {
