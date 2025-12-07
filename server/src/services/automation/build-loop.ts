@@ -34,6 +34,7 @@ import {
 } from '../ai/feature-list.js';
 import {
     createArtifactManager,
+    type TaskItem,
 } from '../ai/artifacts.js';
 import {
     createClaudeService,
@@ -41,12 +42,30 @@ import {
 } from '../ai/claude-service.js';
 import {
     getPhaseConfig,
+    getOpenRouterClient,
 } from '../ai/openrouter-client.js';
 import {
     getKripToeNite,
     type KripToeNiteFacade,
     type KTNResult,
 } from '../ai/krip-toe-nite/index.js';
+// Context Loading & Memory Harness
+import {
+    createInitializerAgent,
+    needsInitialization,
+    type InitializerAgent,
+    type InitializerResult,
+} from '../ai/initializer-agent.js';
+import {
+    createCodingAgentWrapper,
+    type CodingAgentWrapper,
+    type TaskResult,
+} from '../ai/coding-agent-wrapper.js';
+import {
+    loadProjectContext,
+    hasProjectContext,
+    type LoadedContext,
+} from '../ai/context-loader.js';
 // Import real automation services
 import {
     BrowserAutomationService,
@@ -154,7 +173,8 @@ export interface BuildLoopState {
 export interface BuildLoopEvent {
     type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result'
         | 'error' | 'fix_applied' | 'checkpoint_created' | 'checkpoint_restored'
-        | 'stage_complete' | 'build_complete';
+        | 'stage_complete' | 'build_complete' | 'resumed' | 'intent_created'
+        | 'tasks_decomposed' | 'scaffolding_complete' | 'artifacts_created' | 'git_initialized';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -230,13 +250,23 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // File contents cache for verification
     private projectFiles: Map<string, string> = new Map();
 
+    // Memory Harness - Context Loading & Artifact Updates
+    private initializerAgent: InitializerAgent | null = null;
+    private projectPath: string;
+    private openRouterClient: ReturnType<typeof getOpenRouterClient>;
+    private loadedContext: LoadedContext | null = null;
+
     constructor(
         projectId: string,
         userId: string,
         orchestrationRunId: string,
-        mode: BuildMode = 'standard'
+        mode: BuildMode = 'standard',
+        projectPath?: string
     ) {
         super();
+
+        // Set project path (default to temp builds directory)
+        this.projectPath = projectPath || `/tmp/builds/${projectId}`;
 
         this.state = {
             id: uuidv4(),
@@ -271,6 +301,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
             agentType: 'planning',
         });
 
+        // Initialize OpenRouter client for unified AI routing
+        this.openRouterClient = getOpenRouterClient();
+
         // Initialize real automation services
         this.errorEscalationEngine = createErrorEscalationEngine(
             orchestrationRunId,
@@ -293,22 +326,36 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // Initialize WebSocket sync for real-time updates
         this.wsSync = getWebSocketSyncService();
 
-        console.log(`[BuildLoop] Initialized with real automation services (mode: ${mode})`);
+        console.log(`[BuildLoop] Initialized with Memory Harness integration (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
      * Start the 6-Phase Build Loop
+     *
+     * Now with Memory Harness integration:
+     * - Checks for existing context before starting
+     * - Uses InitializerAgent for fresh starts
+     * - Uses CodingAgentWrapper for task execution
      */
     async start(prompt: string): Promise<void> {
         this.state.status = 'running';
-        this.emitEvent('phase_start', { phase: 'intent_lock' });
 
         try {
-            // Phase 0: Intent Lock
-            await this.executePhase0_IntentLock(prompt);
+            // Check if we need initialization or can resume
+            const hasContext = await hasProjectContext(this.projectPath);
 
-            // Phase 1: Initialization
-            await this.executePhase1_Initialization();
+            if (!hasContext) {
+                // Fresh start - run InitializerAgent
+                console.log('[BuildLoop] No existing context found - running InitializerAgent');
+                await this.runInitializerAgent(prompt);
+            } else {
+                // Resume - load existing context
+                console.log('[BuildLoop] Found existing context - resuming from artifacts');
+                await this.resumeFromContext();
+            }
+
+            // If InitializerAgent ran, we skip Phase 0 and 1 (already done by InitializerAgent)
+            // If resuming, we also skip Phase 0 and 1
 
             // Loop through stages (Frontend → Backend → Production)
             const stages: BuildStage[] = ['frontend', 'backend', 'production'];
@@ -323,6 +370,20 @@ export class BuildLoopOrchestrator extends EventEmitter {
             if (!this.aborted) {
                 this.state.status = 'complete';
                 this.state.completedAt = new Date();
+
+                // Final progress entry
+                await this.artifactManager.appendProgressEntry({
+                    agentId: 'build-loop',
+                    agentType: 'orchestrator',
+                    action: 'Build Loop Complete',
+                    completed: [
+                        `Completed all ${stages.length} stages`,
+                        `${this.state.featureSummary?.total || 0} features built`,
+                    ],
+                    filesModified: [],
+                    nextSteps: ['Review completed application', 'Deploy to production'],
+                });
+
                 this.emitEvent('build_complete', {
                     duration: this.state.completedAt.getTime() - this.state.startedAt.getTime(),
                     stages: stages.length,
@@ -332,6 +393,168 @@ export class BuildLoopOrchestrator extends EventEmitter {
         } catch (error) {
             await this.handleError(error as Error);
         }
+    }
+
+    /**
+     * Run InitializerAgent for fresh project setup
+     * Creates all artifacts and scaffolding
+     */
+    private async runInitializerAgent(prompt: string): Promise<void> {
+        this.emitEvent('phase_start', { phase: 'initialization', subPhase: 'initializer_agent' });
+
+        this.initializerAgent = createInitializerAgent({
+            projectId: this.state.projectId,
+            userId: this.state.userId,
+            orchestrationRunId: this.state.orchestrationRunId,
+            projectPath: this.projectPath,
+            mode: 'new_build',
+        });
+
+        // Forward InitializerAgent events
+        this.initializerAgent.on('intent_created', (data) => {
+            this.emit('intent_created', data);
+            this.emitEvent('phase_complete', { phase: 'intent_lock', ...data });
+        });
+
+        this.initializerAgent.on('tasks_decomposed', (data) => {
+            this.emit('tasks_decomposed', data);
+        });
+
+        this.initializerAgent.on('scaffolding_complete', (data) => {
+            this.emit('scaffolding_complete', data);
+        });
+
+        this.initializerAgent.on('artifacts_created', (data) => {
+            this.emit('artifacts_created', data);
+        });
+
+        this.initializerAgent.on('git_initialized', (data) => {
+            this.emit('git_initialized', data);
+        });
+
+        // Run initialization
+        const result: InitializerResult = await this.initializerAgent.initialize(prompt);
+
+        if (!result.success) {
+            throw new Error(`InitializerAgent failed: ${result.error}`);
+        }
+
+        // Store intent contract
+        this.state.intentContract = result.intentContract;
+
+        // Load the generated feature list
+        const featureListContent = await this.artifactManager.getArtifact('feature_list.json');
+        if (featureListContent) {
+            try {
+                const featureList = JSON.parse(featureListContent);
+                const total = featureList.totalCount || featureList.features?.length || 0;
+                const passed = featureList.completedCount || 0;
+                this.state.featureSummary = {
+                    total,
+                    passed,
+                    failed: 0,
+                    pending: total - passed,
+                    inProgress: 0,
+                    passRate: total > 0 ? Math.round((passed / total) * 100) : 0,
+                    features: featureList.features?.map((f: { id: string; description: string; passes?: boolean; priority?: number; assignedAgent?: string | null }, idx: number) => ({
+                        featureId: f.id,
+                        description: f.description,
+                        passes: f.passes || false,
+                        priority: f.priority || idx + 1,
+                        assignedAgent: f.assignedAgent || null,
+                    })) || [],
+                };
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+
+        // Mark phases as complete
+        this.state.phasesCompleted.push('intent_lock', 'initialization');
+
+        this.emitEvent('phase_complete', {
+            phase: 'initialization',
+            subPhase: 'initializer_agent',
+            taskCount: result.taskCount,
+            artifacts: result.artifactsCreated,
+            commit: result.initialCommit,
+        });
+
+        console.log(`[BuildLoop] InitializerAgent complete: ${result.taskCount} tasks created`);
+    }
+
+    /**
+     * Resume from existing context (artifacts)
+     * Loads state from persistent files
+     */
+    private async resumeFromContext(): Promise<void> {
+        this.emitEvent('phase_start', { phase: 'resume' });
+
+        // Load full context from artifacts
+        this.loadedContext = await loadProjectContext(this.projectPath, {
+            progressEntries: 30,
+            gitLogEntries: 20,
+            includeGitDiff: true,
+        });
+
+        // Restore state from context
+        if (this.loadedContext.intentContract) {
+            // Cast through unknown to handle type differences between context-loader and intent-lock
+            this.state.intentContract = this.loadedContext.intentContract as unknown as IntentContract;
+        }
+
+        if (this.loadedContext.featureList) {
+            const featureList = this.loadedContext.featureList;
+            const features = featureList.features || [];
+            const total = featureList.totalCount || features.length || 0;
+            const completed = features.filter((f: { status?: string; passes?: boolean }) =>
+                f.status === 'complete' || f.passes
+            ).length;
+            this.state.featureSummary = {
+                total,
+                passed: completed,
+                failed: 0,
+                pending: total - completed,
+                inProgress: 0,
+                passRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+                features: features.map((f: { id?: string; featureId?: string; description?: string; passes?: boolean; priority?: number; assignedAgent?: string | null }, idx: number) => ({
+                    featureId: f.id || f.featureId || 'unknown',
+                    description: f.description || '',
+                    passes: f.passes || false,
+                    priority: f.priority || idx + 1,
+                    assignedAgent: f.assignedAgent || null,
+                })),
+            };
+        }
+
+        // Find where we left off
+        const taskList = this.loadedContext.taskList;
+        const currentTaskIndex = taskList?.currentTaskIndex || 0;
+        const completedTasks = taskList?.completedTasks || 0;
+
+        // Mark initial phases as complete (since we're resuming)
+        this.state.phasesCompleted.push('intent_lock', 'initialization');
+
+        // Update progress log with resume
+        await this.artifactManager.appendProgressEntry({
+            agentId: 'build-loop',
+            agentType: 'orchestrator',
+            action: 'Resumed from existing context',
+            completed: [`Loaded ${this.loadedContext.progressLog.length} progress entries`],
+            filesModified: [],
+            nextSteps: [`Continue from task ${currentTaskIndex + 1}`],
+            notes: `Resuming at ${new Date().toISOString()}`,
+        });
+
+        this.emitEvent('resumed', {
+            fromTask: currentTaskIndex,
+            totalTasks: taskList?.totalTasks || 0,
+            completedTasks,
+            hasIntent: !!this.state.intentContract,
+            featureCount: this.state.featureSummary?.total || 0,
+        });
+
+        console.log(`[BuildLoop] Resumed: ${completedTasks}/${taskList?.totalTasks || 0} tasks complete`);
     }
 
     /**
@@ -471,38 +694,140 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
     /**
      * Phase 2: PARALLEL BUILD - Build features with multiple agents
+     *
+     * Now uses CodingAgentWrapper for context loading and artifact updates
      */
     private async executePhase2_ParallelBuild(stage: BuildStage): Promise<void> {
         this.startPhase('parallel_build');
 
         try {
-            // Get features for this stage
-            const features = await this.featureManager.getAllFeatures();
-            const stageFeatures = this.filterFeaturesForStage(features, stage);
+            // Create coding agent wrapper for this phase
+            const codingAgent = createCodingAgentWrapper({
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                orchestrationRunId: this.state.orchestrationRunId,
+                projectPath: this.projectPath,
+                agentType: 'build',
+                agentId: `build-${stage}-${Date.now()}`,
+            });
 
-            // Sort by priority
-            stageFeatures.sort((a, b) => a.priority - b.priority);
+            // Load context from artifacts
+            await codingAgent.startSession();
 
-            // Build each feature (sequential for now, parallel in future)
-            for (const feature of stageFeatures) {
-                if (this.aborted) break;
+            // Get tasks for this stage from task list
+            // We'll claim tasks one by one and build them
+            let task = await codingAgent.claimTask();
 
-                await this.buildFeature(feature);
+            while (task && !this.aborted) {
+                console.log(`[BuildLoop] Building task: ${task.id} - ${task.description}`);
+
+                // Get system prompt with full context injected
+                const basePrompt = `You are a senior software engineer building production-ready code.
+You are working on a ${this.state.intentContract?.appType || 'web'} application.
+
+TASK: ${task.description}
+CATEGORY: ${task.category}
+PRIORITY: ${task.priority}
+
+Generate complete, production-ready code for this task.
+Follow the existing style guide and patterns.
+Do NOT use placeholders or TODO comments.
+Include ALL necessary imports and exports.`;
+
+                const systemPrompt = codingAgent.getSystemPromptWithContext(basePrompt);
+
+                // Generate code using OpenRouter/KripToeNite
+                const phaseConfig = getPhaseConfig('build_agent');
+                const ktn = getKripToeNite();
+
+                let responseContent = '';
+                try {
+                    const result = await ktn.buildFeature(
+                        `${task.description}\n\nContext: Building for ${stage} stage.`,
+                        {
+                            projectId: this.state.projectId,
+                            userId: this.state.userId,
+                            framework: 'React',
+                            language: 'TypeScript',
+                        }
+                    );
+                    responseContent = result.content;
+                    console.log(`[BuildLoop] KTN build completed: strategy=${result.strategy}, model=${result.model}`);
+                } catch (error) {
+                    // Fallback to Claude service
+                    console.warn('[BuildLoop] KTN failed, falling back to Claude:', error);
+                    const response = await this.claudeService.generate(
+                        `${systemPrompt}\n\nTask: ${task.description}`,
+                        {
+                            model: phaseConfig.model,
+                            maxTokens: 32000,
+                            useExtendedThinking: true,
+                            thinkingBudgetTokens: phaseConfig.thinkingBudget,
+                        }
+                    );
+                    responseContent = response.content;
+                }
+
+                // Parse files from response
+                const files = this.claudeService.parseFileOperations(responseContent);
+
+                // Record file changes
+                for (const file of files) {
+                    codingAgent.recordFileChange(file.path, 'create', file.content);
+                    this.projectFiles.set(file.path, file.content || '');
+                }
+
+                // Complete task (updates artifacts, commits to git)
+                const taskResult: TaskResult = await codingAgent.completeTask({
+                    summary: `Built: ${task.description}`,
+                    filesCreated: files.map(f => f.path),
+                    nextSteps: this.determineNextSteps(task),
+                });
 
                 // Emit progress
                 const summary = await this.featureManager.getSummary();
                 this.state.featureSummary = summary;
 
                 this.emitEvent('feature_complete', {
-                    featureId: feature.featureId,
-                    passRate: summary.passRate,
-                    remaining: summary.pending,
+                    taskId: task.id,
+                    description: task.description,
+                    commit: taskResult.gitCommit,
+                    filesCreated: taskResult.filesCreated.length,
                 });
 
                 // Auto-checkpoint on interval
                 if (this.shouldCreateCheckpoint()) {
-                    await this.createCheckpoint('feature_complete', `After feature ${feature.featureId}`, feature.featureId);
+                    await this.createCheckpoint('task_complete', `After task ${task.id}`);
                 }
+
+                // Get next task
+                task = await codingAgent.claimTask();
+            }
+
+            // End coding agent session
+            await codingAgent.endSession();
+
+            // Also build features from feature manager (legacy path)
+            const features = await this.featureManager.getAllFeatures();
+            const stageFeatures = this.filterFeaturesForStage(features, stage);
+            stageFeatures.sort((a, b) => a.priority - b.priority);
+
+            for (const feature of stageFeatures) {
+                if (this.aborted) break;
+
+                // Check if feature already passed (from task-based building)
+                if (feature.passes) continue;
+
+                await this.buildFeature(feature);
+
+                const featureSummary = await this.featureManager.getSummary();
+                this.state.featureSummary = featureSummary;
+
+                this.emitEvent('feature_complete', {
+                    featureId: feature.featureId,
+                    passRate: featureSummary.passRate,
+                    remaining: featureSummary.pending,
+                });
             }
 
             this.completePhase('parallel_build');
@@ -510,6 +835,37 @@ export class BuildLoopOrchestrator extends EventEmitter {
         } catch (error) {
             throw new Error(`Parallel Build failed: ${(error as Error).message}`);
         }
+    }
+
+    /**
+     * Determine next steps after completing a task
+     */
+    private determineNextSteps(task: TaskItem): string[] {
+        const nextSteps: string[] = [];
+
+        switch (task.category) {
+            case 'setup':
+                nextSteps.push('Proceed to feature implementation');
+                break;
+            case 'feature':
+                nextSteps.push('Verify feature works correctly');
+                nextSteps.push('Add tests if needed');
+                break;
+            case 'integration':
+                nextSteps.push('Run integration tests');
+                nextSteps.push('Verify all routes work');
+                break;
+            case 'testing':
+                nextSteps.push('Review test coverage');
+                nextSteps.push('Fix any failing tests');
+                break;
+            case 'deployment':
+                nextSteps.push('Verify deployment configuration');
+                nextSteps.push('Test in production environment');
+                break;
+        }
+
+        return nextSteps;
     }
 
     /**

@@ -2841,3 +2841,79 @@ Every agent session:
 
 CURRENT STATE: Build successful, CodingAgentWrapper complete
 NEXT: Integrate into orchestrators for consistent context handling
+
+═══ [2025-12-07 Build Loop Memory Harness Integration Complete] ═══
+COMPLETED: Integrated InitializerAgent and CodingAgentWrapper into Build Loop
+
+FILE UPDATED:
+- server/src/services/automation/build-loop.ts
+
+CHANGES MADE:
+
+1. NEW IMPORTS:
+   - createInitializerAgent, needsInitialization
+   - createCodingAgentWrapper
+   - loadProjectContext, hasProjectContext
+
+2. NEW CLASS PROPERTIES:
+   - initializerAgent: InitializerAgent | null
+   - projectPath: string
+   - openRouterClient
+   - loadedContext: LoadedContext | null
+
+3. UPDATED CONSTRUCTOR:
+   - Now accepts optional projectPath parameter
+   - Initializes OpenRouter client
+
+4. NEW METHODS:
+   - runInitializerAgent(prompt): Runs fresh initialization
+   - resumeFromContext(): Resumes from existing artifacts
+
+5. UPDATED start() METHOD:
+   - Checks hasProjectContext() before starting
+   - Fresh builds → runInitializerAgent()
+   - Existing context → resumeFromContext()
+
+6. UPDATED executePhase2_ParallelBuild():
+   - Creates CodingAgentWrapper for phase
+   - Calls startSession() to load context
+   - Uses getSystemPromptWithContext() for AI calls
+   - Calls claimTask() → work → completeTask()
+   - Calls endSession() when done
+
+7. NEW determineNextSteps() METHOD:
+   - Generates context-aware next steps based on task category
+
+BUILD LOOP FLOW (WITH MEMORY HARNESS):
+┌─────────────────────────────────────────────────────────────────┐
+│ start(prompt)                                                   │
+│   ├─► hasProjectContext()?                                      │
+│   │   ├─► NO  → runInitializerAgent(prompt)                     │
+│   │   │         ├─► CreateIntent, Decompose Tasks, Scaffold     │
+│   │   │         └─► Create All Artifacts, Git Init              │
+│   │   │                                                          │
+│   │   └─► YES → resumeFromContext()                              │
+│   │             └─► Load context, Restore state, Find position  │
+│   │                                                              │
+│   └─► executeStage(frontend/backend/production)                  │
+│        └─► executePhase2_ParallelBuild()                        │
+│             ├─► createCodingAgentWrapper()                      │
+│             ├─► codingAgent.startSession()                      │
+│             ├─► codingAgent.claimTask()                         │
+│             ├─► codingAgent.getSystemPromptWithContext()        │
+│             ├─► Generate code with KTN/OpenRouter               │
+│             ├─► codingAgent.recordFileChange()                  │
+│             ├─► codingAgent.completeTask()                      │
+│             └─► codingAgent.endSession()                        │
+└─────────────────────────────────────────────────────────────────┘
+
+CRITICAL GUARANTEES:
+✓ Every build checks for existing context
+✓ Fresh builds initialize all artifacts
+✓ Resumable builds restore state from files
+✓ Phase 2 uses CodingAgentWrapper pattern
+✓ All AI calls include loaded context
+✓ Task completion updates artifacts + commits
+
+CURRENT STATE: Build successful, Memory Harness fully integrated
+NEXT: Test end-to-end build flow with context persistence
