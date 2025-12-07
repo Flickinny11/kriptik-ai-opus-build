@@ -7,7 +7,7 @@
  * - Claude Sonnet 4.5 - Balanced
  * - And more models via OpenRouter
  *
- * Updated: December 7, 2025
+ * VERIFIED: December 7, 2025 - Actual models from OpenRouter
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -25,7 +25,7 @@ export interface ModelOption {
     recommended?: boolean;
 }
 
-// Available models - December 7, 2025 (Latest versions)
+// Available models - VERIFIED December 7, 2025 from OpenRouter
 // Matches server-side registry
 export const AVAILABLE_MODELS: ModelOption[] = [
     // RECOMMENDED - Krip-Toe-Nite orchestration
@@ -43,7 +43,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     {
         id: 'claude-opus-4.5',
         name: '🧠 Claude Opus 4.5',
-        description: 'Maximum quality for complex tasks',
+        description: 'Maximum quality for complex reasoning',
         tier: 'intelligence',
         speed: 'slow',
         quality: 'best',
@@ -52,16 +52,16 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     {
         id: 'claude-sonnet-4.5',
         name: '💪 Claude Sonnet 4.5',
-        description: 'Best balance of speed and quality',
+        description: 'Best coding model with 1M context',
         tier: 'intelligence',
         speed: 'medium',
-        quality: 'excellent',
+        quality: 'best',
         costTier: 'standard',
     },
     {
-        id: 'gpt-5.1',
-        name: '🚀 GPT-5.1',
-        description: 'OpenAI flagship with 400K context',
+        id: 'gpt-5.1-codex-max',
+        name: '🚀 GPT-5.1 Codex Max',
+        description: 'OpenAI agentic coding with 400K context',
         tier: 'intelligence',
         speed: 'medium',
         quality: 'excellent',
@@ -70,44 +70,44 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     {
         id: 'gemini-3-pro',
         name: '✨ Gemini 3 Pro',
-        description: 'Google flagship with 2M context',
+        description: 'Google flagship with 1M context',
         tier: 'intelligence',
         speed: 'medium',
         quality: 'excellent',
         costTier: 'standard',
     },
     {
-        id: 'grok-5',
-        name: '🌐 Grok 5',
-        description: 'xAI with 4M context + real-time info',
+        id: 'mistral-large-3',
+        name: '🌟 Mistral Large 3',
+        description: 'Open-source flagship (675B params)',
         tier: 'intelligence',
         speed: 'medium',
         quality: 'excellent',
-        costTier: 'premium',
+        costTier: 'standard',
     },
     // SPEED TIER - Ultra-fast responses
     {
-        id: 'gemini-3-flash',
-        name: '⚡ Gemini 3 Flash',
-        description: 'Ultra-fast with 2M context',
+        id: 'gemini-2.5-flash',
+        name: '⚡ Gemini 2.5 Flash',
+        description: 'Ultra-fast with 1M context',
         tier: 'speed',
         speed: 'fast',
         quality: 'good',
         costTier: 'economy',
     },
     {
-        id: 'deepseek-v3.2',
-        name: '🔥 DeepSeek V3.2',
+        id: 'grok-4-fast',
+        name: '🌐 Grok 4 Fast',
+        description: '2M context with multimodal',
+        tier: 'speed',
+        speed: 'fast',
+        quality: 'good',
+        costTier: 'economy',
+    },
+    {
+        id: 'deepseek-v3',
+        name: '🔥 DeepSeek V3',
         description: 'Excellent value for code tasks',
-        tier: 'speed',
-        speed: 'fast',
-        quality: 'good',
-        costTier: 'economy',
-    },
-    {
-        id: 'claude-haiku-4',
-        name: '🚀 Claude Haiku 4',
-        description: 'Fast Anthropic model',
         tier: 'speed',
         speed: 'fast',
         quality: 'good',
@@ -115,27 +115,27 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     // SPECIALIST TIER - Code-focused
     {
-        id: 'gpt-5.1-codex',
-        name: '💻 GPT-5.1 Codex',
-        description: 'OpenAI code specialist',
-        tier: 'specialist',
-        speed: 'fast',
-        quality: 'excellent',
-        costTier: 'standard',
-    },
-    {
-        id: 'qwen-3-coder',
-        name: '💻 Qwen 3 Coder 32B',
-        description: 'Excellent code quality',
+        id: 'qwen3-coder',
+        name: '💻 Qwen3 Coder 480B',
+        description: 'MoE code specialist',
         tier: 'specialist',
         speed: 'fast',
         quality: 'excellent',
         costTier: 'economy',
     },
     {
-        id: 'deepseek-r1-turbo',
-        name: '🎯 DeepSeek R1 Turbo',
-        description: 'Reasoning with chain-of-thought',
+        id: 'codestral-2508',
+        name: '🛠️ Codestral 2508',
+        description: 'Fast code with fill-in-middle',
+        tier: 'specialist',
+        speed: 'fast',
+        quality: 'good',
+        costTier: 'economy',
+    },
+    {
+        id: 'deepseek-r1',
+        name: '🎯 DeepSeek R1 Chimera',
+        description: 'Reasoning specialist (FREE)',
         tier: 'specialist',
         speed: 'medium',
         quality: 'excellent',

@@ -4,7 +4,7 @@
  * Defines all available models via OpenRouter with performance characteristics.
  * All models are accessed through OpenRouter's unified API.
  *
- * Updated: December 7, 2025
+ * VERIFIED: December 7, 2025 - Actual models from OpenRouter
  * - Speed Tier: Sub-500ms TTFT models for trivial/simple tasks
  * - Intelligence Tier: Best-in-class models for complex tasks
  * - Specialist Tier: Code-focused models for development tasks
@@ -13,12 +13,12 @@
 import type { KTNModelConfig, ModelTier } from './types.js';
 
 // =============================================================================
-// MODEL DEFINITIONS - DECEMBER 2025 (LATEST VERSIONS)
+// MODEL DEFINITIONS - VERIFIED DECEMBER 7, 2025
 // =============================================================================
 
 /**
  * Complete model registry for Krip-Toe-Nite
- * All models accessible via OpenRouter
+ * All models verified on OpenRouter as of December 7, 2025
  */
 export const KTN_MODELS: Record<string, KTNModelConfig> = {
     // =========================================================================
@@ -26,47 +26,47 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
     // Target: <500ms TTFT
     // =========================================================================
 
-    'gemini-3-flash': {
-        id: 'gemini-3-flash',
-        openRouterId: 'google/gemini-3-flash',
-        name: 'Gemini 3 Flash',
+    'gemini-2.5-flash': {
+        id: 'gemini-2.5-flash',
+        openRouterId: 'google/gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
         tier: 'speed',
-        avgTtftMs: 120,
+        avgTtftMs: 150,
         avgTpsMs: 5,
-        costPer1MInput: 0.10,
-        costPer1MOutput: 0.40,
-        maxContext: 2000000,
-        maxOutput: 16384,
-        strengths: ['speed', 'general', 'multimodal', 'huge-context'],
+        costPer1MInput: 0.30,
+        costPer1MOutput: 2.50,
+        maxContext: 1050000,
+        maxOutput: 8192,
+        strengths: ['speed', 'reasoning', 'coding', 'math', 'science'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
-    'gpt-5.1-mini': {
-        id: 'gpt-5.1-mini',
-        openRouterId: 'openai/gpt-5.1-mini',
-        name: 'GPT-5.1 Mini',
+    'gpt-4o-mini': {
+        id: 'gpt-4o-mini',
+        openRouterId: 'openai/gpt-4o-mini',
+        name: 'GPT-4o Mini',
         tier: 'speed',
-        avgTtftMs: 180,
+        avgTtftMs: 200,
         avgTpsMs: 6,
-        costPer1MInput: 0.20,
-        costPer1MOutput: 0.80,
-        maxContext: 200000,
-        maxOutput: 32768,
-        strengths: ['speed', 'general', 'openai-ecosystem', 'fast'],
+        costPer1MInput: 0.15,
+        costPer1MOutput: 0.60,
+        maxContext: 128000,
+        maxOutput: 16384,
+        strengths: ['speed', 'general', 'vision', 'fast'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
-    'deepseek-v3.2': {
-        id: 'deepseek-v3.2',
-        openRouterId: 'deepseek/deepseek-v3.2',
-        name: 'DeepSeek V3.2',
+    'deepseek-v3': {
+        id: 'deepseek-v3',
+        openRouterId: 'deepseek/deepseek-chat-v3-0324',
+        name: 'DeepSeek V3',
         tier: 'speed',
         avgTtftMs: 250,
         avgTpsMs: 7,
-        costPer1MInput: 0.07,
-        costPer1MOutput: 0.14,
+        costPer1MInput: 0.15,
+        costPer1MOutput: 0.70,
         maxContext: 128000,
         maxOutput: 8192,
         strengths: ['speed', 'code', 'reasoning', 'value'],
@@ -74,41 +74,41 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         supportsStreaming: true,
     },
 
-    'llama-4-scout': {
-        id: 'llama-4-scout',
-        openRouterId: 'meta-llama/llama-4-scout-17b',
-        name: 'Llama 4 Scout 17B',
+    'grok-4-fast': {
+        id: 'grok-4-fast',
+        openRouterId: 'x-ai/grok-4-fast',
+        name: 'Grok 4 Fast',
         tier: 'speed',
-        avgTtftMs: 300,
+        avgTtftMs: 280,
         avgTpsMs: 8,
-        costPer1MInput: 0.25,
+        costPer1MInput: 0.20,
         costPer1MOutput: 0.50,
-        maxContext: 256000,
-        maxOutput: 16384,
-        strengths: ['speed', 'code', 'reasoning', 'open-source'],
-        supportsVision: false,
+        maxContext: 2000000,
+        maxOutput: 32768,
+        strengths: ['speed', 'multimodal', 'huge-context', 'cost-efficient'],
+        supportsVision: true,
         supportsStreaming: true,
     },
 
-    'claude-haiku-4': {
-        id: 'claude-haiku-4',
-        openRouterId: 'anthropic/claude-haiku-4',
-        name: 'Claude Haiku 4',
+    'nova-2-lite': {
+        id: 'nova-2-lite',
+        openRouterId: 'amazon/nova-2-lite',
+        name: 'Amazon Nova 2 Lite',
         tier: 'speed',
-        avgTtftMs: 350,
-        avgTpsMs: 10,
-        costPer1MInput: 1.00,
-        costPer1MOutput: 5.00,
-        maxContext: 200000,
+        avgTtftMs: 300,
+        avgTpsMs: 6,
+        costPer1MInput: 0.00,
+        costPer1MOutput: 0.00,
+        maxContext: 1000000,
         maxOutput: 8192,
-        strengths: ['speed', 'general', 'code', 'instruction-following'],
+        strengths: ['speed', 'free', 'reasoning', 'multimodal'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
     // =========================================================================
     // INTELLIGENCE TIER - Best quality for complex tasks
-    // Latest December 2025 flagship models
+    // Verified December 7, 2025
     // =========================================================================
 
     'claude-opus-4.5': {
@@ -122,7 +122,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 25.00,
         maxContext: 200000,
         maxOutput: 64000,
-        strengths: ['best-coding', 'long-context', 'agentic', 'reasoning', 'architecture'],
+        strengths: ['best-coding', 'complex-reasoning', 'agentic', 'architecture'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -136,74 +136,58 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         avgTpsMs: 12,
         costPer1MInput: 3.00,
         costPer1MOutput: 15.00,
-        maxContext: 200000,
+        maxContext: 1000000,
         maxOutput: 64000,
-        strengths: ['coding', 'real-world-bugs', 'instruction-following', 'balanced'],
-        supportsVision: true,
-        supportsStreaming: true,
-    },
-
-    'gpt-5.1': {
-        id: 'gpt-5.1',
-        openRouterId: 'openai/gpt-5.1',
-        name: 'GPT-5.1',
-        tier: 'intelligence',
-        avgTtftMs: 500,
-        avgTpsMs: 10,
-        costPer1MInput: 1.25,
-        costPer1MOutput: 10.00,
-        maxContext: 400000,
-        maxOutput: 32768,
-        strengths: ['conversation', 'general', 'huge-context', 'tools'],
+        strengths: ['coding', 'real-world-agents', 'state-of-the-art', 'balanced'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
     'gemini-3-pro': {
         id: 'gemini-3-pro',
-        openRouterId: 'google/gemini-3-pro',
+        openRouterId: 'google/gemini-3-pro-preview',
         name: 'Gemini 3 Pro',
         tier: 'intelligence',
         avgTtftMs: 600,
-        avgTpsMs: 12,
-        costPer1MInput: 1.50,
-        costPer1MOutput: 6.00,
-        maxContext: 2000000,
-        maxOutput: 32768,
-        strengths: ['multimodal', 'visual', 'reasoning', 'huge-context'],
+        avgTpsMs: 10,
+        costPer1MInput: 2.00,
+        costPer1MOutput: 12.00,
+        maxContext: 1050000,
+        maxOutput: 16384,
+        strengths: ['multimodal', 'precision', 'reasoning', 'huge-context'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
-    'grok-5': {
-        id: 'grok-5',
-        openRouterId: 'x-ai/grok-5',
-        name: 'Grok 5',
+    'gpt-5.1-codex-max': {
+        id: 'gpt-5.1-codex-max',
+        openRouterId: 'openai/gpt-5.1-codex-max',
+        name: 'GPT-5.1 Codex Max',
+        tier: 'intelligence',
+        avgTtftMs: 700,
+        avgTpsMs: 10,
+        costPer1MInput: 1.25,
+        costPer1MOutput: 10.00,
+        maxContext: 400000,
+        maxOutput: 32768,
+        strengths: ['agentic-coding', 'long-running', 'high-context', 'software-dev'],
+        supportsVision: false,
+        supportsStreaming: true,
+    },
+
+    'mistral-large-3': {
+        id: 'mistral-large-3',
+        openRouterId: 'mistralai/mistral-large-3-2512',
+        name: 'Mistral Large 3',
         tier: 'intelligence',
         avgTtftMs: 600,
-        avgTpsMs: 14,
-        costPer1MInput: 4.00,
-        costPer1MOutput: 12.00,
-        maxContext: 4000000,
-        maxOutput: 65536,
-        strengths: ['real-time-info', 'huge-context', 'reasoning', 'code'],
-        supportsVision: true,
-        supportsStreaming: true,
-    },
-
-    'llama-4-maverick': {
-        id: 'llama-4-maverick',
-        openRouterId: 'meta-llama/llama-4-maverick-400b',
-        name: 'Llama 4 Maverick 400B',
-        tier: 'intelligence',
-        avgTtftMs: 900,
-        avgTpsMs: 8,
+        avgTpsMs: 10,
         costPer1MInput: 2.00,
-        costPer1MOutput: 8.00,
-        maxContext: 512000,
-        maxOutput: 32768,
-        strengths: ['reasoning', 'code', 'math', 'open-source'],
-        supportsVision: false,
+        costPer1MOutput: 6.00,
+        maxContext: 256000,
+        maxOutput: 16384,
+        strengths: ['reasoning', 'multilingual', 'code', 'open-source'],
+        supportsVision: true,
         supportsStreaming: true,
     },
 
@@ -212,82 +196,82 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
     // Best for specific coding and reasoning tasks
     // =========================================================================
 
-    'gpt-5.1-codex': {
-        id: 'gpt-5.1-codex',
-        openRouterId: 'openai/gpt-5.1-codex',
-        name: 'GPT-5.1 Codex',
-        tier: 'specialist',
-        avgTtftMs: 400,
-        avgTpsMs: 10,
-        costPer1MInput: 1.25,
-        costPer1MOutput: 10.00,
-        maxContext: 400000,
-        maxOutput: 32768,
-        strengths: ['code-generation', 'software-engineering', 'agentic-coding'],
-        supportsVision: false,
-        supportsStreaming: true,
-    },
-
-    'qwen-3-coder': {
-        id: 'qwen-3-coder',
-        openRouterId: 'qwen/qwen-3-coder-32b',
-        name: 'Qwen 3 Coder 32B',
+    'qwen3-coder': {
+        id: 'qwen3-coder',
+        openRouterId: 'qwen/qwen3-coder-480b-a35b',
+        name: 'Qwen3 Coder 480B',
         tier: 'specialist',
         avgTtftMs: 350,
         avgTpsMs: 8,
-        costPer1MInput: 0.25,
-        costPer1MOutput: 0.60,
-        maxContext: 256000,
+        costPer1MInput: 0.22,
+        costPer1MOutput: 0.95,
+        maxContext: 262000,
         maxOutput: 16384,
-        strengths: ['code-generation', 'multi-language', 'reasoning'],
+        strengths: ['code-generation', 'agentic-coding', 'MoE', 'multi-language'],
         supportsVision: false,
         supportsStreaming: true,
     },
 
-    'codestral-25.12': {
-        id: 'codestral-25.12',
-        openRouterId: 'mistralai/codestral-25.12',
-        name: 'Codestral 25.12',
+    'codestral-2508': {
+        id: 'codestral-2508',
+        openRouterId: 'mistralai/codestral-2508',
+        name: 'Codestral 2508',
         tier: 'specialist',
         avgTtftMs: 280,
         avgTpsMs: 7,
         costPer1MInput: 0.30,
         costPer1MOutput: 0.90,
-        maxContext: 512000,
+        maxContext: 256000,
         maxOutput: 16384,
-        strengths: ['code-generation', 'fill-in-middle', 'fast'],
+        strengths: ['code-generation', 'fill-in-middle', 'low-latency', 'fast'],
         supportsVision: false,
         supportsStreaming: true,
     },
 
-    'deepseek-r1-turbo': {
-        id: 'deepseek-r1-turbo',
-        openRouterId: 'deepseek/deepseek-r1-turbo',
-        name: 'DeepSeek R1 Turbo',
+    'grok-code-fast': {
+        id: 'grok-code-fast',
+        openRouterId: 'x-ai/grok-code-fast-1',
+        name: 'Grok Code Fast 1',
+        tier: 'specialist',
+        avgTtftMs: 300,
+        avgTpsMs: 7,
+        costPer1MInput: 0.20,
+        costPer1MOutput: 1.50,
+        maxContext: 256000,
+        maxOutput: 16384,
+        strengths: ['agentic-coding', 'reasoning-traces', 'economical', 'fast'],
+        supportsVision: false,
+        supportsStreaming: true,
+    },
+
+    'deepseek-r1': {
+        id: 'deepseek-r1',
+        openRouterId: 'deepseek/deepseek-r1t2-chimera',
+        name: 'DeepSeek R1 Chimera',
         tier: 'specialist',
         avgTtftMs: 400,
         avgTpsMs: 6,
-        costPer1MInput: 0.40,
-        costPer1MOutput: 1.60,
+        costPer1MInput: 0.00,
+        costPer1MOutput: 0.00,
         maxContext: 164000,
         maxOutput: 16384,
-        strengths: ['reasoning', 'math', 'code', 'chain-of-thought'],
+        strengths: ['reasoning', 'math', 'code', 'chain-of-thought', 'free'],
         supportsVision: false,
         supportsStreaming: true,
     },
 
-    'mistral-large-25.12': {
-        id: 'mistral-large-25.12',
-        openRouterId: 'mistralai/mistral-large-25.12',
-        name: 'Mistral Large 25.12',
+    'ministral-3': {
+        id: 'ministral-3',
+        openRouterId: 'mistralai/ministral-3-14b-2512',
+        name: 'Ministral 3 14B',
         tier: 'specialist',
-        avgTtftMs: 400,
+        avgTtftMs: 250,
         avgTpsMs: 9,
-        costPer1MInput: 1.50,
-        costPer1MOutput: 4.50,
-        maxContext: 256000,
-        maxOutput: 16384,
-        strengths: ['code', 'reasoning', 'multilingual'],
+        costPer1MInput: 0.10,
+        costPer1MOutput: 0.30,
+        maxContext: 262000,
+        maxOutput: 8192,
+        strengths: ['efficient', 'vision', 'frontier-performance', 'fast'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -303,26 +287,25 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
  */
 export const TIER_PREFERENCES: Record<ModelTier, string[]> = {
     speed: [
-        'gemini-3-flash',     // Fastest TTFT ~120ms
-        'gpt-5.1-mini',       // ~180ms, OpenAI ecosystem
-        'deepseek-v3.2',      // ~250ms, excellent value
-        'llama-4-scout',      // ~300ms, open-source
-        'claude-haiku-4',     // ~350ms, Anthropic quality
+        'gemini-2.5-flash',   // Fastest, great quality
+        'gpt-4o-mini',        // OpenAI fast option
+        'deepseek-v3',        // Excellent value
+        'grok-4-fast',        // 2M context, multimodal
+        'nova-2-lite',        // Free option
     ],
     intelligence: [
-        'claude-sonnet-4.5',  // Best coding model
-        'gpt-5.1',            // OpenAI flagship
+        'claude-sonnet-4.5',  // Best coding, 1M context
+        'gpt-5.1-codex-max',  // Agentic coding specialist
         'gemini-3-pro',       // Google flagship
-        'grok-5',             // xAI flagship
-        'llama-4-maverick',   // Open-source flagship
-        'claude-opus-4.5',    // Maximum quality (slower)
+        'mistral-large-3',    // Open-source flagship
+        'claude-opus-4.5',    // Maximum quality
     ],
     specialist: [
-        'gpt-5.1-codex',      // OpenAI code specialist
-        'qwen-3-coder',       // Excellent code quality
-        'codestral-25.12',    // Fast code generation
-        'deepseek-r1-turbo',  // Reasoning specialist
-        'mistral-large-25.12',// Good general coding
+        'qwen3-coder',        // MoE code specialist
+        'codestral-2508',     // Fast code generation
+        'grok-code-fast',     // Agentic coding
+        'deepseek-r1',        // Reasoning specialist (free!)
+        'ministral-3',        // Efficient with vision
     ],
 };
 
@@ -333,27 +316,27 @@ export const TIER_PREFERENCES: Record<ModelTier, string[]> = {
 export const STRATEGY_MODELS = {
     // Trivial: Single fastest model
     trivial: {
-        primary: 'gemini-3-flash',
-        fallback: 'gpt-5.1-mini',
+        primary: 'gemini-2.5-flash',
+        fallback: 'gpt-4o-mini',
     },
 
     // Simple: Fast model, code specialist preferred
     simple: {
-        primary: 'deepseek-v3.2',
-        fallback: 'codestral-25.12',
+        primary: 'deepseek-v3',
+        fallback: 'codestral-2508',
     },
 
     // Medium: Speculative execution - fast + smart
     medium: {
-        fast: 'deepseek-v3.2',
+        fast: 'deepseek-v3',
         smart: 'claude-sonnet-4.5',
-        fallback: 'gpt-5.1',
+        fallback: 'gpt-5.1-codex-max',
     },
 
     // Complex: Intelligence tier primary
     complex: {
         primary: 'claude-sonnet-4.5',
-        fallback: 'gpt-5.1',
+        fallback: 'gpt-5.1-codex-max',
     },
 
     // Expert: Best available
@@ -400,7 +383,7 @@ export function getFastestModel(
         })
         .sort((a, b) => a.avgTtftMs - b.avgTtftMs);
 
-    return candidates[0] || KTN_MODELS['gemini-3-flash'];
+    return candidates[0] || KTN_MODELS['gemini-2.5-flash'];
 }
 
 /**
@@ -471,7 +454,7 @@ export function getAllModelsForDisplay(): Array<{
             id: 'claude-opus-4.5',
             name: 'Claude Opus 4.5',
             tier: 'intelligence',
-            description: 'Maximum quality for complex tasks',
+            description: 'Maximum quality for complex reasoning',
             speed: 'slow',
             quality: 'best',
             costTier: 'premium',
@@ -480,16 +463,16 @@ export function getAllModelsForDisplay(): Array<{
             id: 'claude-sonnet-4.5',
             name: 'Claude Sonnet 4.5',
             tier: 'intelligence',
-            description: 'Best balance of speed and quality',
+            description: 'Best coding model with 1M context',
             speed: 'medium',
-            quality: 'excellent',
+            quality: 'best',
             costTier: 'standard',
         },
         {
-            id: 'gpt-5.1',
-            name: 'GPT-5.1',
+            id: 'gpt-5.1-codex-max',
+            name: 'GPT-5.1 Codex Max',
             tier: 'intelligence',
-            description: 'OpenAI flagship with 400K context',
+            description: 'OpenAI agentic coding with 400K context',
             speed: 'medium',
             quality: 'excellent',
             costTier: 'standard',
@@ -498,72 +481,63 @@ export function getAllModelsForDisplay(): Array<{
             id: 'gemini-3-pro',
             name: 'Gemini 3 Pro',
             tier: 'intelligence',
-            description: 'Google flagship with 2M context',
+            description: 'Google flagship with 1M context',
             speed: 'medium',
             quality: 'excellent',
             costTier: 'standard',
         },
-        {
-            id: 'grok-5',
-            name: 'Grok 5',
-            tier: 'intelligence',
-            description: 'xAI with 4M context + real-time info',
-            speed: 'medium',
-            quality: 'excellent',
-            costTier: 'premium',
-        },
         // Speed Tier
         {
-            id: 'gemini-3-flash',
-            name: 'Gemini 3 Flash',
+            id: 'gemini-2.5-flash',
+            name: 'Gemini 2.5 Flash',
             tier: 'speed',
-            description: 'Ultra-fast with 2M context',
+            description: 'Ultra-fast with 1M context',
             speed: 'fast',
             quality: 'good',
             costTier: 'economy',
         },
         {
-            id: 'deepseek-v3.2',
-            name: 'DeepSeek V3.2',
+            id: 'grok-4-fast',
+            name: 'Grok 4 Fast',
+            tier: 'speed',
+            description: '2M context with multimodal',
+            speed: 'fast',
+            quality: 'good',
+            costTier: 'economy',
+        },
+        {
+            id: 'deepseek-v3',
+            name: 'DeepSeek V3',
             tier: 'speed',
             description: 'Excellent value for code tasks',
             speed: 'fast',
             quality: 'good',
             costTier: 'economy',
         },
+        // Specialist Tier
         {
-            id: 'claude-haiku-4',
-            name: 'Claude Haiku 4',
-            tier: 'speed',
-            description: 'Fast Anthropic model',
+            id: 'qwen3-coder',
+            name: 'Qwen3 Coder 480B',
+            tier: 'specialist',
+            description: 'MoE code specialist',
+            speed: 'fast',
+            quality: 'excellent',
+            costTier: 'economy',
+        },
+        {
+            id: 'codestral-2508',
+            name: 'Codestral 2508',
+            tier: 'specialist',
+            description: 'Fast code with fill-in-middle',
             speed: 'fast',
             quality: 'good',
             costTier: 'economy',
         },
-        // Specialist Tier
         {
-            id: 'gpt-5.1-codex',
-            name: 'GPT-5.1 Codex',
+            id: 'deepseek-r1',
+            name: 'DeepSeek R1 Chimera',
             tier: 'specialist',
-            description: 'OpenAI code specialist',
-            speed: 'fast',
-            quality: 'excellent',
-            costTier: 'standard',
-        },
-        {
-            id: 'qwen-3-coder',
-            name: 'Qwen 3 Coder 32B',
-            tier: 'specialist',
-            description: 'Excellent code quality',
-            speed: 'fast',
-            quality: 'excellent',
-            costTier: 'economy',
-        },
-        {
-            id: 'deepseek-r1-turbo',
-            name: 'DeepSeek R1 Turbo',
-            tier: 'specialist',
-            description: 'Reasoning with chain-of-thought',
+            description: 'Reasoning specialist (FREE)',
             speed: 'medium',
             quality: 'excellent',
             costTier: 'economy',

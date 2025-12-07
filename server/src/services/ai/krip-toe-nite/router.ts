@@ -13,7 +13,7 @@
  * - PARALLEL: Race multiple models, take best (complex)
  * - ENSEMBLE: Multiple models vote/merge (expert)
  *
- * Updated: December 7, 2025
+ * VERIFIED: December 7, 2025 - Uses actual OpenRouter models
  */
 
 import {
@@ -194,18 +194,18 @@ export class KripToeNiteRouter {
 
         if (isCodeTask) {
             return {
-                primaryModel: KTN_MODELS['deepseek-v3.2'],
+                primaryModel: KTN_MODELS['deepseek-v3'],
                 parallelModel: KTN_MODELS['claude-sonnet-4.5'],
-                fallbackModel: KTN_MODELS['gpt-5.1'],
+                fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
             };
         }
 
         // For UI/design tasks
         if (analysis.taskType === TaskType.UI_COMPONENT || analysis.isDesignHeavy) {
             return {
-                primaryModel: KTN_MODELS['claude-haiku-4'],
+                primaryModel: KTN_MODELS['gemini-2.5-flash'],
                 parallelModel: KTN_MODELS['claude-sonnet-4.5'],
-                fallbackModel: KTN_MODELS['gpt-5.1'],
+                fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
             };
         }
 
@@ -230,7 +230,7 @@ export class KripToeNiteRouter {
         if (this.isCodeTask(analysis.taskType)) {
             return {
                 primaryModel: KTN_MODELS['claude-sonnet-4.5'],
-                parallelModel: KTN_MODELS['gpt-5.1'],
+                parallelModel: KTN_MODELS['gpt-5.1-codex-max'],
                 fallbackModel: KTN_MODELS['gemini-3-pro'],
             };
         }
@@ -241,14 +241,14 @@ export class KripToeNiteRouter {
             return {
                 primaryModel: KTN_MODELS['claude-opus-4.5'],
                 parallelModel: KTN_MODELS['claude-sonnet-4.5'],
-                fallbackModel: KTN_MODELS['gpt-5.1'],
+                fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
             };
         }
 
         // Default complex
         return {
             primaryModel: KTN_MODELS[STRATEGY_MODELS.complex.primary],
-            parallelModel: KTN_MODELS['gpt-5.1'],
+            parallelModel: KTN_MODELS['gpt-5.1-codex-max'],
             fallbackModel: KTN_MODELS[STRATEGY_MODELS.complex.fallback],
         };
     }
@@ -266,7 +266,7 @@ export class KripToeNiteRouter {
         return {
             primaryModel: KTN_MODELS[STRATEGY_MODELS.expert.primary],
             parallelModel: KTN_MODELS[STRATEGY_MODELS.expert.fallback],
-            fallbackModel: KTN_MODELS['gpt-5.1'],
+            fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
         };
     }
 
@@ -283,41 +283,41 @@ export class KripToeNiteRouter {
             case TaskType.CODE_REFACTOR:
             case TaskType.DEBUGGING:
                 return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3.2']
+                    ? KTN_MODELS['deepseek-v3']
                     : KTN_MODELS['claude-sonnet-4.5'];
 
             case TaskType.UI_COMPONENT:
             case TaskType.DESIGN_SYSTEM:
                 return tier === 'speed'
-                    ? KTN_MODELS['claude-haiku-4']
+                    ? KTN_MODELS['gemini-2.5-flash']
                     : KTN_MODELS['claude-sonnet-4.5'];
 
             case TaskType.API_DESIGN:
             case TaskType.DATABASE:
                 return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3.2']
+                    ? KTN_MODELS['deepseek-v3']
                     : KTN_MODELS['claude-sonnet-4.5'];
 
             case TaskType.TESTING:
                 return tier === 'speed'
-                    ? KTN_MODELS['qwen-3-coder']
-                    : KTN_MODELS['gpt-5.1-codex'];
+                    ? KTN_MODELS['qwen3-coder']
+                    : KTN_MODELS['gpt-5.1-codex-max'];
 
             case TaskType.EXPLANATION:
             case TaskType.DOCUMENTATION:
                 return tier === 'speed'
-                    ? KTN_MODELS['gpt-5.1-mini']
-                    : KTN_MODELS['gpt-5.1'];
+                    ? KTN_MODELS['gpt-4o-mini']
+                    : KTN_MODELS['gemini-3-pro'];
 
             case TaskType.ARCHITECTURE:
             case TaskType.COMPLEX_REASONING:
                 return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3.2']
+                    ? KTN_MODELS['deepseek-v3']
                     : KTN_MODELS['claude-opus-4.5'];
 
             default:
                 return tier === 'speed'
-                    ? KTN_MODELS['gemini-3-flash']
+                    ? KTN_MODELS['gemini-2.5-flash']
                     : KTN_MODELS['claude-sonnet-4.5'];
         }
     }
