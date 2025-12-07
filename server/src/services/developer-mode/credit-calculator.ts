@@ -9,7 +9,7 @@
  */
 
 import { db } from '../../db.js';
-import { developerModeAgents, developerModeCreditTransactions } from '../../schema.js';
+import { developerModeAgents, developerModeCreditTransactions, subscriptions } from '../../schema.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 
 // =============================================================================
@@ -387,17 +387,40 @@ export class CreditCalculatorService {
 
     /**
      * Get current credit balance for user
+     * Queries the subscriptions table for user's plan and credit allocation
      */
     async getCreditBalance(): Promise<CreditBalance> {
-        // In a real implementation, this would query a credits table
-        // For now, return a mock balance
         const summary = await this.getUsageSummary();
+
+        // Query user's subscription for credit allocation
+        const userSubs = await db
+            .select()
+            .from(subscriptions)
+            .where(eq(subscriptions.userId, this.userId))
+            .limit(1);
+
+        // Default credit allocations by plan tier
+        const PLAN_CREDITS: Record<string, number> = {
+            'starter': 5.0,    // Free tier: $5/month
+            'pro': 25.0,       // Pro: $25/month
+            'pro_plus': 80.0,  // Pro+: $80/month
+            'ultra': 200.0,    // Ultra: $200/month
+            'teams': 50.0,     // Teams: $50/user/month
+            'free': 5.0,       // Default free tier
+        };
+
+        // Determine total credits based on subscription
+        let totalCredits = PLAN_CREDITS['free']; // Default
+        if (userSubs.length > 0 && userSubs[0].status === 'active') {
+            const planName = userSubs[0].plan?.toLowerCase() || 'free';
+            totalCredits = PLAN_CREDITS[planName] || PLAN_CREDITS['free'];
+        }
 
         return {
             userId: this.userId,
-            totalCredits: 100.0, // $100 starting balance
+            totalCredits,
             usedCredits: summary.totalCost,
-            remainingCredits: Math.max(0, 100.0 - summary.totalCost),
+            remainingCredits: Math.max(0, totalCredits - summary.totalCost),
             lastUpdated: new Date().toISOString(),
         };
     }

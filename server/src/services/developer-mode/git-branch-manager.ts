@@ -458,6 +458,64 @@ export class GitBranchManager extends EventEmitter {
         }
     }
 
+    /**
+     * Get diff statistics between two branches
+     */
+    async getDiffStats(
+        baseBranch: string,
+        compareBranch: string
+    ): Promise<{ filesChanged: number; additions: number; deletions: number; files: string[] }> {
+        try {
+            // Get diff stats using git diff --stat
+            const { stdout } = await execAsync(
+                `git diff --stat origin/${baseBranch}...${compareBranch}`,
+                { cwd: this.config.projectPath, maxBuffer: 10 * 1024 * 1024 }
+            );
+
+            const lines = stdout.trim().split('\n');
+            const files: string[] = [];
+            let additions = 0;
+            let deletions = 0;
+
+            for (const line of lines) {
+                // File lines look like: " filename | 5 +++--"
+                const fileMatch = line.match(/^\s*(.+?)\s*\|\s*(\d+)/);
+                if (fileMatch) {
+                    files.push(fileMatch[1].trim());
+                }
+                // Stats line looks like: " X files changed, Y insertions(+), Z deletions(-)"
+                const statsMatch = line.match(/(\d+) insertions?\(\+\)/);
+                const delMatch = line.match(/(\d+) deletions?\(-\)/);
+                if (statsMatch) additions = parseInt(statsMatch[1], 10);
+                if (delMatch) deletions = parseInt(delMatch[1], 10);
+            }
+
+            return {
+                filesChanged: files.length,
+                additions,
+                deletions,
+                files,
+            };
+        } catch (error: any) {
+            console.error(`[GitBranchManager] getDiffStats failed: ${error.message}`);
+            return { filesChanged: 0, additions: 0, deletions: 0, files: [] };
+        }
+    }
+
+    /**
+     * Get diff stats for an agent's branch vs base
+     */
+    async getAgentDiffStats(
+        agentId: string,
+        baseBranch?: string
+    ): Promise<{ filesChanged: number; additions: number; deletions: number; files: string[] }> {
+        const worktree = this.activeWorktrees.get(agentId);
+        if (!worktree) {
+            return { filesChanged: 0, additions: 0, deletions: 0, files: [] };
+        }
+        return this.getDiffStats(baseBranch || this.config.defaultBranch, worktree.branch);
+    }
+
     // ==========================================================================
     // PRIVATE HELPERS
     // ==========================================================================

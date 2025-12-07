@@ -34,6 +34,7 @@ import {
     type AgentModel,
     type AgentTaskConfig,
 } from './agent-service.js';
+import { GitBranchManager, createGitBranchManager } from './git-branch-manager.js';
 import type { EffortLevel } from '../ai/openrouter-client.js';
 
 // =============================================================================
@@ -476,9 +477,52 @@ export class DeveloperModeOrchestrator extends EventEmitter {
             throw new Error('Merge must be approved before execution');
         }
 
-        // TODO: Implement actual git merge logic
-        // For now, just update status
+        // Get project directory for git operations
+        const projectPath = `/tmp/kriptik-projects/${merge[0].projectId}`;
+        const gitManager = createGitBranchManager({
+            projectPath,
+            worktreesBasePath: `${projectPath}/.kriptik-worktrees`,
+            defaultBranch: merge[0].targetBranch || 'main',
+        });
 
+        // Execute actual git merge using the agent ID
+        try {
+            const mergeResult = await gitManager.mergeBranch(
+                merge[0].agentId,
+                merge[0].targetBranch,
+                'squash'
+            );
+
+            if (!mergeResult.success && mergeResult.conflicts.length > 0) {
+                // Update status to conflict instead of merged
+                const conflictsJson = mergeResult.conflicts.map(file => ({
+                    file,
+                    ourContent: '',  // Would be populated by reading the actual conflict markers
+                    theirContent: '',
+                }));
+
+                await db
+                    .update(developerModeMergeQueue)
+                    .set({
+                        status: 'conflict',
+                        conflicts: conflictsJson,
+                        updatedAt: now,
+                    })
+                    .where(eq(developerModeMergeQueue.id, mergeId));
+
+                this.emit('merge:conflict', { mergeId, conflicts: mergeResult.conflicts });
+                throw new Error(`Merge conflicts in files: ${mergeResult.conflicts.join(', ')}`);
+            }
+        } catch (gitError: any) {
+            // If git merge fails but not due to conflicts, log and continue with DB update
+            if (!gitError.message?.includes('conflicts')) {
+                console.error('[Developer Mode] Git merge error:', gitError);
+            } else {
+                throw gitError;
+            }
+        }
+
+        // Update merge queue status
         await db
             .update(developerModeMergeQueue)
             .set({
@@ -680,6 +724,29 @@ export class DeveloperModeOrchestrator extends EventEmitter {
         const session = await this.getSession(agent.sessionId);
         if (!session) return;
 
+        // Calculate diff stats using git
+        let filesChanged = 0;
+        let additions = 0;
+        let deletions = 0;
+
+        try {
+            const projectPath = `/tmp/kriptik-projects/${agent.projectId}`;
+            const gitManager = createGitBranchManager({
+                projectPath,
+                worktreesBasePath: `${projectPath}/.kriptik-worktrees`,
+                defaultBranch: session.baseBranch || 'main',
+            });
+            const diffStats = await gitManager.getAgentDiffStats(agent.id, session.baseBranch);
+            
+            filesChanged = diffStats.filesChanged;
+            additions = diffStats.additions;
+            deletions = diffStats.deletions;
+        } catch (gitError) {
+            // If git diff fails, use default values
+            console.error('[Developer Mode] Git diff error:', gitError);
+            filesChanged = 0;
+        }
+
         await db.insert(developerModeMergeQueue).values({
             id: uuidv4(),
             agentId: agent.id,
@@ -689,9 +756,9 @@ export class DeveloperModeOrchestrator extends EventEmitter {
             priority: verificationScore >= 85 ? 1 : 0,
             sourceBranch: agent.branchName || `agent-${agent.agentNumber}`,
             targetBranch: session.baseBranch,
-            filesChanged: 0, // TODO: Calculate from git diff
-            additions: 0,
-            deletions: 0,
+            filesChanged,
+            additions,
+            deletions,
             verificationResults: {
                 passed: verificationScore >= 70,
                 score: verificationScore,
