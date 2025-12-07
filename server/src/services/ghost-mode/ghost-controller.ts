@@ -20,7 +20,7 @@ import {
   orchestrationRuns
 } from '../../schema.js';
 import { v4 as uuidv4 } from 'uuid';
-import { createOpenRouterClient } from '../ai/openrouter-client.js';
+import { getOpenRouterClient } from '../ai/openrouter-client.js';
 import { createTimeMachine } from '../checkpoints/time-machine.js';
 import { createSoftInterruptManager } from '../soft-interrupt/index.js';
 
@@ -178,7 +178,7 @@ export interface GhostSessionSummary {
 // =============================================================================
 
 export class GhostModeController {
-  private openRouterClient = createOpenRouterClient();
+  private openRouterClient = getOpenRouterClient();
   private timeMachine = createTimeMachine();
   private interruptManager = createSoftInterruptManager();
 

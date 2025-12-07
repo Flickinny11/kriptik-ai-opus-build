@@ -13,7 +13,7 @@ import { db } from '../../db.js';
 import { eq, and } from 'drizzle-orm';
 import { projects, files as projectFiles, deployments } from '../../schema.js';
 import { v4 as uuidv4 } from 'uuid';
-import { createOpenRouterClient } from '../ai/openrouter-client.js';
+import { getOpenRouterClient } from '../ai/openrouter-client.js';
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -901,7 +901,7 @@ function formatBytes(bytes: number): string {
 // =============================================================================
 
 export class PreFlightValidator {
-  private openRouterClient = createOpenRouterClient();
+  private openRouterClient = getOpenRouterClient();
 
   /**
    * Run full validation for a project against a deployment platform

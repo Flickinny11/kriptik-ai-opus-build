@@ -17,7 +17,7 @@ import {
   developerModeSessions
 } from '../../schema.js';
 import { v4 as uuidv4 } from 'uuid';
-import { createOpenRouterClient } from '../ai/openrouter-client.js';
+import { getOpenRouterClient } from '../ai/openrouter-client.js';
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -97,7 +97,7 @@ export interface InterruptApplicationResult {
 // =============================================================================
 
 export class SoftInterruptManager {
-  private openRouterClient = createOpenRouterClient();
+  private openRouterClient = getOpenRouterClient();
   private interruptQueue: Map<string, ClassifiedInterrupt[]> = new Map();
   private activeContexts: Map<string, AgentExecutionContext> = new Map();
   private processingLocks: Set<string> = new Set();
