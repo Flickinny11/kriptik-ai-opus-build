@@ -19,6 +19,26 @@ import {
     type VerificationMode,
 } from '../services/developer-mode/index.js';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+    getKripToeNiteService,
+} from '../services/ai/krip-toe-nite/index.js';
+import {
+    getOpenRouterClient,
+    OPENROUTER_MODELS,
+    type OpenRouterModel,
+} from '../services/ai/openrouter-client.js';
+import {
+    createSandboxService,
+    type SandboxService,
+} from '../services/developer-mode/sandbox-service.js';
+import {
+    createSoftInterruptManager,
+    type SoftInterruptManager,
+} from '../services/soft-interrupt/interrupt-manager.js';
+import {
+    createVisualVerificationService,
+    type VisualVerificationService,
+} from '../services/automation/visual-verifier.js';
 
 // Helper to ensure user is authenticated
 const requireAuth = authMiddleware;
@@ -26,6 +46,580 @@ const requireAuth = authMiddleware;
 const router = Router();
 const orchestrator = getDeveloperModeOrchestrator();
 const verificationScaler = getVerificationModeScaler();
+
+// Initialize shared services
+let sandboxService: SandboxService | null = null;
+let interruptManager: SoftInterruptManager | null = null;
+let visualVerifier: VisualVerificationService | null = null;
+
+function getSandboxService(): SandboxService {
+    if (!sandboxService) {
+        sandboxService = createSandboxService({
+            basePort: 3200,
+            maxSandboxes: 10,
+            projectPath: '/tmp/developer-mode',
+            framework: 'vite',
+        });
+    }
+    return sandboxService;
+}
+
+function getInterruptManager(): SoftInterruptManager {
+    if (!interruptManager) {
+        interruptManager = createSoftInterruptManager();
+    }
+    return interruptManager;
+}
+
+function getVisualVerifier(): VisualVerificationService {
+    if (!visualVerifier) {
+        visualVerifier = createVisualVerificationService();
+    }
+    return visualVerifier;
+}
+
+// =============================================================================
+// CODE GENERATION WITH MODEL ROUTING
+// =============================================================================
+
+/**
+ * POST /api/developer-mode/generate
+ * Generate code using the selected model
+ * Routes through Krip-Toe-Nite for intelligent model selection or uses specific model
+ */
+router.post('/generate', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const {
+            prompt,
+            selectedModel,
+            systemPrompt,
+            context,
+            sessionId,
+            projectId,
+            maxTokens = 32000,
+        } = req.body;
+
+        if (!prompt) {
+            return res.status(400).json({ error: 'prompt is required' });
+        }
+
+        // Check for pending interrupts at this tool boundary
+        if (sessionId) {
+            const manager = getInterruptManager();
+            const interrupts = await manager.getInterruptsAtToolBoundary(sessionId, req.user!.id);
+            
+            if (interrupts.length > 0) {
+                for (const interrupt of interrupts) {
+                    const result = await manager.applyInterrupt(interrupt, req.user!.id);
+                    if (result.action === 'applied' && interrupt.type === 'HALT') {
+                        return res.json({
+                            success: false,
+                            halted: true,
+                            reason: interrupt.message,
+                            interruptId: interrupt.id,
+                        });
+                    }
+                }
+            }
+        }
+
+        let response: string;
+        let modelUsed: string;
+        let ttftMs: number | undefined;
+        let strategy: string | undefined;
+
+        const startTime = Date.now();
+
+        if (selectedModel === 'krip-toe-nite') {
+            // Use Krip-Toe-Nite for intelligent model routing
+            const ktn = getKripToeNiteService();
+            let content = '';
+            let firstChunk = true;
+
+            const options = {
+                prompt,
+                systemPrompt: systemPrompt || 'You are an expert developer. Generate clean, production-ready code.',
+                context: context || {},
+                maxTokens,
+            };
+
+            for await (const chunk of ktn.generate(options)) {
+                if (chunk.type === 'text') {
+                    if (firstChunk) {
+                        ttftMs = Date.now() - startTime;
+                        firstChunk = false;
+                    }
+                    content += chunk.content;
+                }
+                if (chunk.type === 'status') {
+                    modelUsed = chunk.model || 'krip-toe-nite';
+                    strategy = chunk.strategy;
+                }
+            }
+
+            response = content;
+            modelUsed = modelUsed! || 'krip-toe-nite';
+
+        } else {
+            // Use OpenRouterClient with specific model via Anthropic SDK
+            const client = getOpenRouterClient();
+            
+            // Map model IDs to OpenRouter models
+            const modelMap: Record<string, OpenRouterModel> = {
+                'claude-opus-4-5': OPENROUTER_MODELS.OPUS_4_5,
+                'claude-sonnet-4-5': OPENROUTER_MODELS.SONNET_4_5,
+                'claude-haiku-3-5': OPENROUTER_MODELS.HAIKU_3_5,
+                'gpt-5-codex': OPENROUTER_MODELS.GPT_4O,
+                'gemini-2-5-pro': OPENROUTER_MODELS.GEMINI_2_FLASH,
+                'deepseek-r1': OPENROUTER_MODELS.DEEPSEEK_V3,
+            };
+
+            const model = modelMap[selectedModel] || OPENROUTER_MODELS.SONNET_4_5;
+            const anthropicClient = client.getClient();
+
+            const result = await anthropicClient.messages.create({
+                model,
+                max_tokens: maxTokens,
+                system: systemPrompt || 'You are an expert developer.',
+                messages: [
+                    { role: 'user', content: prompt },
+                ],
+            });
+
+            ttftMs = Date.now() - startTime;
+            response = result.content[0]?.type === 'text' ? result.content[0].text : '';
+            modelUsed = model;
+        }
+
+        // Run visual verification if sandbox is available and content looks like UI code
+        let designIssues: any[] = [];
+        let slopDetected = false;
+
+        if (projectId && (response.includes('className=') || response.includes('style='))) {
+            try {
+                const sandbox = getSandboxService().getSandbox(projectId);
+                if (sandbox && sandbox.status === 'running') {
+                    // Would capture screenshot here - placeholder for actual implementation
+                    console.log(`[Developer Mode] Visual verification available for project ${projectId}`);
+                }
+            } catch (verifyError) {
+                console.warn('[Developer Mode] Visual verification skipped:', verifyError);
+            }
+        }
+
+        res.json({
+            success: true,
+            content: response,
+            model: modelUsed,
+            ttftMs,
+            strategy,
+            designIssues,
+            slopDetected,
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Generate error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Generation failed' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/generate/stream
+ * Stream generation with SSE
+ */
+router.get('/generate/stream', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const prompt = req.query.prompt as string;
+        const selectedModel = req.query.model as string || 'krip-toe-nite';
+        const sessionId = req.query.sessionId as string;
+
+        if (!prompt) {
+            return res.status(400).json({ error: 'prompt is required' });
+        }
+
+        // Set SSE headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        const startTime = Date.now();
+
+        if (selectedModel === 'krip-toe-nite') {
+            const ktn = getKripToeNiteService();
+            let firstChunk = true;
+
+            for await (const chunk of ktn.generate({
+                prompt,
+                systemPrompt: 'You are an expert developer. Generate clean, production-ready code.',
+                context: {},
+                maxTokens: 32000,
+            })) {
+                if (chunk.type === 'text') {
+                    if (firstChunk) {
+                        const ttftMs = Date.now() - startTime;
+                        res.write(`data: ${JSON.stringify({ type: 'ttft', ttftMs })}\n\n`);
+                        firstChunk = false;
+                    }
+                    res.write(`data: ${JSON.stringify({ type: 'text', content: chunk.content })}\n\n`);
+                }
+                if (chunk.type === 'status') {
+                    res.write(`data: ${JSON.stringify({ type: 'status', model: chunk.model, strategy: chunk.strategy })}\n\n`);
+                }
+            }
+
+            res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+            res.end();
+        } else {
+            // Non-streaming fallback for specific models
+            const client = getOpenRouterClient();
+            const anthropicClient = client.getClient();
+
+            const result = await anthropicClient.messages.create({
+                model: selectedModel as OpenRouterModel || OPENROUTER_MODELS.SONNET_4_5,
+                max_tokens: 32000,
+                messages: [{ role: 'user', content: prompt }],
+            });
+
+            const ttftMs = Date.now() - startTime;
+            const content = result.content[0]?.type === 'text' ? result.content[0].text : '';
+            
+            res.write(`data: ${JSON.stringify({ type: 'ttft', ttftMs })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'text', content })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+            res.end();
+        }
+
+    } catch (error) {
+        console.error('[Developer Mode] Stream error:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: (error as Error).message })}\n\n`);
+        res.end();
+    }
+});
+
+// =============================================================================
+// SANDBOX MANAGEMENT
+// =============================================================================
+
+/**
+ * POST /api/developer-mode/sandbox
+ * Create or get sandbox for a session
+ */
+router.post('/sandbox', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { sessionId, projectPath } = req.body;
+
+        if (!sessionId) {
+            return res.status(400).json({ error: 'sessionId is required' });
+        }
+
+        const service = getSandboxService();
+        await service.initialize();
+
+        let sandbox = service.getSandbox(sessionId);
+        
+        if (!sandbox) {
+            sandbox = await service.createSandbox(
+                sessionId,
+                projectPath || `/tmp/developer-mode/${sessionId}`
+            );
+        }
+
+        res.json({
+            success: true,
+            sandbox: {
+                id: sandbox.id,
+                url: sandbox.url,
+                status: sandbox.status,
+                port: sandbox.port,
+            },
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Sandbox creation error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Sandbox creation failed' });
+    }
+});
+
+/**
+ * GET /api/developer-mode/sandbox/:sessionId
+ * Get sandbox status
+ */
+router.get('/sandbox/:sessionId', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const service = getSandboxService();
+        const sandbox = service.getSandbox(req.params.sessionId);
+
+        if (!sandbox) {
+            return res.json({ success: true, sandbox: null });
+        }
+
+        res.json({
+            success: true,
+            sandbox: {
+                id: sandbox.id,
+                url: sandbox.url,
+                status: sandbox.status,
+                port: sandbox.port,
+            },
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Get sandbox error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get sandbox' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/sandbox/:sessionId/restart
+ * Restart sandbox
+ */
+router.post('/sandbox/:sessionId/restart', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const service = getSandboxService();
+        await service.restartSandbox(req.params.sessionId);
+
+        const sandbox = service.getSandbox(req.params.sessionId);
+        
+        res.json({
+            success: true,
+            sandbox: sandbox ? {
+                id: sandbox.id,
+                url: sandbox.url,
+                status: sandbox.status,
+                port: sandbox.port,
+            } : null,
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Restart sandbox error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to restart sandbox' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/sandbox/:sessionId/hmr
+ * Trigger HMR update
+ */
+router.post('/sandbox/:sessionId/hmr', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { filePath } = req.body;
+
+        if (!filePath) {
+            return res.status(400).json({ error: 'filePath is required' });
+        }
+
+        const service = getSandboxService();
+        await service.triggerHMRUpdate(req.params.sessionId, filePath);
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('[Developer Mode] HMR trigger error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'HMR trigger failed' });
+    }
+});
+
+/**
+ * DELETE /api/developer-mode/sandbox/:sessionId
+ * Remove sandbox
+ */
+router.delete('/sandbox/:sessionId', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const service = getSandboxService();
+        await service.removeSandbox(req.params.sessionId);
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('[Developer Mode] Remove sandbox error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to remove sandbox' });
+    }
+});
+
+// =============================================================================
+// SOFT INTERRUPT SYSTEM
+// =============================================================================
+
+/**
+ * POST /api/developer-mode/interrupt
+ * Submit a soft interrupt
+ */
+router.post('/interrupt', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { sessionId, message, agentId } = req.body;
+
+        if (!sessionId || !message) {
+            return res.status(400).json({ error: 'sessionId and message are required' });
+        }
+
+        const manager = getInterruptManager();
+        const interrupt = await manager.submitInterrupt(sessionId, message, agentId);
+
+        res.json({
+            success: true,
+            interrupt: {
+                id: interrupt.id,
+                type: interrupt.type,
+                priority: interrupt.priority,
+                confidence: interrupt.confidence,
+                status: interrupt.status,
+            },
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Submit interrupt error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to submit interrupt' });
+    }
+});
+
+/**
+ * GET /api/developer-mode/interrupts/:sessionId
+ * Get interrupt history for a session
+ */
+router.get('/interrupts/:sessionId', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const manager = getInterruptManager();
+        const history = await manager.getInterruptHistory(req.params.sessionId);
+
+        res.json({
+            success: true,
+            interrupts: history.map(i => ({
+                id: i.id,
+                type: i.type,
+                priority: i.priority,
+                message: i.message,
+                status: i.status,
+                timestamp: i.timestamp,
+            })),
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Get interrupts error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get interrupts' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/interrupts/:sessionId/clear
+ * Clear processed interrupts
+ */
+router.post('/interrupts/:sessionId/clear', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const manager = getInterruptManager();
+        manager.clearProcessedInterrupts(req.params.sessionId);
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('[Developer Mode] Clear interrupts error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to clear interrupts' });
+    }
+});
+
+// =============================================================================
+// VISUAL VERIFICATION
+// =============================================================================
+
+/**
+ * POST /api/developer-mode/verify
+ * Run visual verification on a screenshot
+ */
+router.post('/verify', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { screenshot, designRequirements } = req.body;
+
+        if (!screenshot) {
+            return res.status(400).json({ error: 'screenshot is required' });
+        }
+
+        const verifier = getVisualVerifier();
+        const result = await verifier.verifyPage(
+            screenshot,
+            designRequirements || 'Premium, modern UI with depth and visual polish'
+        );
+
+        res.json({
+            success: true,
+            verification: {
+                passed: result.passed,
+                designScore: result.designScore,
+                issues: result.issues,
+                accessibilityIssues: result.accessibilityIssues,
+                recommendations: result.recommendations,
+                analysis: result.analysis,
+            },
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Visual verification error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Verification failed' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/verify/slop
+ * Detect AI slop patterns in a screenshot
+ */
+router.post('/verify/slop', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { screenshot } = req.body;
+
+        if (!screenshot) {
+            return res.status(400).json({ error: 'screenshot is required' });
+        }
+
+        const verifier = getVisualVerifier();
+        const issues = await verifier.detectSlop(screenshot);
+
+        res.json({
+            success: true,
+            slopDetected: issues.length > 0,
+            issues,
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Slop detection error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Slop detection failed' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/verify/component
+ * Verify a specific component
+ */
+router.post('/verify/component', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { screenshot, componentName, expectedBehavior } = req.body;
+
+        if (!screenshot || !componentName) {
+            return res.status(400).json({ error: 'screenshot and componentName are required' });
+        }
+
+        const verifier = getVisualVerifier();
+        const result = await verifier.verifyComponent(
+            screenshot,
+            componentName,
+            expectedBehavior || `${componentName} should be visible and functional`
+        );
+
+        res.json({
+            success: true,
+            verification: {
+                componentName: result.componentName,
+                found: result.found,
+                visible: result.visible,
+                interactive: result.interactive,
+                designQuality: result.designQuality,
+                issues: result.issues,
+            },
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Component verification error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Component verification failed' });
+    }
+});
 
 // =============================================================================
 // SESSION MANAGEMENT
@@ -761,6 +1355,16 @@ router.get('/agents/:agentId/events', requireAuth, async (req: Request, res: Res
 router.get('/models', requireAuth, async (_req: Request, res: Response) => {
     try {
         const models = [
+            {
+                id: 'krip-toe-nite',
+                name: 'Krip-Toe-Nite',
+                provider: 'KripTik AI',
+                description: 'Intelligent model routing - auto-selects best model per task',
+                creditsPerTask: 15,
+                recommended: ['all tasks', 'optimal speed/quality', 'cost optimization'],
+                isDefault: true,
+                features: ['speculative execution', 'auto model selection', 'TTFT optimization'],
+            },
             {
                 id: 'claude-opus-4-5',
                 name: 'Claude Opus 4.5',

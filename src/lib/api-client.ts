@@ -582,6 +582,155 @@ class ApiClient {
         });
     }
 
+    /**
+     * Generate code using Developer Mode with model selection
+     */
+    async generateDeveloperMode(data: {
+        prompt: string;
+        selectedModel: string;
+        systemPrompt?: string;
+        context?: Record<string, unknown>;
+        sessionId?: string;
+        projectId?: string;
+        maxTokens?: number;
+    }): Promise<{
+        success: boolean;
+        content: string;
+        model: string;
+        ttftMs?: number;
+        strategy?: string;
+        designIssues: Array<{
+            type: string;
+            description: string;
+            severity: 'critical' | 'warning' | 'suggestion';
+        }>;
+        slopDetected: boolean;
+        halted?: boolean;
+        reason?: string;
+    }> {
+        return this.fetch('/api/developer-mode/generate', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    /**
+     * Create or get sandbox for Developer Mode session
+     */
+    async createDevSandbox(sessionId: string, projectPath?: string): Promise<{
+        success: boolean;
+        sandbox: {
+            id: string;
+            url: string;
+            status: string;
+            port: number;
+        } | null;
+    }> {
+        return this.fetch('/api/developer-mode/sandbox', {
+            method: 'POST',
+            body: JSON.stringify({ sessionId, projectPath }),
+        });
+    }
+
+    /**
+     * Get sandbox status
+     */
+    async getDevSandbox(sessionId: string): Promise<{
+        success: boolean;
+        sandbox: {
+            id: string;
+            url: string;
+            status: string;
+            port: number;
+        } | null;
+    }> {
+        return this.fetch(`/api/developer-mode/sandbox/${sessionId}`);
+    }
+
+    /**
+     * Trigger HMR update in sandbox
+     */
+    async triggerHMR(sessionId: string, filePath: string): Promise<{ success: boolean }> {
+        return this.fetch(`/api/developer-mode/sandbox/${sessionId}/hmr`, {
+            method: 'POST',
+            body: JSON.stringify({ filePath }),
+        });
+    }
+
+    /**
+     * Submit a soft interrupt
+     */
+    async submitInterrupt(data: {
+        sessionId: string;
+        message: string;
+        agentId?: string;
+    }): Promise<{
+        success: boolean;
+        interrupt: {
+            id: string;
+            type: string;
+            priority: string;
+            confidence: number;
+            status: string;
+        };
+    }> {
+        return this.fetch('/api/developer-mode/interrupt', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    /**
+     * Run visual verification
+     */
+    async verifyVisual(screenshot: string, designRequirements?: string): Promise<{
+        success: boolean;
+        verification: {
+            passed: boolean;
+            designScore: number;
+            issues: Array<{ type: string; description: string }>;
+            recommendations: string[];
+        };
+    }> {
+        return this.fetch('/api/developer-mode/verify', {
+            method: 'POST',
+            body: JSON.stringify({ screenshot, designRequirements }),
+        });
+    }
+
+    /**
+     * Detect AI slop patterns
+     */
+    async detectSlop(screenshot: string): Promise<{
+        success: boolean;
+        slopDetected: boolean;
+        issues: Array<{ pattern: string; description: string }>;
+    }> {
+        return this.fetch('/api/developer-mode/verify/slop', {
+            method: 'POST',
+            body: JSON.stringify({ screenshot }),
+        });
+    }
+
+    /**
+     * Get available models for Developer Mode
+     */
+    async getDeveloperModeModels(): Promise<{
+        success: boolean;
+        models: Array<{
+            id: string;
+            name: string;
+            provider: string;
+            description: string;
+            creditsPerTask: number;
+            recommended: string[];
+            isDefault?: boolean;
+            features?: string[];
+        }>;
+    }> {
+        return this.fetch('/api/developer-mode/models');
+    }
+
     // =========================================================================
     // LEARNING ENGINE API
     // =========================================================================

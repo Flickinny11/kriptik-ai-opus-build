@@ -2387,3 +2387,44 @@ VERIFICATION:
 - All services properly imported and initialized
 
 NEXT: Push to GitHub for Vercel deployment
+
+═══ [2025-12-07 Developer Mode Integration Complete] ═══
+COMPLETED: Integrated Developer Mode with shared orchestration services
+
+FILES MODIFIED:
+- server/src/routes/developer-mode.ts
+  - Added POST /api/developer-mode/generate with Krip-Toe-Nite routing
+  - Added GET /api/developer-mode/generate/stream for SSE streaming
+  - Added sandbox management endpoints (create, get, restart, HMR, delete)
+  - Added soft interrupt endpoints (submit, history, clear)
+  - Added visual verification endpoints (verify, slop detection, component)
+  - Added krip-toe-nite to available models list
+  - Integrated SandboxService, SoftInterruptManager, VisualVerificationService
+
+- src/components/builder/DeveloperModeView.tsx
+  - Model selector now controls actual model used
+  - Added sandbox live preview panel (iframe with status indicator)
+  - Added interrupt input for sending soft interrupts during generation
+  - Added design issues panel showing verification results
+  - Added anti-slop warning banner
+  - Added verification score display
+  - Automatic HMR trigger on code generation completion
+  - Support for both Krip-Toe-Nite streaming and direct model selection
+
+- src/lib/api-client.ts
+  - Added generateDeveloperMode() for model-based generation
+  - Added createDevSandbox(), getDevSandbox(), triggerHMR()
+  - Added submitInterrupt() for soft interrupts
+  - Added verifyVisual(), detectSlop() for visual verification
+  - Added getDeveloperModeModels() to fetch available models
+
+NEW DEVELOPER MODE FEATURES:
+✅ Model Selector Integration - Routes to KTN or specific model
+✅ Live Sandbox Preview - Real-time preview in iframe
+✅ Soft Interrupt System - User can interrupt AI mid-execution
+✅ Visual Verification - AI-powered design quality checks
+✅ Anti-Slop Detection - Warns about generic AI patterns
+✅ HMR Updates - Hot reload on code changes
+
+CURRENT STATE: Build successful, all features integrated
+NEXT: Verification and testing

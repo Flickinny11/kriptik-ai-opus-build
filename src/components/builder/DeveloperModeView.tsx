@@ -4,17 +4,20 @@
  * Full IDE experience for importing and enhancing existing projects.
  * Features:
  * - Project import (ZIP, GitHub, external builders)
- * - Model selector with Krip-Toe-Nite
- * - Code editor integration
+ * - Model selector with Krip-Toe-Nite intelligent routing
+ * - Live preview via sandbox
+ * - Soft interrupt system for AI control
+ * - Visual verification with anti-slop detection
  * - NLP-based modifications
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Upload, Github, ExternalLink, Folder, FileCode2,
     Zap, Play, X, Check, AlertCircle, ChevronRight,
-    RefreshCw, Cloud, StopCircle, Loader2
+    RefreshCw, Cloud, StopCircle, Loader2, Eye, Hand,
+    ShieldAlert, Sparkles, Monitor
 } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
@@ -33,6 +36,21 @@ interface ImportedProject {
     framework?: string;
     language?: string;
     importedAt: number;
+}
+
+interface DesignIssue {
+    type: string;
+    description: string;
+    severity: 'critical' | 'warning' | 'suggestion';
+    element?: string;
+    suggestion?: string;
+}
+
+interface SandboxInfo {
+    id: string;
+    url: string;
+    status: 'starting' | 'running' | 'error' | 'stopped';
+    port: number;
 }
 
 // =============================================================================
@@ -64,6 +82,85 @@ export function DeveloperModeView() {
     const [generatedCode, setGeneratedCode] = useState('');
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
     const streamControllerRef = useRef<AbortController | null>(null);
+
+    // Sandbox state
+    const [sandbox, setSandbox] = useState<SandboxInfo | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
+
+    // Interrupt state
+    const [interruptMessage, setInterruptMessage] = useState('');
+    const [isSendingInterrupt, setIsSendingInterrupt] = useState(false);
+    const [lastInterrupt, setLastInterrupt] = useState<{ type: string; status: string } | null>(null);
+
+    // Visual verification state
+    const [designIssues, setDesignIssues] = useState<DesignIssue[]>([]);
+    const [slopDetected, setSlopDetected] = useState(false);
+    const [verificationScore, setVerificationScore] = useState<number | null>(null);
+
+    // Session ID for tracking
+    const sessionIdRef = useRef<string | null>(null);
+
+    // Initialize sandbox when project is imported
+    useEffect(() => {
+        if (importedProject) {
+            initializeSandbox(importedProject.id);
+        }
+    }, [importedProject]);
+
+    // Initialize sandbox for live preview
+    const initializeSandbox = useCallback(async (projectId: string) => {
+        try {
+            const response = await fetch('/api/developer-mode/sandbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: projectId,
+                    projectPath: `/tmp/developer-mode/${projectId}`,
+                }),
+            });
+            const data = await response.json();
+            if (data.success && data.sandbox) {
+                setSandbox(data.sandbox);
+                sessionIdRef.current = projectId;
+            }
+        } catch (error) {
+            console.error('Failed to initialize sandbox:', error);
+        }
+    }, []);
+
+    // Send soft interrupt
+    const handleSendInterrupt = useCallback(async () => {
+        if (!interruptMessage.trim() || !sessionIdRef.current) return;
+
+        setIsSendingInterrupt(true);
+        try {
+            const response = await fetch('/api/developer-mode/interrupt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: sessionIdRef.current,
+                    message: interruptMessage,
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setLastInterrupt({
+                    type: data.interrupt.type,
+                    status: data.interrupt.status,
+                });
+                setInterruptMessage('');
+
+                // If HALT, stop generation
+                if (data.interrupt.type === 'HALT' && streamControllerRef.current) {
+                    streamControllerRef.current.abort();
+                    setIsGenerating(false);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to send interrupt:', error);
+        }
+        setIsSendingInterrupt(false);
+    }, [interruptMessage]);
 
     // Handle file drop - Real API call to import project
     const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -161,13 +258,16 @@ export function DeveloperModeView() {
         setGithubUrl('');
     }, [githubUrl]);
 
-    // Handle generation with Krip-Toe-Nite
+    // Handle generation with selected model (routes through KTN or specific model)
     const handleGenerate = useCallback(async () => {
         if (!prompt.trim() || !importedProject) return;
 
         setIsGenerating(true);
         setGeneratedCode('');
         setKtnStats(null);
+        setDesignIssues([]);
+        setSlopDetected(false);
+        setVerificationScore(null);
 
         const startTime = Date.now();
         let content = '';
@@ -184,48 +284,125 @@ export function DeveloperModeView() {
             buildPhase: 'development',
         };
 
-        // Use KTN streaming API
-        const controller = apiClient.streamKripToeNite(
-            {
-                prompt: `Project: ${importedProject.name}\n\nFiles: ${importedProject.files.join(', ')}\n\nTask: ${prompt}`,
-                systemPrompt: 'You are an expert developer helping to enhance an existing project. Generate clean, production-ready code.',
-                context,
-            },
-            (chunk: KripToeNiteChunk) => {
-                if (firstChunk && chunk.type === 'text') {
-                    firstChunk = false;
-                    ttftMs = Date.now() - startTime;
-                }
-
-                if (chunk.type === 'text') {
-                    content += chunk.content;
-                    setGeneratedCode(content);
-                }
-
-                if (chunk.type === 'status' || chunk.metadata) {
-                    modelUsed = chunk.model || modelUsed;
-                    strategyUsed = chunk.strategy || strategyUsed;
-                    if (chunk.metadata?.ttftMs) {
-                        ttftMs = chunk.metadata.ttftMs as number;
+        // Check if using Krip-Toe-Nite or a specific model
+        if (selectedModel === 'krip-toe-nite') {
+            // Use KTN streaming API for intelligent routing
+            const controller = apiClient.streamKripToeNite(
+                {
+                    prompt: `Project: ${importedProject.name}\n\nFiles: ${importedProject.files.join(', ')}\n\nTask: ${prompt}`,
+                    systemPrompt: 'You are an expert developer helping to enhance an existing project. Generate clean, production-ready code.',
+                    context,
+                },
+                (chunk: KripToeNiteChunk) => {
+                    if (firstChunk && chunk.type === 'text') {
+                        firstChunk = false;
+                        ttftMs = Date.now() - startTime;
                     }
+
+                    if (chunk.type === 'text') {
+                        content += chunk.content;
+                        setGeneratedCode(content);
+                    }
+
+                    if (chunk.type === 'status' || chunk.metadata) {
+                        modelUsed = chunk.model || modelUsed;
+                        strategyUsed = chunk.strategy || strategyUsed;
+                        if (chunk.metadata?.ttftMs) {
+                            ttftMs = chunk.metadata.ttftMs as number;
+                        }
+                    }
+                },
+                async () => {
+                    // On complete - run visual verification if we have code
+                    setIsGenerating(false);
+                    streamControllerRef.current = null;
+                    setKtnStats({ model: modelUsed, ttftMs, strategy: strategyUsed });
+
+                    // Trigger HMR update if sandbox is running
+                    if (sandbox?.status === 'running') {
+                        try {
+                            await fetch(`/api/developer-mode/sandbox/${importedProject.id}/hmr`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filePath: 'src/App.tsx' }),
+                            });
+                        } catch (e) {
+                            console.warn('HMR update failed:', e);
+                        }
+                    }
+                },
+                (error) => {
+                    console.error('KTN generation error:', error);
+                    setIsGenerating(false);
+                    streamControllerRef.current = null;
+                    setGeneratedCode(`Error: ${error.message}`);
                 }
-            },
-            () => {
-                // On complete
-                setIsGenerating(false);
-                streamControllerRef.current = null;
-                setKtnStats({ model: modelUsed, ttftMs, strategy: strategyUsed });
-            },
-            (error) => {
-                console.error('KTN generation error:', error);
-                setIsGenerating(false);
-                streamControllerRef.current = null;
+            );
+
+            streamControllerRef.current = controller;
+        } else {
+            // Use specific model via the developer-mode generate API
+            try {
+                const response = await fetch('/api/developer-mode/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: `Project: ${importedProject.name}\n\nFiles: ${importedProject.files.join(', ')}\n\nTask: ${prompt}`,
+                        selectedModel,
+                        systemPrompt: 'You are an expert developer helping to enhance an existing project. Generate clean, production-ready code.',
+                        context,
+                        sessionId: sessionIdRef.current,
+                        projectId: importedProject.id,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.halted) {
+                    setIsGenerating(false);
+                    setGeneratedCode(`⚠️ Generation halted by user: ${data.reason}`);
+                    return;
+                }
+
+                if (data.success) {
+                    setGeneratedCode(data.content);
+                    setKtnStats({
+                        model: data.model,
+                        ttftMs: data.ttftMs,
+                        strategy: data.strategy,
+                    });
+
+                    // Check for design issues
+                    if (data.designIssues && data.designIssues.length > 0) {
+                        setDesignIssues(data.designIssues);
+                    }
+                    if (data.slopDetected) {
+                        setSlopDetected(true);
+                    }
+
+                    // Trigger HMR update if sandbox is running
+                    if (sandbox?.status === 'running') {
+                        try {
+                            await fetch(`/api/developer-mode/sandbox/${importedProject.id}/hmr`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filePath: 'src/App.tsx' }),
+                            });
+                        } catch (e) {
+                            console.warn('HMR update failed:', e);
+                        }
+                    }
+                } else {
+                    setGeneratedCode(`Error: ${data.error || 'Generation failed'}`);
+                }
+            } catch (error: any) {
+                console.error('Generation error:', error);
                 setGeneratedCode(`Error: ${error.message}`);
             }
-        );
 
-        streamControllerRef.current = controller;
-    }, [prompt, importedProject]);
+            setIsGenerating(false);
+        }
+    }, [prompt, importedProject, selectedModel, sandbox]);
 
     // Stop generation
     const handleStopGeneration = useCallback(() => {
@@ -250,11 +427,31 @@ export function DeveloperModeView() {
                     </div>
                 </div>
 
-                {/* Model Selector */}
-                <ModelSelector
-                    selectedModel={selectedModel}
-                    onModelChange={setSelectedModel}
-                />
+                <div className="flex items-center gap-4">
+                    {/* Preview Toggle */}
+                    {sandbox && (
+                        <button
+                            onClick={() => setShowPreview(!showPreview)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                                showPreview
+                                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                            }`}
+                        >
+                            <Monitor className="w-4 h-4" />
+                            Preview
+                            {sandbox.status === 'running' && (
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            )}
+                        </button>
+                    )}
+
+                    {/* Model Selector */}
+                    <ModelSelector
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
+                    />
+                </div>
             </div>
 
             {/* Main Content */}
@@ -477,6 +674,44 @@ export function DeveloperModeView() {
                                 </span>
                             </div>
 
+                            {/* Live Preview Panel */}
+                            <AnimatePresence>
+                                {showPreview && sandbox && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 300 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="rounded-xl overflow-hidden border border-white/10 bg-black/40"
+                                    >
+                                        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${
+                                                    sandbox.status === 'running' ? 'bg-emerald-400' :
+                                                    sandbox.status === 'starting' ? 'bg-yellow-400 animate-pulse' :
+                                                    'bg-red-400'
+                                                }`} />
+                                                <span className="text-xs text-gray-400">
+                                                    {sandbox.status === 'running' ? 'Live Preview' : sandbox.status}
+                                                </span>
+                                            </div>
+                                            <a
+                                                href={sandbox.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-cyan-400 hover:text-cyan-300"
+                                            >
+                                                Open in new tab →
+                                            </a>
+                                        </div>
+                                        <iframe
+                                            src={sandbox.url}
+                                            className="w-full h-[260px] bg-white"
+                                            title="Live Preview"
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             {/* Prompt Input */}
                             <div className="space-y-4">
                                 <textarea
@@ -488,44 +723,93 @@ export function DeveloperModeView() {
                                              focus:outline-none focus:border-cyan-400"
                                 />
 
-                                {/* Krip-Toe-Nite Indicator */}
+                                {/* Model Indicator */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-400">
                                         <Zap className="w-4 h-4 text-cyan-400" />
                                         <span>
-                                            Using <span className="text-cyan-400 font-medium">Krip-Toe-Nite</span> for
-                                            intelligent model routing
+                                            Using{' '}
+                                            <span className="text-cyan-400 font-medium">
+                                                {selectedModel === 'krip-toe-nite' 
+                                                    ? 'Krip-Toe-Nite' 
+                                                    : selectedModel.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                            </span>
+                                            {selectedModel === 'krip-toe-nite' && (
+                                                <span className="text-gray-500"> (intelligent routing)</span>
+                                            )}
                                         </span>
                                     </div>
 
-                                    {isGenerating ? (
-                                        <button
-                                            onClick={handleStopGeneration}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl
-                                                     bg-gradient-to-r from-red-500 to-red-400
-                                                     text-white font-semibold
-                                                     hover:from-red-400 hover:to-red-300
-                                                     transition-all duration-200"
-                                        >
-                                            <StopCircle className="w-5 h-5" />
-                                            Stop
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleGenerate}
-                                            disabled={!prompt.trim()}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl
-                                                     bg-gradient-to-r from-cyan-500 to-cyan-400
-                                                     text-black font-semibold
-                                                     hover:from-cyan-400 hover:to-cyan-300
-                                                     disabled:opacity-50 disabled:cursor-not-allowed
-                                                     transition-all duration-200"
-                                        >
-                                            <Play className="w-5 h-5" />
-                                            Generate
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-3">
+                                        {/* Interrupt Button (shown during generation) */}
+                                        {isGenerating && (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={interruptMessage}
+                                                    onChange={(e) => setInterruptMessage(e.target.value)}
+                                                    placeholder="Send interrupt..."
+                                                    className="w-40 px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10
+                                                             text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleSendInterrupt()}
+                                                />
+                                                <button
+                                                    onClick={handleSendInterrupt}
+                                                    disabled={!interruptMessage.trim() || isSendingInterrupt}
+                                                    className="flex items-center gap-1 px-3 py-2 rounded-lg
+                                                             bg-amber-500/20 text-amber-400 text-sm
+                                                             hover:bg-amber-500/30 transition-colors
+                                                             disabled:opacity-50"
+                                                >
+                                                    <Hand className="w-4 h-4" />
+                                                    {isSendingInterrupt ? '...' : 'Interrupt'}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {isGenerating ? (
+                                            <button
+                                                onClick={handleStopGeneration}
+                                                className="flex items-center gap-2 px-6 py-3 rounded-xl
+                                                         bg-gradient-to-r from-red-500 to-red-400
+                                                         text-white font-semibold
+                                                         hover:from-red-400 hover:to-red-300
+                                                         transition-all duration-200"
+                                            >
+                                                <StopCircle className="w-5 h-5" />
+                                                Stop
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleGenerate}
+                                                disabled={!prompt.trim()}
+                                                className="flex items-center gap-2 px-6 py-3 rounded-xl
+                                                         bg-gradient-to-r from-cyan-500 to-cyan-400
+                                                         text-black font-semibold
+                                                         hover:from-cyan-400 hover:to-cyan-300
+                                                         disabled:opacity-50 disabled:cursor-not-allowed
+                                                         transition-all duration-200"
+                                            >
+                                                <Play className="w-5 h-5" />
+                                                Generate
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+
+                                {/* Last Interrupt Status */}
+                                {lastInterrupt && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30"
+                                    >
+                                        <Hand className="w-4 h-4 text-amber-400" />
+                                        <span className="text-sm text-amber-400">
+                                            Interrupt {lastInterrupt.status}: {lastInterrupt.type}
+                                        </span>
+                                    </motion.div>
+                                )}
                             </div>
 
                             {/* Generation Output */}
@@ -547,11 +831,72 @@ export function DeveloperModeView() {
                                         </motion.div>
                                     )}
 
+                                    {/* Anti-Slop Warning */}
+                                    {slopDetected && !isGenerating && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30"
+                                        >
+                                            <ShieldAlert className="w-5 h-5 text-red-400" />
+                                            <div>
+                                                <span className="text-red-400 font-medium text-sm">AI Slop Detected</span>
+                                                <p className="text-red-300/80 text-xs mt-0.5">
+                                                    Generated output shows generic AI patterns. Consider regenerating with specific design requirements.
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {/* Design Issues */}
+                                    {designIssues.length > 0 && !isGenerating && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="rounded-xl overflow-hidden border border-amber-500/30 bg-amber-500/5"
+                                        >
+                                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/30">
+                                                <Eye className="w-4 h-4 text-amber-400" />
+                                                <span className="text-amber-400 font-medium text-sm">
+                                                    Visual Verification ({designIssues.length} issues)
+                                                </span>
+                                            </div>
+                                            <div className="p-3 space-y-2 max-h-40 overflow-auto">
+                                                {designIssues.map((issue, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className={`flex items-start gap-2 px-3 py-2 rounded-lg text-sm ${
+                                                            issue.severity === 'critical' ? 'bg-red-500/10 text-red-300' :
+                                                            issue.severity === 'warning' ? 'bg-amber-500/10 text-amber-300' :
+                                                            'bg-white/5 text-gray-300'
+                                                        }`}
+                                                    >
+                                                        <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                                                            issue.severity === 'critical' ? 'text-red-400' :
+                                                            issue.severity === 'warning' ? 'text-amber-400' :
+                                                            'text-gray-400'
+                                                        }`} />
+                                                        <div>
+                                                            <span className="font-medium">{issue.type}:</span> {issue.description}
+                                                            {issue.suggestion && (
+                                                                <p className="text-xs opacity-70 mt-1">
+                                                                    💡 {issue.suggestion}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+
                                     {/* Loading indicator */}
                                     {isGenerating && !generatedCode && (
                                         <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
                                             <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-                                            <span className="text-cyan-400 text-sm">Generating with Krip-Toe-Nite...</span>
+                                            <span className="text-cyan-400 text-sm">
+                                                Generating with {selectedModel === 'krip-toe-nite' ? 'Krip-Toe-Nite' : selectedModel}...
+                                            </span>
                                         </div>
                                     )}
 
@@ -559,12 +904,24 @@ export function DeveloperModeView() {
                                     <div className="relative rounded-xl overflow-hidden">
                                         <div className="absolute top-0 left-0 right-0 px-4 py-2 bg-white/5 border-b border-white/10 flex items-center justify-between">
                                             <span className="text-xs text-gray-400 font-mono">Generated Code</span>
-                                            {isGenerating && (
-                                                <span className="flex items-center gap-2 text-xs text-cyan-400">
-                                                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                                                    Streaming...
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-3">
+                                                {verificationScore !== null && (
+                                                    <span className={`text-xs ${
+                                                        verificationScore >= 80 ? 'text-emerald-400' :
+                                                        verificationScore >= 60 ? 'text-amber-400' :
+                                                        'text-red-400'
+                                                    }`}>
+                                                        <Sparkles className="w-3 h-3 inline mr-1" />
+                                                        Quality: {verificationScore}%
+                                                    </span>
+                                                )}
+                                                {isGenerating && (
+                                                    <span className="flex items-center gap-2 text-xs text-cyan-400">
+                                                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                                        Streaming...
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <pre
                                             className="p-4 pt-12 max-h-96 overflow-auto bg-black/40 text-sm font-mono text-gray-300"
