@@ -1,6 +1,6 @@
 /**
  * Learning Insights Panel Component
- * 
+ *
  * Displays the Autonomous Learning Engine status, patterns,
  * strategies, and improvement metrics in the builder/settings UI.
  * Part of Component 28: Autonomous Learning Engine.
@@ -113,7 +113,7 @@ async function fetchTrend(): Promise<ImprovementTrend[]> {
 }
 
 async function fetchPatterns(category?: string): Promise<Pattern[]> {
-    const url = category 
+    const url = category
         ? `${apiUrl}/api/learning/patterns?category=${category}&limit=10`
         : `${apiUrl}/api/learning/patterns?limit=10`;
     const res = await fetch(url);
@@ -202,18 +202,18 @@ function MiniTrendChart({ data }: { data: ImprovementTrend[] }) {
         y: height / 2 - (d.improvement / maxImprovement) * (height / 2 - 5),
     }));
 
-    const pathD = points.map((p, i) => 
+    const pathD = points.map((p, i) =>
         `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
     ).join(' ');
 
     return (
         <svg width={width} height={height} className="overflow-visible">
             {/* Zero line */}
-            <line 
-                x1={0} y1={height / 2} 
-                x2={width} y2={height / 2} 
-                stroke="rgba(255,255,255,0.1)" 
-                strokeDasharray="4 4" 
+            <line
+                x1={0} y1={height / 2}
+                x2={width} y2={height / 2}
+                stroke="rgba(255,255,255,0.1)"
+                strokeDasharray="4 4"
             />
             {/* Trend line */}
             <path

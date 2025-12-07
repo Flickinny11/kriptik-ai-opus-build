@@ -1,6 +1,6 @@
 /**
  * Learning System Store
- * 
+ *
  * Zustand store for the Autonomous Learning Engine state management.
  * Handles system status, patterns, strategies, and user preferences.
  */
@@ -140,7 +140,7 @@ export const useLearningStore = create<LearningStoreState>()(
             // Fetch status
             fetchStatus: async () => {
                 const { statusLoading, lastStatusFetch } = get();
-                
+
                 // Throttle requests (minimum 30 seconds between fetches)
                 if (statusLoading) return;
                 if (lastStatusFetch && Date.now() - lastStatusFetch < 30000) return;

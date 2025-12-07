@@ -1,6 +1,6 @@
 /**
  * Learning Settings Section
- * 
+ *
  * User settings for the Autonomous Learning Engine.
  * Controls auto-capture, pattern usage, and display preferences.
  */
