@@ -555,7 +555,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 
             {/* Soft Interrupt Input - Prominent when agents are running */}
             {agents.some(a => a.status === 'running') && currentSession && (
-                <div 
+                <div
                     className="p-3 border-t border-white/5"
                     style={{
                         background: `linear-gradient(145deg, ${accentGlow} 0%, rgba(200,255,100,0.02) 100%)`,

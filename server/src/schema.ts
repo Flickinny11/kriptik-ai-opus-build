@@ -1589,3 +1589,102 @@ export const learningEvolutionCycles = sqliteTable('learning_evolution_cycles', 
 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// Clone Mode Sessions (Video to Code)
+// =============================================================================
+
+export const cloneModeSessions = sqliteTable('clone_mode_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+    projectId: text('project_id').references(() => projects.id),
+
+    // Video source
+    videoUrl: text('video_url'),
+    videoDuration: integer('video_duration'), // in seconds
+
+    // Analysis results
+    frameCount: integer('frame_count'),
+    keyframeCount: integer('keyframe_count'),
+    analysisResult: text('analysis_result', { mode: 'json' }).$type<{
+        sessionId: string;
+        frames: Array<{
+            id: string;
+            timestamp: number;
+            keyframe: boolean;
+            uiElements: Array<{
+                id: string;
+                type: string;
+                bounds: { x: number; y: number; width: number; height: number };
+                label?: string;
+                state?: string;
+                confidence: number;
+            }>;
+        }>;
+        designDNA: {
+            colors: {
+                primary: string;
+                secondary: string;
+                accent: string;
+                background: string;
+                text: string;
+                palette: string[];
+            };
+            typography: {
+                sizes: string[];
+                weights: string[];
+            };
+            borderRadius: string[];
+            shadows: string[];
+        };
+        userJourney: Array<{
+            id: string;
+            frameId: string;
+            timestamp: number;
+            action: string;
+            description: string;
+        }>;
+        suggestedComponents: Array<{
+            name: string;
+            type: string;
+            description: string;
+        }>;
+        analysis: {
+            screenCount: number;
+            interactionCount: number;
+            uniqueElementTypes: string[];
+            estimatedComplexity: string;
+        };
+    }>(),
+
+    // Generated code
+    generatedCode: text('generated_code', { mode: 'json' }).$type<{
+        components: Array<{
+            name: string;
+            code: string;
+            styles?: string;
+            path: string;
+            dependencies: string[];
+        }>;
+        entryPoint: string;
+        usage: {
+            inputTokens: number;
+            outputTokens: number;
+            estimatedCost: number;
+        };
+    }>(),
+
+    // Status tracking
+    status: text('status').default('pending').$type<
+        'pending' | 'uploading' | 'analyzing' | 'generating' | 'complete' | 'error'
+    >(),
+    errorMessage: text('error_message'),
+
+    // Settings used
+    framework: text('framework').default('react'),
+    styling: text('styling').default('tailwind'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

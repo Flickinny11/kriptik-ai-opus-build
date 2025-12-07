@@ -62,7 +62,7 @@ export function TimeMachinePanel({
                 credentials: 'include'
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 setCheckpoints(data.checkpoints.map((cp: any) => ({
                     ...cp,

@@ -502,6 +502,10 @@ app.use("/api/reflection", reflectionRouter);
 // Autonomy Controls - Autonomous building settings
 app.use("/api/autonomy", autonomyRouter);
 
+// Clone Mode - Video to Code (analyze screen recordings)
+import cloneModeRouter from './routes/clone-mode.js';
+app.use("/api/clone", promptSanitizer, requireCredits(50), cloneModeRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
