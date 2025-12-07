@@ -522,6 +522,10 @@ app.use("/api/voice", requireCredits(15), voiceArchitectRouter);
 import apiAutopilotRouter from './routes/api-autopilot.js';
 app.use("/api/autopilot", requireCredits(10), apiAutopilotRouter);
 
+// Adaptive UI - Behavior learning and UI improvements
+import adaptiveUIRouter from './routes/adaptive-ui.js';
+app.use("/api/adaptive", adaptiveUIRouter); // No credits - analytics should be free
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================

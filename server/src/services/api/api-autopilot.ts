@@ -446,7 +446,7 @@ export class APIAutopilotService extends EventEmitter {
             }
 
             const profileData = JSON.parse(jsonMatch[0]);
-            
+
             const profile: APIProfile = {
                 id: uuidv4(),
                 name: profileData.name || 'Unknown API',
@@ -678,7 +678,7 @@ export class APIAutopilotService extends EventEmitter {
     private encryptCredentials(credentials: Record<string, string>): EncryptedCredentials {
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
-        
+
         const json = JSON.stringify(credentials);
         let encrypted = cipher.update(json, 'utf8', 'hex');
         encrypted += cipher.final('hex');

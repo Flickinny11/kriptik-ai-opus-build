@@ -80,7 +80,7 @@ export function CodePreview({ code }: CodePreviewProps) {
                 <div className="flex items-center gap-2 text-sm">
                     <FileCode className="w-4 h-4 text-white/50" />
                     <span className="text-white/70 font-mono">
-                        {activeTab === 'service' ? code.serviceFile : 
+                        {activeTab === 'service' ? code.serviceFile :
                          activeTab === 'types' ? code.serviceFile.replace('.ts', '.types.ts') :
                          activeTab === 'env' ? '.env' :
                          activeTab === 'examples' ? 'examples.ts' :

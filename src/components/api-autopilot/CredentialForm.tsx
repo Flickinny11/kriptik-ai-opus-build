@@ -103,7 +103,7 @@ export function CredentialForm({
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
-        
+
         fields.forEach(field => {
             if (field.required && !credentials[field.name]?.trim()) {
                 newErrors[field.name] = `${field.label} is required`;

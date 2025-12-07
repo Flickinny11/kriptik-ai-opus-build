@@ -2011,3 +2011,70 @@ export const apiIntegrations = sqliteTable('api_integrations', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// Adaptive UI (Behavior Learning)
+// =============================================================================
+
+export const adaptiveBehaviorSignals = sqliteTable('adaptive_behavior_signals', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    sessionId: text('session_id').notNull(),
+    signalType: text('signal_type').notNull().$type<
+        'click' | 'scroll' | 'hover' | 'rage-click' | 'dead-click' | 'form-abandon' | 'navigation' | 'time-on-element' | 'back-button' | 'hesitation'
+    >(),
+    element: text('element', { mode: 'json' }).$type<{
+        selector: string;
+        componentType: string;
+        text?: string;
+        location: { x: number; y: number };
+        dimensions?: { width: number; height: number };
+        visible?: boolean;
+    }>(),
+    context: text('context', { mode: 'json' }).$type<{
+        pageUrl: string;
+        viewportSize: { width: number; height: number };
+        scrollPosition: { x: number; y: number };
+        timeOnPage: number;
+        deviceType: 'mobile' | 'tablet' | 'desktop';
+        completionPercent?: number;
+        abandonedField?: string;
+    }>(),
+    timestamp: text('timestamp').notNull(),
+});
+
+export const adaptivePatterns = sqliteTable('adaptive_patterns', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    patternType: text('pattern_type').notNull().$type<
+        'friction' | 'engagement' | 'confusion' | 'success' | 'drop-off'
+    >(),
+    affectedElements: text('affected_elements', { mode: 'json' }).$type<Array<{
+        selector: string;
+        componentType: string;
+        text?: string;
+        location: { x: number; y: number };
+    }>>(),
+    frequency: integer('frequency').notNull().default(1),
+    severity: text('severity').notNull().$type<'low' | 'medium' | 'high' | 'critical'>(),
+    description: text('description'),
+    suggestedFix: text('suggested_fix', { mode: 'json' }).$type<{
+        id: string;
+        suggestionType: string;
+        description: string;
+        rationale: string;
+        codeChange: {
+            file: string;
+            selector: string;
+            originalCode: string;
+            suggestedCode: string;
+            cssChanges?: Record<string, string>;
+        };
+        predictedImpact: number;
+        autoApply: boolean;
+        confidence: number;
+        status: 'pending' | 'applied' | 'dismissed' | 'testing';
+    }>(),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

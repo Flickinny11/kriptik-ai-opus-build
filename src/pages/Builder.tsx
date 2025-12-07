@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic, Plug
+    Check, Layers, TrendingUp, Mic, Plug, LineChart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -43,6 +43,7 @@ import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { MarketFitDashboard } from '../components/market';
 import { VoiceArchitectPanel } from '../components/voice';
 import { APIAutopilotPanel } from '../components/api-autopilot';
+import { AdaptiveUIPanel } from '../components/adaptive';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -343,6 +344,7 @@ export default function Builder() {
     const [showMarketFit, setShowMarketFit] = useState(false);
     const [showVoiceArchitect, setShowVoiceArchitect] = useState(false);
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
+    const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -420,6 +422,13 @@ export default function Builder() {
                         console.log('API integration complete:', integrationId);
                         setShowAPIAutopilot(false);
                     }}
+                />
+
+                {/* Adaptive UI - Behavior Learning */}
+                <AdaptiveUIPanel
+                    isOpen={showAdaptiveUI}
+                    onClose={() => setShowAdaptiveUI(false)}
+                    projectId={projectId}
                 />
 
                 {/* Premium Liquid Glass Header */}
@@ -536,6 +545,15 @@ export default function Builder() {
                             isActive={showAPIAutopilot}
                         >
                             APIs
+                        </GlassButton>
+
+                        {/* Adaptive UI - Behavior Learning */}
+                        <GlassButton
+                            icon={LineChart}
+                            onClick={() => setShowAdaptiveUI(true)}
+                            isActive={showAdaptiveUI}
+                        >
+                            Adaptive
                         </GlassButton>
 
                         <div className="h-4 w-px bg-white/10 mx-2" />
