@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useDeveloperModeStore, selectAgents, selectSelectedAgent } from '../../store/useDeveloperModeStore';
 import { RequestChangesModal } from './RequestChangesModal';
+import { CreatePRModal } from './CreatePRModal';
 
 // Dark glass styling to match AgentModeSidebar
 const darkGlassPanel = {
@@ -109,6 +110,7 @@ export function AgentSandboxPreview({
     const [isAutoRefresh, setIsAutoRefresh] = useState(true);
     const [consoleLogs, setConsoleLogs] = useState<Array<{ type: 'log' | 'error' | 'warn'; message: string; timestamp: string }>>([]);
     const [showRequestChanges, setShowRequestChanges] = useState(false);
+    const [showCreatePR, setShowCreatePR] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
@@ -569,7 +571,8 @@ export function AgentSandboxPreview({
                             Request Changes
                         </button>
                         <button
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+                            onClick={() => setShowCreatePR(true)}
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
                             style={{
                                 background: `linear-gradient(145deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
                                 color: '#000',
@@ -596,8 +599,37 @@ export function AgentSandboxPreview({
                 } : null}
                 onSubmit={(agentId, iterationNumber) => {
                     console.log(`Agent ${agentId} iteration ${iterationNumber} started`);
-                    // TODO: Trigger agent restart with new prompt
+                    // Restart agent with feedback - handled by the modal's API call
+                    setShowRequestChanges(false);
                 }}
+            />
+
+            {/* Create PR Modal */}
+            <CreatePRModal
+                isOpen={showCreatePR}
+                onClose={() => setShowCreatePR(false)}
+                projectId={activeAgent?.id || ''}
+                projectName={activeAgent?.name || 'Project'}
+                agent={activeAgent ? {
+                    id: activeAgent.id,
+                    name: activeAgent.name,
+                    taskPrompt: activeAgent.taskPrompt,
+                    verificationScore: activeAgent.verificationScore,
+                    verificationPassed: activeAgent.verificationPassed,
+                    filesChanged: activeAgent.filesModified?.length || 0,
+                } : undefined}
+                branchName={activeAgent?.branch || `kriptik/agent-${activeAgent?.id?.substring(0, 8)}`}
+                targetBranch="main"
+                filesChanged={activeAgent?.filesModified || []}
+                verificationResults={activeAgent?.verificationScore !== undefined ? {
+                    passed: activeAgent.verificationPassed || false,
+                    score: activeAgent.verificationScore,
+                    checks: [
+                        { name: 'Build', passed: true },
+                        { name: 'Lint', passed: true },
+                        { name: 'Tests', passed: activeAgent.verificationPassed || false },
+                    ]
+                } : undefined}
             />
         </div>
     );

@@ -35,6 +35,7 @@ import {
 import { useProjectStore } from '../../store/useProjectStore';
 import DeployAgentModal, { type DeployConfig } from './DeployAgentModal';
 import { DeveloperModeSettings } from '../settings/DeveloperModeSettings';
+import { SoftInterruptInput } from './SoftInterruptInput';
 
 // Available models - matches backend + Krip-Toe-Nite
 const AVAILABLE_MODELS: Array<{
@@ -549,6 +550,32 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                         <p className="text-sm text-white/40">No agent selected</p>
                         <p className="text-xs text-white/30 mt-1">Deploy an agent to get started</p>
                     </div>
+                </div>
+            )}
+
+            {/* Soft Interrupt Input - Prominent when agents are running */}
+            {agents.some(a => a.status === 'running') && currentSession && (
+                <div 
+                    className="p-3 border-t border-white/5"
+                    style={{
+                        background: `linear-gradient(145deg, ${accentGlow} 0%, rgba(200,255,100,0.02) 100%)`,
+                        borderTop: `1px solid ${accentColor}30`,
+                    }}
+                >
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor }} />
+                        <span className="text-xs font-medium" style={{ color: accentColor }}>
+                            Agent Running - Send Interrupt
+                        </span>
+                    </div>
+                    <SoftInterruptInput
+                        sessionId={currentSession.id}
+                        agentId={selectedAgent?.id}
+                        onInterruptSubmitted={(interrupt) => {
+                            console.log('Interrupt sent:', interrupt);
+                        }}
+                        className="w-full"
+                    />
                 </div>
             )}
 

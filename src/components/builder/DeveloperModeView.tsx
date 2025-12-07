@@ -17,10 +17,16 @@ import {
     Upload, Github, ExternalLink, Folder, FileCode2,
     Zap, Play, X, Check, AlertCircle, ChevronRight,
     RefreshCw, Cloud, StopCircle, Loader2, Eye, Hand,
-    ShieldAlert, Sparkles, Monitor
+    ShieldAlert, Sparkles, Monitor, Settings, Ghost, Clock
 } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
+import { DeveloperModeSettings } from '../settings/DeveloperModeSettings';
+import { SoftInterruptInput } from './SoftInterruptInput';
+import { GhostModePanel } from './GhostModePanel';
+import { TimeMachinePanel } from './TimeMachinePanel';
+import { CreatePRModal } from './CreatePRModal';
+import { OrchestrationPlanView } from './OrchestrationPlanView';
 
 // =============================================================================
 // TYPES
@@ -99,6 +105,14 @@ export function DeveloperModeView() {
 
     // Session ID for tracking
     const sessionIdRef = useRef<string | null>(null);
+
+    // Settings & Feature Modals
+    const [showSettings, setShowSettings] = useState(false);
+    const [showGhostMode, setShowGhostMode] = useState(false);
+    const [showTimeMachine, setShowTimeMachine] = useState(false);
+    const [showCreatePR, setShowCreatePR] = useState(false);
+    const [showOrchestrationPlan, setShowOrchestrationPlan] = useState(false);
+    const [orchestrationPlan, setOrchestrationPlan] = useState<any>(null);
 
     // Initialize sandbox when project is imported
     useEffect(() => {
@@ -427,7 +441,7 @@ export function DeveloperModeView() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     {/* Preview Toggle */}
                     {sandbox && (
                         <button
@@ -446,11 +460,42 @@ export function DeveloperModeView() {
                         </button>
                     )}
 
+                    {/* Time Machine Button */}
+                    {importedProject && (
+                        <button
+                            onClick={() => setShowTimeMachine(true)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/10"
+                            title="Time Machine - Restore checkpoints"
+                        >
+                            <Clock className="w-4 h-4" />
+                        </button>
+                    )}
+
+                    {/* Ghost Mode Button */}
+                    {importedProject && (
+                        <button
+                            onClick={() => setShowGhostMode(true)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30"
+                            title="Ghost Mode - AI works while you're away"
+                        >
+                            <Ghost className="w-4 h-4" />
+                        </button>
+                    )}
+
                     {/* Model Selector */}
                     <ModelSelector
                         selectedModel={selectedModel}
                         onModelChange={setSelectedModel}
                     />
+
+                    {/* Settings Button */}
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="p-2 rounded-lg transition-all bg-white/5 text-gray-400 hover:text-[#c8ff64] hover:bg-white/10 border border-white/10"
+                        title="Developer Mode Settings"
+                    >
+                        <Settings className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
@@ -964,6 +1009,143 @@ export function DeveloperModeView() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Soft Interrupt Input - Prominent when generating */}
+            {isGenerating && importedProject && (
+                <div className="px-6 py-3 border-t border-white/10 bg-black/30">
+                    <SoftInterruptInput
+                        sessionId={sessionIdRef.current || importedProject.id}
+                        onInterruptSubmitted={(interrupt) => {
+                            setLastInterrupt({
+                                type: interrupt.type,
+                                status: interrupt.status,
+                            });
+                            if (interrupt.type === 'HALT' && streamControllerRef.current) {
+                                streamControllerRef.current.abort();
+                                setIsGenerating(false);
+                            }
+                        }}
+                        className="w-full"
+                    />
+                </div>
+            )}
+
+            {/* Developer Mode Settings Modal */}
+            <DeveloperModeSettings
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
+            />
+
+            {/* Ghost Mode Modal */}
+            <AnimatePresence>
+                {showGhostMode && importedProject && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowGhostMode(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-xl rounded-2xl overflow-hidden"
+                            style={darkGlassPanel}
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-white/10">
+                                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <Ghost className="w-5 h-5 text-purple-400" />
+                                    Ghost Mode
+                                </h2>
+                                <button
+                                    onClick={() => setShowGhostMode(false)}
+                                    className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 max-h-[70vh] overflow-auto">
+                                <GhostModePanel
+                                    projectId={importedProject.id}
+                                    onSessionStart={(sessionId) => {
+                                        console.log('Ghost Mode started:', sessionId);
+                                        setShowGhostMode(false);
+                                    }}
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Time Machine Modal */}
+            <AnimatePresence>
+                {showTimeMachine && importedProject && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowTimeMachine(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-2xl rounded-2xl overflow-hidden"
+                            style={darkGlassPanel}
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-white/10">
+                                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-cyan-400" />
+                                    Time Machine
+                                </h2>
+                                <button
+                                    onClick={() => setShowTimeMachine(false)}
+                                    className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 max-h-[70vh] overflow-auto">
+                                <TimeMachinePanel
+                                    projectId={importedProject.id}
+                                    onRestore={() => {
+                                        setShowTimeMachine(false);
+                                    }}
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Create PR Modal */}
+            <CreatePRModal
+                isOpen={showCreatePR}
+                onClose={() => setShowCreatePR(false)}
+                projectId={importedProject?.id || ''}
+                projectName={importedProject?.name || ''}
+            />
+
+            {/* Orchestration Plan Modal */}
+            {orchestrationPlan && (
+                <OrchestrationPlanView
+                    isOpen={showOrchestrationPlan}
+                    onClose={() => {
+                        setShowOrchestrationPlan(false);
+                        setOrchestrationPlan(null);
+                    }}
+                    plan={orchestrationPlan}
+                    onExecute={async (plan) => {
+                        console.log('Executing plan:', plan);
+                        setShowOrchestrationPlan(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
