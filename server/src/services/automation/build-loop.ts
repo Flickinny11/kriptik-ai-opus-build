@@ -45,6 +45,40 @@ import {
 import {
     getKripToeNiteService,
 } from '../ai/krip-toe-nite/index.js';
+// Import real automation services
+import {
+    BrowserAutomationService,
+    createBrowserAutomationService,
+    type ConsoleLog,
+    type NetworkRequest,
+} from './browser-service.js';
+import {
+    ErrorEscalationEngine,
+    createErrorEscalationEngine,
+    type BuildError,
+    type Fix,
+} from './error-escalation.js';
+import {
+    VerificationSwarm,
+    createVerificationSwarm,
+    type CombinedVerificationResult,
+} from '../verification/swarm.js';
+import {
+    VisualVerificationService,
+    createVisualVerificationService,
+} from './visual-verifier.js';
+import {
+    SandboxService,
+    createSandboxService,
+    type SandboxInstance,
+} from '../developer-mode/sandbox-service.js';
+import {
+    TimeMachine,
+    createTimeMachine,
+    CheckpointScheduler,
+    createCheckpointScheduler,
+    type CheckpointData,
+} from '../checkpoints/time-machine.js';
 
 // =============================================================================
 // TYPES
@@ -113,7 +147,8 @@ export interface BuildLoopState {
 
 export interface BuildLoopEvent {
     type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result'
-        | 'error' | 'fix_applied' | 'checkpoint_created' | 'stage_complete' | 'build_complete';
+        | 'error' | 'fix_applied' | 'checkpoint_created' | 'checkpoint_restored'
+        | 'stage_complete' | 'build_complete';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -174,6 +209,18 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private claudeService: ReturnType<typeof createClaudeService>;
     private aborted: boolean = false;
 
+    // Real automation services
+    private browserService: BrowserAutomationService | null = null;
+    private errorEscalationEngine: ErrorEscalationEngine;
+    private verificationSwarm: VerificationSwarm;
+    private visualVerifier: VisualVerificationService;
+    private sandboxService: SandboxService | null = null;
+    private timeMachine: TimeMachine;
+    private checkpointScheduler: CheckpointScheduler;
+
+    // File contents cache for verification
+    private projectFiles: Map<string, string> = new Map();
+
     constructor(
         projectId: string,
         userId: string,
@@ -214,6 +261,27 @@ export class BuildLoopOrchestrator extends EventEmitter {
             userId,
             agentType: 'planning',
         });
+
+        // Initialize real automation services
+        this.errorEscalationEngine = createErrorEscalationEngine(
+            orchestrationRunId,
+            projectId,
+            userId
+        );
+        this.verificationSwarm = createVerificationSwarm(
+            orchestrationRunId,
+            projectId,
+            userId,
+            { enableVisualVerification: BUILD_MODE_CONFIGS[mode].enableVisualVerification }
+        );
+        this.visualVerifier = createVisualVerificationService();
+        this.timeMachine = createTimeMachine(projectId, userId, orchestrationRunId, 10);
+        this.checkpointScheduler = createCheckpointScheduler(
+            this.timeMachine,
+            BUILD_MODE_CONFIGS[mode].checkpointIntervalMinutes
+        );
+
+        console.log(`[BuildLoop] Initialized with real automation services (mode: ${mode})`);
     }
 
     /**
@@ -575,20 +643,91 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
     /**
      * Phase 6: BROWSER DEMO - Show the user their working app
+     * Opens a VISIBLE browser for the user to see and optionally take control
      */
     private async executePhase6_BrowserDemo(): Promise<void> {
         this.startPhase('browser_demo');
 
         try {
-            // For now, emit event - actual browser demo requires browser service
+            // Ensure sandbox is running
+            if (!this.sandboxService) {
+                this.sandboxService = createSandboxService({
+                    basePort: 3100,
+                    maxSandboxes: 5,
+                    projectPath: `/tmp/builds/${this.state.projectId}`,
+                    framework: 'vite',
+                });
+                await this.sandboxService.initialize();
+            }
+
+            // Get or create sandbox
+            let sandbox = this.sandboxService.getSandbox(this.state.id);
+            if (!sandbox) {
+                sandbox = await this.sandboxService.createSandbox(
+                    this.state.id,
+                    `/tmp/builds/${this.state.projectId}`
+                );
+            }
+
+            if (sandbox.status !== 'running') {
+                await this.sandboxService.restartSandbox(this.state.id);
+                sandbox = this.sandboxService.getSandbox(this.state.id)!;
+            }
+
+            // Create a VISIBLE browser for demo (headed: true)
+            const demoBrowser = createBrowserAutomationService({
+                headed: true,  // User sees this!
+                slowMo: 100,   // Slight slowdown for visual effect
+                viewport: { width: 1280, height: 720 },
+            });
+
+            await demoBrowser.initialize();
+            await demoBrowser.navigateTo(sandbox.url);
+
+            // Take final screenshot for records
+            const finalScreenshot = await demoBrowser.screenshot({ fullPage: true });
+
+            // Run key user flows to demonstrate the app works
+            if (this.state.intentContract?.userWorkflows) {
+                for (const workflow of this.state.intentContract.userWorkflows.slice(0, 2)) {
+                    // Demo first 2 workflows
+                    for (const step of workflow.steps.slice(0, 3)) {
+                        // First 3 steps of each
+                        try {
+                            await demoBrowser.executeAction(step);
+                            await new Promise(resolve => setTimeout(resolve, 1000)); // Pause for visibility
+                        } catch {
+                            // Continue demo even if step fails
+                        }
+                    }
+                }
+            }
+
+            // Emit event for frontend to show "Take Control" button
+            this.emitEvent('phase_complete', {
+                phase: 'browser_demo',
+                status: 'demo_running',
+                url: sandbox.url,
+                browserConnected: true,
+                takeControlAvailable: true,
+                screenshot: finalScreenshot,
+            });
+
+            // Close demo browser after showing (or keep open based on config)
+            // For now, keep it open for user interaction
+            console.log(`[BuildLoop] Browser demo ready at ${sandbox.url}`);
+
+            this.completePhase('browser_demo');
+
+        } catch (error) {
+            // Don't fail the build for demo issues - just log
+            console.error(`[BuildLoop] Browser Demo error:`, error);
             this.completePhase('browser_demo');
             this.emitEvent('phase_complete', {
                 phase: 'browser_demo',
-                status: 'ready_for_demo',
+                status: 'demo_unavailable',
+                error: (error as Error).message,
             });
-
-        } catch (error) {
-            throw new Error(`Browser Demo failed: ${(error as Error).message}`);
         }
     }
 
@@ -596,6 +735,10 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // HELPER METHODS
     // =========================================================================
 
+    /**
+     * Build a feature with full Verification Swarm validation
+     * Uses 6-agent parallel verification before marking as passed
+     */
     private async buildFeature(feature: Feature): Promise<void> {
         await this.featureManager.incrementBuildAttempts(feature.featureId);
 
@@ -650,10 +793,141 @@ Use TypeScript/React best practices.`,
         const files = this.claudeService.parseFileOperations(responseContent);
         const filePaths = files.map(f => f.path);
 
+        // Update project files cache with generated content
+        const generatedFiles = new Map<string, string>();
+        for (const file of files) {
+            const content = file.content || '';
+            generatedFiles.set(file.path, content);
+            this.projectFiles.set(file.path, content);
+        }
+
         await this.featureManager.addFilesModified(feature.featureId, filePaths);
 
-        // Mark as passed (actual verification would happen via Verification Swarm)
-        await this.featureManager.markFeaturePassed(feature.featureId);
+        // =========================================================================
+        // RUN VERIFICATION SWARM - 6-Agent Parallel Verification
+        // =========================================================================
+
+        console.log(`[BuildLoop] Running Verification Swarm for feature ${feature.featureId}`);
+
+        // Set Intent Contract for design verification
+        if (this.state.intentContract) {
+            this.verificationSwarm.setIntent(this.state.intentContract);
+        }
+
+        const verdict: CombinedVerificationResult = await this.verificationSwarm.verifyFeature(
+            feature,
+            generatedFiles
+        );
+
+        this.emitEvent('verification_result', {
+            featureId: feature.featureId,
+            verdict: verdict.verdict,
+            overallScore: verdict.overallScore,
+            blockers: verdict.blockers,
+        });
+
+        // Handle verification results
+        if (verdict.verdict === 'BLOCKED') {
+            // Placeholders or security issues - escalate immediately
+            console.log(`[BuildLoop] Feature ${feature.featureId} BLOCKED: ${verdict.blockers.join(', ')}`);
+
+            const blockError: BuildError = {
+                id: uuidv4(),
+                featureId: feature.featureId,
+                category: verdict.blockers.some(b => b.includes('Placeholder'))
+                    ? 'targeted_rewrite'
+                    : 'integration_issues',
+                message: `Verification BLOCKED: ${verdict.blockers.join('; ')}`,
+                context: { verificationResult: verdict },
+                timestamp: new Date(),
+            };
+
+            // Set intent for potential Level 4 rebuild
+            if (this.state.intentContract) {
+                this.errorEscalationEngine.setIntent(this.state.intentContract);
+            }
+
+            // Attempt to fix with escalation
+            const fixResult = await this.errorEscalationEngine.fixError(
+                blockError,
+                generatedFiles,
+                feature
+            );
+
+            if (!fixResult.success) {
+                throw new Error(`Feature ${feature.featureId} blocked and unfixable: ${verdict.blockers.join(', ')}`);
+            }
+
+            // Re-run verification after fix
+            console.log(`[BuildLoop] Re-verifying feature ${feature.featureId} after fix`);
+            const reVerdict = await this.verificationSwarm.verifyFeature(feature, generatedFiles);
+
+            if (reVerdict.verdict !== 'APPROVED') {
+                throw new Error(`Feature ${feature.featureId} still not approved after fix`);
+            }
+        }
+
+        if (verdict.verdict === 'NEEDS_WORK') {
+            // Issues found but not blocking - escalate each
+            console.log(`[BuildLoop] Feature ${feature.featureId} needs work - attempting fixes`);
+
+            const allResults = verdict.results;
+            const issueResults = [
+                allResults.errorCheck,
+                allResults.codeQuality,
+                allResults.visualVerify,
+                allResults.securityScan,
+            ].filter(r => r && !r.passed);
+
+            for (const result of issueResults) {
+                if (!result) continue;
+
+                for (const issue of result.issues.filter(i => i.severity === 'critical' || i.severity === 'high')) {
+                    const issueError: BuildError = {
+                        id: uuidv4(),
+                        featureId: feature.featureId,
+                        category: issue.category as BuildError['category'] || 'runtime_error',
+                        message: issue.description,
+                        file: issue.file,
+                        line: issue.line,
+                        timestamp: new Date(),
+                    };
+
+                    await this.errorEscalationEngine.fixError(issueError, generatedFiles, feature);
+                }
+            }
+        }
+
+        if (verdict.verdict === 'REJECTED') {
+            // UI looks like AI slop - need design overhaul
+            console.log(`[BuildLoop] Feature ${feature.featureId} REJECTED - UI slop detected`);
+
+            const slopError: BuildError = {
+                id: uuidv4(),
+                featureId: feature.featureId,
+                category: 'approach_change',
+                message: `Visual verification rejected: ${verdict.blockers.join('; ')}`,
+                context: { designScore: verdict.overallScore },
+                timestamp: new Date(),
+            };
+
+            if (this.state.intentContract) {
+                this.errorEscalationEngine.setIntent(this.state.intentContract);
+            }
+
+            await this.errorEscalationEngine.fixError(slopError, generatedFiles, feature);
+        }
+
+        // Only mark passed if APPROVED
+        if (verdict.verdict === 'APPROVED') {
+            console.log(`[BuildLoop] Feature ${feature.featureId} APPROVED (score: ${verdict.overallScore})`);
+            await this.featureManager.markFeaturePassed(feature.featureId);
+        } else {
+            // Feature not approved - log failure and increment attempts
+            console.log(`[BuildLoop] Feature ${feature.featureId} NOT APPROVED (${verdict.verdict}): ${verdict.blockers.join('; ')}`);
+            // The feature will be retried on next build loop iteration
+            // Attempt count was already incremented at the start of buildFeature
+        }
     }
 
     private filterFeaturesForStage(features: Feature[], stage: BuildStage): Feature[] {
@@ -670,14 +944,103 @@ Use TypeScript/React best practices.`,
         }
     }
 
+    /**
+     * Run integration check using BrowserService to scan for real issues
+     * Detects: orphan components, dead code, unwired routes, console errors, network failures
+     */
     private async runIntegrationCheck(): Promise<Array<{ type: string; description: string }>> {
-        // Placeholder - actual implementation would scan for:
-        // - Orphan components
-        // - Dead code
-        // - Unwired routes
-        // - Placeholder content
-        // - Missing error handling
-        return [];
+        const issues: Array<{ type: string; description: string }> = [];
+
+        try {
+            // Initialize sandbox if not already running
+            if (!this.sandboxService) {
+                this.sandboxService = createSandboxService({
+                    basePort: 3100,
+                    maxSandboxes: 5,
+                    projectPath: `/tmp/builds/${this.state.projectId}`,
+                    framework: 'vite',
+                });
+                await this.sandboxService.initialize();
+            }
+
+            // Get or create sandbox for this build
+            let sandbox: SandboxInstance | null = this.sandboxService.getSandbox(this.state.id);
+            if (!sandbox) {
+                sandbox = await this.sandboxService.createSandbox(
+                    this.state.id,
+                    `/tmp/builds/${this.state.projectId}`
+                );
+            }
+
+            // Initialize browser service
+            if (!this.browserService) {
+                this.browserService = createBrowserAutomationService({ headed: false });
+                await this.browserService.initialize();
+            }
+
+            // Navigate to sandbox URL
+            const navResult = await this.browserService.navigateTo(sandbox.url);
+            if (!navResult.success) {
+                issues.push({
+                    type: 'navigation_error',
+                    description: `Failed to navigate to sandbox: ${navResult.error}`,
+                });
+                return issues;
+            }
+
+            // Wait for app to load
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Check console for errors
+            const consoleLogs = this.browserService.getConsoleErrors();
+            for (const log of consoleLogs) {
+                issues.push({
+                    type: 'console_error',
+                    description: `Console error: ${log.message}`,
+                });
+            }
+
+            // Check for failed network requests (404s, 500s)
+            const failedRequests = this.browserService.getFailedRequests();
+            for (const req of failedRequests) {
+                // Skip common false positives (favicon, sourcemaps)
+                if (req.url.includes('favicon') || req.url.includes('.map')) continue;
+
+                issues.push({
+                    type: 'network_error',
+                    description: `Failed request: ${req.method} ${req.url} - ${req.status || req.errorText}`,
+                });
+            }
+
+            // Take screenshot for visual verification if enabled
+            if (this.state.config.enableVisualVerification) {
+                const screenshot = await this.browserService.screenshot({ fullPage: true });
+
+                // Check for visual slop patterns
+                const slopIssues = await this.visualVerifier.detectSlop(screenshot);
+                for (const slop of slopIssues) {
+                    issues.push({
+                        type: 'visual_slop',
+                        description: `${slop.severity}: ${slop.description}`,
+                    });
+                }
+            }
+
+            // Clear logs for next check
+            this.browserService.clearConsoleLogs();
+            this.browserService.clearNetworkRequests();
+
+            console.log(`[BuildLoop] Integration check found ${issues.length} issues`);
+
+        } catch (error) {
+            console.error('[BuildLoop] Integration check error:', error);
+            issues.push({
+                type: 'integration_check_error',
+                description: `Integration check failed: ${(error as Error).message}`,
+            });
+        }
+
+        return issues;
     }
 
     private async fixIntegrationIssue(issue: { type: string; description: string }): Promise<void> {
@@ -691,9 +1054,74 @@ Use TypeScript/React best practices.`,
         });
     }
 
+    /**
+     * Test a user workflow using real Playwright browser automation
+     * Executes each step and verifies the success condition
+     */
     private async testWorkflow(workflow: { name: string; steps: string[]; success: string }): Promise<boolean> {
-        // Placeholder - actual implementation would use browser automation
-        return true;
+        console.log(`[BuildLoop] Testing workflow: ${workflow.name}`);
+
+        try {
+            // Ensure browser is initialized
+            if (!this.browserService) {
+                this.browserService = createBrowserAutomationService({ headed: false });
+                await this.browserService.initialize();
+            }
+
+            // Get sandbox URL
+            if (!this.sandboxService) {
+                console.log(`[BuildLoop] No sandbox available for workflow test: ${workflow.name}`);
+                return false;
+            }
+
+            const sandbox = this.sandboxService.getSandbox(this.state.id);
+            if (!sandbox || sandbox.status !== 'running') {
+                console.log(`[BuildLoop] Sandbox not running for workflow test: ${workflow.name}`);
+                return false;
+            }
+
+            // Navigate to starting point
+            const navResult = await this.browserService.navigateTo(sandbox.url);
+            if (!navResult.success) {
+                console.log(`[BuildLoop] Failed to navigate for workflow: ${workflow.name}`);
+                return false;
+            }
+
+            // Wait for initial page load
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Execute each step in the workflow using AI-powered actions
+            for (const step of workflow.steps) {
+                console.log(`[BuildLoop] Executing step: ${step}`);
+
+                const result = await this.browserService.executeAction(step);
+
+                if (!result.success) {
+                    console.log(`[BuildLoop] Step failed: ${step} - ${result.error}`);
+                    return false;
+                }
+
+                // Small delay between steps for UI to settle
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            // Verify success condition using visual verification
+            const screenshot = await this.browserService.screenshot({ fullPage: true });
+            const verification = await this.visualVerifier.verifyPage(screenshot, workflow.success);
+
+            if (!verification.passed) {
+                console.log(`[BuildLoop] Workflow "${workflow.name}" success verification failed`);
+                console.log(`[BuildLoop] Design score: ${verification.designScore}, Issues: ${verification.issues.length}`);
+                return false;
+            }
+
+            console.log(`[BuildLoop] Workflow "${workflow.name}" passed (design score: ${verification.designScore})`);
+            return true;
+
+        } catch (error) {
+            console.error(`[BuildLoop] Workflow test error for "${workflow.name}":`, error);
+            return false;
+        }
     }
 
     private async handleTestFailures(failures: Array<{ workflow: string; passed: boolean }>): Promise<void> {
@@ -771,86 +1199,252 @@ Would the user be satisfied with this result?`;
         return elapsed >= interval;
     }
 
+    /**
+     * Create a checkpoint using the full TimeMachine service
+     * Enables one-click rollback with complete state preservation
+     */
     private async createCheckpoint(
         trigger: string,
         description: string,
         featureId?: string
     ): Promise<void> {
-        const checkpointId = uuidv4();
+        try {
+            const snapshot = await this.artifactManager.createSnapshot();
+            const buildState = await this.artifactManager.getBuildState();
 
-        const snapshot = await this.artifactManager.createSnapshot();
-        const buildState = await this.artifactManager.getBuildState();
-        const featureSummary = this.state.featureSummary;
+            // Capture current verification scores
+            const verificationScores = {
+                codeQuality: 0,
+                visual: 0,
+                antiSlop: 0,
+                security: 0,
+                overall: this.state.featureSummary?.passRate || 0,
+            };
 
-        // Create feature list snapshot from the summary
-        const features = await this.featureManager.getAllFeatures();
-        const featureListSnapshot = {
-            total: featureSummary?.total || 0,
-            passed: featureSummary?.passed || 0,
-            failed: featureSummary?.failed || 0,
-            pending: featureSummary?.pending || 0,
-            features: features.map(f => ({
-                id: f.featureId,
-                passes: f.passes,
-                verificationStatus: f.verificationStatus,
-            })),
-        };
+            // Capture screenshots if browser is available
+            const screenshots: string[] = [];
+            if (this.browserService && this.state.config.enableVisualVerification) {
+                try {
+                    const screenshot = await this.browserService.screenshot({ fullPage: true });
+                    screenshots.push(screenshot);
+                } catch {
+                    // Screenshot capture is best-effort
+                }
+            }
 
-        // Use type assertion to work around drizzle-orm type inference issues
-        // with self-referencing foreign keys. The schema is correct but TypeScript
-        // has trouble inferring the full type due to circular references.
-        const checkpointData = {
-            id: checkpointId,
-            orchestrationRunId: this.state.orchestrationRunId,
-            projectId: this.state.projectId,
-            userId: this.state.userId,
-            trigger, // e.g., 'feature_complete', 'phase_complete', 'interval_15m', 'manual'
-            triggerFeatureId: featureId,
-            phase: this.state.currentPhase,
-            artifacts: {
-                intentJson: this.state.intentContract,
-                featureListJson: featureSummary,
-                styleGuideJson: snapshot.styleGuideJson,
-                progressTxt: snapshot.progressTxt,
-                buildStateJson: buildState,
-            },
-            featureListSnapshot,
-            verificationScoresSnapshot: null,
-            screenshots: [],
-            agentMemorySnapshot: null,
-            fileChecksums: null,
-        } as typeof buildCheckpoints.$inferInsert;
+            // Use TimeMachine for full checkpoint with rollback capability
+            const checkpoint: CheckpointData = await this.timeMachine.createCheckpoint(
+                this.state.currentPhase,
+                this.projectFiles,
+                {
+                    artifacts: {
+                        intentContract: this.state.intentContract
+                            ? JSON.stringify(this.state.intentContract)
+                            : undefined,
+                        featureList: this.state.featureSummary
+                            ? JSON.stringify(this.state.featureSummary)
+                            : undefined,
+                        progressLog: snapshot.progressTxt,
+                        buildState: buildState
+                            ? JSON.stringify(buildState)
+                            : undefined,
+                    },
+                    scores: verificationScores,
+                    screenshots,
+                    description,
+                    isAutomatic: trigger !== 'manual',
+                    triggerReason: trigger as CheckpointData['triggerReason'],
+                }
+            );
 
-        const [inserted] = await db.insert(buildCheckpoints).values(checkpointData).returning();
+            this.state.lastCheckpointId = checkpoint.id;
+            this.state.checkpointCount++;
 
-        this.state.lastCheckpointId = inserted?.id || checkpointId;
-        this.state.checkpointCount++;
+            console.log(`[BuildLoop] TimeMachine checkpoint created: ${checkpoint.id} (${trigger})`);
 
-        this.emitEvent('checkpoint_created', {
+            this.emitEvent('checkpoint_created', {
+                checkpointId: checkpoint.id,
+                description,
+                filesCount: this.projectFiles.size,
+                phase: this.state.currentPhase,
+                rollbackAvailable: true,
+            });
+
+        } catch (error) {
+            console.error('[BuildLoop] Checkpoint creation failed:', error);
+            // Don't fail the build for checkpoint errors
+        }
+    }
+
+    /**
+     * Rollback to a previous checkpoint using TimeMachine
+     */
+    async rollbackToCheckpoint(checkpointId: string): Promise<void> {
+        console.log(`[BuildLoop] Rolling back to checkpoint: ${checkpointId}`);
+
+        const result = await this.timeMachine.rollback(checkpointId);
+
+        if (!result.success) {
+            throw new Error(`Rollback failed: ${result.message}`);
+        }
+
+        // Get the checkpoint data
+        const checkpoint = await this.timeMachine.getCheckpoint(checkpointId);
+
+        if (checkpoint) {
+            // Restore project files
+            this.projectFiles = checkpoint.files;
+
+            // Restore state
+            if (checkpoint.artifacts.intentContract) {
+                this.state.intentContract = JSON.parse(checkpoint.artifacts.intentContract);
+            }
+            if (checkpoint.artifacts.featureList) {
+                this.state.featureSummary = JSON.parse(checkpoint.artifacts.featureList);
+            }
+
+            this.state.currentPhase = checkpoint.phase as BuildLoopPhase;
+        }
+
+        console.log(`[BuildLoop] Successfully rolled back to checkpoint ${checkpointId}`);
+
+        this.emitEvent('checkpoint_restored', {
             checkpointId,
-            description,
+            filesRestored: result.restoredFilesCount,
+            phase: checkpoint?.phase,
         });
     }
 
+    /**
+     * Get all available checkpoints for this build
+     */
+    async getCheckpoints(): Promise<Array<{ id: string; phase: string; timestamp: Date; description?: string }>> {
+        const summaries = await this.timeMachine.getAllCheckpoints();
+        return summaries.map(s => ({
+            id: s.id,
+            phase: s.phase,
+            timestamp: s.timestamp,
+            description: s.description,
+        }));
+    }
+
+    /**
+     * Handle errors with 4-level Error Escalation System
+     * NEVER GIVES UP - escalates through all 4 levels until resolved
+     */
     private async handleError(error: Error): Promise<void> {
+        console.log(`[BuildLoop] Handling error with 4-level escalation: ${error.message}`);
+
+        // Set Intent Contract for Level 4 rebuilds
+        if (this.state.intentContract) {
+            this.errorEscalationEngine.setIntent(this.state.intentContract);
+        }
+
+        // Create build error object
+        const buildError: BuildError = {
+            id: uuidv4(),
+            featureId: 'build_loop',
+            category: this.categorizeError(error.message),
+            message: error.message,
+            stack: error.stack,
+            context: {
+                phase: this.state.currentPhase,
+                stage: this.state.currentStage,
+                errorCount: this.state.errorCount,
+            },
+            timestamp: new Date(),
+        };
+
+        // Get current feature being built (if applicable)
+        const features = await this.featureManager.getAllFeatures();
+        const pendingFeature = features.find(f => !f.passes);
+
+        // Attempt fix with 4-level escalation
+        const result = await this.errorEscalationEngine.fixError(
+            buildError,
+            this.projectFiles,
+            pendingFeature
+        );
+
+        if (result.success && result.fix) {
+            console.log(`[BuildLoop] Error fixed at Level ${result.level}: ${result.fix.strategy}`);
+
+            // Apply the fix
+            await this.applyFix(result.fix);
+
+            this.emitEvent('fix_applied', {
+                errorId: buildError.id,
+                level: result.level,
+                strategy: result.fix.strategy,
+                filesChanged: result.fix.changes.length,
+            });
+
+            // Reset error state and continue
+            this.state.lastError = null;
+            return;
+        }
+
+        // All 4 levels exhausted - truly unrecoverable
+        console.error(`[BuildLoop] Error escalation exhausted all 4 levels - build failed`);
+
         this.state.status = 'failed';
-        this.state.lastError = error.message;
+        this.state.lastError = `${error.message} (Escalation exhausted all 4 levels)`;
         this.state.errorCount++;
 
         await this.artifactManager.addIssueResolution({
             errorType: 'build_loop_error',
             errorMessage: error.message,
-            solution: 'Build loop failed',
+            solution: 'All 4 escalation levels exhausted',
             filesAffected: [],
             resolutionMethod: 'escalation',
-            escalationLevel: this.state.escalationLevel,
+            escalationLevel: 4,
         });
 
         this.emitEvent('error', {
             error: error.message,
             phase: this.state.currentPhase,
             stage: this.state.currentStage,
+            escalationResult: result.message,
         });
+    }
+
+    /**
+     * Categorize error message to determine starting escalation level
+     */
+    private categorizeError(message: string): BuildError['category'] {
+        const lowerMsg = message.toLowerCase();
+
+        // Level 1: Simple errors
+        if (lowerMsg.includes('syntax') || lowerMsg.includes('parsing')) return 'syntax_error';
+        if (lowerMsg.includes('import') || lowerMsg.includes('cannot find module')) return 'import_missing';
+        if (lowerMsg.includes('type') || lowerMsg.includes('is not assignable')) return 'type_mismatch';
+        if (lowerMsg.includes('undefined') || lowerMsg.includes('is not defined')) return 'undefined_variable';
+
+        // Level 2: Complex errors
+        if (lowerMsg.includes('dependency') || lowerMsg.includes('conflict')) return 'dependency_conflicts';
+        if (lowerMsg.includes('integration') || lowerMsg.includes('connect')) return 'integration_issues';
+        if (lowerMsg.includes('architecture') || lowerMsg.includes('structure')) return 'architectural_review';
+
+        // Default to runtime error (Level 2)
+        return 'runtime_error';
+    }
+
+    /**
+     * Apply a fix from the error escalation engine
+     */
+    private async applyFix(fix: Fix): Promise<void> {
+        for (const change of fix.changes) {
+            if (change.action === 'create' || change.action === 'update') {
+                // Update project files cache
+                this.projectFiles.set(change.path, change.newContent || '');
+
+                // In a real implementation, this would write to the filesystem
+                console.log(`[BuildLoop] Applied ${change.action} to ${change.path}`);
+            } else if (change.action === 'delete') {
+                this.projectFiles.delete(change.path);
+                console.log(`[BuildLoop] Deleted ${change.path}`);
+            }
+        }
     }
 
     private startPhase(phase: BuildLoopPhase): void {

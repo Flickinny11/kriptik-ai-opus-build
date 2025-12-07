@@ -330,7 +330,7 @@ export class AgentOrchestrator extends EventEmitter {
         // Get phase-based configuration for this agent type
         const phase = this.getPhaseForAgentType(agentType);
         const phaseConfig = getPhaseConfig(phase);
-        
+
         console.log(`[AgentOrchestrator] Running ${agentType} task via OpenRouter - Model: ${phaseConfig.model}, Effort: ${phaseConfig.effort}`);
 
         // Build context-aware prompt
