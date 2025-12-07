@@ -93,6 +93,29 @@ export class AgentOrchestrator {
                 throw new Error('Authentication required');
             }
 
+            // First, analyze the task using KripToeNite for intelligent routing
+            let ktnAnalysis = null;
+            try {
+                const ktnResponse = await fetch(`${API_BASE}/api/krip-toe-nite/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-id': userId,
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        prompt,
+                        context: { projectId },
+                    }),
+                });
+                if (ktnResponse.ok) {
+                    ktnAnalysis = await ktnResponse.json();
+                    this.addLog('planning', `KTN Analysis: ${ktnAnalysis.routing?.strategy} strategy, ${ktnAnalysis.analysis?.complexity || 'auto'} complexity`, 'info');
+                }
+            } catch (e) {
+                // KTN analysis is optional, continue without it
+            }
+
             const analysisResponse = await fetch(`${API_BASE}/api/orchestrate/analyze`, {
                 method: 'POST',
                 headers: {
@@ -104,6 +127,7 @@ export class AgentOrchestrator {
                     prompt,
                     projectId,
                     projectName: `Project ${Date.now()}`,
+                    ktnRouting: ktnAnalysis?.routing, // Pass KTN routing decision to orchestrator
                 }),
             });
 

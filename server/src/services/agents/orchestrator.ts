@@ -27,6 +27,12 @@ import {
     OPENROUTER_MODELS,
     type OpenRouterModel,
 } from '../ai/openrouter-client.js';
+import {
+    getKripToeNite,
+    executeForAgent,
+    type KripToeNiteFacade,
+    type RequestContext as KTNRequestContext,
+} from '../ai/krip-toe-nite/index.js';
 
 // ============================================================================
 // AGENT EXECUTORS
@@ -327,12 +333,6 @@ export class AgentOrchestrator extends EventEmitter {
 
         const systemPrompt = AGENT_SYSTEM_PROMPTS[agentType];
 
-        // Get phase-based configuration for this agent type
-        const phase = this.getPhaseForAgentType(agentType);
-        const phaseConfig = getPhaseConfig(phase);
-
-        console.log(`[AgentOrchestrator] Running ${agentType} task via OpenRouter - Model: ${phaseConfig.model}, Effort: ${phaseConfig.effort}`);
-
         // Build context-aware prompt
         const contextSummary = this.contextStore.getContextSummary(context.id);
 
@@ -353,32 +353,21 @@ Execute this task according to your role. Provide complete, production-ready out
 `;
 
         try {
-            // Build request with phase-based configuration
-            const openRouter = getOpenRouterClient();
-            const params = openRouter.buildRequestParams({
-                phase,
-                maxTokens: 8192,
-            });
+            // Use Krip-Toe-Nite for intelligent model routing based on agent type
+            const ktnContext: KTNRequestContext = {
+                projectId: context.projectId,
+                userId: context.userId,
+                sessionId: context.sessionId,
+            };
 
-            const response = await this.client.messages.create({
-                model: phaseConfig.model,
-                max_tokens: params.max_tokens as number || 8192,
-                system: systemPrompt,
-                messages: [
-                    { role: 'user', content: userPrompt }
-                ],
-                // Add extended thinking if phase config enables it
-                ...(phaseConfig.thinkingBudget > 0 ? {
-                    thinking: {
-                        type: 'enabled' as const,
-                        budget_tokens: phaseConfig.thinkingBudget,
-                    },
-                    temperature: 1, // Required for extended thinking
-                } : {}),
-            });
+            console.log(`[AgentOrchestrator] Running ${agentType} task via KripToeNite`);
 
-            const content = response.content[0];
-            const outputText = content.type === 'text' ? content.text : '';
+            // Execute using KTN with agent-type-specific routing
+            const ktnResult = await executeForAgent(agentType, userPrompt, ktnContext);
+
+            console.log(`[AgentOrchestrator] KTN completed: strategy=${ktnResult.strategy}, model=${ktnResult.model}, latency=${ktnResult.latencyMs}ms`);
+
+            const outputText = ktnResult.content;
 
             // Parse output based on task type
             const output = this.parseTaskOutput(task.type, outputText);
@@ -388,10 +377,16 @@ Execute this task according to your role. Provide complete, production-ready out
                 success: true,
                 output,
                 duration: (Date.now() - startTime) / 1000,
-                tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+                tokensUsed: ktnResult.usage.totalTokens,
+                // Include KTN metadata
+                metadata: {
+                    model: ktnResult.model,
+                    strategy: ktnResult.strategy,
+                    latencyMs: ktnResult.latencyMs,
+                },
             };
         } catch (error) {
-            console.error(`[AgentOrchestrator] OpenRouter call failed for ${agentType}:`, error);
+            console.error(`[AgentOrchestrator] KripToeNite call failed for ${agentType}:`, error);
             return {
                 taskId: task.id,
                 success: false,

@@ -342,6 +342,18 @@ export {
     getAllModelsForDisplay,
 } from './model-registry.js';
 
+// Facade
+export {
+    KripToeNiteFacade,
+    getKripToeNite,
+    resetKripToeNiteFacade,
+    agentKTNMapping,
+    executeForAgent,
+    type RequestContext,
+    type KTNResult,
+    type StreamingKTNResult,
+} from './facade.js';
+
 // Default export
 export default KripToeNiteService;
 

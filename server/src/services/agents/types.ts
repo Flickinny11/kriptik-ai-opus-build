@@ -84,6 +84,12 @@ export interface TaskResult {
     error?: string;
     duration: number;
     tokensUsed: number;
+    /** KripToeNite execution metadata */
+    metadata?: {
+        model?: string;
+        strategy?: string;
+        latencyMs?: number;
+    };
 }
 
 // ============================================================================

@@ -43,7 +43,9 @@ import {
     getPhaseConfig,
 } from '../ai/openrouter-client.js';
 import {
-    getKripToeNiteService,
+    getKripToeNite,
+    type KripToeNiteFacade,
+    type KTNResult,
 } from '../ai/krip-toe-nite/index.js';
 // Import real automation services
 import {
@@ -767,26 +769,21 @@ ${feature.visualRequirements.map(r => `- ${r}`).join('\n')}
 
 Generate production-ready code for this feature.`;
 
-        // Use Krip-Toe-Nite for intelligent model routing
-        const ktn = getKripToeNiteService();
+        // Use Krip-Toe-Nite Facade for intelligent model routing
+        const ktn = getKripToeNite();
         let responseContent = '';
 
         try {
-            for await (const chunk of ktn.generate({
-                prompt,
-                systemPrompt: `You are an expert developer building production-ready features.
-Generate complete, working code. Include all necessary imports.
-Use TypeScript/React best practices.`,
-                context: {
-                    framework: 'React',
-                    language: 'TypeScript',
-                },
-                maxTokens: 32000,
-            })) {
-                if (chunk.type === 'text') {
-                    responseContent += chunk.content;
-                }
-            }
+            // Use buildFeature() - speculative strategy for fast + verified code generation
+            const result = await ktn.buildFeature(prompt, {
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                framework: 'React',
+                language: 'TypeScript',
+            });
+            responseContent = result.content;
+
+            console.log(`[BuildLoop] KTN buildFeature completed: strategy=${result.strategy}, model=${result.model}, latency=${result.latencyMs}ms`);
         } catch (error) {
             // Fallback to Claude service if KTN fails
             console.warn('[BuildLoop] KTN failed, falling back to Claude:', error);

@@ -2480,3 +2480,57 @@ AGENTS MODE FEATURES NOW INTEGRATED:
 
 CURRENT STATE: Build successful, all integrations complete
 NEXT: Ready for production testing
+
+═══ [2025-12-07 KripToeNite Integration Complete] ═══
+COMPLETED: Full integration of KripToeNite intelligent model routing into all execution paths
+
+FILES CREATED:
+- server/src/services/ai/krip-toe-nite/facade.ts
+  - KripToeNiteFacade class - unified interface for intelligent routing
+  - Convenience methods: intentLock(), buildFeature(), quickCheck(), designReview(), debug(), codeReview(), plan()
+  - Agent type mapping: agentKTNMapping maps agent types to optimal strategies
+  - executeForAgent() function for agent-based routing
+  - Singleton getKripToeNite() for global access
+
+FILES MODIFIED:
+- server/src/services/ai/krip-toe-nite/index.ts
+  - Exported facade, getKripToeNite, agentKTNMapping, executeForAgent
+  - Exported RequestContext, KTNResult, StreamingKTNResult types
+
+- server/src/services/automation/build-loop.ts
+  - Replaced getKripToeNiteService with getKripToeNite (facade)
+  - Uses ktn.buildFeature() for feature code generation
+  - Logs strategy, model, and latency for debugging
+
+- server/src/services/agents/orchestrator.ts
+  - Added KTN imports: getKripToeNite, executeForAgent
+  - runAgentTask() now uses executeForAgent() for intelligent routing
+  - Logs KTN strategy/model/latency
+  - TaskResult includes metadata with KTN info
+
+- server/src/services/agents/types.ts
+  - Added optional metadata field to TaskResult for KTN info
+
+- src/lib/AgentOrchestrator.ts (frontend)
+  - Added KTN analysis call before orchestration analysis
+  - Passes ktnRouting decision to backend orchestrator
+  - Logs KTN analysis (strategy, complexity) in planning phase
+
+KRIP-TOE-NITE EXECUTION STRATEGIES:
+- single: Fast single model for trivial/simple tasks
+- speculative: Fast model streams, smart model validates (medium tasks)
+- parallel: Race multiple models, take best result (complex tasks)
+- ensemble: Multiple models vote/merge for critical decisions
+
+AGENT TYPE TO STRATEGY MAPPING:
+- planning → intentLock() (ensemble strategy)
+- coding → buildFeature() (speculative strategy)
+- testing → quickCheck() (single fast model)
+- review → codeReview() (parallel strategy)
+- debug → debug() (speculative strategy)
+- design → designReview() (parallel strategy)
+- deployment → single strategy
+- research → parallel strategy
+
+CURRENT STATE: Build successful, all KTN integrations complete
+NEXT: Ready for production testing

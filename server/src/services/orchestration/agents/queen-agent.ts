@@ -3,7 +3,7 @@
  *
  * Coordinates worker agents for a specific domain (infrastructure, development, design, quality).
  * Receives tasks from the orchestrator and dispatches to appropriate workers.
- * 
+ *
  * NOW USING: OpenRouterClient with phase-based configuration
  * All AI calls route through openrouter.ai/api/v1
  */
@@ -100,11 +100,11 @@ export class QueenAgent extends EventEmitter {
                 phase
             );
             this.workers.set(workerType, worker);
-            
+
             // Forward worker events for WebSocket broadcast
             worker.on('log', (data) => this.emit('worker_log', { ...data, queenType: this.type }));
             worker.on('artifact_created', (data) => this.emit('artifact_created', data));
-            
+
             this.log(`Spawned worker: ${workerType} (phase: ${phase})`);
         }
     }

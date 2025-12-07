@@ -3,7 +3,7 @@
  *
  * Specialized agent that performs atomic tasks within a specific domain.
  * Each worker type has specialized prompts and output formats.
- * 
+ *
  * NOW USING: OpenRouterClient with phase-based configuration
  * All AI calls route through openrouter.ai/api/v1
  */
@@ -104,7 +104,7 @@ export class WorkerAgent extends EventEmitter {
                 try {
                     await this.sandboxService.initialize();
                     this.sandbox = await this.sandboxService.createSandbox(this.id, `/tmp/worker-${this.id}`);
-                    
+
                     wsSync.broadcast(contextId, 'worker-sandbox-ready', {
                         workerId: this.id,
                         sandboxUrl: this.sandbox.url,
@@ -167,7 +167,7 @@ export class WorkerAgent extends EventEmitter {
 
                 // Create file contents map from task context
                 const fileContents = new Map<string, string>();
-                
+
                 const escalationResult = await this.errorEscalation.fixError(buildError, fileContents);
 
                 if (escalationResult.success && escalationResult.fix) {
@@ -258,7 +258,7 @@ Generate all files needed to fully implement this task.`;
             // Extract JSON from response
             const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) ||
                              responseText.match(/\[[\s\S]*\]/);
-            
+
             if (jsonMatch) {
                 const jsonStr = jsonMatch[1] || jsonMatch[0];
                 const parsed = JSON.parse(jsonStr) as Array<{
