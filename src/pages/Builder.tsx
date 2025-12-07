@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp
+    Check, Layers, TrendingUp, Mic
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -41,6 +41,7 @@ import ActivityFeed from '../components/collaboration/ActivityFeed';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { MarketFitDashboard } from '../components/market';
+import { VoiceArchitectPanel } from '../components/voice';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -339,6 +340,7 @@ export default function Builder() {
     const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
     const [showGhostMode, setShowGhostMode] = useState(false);
     const [showMarketFit, setShowMarketFit] = useState(false);
+    const [showVoiceArchitect, setShowVoiceArchitect] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -392,6 +394,19 @@ export default function Builder() {
                     onClose={() => setShowMarketFit(false)}
                     projectId={projectId || 'default'}
                     projectDescription="AI-powered application builder"
+                />
+
+                {/* Voice Architect - Voice-to-Code */}
+                <VoiceArchitectPanel
+                    isOpen={showVoiceArchitect}
+                    onClose={() => setShowVoiceArchitect(false)}
+                    onBuild={(buildPrompt, projectName) => {
+                        // Send the voice-derived build prompt to the chat interface
+                        console.log('Voice build:', { buildPrompt, projectName });
+                        // The chat interface will receive this through context or props
+                        setShowVoiceArchitect(false);
+                    }}
+                    projectId={projectId}
                 />
 
                 {/* Premium Liquid Glass Header */}
@@ -490,6 +505,15 @@ export default function Builder() {
                             isActive={showMarketFit}
                         >
                             Market Fit
+                        </GlassButton>
+
+                        {/* Voice Architect - Voice-to-Code */}
+                        <GlassButton
+                            icon={Mic}
+                            onClick={() => setShowVoiceArchitect(true)}
+                            isActive={showVoiceArchitect}
+                        >
+                            Voice
                         </GlassButton>
 
                         <div className="h-4 w-px bg-white/10 mx-2" />

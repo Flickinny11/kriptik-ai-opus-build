@@ -1876,3 +1876,69 @@ export const userTwinSessions = sqliteTable('user_twin_sessions', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     completedAt: text('completed_at'),
 });
+
+// =============================================================================
+// Voice Architect (Voice-to-Code)
+// =============================================================================
+
+export const voiceSessions = sqliteTable('voice_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+    projectId: text('project_id').references(() => projects.id),
+
+    // Transcriptions
+    transcriptions: text('transcriptions', { mode: 'json' }).$type<Array<{
+        id: string;
+        text: string;
+        confidence: number;
+        timestamp: string;
+        duration?: number;
+    }>>(),
+
+    // Extracted intent
+    extractedIntent: text('extracted_intent', { mode: 'json' }).$type<{
+        appType: string;
+        appName?: string;
+        description: string;
+        features: Array<{
+            name: string;
+            description: string;
+            priority: 'high' | 'medium' | 'low';
+            complexity?: 'simple' | 'moderate' | 'complex';
+        }>;
+        designPreferences: Array<{
+            category: 'color' | 'layout' | 'typography' | 'style' | 'animation';
+            preference: string;
+            specificity: 'explicit' | 'implied';
+        }>;
+        technicalRequirements: string[];
+        ambiguities: Array<{
+            id: string;
+            topic: string;
+            question: string;
+            options?: string[];
+            importance: 'blocking' | 'helpful' | 'optional';
+        }>;
+        confidence: number;
+    }>(),
+
+    // Clarifications
+    clarifications: text('clarifications', { mode: 'json' }).$type<Array<{
+        id: string;
+        ambiguityId: string;
+        question: string;
+        options?: string[];
+        userResponse?: string;
+        resolvedTo?: string;
+        timestamp: string;
+    }>>(),
+
+    // Status
+    status: text('status').notNull().$type<
+        'listening' | 'processing' | 'clarifying' | 'ready' | 'building' | 'error'
+    >(),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

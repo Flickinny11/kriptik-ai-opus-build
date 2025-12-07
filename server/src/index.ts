@@ -514,6 +514,10 @@ app.use("/api/user-twin", requireCredits(25), userTwinRouter);
 import marketFitRouter from './routes/market-fit.js';
 app.use("/api/market-fit", requireCredits(30), marketFitRouter);
 
+// Voice Architect - Voice-to-code capability
+import voiceArchitectRouter from './routes/voice-architect.js';
+app.use("/api/voice", requireCredits(15), voiceArchitectRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================
