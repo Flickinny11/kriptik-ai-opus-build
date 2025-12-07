@@ -24,8 +24,9 @@ import { cn } from '../lib/utils';
 import { apiClient } from '../lib/api-client';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
+import { LearningSettingsSection } from '../components/settings/LearningSettingsSection';
 
-type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'privacy' | 'usage';
+type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'privacy' | 'usage' | 'learning';
 
 interface UserSettings {
     spendingLimit: number | null;
@@ -71,6 +72,7 @@ const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ classN
     { id: 'payment', label: 'Payment Methods', icon: CreditCard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'ai', label: 'AI Preferences', icon: Brain },
+    { id: 'learning', label: 'Learning Engine', icon: Brain },
     { id: 'privacy', label: 'Privacy', icon: Shield },
     { id: 'usage', label: 'Usage History', icon: Activity },
 ];
@@ -607,6 +609,13 @@ export default function SettingsPage() {
                                             <p style={{ color: '#666' }}>Usage history will appear here</p>
                                             <p className="text-sm mt-2" style={{ color: '#999' }}>View your AI generations, token usage, and costs</p>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Learning Engine Tab */}
+                                {activeTab === 'learning' && (
+                                    <div className="glass-panel p-6">
+                                        <LearningSettingsSection />
                                     </div>
                                 )}
                             </motion.div>

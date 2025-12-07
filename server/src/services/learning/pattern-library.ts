@@ -1,11 +1,11 @@
 // @ts-nocheck - Learning module has complex nullable types from DB schema
 /**
  * Pattern Library Service (Layer 4 - Meta-Learning)
- * 
+ *
  * Voyager-inspired pattern library that stores and retrieves reusable
  * solutions. Patterns are extracted from successful builds and can be
  * used to accelerate future similar tasks.
- * 
+ *
  * Categories:
  * - Code Patterns: React components, hooks, utilities
  * - Design Patterns: UI layouts, animations, color schemes
@@ -264,7 +264,7 @@ ERROR MESSAGE: ${recovery.error.message}
 FILE LOCATION: ${recovery.error.fileLocation}
 
 RECOVERY JOURNEY (${recovery.recoveryJourney.length} attempts):
-${recovery.recoveryJourney.map(a => 
+${recovery.recoveryJourney.map(a =>
     `Level ${a.level}: ${a.result} - ${a.fixApplied.slice(0, 200)}`
 ).join('\n')}
 
@@ -343,13 +343,13 @@ Diff: ${recovery.successfulFix.codeDiff?.slice(0, 2000) || 'N/A'}`;
         const scoredPatterns = rows.map(row => {
             let score = 0;
             const searchText = `${row.name} ${row.problem} ${row.solutionTemplate}`.toLowerCase();
-            
+
             for (const term of queryTerms) {
                 if (searchText.includes(term)) {
                     score += 10;
                 }
             }
-            
+
             // Boost by success rate and usage
             score += row.successRate / 10;
             score += Math.min(row.usageCount, 10);
@@ -491,7 +491,7 @@ Diff: ${recovery.successfulFix.codeDiff?.slice(0, 2000) || 'N/A'}`;
         mostUsed: LearnedPattern[];
     }> {
         const all = await db.select().from(learningPatterns);
-        
+
         const byCategory: Record<string, number> = {};
         let totalSuccessRate = 0;
 
@@ -549,7 +549,7 @@ Diff: ${recovery.successfulFix.codeDiff?.slice(0, 2000) || 'N/A'}`;
             existing.problem.toLowerCase(),
             newPattern.problem.toLowerCase()
         );
-        
+
         return nameSimilarity > 0.8 || problemSimilarity > 0.7;
     }
 

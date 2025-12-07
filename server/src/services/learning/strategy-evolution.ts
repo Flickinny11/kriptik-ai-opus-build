@@ -1,11 +1,11 @@
 // @ts-nocheck - Learning module has complex nullable types from DB schema
 /**
  * Strategy Evolution Service (Layer 4 - Meta-Learning)
- * 
+ *
  * Manages and evolves build strategies based on performance data.
  * Implements a "learning to learn" approach where strategies are
  * selected, evaluated, and evolved based on outcomes.
- * 
+ *
  * Strategies cover:
  * - Code generation approaches
  * - Error recovery methods
@@ -292,12 +292,12 @@ export class StrategyEvolutionService extends EventEmitter {
 
         // Analyze decision patterns
         const successfulPatterns = this.analyzeSuccessfulPatterns(decisions);
-        
+
         // Generate new experimental strategies based on patterns
         for (const pattern of successfulPatterns) {
             if (pattern.frequency >= 3 && pattern.successRate >= 70) {
                 const existingStrategy = await this.findSimilarStrategy(pattern.description);
-                
+
                 if (!existingStrategy) {
                     const newStrategy = await this.createStrategy({
                         domain: pattern.domain,
@@ -554,7 +554,7 @@ export class StrategyEvolutionService extends EventEmitter {
         avgSuccessRate: number;
     }> {
         const all = await db.select().from(learningStrategies);
-        
+
         let active = 0;
         let experimental = 0;
         let totalSuccessRate = 0;
@@ -605,7 +605,7 @@ export class StrategyEvolutionService extends EventEmitter {
 
             const pattern = patterns.get(key)!;
             pattern.decisions.push(decision);
-            
+
             if (decision.context.buildPhase) {
                 pattern.contexts.add(decision.context.buildPhase);
             }
@@ -615,7 +615,7 @@ export class StrategyEvolutionService extends EventEmitter {
         const results = [];
         for (const [key, data] of patterns.entries()) {
             const [phase, decisionType] = key.split('_');
-            const successCount = data.decisions.filter(d => 
+            const successCount = data.decisions.filter(d =>
                 d.outcome?.immediateResult === 'success'
             ).length;
 
@@ -644,7 +644,7 @@ export class StrategyEvolutionService extends EventEmitter {
 
     private async findSimilarStrategy(description: string): Promise<LearnedStrategy | null> {
         const all = await db.select().from(learningStrategies);
-        
+
         for (const row of all) {
             const similarity = this.stringSimilarity(
                 row.description.toLowerCase(),
