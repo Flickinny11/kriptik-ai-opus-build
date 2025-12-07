@@ -2762,3 +2762,82 @@ UTILITY FUNCTIONS:
 
 CURRENT STATE: Build successful, InitializerAgent complete
 NEXT: Use InitializerAgent at project start before CodingAgent
+
+═══ [2025-12-07 CodingAgentWrapper Implementation Complete] ═══
+COMPLETED: Created CodingAgentWrapper for context reload and artifact updates
+
+FILE CREATED:
+- server/src/services/ai/coding-agent-wrapper.ts
+
+CodingAgentWrapper WORKFLOW:
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. startSession()           - Load ALL context from artifacts   │
+│ 2. claimTask()              - Claim ONE task to work on         │
+│ 3. getSystemPromptWithContext() - Get prompt with context       │
+│ 4. [Do the work]            - Agent generates code              │
+│ 5. recordFileChange()       - Track all file modifications      │
+│ 6. completeTask()           - Update artifacts + git commit     │
+│ 7. endSession()             - Finalize and cleanup              │
+└─────────────────────────────────────────────────────────────────┘
+
+SESSION METHODS:
+- startSession() → LoadedContext
+  * Loads full context from artifacts
+  * Updates build state to show agent active
+  * Emits 'context_loaded' event
+
+- getSystemPromptWithContext(basePrompt) → string
+  * Injects full formatted context into system prompt
+  * Shows progress, tasks, git history, project state
+
+- getSystemPromptWithSummary(basePrompt) → string
+  * Condensed context for token efficiency
+
+- endSession()
+  * Handles incomplete tasks
+  * Final progress entry
+  * Session statistics
+
+TASK MANAGEMENT:
+- claimTask(taskId?) → TaskItem | null
+  * Gets next pending task (or specific task)
+  * Marks as in_progress
+  * Sets current task with context
+
+- completeTask(result) → TaskResult
+  * Marks task complete
+  * Updates progress log
+  * Commits to git
+  * Updates feature status
+
+- failTask(error, nextSteps?) → TaskResult
+- blockTask(reason, nextSteps?)
+
+FILE TRACKING:
+- recordFileChange(path, action, content?)
+- recordFileChanges(changes[])
+- getFileChanges() → FileChange[]
+
+DECISION TRACKING (for learning):
+- recordDecision(type, chosen, alternatives, reasoning)
+- getDecisions() → DecisionRecord[]
+
+EVENTS EMITTED:
+- session_start, context_loaded
+- task_claimed, file_changed, decision_made
+- task_complete, task_blocked, task_failed
+- session_end, error
+
+UTILITY FUNCTIONS:
+- createCodingAgentWrapper(config)
+- runSingleTaskSession(config, executor)
+
+CRITICAL GUARANTEE:
+Every agent session:
+1. Starts by loading context from files
+2. Has context injected into its prompts
+3. Ends by updating artifacts and committing
+4. Creates a handoff trail for next agent
+
+CURRENT STATE: Build successful, CodingAgentWrapper complete
+NEXT: Integrate into orchestrators for consistent context handling

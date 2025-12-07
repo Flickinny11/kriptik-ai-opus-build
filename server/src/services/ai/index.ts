@@ -110,3 +110,15 @@ export {
     type InitializerEvents,
 } from './initializer-agent.js';
 
+// CodingAgentWrapper - Context Reload & Artifact Updates
+export {
+    CodingAgentWrapper,
+    createCodingAgentWrapper,
+    runSingleTaskSession,
+    type CodingAgentConfig,
+    type TaskResult,
+    type FileChange,
+    type DecisionRecord,
+    type CodingAgentEvents,
+} from './coding-agent-wrapper.js';
+
