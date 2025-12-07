@@ -2917,3 +2917,89 @@ CRITICAL GUARANTEES:
 
 CURRENT STATE: Build successful, Memory Harness fully integrated
 NEXT: Test end-to-end build flow with context persistence
+
+═══ [2025-12-07 Developer Mode Memory Harness Integration Complete] ═══
+COMPLETED: Integrated memory harness into Developer Mode orchestrator
+
+FILE UPDATED:
+- server/src/services/developer-mode/orchestrator.ts
+
+NEW IMPORTS:
+- createInitializerAgent, needsInitialization
+- createCodingAgentWrapper
+- loadProjectContext, hasProjectContext
+- createArtifactManager
+- getOpenRouterClient, getPhaseConfig
+- getKripToeNite
+
+NEW CLASS PROPERTIES:
+- projectArtifacts: Map<string, ArtifactManager>
+- projectPaths: Map<string, string>
+- loadedContexts: Map<string, LoadedContext>
+- openRouterClient
+- ktn: KripToeNiteFacade
+
+NEW METHODS:
+
+1. importProject(sessionId, files, options)
+   ├─► hasProjectContext()?
+   │   ├─► NO  → createInitializerAgent()
+   │   │         ├─► initializeFromExisting() or initializeForFix()
+   │   │         └─► Store artifact manager
+   │   │
+   │   └─► YES → loadProjectContext()
+   │             └─► restoreFromContext()
+   └─► Emit project:imported or project:resumed event
+
+2. handleUserIteration(sessionId, userMessage, options)
+   ├─► createCodingAgentWrapper()
+   ├─► codingAgent.startSession()
+   ├─► artifactManager.addTask()
+   ├─► codingAgent.claimTask()
+   ├─► getSystemPromptWithContext()
+   ├─► ktn.buildFeature() (with OpenRouter fallback)
+   ├─► parseFileOperations()
+   ├─► codingAgent.recordFileChange()
+   ├─► extractNextSteps()
+   ├─► codingAgent.completeTask()
+   └─► codingAgent.endSession()
+
+3. getBaseSystemPrompt(session)
+   - Returns Developer Mode system prompt
+   - Includes project context
+   - Defines output format for file changes
+
+4. restoreFromContext(session, context)
+   - Stores loaded context
+   - Logs restoration to artifacts
+   - Emits context:restored event
+
+5. parseFileOperations(content)
+   - Extracts files from AI response
+   - Supports ```filepath:path/to/file``` format
+
+6. extractNextSteps(content)
+   - Parses next steps from response
+   - Limits to 5 items
+
+7. getProjectPath(projectId)
+8. getLoadedContext(projectId)
+9. getArtifactManager(projectId)
+
+EVENTS EMITTED:
+- project:intent-created
+- project:tasks-decomposed
+- project:scaffolding-complete
+- project:artifacts-created
+- project:git-initialized
+- project:imported
+- project:resumed
+- iteration:complete
+- context:restored
+
+AI ROUTING:
+- Primary: KripToeNite (ktn.buildFeature)
+- Fallback: OpenRouter direct (client.messages.create)
+
+CURRENT STATE: Build successful, Developer Mode fully integrated
+NEXT: Integrate memory harness into Agents Mode

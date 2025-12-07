@@ -10,6 +10,12 @@
  * - Merge queue management
  * - Credit budget tracking
  *
+ * NOW WITH MEMORY HARNESS INTEGRATION:
+ * - InitializerAgent for project imports
+ * - CodingAgentWrapper for context-aware iterations
+ * - Persistent artifacts for session continuity
+ * - Unified AI routing via OpenRouter
+ *
  * Unlike Ultimate Builder's autonomous orchestration, Developer Mode
  * gives users direct control over each agent while still providing
  * coordination and conflict prevention.
@@ -35,7 +41,37 @@ import {
     type AgentTaskConfig,
 } from './agent-service.js';
 import { GitBranchManager, createGitBranchManager } from './git-branch-manager.js';
-import type { EffortLevel } from '../ai/openrouter-client.js';
+import {
+    type EffortLevel,
+    getOpenRouterClient,
+    getPhaseConfig,
+} from '../ai/openrouter-client.js';
+
+// Memory Harness Integration
+import {
+    createInitializerAgent,
+    needsInitialization,
+    type InitializerAgent,
+} from '../ai/initializer-agent.js';
+import {
+    createCodingAgentWrapper,
+    type CodingAgentWrapper,
+    type TaskResult,
+} from '../ai/coding-agent-wrapper.js';
+import {
+    loadProjectContext,
+    hasProjectContext,
+    type LoadedContext,
+} from '../ai/context-loader.js';
+import {
+    createArtifactManager,
+    type ArtifactManager,
+    type TaskItem,
+} from '../ai/artifacts.js';
+import {
+    getKripToeNite,
+    type KripToeNiteFacade,
+} from '../ai/krip-toe-nite/index.js';
 
 // =============================================================================
 // TYPES
@@ -116,9 +152,18 @@ export class DeveloperModeOrchestrator extends EventEmitter {
     private agentService: DeveloperModeAgentService;
     private activeSessions: Map<string, Session> = new Map();
 
+    // Memory Harness - Context Loading & Artifact Updates
+    private projectArtifacts: Map<string, ArtifactManager> = new Map();
+    private projectPaths: Map<string, string> = new Map();
+    private loadedContexts: Map<string, LoadedContext> = new Map();
+    private openRouterClient: ReturnType<typeof getOpenRouterClient>;
+    private ktn: KripToeNiteFacade;
+
     constructor() {
         super();
         this.agentService = getDeveloperModeAgentService();
+        this.openRouterClient = getOpenRouterClient();
+        this.ktn = getKripToeNite();
 
         // Forward agent events
         this.agentService.on('agent:created', (data) => this.emit('agent:created', data));
@@ -129,6 +174,434 @@ export class DeveloperModeOrchestrator extends EventEmitter {
         this.agentService.on('agent:error', (data) => this.emit('agent:error', data));
         this.agentService.on('agent:stopped', (data) => this.emit('agent:stopped', data));
     }
+
+    // =========================================================================
+    // MEMORY HARNESS - PROJECT IMPORT & CONTEXT
+    // =========================================================================
+
+    /**
+     * Import a project with Memory Harness initialization
+     * Creates all artifacts and scaffolding for Developer Mode
+     */
+    async importProject(
+        sessionId: string,
+        files: Map<string, string>,
+        options?: { prompt?: string; mode?: 'import_existing' | 'fix_my_app' }
+    ): Promise<{ success: boolean; taskCount?: number; error?: string }> {
+        const session = await this.getSession(sessionId);
+        if (!session) {
+            return { success: false, error: `Session ${sessionId} not found` };
+        }
+
+        const projectPath = this.getProjectPath(session.projectId);
+        const orchestrationRunId = `dev-${sessionId}`;
+
+        try {
+            // Check if project already has context artifacts
+            const hasContext = await hasProjectContext(projectPath);
+
+            if (!hasContext) {
+                console.log(`[DeveloperMode] Initializing project ${session.projectId} with InitializerAgent`);
+
+                // First time importing - initialize with InitializerAgent
+                const initializer = createInitializerAgent({
+                    projectId: session.projectId,
+                    userId: session.userId,
+                    orchestrationRunId,
+                    projectPath,
+                    mode: options?.mode || 'import_existing',
+                });
+
+                // Forward initializer events
+                initializer.on('intent_created', (data) =>
+                    this.emit('project:intent-created', { sessionId, ...data })
+                );
+                initializer.on('tasks_decomposed', (data) =>
+                    this.emit('project:tasks-decomposed', { sessionId, ...data })
+                );
+                initializer.on('scaffolding_complete', (data) =>
+                    this.emit('project:scaffolding-complete', { sessionId, ...data })
+                );
+                initializer.on('artifacts_created', (data) =>
+                    this.emit('project:artifacts-created', { sessionId, ...data })
+                );
+                initializer.on('git_initialized', (data) =>
+                    this.emit('project:git-initialized', { sessionId, ...data })
+                );
+
+                // Run initialization based on mode
+                let result;
+                if (options?.mode === 'fix_my_app') {
+                    result = await initializer.initializeForFix(files);
+                } else {
+                    result = await initializer.initializeFromExisting(files);
+                }
+
+                if (!result.success) {
+                    return { success: false, error: result.error };
+                }
+
+                // Store artifact manager for this project
+                const artifactManager = createArtifactManager(
+                    session.projectId,
+                    orchestrationRunId,
+                    session.userId
+                );
+                this.projectArtifacts.set(session.projectId, artifactManager);
+                this.projectPaths.set(session.projectId, projectPath);
+
+                this.emit('project:imported', {
+                    sessionId,
+                    projectId: session.projectId,
+                    taskCount: result.taskCount,
+                    artifacts: result.artifactsCreated,
+                });
+
+                return { success: true, taskCount: result.taskCount };
+            } else {
+                // Resuming work - load existing context
+                console.log(`[DeveloperMode] Resuming project ${session.projectId} from existing context`);
+
+                const context = await loadProjectContext(projectPath);
+                this.loadedContexts.set(session.projectId, context);
+
+                // Restore artifact manager
+                const artifactManager = createArtifactManager(
+                    session.projectId,
+                    orchestrationRunId,
+                    session.userId
+                );
+                this.projectArtifacts.set(session.projectId, artifactManager);
+                this.projectPaths.set(session.projectId, projectPath);
+
+                await this.restoreFromContext(session, context);
+
+                this.emit('project:resumed', {
+                    sessionId,
+                    projectId: session.projectId,
+                    completedTasks: context.taskList?.completedTasks || 0,
+                    totalTasks: context.taskList?.totalTasks || 0,
+                });
+
+                return {
+                    success: true,
+                    taskCount: context.taskList?.totalTasks || 0,
+                };
+            }
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            console.error('[DeveloperMode] Import project failed:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /**
+     * Handle a user iteration request with full context awareness
+     * Uses CodingAgentWrapper for context loading and artifact updates
+     */
+    async handleUserIteration(
+        sessionId: string,
+        userMessage: string,
+        options?: {
+            model?: AgentModel;
+            files?: string[];
+            context?: string;
+        }
+    ): Promise<{
+        success: boolean;
+        response?: string;
+        filesModified?: string[];
+        gitCommit?: string | null;
+        error?: string;
+    }> {
+        const session = await this.getSession(sessionId);
+        if (!session) {
+            return { success: false, error: `Session ${sessionId} not found` };
+        }
+
+        const projectPath = this.getProjectPath(session.projectId);
+        const orchestrationRunId = `dev-${sessionId}`;
+
+        try {
+            // Create coding agent wrapper for this iteration
+            const codingAgent = createCodingAgentWrapper({
+                projectId: session.projectId,
+                userId: session.userId,
+                orchestrationRunId,
+                projectPath,
+                agentType: 'iterate',
+                agentId: `dev-iterate-${Date.now()}`,
+            });
+
+            // Load context from artifacts
+            await codingAgent.startSession();
+
+            // Get or create artifact manager
+            let artifactManager = this.projectArtifacts.get(session.projectId);
+            if (!artifactManager) {
+                artifactManager = createArtifactManager(
+                    session.projectId,
+                    orchestrationRunId,
+                    session.userId
+                );
+                this.projectArtifacts.set(session.projectId, artifactManager);
+            }
+
+            // Create a task for this iteration
+            const taskId = await artifactManager.addTask({
+                description: `User iteration: ${userMessage.substring(0, 100)}${userMessage.length > 100 ? '...' : ''}`,
+                category: 'feature',
+                status: 'pending',
+                priority: 1,
+            });
+
+            // Claim the task
+            const task = await codingAgent.claimTask(taskId);
+            if (!task) {
+                await codingAgent.endSession();
+                return { success: false, error: 'Failed to claim iteration task' };
+            }
+
+            // Get system prompt with full context
+            const basePrompt = this.getBaseSystemPrompt(session);
+            const systemPrompt = codingAgent.getSystemPromptWithContext(basePrompt);
+
+            // Build user prompt with additional context
+            let fullUserPrompt = userMessage;
+            if (options?.context) {
+                fullUserPrompt = `${options.context}\n\n${userMessage}`;
+            }
+            if (options?.files && options.files.length > 0) {
+                fullUserPrompt += `\n\nFocus on these files: ${options.files.join(', ')}`;
+            }
+
+            // Generate response using Krip-Toe-Nite for intelligent routing
+            let responseContent = '';
+            try {
+                const result = await this.ktn.buildFeature(fullUserPrompt, {
+                    projectId: session.projectId,
+                    userId: session.userId,
+                    framework: 'React',
+                    language: 'TypeScript',
+                });
+                responseContent = result.content;
+                console.log(`[DeveloperMode] KTN iteration: strategy=${result.strategy}, model=${result.model}`);
+            } catch (ktnError) {
+                // Fallback to direct OpenRouter call
+                console.warn('[DeveloperMode] KTN failed, using direct OpenRouter:', ktnError);
+                const phaseConfig = getPhaseConfig('build_agent');
+                const client = this.openRouterClient.getClient();
+
+                const response = await client.messages.create({
+                    model: phaseConfig.model,
+                    max_tokens: 32000,
+                    system: systemPrompt,
+                    messages: [{ role: 'user', content: fullUserPrompt }],
+                });
+
+                responseContent = response.content
+                    .filter(block => block.type === 'text')
+                    .map(block => (block as { type: 'text'; text: string }).text)
+                    .join('\n');
+            }
+
+            // Parse files from response and record changes
+            const parsedFiles = this.parseFileOperations(responseContent);
+            const filesModified: string[] = [];
+
+            for (const file of parsedFiles) {
+                codingAgent.recordFileChange(
+                    file.path,
+                    file.isNew ? 'create' : 'modify',
+                    file.content
+                );
+                filesModified.push(file.path);
+            }
+
+            // Extract next steps from response
+            const nextSteps = this.extractNextSteps(responseContent);
+
+            // Complete task (updates artifacts, commits to git)
+            const taskResult: TaskResult = await codingAgent.completeTask({
+                summary: `Iteration: ${userMessage.substring(0, 50)}${userMessage.length > 50 ? '...' : ''}`,
+                filesModified,
+                nextSteps,
+            });
+
+            // End session
+            await codingAgent.endSession();
+
+            // Emit iteration complete event
+            this.emit('iteration:complete', {
+                sessionId,
+                taskId: task.id,
+                filesModified,
+                gitCommit: taskResult.gitCommit,
+            });
+
+            return {
+                success: true,
+                response: responseContent,
+                filesModified,
+                gitCommit: taskResult.gitCommit,
+            };
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            console.error('[DeveloperMode] Iteration failed:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /**
+     * Get the base system prompt for Developer Mode iterations
+     */
+    private getBaseSystemPrompt(session: Session): string {
+        return `You are a senior software engineer working in Developer Mode.
+You are making changes to an existing codebase based on user requests.
+
+PROJECT CONTEXT:
+- Project ID: ${session.projectId}
+- Session ID: ${session.id}
+- Default Model: ${session.defaultModel}
+- Verification Mode: ${session.verificationMode}
+
+GUIDELINES:
+1. Make precise, targeted changes based on the user's request
+2. Follow existing code style and patterns
+3. Do NOT use placeholders or TODO comments
+4. Include ALL necessary imports
+5. Generate production-ready code only
+6. Explain what changes you made and why
+
+OUTPUT FORMAT:
+For each file you create or modify, use this format:
+\`\`\`filepath:path/to/file.ts
+// file content here
+\`\`\`
+
+After the code, summarize:
+- What was changed
+- Why it was changed
+- Any follow-up steps needed`;
+    }
+
+    /**
+     * Restore session state from loaded context
+     */
+    private async restoreFromContext(session: Session, context: LoadedContext): Promise<void> {
+        console.log(`[DeveloperMode] Restoring session ${session.id} from context`);
+
+        // Store loaded context for later use
+        this.loadedContexts.set(session.projectId, context);
+
+        // Log restoration
+        const artifactManager = this.projectArtifacts.get(session.projectId);
+        if (artifactManager) {
+            await artifactManager.appendProgressEntry({
+                agentId: 'developer-mode',
+                agentType: 'orchestrator',
+                action: 'Resumed Developer Mode session from artifacts',
+                completed: [
+                    `Loaded ${context.taskList?.completedTasks || 0} completed tasks`,
+                    `Progress entries loaded`,
+                ],
+                filesModified: [],
+                nextSteps: ['Continue from where left off'],
+            });
+        }
+
+        // Emit restoration event
+        this.emit('context:restored', {
+            sessionId: session.id,
+            projectId: session.projectId,
+            tasksCompleted: context.taskList?.completedTasks || 0,
+            totalTasks: context.taskList?.totalTasks || 0,
+            hasIntent: !!context.intentContract,
+        });
+    }
+
+    /**
+     * Parse file operations from AI response
+     */
+    private parseFileOperations(content: string): Array<{ path: string; content: string; isNew: boolean }> {
+        const files: Array<{ path: string; content: string; isNew: boolean }> = [];
+
+        // Match code blocks with filepath
+        const codeBlockRegex = /```(?:filepath:)?([^\n]+)\n([\s\S]*?)```/g;
+        let match;
+
+        while ((match = codeBlockRegex.exec(content)) !== null) {
+            const pathMatch = match[1].trim();
+            const fileContent = match[2].trim();
+
+            // Skip if it's just a language identifier
+            if (pathMatch.includes('/') || pathMatch.includes('.')) {
+                files.push({
+                    path: pathMatch.replace(/^filepath:/, '').trim(),
+                    content: fileContent,
+                    isNew: true, // Assume new unless we track existing files
+                });
+            }
+        }
+
+        return files;
+    }
+
+    /**
+     * Extract next steps from AI response
+     */
+    private extractNextSteps(content: string): string[] {
+        const nextSteps: string[] = [];
+
+        // Look for common patterns indicating next steps
+        const patterns = [
+            /next steps?:?\s*\n?([\s\S]*?)(?:\n\n|$)/i,
+            /follow-up:?\s*\n?([\s\S]*?)(?:\n\n|$)/i,
+            /todo:?\s*\n?([\s\S]*?)(?:\n\n|$)/i,
+        ];
+
+        for (const pattern of patterns) {
+            const match = content.match(pattern);
+            if (match) {
+                const stepsText = match[1];
+                const lines = stepsText.split('\n').filter(line => line.trim());
+                for (const line of lines) {
+                    const cleaned = line.replace(/^[-*•\d.]+\s*/, '').trim();
+                    if (cleaned.length > 0 && cleaned.length < 200) {
+                        nextSteps.push(cleaned);
+                    }
+                }
+                break;
+            }
+        }
+
+        return nextSteps.slice(0, 5); // Limit to 5 next steps
+    }
+
+    /**
+     * Get project path for a project ID
+     */
+    private getProjectPath(projectId: string): string {
+        return this.projectPaths.get(projectId) || `/tmp/kriptik-projects/${projectId}`;
+    }
+
+    /**
+     * Get loaded context for a project (if available)
+     */
+    getLoadedContext(projectId: string): LoadedContext | null {
+        return this.loadedContexts.get(projectId) || null;
+    }
+
+    /**
+     * Get artifact manager for a project (if available)
+     */
+    getArtifactManager(projectId: string): ArtifactManager | null {
+        return this.projectArtifacts.get(projectId) || null;
+    }
+
+    // =========================================================================
+    // ORIGINAL SESSION MANAGEMENT
+    // =========================================================================
 
     /**
      * Start a new Developer Mode session
