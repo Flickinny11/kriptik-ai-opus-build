@@ -506,6 +506,10 @@ app.use("/api/autonomy", autonomyRouter);
 import cloneModeRouter from './routes/clone-mode.js';
 app.use("/api/clone", promptSanitizer, requireCredits(50), cloneModeRouter);
 
+// User Twin - AI-powered synthetic user testing
+import userTwinRouter from './routes/user-twin.js';
+app.use("/api/user-twin", requireCredits(25), userTwinRouter);
+
 // =============================================================================
 // HEALTH & STATUS
 // =============================================================================

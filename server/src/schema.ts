@@ -1688,3 +1688,71 @@ export const cloneModeSessions = sqliteTable('clone_mode_sessions', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// User Twin (Synthetic Testing)
+// =============================================================================
+
+export const userTwinPersonas = sqliteTable('user_twin_personas', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+    name: text('name').notNull(),
+    behavior: text('behavior').notNull().$type<
+        'careful' | 'impatient' | 'explorer' | 'goal-oriented' | 'edge-case-finder'
+    >(),
+    techLevel: text('tech_level').notNull().$type<
+        'novice' | 'intermediate' | 'power-user'
+    >(),
+    accessibilityNeeds: text('accessibility_needs', { mode: 'json' }).$type<
+        ('screen-reader' | 'keyboard-only' | 'high-contrast')[]
+    >(),
+    goalPatterns: text('goal_patterns', { mode: 'json' }).$type<string[]>(),
+    avatar: text('avatar'), // Emoji or gradient identifier
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+export const userTwinSessions = sqliteTable('user_twin_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    sandboxUrl: text('sandbox_url').notNull(),
+    personaIds: text('persona_ids', { mode: 'json' }).$type<string[]>(),
+
+    // Test configuration
+    testPlanName: text('test_plan_name'),
+    testPlanGoals: text('test_plan_goals', { mode: 'json' }).$type<string[]>(),
+    maxActionsPerPersona: integer('max_actions_per_persona').default(50),
+
+    // Status and results
+    status: text('status').default('pending').$type<
+        'pending' | 'running' | 'completed' | 'failed' | 'stopped'
+    >(),
+    aggregateScore: integer('aggregate_score'),
+    totalIssues: integer('total_issues').default(0),
+    results: text('results', { mode: 'json' }).$type<Array<{
+        personaId: string;
+        personaName: string;
+        status: string;
+        actions: Array<{
+            id: string;
+            timestamp: number;
+            type: string;
+            target?: string;
+            result: string;
+        }>;
+        issuesFound: Array<{
+            id: string;
+            type: string;
+            severity: string;
+            title: string;
+            description: string;
+        }>;
+        journeyScore: number;
+        completionTime: number;
+        goalsCompleted: string[];
+        summary: string;
+    }>>(),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    completedAt: text('completed_at'),
+});

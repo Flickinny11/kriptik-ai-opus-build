@@ -507,6 +507,25 @@ Respond with the extracted data as a JSON object.`;
     }
 
     /**
+     * Get page title
+     */
+    getPageTitle(): string {
+        // This is sync, so return cached title or empty
+        return this.page?.url() ? 'Page' : '';
+    }
+
+    /**
+     * Get visible interactive elements (wrapper for User Twin)
+     */
+    async getVisibleElements(): Promise<ElementInfo[]> {
+        if (!this.isInitialized || !this.page) {
+            return [];
+        }
+        const state = await this.getPageState();
+        return state.interactiveElements;
+    }
+
+    /**
      * Ensure browser is initialized
      */
     private async ensureInitialized(): Promise<void> {

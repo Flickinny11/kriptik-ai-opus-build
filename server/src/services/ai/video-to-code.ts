@@ -5,14 +5,18 @@
  * Uses ffmpeg for frame extraction and Claude vision for UI analysis.
  */
 
-import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { getModelRouter } from './model-router.js';
 import { getImageToCodeService, type ImageToCodeResult } from './image-to-code.js';
+
+// Configure ffmpeg with the bundled binary
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 // =============================================================================
 // TYPES
@@ -376,7 +380,7 @@ export class VideoToCodeService extends EventEmitter {
     }
 
     /**
-     * Extract frames from video using ffmpeg
+     * Extract frames from video using fluent-ffmpeg
      */
     private async extractFrames(
         videoPath: string,
@@ -390,41 +394,36 @@ export class VideoToCodeService extends EventEmitter {
         const duration = await this.getVideoDuration(videoPath);
         const fps = Math.min(maxFrames / duration, 2); // Cap at 2 fps
 
-        // Extract frames with ffmpeg
+        // Extract frames with fluent-ffmpeg
         await new Promise<void>((resolve, reject) => {
-            const ffmpeg = spawn('ffmpeg', [
-                '-i', videoPath,
-                '-vf', `fps=${fps}`,
-                '-frame_pts', '1',
-                path.join(framesDir, 'frame_%04d.png')
-            ]);
-
-            let stderr = '';
-            ffmpeg.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
-
-            ffmpeg.on('close', (code) => {
-                if (code === 0) {
+            ffmpeg(videoPath)
+                .outputOptions([
+                    `-vf fps=${fps}`,
+                ])
+                .output(path.join(framesDir, 'frame_%04d.png'))
+                .on('end', () => {
                     resolve();
-                } else {
-                    reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
-                }
-            });
-
-            ffmpeg.on('error', (err) => {
-                reject(new Error(`ffmpeg error: ${err.message}`));
-            });
+                })
+                .on('error', (err: Error) => {
+                    reject(new Error(`ffmpeg error: ${err.message}`));
+                })
+                .run();
         });
 
         // Read extracted frames
         const frameFiles = await fs.readdir(framesDir);
+        const sortedFiles = frameFiles
+            .filter(f => f.endsWith('.png'))
+            .sort((a, b) => {
+                const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+                const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+                return numA - numB;
+            });
+
         const frames: VideoFrame[] = [];
 
-        for (let i = 0; i < frameFiles.length && i < maxFrames; i++) {
-            const file = frameFiles[i];
-            if (!file.endsWith('.png')) continue;
-
+        for (let i = 0; i < sortedFiles.length && i < maxFrames; i++) {
+            const file = sortedFiles[i];
             const framePath = path.join(framesDir, file);
             const imageBuffer = await fs.readFile(framePath);
             const base64 = imageBuffer.toString('base64');
@@ -443,33 +442,16 @@ export class VideoToCodeService extends EventEmitter {
     }
 
     /**
-     * Get video duration using ffprobe
+     * Get video duration using fluent-ffmpeg
      */
     private async getVideoDuration(videoPath: string): Promise<number> {
-        return new Promise((resolve, reject) => {
-            const ffprobe = spawn('ffprobe', [
-                '-v', 'error',
-                '-show_entries', 'format=duration',
-                '-of', 'default=noprint_wrappers=1:nokey=1',
-                videoPath
-            ]);
-
-            let output = '';
-            ffprobe.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-
-            ffprobe.on('close', (code) => {
-                if (code === 0) {
-                    const duration = parseFloat(output.trim());
-                    resolve(isNaN(duration) ? 30 : duration); // Default 30s if can't parse
-                } else {
-                    resolve(30); // Default duration
+        return new Promise((resolve) => {
+            ffmpeg.ffprobe(videoPath, (err, metadata) => {
+                if (err || !metadata || !metadata.format || !metadata.format.duration) {
+                    resolve(30); // Default 30s if can't probe
+                    return;
                 }
-            });
-
-            ffprobe.on('error', () => {
-                resolve(30); // Default duration on error
+                resolve(metadata.format.duration);
             });
         });
     }
