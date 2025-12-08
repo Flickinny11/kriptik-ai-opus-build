@@ -2,16 +2,63 @@
  * FinalCTA.tsx - Epic Conclusion Section
  *
  * Final call-to-action with dramatic visuals,
- * 3D glass spheres, and urgency messaging.
+ * 3D glass spheres (with graceful CSS fallback), and urgency messaging.
  */
 
 import { useRef, lazy, Suspense } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { MagneticCTA, ArrowIcon } from '../3d';
+import {
+  Scene3DErrorBoundary,
+  CSSGlassSphereCluster,
+} from '../3d/Scene3DErrorBoundary';
 
 // Lazy load 3D elements
 const Scene3D = lazy(() => import('../3d/Scene').then(m => ({ default: m.Scene3D })));
 const GlassSphereCluster = lazy(() => import('../3d/GlassSphere').then(m => ({ default: m.GlassSphereCluster })));
+
+// Premium CSS fallback for when 3D is unavailable
+function PremiumCSSBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* CSS Glass spheres as fallback */}
+      <CSSGlassSphereCluster count={6} minScale={0.6} maxScale={1.8} />
+
+      {/* Additional animated particles */}
+      <div className="absolute inset-0">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-kriptik-lime/30"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, -50, 0],
+              opacity: [0, 0.6, 0],
+            }}
+            transition={{
+              duration: 5 + Math.random() * 5,
+              delay: Math.random() * 5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Loading fallback while 3D loads
+function Scene3DLoadingFallback() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <PremiumCSSBackground />
+    </div>
+  );
+}
 
 // Animated agent indicators
 function AgentWaiting({ delay = 0 }: { delay?: number }) {
@@ -111,18 +158,23 @@ export function FinalCTA() {
         />
       </div>
 
-      {/* 3D Glass spheres */}
+      {/* 3D Glass spheres with error boundary and CSS fallback */}
       <div className="absolute inset-0 z-0">
-        <Suspense fallback={null}>
-          <Scene3D camera={{ position: [0, 0, 15], fov: 40 }}>
-            <GlassSphereCluster
-              count={5}
-              spread={20}
-              minScale={0.8}
-              maxScale={3}
-            />
-          </Scene3D>
-        </Suspense>
+        <Scene3DErrorBoundary
+          cssFallback={<PremiumCSSBackground />}
+          useCSSFallbackWhenUnavailable={true}
+        >
+          <Suspense fallback={<Scene3DLoadingFallback />}>
+            <Scene3D camera={{ position: [0, 0, 15], fov: 40 }}>
+              <GlassSphereCluster
+                count={5}
+                spread={20}
+                minScale={0.8}
+                maxScale={3}
+              />
+            </Scene3D>
+          </Suspense>
+        </Scene3DErrorBoundary>
       </div>
 
       {/* Content */}
@@ -277,4 +329,3 @@ export function FinalCTA() {
 }
 
 export default FinalCTA;
-
