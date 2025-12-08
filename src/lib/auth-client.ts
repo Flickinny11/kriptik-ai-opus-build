@@ -59,44 +59,34 @@ export const signInWithGitHub = async () => {
 export const signInWithEmail = async (email: string, password: string) => {
     console.log('[Auth] Signing in with email:', email);
 
-    try {
-        const response = await authClient.signIn.email({
-            email,
-            password,
-            callbackURL: '/dashboard',
-        });
+    const response = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: '/dashboard',
+    });
 
-        if (response.error) {
-            throw new Error(response.error.message || 'Login failed');
-        }
-
-        return { data: response.data, error: null };
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Login failed';
-        throw new Error(message);
+    if (response.error) {
+        throw new Error(response.error.message || 'Login failed');
     }
+
+    return response.data;
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
     console.log('[Auth] Signing up:', email, name);
 
-    try {
-        const response = await authClient.signUp.email({
-            email,
-            password,
-            name,
-            callbackURL: '/dashboard',
-        });
+    const response = await authClient.signUp.email({
+        email,
+        password,
+        name,
+        callbackURL: '/dashboard',
+    });
 
-        if (response.error) {
-            throw new Error(response.error.message || 'Signup failed');
-        }
-
-        return { data: response.data, error: null };
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Signup failed';
-        throw new Error(message);
+    if (response.error) {
+        throw new Error(response.error.message || 'Signup failed');
     }
+
+    return response.data;
 };
 
 // ============================================================================
@@ -120,8 +110,6 @@ export const signOut = async () => {
     } catch (e) {
         console.warn('[Auth] Failed to clear local storage:', e);
     }
-
-    return { error: null };
 };
 
 export const getSession = async () => {
