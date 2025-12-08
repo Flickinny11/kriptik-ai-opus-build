@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download
+    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download, Sliders
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -56,6 +56,8 @@ import { DeveloperModeView } from '../components/builder/DeveloperModeView';
 import { AgentModeSidebar } from '../components/builder/AgentModeSidebar';
 import { GhostModePanel } from '../components/builder/GhostModePanel';
 import { SoftInterruptInput } from '../components/builder/SoftInterruptInput';
+import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
+import TournamentPanel from '../components/builder/TournamentPanel';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -347,6 +349,17 @@ export default function Builder() {
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const [showContextBridge, setShowContextBridge] = useState(false);
+    const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
+    const [intelligenceSettings, setIntelligenceSettings] = useState<IntelligenceSettings>({
+        thinkingDepth: 'normal',
+        powerLevel: 'balanced',
+        speedPriority: 'balanced',
+        creativityLevel: 'balanced',
+        codeVerbosity: 'standard',
+        designDetail: 'standard',
+    });
+    const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
+    const [showTournament, setShowTournament] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -381,6 +394,14 @@ export default function Builder() {
         }
     };
 
+    // Handler for tournament winner selection
+    const handleTournamentWinner = (files: Record<string, string>) => {
+        // Merge winning files into project (would integrate with Sandpack/file system)
+        console.log('Tournament winner files:', Object.keys(files));
+        setShowTournament(false);
+        setActiveTournamentId(null);
+    };
+
     return (
         <SandpackProvider initialFiles={INITIAL_FILES}>
             <div
@@ -393,6 +414,15 @@ export default function Builder() {
                 <ShareModal />
                 <CommandPalette />
                 <KeyboardShortcutsPanel />
+                <TournamentPanel
+                    tournamentId={activeTournamentId}
+                    isVisible={showTournament}
+                    onClose={() => {
+                        setShowTournament(false);
+                        setActiveTournamentId(null);
+                    }}
+                    onSelectWinner={handleTournamentWinner}
+                />
 
                 {/* Market Fit Oracle - Competitor Analysis & Positioning */}
                 <MarketFitDashboard
@@ -577,6 +607,15 @@ export default function Builder() {
                             Import
                         </GlassButton>
 
+                        {/* Intelligence Toggles - AI Capability Settings */}
+                        <GlassButton
+                            icon={Sliders}
+                            onClick={() => setShowIntelligencePanel(!showIntelligencePanel)}
+                            isActive={showIntelligencePanel}
+                        >
+                            Intelligence
+                        </GlassButton>
+
                         <div className="h-4 w-px bg-white/10 mx-2" />
 
                         <GlassIconButton
@@ -710,7 +749,17 @@ export default function Builder() {
                                     className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
-                                    <ChatInterface />
+                                    {/* Intelligence Toggles Panel */}
+                                    {showIntelligencePanel && (
+                                        <div className="border-b border-black/5 p-3">
+                                            <IntelligenceToggles
+                                                settings={intelligenceSettings}
+                                                onSettingsChange={setIntelligenceSettings}
+                                                compact={true}
+                                            />
+                                        </div>
+                                    )}
+                                    <ChatInterface intelligenceSettings={intelligenceSettings} />
                                     {activeTab === 'preview' && <ActivityFeed />}
                                 </div>
                             </Panel>

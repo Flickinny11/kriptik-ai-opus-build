@@ -290,10 +290,10 @@ router.post('/:sessionId/fix', async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Session not found' });
         }
 
-        const { strategy, preferences } = req.body;
+        const { strategy, preferences, mode } = req.body;
 
-        // Start fix in background, response will come via SSE
-        controller.executeFix(strategy, preferences).catch(error => {
+        // Start fix in background with Speed Dial mode, response will come via SSE
+        controller.executeFix(strategy, preferences, mode).catch(error => {
             console.error('Fix execution error:', error);
         });
 

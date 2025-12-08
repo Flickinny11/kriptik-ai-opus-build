@@ -47,6 +47,8 @@ import {
     type InitializerAgent,
     type InitializerResult,
 } from '../ai/initializer-agent.js';
+// Speed Dial Configuration
+import { SPEED_DIAL_CONFIGS, type BuildMode, type SpeedDialConfig } from '../ai/speed-dial.js';
 import {
     loadProjectContext,
     hasProjectContext,
@@ -1011,12 +1013,22 @@ CONFIDENCE: ${Math.round(strategy.confidence * 100)}%
     /**
      * Execute the fix with selected strategy
      * Uses Enhanced Fix Executor with verification swarm and error escalation by default
+     * Now supports Speed Dial modes for different speed/quality trade-offs
      */
-    async executeFix(strategy?: FixStrategy, preferences?: FixPreferences): Promise<void> {
+    async executeFix(
+        strategy?: FixStrategy,
+        preferences?: FixPreferences,
+        mode?: BuildMode
+    ): Promise<void> {
         const selectedStrategy = strategy || this.session.selectedStrategy;
         if (!selectedStrategy) {
             throw new Error('No strategy selected');
         }
+
+        // Get Speed Dial configuration
+        const buildMode = mode || 'standard';
+        const speedConfig = SPEED_DIAL_CONFIGS[buildMode];
+        this.log(`Using Speed Dial mode: ${speedConfig.name} (${buildMode})`);
 
         // Apply preferences if provided
         if (preferences) {
@@ -1038,7 +1050,7 @@ CONFIDENCE: ${Math.round(strategy.confidence * 100)}%
 
         if (this.useEnhancedExecutor) {
             // Use Enhanced Fix Executor with verification swarm and error escalation
-            this.log('Using Enhanced Fix Executor with verification swarm, error escalation, and memory harness');
+            this.log(`Using Enhanced Fix Executor with ${speedConfig.verificationLevel} verification`);
 
             this.enhancedFixExecutor = createEnhancedFixExecutor({
                 userId: this.userId,
@@ -1048,9 +1060,18 @@ CONFIDENCE: ${Math.round(strategy.confidence * 100)}%
                 intent,
                 gaps,
                 preferences: this.session.preferences,
-                enableVerificationSwarm: true,
-                enableErrorEscalation: true,
-                maxEscalationAttempts: 12,
+                // Speed Dial configurations
+                enableVerificationSwarm: speedConfig.verificationLevel !== 'minimal',
+                enableErrorEscalation: speedConfig.verificationLevel !== 'minimal',
+                maxEscalationAttempts: speedConfig.verificationLevel === 'enterprise' ? 12 : 
+                                       speedConfig.verificationLevel === 'thorough' ? 8 : 
+                                       speedConfig.verificationLevel === 'standard' ? 4 : 2,
+                verificationLevel: speedConfig.verificationLevel,
+                enableAntiSlop: speedConfig.enableAntiSlop,
+                antiSlopThreshold: speedConfig.antiSlopThreshold,
+                minCodeQualityScore: speedConfig.minCodeQualityScore,
+                allowPlaceholders: speedConfig.allowPlaceholders,
+                buildThinkingBudget: speedConfig.buildThinkingBudget,
                 // Memory Harness options
                 projectPath: this.projectPath,
                 useCodingAgentWrapper: true,

@@ -145,12 +145,85 @@ export interface MergeQueueItem {
 }
 
 // =============================================================================
+// AGENT COORDINATION MANAGER
+// =============================================================================
+
+/**
+ * Manages file locks to prevent multiple agents from editing the same file
+ * simultaneously, preventing merge conflicts.
+ */
+class AgentCoordinationManager {
+    private activeModifications: Map<string, Set<string>> = new Map(); // agentId -> files
+    private fileLocks: Map<string, string> = new Map(); // filePath -> agentId
+
+    /**
+     * Attempt to claim files for modification
+     * Returns true if all files can be claimed, false if any conflict
+     */
+    claimFiles(agentId: string, files: string[]): { success: boolean; conflicts: string[] } {
+        const conflicts: string[] = [];
+
+        for (const file of files) {
+            const lockHolder = this.fileLocks.get(file);
+            if (lockHolder && lockHolder !== agentId) {
+                conflicts.push(file);
+            }
+        }
+
+        if (conflicts.length > 0) {
+            return { success: false, conflicts };
+        }
+
+        // Claim all files
+        const agentFiles = this.activeModifications.get(agentId) || new Set();
+        for (const file of files) {
+            this.fileLocks.set(file, agentId);
+            agentFiles.add(file);
+        }
+        this.activeModifications.set(agentId, agentFiles);
+
+        return { success: true, conflicts: [] };
+    }
+
+    /**
+     * Release all files held by an agent
+     */
+    releaseFiles(agentId: string): void {
+        const files = this.activeModifications.get(agentId);
+        if (files) {
+            for (const file of files) {
+                if (this.fileLocks.get(file) === agentId) {
+                    this.fileLocks.delete(file);
+                }
+            }
+        }
+        this.activeModifications.delete(agentId);
+    }
+
+    /**
+     * Get all files currently locked by any agent
+     */
+    getLockedFiles(): Map<string, string> {
+        return new Map(this.fileLocks);
+    }
+
+    /**
+     * Check if a specific file is available
+     */
+    isFileAvailable(filePath: string, forAgentId?: string): boolean {
+        const lockHolder = this.fileLocks.get(filePath);
+        return !lockHolder || lockHolder === forAgentId;
+    }
+}
+
+// =============================================================================
 // ORCHESTRATOR
 // =============================================================================
 
 export class DeveloperModeOrchestrator extends EventEmitter {
     private agentService: DeveloperModeAgentService;
     private activeSessions: Map<string, Session> = new Map();
+    private coordinationManager = new AgentCoordinationManager();
 
     // Memory Harness - Context Loading & Artifact Updates
     private projectArtifacts: Map<string, ArtifactManager> = new Map();
@@ -168,11 +241,26 @@ export class DeveloperModeOrchestrator extends EventEmitter {
         // Forward agent events
         this.agentService.on('agent:created', (data) => this.emit('agent:created', data));
         this.agentService.on('agent:task-started', (data) => this.emit('agent:task-started', data));
-        this.agentService.on('agent:task-completed', (data) => this.handleAgentCompleted(data));
+        this.agentService.on('agent:task-completed', (data) => {
+            this.coordinationManager.releaseFiles(data.agentId);
+            this.handleAgentCompleted(data);
+        });
         this.agentService.on('agent:progress', (data) => this.emit('agent:progress', data));
         this.agentService.on('agent:log', (data) => this.emit('agent:log', data));
-        this.agentService.on('agent:error', (data) => this.emit('agent:error', data));
-        this.agentService.on('agent:stopped', (data) => this.emit('agent:stopped', data));
+        this.agentService.on('agent:error', (data) => {
+            this.coordinationManager.releaseFiles(data.agentId);
+            this.emit('agent:error', data);
+        });
+        this.agentService.on('agent:stopped', (data) => {
+            this.coordinationManager.releaseFiles(data.agentId);
+            this.emit('agent:stopped', data);
+        });
+        // Forward new streaming events for real-time token display
+        this.agentService.on('agent:token', (data) => this.emit('agent:token', data));
+        this.agentService.on('agent:ttft', (data) => this.emit('agent:ttft', data));
+        this.agentService.on('agent:step-started', (data) => this.emit('agent:step-started', data));
+        this.agentService.on('agent:step-completed', (data) => this.emit('agent:step-completed', data));
+        this.agentService.on('agent:chunk', (data) => this.emit('agent:chunk', data));
     }
 
     // =========================================================================
@@ -757,6 +845,22 @@ After the code, summarize:
             throw new Error('Session budget limit reached');
         }
 
+        // Check for file conflicts if agent specifies target files
+        if (request.files && request.files.length > 0) {
+            const pendingAgentId = `pending-${sessionId}-${Date.now()}`;
+            const claim = this.coordinationManager.claimFiles(pendingAgentId, request.files);
+
+            if (!claim.success) {
+                // Release the pending claim
+                this.coordinationManager.releaseFiles(pendingAgentId);
+                throw new Error(
+                    `Cannot deploy agent: files already being modified by another agent: ${claim.conflicts.join(', ')}`
+                );
+            }
+            // Release the temporary pending claim - will be re-claimed by the actual agent
+            this.coordinationManager.releaseFiles(pendingAgentId);
+        }
+
         // Find next available agent number
         const usedNumbers = new Set(session.agents.map(a => a.agentNumber));
         let agentNumber = 1;
@@ -1251,6 +1355,21 @@ After the code, summarize:
                 and(eq(developerModeMergeQueue.sessionId, sessionId), eq(developerModeMergeQueue.status, 'merged'))
             );
         return result.length;
+    }
+
+    /**
+     * Get all currently locked files
+     * Returns a map of filePath -> agentId
+     */
+    getLockedFiles(): Map<string, string> {
+        return this.coordinationManager.getLockedFiles();
+    }
+
+    /**
+     * Check if a specific file is available for modification
+     */
+    isFileAvailable(filePath: string, forAgentId?: string): boolean {
+        return this.coordinationManager.isFileAvailable(filePath, forAgentId);
     }
 }
 

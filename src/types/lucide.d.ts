@@ -1,6 +1,6 @@
 /**
  * Lucide Icon Type Extensions
- * 
+ *
  * This file extends the LucideIcon type to properly support
  * className and style props when used as dynamic components.
  */

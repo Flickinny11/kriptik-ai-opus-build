@@ -577,7 +577,7 @@ export class DeveloperModeAgentService extends EventEmitter {
     }
 
     /**
-     * Create implementation plan using AI
+     * Create implementation plan using AI with streaming
      */
     private async createImplementationPlan(
         agent: Agent,
@@ -598,7 +598,19 @@ export class DeveloperModeAgentService extends EventEmitter {
         // Build system prompt with injected rules
         const systemPrompt = await buildAgentSystemPrompt(agent.projectId, agent.userId);
 
-        const response = await client.messages.create({
+        // Emit planning started
+        await this.addLog(agent.id, agent.sessionId, {
+            logType: 'thought',
+            level: 'info',
+            message: 'Creating implementation plan...',
+        });
+
+        const ttftStart = Date.now();
+        let firstChunk = true;
+        let fullResponse = '';
+
+        // Use streaming API
+        const stream = client.messages.stream({
             model: MODEL_MAP[agent.model],
             max_tokens: 4096,
             system: systemPrompt,
@@ -634,15 +646,49 @@ Keep steps focused and minimal. Each step should modify exactly one file.`,
             ],
         });
 
-        // Parse response
-        const content = response.content[0];
-        if (content.type !== 'text') {
-            throw new Error('Unexpected response type');
+        try {
+            for await (const event of stream) {
+                if (signal.aborted) {
+                    stream.abort();
+                    throw new Error('Planning aborted');
+                }
+
+                if (event.type === 'content_block_delta') {
+                    const text = (event.delta as { text?: string })?.text || '';
+                    fullResponse += text;
+
+                    // Emit TTFT on first chunk
+                    if (firstChunk && text) {
+                        const ttft = Date.now() - ttftStart;
+                        this.emit('agent:ttft', {
+                            agentId: agent.id,
+                            sessionId: agent.sessionId,
+                            ttftMs: ttft,
+                            phase: 'planning'
+                        });
+                        firstChunk = false;
+                    }
+
+                    // Emit token chunks for real-time display
+                    if (text) {
+                        this.emit('agent:token', {
+                            agentId: agent.id,
+                            sessionId: agent.sessionId,
+                            text,
+                            phase: 'planning'
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            // On stream error, fall back to the accumulated response
+            console.warn('[AgentService] Stream error, using accumulated response:', error);
         }
 
+        // Parse response
         try {
             // Extract JSON from response (might be wrapped in markdown)
-            const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+            const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
                 throw new Error('No JSON found in response');
             }

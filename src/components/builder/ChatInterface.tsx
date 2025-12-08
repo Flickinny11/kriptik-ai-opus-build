@@ -32,6 +32,11 @@ import CostEstimatorModal from '../cost/CostEstimatorModal';
 import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
+import { type IntelligenceSettings } from './IntelligenceToggles';
+
+interface ChatInterfaceProps {
+    intelligenceSettings?: IntelligenceSettings;
+}
 
 interface Message {
     id: string;
@@ -250,7 +255,7 @@ function SuggestionCard({
     );
 }
 
-export default function ChatInterface() {
+export default function ChatInterface({ intelligenceSettings }: ChatInterfaceProps) {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -326,6 +331,7 @@ export default function ChatInterface() {
                     framework: 'React',
                     language: 'TypeScript',
                 },
+                intelligenceSettings,  // Pass intelligence settings to KTN
             },
             (chunk: KripToeNiteChunk) => {
                 if (firstChunk && chunk.type === 'text') {

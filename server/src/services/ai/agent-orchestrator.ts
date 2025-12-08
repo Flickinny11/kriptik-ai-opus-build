@@ -70,12 +70,22 @@ export interface OrchestrationResult {
     };
 }
 
+export interface IntelligenceSettings {
+    thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
+    powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
+    speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
+    creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
+    codeVerbosity: 'minimal' | 'standard' | 'verbose';
+    designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
+}
+
 export interface OrchestrationConfig {
     projectId: string;
     userId: string;
     sessionId?: string;
     skipPhases?: AgentType[];
     maxIterations?: number;
+    intelligenceSettings?: IntelligenceSettings;
     onLog?: (log: AgentLog) => void;
     onAgentStateChange?: (agent: AgentType, state: AgentState) => void;
     onFileUpdate?: (path: string, content: string) => void;

@@ -18,9 +18,19 @@ import { getCreditService, calculateCreditsForGeneration } from '../services/bil
 
 const router = Router();
 
+interface IntelligenceSettings {
+    thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
+    powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
+    speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
+    creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
+    codeVerbosity: 'minimal' | 'standard' | 'verbose';
+    designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
+}
+
 interface GenerateBody {
     prompt: string;
     skipPhases?: AgentType[];
+    intelligenceSettings?: IntelligenceSettings;
 }
 
 interface ChatBody {
@@ -38,7 +48,7 @@ interface ChatBody {
 router.post('/:projectId/generate', async (req: Request<{ projectId: string }, object, GenerateBody>, res: Response) => {
     const userId = req.headers['x-user-id'] as string;
     const projectId = req.params.projectId;
-    const { prompt, skipPhases } = req.body;
+    const { prompt, skipPhases, intelligenceSettings } = req.body;
 
     if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -75,12 +85,13 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
 
         const sessionId = uuidv4();
 
-        // Create orchestrator with callbacks
+        // Create orchestrator with callbacks and intelligence settings
         const orchestrator = createOrchestrator({
             projectId,
             userId,
             sessionId,
             skipPhases,
+            intelligenceSettings,  // Pass intelligence settings for model/thinking configuration
             onLog: (log: AgentLog) => {
                 sendSSE(res, 'log', {
                     id: log.id,

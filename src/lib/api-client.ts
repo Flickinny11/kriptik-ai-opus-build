@@ -68,6 +68,16 @@ export interface GenerationComplete {
     };
 }
 
+// Intelligence Settings for AI capability configuration
+export interface IntelligenceSettings {
+    thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
+    powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
+    speedPriority: 'fastest' | 'fast' | 'balanced' | 'quality' | 'maximum-quality';
+    creativityLevel: 'conservative' | 'balanced' | 'creative' | 'experimental';
+    codeVerbosity: 'minimal' | 'standard' | 'verbose';
+    designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
+}
+
 // API Client
 class ApiClient {
     private baseUrl: string;
@@ -185,7 +195,8 @@ class ApiClient {
     async *generate(
         projectId: string,
         prompt: string,
-        skipPhases?: string[]
+        skipPhases?: string[],
+        intelligenceSettings?: IntelligenceSettings
     ): AsyncGenerator<
         | { type: 'start'; data: { projectId: string; prompt: string } }
         | { type: 'log'; data: AgentLog }
@@ -201,7 +212,7 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...(this.userId && { 'x-user-id': this.userId }),
             },
-            body: JSON.stringify({ prompt, skipPhases }),
+            body: JSON.stringify({ prompt, skipPhases, intelligenceSettings }),
         });
 
         if (!response.ok) {
@@ -806,6 +817,7 @@ class ApiClient {
             };
             maxTokens?: number;
             temperature?: number;
+            intelligenceSettings?: IntelligenceSettings;
         },
         onChunk: (chunk: KripToeNiteChunk) => void,
         onComplete?: () => void,

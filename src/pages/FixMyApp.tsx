@@ -947,7 +947,7 @@ export default function FixMyApp() {
             });
         };
 
-        // Start the fix with preferences
+        // Start the fix with preferences and mode
         try {
             await apiClient.post(`/api/fix-my-app/${session.sessionId}/fix`, {
                 strategy: selectedStrategy,
@@ -955,6 +955,7 @@ export default function FixMyApp() {
                     uiPreference,
                     additionalInstructions: additionalInstructions || undefined,
                 },
+                mode: fixMode,  // Speed Dial mode (lightning, standard, tournament, production)
             });
         } catch (error) {
             toast({

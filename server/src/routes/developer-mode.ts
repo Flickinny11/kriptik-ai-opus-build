@@ -191,19 +191,63 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
             modelUsed = model;
         }
 
-        // Run visual verification if sandbox is available and content looks like UI code
-        let designIssues: any[] = [];
-        let slopDetected = false;
+        // Run verification if enabled
+        let verificationResult: {
+            mode: string;
+            passed: boolean;
+            overallScore: number;
+            verdict: string;
+            agents: Array<{
+                type: string;
+                status: string;
+                score: number;
+                issues: string[];
+            }>;
+        } | null = null;
 
-        if (projectId && (response.includes('className=') || response.includes('style='))) {
+        if (projectId && sessionId) {
             try {
-                const sandbox = getSandboxService().getSandbox(projectId);
-                if (sandbox && sandbox.status === 'running') {
-                    // Would capture screenshot here - placeholder for actual implementation
-                    console.log(`[Developer Mode] Visual verification available for project ${projectId}`);
-                }
+                // Determine appropriate verification mode
+                const recommendedMode = verificationScaler.recommendMode({
+                    filesChanged: 1,
+                    isVisualChange: response.includes('className=') || response.includes('style='),
+                    isSecuritySensitive: response.includes('fetch') || response.includes('api') || response.includes('auth'),
+                    hasNewComponents: response.includes('export function') || response.includes('export default'),
+                });
+
+                // Create feature object for verification
+                const featureCode = new Map<string, string>([
+                    ['generated.tsx', response],
+                ]);
+
+                // Run verification
+                const result = await verificationScaler.runVerification(
+                    recommendedMode,
+                    projectId,
+                    sessionId,
+                    {
+                        id: `gen-${Date.now()}`,
+                        description: prompt.substring(0, 100),
+                        files: ['generated.tsx'],
+                    },
+                    featureCode,
+                    undefined // intent
+                );
+
+                verificationResult = {
+                    mode: result.mode,
+                    passed: result.passed,
+                    overallScore: result.overallScore,
+                    verdict: result.verdict,
+                    agents: Object.entries(result.results || {}).map(([type, agentResult]: [string, any]) => ({
+                        type,
+                        status: agentResult?.passed ? 'passed' : 'failed',
+                        score: agentResult?.score || 0,
+                        issues: agentResult?.issues || [],
+                    })),
+                };
             } catch (verifyError) {
-                console.warn('[Developer Mode] Visual verification skipped:', verifyError);
+                console.warn('[Developer Mode] Verification skipped:', verifyError);
             }
         }
 
@@ -213,8 +257,17 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
             model: modelUsed,
             ttftMs,
             strategy,
-            designIssues,
-            slopDetected,
+            // Add verification results
+            verificationMode: verificationResult?.mode || null,
+            verificationResult: verificationResult ? {
+                mode: verificationResult.mode,
+                passed: verificationResult.passed,
+                overallScore: verificationResult.overallScore,
+                verdict: verificationResult.verdict,
+                blockers: [],
+                warnings: [],
+                agents: verificationResult.agents,
+            } : null,
         });
 
     } catch (error) {
@@ -674,6 +727,37 @@ router.get('/sessions/:sessionId', requireAuth, async (req: Request, res: Respon
     } catch (error) {
         console.error('[Developer Mode] Get session error:', error);
         res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get session' });
+    }
+});
+
+/**
+ * GET /api/developer-mode/sessions/:sessionId/locks
+ * Get currently locked files to prevent conflicts
+ */
+router.get('/sessions/:sessionId/locks', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const session = await orchestrator.getSession(req.params.sessionId);
+
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        if (session.userId !== req.user!.id) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        const locks = orchestrator.getLockedFiles();
+
+        res.json({
+            success: true,
+            locks: Array.from(locks.entries()).map(([file, agentId]) => ({
+                file,
+                agentId
+            }))
+        });
+    } catch (error) {
+        console.error('[Developer Mode] Get locks error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get file locks' });
     }
 });
 
@@ -1243,6 +1327,13 @@ router.get('/sessions/:sessionId/events', requireAuth, async (req: Request, res:
             'agent:log',
             'agent:error',
             'agent:stopped',
+            // NEW: Streaming events for real-time token display
+            'agent:token',
+            'agent:ttft',
+            'agent:step-started',
+            'agent:step-completed',
+            'agent:chunk',
+            // Merge & session events
             'merge:queued',
             'merge:approved',
             'merge:rejected',
@@ -1317,6 +1408,12 @@ router.get('/agents/:agentId/events', requireAuth, async (req: Request, res: Res
             'agent:log',
             'agent:error',
             'agent:stopped',
+            // NEW: Streaming events for real-time token display
+            'agent:token',
+            'agent:ttft',
+            'agent:step-started',
+            'agent:step-completed',
+            'agent:chunk',
         ];
 
         const handlers = new Map<string, (data: object) => void>();
