@@ -17,80 +17,6 @@ export const authClient = createAuthClient({
 })
 
 // ============================================================================
-// DIRECT API CALLS - More reliable on mobile than Better Auth's internal fetch
-// ============================================================================
-
-interface AuthResponse {
-    user?: {
-        id: string;
-        email: string;
-        name: string;
-        image?: string;
-    };
-    session?: {
-        id: string;
-        token: string;
-    };
-    error?: {
-        message: string;
-        code?: string;
-    };
-    url?: string; // For OAuth redirects
-}
-
-/**
- * Make a direct fetch call to the auth API
- * This is more reliable on mobile than Better Auth's client
- */
-async function authFetch(endpoint: string, body?: object): Promise<AuthResponse> {
-    const url = `${API_URL}/api/auth${endpoint}`;
-    console.log(`[Auth] Fetching ${url}`, { isMobile: isMobile() });
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            credentials: 'include',
-            body: body ? JSON.stringify(body) : undefined,
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        console.log(`[Auth] Response status: ${response.status}`);
-
-        const data = await response.json();
-        console.log(`[Auth] Response data:`, data);
-
-        if (!response.ok) {
-            throw new Error(data.message || data.error?.message || `HTTP ${response.status}`);
-        }
-
-        return data;
-    } catch (error: unknown) {
-        clearTimeout(timeoutId);
-
-        if (error instanceof Error) {
-            if (error.name === 'AbortError') {
-                console.error('[Auth] Request timed out');
-                throw new Error('Request timed out. Please check your connection and try again.');
-            }
-            console.error('[Auth] Fetch error:', error.message);
-            throw error;
-        }
-
-        console.error('[Auth] Unknown error:', error);
-        throw new Error('An unexpected error occurred');
-    }
-}
-
-// ============================================================================
 // SOCIAL SIGN-IN - Uses Better Auth's built-in OAuth flow
 // ============================================================================
 
@@ -127,38 +53,48 @@ export const signInWithGitHub = async () => {
 };
 
 // ============================================================================
-// EMAIL/PASSWORD AUTH - Direct API calls for reliability
+// EMAIL/PASSWORD AUTH - Uses Better Auth's built-in methods
 // ============================================================================
 
 export const signInWithEmail = async (email: string, password: string) => {
     console.log('[Auth] Signing in with email:', email);
 
-    const response = await authFetch('/sign-in/email', {
-        email,
-        password,
-    });
+    try {
+        const response = await authClient.signIn.email({
+            email,
+            password,
+            callbackURL: '/dashboard',
+        });
 
-    if (response.error) {
-        throw new Error(response.error.message || 'Login failed');
+        if (response.error) {
+            throw new Error(response.error.message || 'Login failed');
+        }
+
+        return { data: response.data, error: null };
+    } catch (error: any) {
+        throw new Error(error.message || 'Login failed');
     }
-
-    return { data: response, error: null };
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
     console.log('[Auth] Signing up:', email, name);
 
-    const response = await authFetch('/sign-up/email', {
-        email,
-        password,
-        name,
-    });
+    try {
+        const response = await authClient.signUp.email({
+            email,
+            password,
+            name,
+            callbackURL: '/dashboard',
+        });
 
-    if (response.error) {
-        throw new Error(response.error.message || 'Signup failed');
+        if (response.error) {
+            throw new Error(response.error.message || 'Signup failed');
+        }
+
+        return { data: response.data, error: null };
+    } catch (error: any) {
+        throw new Error(error.message || 'Signup failed');
     }
-
-    return { data: response, error: null };
 };
 
 // ============================================================================
@@ -169,7 +105,13 @@ export const signOut = async () => {
     console.log('[Auth] Signing out...');
 
     try {
-        await authFetch('/sign-out', {});
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    console.log('[Auth] Sign out successful');
+                },
+            },
+        });
     } catch (error) {
         console.warn('[Auth] Sign out error (continuing anyway):', error);
     }
@@ -189,25 +131,15 @@ export const getSession = async () => {
     console.log('[Auth] Getting session...');
 
     try {
-        const url = `${API_URL}/api/auth/get-session`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-            credentials: 'include',
-        });
-
-        if (!response.ok) {
-            console.log('[Auth] No active session');
-            return { data: null, error: null };
+        const session = await authClient.getSession();
+        
+        if (session.data) {
+            console.log('[Auth] Session data:', session.data);
+            return { data: session.data, error: null };
         }
 
-        const data = await response.json();
-        console.log('[Auth] Session data:', data);
-
-        return { data, error: null };
+        console.log('[Auth] No active session');
+        return { data: null, error: null };
     } catch (error) {
         console.error('[Auth] Get session error:', error);
         return { data: null, error };
