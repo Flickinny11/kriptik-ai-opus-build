@@ -307,8 +307,8 @@ app.get("/auth-redirect", (req, res) => {
     res.redirect(`${FRONTEND_URL}/dashboard`);
 });
 
-// Auth diagnostic endpoint (for debugging)
-app.get("/api/auth/test", async (req, res) => {
+// Auth diagnostic endpoint (for debugging) - placed BEFORE Better Auth handler
+app.get("/api/debug/auth-test", async (req, res) => {
     console.log('[Auth Test] Running diagnostics...');
     
     const dbTest = await testDatabaseConnection();
