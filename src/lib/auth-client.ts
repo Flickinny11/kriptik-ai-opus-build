@@ -1,9 +1,11 @@
 import { createAuthClient } from "better-auth/react"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
 
 // Log configuration on startup
 console.log('[Auth Client] Initialized with API_URL:', API_URL);
+console.log('[Auth Client] Frontend URL:', FRONTEND_URL);
 
 // Detect if we're on mobile
 export const isMobile = () => {
@@ -57,9 +59,13 @@ export async function testAuthConnection(): Promise<{
 // ============================================================================
 
 export const signInWithGoogle = async () => {
+    // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
+    const callbackURL = `${FRONTEND_URL}/dashboard`;
+    
     console.log('[Auth] Starting Google sign-in...', { 
         isMobile: isMobile(),
         apiUrl: API_URL,
+        callbackURL,
     });
 
     try {
@@ -67,7 +73,7 @@ export const signInWithGoogle = async () => {
         // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'google',
-            callbackURL: '/dashboard',
+            callbackURL, // Use full URL to ensure redirect to frontend
         });
         
         console.log('[Auth] Google sign-in initiated:', result);
@@ -84,9 +90,13 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGitHub = async () => {
+    // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
+    const callbackURL = `${FRONTEND_URL}/dashboard`;
+    
     console.log('[Auth] Starting GitHub sign-in...', { 
         isMobile: isMobile(),
         apiUrl: API_URL,
+        callbackURL,
     });
 
     try {
@@ -94,7 +104,7 @@ export const signInWithGitHub = async () => {
         // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'github',
-            callbackURL: '/dashboard',
+            callbackURL, // Use full URL to ensure redirect to frontend
         });
         
         console.log('[Auth] GitHub sign-in initiated:', result);

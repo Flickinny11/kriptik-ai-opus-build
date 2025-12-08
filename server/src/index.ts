@@ -307,6 +307,20 @@ app.get("/auth-redirect", (req, res) => {
     res.redirect(`${FRONTEND_URL}/dashboard`);
 });
 
+// CRITICAL: Catch any requests to /dashboard on backend and redirect to frontend
+// This handles the case where OAuth redirects to backend/dashboard instead of frontend/dashboard
+app.get("/dashboard", (req, res) => {
+    console.log('[Dashboard Redirect] User landed on backend /dashboard, redirecting to frontend');
+    res.redirect(`${FRONTEND_URL}/dashboard`);
+});
+
+// Also catch /dashboard/* paths
+app.get("/dashboard/*", (req, res) => {
+    const path = req.path;
+    console.log(`[Dashboard Redirect] User landed on backend ${path}, redirecting to frontend`);
+    res.redirect(`${FRONTEND_URL}${path}`);
+});
+
 // Auth diagnostic endpoint (for debugging) - placed BEFORE Better Auth handler
 app.get("/api/debug/auth-test", async (req, res) => {
     console.log('[Auth Test] Running diagnostics...');
