@@ -8,11 +8,13 @@
  * - And more models via OpenRouter
  *
  * VERIFIED: December 7, 2025 - Actual models from OpenRouter
+ * UPDATED: December 8, 2025 - Real brand logos, no emojis
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Zap, DollarSign, Check } from 'lucide-react';
+import { ChevronDown, DollarSign, Check } from 'lucide-react';
+import { getModelLogo } from '../ui/AIBrandLogos';
 
 export interface ModelOption {
     id: string;
@@ -26,12 +28,12 @@ export interface ModelOption {
 }
 
 // Available models - VERIFIED December 7, 2025 from OpenRouter
-// Matches server-side registry
+// Matches server-side registry - Uses real brand logos
 export const AVAILABLE_MODELS: ModelOption[] = [
     // RECOMMENDED - Krip-Toe-Nite orchestration
     {
         id: 'krip-toe-nite',
-        name: '⚡ Krip-Toe-Nite',
+        name: 'Krip-Toe-Nite',
         description: 'Intelligent orchestration - fastest + best quality',
         tier: 'intelligence',
         speed: 'fast',
@@ -42,7 +44,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     // INTELLIGENCE TIER - Flagship models
     {
         id: 'claude-opus-4.5',
-        name: '🧠 Claude Opus 4.5',
+        name: 'Claude Opus 4.5',
         description: 'Maximum quality for complex reasoning',
         tier: 'intelligence',
         speed: 'slow',
@@ -51,7 +53,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'claude-sonnet-4.5',
-        name: '💪 Claude Sonnet 4.5',
+        name: 'Claude Sonnet 4.5',
         description: 'Best coding model with 1M context',
         tier: 'intelligence',
         speed: 'medium',
@@ -60,7 +62,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'gpt-5.1-codex-max',
-        name: '🚀 GPT-5.1 Codex Max',
+        name: 'GPT-5.1 Codex Max',
         description: 'OpenAI agentic coding with 400K context',
         tier: 'intelligence',
         speed: 'medium',
@@ -69,7 +71,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'gemini-3-pro',
-        name: '✨ Gemini 3 Pro',
+        name: 'Gemini 3 Pro',
         description: 'Google flagship with 1M context',
         tier: 'intelligence',
         speed: 'medium',
@@ -78,7 +80,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'mistral-large-3',
-        name: '🌟 Mistral Large 3',
+        name: 'Mistral Large 3',
         description: 'Open-source flagship (675B params)',
         tier: 'intelligence',
         speed: 'medium',
@@ -88,7 +90,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     // SPEED TIER - Ultra-fast responses
     {
         id: 'gemini-2.5-flash',
-        name: '⚡ Gemini 2.5 Flash',
+        name: 'Gemini 2.5 Flash',
         description: 'Ultra-fast with 1M context',
         tier: 'speed',
         speed: 'fast',
@@ -97,7 +99,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'grok-4-fast',
-        name: '🌐 Grok 4 Fast',
+        name: 'Grok 4 Fast',
         description: '2M context with multimodal',
         tier: 'speed',
         speed: 'fast',
@@ -106,7 +108,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'deepseek-v3',
-        name: '🔥 DeepSeek V3',
+        name: 'DeepSeek V3',
         description: 'Excellent value for code tasks',
         tier: 'speed',
         speed: 'fast',
@@ -116,7 +118,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     // SPECIALIST TIER - Code-focused
     {
         id: 'qwen3-coder',
-        name: '💻 Qwen3 Coder 480B',
+        name: 'Qwen3 Coder 480B',
         description: 'MoE code specialist',
         tier: 'specialist',
         speed: 'fast',
@@ -125,7 +127,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'codestral-2508',
-        name: '🛠️ Codestral 2508',
+        name: 'Codestral 2508',
         description: 'Fast code with fill-in-middle',
         tier: 'specialist',
         speed: 'fast',
@@ -134,7 +136,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         id: 'deepseek-r1',
-        name: '🎯 DeepSeek R1 Chimera',
+        name: 'DeepSeek R1 Chimera',
         description: 'Reasoning specialist (FREE)',
         tier: 'specialist',
         speed: 'medium',
@@ -211,11 +213,12 @@ export function ModelSelector({
                     border: '1px solid rgba(255,255,255,0.1)',
                 }}
             >
-                {/* Model Icon/Name */}
-                <div className="flex items-center gap-2">
-                    {selectedModelData.recommended && (
-                        <Zap className="w-4 h-4 text-cyan-400" />
-                    )}
+                {/* Model Logo + Name */}
+                <div className="flex items-center gap-2.5">
+                    {(() => {
+                        const LogoComponent = getModelLogo(selectedModelData.id);
+                        return <LogoComponent size={18} />;
+                    })()}
                     <span className="text-white font-medium text-sm">
                         {selectedModelData.name}
                     </span>
@@ -295,6 +298,14 @@ export function ModelSelector({
                                             }
                                         `}>
                                             {isSelected && <Check className="w-3 h-3 text-black" />}
+                                        </div>
+
+                                        {/* Model Logo */}
+                                        <div className="mt-1 w-6 h-6 flex items-center justify-center flex-shrink-0">
+                                            {(() => {
+                                                const LogoComponent = getModelLogo(model.id);
+                                                return <LogoComponent size={20} />;
+                                            })()}
                                         </div>
 
                                         {/* Model info */}

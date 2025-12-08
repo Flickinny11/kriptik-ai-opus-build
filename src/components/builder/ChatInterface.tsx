@@ -10,10 +10,17 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Paperclip, Loader2, ArrowRight, Image, ChevronDown } from 'lucide-react';
 import {
-    Send, Paperclip, StopCircle, Pause, Play,
-    User, Loader2, ArrowRight, Image, Wand2, Zap, ChevronDown
-} from 'lucide-react';
+    OrchestratorIcon,
+    UserAvatarIcon,
+    AIAssistantIcon,
+    SendMessageIcon,
+    StopIcon,
+    PauseIcon,
+    PlayIcon,
+} from '../ui/ChatIcons';
+import { KripTikNiteLogo } from '../ui/AIBrandLogos';
 import { ScrollArea } from '../ui/scroll-area';
 import { orchestrator } from '../../lib/AgentOrchestrator';
 import { useAgentStore } from '../../store/useAgentStore';
@@ -50,13 +57,13 @@ const CHAT_MODELS: Array<{
         id: 'krip-toe-nite',
         name: 'Krip-Toe-Nite',
         description: 'Ultra-fast intelligent routing',
-        icon: <Zap className="w-4 h-4 text-yellow-500" />,
+        icon: <KripTikNiteLogo size={18} />,
     },
     {
         id: 'orchestrator',
         name: 'Multi-Agent',
         description: 'Full orchestrated build',
-        icon: <Wand2 className="w-4 h-4 text-orange-500" />,
+        icon: <OrchestratorIcon size={18} />,
     },
 ];
 
@@ -473,7 +480,7 @@ export default function ChatInterface() {
                             boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
                         }}
                     >
-                        <Wand2 className="w-5 h-5" style={{ color: '#92400e' }} />
+                        <AIAssistantIcon size={22} />
                     </div>
                     <div>
                         <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
@@ -494,8 +501,8 @@ export default function ChatInterface() {
                             size="sm"
                         >
                             {globalStatus === 'paused'
-                                ? <Play className="h-4 w-4" style={{ color: '#1a1a1a' }} />
-                                : <Pause className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                                ? <PlayIcon size={18} />
+                                : <PauseIcon size={18} />
                             }
                         </GlassButton>
                         <GlassButton
@@ -504,7 +511,7 @@ export default function ChatInterface() {
                             variant="danger"
                             size="sm"
                         >
-                            <StopCircle className="h-4 w-4" style={{ color: '#dc2626' }} />
+                            <StopIcon size={18} />
                         </GlassButton>
                     </div>
                 )}
@@ -529,7 +536,7 @@ export default function ChatInterface() {
                                             boxShadow: `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
                                         }}
                                     >
-                                        <Wand2 className="w-8 h-8" style={{ color: '#92400e' }} />
+                                        <AIAssistantIcon size={32} />
                                     </div>
                                     <h3
                                         className="text-lg font-semibold mb-2"
@@ -575,10 +582,7 @@ export default function ChatInterface() {
                                                     boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
                                                 }}
                                             >
-                                                <Wand2
-                                                    className="w-4 h-4"
-                                                    style={{ color: msg.role === 'system' ? '#666' : '#92400e' }}
-                                                />
+                                                <AIAssistantIcon size={18} />
                                             </div>
                                         )}
 
@@ -613,7 +617,7 @@ export default function ChatInterface() {
                                                     boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
                                                 }}
                                             >
-                                                <User className="w-4 h-4" style={{ color: '#1a1a1a' }} />
+                                                <UserAvatarIcon size={18} />
                                             </div>
                                         )}
                                     </motion.div>
@@ -639,7 +643,7 @@ export default function ChatInterface() {
                                         }}
                                     >
                                         {selectedModel === 'krip-toe-nite' ? (
-                                            <Zap className="w-4 h-4 animate-pulse" style={{ color: '#92400e' }} />
+                                            <KripTikNiteLogo size={18} animated />
                                         ) : (
                                             <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#92400e' }} />
                                         )}
@@ -680,7 +684,7 @@ export default function ChatInterface() {
                                         border: '1px solid rgba(234, 179, 8, 0.3)',
                                     }}
                                 >
-                                    <Zap className="w-4 h-4 text-yellow-600" />
+                                    <KripTikNiteLogo size={16} />
                                     <span className="text-xs text-yellow-700 font-medium">
                                         {ktnStats.ttftMs ? `First token in ${ktnStats.ttftMs}ms` : 'Completed'}
                                         {ktnStats.model && ` via ${ktnStats.model.split('/').pop()}`}
@@ -844,7 +848,7 @@ export default function ChatInterface() {
                                 variant="danger"
                                 size="md"
                             >
-                                <StopCircle className="h-4 w-4" style={{ color: '#dc2626' }} />
+                                <StopIcon size={18} />
                             </GlassButton>
                         ) : (
                             <GlassButton
@@ -853,7 +857,7 @@ export default function ChatInterface() {
                                 variant="primary"
                                 size="md"
                             >
-                                <Send className="h-4 w-4" style={{ color: '#92400e' }} />
+                                <SendMessageIcon size={18} />
                             </GlassButton>
                         )}
                     </div>

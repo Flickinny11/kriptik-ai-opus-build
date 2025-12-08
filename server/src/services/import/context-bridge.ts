@@ -260,7 +260,7 @@ export class ContextBridgeService extends EventEmitter {
         try {
             // Get repository files using GitHub API
             const files = await this.fetchGitHubFiles(owner, repo, branch, accessToken);
-            
+
             // Create source object
             const source: ImportSource = {
                 type: 'github',
@@ -375,7 +375,7 @@ export class ContextBridgeService extends EventEmitter {
             '.json', '.yaml', '.yml',
             '.md', '.mdx',
         ];
-        
+
         const excludedDirs = [
             'node_modules', '.git', 'dist', 'build', 'coverage',
             '.next', '.nuxt', '.svelte-kit', 'vendor',
@@ -468,7 +468,7 @@ export class ContextBridgeService extends EventEmitter {
             const priorityB = priorityPatterns.findIndex(p =>
                 typeof p === 'string' ? pathB === p : p.test(pathB)
             );
-            
+
             if (priorityA !== -1 && priorityB === -1) return -1;
             if (priorityA === -1 && priorityB !== -1) return 1;
             if (priorityA !== -1 && priorityB !== -1) return priorityA - priorityB;
@@ -477,10 +477,10 @@ export class ContextBridgeService extends EventEmitter {
 
         for (const [filePath, content] of sortedFiles) {
             if (totalLength > maxLength) break;
-            
+
             const truncatedContent = content.slice(0, 2000);
             const sample = `\n--- ${filePath} ---\n${truncatedContent}${content.length > 2000 ? '\n... (truncated)' : ''}`;
-            
+
             samples.push(sample);
             totalLength += sample.length;
         }
@@ -552,7 +552,7 @@ export class ContextBridgeService extends EventEmitter {
         // Also detect from package.json if available
         const packageJson = files.get('package.json');
         let packageDeps: Record<string, string> = {};
-        
+
         if (packageJson) {
             try {
                 const pkg = JSON.parse(packageJson);
@@ -592,14 +592,14 @@ export class ContextBridgeService extends EventEmitter {
      */
     private detectStyling(deps: Record<string, string>, files: Map<string, string>): string[] {
         const styling: string[] = [];
-        
+
         if (deps['tailwindcss'] || files.has('tailwind.config.js') || files.has('tailwind.config.ts')) {
             styling.push('tailwind');
         }
         if (deps['styled-components']) styling.push('styled-components');
         if (deps['@emotion/react'] || deps['@emotion/styled']) styling.push('emotion');
         if (deps['sass'] || deps['node-sass']) styling.push('sass');
-        
+
         // Check for CSS modules
         for (const path of files.keys()) {
             if (path.includes('.module.css') || path.includes('.module.scss')) {
@@ -607,7 +607,7 @@ export class ContextBridgeService extends EventEmitter {
                 break;
             }
         }
-        
+
         if (styling.length === 0) styling.push('css');
         return styling;
     }
@@ -853,7 +853,7 @@ export class ContextBridgeService extends EventEmitter {
     private encryptCredentials(credentials: Record<string, string>): EncryptedCredentials {
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
-        
+
         const json = JSON.stringify(credentials);
         let encrypted = cipher.update(json, 'utf8', 'hex');
         encrypted += cipher.final('hex');

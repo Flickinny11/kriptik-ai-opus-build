@@ -63,7 +63,7 @@ export function UploadDropzone({
                     // Use webkitRelativePath for folder uploads, or just name
                     const path = (file as any).webkitRelativePath || file.name;
                     files.set(path, content);
-                    
+
                     if (!name) {
                         // Extract folder name from path
                         const parts = path.split('/');
