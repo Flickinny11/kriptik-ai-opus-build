@@ -1063,8 +1063,8 @@ CONFIDENCE: ${Math.round(strategy.confidence * 100)}%
                 // Speed Dial configurations
                 enableVerificationSwarm: speedConfig.verificationLevel !== 'minimal',
                 enableErrorEscalation: speedConfig.verificationLevel !== 'minimal',
-                maxEscalationAttempts: speedConfig.verificationLevel === 'enterprise' ? 12 : 
-                                       speedConfig.verificationLevel === 'thorough' ? 8 : 
+                maxEscalationAttempts: speedConfig.verificationLevel === 'enterprise' ? 12 :
+                                       speedConfig.verificationLevel === 'thorough' ? 8 :
                                        speedConfig.verificationLevel === 'standard' ? 4 : 2,
                 verificationLevel: speedConfig.verificationLevel,
                 enableAntiSlop: speedConfig.enableAntiSlop,
