@@ -107,13 +107,8 @@ export const signOut = async () => {
     console.log('[Auth] Signing out...');
 
     try {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    console.log('[Auth] Sign out successful');
-                },
-            },
-        });
+        await authClient.signOut();
+        console.log('[Auth] Sign out successful');
     } catch (error) {
         console.warn('[Auth] Sign out error (continuing anyway):', error);
     }
@@ -134,7 +129,7 @@ export const getSession = async () => {
 
     try {
         const session = await authClient.getSession();
-        
+
         if (session.data) {
             console.log('[Auth] Session data:', session.data);
             return { data: session.data, error: null };
