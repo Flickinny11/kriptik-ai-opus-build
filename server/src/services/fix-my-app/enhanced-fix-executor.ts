@@ -69,6 +69,13 @@ export interface EnhancedFixExecutorConfig {
     enableVerificationSwarm?: boolean;
     enableErrorEscalation?: boolean;
     maxEscalationAttempts?: number;
+    // Speed Dial configurations
+    verificationLevel?: 'minimal' | 'standard' | 'thorough' | 'enterprise';
+    enableAntiSlop?: boolean;
+    antiSlopThreshold?: number;
+    minCodeQualityScore?: number;
+    allowPlaceholders?: boolean;
+    buildThinkingBudget?: number;
     // Memory Harness options
     projectPath?: string;
     useCodingAgentWrapper?: boolean;
