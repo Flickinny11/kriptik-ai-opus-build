@@ -5,6 +5,10 @@ import { getModelRouter } from './services/ai/model-router.js';
 
 dotenv.config();
 
+// Build timestamp for cache busting and deployment verification
+const BUILD_TIMESTAMP = '2024-12-08T14:50:00Z';
+console.log(`[Server] Build timestamp: ${BUILD_TIMESTAMP}`);
+
 // Pre-warm model router for faster first request (2-3s improvement)
 const warmupRouter = () => {
     try {
@@ -324,9 +328,9 @@ app.get("/dashboard/*", (req, res) => {
 // Auth diagnostic endpoint (for debugging) - placed BEFORE Better Auth handler
 app.get("/api/debug/auth-test", async (req, res) => {
     console.log('[Auth Test] Running diagnostics...');
-    
+
     const dbTest = await testDatabaseConnection();
-    
+
     const diagnostics = {
         timestamp: new Date().toISOString(),
         database: dbTest,
@@ -342,9 +346,9 @@ app.get("/api/debug/auth-test", async (req, res) => {
         },
         origin: req.headers.origin || 'none',
     };
-    
+
     console.log('[Auth Test] Diagnostics:', JSON.stringify(diagnostics, null, 2));
-    
+
     res.json(diagnostics);
 });
 

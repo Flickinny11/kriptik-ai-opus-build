@@ -33,17 +33,17 @@ export async function testAuthConnection(): Promise<{
         const response = await fetch(`${API_URL}/api/auth/test`, {
             credentials: 'include',
         });
-        
+
         if (!response.ok) {
             return {
                 ok: false,
                 error: `HTTP ${response.status}: ${response.statusText}`,
             };
         }
-        
+
         const data = await response.json();
         console.log('[Auth Client] Test result:', data);
-        
+
         return { ok: true, data };
     } catch (error) {
         console.error('[Auth Client] Test failed:', error);
@@ -61,8 +61,8 @@ export async function testAuthConnection(): Promise<{
 export const signInWithGoogle = async () => {
     // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
-    
-    console.log('[Auth] Starting Google sign-in...', { 
+
+    console.log('[Auth] Starting Google sign-in...', {
         isMobile: isMobile(),
         apiUrl: API_URL,
         callbackURL,
@@ -75,9 +75,9 @@ export const signInWithGoogle = async () => {
             provider: 'google',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
-        
+
         console.log('[Auth] Google sign-in initiated:', result);
-        
+
         // Better Auth handles the redirect, so we shouldn't reach here normally
         // If we do, it means something went wrong
         if (result?.error) {
@@ -92,8 +92,8 @@ export const signInWithGoogle = async () => {
 export const signInWithGitHub = async () => {
     // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
-    
-    console.log('[Auth] Starting GitHub sign-in...', { 
+
+    console.log('[Auth] Starting GitHub sign-in...', {
         isMobile: isMobile(),
         apiUrl: API_URL,
         callbackURL,
@@ -106,9 +106,9 @@ export const signInWithGitHub = async () => {
             provider: 'github',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
-        
+
         console.log('[Auth] GitHub sign-in initiated:', result);
-        
+
         // Better Auth handles the redirect, so we shouldn't reach here normally
         if (result?.error) {
             throw new Error(result.error.message || 'GitHub sign-in failed');
