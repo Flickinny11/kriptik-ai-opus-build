@@ -252,7 +252,7 @@ app.use('/api', generalRateLimiter);
 // =============================================================================
 
 import { toNodeHandler } from "better-auth/node";
-import { auth } from './auth.js';
+import { auth, testDatabaseConnection, ensureAuthTables } from './auth.js';
 
 // Frontend URL for redirects after auth
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
@@ -305,6 +305,33 @@ app.use("/api/auth", (req, res, next) => {
 app.get("/auth-redirect", (req, res) => {
     console.log('[Auth Redirect] Redirecting to frontend dashboard');
     res.redirect(`${FRONTEND_URL}/dashboard`);
+});
+
+// Auth diagnostic endpoint (for debugging)
+app.get("/api/auth/test", async (req, res) => {
+    console.log('[Auth Test] Running diagnostics...');
+    
+    const dbTest = await testDatabaseConnection();
+    
+    const diagnostics = {
+        timestamp: new Date().toISOString(),
+        database: dbTest,
+        config: {
+            betterAuthSecretSet: !!process.env.BETTER_AUTH_SECRET,
+            betterAuthUrl: process.env.BETTER_AUTH_URL,
+            frontendUrl: process.env.FRONTEND_URL,
+            googleClientIdSet: !!process.env.GOOGLE_CLIENT_ID,
+            githubClientIdSet: !!process.env.GITHUB_CLIENT_ID,
+        },
+        cookies: {
+            received: req.headers.cookie || 'none',
+        },
+        origin: req.headers.origin || 'none',
+    };
+    
+    console.log('[Auth Test] Diagnostics:', JSON.stringify(diagnostics, null, 2));
+    
+    res.json(diagnostics);
 });
 
 // =============================================================================

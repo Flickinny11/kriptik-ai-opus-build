@@ -135,16 +135,17 @@ export const useUserStore = create<UserState>((set) => ({
 
         try {
             // Use direct auth function for better mobile compatibility
-            await signInWithEmail(email, password);
+            const loginResult = await signInWithEmail(email, password);
+            console.log('[UserStore] Login result:', loginResult);
 
             console.log('[UserStore] Login successful, fetching session...');
 
             // Small delay to ensure cookie is set
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Refresh session to get user data
-            const { data: session } = await getSession();
-            console.log('[UserStore] Post-login session:', session);
+            const { data: session, error: sessionError } = await getSession();
+            console.log('[UserStore] Post-login session:', { session, sessionError });
 
             if (session?.user) {
                 const user = {
@@ -169,13 +170,40 @@ export const useUserStore = create<UserState>((set) => ({
                 useProjectStore.getState().fetchProjects();
             } else {
                 console.warn('[UserStore] Login succeeded but no session found');
-                set({ isLoading: false });
-                throw new Error('Login succeeded but session not established. Please try again.');
+                // Try to use loginResult directly if available
+                if (loginResult?.user) {
+                    const user = {
+                        id: loginResult.user.id,
+                        email: loginResult.user.email || '',
+                        name: loginResult.user.name || '',
+                        avatar: loginResult.user.image || undefined
+                    };
+                    saveUserToStorage(user);
+                    setApiUserId(loginResult.user.id);
+                    set({ user, isAuthenticated: true, isLoading: false });
+                    useCostStore.getState().fetchCredits();
+                    useProjectStore.getState().fetchProjects();
+                } else {
+                    set({ isLoading: false });
+                    throw new Error('Login succeeded but session not established. This may be a cookie issue - please check that your browser allows third-party cookies.');
+                }
             }
         } catch (error: unknown) {
             console.error('[UserStore] Login exception:', error);
             set({ isLoading: false });
+            
+            // Parse common auth errors
             if (error instanceof Error) {
+                const msg = error.message.toLowerCase();
+                if (msg.includes('invalid') || msg.includes('credentials')) {
+                    throw new Error('Invalid email or password. Please check your credentials.');
+                }
+                if (msg.includes('network') || msg.includes('fetch')) {
+                    throw new Error('Network error. Please check your internet connection.');
+                }
+                if (msg.includes('not found') || msg.includes('no user')) {
+                    throw new Error('No account found with this email. Please sign up first.');
+                }
                 throw error;
             }
             throw new Error('An unexpected error occurred during login');
@@ -188,7 +216,8 @@ export const useUserStore = create<UserState>((set) => ({
 
         try {
             // Use direct auth function for better mobile compatibility
-            await authSignUp(email, password, name);
+            const signupResult = await authSignUp(email, password, name);
+            console.log('[UserStore] Signup result:', signupResult);
 
             console.log('[UserStore] Signup successful, fetching session...');
 
@@ -196,8 +225,8 @@ export const useUserStore = create<UserState>((set) => ({
             await new Promise(resolve => setTimeout(resolve, 500));
 
             // Refresh session to get user data
-            const { data: session } = await getSession();
-            console.log('[UserStore] Post-signup session:', session);
+            const { data: session, error: sessionError } = await getSession();
+            console.log('[UserStore] Post-signup session:', { session, sessionError });
 
             if (session?.user) {
                 const user = {
@@ -222,13 +251,40 @@ export const useUserStore = create<UserState>((set) => ({
                 useProjectStore.getState().fetchProjects();
             } else {
                 console.warn('[UserStore] Signup succeeded but no session found');
-                set({ isLoading: false });
-                throw new Error('Account created but session not established. Please try logging in.');
+                // Try to use signupResult directly if available
+                if (signupResult?.user) {
+                    const user = {
+                        id: signupResult.user.id,
+                        email: signupResult.user.email || '',
+                        name: signupResult.user.name || '',
+                        avatar: signupResult.user.image || undefined
+                    };
+                    saveUserToStorage(user);
+                    setApiUserId(signupResult.user.id);
+                    set({ user, isAuthenticated: true, isLoading: false });
+                    useCostStore.getState().fetchCredits();
+                    useProjectStore.getState().fetchProjects();
+                } else {
+                    set({ isLoading: false });
+                    throw new Error('Account created but session not established. This may be a cookie issue - please check that your browser allows third-party cookies, then try logging in.');
+                }
             }
         } catch (error: unknown) {
             console.error('[UserStore] Signup exception:', error);
             set({ isLoading: false });
+            
+            // Parse common signup errors
             if (error instanceof Error) {
+                const msg = error.message.toLowerCase();
+                if (msg.includes('already exists') || msg.includes('duplicate') || msg.includes('email')) {
+                    throw new Error('An account with this email already exists. Please login or use a different email.');
+                }
+                if (msg.includes('password') && msg.includes('weak')) {
+                    throw new Error('Password is too weak. Please use at least 8 characters with a mix of letters and numbers.');
+                }
+                if (msg.includes('network') || msg.includes('fetch')) {
+                    throw new Error('Network error. Please check your internet connection.');
+                }
                 throw error;
             }
             throw new Error('An unexpected error occurred during signup');

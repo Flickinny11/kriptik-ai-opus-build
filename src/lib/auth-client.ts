@@ -2,34 +2,81 @@ import { createAuthClient } from "better-auth/react"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+// Log configuration on startup
+console.log('[Auth Client] Initialized with API_URL:', API_URL);
+
 // Detect if we're on mobile
 export const isMobile = () => {
     if (typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Create auth client with minimal config
+// Create auth client with proper config for cross-origin requests
 export const authClient = createAuthClient({
     baseURL: API_URL,
     fetchOptions: {
         credentials: "include",
     },
-})
+});
+
+/**
+ * Test auth connectivity - useful for debugging
+ */
+export async function testAuthConnection(): Promise<{
+    ok: boolean;
+    data?: any;
+    error?: string;
+}> {
+    try {
+        const response = await fetch(`${API_URL}/api/auth/test`, {
+            credentials: 'include',
+        });
+        
+        if (!response.ok) {
+            return {
+                ok: false,
+                error: `HTTP ${response.status}: ${response.statusText}`,
+            };
+        }
+        
+        const data = await response.json();
+        console.log('[Auth Client] Test result:', data);
+        
+        return { ok: true, data };
+    } catch (error) {
+        console.error('[Auth Client] Test failed:', error);
+        return {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
 
 // ============================================================================
 // SOCIAL SIGN-IN - Uses Better Auth's built-in OAuth flow
 // ============================================================================
 
 export const signInWithGoogle = async () => {
-    console.log('[Auth] Starting Google sign-in...', { isMobile: isMobile() });
+    console.log('[Auth] Starting Google sign-in...', { 
+        isMobile: isMobile(),
+        apiUrl: API_URL,
+    });
 
     try {
         // Use Better Auth's built-in social sign-in
         // This handles the OAuth flow and redirects automatically
-        await authClient.signIn.social({
+        const result = await authClient.signIn.social({
             provider: 'google',
-            callbackURL: '/dashboard', // Relative path, not full URL
+            callbackURL: '/dashboard',
         });
+        
+        console.log('[Auth] Google sign-in initiated:', result);
+        
+        // Better Auth handles the redirect, so we shouldn't reach here normally
+        // If we do, it means something went wrong
+        if (result?.error) {
+            throw new Error(result.error.message || 'Google sign-in failed');
+        }
     } catch (error) {
         console.error('[Auth] Google sign-in error:', error);
         throw error;
@@ -37,15 +84,25 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGitHub = async () => {
-    console.log('[Auth] Starting GitHub sign-in...', { isMobile: isMobile() });
+    console.log('[Auth] Starting GitHub sign-in...', { 
+        isMobile: isMobile(),
+        apiUrl: API_URL,
+    });
 
     try {
         // Use Better Auth's built-in social sign-in
         // This handles the OAuth flow and redirects automatically
-        await authClient.signIn.social({
+        const result = await authClient.signIn.social({
             provider: 'github',
-            callbackURL: '/dashboard', // Relative path, not full URL
+            callbackURL: '/dashboard',
         });
+        
+        console.log('[Auth] GitHub sign-in initiated:', result);
+        
+        // Better Auth handles the redirect, so we shouldn't reach here normally
+        if (result?.error) {
+            throw new Error(result.error.message || 'GitHub sign-in failed');
+        }
     } catch (error) {
         console.error('[Auth] GitHub sign-in error:', error);
         throw error;

@@ -1,7 +1,57 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from './db.js';
+import { db, client } from './db.js';
 import * as schema from './schema.js';
+
+// ============================================================================
+// DATABASE CONNECTIVITY CHECK
+// ============================================================================
+
+/**
+ * Test database connection and table existence
+ */
+export async function testDatabaseConnection(): Promise<{
+    connected: boolean;
+    tables: string[];
+    error?: string;
+}> {
+    try {
+        // Test basic connectivity
+        const result = await client.execute("SELECT name FROM sqlite_master WHERE type='table'");
+        const tables = result.rows.map((row: any) => row.name as string);
+        
+        console.log('[Auth] Database tables found:', tables);
+        
+        return {
+            connected: true,
+            tables,
+        };
+    } catch (error) {
+        console.error('[Auth] Database connection test failed:', error);
+        return {
+            connected: false,
+            tables: [],
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
+/**
+ * Ensure auth tables exist (for debugging)
+ */
+export async function ensureAuthTables(): Promise<void> {
+    const requiredTables = ['users', 'session', 'account', 'verification'];
+    const { tables } = await testDatabaseConnection();
+    
+    const missingTables = requiredTables.filter(t => !tables.includes(t));
+    
+    if (missingTables.length > 0) {
+        console.warn('[Auth] Missing tables:', missingTables);
+        console.warn('[Auth] Run: npx drizzle-kit push to create tables');
+    } else {
+        console.log('[Auth] All required auth tables exist');
+    }
+}
 
 // ============================================================================
 // REDIRECT URL VALIDATION
@@ -102,11 +152,20 @@ console.log('[Auth] Social providers configured:', Object.keys(socialProviders))
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
 
+// Log configuration on startup
+console.log('[Auth] Initializing Better Auth...');
+console.log('[Auth] BETTER_AUTH_SECRET set:', !!process.env.BETTER_AUTH_SECRET);
+console.log('[Auth] BETTER_AUTH_URL:', process.env.BETTER_AUTH_URL);
+console.log('[Auth] FRONTEND_URL:', process.env.FRONTEND_URL);
+
+// Check tables on startup (non-blocking)
+ensureAuthTables().catch(console.error);
+
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "sqlite", // Turso uses SQLite protocol
         schema: {
-            ...schema,
+            // Map Better Auth expected names to our schema
             user: schema.users,
             session: schema.sessions,
             account: schema.accounts,
@@ -167,47 +226,23 @@ export const auth = betterAuth({
         },
     },
 
-    // Trust proxy for Vercel - use callback function to validate origins dynamically
-    // This allows preview deployments and production URLs
-    trustedOrigins: async (origin: string) => {
-        // Log for debugging
-        console.log('[Auth] Validating trustedOrigin:', origin);
-
-        // Always allow if no origin (server-to-server)
-        if (!origin) return true;
-
+    // Trust proxy for Vercel - list all allowed origins
+    // Note: Better Auth v1.4+ uses array of strings, not callback function
+    trustedOrigins: [
         // Production frontend
-        if (origin.startsWith('https://kriptik-ai-opus-build.vercel.app')) return true;
-        if (origin.startsWith('https://kriptik-ai.vercel.app')) return true;
-
-        // Vercel preview deployments - match the pattern
-        // Format: kriptik-ai-opus-build-{hash}-{team}-{hash}.vercel.app
-        const vercelPreviewPattern = /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app/;
-        if (vercelPreviewPattern.test(origin)) {
-            console.log('[Auth] Allowing Vercel preview deployment:', origin);
-            return true;
-        }
-
-        // Alternative preview pattern
-        const altPreviewPattern = /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app/;
-        if (altPreviewPattern.test(origin)) {
-            console.log('[Auth] Allowing alternative preview deployment:', origin);
-            return true;
-        }
-
+        'https://kriptik-ai-opus-build.vercel.app',
+        'https://kriptik-ai.vercel.app',
         // Backend URL
-        if (origin.startsWith('https://kriptik-ai-opus-build-backend.vercel.app')) return true;
-
-        // Custom URL from env
-        if (process.env.FRONTEND_URL && origin.startsWith(process.env.FRONTEND_URL)) return true;
-
+        'https://kriptik-ai-opus-build-backend.vercel.app',
         // Development
-        if (origin.startsWith('http://localhost:')) return true;
-        if (origin.startsWith('http://127.0.0.1:')) return true;
-
-        console.log('[Auth] Origin not trusted:', origin);
-        return false;
-    },
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:3000',
+        // Custom URL from env
+        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    ].filter(Boolean) as string[],
 
     // Rate limiting (optional but recommended)
     rateLimit: {
