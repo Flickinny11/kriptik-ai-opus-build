@@ -28,7 +28,7 @@ interface ToggleProps {
     onChange: (enabled: boolean) => void;
     label: string;
     description?: string;
-    icon?: React.ElementType;
+    icon?: React.ComponentType<{ className?: string }>;
     disabled?: boolean;
 }
 

@@ -1,14 +1,14 @@
 /**
  * GlassSphere.tsx - Photorealistic Glass Sphere with Refraction
- * 
+ *
  * Creates floating glass orbs with realistic light refraction,
  * caustics, and responsive mouse/scroll interactions.
  */
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { 
-  MeshTransmissionMaterial, 
+import {
+  MeshTransmissionMaterial,
   Float,
 } from '@react-three/drei';
 import * as THREE from 'three';
@@ -48,7 +48,7 @@ export function GlassSphere({
 }: GlassSphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const innerGlowRef = useRef<THREE.Mesh>(null);
-  
+
   // Subtle animation based on time
   useFrame((state) => {
     if (meshRef.current) {
@@ -56,7 +56,7 @@ export function GlassSphere({
       meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
       meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.15;
     }
-    
+
     if (innerGlowRef.current && innerGlow) {
       // Pulsing inner glow
       const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.2 + 0.8;
@@ -93,19 +93,19 @@ export function GlassSphere({
             color={color}
           />
         </mesh>
-        
+
         {/* Inner glow sphere */}
         {innerGlow && (
           <mesh ref={innerGlowRef} scale={0.6 * scale}>
             <sphereGeometry args={[1, 32, 32]} />
-            <meshBasicMaterial 
-              color={glowColor} 
-              transparent 
+            <meshBasicMaterial
+              color={glowColor}
+              transparent
               opacity={0.3}
             />
           </mesh>
         )}
-        
+
         {/* Highlight reflection point */}
         <mesh position={[0.3 * scale, 0.3 * scale, 0.8 * scale]} scale={0.08 * scale}>
           <sphereGeometry args={[1, 16, 16]} />
@@ -186,12 +186,12 @@ export function GlassSphereCluster({
   return (
     <group>
       {spheres.map((sphere, i) => {
-        const SphereComponent = 
+        const SphereComponent =
           sphere.variant === 'lime' ? LimeGlassSphere :
           sphere.variant === 'amber' ? AmberGlassSphere :
           sphere.variant === 'cyan' ? CyanGlassSphere :
           GlassSphere;
-          
+
         return (
           <SphereComponent
             key={i}

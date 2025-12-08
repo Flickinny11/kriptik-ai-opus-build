@@ -64,7 +64,7 @@ interface ProjectRules {
     priority: number;
 }
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'defaults', label: 'Defaults', icon: Settings },
     { id: 'project-rules', label: 'Project Rules', icon: Code2 },
     { id: 'my-rules', label: 'My Rules', icon: User },

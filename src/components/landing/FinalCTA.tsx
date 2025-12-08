@@ -1,6 +1,6 @@
 /**
  * FinalCTA.tsx - Epic Conclusion Section
- * 
+ *
  * Final call-to-action with dramatic visuals,
  * 3D glass spheres, and urgency messaging.
  */
@@ -25,7 +25,7 @@ function AgentWaiting({ delay = 0 }: { delay?: number }) {
     >
       <motion.div
         className="w-2 h-2 rounded-full bg-kriptik-lime"
-        animate={{ 
+        animate={{
           scale: [1, 1.3, 1],
           opacity: [1, 0.5, 1],
         }}
@@ -67,16 +67,16 @@ function EmailCapture() {
 
 export function FinalCTA() {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  
+
   const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 0.8]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
-  
+
   const springY = useSpring(y, { damping: 20, stiffness: 100 });
   const springScale = useSpring(scale, { damping: 20, stiffness: 100 });
 
@@ -101,30 +101,30 @@ export function FinalCTA() {
           }}
           transition={{ duration: 10, repeat: Infinity }}
         />
-        
+
         {/* Noise overlay */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           }}
         />
       </div>
-      
+
       {/* 3D Glass spheres */}
       <div className="absolute inset-0 z-0">
         <Suspense fallback={null}>
           <Scene3D camera={{ position: [0, 0, 15], fov: 40 }}>
-            <GlassSphereCluster 
-              count={5} 
-              spread={20} 
-              minScale={0.8} 
-              maxScale={3} 
+            <GlassSphereCluster
+              count={5}
+              spread={20}
+              minScale={0.8}
+              maxScale={3}
             />
           </Scene3D>
         </Suspense>
       </div>
-      
+
       {/* Content */}
       <motion.div
         className="relative z-10 max-w-4xl mx-auto px-6 text-center"
@@ -142,7 +142,7 @@ export function FinalCTA() {
             <AgentWaiting key={i} delay={i * 0.1} />
           ))}
         </motion.div>
-        
+
         <motion.span
           className="text-xs font-mono uppercase tracking-[0.3em] text-kriptik-lime block mb-6"
           initial={{ opacity: 0, y: 20 }}
@@ -152,7 +152,7 @@ export function FinalCTA() {
         >
           6 Agents Standing By
         </motion.span>
-        
+
         {/* Main headline */}
         <motion.h2
           className="text-display-sm md:text-display-lg font-display font-bold text-kriptik-white mb-6"
@@ -164,7 +164,7 @@ export function FinalCTA() {
           Your Next App<br />
           <span className="text-kriptik-lime">Is Already Building</span>
         </motion.h2>
-        
+
         {/* Subtext */}
         <motion.p
           className="text-lg md:text-xl text-kriptik-silver/70 max-w-2xl mx-auto mb-10"
@@ -173,10 +173,10 @@ export function FinalCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          Stop babysitting code. Start shipping products. 
+          Stop babysitting code. Start shipping products.
           Join thousands of builders who've already made the switch.
         </motion.p>
-        
+
         {/* Primary CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -193,7 +193,7 @@ export function FinalCTA() {
             magneticStrength={0.4}
           />
         </motion.div>
-        
+
         {/* Secondary option */}
         <motion.div
           className="mt-4"
@@ -202,7 +202,7 @@ export function FinalCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.6 }}
         >
-          <button 
+          <button
             className="text-sm text-kriptik-silver/60 hover:text-kriptik-lime transition-colors"
             onClick={() => {
               document.getElementById('agents-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -211,10 +211,10 @@ export function FinalCTA() {
             or watch agents work first →
           </button>
         </motion.div>
-        
+
         {/* Email capture alternative */}
         <EmailCapture />
-        
+
         {/* Social proof */}
         <motion.div
           className="mt-16 flex items-center justify-center gap-8 flex-wrap"
@@ -226,10 +226,10 @@ export function FinalCTA() {
           <div className="flex items-center gap-2">
             <div className="flex -space-x-2">
               {[...Array(4)].map((_, i) => (
-                <div 
+                <div
                   key={i}
                   className="w-8 h-8 rounded-full border-2 border-kriptik-black flex items-center justify-center text-xs font-bold"
-                  style={{ 
+                  style={{
                     backgroundColor: ['#c8ff64', '#f59e0b', '#3b82f6', '#a855f7'][i],
                     color: '#0a0a0a',
                     zIndex: 4 - i,
@@ -243,9 +243,9 @@ export function FinalCTA() {
               <span className="text-kriptik-white font-medium">2,000+</span> builders this month
             </span>
           </div>
-          
+
           <div className="h-6 w-px bg-kriptik-steel/30 hidden md:block" />
-          
+
           <div className="flex items-center gap-2">
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
@@ -269,7 +269,7 @@ export function FinalCTA() {
           </div>
         </motion.div>
       </motion.div>
-      
+
       {/* Bottom gradient fade into footer */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-kriptik-charcoal to-transparent" />
     </section>

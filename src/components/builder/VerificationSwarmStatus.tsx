@@ -9,7 +9,8 @@ import { useState } from 'react';
 import {
     AlertTriangle, CheckCircle2, XCircle, Loader2,
     Bug, Code, Eye, Shield, FileText, Palette,
-    ChevronDown, RefreshCw
+    ChevronDown, RefreshCw,
+    LucideIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,7 +59,7 @@ interface VerificationSwarmStatusProps {
 const AGENT_CONFIG: Record<VerificationAgentType, {
     name: string;
     shortName: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     description: string;
     color: string;
     pollInterval: string;

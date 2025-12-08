@@ -8,7 +8,8 @@
 import { useState } from 'react';
 import {
     Brain, Zap, Gauge, Sparkles, Code, Palette,
-    ChevronDown, Lightbulb, Rocket
+    ChevronDown, Lightbulb, Rocket,
+    LucideIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -83,7 +84,7 @@ const PRESET_SETTINGS: Record<string, IntelligenceSettings> = {
 // ============================================================================
 
 interface SliderConfig {
-    icon: React.ElementType;
+    icon: LucideIcon;
     label: string;
     description: string;
     options: { value: string; label: string }[];

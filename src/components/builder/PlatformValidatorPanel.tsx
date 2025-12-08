@@ -27,7 +27,7 @@ import {
   Gauge,
   Globe,
   Database,
-  FileCheck
+  FileCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -178,7 +178,7 @@ const PLATFORM_CONFIGS: Record<DeploymentPlatform, {
   }
 };
 
-const CATEGORY_ICONS: Record<ConstraintCategory, React.ElementType> = {
+const CATEGORY_ICONS: Record<ConstraintCategory, React.ComponentType<{ className?: string }>> = {
   file_system: FileCode,
   runtime: Server,
   dependencies: Database,

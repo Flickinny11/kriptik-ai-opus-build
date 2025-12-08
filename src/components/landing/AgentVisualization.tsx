@@ -1,6 +1,6 @@
 /**
  * AgentVisualization.tsx - Horizontal Scroll Agent Showcase
- * 
+ *
  * Showcases the 6 Verification Swarm agents with
  * horizontal scrolling and 3D card reveals.
  */
@@ -134,8 +134,8 @@ function AgentCard({ agent, index }: { agent: typeof AGENTS[0]; index: number })
       initial={{ opacity: 0, y: 50, rotateY: -15 }}
       whileInView={{ opacity: 1, y: 0, rotateY: 0 }}
       viewport={{ once: true, margin: '-100px' }}
-      transition={{ 
-        duration: 0.8, 
+      transition={{
+        duration: 0.8,
         delay: index * 0.1,
         ease: [0.23, 1, 0.32, 1],
       }}
@@ -154,7 +154,7 @@ function AgentCard({ agent, index }: { agent: typeof AGENTS[0]; index: number })
       style={{ perspective: '1000px' }}
     >
       {/* Animated border glow */}
-      <div 
+      <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{
           background: `linear-gradient(45deg, transparent 30%, ${agent.color}40 50%, transparent 70%)`,
@@ -162,21 +162,21 @@ function AgentCard({ agent, index }: { agent: typeof AGENTS[0]; index: number })
           animation: 'shimmer 2s linear infinite',
         }}
       />
-      
+
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col p-6">
         {/* Icon and status */}
         <div className="flex items-start justify-between mb-6">
-          <div 
+          <div
             className="p-3 rounded-xl"
-            style={{ 
+            style={{
               backgroundColor: `${agent.color}20`,
               color: agent.color,
             }}
           >
             {agent.icon}
           </div>
-          
+
           {/* Live indicator */}
           <div className="flex items-center gap-2">
             <motion.div
@@ -190,31 +190,31 @@ function AgentCard({ agent, index }: { agent: typeof AGENTS[0]; index: number })
             </span>
           </div>
         </div>
-        
+
         {/* Title */}
         <h3 className="text-2xl font-display font-bold text-kriptik-white mb-1">
           {agent.name}
         </h3>
-        <p 
+        <p
           className="text-sm font-medium mb-4"
           style={{ color: agent.color }}
         >
           {agent.role}
         </p>
-        
+
         {/* Description */}
         <p className="text-kriptik-silver/80 text-sm leading-relaxed flex-grow">
           {agent.description}
         </p>
-        
+
         {/* Stats */}
         <div className="mt-6 grid grid-cols-2 gap-4">
           {agent.stats.map((stat, i) => (
-            <div 
+            <div
               key={i}
               className="p-3 rounded-lg bg-kriptik-black/40"
             >
-              <div 
+              <div
                 className="text-lg font-display font-bold"
                 style={{ color: agent.color }}
               >
@@ -226,7 +226,7 @@ function AgentCard({ agent, index }: { agent: typeof AGENTS[0]; index: number })
             </div>
           ))}
         </div>
-        
+
         {/* Connection line animation */}
         <motion.div
           className="absolute bottom-0 left-1/2 w-px h-12 -translate-x-1/2 translate-y-full"
@@ -248,28 +248,28 @@ function OrchestrationHub() {
       {/* Central hub */}
       <motion.div
         className="absolute inset-4 rounded-full bg-gradient-to-br from-kriptik-lime/20 to-kriptik-amber/20 border border-kriptik-lime/30"
-        animate={{ 
+        animate={{
           scale: [1, 1.05, 1],
           rotate: [0, 360],
         }}
-        transition={{ 
+        transition={{
           scale: { duration: 2, repeat: Infinity },
           rotate: { duration: 20, repeat: Infinity, ease: 'linear' },
         }}
       />
-      
+
       {/* Inner core */}
       <motion.div
         className="absolute inset-8 rounded-full bg-kriptik-lime/30"
         animate={{ scale: [1, 1.2, 1] }}
         transition={{ duration: 1.5, repeat: Infinity }}
       />
-      
+
       {/* Center dot */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-4 h-4 rounded-full bg-kriptik-lime shadow-glow-lime" />
       </div>
-      
+
       {/* Label */}
       <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
         <span className="text-xs font-mono uppercase tracking-widest text-kriptik-lime">
@@ -283,12 +283,12 @@ function OrchestrationHub() {
 export function AgentVisualization() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  
+
   // Horizontal scroll based on vertical scroll
   const x = useTransform(scrollYProgress, [0, 1], ['0%', '-50%']);
   const springX = useSpring(x, { damping: 30, stiffness: 100 });
@@ -316,12 +316,12 @@ export function AgentVisualization() {
             <span className="text-kriptik-lime">Zero Errors.</span>
           </h2>
           <p className="max-w-2xl mx-auto text-lg text-kriptik-silver/70">
-            Every build passes through our Verification Swarm—6 specialized AI agents 
+            Every build passes through our Verification Swarm—6 specialized AI agents
             that run in parallel, catching what humans and other AI tools miss.
           </p>
         </motion.div>
       </div>
-      
+
       {/* Horizontal scroll container */}
       <div className="relative">
         <motion.div
@@ -331,29 +331,29 @@ export function AgentVisualization() {
         >
           {/* Left spacer */}
           <div className="flex-shrink-0 w-[10vw]" />
-          
+
           {/* Agents */}
           {AGENTS.slice(0, 3).map((agent, i) => (
             <AgentCard key={agent.id} agent={agent} index={i} />
           ))}
-          
+
           {/* Orchestration hub */}
           <OrchestrationHub />
-          
+
           {/* More agents */}
           {AGENTS.slice(3).map((agent, i) => (
             <AgentCard key={agent.id} agent={agent} index={i + 3} />
           ))}
-          
+
           {/* Right spacer */}
           <div className="flex-shrink-0 w-[10vw]" />
         </motion.div>
-        
+
         {/* Gradient fades */}
         <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-kriptik-black to-transparent pointer-events-none z-10" />
         <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-kriptik-black to-transparent pointer-events-none z-10" />
       </div>
-      
+
       {/* Connection lines background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <svg className="w-full h-full opacity-10">

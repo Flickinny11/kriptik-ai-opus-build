@@ -13,7 +13,8 @@ import { motion } from 'framer-motion';
 import {
     Plug, Check, Settings, RefreshCw, Search,
     Cpu, Brain, Cloud, Database, CreditCard, Github,
-    Server, HardDrive, Workflow, Key, Globe, Layers
+    Server, HardDrive, Workflow, Key, Globe, Layers,
+    type LucideIcon
 } from 'lucide-react';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
@@ -33,7 +34,7 @@ const CATEGORIES = [
 ];
 
 // Integrations list with premium icons
-const INTEGRATIONS: { id: string; name: string; category: string; description: string; connected: boolean; icon: React.ElementType }[] = [
+const INTEGRATIONS: { id: string; name: string; category: string; description: string; connected: boolean; icon: LucideIcon }[] = [
     { id: 'openrouter', name: 'OpenRouter', category: 'ai', description: 'Multi-model AI routing', connected: true, icon: Workflow },
     { id: 'openai', name: 'OpenAI', category: 'ai', description: 'GPT models and DALL-E', connected: false, icon: Brain },
     { id: 'anthropic', name: 'Anthropic', category: 'ai', description: 'Claude models', connected: false, icon: Cpu },

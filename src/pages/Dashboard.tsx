@@ -373,7 +373,7 @@ function UserMenu() {
 }
 
 // Liquid Glass Menu Button Component
-function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ElementType; label: string; danger?: boolean }) {
+function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ComponentType<{ className?: string }>; label: string; danger?: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
 
     return (

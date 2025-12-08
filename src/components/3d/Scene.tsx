@@ -1,15 +1,15 @@
 /**
  * Scene.tsx - Three.js Scene Wrapper
- * 
+ *
  * Provides the base 3D canvas with performance optimizations,
  * environment lighting, and post-processing effects.
  */
 
 import { Suspense, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { 
-  Preload, 
-  AdaptiveDpr, 
+import {
+  Preload,
+  AdaptiveDpr,
   AdaptiveEvents,
   PerformanceMonitor,
   Environment,
@@ -39,8 +39,8 @@ function LoadingFallback() {
   );
 }
 
-export function Scene3D({ 
-  children, 
+export function Scene3D({
+  children,
   className = '',
   camera = { position: [0, 0, 10], fov: 45 },
   environment = 'city',
@@ -49,14 +49,14 @@ export function Scene3D({
     <div className={`absolute inset-0 ${className}`}>
       <Suspense fallback={<LoadingFallback />}>
         <Canvas
-          camera={{ 
-            position: camera.position, 
+          camera={{
+            position: camera.position,
             fov: camera.fov,
             near: 0.1,
             far: 1000,
           }}
           dpr={[1, 2]}
-          gl={{ 
+          gl={{
             antialias: true,
             alpha: true,
             powerPreference: 'high-performance',
@@ -66,38 +66,38 @@ export function Scene3D({
           {/* Performance optimizations */}
           <AdaptiveDpr pixelated />
           <AdaptiveEvents />
-          <PerformanceMonitor 
+          <PerformanceMonitor
             onDecline={() => console.log('3D performance declining')}
           />
-          
+
           {/* Environment lighting for realistic reflections */}
           <Environment preset={environment} />
-          
+
           {/* Ambient light for base illumination */}
           <ambientLight intensity={0.3} />
-          
+
           {/* Key light */}
-          <directionalLight 
-            position={[10, 10, 5]} 
-            intensity={1} 
-            castShadow 
+          <directionalLight
+            position={[10, 10, 5]}
+            intensity={1}
+            castShadow
           />
-          
+
           {/* Fill light */}
-          <directionalLight 
-            position={[-10, 5, -5]} 
-            intensity={0.5} 
+          <directionalLight
+            position={[-10, 5, -5]}
+            intensity={0.5}
           />
-          
+
           {/* Rim light for glass highlights */}
-          <pointLight 
-            position={[0, 10, -10]} 
-            intensity={0.8} 
-            color="#c8ff64" 
+          <pointLight
+            position={[0, 10, -10]}
+            intensity={0.8}
+            color="#c8ff64"
           />
-          
+
           {children}
-          
+
           <Preload all />
         </Canvas>
       </Suspense>

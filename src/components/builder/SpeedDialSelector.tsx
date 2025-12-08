@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Zap, Clock, Trophy, Rocket, Check } from 'lucide-react';
+import { Zap, Clock, Trophy, Rocket, Check, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export type BuildMode = 'lightning' | 'standard' | 'tournament' | 'production';
@@ -15,7 +15,7 @@ interface BuildModeConfig {
     mode: BuildMode;
     name: string;
     description: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     time: string;
     cost: string;
     color: string;

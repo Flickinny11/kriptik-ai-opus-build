@@ -1,6 +1,6 @@
 /**
  * SpeedDial3D.tsx - Interactive 3D Speed Dial
- * 
+ *
  * An interactive dial that showcases the 4 build modes:
  * Lightning, Standard, Tournament, Production
  */
@@ -53,21 +53,21 @@ const BUILD_MODES = [
 ];
 
 // Dial segment component
-function DialSegment({ 
-  mode, 
-  index, 
+function DialSegment({
+  mode,
+  index,
   total,
   isActive,
   onClick,
-}: { 
-  mode: typeof BUILD_MODES[0]; 
+}: {
+  mode: typeof BUILD_MODES[0];
   index: number;
   total: number;
   isActive: boolean;
   onClick: () => void;
 }) {
   const angle = (360 / total) * index - 90; // Start from top
-  
+
   return (
     <motion.div
       className="absolute inset-0"
@@ -83,8 +83,8 @@ function DialSegment({
           flex items-center justify-center
           font-display font-bold text-lg
           transition-all duration-500
-          ${isActive 
-            ? 'scale-125 shadow-[0_0_60px_var(--glow-color)]' 
+          ${isActive
+            ? 'scale-125 shadow-[0_0_60px_var(--glow-color)]'
             : 'scale-100 opacity-60 hover:opacity-100 hover:scale-110'
           }
         `}
@@ -127,17 +127,17 @@ function ModeDetails({ mode }: { mode: typeof BUILD_MODES[0] }) {
       >
         {mode.name}
       </motion.h3>
-      
+
       {/* Time */}
       <div className="text-2xl font-mono text-kriptik-white/90 mb-4">
         {mode.time}
       </div>
-      
+
       {/* Description */}
       <p className="text-kriptik-silver/70 max-w-md mx-auto mb-8">
         {mode.description}
       </p>
-      
+
       {/* Features grid */}
       <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
         {mode.features.map((feature, i) => (
@@ -148,7 +148,7 @@ function ModeDetails({ mode }: { mode: typeof BUILD_MODES[0] }) {
             transition={{ delay: i * 0.1 }}
             className="flex items-center gap-2 text-sm text-kriptik-silver/80"
           >
-            <div 
+            <div
               className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: mode.color }}
             />
@@ -156,11 +156,11 @@ function ModeDetails({ mode }: { mode: typeof BUILD_MODES[0] }) {
           </motion.div>
         ))}
       </div>
-      
+
       {/* Agent count */}
       <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-kriptik-night/50 border border-kriptik-steel/30">
         <span className="text-kriptik-silver/60 text-sm">Active Agents:</span>
-        <span 
+        <span
           className="font-display font-bold text-lg"
           style={{ color: mode.color }}
         >
@@ -174,11 +174,11 @@ function ModeDetails({ mode }: { mode: typeof BUILD_MODES[0] }) {
 export function SpeedDial3D() {
   const [activeMode, setActiveMode] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Rotation tracking for drag gesture
   const rotation = useMotionValue(0);
   const springRotation = useSpring(rotation, { damping: 30, stiffness: 200 });
-  
+
   const handleModeChange = (index: number) => {
     setActiveMode(index);
     // Rotate to align with selected mode
@@ -201,7 +201,7 @@ export function SpeedDial3D() {
           transition={{ duration: 4, repeat: Infinity }}
         />
       </div>
-      
+
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Section header */}
         <motion.div
@@ -219,12 +219,12 @@ export function SpeedDial3D() {
             <span className="text-kriptik-amber">Build Speed</span>
           </h2>
         </motion.div>
-        
+
         {/* Dial and content layout */}
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* 3D Dial */}
           <div className="relative">
-            <div 
+            <div
               ref={containerRef}
               className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] mx-auto"
               style={{ perspective: '1000px' }}
@@ -234,7 +234,7 @@ export function SpeedDial3D() {
                 className="absolute inset-0 rounded-full border-2 border-kriptik-steel/30"
                 style={{ rotateY: 15, rotateX: -15 }}
               />
-              
+
               {/* Dial segments */}
               <motion.div
                 className="absolute inset-8"
@@ -251,7 +251,7 @@ export function SpeedDial3D() {
                   />
                 ))}
               </motion.div>
-              
+
               {/* Center dial */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
@@ -270,7 +270,7 @@ export function SpeedDial3D() {
                     <div className="text-xs font-mono uppercase tracking-wider text-kriptik-silver/50 mb-1">
                       Mode
                     </div>
-                    <div 
+                    <div
                       className="text-2xl font-display font-bold"
                       style={{ color: BUILD_MODES[activeMode].color }}
                     >
@@ -279,7 +279,7 @@ export function SpeedDial3D() {
                   </div>
                 </motion.div>
               </div>
-              
+
               {/* Indicator arrow */}
               <div className="absolute top-4 left-1/2 -translate-x-1/2">
                 <motion.div
@@ -290,7 +290,7 @@ export function SpeedDial3D() {
                 />
               </div>
             </div>
-            
+
             {/* Mode selector buttons (mobile) */}
             <div className="flex justify-center gap-2 mt-8 lg:hidden">
               {BUILD_MODES.map((mode, i) => (
@@ -306,7 +306,7 @@ export function SpeedDial3D() {
               ))}
             </div>
           </div>
-          
+
           {/* Mode details */}
           <div className="min-h-[400px] flex items-center justify-center">
             <AnimatePresence mode="wait">
@@ -314,7 +314,7 @@ export function SpeedDial3D() {
             </AnimatePresence>
           </div>
         </div>
-        
+
         {/* Mode timeline */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -333,7 +333,7 @@ export function SpeedDial3D() {
                 transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
               />
             </div>
-            
+
             {/* Timeline markers */}
             <div className="flex justify-between mt-4">
               {BUILD_MODES.map((mode, i) => (
@@ -345,12 +345,12 @@ export function SpeedDial3D() {
                     ${i === activeMode ? 'opacity-100' : 'opacity-40 hover:opacity-70'}
                   `}
                 >
-                  <div 
+                  <div
                     className={`
                       w-4 h-4 rounded-full mx-auto mb-2
                       ${i <= activeMode ? '' : 'bg-kriptik-steel/30'}
                     `}
-                    style={{ 
+                    style={{
                       backgroundColor: i <= activeMode ? mode.color : undefined,
                       boxShadow: i === activeMode ? `0 0 20px ${mode.color}60` : undefined,
                     }}
@@ -358,7 +358,7 @@ export function SpeedDial3D() {
                   <div className="text-xs font-mono uppercase tracking-wider text-kriptik-silver/60">
                     {mode.name}
                   </div>
-                  <div 
+                  <div
                     className="text-sm font-display font-bold mt-0.5"
                     style={{ color: i === activeMode ? mode.color : 'inherit' }}
                   >

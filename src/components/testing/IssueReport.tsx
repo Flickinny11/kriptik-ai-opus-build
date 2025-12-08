@@ -26,14 +26,14 @@ interface IssueReportProps {
     issues: Issue[];
 }
 
-const SEVERITY_CONFIG: Record<string, { color: string; bgColor: string; icon: React.ElementType }> = {
+const SEVERITY_CONFIG: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string; color?: string }> }> = {
     'critical': { color: '#f87171', bgColor: 'rgba(239,68,68,0.15)', icon: AlertTriangle },
     'high': { color: '#fb923c', bgColor: 'rgba(251,146,60,0.15)', icon: AlertCircle },
     'medium': { color: '#fbbf24', bgColor: 'rgba(251,191,36,0.15)', icon: AlertCircle },
     'low': { color: '#a3e635', bgColor: 'rgba(163,230,53,0.15)', icon: Info },
 };
 
-const TYPE_ICONS: Record<string, React.ElementType> = {
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
     'error': Bug,
     'warning': AlertTriangle,
     'accessibility': Accessibility,

@@ -1,6 +1,6 @@
 /**
  * Footer3D.tsx - Premium Animated Footer
- * 
+ *
  * Continuation of the atmospheric experience with
  * rotating logo, micro-animations, and custom social icons.
  */
@@ -77,7 +77,7 @@ const FOOTER_LINKS = [
 // Animated logo
 function AnimatedLogo() {
   return (
-    <motion.div 
+    <motion.div
       className="relative w-12 h-12"
       whileHover={{ scale: 1.1 }}
     >
@@ -87,12 +87,12 @@ function AnimatedLogo() {
         animate={{ rotate: 360 }}
         transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
       />
-      
+
       {/* Inner logo */}
       <div className="absolute inset-2 rounded-full bg-gradient-to-br from-kriptik-lime to-kriptik-amber flex items-center justify-center">
         <span className="text-xl font-display font-bold text-kriptik-black">K</span>
       </div>
-      
+
       {/* Glow */}
       <div className="absolute inset-0 rounded-full bg-kriptik-lime/20 blur-xl -z-10" />
     </motion.div>
@@ -132,17 +132,17 @@ export function Footer3D() {
   return (
     <footer className="relative bg-kriptik-charcoal pt-20 pb-8 overflow-hidden">
       {/* Background pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-5"
         style={{
           backgroundImage: `radial-gradient(circle at 1px 1px, rgba(200,255,100,0.3) 1px, transparent 0)`,
           backgroundSize: '32px 32px',
         }}
       />
-      
+
       {/* Gradient overlay at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-kriptik-lime/30 to-transparent" />
-      
+
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Main footer content */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-16">
@@ -155,7 +155,7 @@ export function Footer3D() {
             <p className="text-sm text-kriptik-silver/60 mb-6 max-w-xs">
               The autonomous AI development platform. 6 agents, zero errors, infinite possibilities.
             </p>
-            
+
             {/* Social links */}
             <div className="flex gap-3">
               <SocialButton icon={SocialIcons.twitter} href="https://twitter.com/kriptik_ai" label="Twitter" />
@@ -164,7 +164,7 @@ export function Footer3D() {
               <SocialButton icon={SocialIcons.linkedin} href="https://linkedin.com/company/kriptik-ai" label="LinkedIn" />
             </div>
           </div>
-          
+
           {/* Link groups */}
           {FOOTER_LINKS.map((group) => (
             <div key={group.title}>
@@ -181,13 +181,13 @@ export function Footer3D() {
             </div>
           ))}
         </div>
-        
+
         {/* Bottom bar */}
         <div className="pt-8 border-t border-kriptik-steel/20 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-kriptik-silver/40">
             <span>© {new Date().getFullYear()} KripTik AI. All rights reserved.</span>
           </div>
-          
+
           {/* Made with KripTik badge */}
           <motion.div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-kriptik-black/50 border border-kriptik-steel/20"
@@ -198,7 +198,7 @@ export function Footer3D() {
               Made with <span className="text-kriptik-lime">KripTik AI</span>
             </span>
           </motion.div>
-          
+
           <div className="flex items-center gap-4 text-xs text-kriptik-silver/40">
             <span>San Francisco, CA</span>
             <span>•</span>

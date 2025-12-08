@@ -5,11 +5,11 @@
  * Part of Phase 9: UI Enhancements
  */
 
-import React from 'react';
 import {
     FileText, Settings, Hammer, Link2, TestTube,
-    Sparkles, Monitor, Check, Loader2, AlertCircle
+    Sparkles, Monitor, Check, Loader2, AlertCircle,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // ============================================================================
@@ -51,7 +51,7 @@ interface BuildPhaseIndicatorProps {
 const PHASE_CONFIG: Record<BuildPhase, {
     name: string;
     shortName: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     description: string;
     color: string;
 }> = {

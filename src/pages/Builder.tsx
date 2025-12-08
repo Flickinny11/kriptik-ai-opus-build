@@ -198,7 +198,7 @@ function GlassIconButton({
     title,
     size = 'md'
 }: {
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string; color?: string }>;
     onClick?: () => void;
     isActive?: boolean;
     title?: string;
@@ -230,7 +230,7 @@ function GlassIconButton({
                 transform: isHovered ? 'translateY(-1px) scale(1.02)' : 'translateY(0)',
             }}
         >
-            <Icon className={iconSize} style={{ color: isActive ? '#c25a00' : '#1a1a1a' }} />
+            <Icon className={iconSize} color={isActive ? '#c25a00' : '#1a1a1a'} />
 
             {/* Shine effect */}
             <div
@@ -262,7 +262,7 @@ function GlassButton({
     onClick?: () => void;
     isActive?: boolean;
     variant?: 'default' | 'primary' | 'deploy';
-    icon?: React.ElementType;
+    icon?: React.ComponentType<{ className?: string; color?: string }>;
 }) {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -308,7 +308,7 @@ function GlassButton({
                 transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
             }}
         >
-            {Icon && <Icon className="w-4 h-4" style={{ color: variant === 'deploy' ? '#b45309' : '#1a1a1a' }} />}
+            {Icon && <Icon className="w-4 h-4" color={variant === 'deploy' ? '#b45309' : '#1a1a1a'} />}
             <span className="hidden sm:inline">{children}</span>
 
             {/* Shine animation */}
@@ -922,7 +922,7 @@ function TabButton({
 }: {
     active: boolean;
     onClick: () => void;
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     children: React.ReactNode;
 }) {
     const [isHovered, setIsHovered] = useState(false);

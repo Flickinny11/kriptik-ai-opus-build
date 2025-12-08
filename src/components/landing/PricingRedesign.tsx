@@ -1,6 +1,6 @@
 /**
  * PricingRedesign.tsx - Premium Pricing Section
- * 
+ *
  * Visual hierarchy pricing with clear recommendation,
  * interactive credit calculator, and 3D card effects.
  */
@@ -77,16 +77,16 @@ const PRICING_TIERS = [
 function CreditCalculator() {
   const [builds, setBuilds] = useState(10);
   const [mode, setMode] = useState<'lightning' | 'standard' | 'tournament' | 'production'>('standard');
-  
+
   const creditCosts = {
     lightning: 5,
     standard: 15,
     tournament: 40,
     production: 80,
   };
-  
+
   const totalCredits = builds * creditCosts[mode];
-  
+
   const recommendedTier = totalCredits <= 50 ? 'free' : totalCredits <= 500 ? 'pro' : 'enterprise';
 
   return (
@@ -105,7 +105,7 @@ function CreditCalculator() {
           Estimate your monthly credit needs
         </p>
       </div>
-      
+
       <div className="space-y-6">
         {/* Builds per month slider */}
         <div>
@@ -122,7 +122,7 @@ function CreditCalculator() {
             className="w-full h-2 bg-kriptik-steel/30 rounded-full appearance-none cursor-pointer accent-kriptik-lime"
           />
         </div>
-        
+
         {/* Build mode selector */}
         <div>
           <span className="text-sm text-kriptik-silver/70 block mb-3">Primary build mode</span>
@@ -133,8 +133,8 @@ function CreditCalculator() {
                 onClick={() => setMode(m)}
                 className={`
                   px-3 py-2 rounded-lg text-xs font-mono uppercase transition-all duration-200
-                  ${mode === m 
-                    ? 'bg-kriptik-lime/20 text-kriptik-lime border border-kriptik-lime/30' 
+                  ${mode === m
+                    ? 'bg-kriptik-lime/20 text-kriptik-lime border border-kriptik-lime/30'
                     : 'bg-kriptik-steel/20 text-kriptik-silver/60 border border-transparent hover:border-kriptik-steel/30'
                   }
                 `}
@@ -144,7 +144,7 @@ function CreditCalculator() {
             ))}
           </div>
         </div>
-        
+
         {/* Result */}
         <div className="p-4 rounded-xl bg-kriptik-black/50 border border-kriptik-steel/20">
           <div className="flex justify-between items-center">
@@ -181,8 +181,8 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
       onMouseLeave={() => setIsHovered(false)}
       className={`
         relative rounded-2xl overflow-hidden
-        ${tier.recommended 
-          ? 'bg-gradient-to-br from-kriptik-lime/10 to-kriptik-amber/5 border-2 border-kriptik-lime/30 md:scale-105 md:-my-4' 
+        ${tier.recommended
+          ? 'bg-gradient-to-br from-kriptik-lime/10 to-kriptik-amber/5 border-2 border-kriptik-lime/30 md:scale-105 md:-my-4'
           : tier.id === 'enterprise'
             ? 'bg-gradient-to-br from-kriptik-amber/5 to-transparent border border-kriptik-amber/20'
             : 'bg-kriptik-charcoal/30 border border-kriptik-steel/20 opacity-80'
@@ -199,11 +199,11 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
           </div>
         </div>
       )}
-      
+
       <div className={`p-8 ${tier.recommended ? 'pt-12' : ''}`}>
         {/* Tier name */}
         <div className="mb-6">
-          <h3 
+          <h3
             className="text-xl font-display font-bold mb-2"
             style={{ color: tier.color }}
           >
@@ -213,7 +213,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
             {tier.description}
           </p>
         </div>
-        
+
         {/* Price */}
         <div className="mb-8">
           {tier.price !== null ? (
@@ -228,7 +228,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
               Custom
             </div>
           )}
-          
+
           {/* Credits */}
           {tier.credits && (
             <div className="mt-2 text-sm text-kriptik-silver/70">
@@ -236,14 +236,14 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
             </div>
           )}
         </div>
-        
+
         {/* Features */}
         <ul className="space-y-3 mb-8">
           {tier.features.map((feature, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-kriptik-silver/80">
-              <svg 
-                className="w-5 h-5 flex-shrink-0 mt-0.5" 
-                viewBox="0 0 20 20" 
+              <svg
+                className="w-5 h-5 flex-shrink-0 mt-0.5"
+                viewBox="0 0 20 20"
                 fill={tier.color}
               >
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -252,7 +252,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
             </li>
           ))}
         </ul>
-        
+
         {/* CTA */}
         {tier.recommended ? (
           <MagneticCTA
@@ -275,7 +275,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[0]; index: nu
           </button>
         )}
       </div>
-      
+
       {/* Shine effect on hover */}
       {tier.recommended && (
         <motion.div
@@ -303,7 +303,7 @@ export function PricingRedesign() {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-kriptik-lime/5 rounded-full blur-[150px]" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-kriptik-amber/5 rounded-full blur-[150px]" />
       </div>
-      
+
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Section header */}
         <motion.div
@@ -321,21 +321,21 @@ export function PricingRedesign() {
             <span className="text-kriptik-lime">You Ship</span>
           </h2>
           <p className="max-w-2xl mx-auto text-lg text-kriptik-silver/70">
-            Credits-based pricing that scales with your ambition. 
+            Credits-based pricing that scales with your ambition.
             No hidden fees, no surprises.
           </p>
         </motion.div>
-        
+
         {/* Pricing cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 items-center max-w-5xl mx-auto">
           {PRICING_TIERS.map((tier, i) => (
             <PricingCard key={tier.id} tier={tier} index={i} />
           ))}
         </div>
-        
+
         {/* Credit calculator */}
         <CreditCalculator />
-        
+
         {/* Additional info */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -345,7 +345,7 @@ export function PricingRedesign() {
           className="mt-16 text-center"
         >
           <p className="text-sm text-kriptik-silver/50">
-            All plans include: Vercel/Netlify deployment • GitHub integration • SSL certificates • 
+            All plans include: Vercel/Netlify deployment • GitHub integration • SSL certificates •
             24/7 monitoring • Automatic scaling
           </p>
         </motion.div>

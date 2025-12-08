@@ -29,7 +29,7 @@ interface OpportunityCardProps {
     onImplement?: () => void;
 }
 
-const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; gradient: string }> = {
+const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string; color?: string }>; color: string; gradient: string }> = {
     feature: { icon: Layers, color: '#3b82f6', gradient: 'from-blue-500/20 to-blue-600/10' },
     pricing: { icon: DollarSign, color: '#10b981', gradient: 'from-emerald-500/20 to-emerald-600/10' },
     positioning: { icon: Target, color: '#f59e0b', gradient: 'from-amber-500/20 to-amber-600/10' },
@@ -77,7 +77,7 @@ export function OpportunityCard({ opportunity, onImplement }: OpportunityCardPro
                         className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: `${config.color}20` }}
                     >
-                        <TypeIcon className="w-6 h-6" style={{ color: config.color }} />
+                        <TypeIcon className="w-6 h-6" color={config.color} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

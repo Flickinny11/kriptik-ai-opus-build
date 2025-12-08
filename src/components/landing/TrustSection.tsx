@@ -1,6 +1,6 @@
 /**
  * TrustSection.tsx - Trust & Credibility Section
- * 
+ *
  * Showcases integrations, architecture, and real metrics
  * with floating logos and credential displays.
  */
@@ -93,12 +93,12 @@ const METRICS = [
 ];
 
 // Floating logo component
-function FloatingLogo({ 
-  integration, 
+function FloatingLogo({
+  integration,
   index,
   total,
-}: { 
-  integration: typeof INTEGRATIONS[0]; 
+}: {
+  integration: typeof INTEGRATIONS[0];
   index: number;
   total: number;
 }) {
@@ -106,7 +106,7 @@ function FloatingLogo({
   const radius = 120;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
-  
+
   return (
     <motion.div
       className="absolute w-16 h-16 rounded-xl bg-kriptik-charcoal/50 border border-kriptik-steel/30 flex items-center justify-center backdrop-blur-sm"
@@ -119,13 +119,13 @@ function FloatingLogo({
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{ 
-        scale: 1.15, 
+      whileHover={{
+        scale: 1.15,
         boxShadow: `0 0 30px ${integration.color}40`,
       }}
     >
       {integration.logo}
-      
+
       {/* Tooltip */}
       <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs font-mono text-kriptik-silver/60 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
         {integration.name}
@@ -154,7 +154,7 @@ function IntentLockPreview() {
             <span className="text-xs text-green-500/70">Immutable</span>
           </div>
         </div>
-        
+
         {/* Code content */}
         <div className="p-4 font-mono text-xs leading-relaxed">
           <div className="text-kriptik-silver/50">{'{'}</div>
@@ -188,7 +188,7 @@ function IntentLockPreview() {
           <div className="text-kriptik-silver/50">{'}'}</div>
         </div>
       </div>
-      
+
       {/* Decoration */}
       <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-kriptik-lime/5 rounded-full blur-3xl" />
     </motion.div>
@@ -201,20 +201,20 @@ export function TrustSection() {
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  
+
   const rotate = useTransform(scrollYProgress, [0, 1], [0, 360]);
 
   return (
     <section ref={containerRef} className="relative py-32 md:py-48 overflow-hidden bg-kriptik-black">
       {/* Background pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-5"
         style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, rgba(200,255,100,0.3) 1px, transparent 0)`,
           backgroundSize: '40px 40px',
         }}
       />
-      
+
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Section header */}
         <motion.div
@@ -232,7 +232,7 @@ export function TrustSection() {
             <span className="text-kriptik-lime">Architecture</span>
           </h2>
         </motion.div>
-        
+
         {/* Integration orbit */}
         <div className="relative h-[400px] mb-20">
           {/* Center element */}
@@ -244,7 +244,7 @@ export function TrustSection() {
               <span className="text-2xl font-display font-bold text-kriptik-lime">K</span>
             </div>
           </motion.div>
-          
+
           {/* Floating logos */}
           {INTEGRATIONS.map((integration, i) => (
             <FloatingLogo
@@ -254,16 +254,16 @@ export function TrustSection() {
               total={INTEGRATIONS.length}
             />
           ))}
-          
+
           {/* Orbital rings */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full border border-kriptik-steel/10" />
-          <motion.div 
+          <motion.div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] rounded-full border border-dashed border-kriptik-steel/20"
             animate={{ rotate: 360 }}
             transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
           />
         </div>
-        
+
         {/* Metrics */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -281,7 +281,7 @@ export function TrustSection() {
               transition={{ delay: i * 0.1 }}
               className="text-center p-6 rounded-xl bg-kriptik-charcoal/30 border border-kriptik-steel/20"
             >
-              <div 
+              <div
                 className="text-3xl md:text-4xl font-display font-bold mb-2"
                 style={{ color: metric.color }}
               >
@@ -293,18 +293,18 @@ export function TrustSection() {
             </motion.div>
           ))}
         </motion.div>
-        
+
         {/* Intent Lock showcase */}
         <div className="text-center mb-8">
           <span className="text-xs font-mono uppercase tracking-[0.3em] text-kriptik-amber mb-4 block">
             Intent Lock Technology
           </span>
           <p className="text-kriptik-silver/60 max-w-md mx-auto mb-8">
-            Every build starts with an immutable Intent Lock contract—ensuring 
+            Every build starts with an immutable Intent Lock contract—ensuring
             the AI never deviates from your original vision.
           </p>
         </div>
-        
+
         <IntentLockPreview />
       </div>
     </section>

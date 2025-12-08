@@ -18,8 +18,9 @@ import {
     RefreshCw, Smartphone, Tablet, Monitor, Terminal,
     ExternalLink, GitBranch, CheckCircle2, XCircle,
     Maximize2, Minimize2, Code2, Eye, Split, Play, Pause,
-    MessageSquare, GitPullRequest
+    MessageSquare, GitPullRequest,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useDeveloperModeStore, selectAgents, selectSelectedAgent } from '../../store/useDeveloperModeStore';
 import { RequestChangesModal } from './RequestChangesModal';
 import { CreatePRModal } from './CreatePRModal';
@@ -44,14 +45,14 @@ const accentGlow = 'rgba(200,255,100,0.15)';
 type ViewportSize = 'mobile' | 'tablet' | 'desktop';
 type ViewMode = 'preview' | 'code' | 'split';
 
-const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string; icon: React.ElementType }> = {
+const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string; icon: LucideIcon }> = {
     mobile: { width: 375, label: '375px', icon: Smartphone },
     tablet: { width: 768, label: '768px', icon: Tablet },
     desktop: { width: 1280, label: '100%', icon: Monitor },
 };
 
 interface GlassButtonProps {
-    icon: React.ElementType;
+    icon: LucideIcon;
     isActive?: boolean;
     onClick?: () => void;
     title?: string;
@@ -62,6 +63,7 @@ function GlassButton({ icon: Icon, isActive = false, onClick, title, size = 'md'
     const [isHovered, setIsHovered] = useState(false);
     const sizeClasses = size === 'sm' ? 'w-7 h-7' : 'w-8 h-8';
     const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+    const iconColor = isActive ? accentColor : isHovered ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.5)';
 
     return (
         <button
@@ -82,10 +84,7 @@ function GlassButton({ icon: Icon, isActive = false, onClick, title, size = 'md'
                 transform: isHovered ? 'scale(1.05)' : 'scale(1)',
             }}
         >
-            <Icon
-                className={iconSize}
-                style={{ color: isActive ? accentColor : isHovered ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.5)' }}
-            />
+            <Icon className={iconSize} color={iconColor} />
         </button>
     );
 }

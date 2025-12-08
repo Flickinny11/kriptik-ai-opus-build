@@ -1,6 +1,6 @@
 /**
  * MagneticButton.tsx - Premium Magnetic Hover Button
- * 
+ *
  * Button that magnetically pulls toward cursor position
  * with 3D depth and premium interactions.
  */
@@ -29,40 +29,40 @@ export function MagneticButton({
 }: MagneticButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Motion values for magnetic effect
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  
+
   // Spring physics for smooth return
   const springConfig = { damping: 20, stiffness: 300 };
   const springX = useSpring(x, springConfig);
   const springY = useSpring(y, springConfig);
-  
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!buttonRef.current || disabled) return;
-    
+
     const rect = buttonRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     const deltaX = (e.clientX - centerX) * magneticStrength;
     const deltaY = (e.clientY - centerY) * magneticStrength;
-    
+
     x.set(deltaX);
     y.set(deltaY);
   };
-  
+
   const handleMouseLeave = () => {
     setIsHovered(false);
     x.set(0);
     y.set(0);
   };
-  
+
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
-  
+
   // Size variants
   const sizeClasses = {
     sm: 'px-4 py-2 text-sm',
@@ -70,7 +70,7 @@ export function MagneticButton({
     lg: 'px-8 py-4 text-lg',
     xl: 'px-10 py-5 text-xl',
   };
-  
+
   // Style variants
   const variantClasses = {
     primary: `
@@ -92,7 +92,7 @@ export function MagneticButton({
       hover:border-kriptik-lime hover:bg-kriptik-lime/10
     `,
   };
-  
+
   return (
     <motion.button
       ref={buttonRef}
@@ -125,7 +125,7 @@ export function MagneticButton({
       >
         {children}
       </motion.span>
-      
+
       {/* Shine effect overlay */}
       <motion.div
         className="absolute inset-0 opacity-0"
@@ -139,7 +139,7 @@ export function MagneticButton({
         }}
         transition={{ duration: 0.6 }}
       />
-      
+
       {/* Glow ring on hover */}
       {variant !== 'ghost' && (
         <motion.div

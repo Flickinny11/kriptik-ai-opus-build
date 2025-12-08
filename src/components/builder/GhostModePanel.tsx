@@ -27,7 +27,8 @@ import {
   MessageSquare,
   Smartphone,
   Settings,
-  Shield
+  Shield,
+  LucideIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -97,7 +98,7 @@ interface GhostSessionSummary {
 // =============================================================================
 
 const StateIndicator: React.FC<{ state: GhostSessionState }> = ({ state }) => {
-  const stateConfig: Record<GhostSessionState, { color: string; icon: React.ElementType; label: string }> = {
+  const stateConfig: Record<GhostSessionState, { color: string; icon: LucideIcon; label: string }> = {
     idle: { color: 'text-slate-400', icon: Ghost, label: 'Idle' },
     active: { color: 'text-emerald-400', icon: Play, label: 'Running' },
     paused: { color: 'text-amber-400', icon: Pause, label: 'Paused' },
@@ -206,7 +207,7 @@ const WakeConditionEditor: React.FC<{
     { value: 'time_elapsed', label: '⏰ After time elapsed' }
   ];
 
-  const channels: { value: NotificationChannel; label: string; icon: React.ElementType }[] = [
+  const channels: { value: NotificationChannel; label: string; icon: LucideIcon }[] = [
     { value: 'email', label: 'Email', icon: Mail },
     { value: 'sms', label: 'SMS', icon: Smartphone },
     { value: 'slack', label: 'Slack', icon: MessageSquare },

@@ -42,7 +42,7 @@ interface TestProgressViewerProps {
     maxActions: number;
 }
 
-const ACTION_ICONS: Record<string, React.ElementType> = {
+const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string; color?: string }>> = {
     'click': MousePointer2,
     'type': Type,
     'scroll': ArrowUpDown,
@@ -173,13 +173,12 @@ export function TestProgressViewer({ results, maxActions }: TestProgressViewerPr
                                                 >
                                                     <ActionIcon
                                                         className="w-3 h-3"
-                                                        style={{
-                                                            color: action.result === 'success'
-                                                                ? '#34d399'
-                                                                : action.result === 'failed'
-                                                                    ? '#f87171'
-                                                                    : '#a3a3a3'
-                                                        }}
+                                                        color={action.result === 'success'
+                                                            ? '#34d399'
+                                                            : action.result === 'failed'
+                                                                ? '#f87171'
+                                                                : '#a3a3a3'
+                                                        }
                                                     />
                                                 </div>
                                                 <span className="text-xs text-white/70 capitalize flex-1 truncate">

@@ -14,7 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Bot, Zap, GitBranch, Shield, Clock, DollarSign,
     ChevronDown, AlertTriangle, CheckCircle2, Loader2,
-    Sparkles, Target, Cpu, Brain
+    Sparkles, Target, Cpu, Brain,
+    LucideIcon
 } from 'lucide-react';
 import { useDeveloperModeStore, selectAvailableModels, type ModelInfo } from '../../store/useDeveloperModeStore';
 
@@ -44,7 +45,7 @@ interface CostEstimate {
     estimatedTimeMs: number;
 }
 
-const VERIFICATION_MODES: Record<VerificationMode, { name: string; description: string; icon: React.ElementType; color: string }> = {
+const VERIFICATION_MODES: Record<VerificationMode, { name: string; description: string; icon: LucideIcon; color: string }> = {
     quick: { name: 'Quick', description: 'Fast checks, critical only', icon: Zap, color: '#fbbf24' },
     standard: { name: 'Standard', description: 'Balanced verification', icon: Shield, color: '#60a5fa' },
     strict: { name: 'Strict', description: 'Thorough pre-production', icon: Target, color: '#a78bfa' },

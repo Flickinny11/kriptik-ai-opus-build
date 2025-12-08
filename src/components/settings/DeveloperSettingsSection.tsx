@@ -81,7 +81,7 @@ function SettingsSection({
 }: {
     title: string;
     description: string;
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string; color?: string }>;
     children: React.ReactNode;
     defaultOpen?: boolean;
     badge?: string;
@@ -99,7 +99,7 @@ function SettingsSection({
                         className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{ background: 'rgba(255,180,140,0.2)' }}
                     >
-                        <Icon className="w-5 h-5" style={{ color: '#c25a00' }} />
+                        <Icon className="w-5 h-5" color="#c25a00" />
                     </div>
                     <div className="text-left">
                         <div className="flex items-center gap-2">

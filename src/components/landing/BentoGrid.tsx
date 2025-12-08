@@ -1,6 +1,6 @@
 /**
  * BentoGrid.tsx - Asymmetric Feature Grid
- * 
+ *
  * Showcases unique features in a varied-size bento grid
  * with 3D depth and unique animations per card.
  */
@@ -97,7 +97,7 @@ function TournamentContent() {
                   flex items-center justify-center font-mono
                   ${i === 1 ? 'h-32 border-purple-500/50' : 'h-24'}
                 `}
-                animate={i === 1 ? { 
+                animate={i === 1 ? {
                   boxShadow: ['0 0 0 rgba(168,85,247,0)', '0 0 30px rgba(168,85,247,0.3)', '0 0 0 rgba(168,85,247,0)'],
                 } : {}}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -119,7 +119,7 @@ function TournamentContent() {
             </motion.div>
           ))}
         </div>
-        
+
         {/* AI Judge */}
         <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
           <div className="text-xs font-mono text-purple-400/60">AI Judge Selecting...</div>
@@ -143,7 +143,7 @@ function TimelineContent() {
             viewport={{ once: true }}
             transition={{ duration: 1, delay: 0.5 }}
           />
-          
+
           {/* Checkpoints */}
           {[0, 25, 50, 70].map((pos, i) => (
             <motion.div
@@ -157,13 +157,13 @@ function TimelineContent() {
             />
           ))}
         </div>
-        
+
         {/* Labels */}
         <div className="flex justify-between mt-4">
           <span className="text-xs text-kriptik-silver/50">Start</span>
           <span className="text-xs text-blue-400">Now</span>
         </div>
-        
+
         {/* Branch indicator */}
         <motion.div
           className="mt-4 flex items-center gap-2 text-xs text-kriptik-silver/60"
@@ -197,7 +197,7 @@ function GhostContent() {
             <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
           </svg>
         </motion.div>
-        
+
         {/* Status */}
         <motion.div
           className="text-sm text-green-400 font-mono"
@@ -206,7 +206,7 @@ function GhostContent() {
         >
           Building autonomously...
         </motion.div>
-        
+
         {/* Progress bars */}
         <div className="mt-4 space-y-2">
           {['Auth', 'Dashboard', 'API'].map((item, i) => (
@@ -241,7 +241,7 @@ function BrainContent() {
             const radius = 40;
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
-            
+
             return (
               <motion.div
                 key={i}
@@ -262,7 +262,7 @@ function BrainContent() {
               />
             );
           })}
-          
+
           {/* Center */}
           <motion.div
             className="w-8 h-8 rounded-full bg-cyan-500"
@@ -271,7 +271,7 @@ function BrainContent() {
             style={{ margin: '36px' }}
           />
         </div>
-        
+
         {/* Stats */}
         <div className="space-y-3">
           {[
@@ -323,7 +323,7 @@ function VoiceContent() {
 // Feature card component
 function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: number }) {
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Size classes
   const sizeClasses = {
     large: 'md:col-span-2 md:row-span-2',
@@ -331,7 +331,7 @@ function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: n
     small: 'md:col-span-1 md:row-span-1',
     wide: 'md:col-span-2 md:row-span-1',
   };
-  
+
   // Content renderers
   const contentMap: Record<string, () => JSX.Element> = {
     tournament: TournamentContent,
@@ -362,7 +362,7 @@ function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: n
       </div>
     ),
   };
-  
+
   const ContentComponent = contentMap[feature.content] || (() => null);
 
   return (
@@ -395,15 +395,15 @@ function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: n
         }}
         animate={{ opacity: isHovered ? 0.5 : 0 }}
       />
-      
+
       {/* Content visualization */}
       <div className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
         <ContentComponent />
       </div>
-      
+
       {/* Text overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-kriptik-black/80 to-transparent">
-        <h3 
+        <h3
           className="text-lg font-display font-bold mb-1"
           style={{ color: feature.color }}
         >
@@ -413,7 +413,7 @@ function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: n
           {feature.description}
         </p>
       </div>
-      
+
       {/* Hover shine effect */}
       <motion.div
         className="absolute inset-0 opacity-0 group-hover:opacity-100"
@@ -449,11 +449,11 @@ export function BentoGrid() {
             <span className="text-kriptik-amber">Don't Exist</span> Elsewhere
           </h2>
           <p className="max-w-2xl mx-auto text-lg text-kriptik-silver/70">
-            Not incremental improvements. Fundamental innovations that change 
+            Not incremental improvements. Fundamental innovations that change
             how software gets built.
           </p>
         </motion.div>
-        
+
         {/* Bento grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {FEATURES.map((feature, i) => (

@@ -1,6 +1,6 @@
 /**
  * Landing Page Components Index
- * 
+ *
  * Export all premium landing page sections
  */
 

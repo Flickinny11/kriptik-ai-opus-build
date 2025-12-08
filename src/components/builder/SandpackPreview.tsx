@@ -11,7 +11,7 @@ import {
     SandpackConsole,
     useSandpack,
 } from '@codesandbox/sandpack-react';
-import { RefreshCw, Smartphone, Tablet, Monitor, Terminal, ExternalLink, MousePointer2, Maximize2 } from 'lucide-react';
+import { RefreshCw, Smartphone, Tablet, Monitor, Terminal, ExternalLink, MousePointer2, Maximize2, LucideIcon } from 'lucide-react';
 import { useEditorStore } from '../../store/useEditorStore';
 
 type ViewportSize = 'mobile' | 'tablet' | 'desktop';
@@ -29,7 +29,7 @@ function DeviceButton({
     onClick,
     title
 }: {
-    icon: React.ElementType;
+    icon: LucideIcon;
     isActive: boolean;
     onClick: () => void;
     title: string;
@@ -89,7 +89,7 @@ function GlassIconButton({
     isActive = false,
     title
 }: {
-    icon: React.ElementType;
+    icon: LucideIcon;
     onClick?: () => void;
     isActive?: boolean;
     title?: string;

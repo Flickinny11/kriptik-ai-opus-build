@@ -1,6 +1,6 @@
 /**
  * Hero3D.tsx - Premium 3D Hero Section
- * 
+ *
  * Full-viewport hero with floating glass spheres,
  * split text animation, and atmospheric particles.
  */
@@ -15,19 +15,19 @@ const GlassSphereCluster = lazy(() => import('../3d/GlassSphere').then(m => ({ d
 const ParticleField = lazy(() => import('../3d/ParticleField').then(m => ({ default: m.ParticleField })));
 
 // Split text animation component
-function SplitText({ 
-  text, 
+function SplitText({
+  text,
   className = '',
   delay = 0,
   stagger = 0.05,
-}: { 
-  text: string; 
+}: {
+  text: string;
   className?: string;
   delay?: number;
   stagger?: number;
 }) {
   const words = text.split(' ');
-  
+
   return (
     <span className={`inline-flex flex-wrap ${className}`}>
       {words.map((word, wordIndex) => (
@@ -66,7 +66,7 @@ function PremiumBadge({ delay = 0 }: { delay?: number }) {
         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-kriptik-lime" />
         <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-kriptik-lime" />
         <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-kriptik-lime" />
-        
+
         <span className="text-xs font-mono uppercase tracking-[0.2em] text-kriptik-lime">
           The Autonomous Builder
         </span>
@@ -110,7 +110,7 @@ function ScrollIndicator() {
 // Noise texture overlay
 function NoiseOverlay() {
   return (
-    <div 
+    <div
       className="absolute inset-0 opacity-[0.03] pointer-events-none z-10"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
@@ -136,7 +136,7 @@ function GradientMesh() {
         }}
         transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
       />
-      
+
       {/* Secondary gradient */}
       <motion.div
         className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full opacity-15"
@@ -150,7 +150,7 @@ function GradientMesh() {
         }}
         transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
       />
-      
+
       {/* Accent gradient */}
       <motion.div
         className="absolute top-1/4 left-1/3 w-[40vw] h-[40vw] rounded-full opacity-10"
@@ -172,19 +172,19 @@ export function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   useInView(containerRef, { once: true });
   const [isLoaded, setIsLoaded] = useState(false);
-  
+
   // Parallax effect on scroll
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
   });
-  
+
   const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
-  
+
   const springY = useSpring(y, { damping: 20, stiffness: 100 });
-  
+
   useEffect(() => {
     // Simulate load completion
     const timer = setTimeout(() => setIsLoaded(true), 500);
@@ -199,27 +199,27 @@ export function Hero3D() {
       {/* Background layers */}
       <GradientMesh />
       <NoiseOverlay />
-      
+
       {/* 3D Scene - Glass spheres and particles */}
       <div className="absolute inset-0 z-0">
         <Suspense fallback={null}>
           <Scene3D camera={{ position: [0, 0, 12], fov: 50 }}>
-            <GlassSphereCluster 
-              count={7} 
-              spread={12} 
-              minScale={0.4} 
-              maxScale={2} 
+            <GlassSphereCluster
+              count={7}
+              spread={12}
+              minScale={0.4}
+              maxScale={2}
             />
-            <ParticleField 
-              count={300} 
-              spread={25} 
+            <ParticleField
+              count={300}
+              spread={25}
               opacity={0.4}
               color="#c8ff64"
             />
           </Scene3D>
         </Suspense>
       </div>
-      
+
       {/* Main content */}
       <motion.div
         className="relative z-20 max-w-7xl mx-auto px-6 text-center"
@@ -229,7 +229,7 @@ export function Hero3D() {
         <div className="mb-8">
           <PremiumBadge delay={0.3} />
         </div>
-        
+
         {/* Main headline */}
         <h1 className="font-display font-bold text-kriptik-white mb-6">
           {/* Mobile */}
@@ -242,7 +242,7 @@ export function Hero3D() {
               <SplitText text="SLEEP" delay={1} />
             </span>
           </span>
-          
+
           {/* Desktop */}
           <span className="hidden md:block lg:hidden text-display-md">
             <SplitText text="SHIP APPS" delay={0.6} />
@@ -252,7 +252,7 @@ export function Hero3D() {
               <SplitText text="SLEEP" delay={1} />
             </span>
           </span>
-          
+
           {/* Large desktop */}
           <span className="hidden lg:block text-display-lg xl:text-display-xl">
             <SplitText text="SHIP APPS" delay={0.6} />
@@ -263,7 +263,7 @@ export function Hero3D() {
             </span>
           </span>
         </h1>
-        
+
         {/* Subheadline */}
         <motion.p
           className="max-w-2xl mx-auto text-lg md:text-xl lg:text-2xl text-kriptik-silver/80 font-light mb-12"
@@ -274,7 +274,7 @@ export function Hero3D() {
           6 AI agents work in parallel. They plan, code, test, and deploy
           production apps—while you do literally anything else.
         </motion.p>
-        
+
         {/* CTAs */}
         <motion.div
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
@@ -289,7 +289,7 @@ export function Hero3D() {
             icon={<ArrowIcon />}
             onClick={() => window.location.href = '/signup'}
           />
-          
+
           <MagneticButton
             variant="outline"
             size="lg"
@@ -300,7 +300,7 @@ export function Hero3D() {
             See Agents Work
           </MagneticButton>
         </motion.div>
-        
+
         {/* Stats row */}
         <motion.div
           className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16"
@@ -324,10 +324,10 @@ export function Hero3D() {
           ))}
         </motion.div>
       </motion.div>
-      
+
       {/* Scroll indicator */}
       <ScrollIndicator />
-      
+
       {/* Bottom gradient fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-kriptik-black to-transparent z-10" />
     </section>

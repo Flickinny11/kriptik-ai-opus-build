@@ -1,6 +1,6 @@
 /**
  * ProductShowcase.tsx - Product Screenshots in 3D Browser Mockups
- * 
+ *
  * Showcases actual product screenshots with 3D perspective
  * and interactive zoom features.
  */
@@ -52,7 +52,7 @@ function BrowserChrome({ children, title }: { children: React.ReactNode; title?:
           <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
           <div className="w-3 h-3 rounded-full bg-green-500/80" />
         </div>
-        
+
         {/* URL bar */}
         <div className="flex-1 flex justify-center">
           <div className="px-4 py-1.5 rounded-md bg-kriptik-black/50 text-xs font-mono text-kriptik-silver/50 flex items-center gap-2">
@@ -62,11 +62,11 @@ function BrowserChrome({ children, title }: { children: React.ReactNode; title?:
             {title || 'kriptik.ai/builder'}
           </div>
         </div>
-        
+
         {/* Window controls placeholder */}
         <div className="w-16" />
       </div>
-      
+
       {/* Content */}
       <div className="relative">
         {children}
@@ -76,11 +76,11 @@ function BrowserChrome({ children, title }: { children: React.ReactNode; title?:
 }
 
 // Feature hotspot component
-function FeatureHotspot({ 
+function FeatureHotspot({
   feature,
   isActive,
   onClick,
-}: { 
+}: {
   feature: typeof SHOWCASE_FEATURES[0];
   isActive: boolean;
   onClick: () => void;
@@ -103,13 +103,13 @@ function FeatureHotspot({
         }}
         transition={{ duration: 2, repeat: Infinity }}
       />
-      
+
       {/* Center dot */}
-      <div 
+      <div
         className="relative w-4 h-4 rounded-full border-2 border-kriptik-black"
         style={{ backgroundColor: feature.color }}
       />
-      
+
       {/* Tooltip */}
       <AnimatePresence>
         {isActive && (
@@ -120,7 +120,7 @@ function FeatureHotspot({
             className="absolute left-6 top-0 w-48 p-3 rounded-lg bg-kriptik-black/95 border border-kriptik-steel/30 backdrop-blur-xl"
             style={{ boxShadow: `0 0 20px ${feature.color}20` }}
           >
-            <div 
+            <div
               className="text-sm font-display font-bold mb-1"
               style={{ color: feature.color }}
             >
@@ -129,9 +129,9 @@ function FeatureHotspot({
             <div className="text-xs text-kriptik-silver/70">
               {feature.description}
             </div>
-            
+
             {/* Arrow */}
-            <div 
+            <div
               className="absolute left-0 top-3 w-0 h-0 -translate-x-full border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent"
               style={{ borderRightColor: 'rgba(45,45,45,0.95)' }}
             />
@@ -147,7 +147,7 @@ function MockScreenshot() {
   return (
     <div className="aspect-[16/10] bg-kriptik-black relative overflow-hidden">
       {/* Grid background */}
-      <div 
+      <div
         className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `
@@ -157,7 +157,7 @@ function MockScreenshot() {
           backgroundSize: '40px 40px',
         }}
       />
-      
+
       {/* Sidebar */}
       <div className="absolute left-0 top-0 bottom-0 w-64 bg-kriptik-charcoal/50 border-r border-kriptik-steel/20 p-4">
         <div className="text-sm font-display font-bold text-kriptik-white mb-4">Agents</div>
@@ -173,7 +173,7 @@ function MockScreenshot() {
           </div>
         ))}
       </div>
-      
+
       {/* Main content area */}
       <div className="ml-64 p-6">
         {/* Chat messages */}
@@ -188,7 +188,7 @@ function MockScreenshot() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex gap-3 items-start">
             <div className="w-8 h-8 rounded-full bg-kriptik-lime flex items-center justify-center">
               <span className="text-xs text-kriptik-black font-bold">K</span>
@@ -213,7 +213,7 @@ function MockScreenshot() {
             </div>
           </div>
         </div>
-        
+
         {/* Code preview */}
         <div className="rounded-lg bg-kriptik-night border border-kriptik-steel/20 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-2 bg-kriptik-charcoal/30 border-b border-kriptik-steel/20">
@@ -235,7 +235,7 @@ function MockScreenshot() {
           </div>
         </div>
       </div>
-      
+
       {/* Right panel - Live preview */}
       <div className="absolute right-0 top-0 bottom-0 w-72 bg-kriptik-charcoal/30 border-l border-kriptik-steel/20 p-4">
         <div className="text-sm font-display font-bold text-kriptik-white mb-4">Live Preview</div>
@@ -269,16 +269,16 @@ function MockScreenshot() {
 export function ProductShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  
+
   const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [10, 0, -10]);
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.9, 1, 0.9]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.3, 1, 1, 0.3]);
-  
+
   const springRotateX = useSpring(rotateX, { damping: 20, stiffness: 100 });
   const springScale = useSpring(scale, { damping: 20, stiffness: 100 });
 
@@ -305,7 +305,7 @@ export function ProductShowcase() {
             every test passed. Full transparency, full control.
           </p>
         </motion.div>
-        
+
         {/* 3D Browser mockup */}
         <motion.div
           className="relative max-w-5xl mx-auto"
@@ -319,7 +319,7 @@ export function ProductShowcase() {
         >
           <BrowserChrome title="kriptik.ai/builder">
             <MockScreenshot />
-            
+
             {/* Feature hotspots */}
             {SHOWCASE_FEATURES.map((feature) => (
               <FeatureHotspot
@@ -332,9 +332,9 @@ export function ProductShowcase() {
               />
             ))}
           </BrowserChrome>
-          
+
           {/* Reflection */}
-          <div 
+          <div
             className="absolute -bottom-32 left-0 right-0 h-32 opacity-20"
             style={{
               background: 'linear-gradient(to bottom, rgba(200,255,100,0.1) 0%, transparent 100%)',
@@ -343,7 +343,7 @@ export function ProductShowcase() {
             }}
           />
         </motion.div>
-        
+
         {/* Feature list below */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -360,8 +360,8 @@ export function ProductShowcase() {
               )}
               className={`
                 p-4 rounded-xl text-left transition-all duration-300
-                ${activeFeature === feature.id 
-                  ? 'bg-kriptik-night border-2' 
+                ${activeFeature === feature.id
+                  ? 'bg-kriptik-night border-2'
                   : 'bg-kriptik-charcoal/30 border border-kriptik-steel/20 hover:border-kriptik-steel/40'
                 }
               `}
@@ -370,7 +370,7 @@ export function ProductShowcase() {
               }}
               whileHover={{ y: -4 }}
             >
-              <div 
+              <div
                 className="w-2 h-2 rounded-full mb-3"
                 style={{ backgroundColor: feature.color }}
               />

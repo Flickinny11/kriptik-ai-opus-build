@@ -1,6 +1,6 @@
 /**
  * ParticleField.tsx - Atmospheric Background Particles
- * 
+ *
  * Creates an atmospheric particle system that responds to
  * mouse movement and adds depth to the scene.
  */
@@ -30,29 +30,29 @@ export function ParticleField({
 }: ParticleFieldProps) {
   const particlesRef = useRef<THREE.Points>(null);
   const mousePos = useRef({ x: 0, y: 0 });
-  
+
   // Generate particle positions
   const [positions, originalPositions] = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const orig = new Float32Array(count * 3);
-    
+
     for (let i = 0; i < count; i++) {
       const x = (Math.random() - 0.5) * spread;
       const y = (Math.random() - 0.5) * spread;
       const z = (Math.random() - 0.5) * spread * 0.5 - 5; // Push back in z
-      
+
       pos[i * 3] = x;
       pos[i * 3 + 1] = y;
       pos[i * 3 + 2] = z;
-      
+
       orig[i * 3] = x;
       orig[i * 3 + 1] = y;
       orig[i * 3 + 2] = z;
     }
-    
+
     return [pos, orig];
   }, [count, spread]);
-  
+
   // Generate particle sizes for variation
   const sizes = useMemo(() => {
     const arr = new Float32Array(count);
@@ -61,47 +61,47 @@ export function ParticleField({
     }
     return arr;
   }, [count, size]);
-  
+
   // Track mouse position
   useMemo(() => {
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       mousePos.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-  
+
   // Animate particles
   useFrame((state) => {
     if (!particlesRef.current) return;
-    
+
     const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
     const time = state.clock.elapsedTime;
-    
+
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      
+
       // Base floating motion
       const floatX = Math.sin(time * speed + i * 0.1) * 0.1;
       const floatY = Math.cos(time * speed * 0.8 + i * 0.15) * 0.15;
       const floatZ = Math.sin(time * speed * 0.5 + i * 0.2) * 0.05;
-      
+
       // Mouse influence
       const dx = mousePos.current.x * mouseInfluence - originalPositions[i3];
       const dy = mousePos.current.y * mouseInfluence - originalPositions[i3 + 1];
       const dist = Math.sqrt(dx * dx + dy * dy);
       const influence = Math.max(0, 1 - dist / 3) * 0.3;
-      
+
       positions[i3] = originalPositions[i3] + floatX + dx * influence;
       positions[i3 + 1] = originalPositions[i3 + 1] + floatY + dy * influence;
       positions[i3 + 2] = originalPositions[i3 + 2] + floatZ;
     }
-    
+
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
   });
-  
+
   return (
     <points ref={particlesRef}>
       <bufferGeometry>
@@ -152,7 +152,7 @@ export function StarField({ count = 1000 }: { count?: number }) {
     }
     return pos;
   }, [count]);
-  
+
   return (
     <points>
       <bufferGeometry>

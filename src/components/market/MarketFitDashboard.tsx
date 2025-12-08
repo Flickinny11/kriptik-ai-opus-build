@@ -326,7 +326,7 @@ export function MarketFitDashboard({
 
     if (!isOpen) return null;
 
-    const tabs: Array<{ id: TabType; label: string; icon: React.ElementType }> = [
+    const tabs: Array<{ id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }> = [
         { id: 'competitors', label: 'Competitors', icon: Globe },
         { id: 'gaps', label: 'Gap Matrix', icon: BarChart3 },
         { id: 'opportunities', label: 'Opportunities', icon: Lightbulb },

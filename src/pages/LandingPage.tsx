@@ -1,6 +1,6 @@
 /**
  * LandingPage.tsx - Premium KripTik AI Landing Page
- * 
+ *
  * Full-featured landing page with:
  * - Lenis smooth scrolling
  * - 3D glass sphere hero
@@ -46,7 +46,7 @@ function SectionLoader() {
           />
           <motion.div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-kriptik-lime"
-            animate={{ 
+            animate={{
               rotate: 360,
             }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -79,7 +79,7 @@ function ProblemSection() {
             <span className="text-kriptik-rose">Makes You Babysit Code</span>
           </h2>
         </motion.div>
-        
+
         {/* Comparison grid */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Problems with other tools */}
@@ -97,7 +97,7 @@ function ProblemSection() {
                   Other Tools
                 </span>
               </div>
-              
+
               <ul className="space-y-4">
                 {[
                   { tool: 'Cursor', problem: "You're still fixing errors manually" },
@@ -124,7 +124,7 @@ function ProblemSection() {
               </ul>
             </div>
           </motion.div>
-          
+
           {/* KripTik solution */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -140,7 +140,7 @@ function ProblemSection() {
                   KripTik AI
                 </span>
               </div>
-              
+
               <ul className="space-y-4">
                 {[
                   { feature: '6-Agent Verification', benefit: 'Zero errors reach production' },
@@ -166,12 +166,12 @@ function ProblemSection() {
                 ))}
               </ul>
             </div>
-            
+
             {/* Glow effect */}
             <div className="absolute -inset-4 bg-kriptik-lime/5 rounded-3xl blur-3xl -z-10" />
           </motion.div>
         </div>
-        
+
         {/* Transition text */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -192,7 +192,7 @@ function ProblemSection() {
 // Main Landing Page Component
 export function LandingPage() {
   const lenisRef = useRef<Lenis | null>(null);
-  
+
   // Initialize Lenis smooth scroll
   useEffect(() => {
     lenisRef.current = new Lenis({
@@ -204,27 +204,27 @@ export function LandingPage() {
       wheelMultiplier: 1,
       touchMultiplier: 2,
     });
-    
+
     function raf(time: number) {
       lenisRef.current?.raf(time);
       requestAnimationFrame(raf);
     }
-    
+
     requestAnimationFrame(raf);
-    
+
     return () => {
       lenisRef.current?.destroy();
     };
   }, []);
-  
+
   // Handle reduced motion preference
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
+
     if (mediaQuery.matches) {
       lenisRef.current?.stop();
     }
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       if (e.matches) {
         lenisRef.current?.stop();
@@ -232,7 +232,7 @@ export function LandingPage() {
         lenisRef.current?.start();
       }
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
@@ -249,45 +249,45 @@ export function LandingPage() {
         <Suspense fallback={<SectionLoader />}>
           <Hero3D />
         </Suspense>
-        
+
         {/* Problem/Solution Section */}
         <ProblemSection />
-        
+
         {/* Agent Visualization - Horizontal Scroll */}
         <Suspense fallback={<SectionLoader />}>
           <AgentVisualization />
         </Suspense>
-        
+
         {/* Speed Dial */}
         <Suspense fallback={<SectionLoader />}>
           <SpeedDial3D />
         </Suspense>
-        
+
         {/* Product Showcase */}
         <Suspense fallback={<SectionLoader />}>
           <ProductShowcase />
         </Suspense>
-        
+
         {/* Bento Grid Features */}
         <Suspense fallback={<SectionLoader />}>
           <BentoGrid />
         </Suspense>
-        
+
         {/* Trust & Credibility */}
         <Suspense fallback={<SectionLoader />}>
           <TrustSection />
         </Suspense>
-        
+
         {/* Pricing */}
         <Suspense fallback={<SectionLoader />}>
           <PricingRedesign />
         </Suspense>
-        
+
         {/* Final CTA */}
         <Suspense fallback={<SectionLoader />}>
           <FinalCTA />
         </Suspense>
-        
+
         {/* Footer */}
         <Suspense fallback={<SectionLoader />}>
           <Footer3D />

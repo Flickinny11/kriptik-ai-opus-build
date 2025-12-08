@@ -21,6 +21,7 @@ import {
     AlertCircle,
     Zap,
     Target,
+    LucideIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -153,7 +154,7 @@ function StatCard({
     subtext,
     color = 'blue',
 }: {
-    icon: React.ElementType;
+    icon: LucideIcon;
     label: string;
     value: string | number;
     subtext?: string;
@@ -256,7 +257,7 @@ function CollapsibleSection({
     children,
 }: {
     title: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     defaultOpen?: boolean;
     children: React.ReactNode;
 }) {

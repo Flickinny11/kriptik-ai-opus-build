@@ -14,7 +14,7 @@ const accentColor = '#c8ff64';
 // Behavior gradients and icons
 const BEHAVIOR_CONFIG: Record<string, {
     gradient: string;
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string; color?: string }>;
     color: string;
 }> = {
     'careful': {
@@ -44,7 +44,7 @@ const BEHAVIOR_CONFIG: Record<string, {
     },
 };
 
-const TECH_LEVEL_ICONS: Record<string, { icon: React.ElementType; label: string }> = {
+const TECH_LEVEL_ICONS: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
     'novice': { icon: User, label: 'Novice' },
     'intermediate': { icon: Gauge, label: 'Intermediate' },
     'power-user': { icon: Keyboard, label: 'Power User' },

@@ -15,7 +15,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Eye } from 'lucide-react';
+import { MessageSquare, Eye, LucideIcon } from 'lucide-react';
 
 export type MobileView = 'chat' | 'preview';
 
@@ -49,9 +49,9 @@ export function useSwipeGesture(
     const handleTouchEnd = useCallback(() => {
         if (!enabled || !isSwiping.current) return;
         isSwiping.current = false;
-        
+
         const diff = touchStartX.current - touchEndX.current;
-        
+
         if (Math.abs(diff) > threshold) {
             if (diff > 0) {
                 // Swiped left
@@ -61,7 +61,7 @@ export function useSwipeGesture(
                 onSwipeRight();
             }
         }
-        
+
         touchStartX.current = 0;
         touchEndX.current = 0;
     }, [enabled, threshold, onSwipeLeft, onSwipeRight]);
@@ -125,7 +125,7 @@ export default function MobileViewToggle({ activeView, onViewChange }: MobileVie
                     label="Preview"
                 />
             </div>
-            
+
             {/* Swipe hint indicator - subtle cue for users */}
             <motion.div
                 initial={{ opacity: 0 }}
@@ -143,7 +143,7 @@ export default function MobileViewToggle({ activeView, onViewChange }: MobileVie
 interface ToggleButtonProps {
     isActive: boolean;
     onClick: () => void;
-    icon: React.ElementType;
+    icon: LucideIcon;
     label: string;
 }
 
@@ -190,7 +190,7 @@ function ToggleButton({ isActive, onClick, icon: Icon, label }: ToggleButtonProp
                     `,
                 }}
             />
-            
+
             <Icon
                 className="w-4 h-4 relative z-10 transition-colors duration-250"
                 style={{ color: isActive ? '#b45309' : '#666' }}
