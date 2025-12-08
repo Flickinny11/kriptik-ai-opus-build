@@ -4259,3 +4259,87 @@ FIX APPLIED:
 
 COMMIT: 7e54fea - fix: Add Speed Dial properties to EnhancedFixExecutorConfig interface
 STATUS: Backend should now deploy successfully
+
+═══ [2025-12-08 SELF-FUNDING & PROTECTION SYSTEMS] ═══
+COMPLETED: Billing and Competition Systems (4 Prompts)
+
+PROMPT 1: Self-Funding Credit Pool (30 min)
+✓ Database Schema: creditPool, poolTransactions, poolSnapshots tables
+✓ CreditPoolService with 60/20/10/10% revenue allocation
+   - 60% → API Reserve (pays OpenRouter/Anthropic)
+   - 20% → Free Tier Subsidy (funds free users)
+   - 10% → Infrastructure Reserve (Vercel, Turso, etc.)
+   - 10% → Profit Reserve (business growth)
+✓ Pool health tracking with runway calculations
+✓ Automatic API cost deduction after generation
+✓ Revenue recording in Stripe webhooks (subscriptions, top-ups)
+✓ Admin endpoints: /api/admin/pool/status, /pool/transactions, /pool/seed
+
+PROMPT 2: Soft Competitor Protection (20 min)
+✓ ContentAnalyzer service with pattern detection
+✓ KripTik clone detection (95% confidence)
+✓ AI builder clone patterns (80% confidence)
+✓ Competitor mentions (Bolt, Lovable, Cursor, Replit, v0)
+✓ Legitimate use patterns to prevent false positives
+✓ Warning system with user acknowledgment flow
+✓ contentFlags table for admin review
+✓ Admin endpoint: /api/admin/content-flags
+
+PROMPT 3: Self-Healing Watchdog (45 min)
+✓ HealthMonitor service - continuous health checks
+   - Database connectivity
+   - OpenRouter API status
+   - Stripe API status
+   - Memory usage monitoring
+✓ AutoRecoveryService - automatic fix attempts
+   - Memory cache clearing
+   - Database reconnection
+   - API key rotation (if backup available)
+✓ AlertSystem - notifications
+   - Slack webhooks
+   - Discord webhooks
+   - PagerDuty integration
+✓ SelfHealingCoordinator - central management
+✓ Admin endpoints: /api/admin/health/detailed, /health/recover/:service, /alerts
+
+PROMPT 4: Persistent Usage Tracking (15 min)
+✓ Database Schema: usageRecords, usageSummaries tables
+✓ UsageService for persistent usage recording
+   - recordUsage() - individual events
+   - getMonthlyUsage() - billing period totals
+   - getDailyHistory() - day-by-day breakdown
+   - getRecentRecords() - recent activity
+   - getUsageByModel() - model-specific analytics
+✓ Daily aggregate calculations
+✓ Integration with /api/billing/usage endpoints
+✓ Integration with generate routes
+
+FILES CREATED:
+- server/src/services/billing/credit-pool.ts
+- server/src/services/billing/usage-service.ts
+- server/src/services/moderation/content-analyzer.ts
+- server/src/services/self-healing/health-monitor.ts
+- server/src/services/self-healing/auto-recovery.ts
+- server/src/services/self-healing/alert-system.ts
+- server/src/services/self-healing/coordinator.ts
+- server/src/services/self-healing/index.ts
+
+FILES MODIFIED:
+- server/src/schema.ts (added 6 new tables)
+- server/src/index.ts (self-healing initialization)
+- server/src/routes/admin.ts (pool, health, alert endpoints)
+- server/src/routes/billing.ts (credit pool + usage service integration)
+- server/src/routes/generate.ts (content analysis + usage recording)
+
+ENVIRONMENT VARIABLES NEEDED:
+- ADMIN_API_KEY (for admin endpoints)
+- SLACK_WEBHOOK_URL (optional - alerts)
+- DISCORD_WEBHOOK_URL (optional - alerts)
+- PAGERDUTY_KEY (optional - emergency alerts)
+- OPENROUTER_API_KEY_BACKUP (optional - failover)
+
+CURRENT STATE:
+- Build: ✓ Passes
+- TypeScript: ✓ No errors
+
+COMMIT: b74831c - feat: Implement self-funding, protection, self-healing, and usage tracking systems
