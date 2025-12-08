@@ -167,22 +167,47 @@ export const auth = betterAuth({
         },
     },
 
-    // Trust proxy for Vercel - include all allowed origins for callback URLs
-    trustedOrigins: [
-        // Production
-        "https://kriptik-ai-opus-build.vercel.app",
-        "https://kriptik-ai-opus-build.vercel.app/dashboard",
-        "https://kriptik-ai-opus-build.vercel.app/",
-        "https://kriptik-ai-opus-build-backend.vercel.app",
+    // Trust proxy for Vercel - use callback function to validate origins dynamically
+    // This allows preview deployments and production URLs
+    trustedOrigins: async (origin: string) => {
+        // Log for debugging
+        console.log('[Auth] Validating trustedOrigin:', origin);
+
+        // Always allow if no origin (server-to-server)
+        if (!origin) return true;
+
+        // Production frontend
+        if (origin.startsWith('https://kriptik-ai-opus-build.vercel.app')) return true;
+        if (origin.startsWith('https://kriptik-ai.vercel.app')) return true;
+
+        // Vercel preview deployments - match the pattern
+        // Format: kriptik-ai-opus-build-{hash}-{team}-{hash}.vercel.app
+        const vercelPreviewPattern = /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app/;
+        if (vercelPreviewPattern.test(origin)) {
+            console.log('[Auth] Allowing Vercel preview deployment:', origin);
+            return true;
+        }
+
+        // Alternative preview pattern
+        const altPreviewPattern = /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app/;
+        if (altPreviewPattern.test(origin)) {
+            console.log('[Auth] Allowing alternative preview deployment:', origin);
+            return true;
+        }
+
+        // Backend URL
+        if (origin.startsWith('https://kriptik-ai-opus-build-backend.vercel.app')) return true;
+
         // Custom URL from env
-        process.env.FRONTEND_URL || "",
-        `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/dashboard`,
+        if (process.env.FRONTEND_URL && origin.startsWith(process.env.FRONTEND_URL)) return true;
+
         // Development
-        "http://localhost:5173",
-        "http://localhost:5173/dashboard",
-        "http://localhost:3000",
-        "http://localhost:3000/dashboard",
-    ].filter(Boolean) as string[],
+        if (origin.startsWith('http://localhost:')) return true;
+        if (origin.startsWith('http://127.0.0.1:')) return true;
+
+        console.log('[Auth] Origin not trusted:', origin);
+        return false;
+    },
 
     // Rate limiting (optional but recommended)
     rateLimit: {
