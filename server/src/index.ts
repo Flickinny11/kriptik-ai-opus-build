@@ -6,7 +6,7 @@ import { getModelRouter } from './services/ai/model-router.js';
 dotenv.config();
 
 // Build timestamp for cache busting and deployment verification
-const BUILD_TIMESTAMP = '2025-12-08T16:03:00Z';
+const BUILD_TIMESTAMP = '2025-12-08T16:18:00Z';
 console.log(`[Server] Build timestamp: ${BUILD_TIMESTAMP}`);
 
 // Pre-warm model router for faster first request (2-3s improvement)
