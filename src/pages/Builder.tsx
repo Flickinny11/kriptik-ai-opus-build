@@ -20,7 +20,7 @@ import {
     Code2, Eye, Settings, Brain, Blocks,
     Cloud, ChevronRight, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic, Plug, LineChart
+    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -44,6 +44,7 @@ import { MarketFitDashboard } from '../components/market';
 import { VoiceArchitectPanel } from '../components/voice';
 import { APIAutopilotPanel } from '../components/api-autopilot';
 import { AdaptiveUIPanel } from '../components/adaptive';
+import { ContextBridgePanel } from '../components/import';
 import { useQualityStore } from '../store/useQualityStore';
 import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
@@ -345,6 +346,7 @@ export default function Builder() {
     const [showVoiceArchitect, setShowVoiceArchitect] = useState(false);
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
+    const [showContextBridge, setShowContextBridge] = useState(false);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -429,6 +431,16 @@ export default function Builder() {
                     isOpen={showAdaptiveUI}
                     onClose={() => setShowAdaptiveUI(false)}
                     projectId={projectId}
+                />
+
+                {/* Context Bridge - Import Existing Code */}
+                <ContextBridgePanel
+                    isOpen={showContextBridge}
+                    onClose={() => setShowContextBridge(false)}
+                    projectId={projectId}
+                    onImportComplete={(profile) => {
+                        console.log('Codebase imported:', profile);
+                    }}
                 />
 
                 {/* Premium Liquid Glass Header */}
@@ -554,6 +566,15 @@ export default function Builder() {
                             isActive={showAdaptiveUI}
                         >
                             Adaptive
+                        </GlassButton>
+
+                        {/* Context Bridge - Import Existing Code */}
+                        <GlassButton
+                            icon={Download}
+                            onClick={() => setShowContextBridge(true)}
+                            isActive={showContextBridge}
+                        >
+                            Import
                         </GlassButton>
 
                         <div className="h-4 w-px bg-white/10 mx-2" />

@@ -2078,3 +2078,81 @@ export const adaptivePatterns = sqliteTable('adaptive_patterns', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// Context Bridge (Codebase Import)
+// =============================================================================
+
+export const contextBridgeImports = sqliteTable('context_bridge_imports', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id).unique(),
+
+    // Source information
+    source: text('source', { mode: 'json' }).$type<{
+        type: 'github' | 'gitlab' | 'zip' | 'folder' | 'url';
+        location: string;
+        branch?: string;
+        owner?: string;
+        repo?: string;
+    }>(),
+
+    // Full codebase profile
+    profile: text('profile', { mode: 'json' }).$type<{
+        id: string;
+        projectId: string;
+        structure: {
+            root: { name: string; path: string; type: string; children?: unknown[] };
+            totalFiles: number;
+            totalDirectories: number;
+            totalSize: number;
+        };
+        technologies: {
+            framework: string | null;
+            language: string;
+            styling: string[];
+            stateManagement: string | null;
+            testing: string[];
+            buildTool: string | null;
+            typescript: boolean;
+        };
+        components: {
+            components: Array<{ name: string; path: string; type: string }>;
+            hooks: Array<{ name: string; path: string; type: string }>;
+            utilities: Array<{ name: string; path: string; type: string }>;
+        };
+        dependencies: {
+            dependencies: Array<{ name: string; version: string; type: string }>;
+            devDependencies: Array<{ name: string; version: string; type: string }>;
+        };
+        importedAt: string;
+        lastAnalyzed: string;
+    }>(),
+
+    // Detected patterns
+    patterns: text('patterns', { mode: 'json' }).$type<Array<{
+        type: 'architecture' | 'naming' | 'component' | 'state-management' | 'styling' | 'api';
+        name: string;
+        description: string;
+        examples: Array<{ file: string; code: string }>;
+        confidence: number;
+    }>>(),
+
+    // Coding conventions
+    conventions: text('conventions', { mode: 'json' }).$type<{
+        indentation: 'tabs' | 'spaces';
+        indentSize: number;
+        quoteStyle: 'single' | 'double';
+        semicolons: boolean;
+        componentStyle: 'functional' | 'class' | 'mixed';
+        namingConventions: {
+            components: 'PascalCase' | 'camelCase';
+            files: 'kebab-case' | 'camelCase' | 'PascalCase';
+            variables: 'camelCase' | 'snake_case';
+        };
+        trailingCommas: boolean;
+    }>(),
+
+    // Timestamps
+    lastSynced: text('last_synced'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});

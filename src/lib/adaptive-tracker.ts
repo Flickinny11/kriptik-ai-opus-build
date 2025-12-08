@@ -31,14 +31,14 @@ interface BehaviorContext {
     deviceType: 'mobile' | 'tablet' | 'desktop';
 }
 
-type SignalType = 
-    | 'click' 
-    | 'scroll' 
-    | 'hover' 
-    | 'rage-click' 
-    | 'dead-click' 
-    | 'form-abandon' 
-    | 'navigation' 
+type SignalType =
+    | 'click'
+    | 'scroll'
+    | 'hover'
+    | 'rage-click'
+    | 'dead-click'
+    | 'form-abandon'
+    | 'navigation'
     | 'time-on-element'
     | 'back-button'
     | 'hesitation';
@@ -95,20 +95,20 @@ function getSelector(element: Element): string {
     if (element.id) {
         return `#${element.id}`;
     }
-    
+
     // Try data attributes
     const dataTestId = element.getAttribute('data-testid');
     if (dataTestId) {
         return `[data-testid="${dataTestId}"]`;
     }
-    
+
     // Build path
     const path: string[] = [];
     let current: Element | null = element;
-    
+
     while (current && current !== document.body) {
         let selector = current.tagName.toLowerCase();
-        
+
         if (current.className && typeof current.className === 'string') {
             const classes = current.className.split(' ')
                 .filter(c => c && !c.startsWith('_') && c.length < 30)
@@ -117,19 +117,19 @@ function getSelector(element: Element): string {
                 selector += `.${classes.join('.')}`;
             }
         }
-        
+
         path.unshift(selector);
         current = current.parentElement;
-        
+
         if (path.length > 3) break;
     }
-    
+
     return path.join(' > ');
 }
 
 function getComponentType(element: Element): string {
     const tag = element.tagName.toLowerCase();
-    
+
     // Check for specific component types
     if (tag === 'button' || element.getAttribute('role') === 'button') return 'button';
     if (tag === 'a') return 'link';
@@ -140,7 +140,7 @@ function getComponentType(element: Element): string {
     if (tag === 'nav') return 'navigation';
     if (element.getAttribute('role') === 'dialog') return 'modal';
     if (element.classList.contains('card') || element.getAttribute('role') === 'article') return 'card';
-    
+
     return tag;
 }
 
@@ -148,10 +148,10 @@ function isInteractiveElement(element: Element): boolean {
     const tag = element.tagName.toLowerCase();
     const role = element.getAttribute('role');
     const tabIndex = element.getAttribute('tabindex');
-    
+
     const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'video', 'audio'];
     const interactiveRoles = ['button', 'link', 'menuitem', 'tab', 'checkbox', 'radio', 'slider'];
-    
+
     return (
         interactiveTags.includes(tag) ||
         (role && interactiveRoles.includes(role)) ||
@@ -163,7 +163,7 @@ function isInteractiveElement(element: Element): boolean {
 
 function getElementIdentifier(element: Element): ElementIdentifier {
     const rect = element.getBoundingClientRect();
-    
+
     return {
         selector: getSelector(element),
         componentType: getComponentType(element),
@@ -210,19 +210,19 @@ export class AdaptiveTracker {
     private maxBatchSize: number;
     private flushTimer: NodeJS.Timeout | null = null;
     private debug: boolean;
-    
+
     // Click tracking state
     private lastClickTime = 0;
     private lastClickElement: Element | null = null;
     private clickCount = 0;
-    
+
     // Hover tracking state
     private hoverTimer: NodeJS.Timeout | null = null;
     private hoveredElement: Element | null = null;
-    
+
     // Form tracking state
     private formProgress: Map<HTMLFormElement, { fields: Set<string>; total: number }> = new Map();
-    
+
     constructor(config: TrackerConfig) {
         this.projectId = config.projectId;
         this.sessionId = getSessionId();
@@ -230,10 +230,10 @@ export class AdaptiveTracker {
         this.flushInterval = config.flushInterval || 5000;
         this.maxBatchSize = config.maxBatchSize || 50;
         this.debug = config.debug || false;
-        
+
         // Set up automatic flushing
         this.startFlushTimer();
-        
+
         // Set up event listeners
         if (config.trackClicks !== false) {
             this.setupClickTracking();
@@ -247,18 +247,18 @@ export class AdaptiveTracker {
         if (config.trackForms !== false) {
             this.setupFormTracking();
         }
-        
+
         // Track navigation
         this.setupNavigationTracking();
-        
+
         // Flush on page unload
         window.addEventListener('beforeunload', () => this.flush());
-        
+
         if (this.debug) {
             console.log('[AdaptiveTracker] Initialized', { projectId: this.projectId, sessionId: this.sessionId });
         }
     }
-    
+
     /**
      * Add a signal to the queue
      */
@@ -278,19 +278,19 @@ export class AdaptiveTracker {
             timestamp: new Date(),
             metadata,
         };
-        
+
         this.signals.push(signal);
-        
+
         if (this.debug) {
             console.log('[AdaptiveTracker] Signal:', signal);
         }
-        
+
         // Auto-flush if batch size reached
         if (this.signals.length >= this.maxBatchSize) {
             this.flush();
         }
     }
-    
+
     /**
      * Track a click event
      */
@@ -298,7 +298,7 @@ export class AdaptiveTracker {
         const now = Date.now();
         const elementId = getElementIdentifier(element);
         const context = getContext();
-        
+
         // Detect rage clicking (3+ clicks in 2 seconds on same element)
         if (this.lastClickElement === element && now - this.lastClickTime < 2000) {
             this.clickCount++;
@@ -311,44 +311,44 @@ export class AdaptiveTracker {
         } else {
             this.clickCount = 1;
         }
-        
+
         // Detect dead clicks (non-interactive elements)
         if (!isInteractiveElement(element)) {
             this.addSignal('dead-click', elementId, context);
         }
-        
+
         // Track regular click
         this.addSignal('click', elementId, context);
-        
+
         this.lastClickTime = now;
         this.lastClickElement = element;
     }
-    
+
     /**
      * Track scroll depth
      */
     trackScroll(depth: number): void {
         const context = getContext();
-        
+
         this.addSignal('scroll', {
             selector: 'document',
             componentType: 'page',
             location: { x: 0, y: depth },
         }, context, { depth });
     }
-    
+
     /**
      * Track hover (hesitation detection)
      */
     trackHover(element: Element): void {
         const elementId = getElementIdentifier(element);
         this.hoveredElement = element;
-        
+
         // Clear previous timer
         if (this.hoverTimer) {
             clearTimeout(this.hoverTimer);
         }
-        
+
         // Start hesitation detection (5+ seconds hover)
         this.hoverTimer = setTimeout(() => {
             if (this.hoveredElement === element) {
@@ -358,7 +358,7 @@ export class AdaptiveTracker {
             }
         }, 5000);
     }
-    
+
     /**
      * Track element interaction time
      */
@@ -366,26 +366,26 @@ export class AdaptiveTracker {
         const elementId = getElementIdentifier(element);
         this.addSignal('time-on-element', elementId, getContext(), { duration });
     }
-    
+
     /**
      * Track form abandonment
      */
     trackFormAbandonment(form: HTMLFormElement, abandonedField: string): void {
         const progress = this.formProgress.get(form);
-        const completionPercent = progress 
+        const completionPercent = progress
             ? Math.round((progress.fields.size / progress.total) * 100)
             : 0;
-        
+
         const elementId = getElementIdentifier(form);
         const context = getContext();
-        
+
         this.addSignal('form-abandon', elementId, {
             ...context,
             completionPercent,
             abandonedField,
         });
     }
-    
+
     /**
      * Set up click tracking
      */
@@ -397,33 +397,33 @@ export class AdaptiveTracker {
             }
         }, { capture: true });
     }
-    
+
     /**
      * Set up scroll tracking
      */
     private setupScrollTracking(): void {
         let lastScrollDepth = 0;
         let scrollTimeout: NodeJS.Timeout | null = null;
-        
+
         document.addEventListener('scroll', () => {
             if (scrollTimeout) return;
-            
+
             scrollTimeout = setTimeout(() => {
                 const scrollDepth = Math.round(
                     (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100
                 );
-                
+
                 // Track at 25% intervals
                 if (scrollDepth >= lastScrollDepth + 25) {
                     this.trackScroll(scrollDepth);
                     lastScrollDepth = Math.floor(scrollDepth / 25) * 25;
                 }
-                
+
                 scrollTimeout = null;
             }, 100);
         });
     }
-    
+
     /**
      * Set up hover tracking
      */
@@ -434,7 +434,7 @@ export class AdaptiveTracker {
                 this.trackHover(target);
             }
         });
-        
+
         document.addEventListener('mouseout', () => {
             if (this.hoverTimer) {
                 clearTimeout(this.hoverTimer);
@@ -443,7 +443,7 @@ export class AdaptiveTracker {
             this.hoveredElement = null;
         });
     }
-    
+
     /**
      * Set up form tracking
      */
@@ -452,7 +452,7 @@ export class AdaptiveTracker {
         document.addEventListener('focusin', (event) => {
             const target = event.target as HTMLElement;
             const form = target.closest('form');
-            
+
             if (form && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
                 if (!this.formProgress.has(form)) {
                     const fields = form.querySelectorAll('input, textarea, select');
@@ -461,17 +461,17 @@ export class AdaptiveTracker {
                         total: fields.length,
                     });
                 }
-                
+
                 const progress = this.formProgress.get(form)!;
                 progress.fields.add((target as HTMLInputElement).name || target.id || getSelector(target));
             }
         });
-        
+
         // Track form abandonment on page leave or form blur
         document.addEventListener('focusout', (event) => {
             const target = event.target as HTMLElement;
             const form = target.closest('form');
-            
+
             if (form) {
                 // Check if focus moved outside the form
                 setTimeout(() => {
@@ -486,7 +486,7 @@ export class AdaptiveTracker {
             }
         });
     }
-    
+
     /**
      * Set up navigation tracking
      */
@@ -499,7 +499,7 @@ export class AdaptiveTracker {
                 location: { x: 0, y: 0 },
             }, getContext());
         });
-        
+
         // Track page navigation
         const originalPushState = history.pushState;
         history.pushState = (...args) => {
@@ -511,7 +511,7 @@ export class AdaptiveTracker {
             return originalPushState.apply(history, args);
         };
     }
-    
+
     /**
      * Start the flush timer
      */
@@ -522,16 +522,16 @@ export class AdaptiveTracker {
             }
         }, this.flushInterval);
     }
-    
+
     /**
      * Flush signals to server
      */
     async flush(): Promise<void> {
         if (this.signals.length === 0) return;
-        
+
         const signalsToSend = [...this.signals];
         this.signals = [];
-        
+
         try {
             const response = await fetch(this.endpoint, {
                 method: 'POST',
@@ -542,7 +542,7 @@ export class AdaptiveTracker {
                 }),
                 credentials: 'include',
             });
-            
+
             if (!response.ok) {
                 // Put signals back on failure
                 this.signals = [...signalsToSend, ...this.signals];
@@ -560,7 +560,7 @@ export class AdaptiveTracker {
             }
         }
     }
-    
+
     /**
      * Destroy the tracker
      */

@@ -36,14 +36,14 @@ export interface BehaviorContext {
     deviceType: 'mobile' | 'tablet' | 'desktop';
 }
 
-export type SignalType = 
-    | 'click' 
-    | 'scroll' 
-    | 'hover' 
-    | 'rage-click' 
-    | 'dead-click' 
-    | 'form-abandon' 
-    | 'navigation' 
+export type SignalType =
+    | 'click'
+    | 'scroll'
+    | 'hover'
+    | 'rage-click'
+    | 'dead-click'
+    | 'form-abandon'
+    | 'navigation'
     | 'time-on-element'
     | 'back-button'
     | 'hesitation';
@@ -77,12 +77,12 @@ export interface BehaviorPattern {
     sessionCount: number;
 }
 
-export type SuggestionType = 
-    | 'reposition' 
-    | 'resize' 
-    | 'restyle' 
-    | 'add-feedback' 
-    | 'simplify' 
+export type SuggestionType =
+    | 'reposition'
+    | 'resize'
+    | 'restyle'
+    | 'add-feedback'
+    | 'simplify'
     | 'add-tooltip'
     | 'improve-contrast'
     | 'increase-click-area'
@@ -295,9 +295,9 @@ export class AdaptiveUIService extends EventEmitter {
 
         // Detect form abandonment
         if (signal.signalType === 'form-abandon' && signal.context.completionPercent !== undefined) {
-            const severity = signal.context.completionPercent < 25 ? 'high' : 
+            const severity = signal.context.completionPercent < 25 ? 'high' :
                            signal.context.completionPercent < 50 ? 'medium' : 'low';
-            
+
             this.createPattern({
                 projectId: signal.projectId,
                 patternType: 'drop-off',
@@ -335,7 +335,7 @@ export class AdaptiveUIService extends EventEmitter {
                 const jsonMatch = text.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                     const result = JSON.parse(jsonMatch[0]);
-                    
+
                     if (result.patterns) {
                         for (const patternData of result.patterns) {
                             await this.createPattern({
@@ -373,7 +373,7 @@ export class AdaptiveUIService extends EventEmitter {
         // Count by type
         for (const signal of signals) {
             const type = signal.signalType;
-            (summary.signalsByType as Record<string, number>)[type] = 
+            (summary.signalsByType as Record<string, number>)[type] =
                 ((summary.signalsByType as Record<string, number>)[type] || 0) + 1;
         }
 
@@ -419,7 +419,7 @@ export class AdaptiveUIService extends EventEmitter {
         // Check if similar pattern exists
         const existingIndex = projectPatterns.findIndex(p =>
             p.patternType === data.patternType &&
-            p.affectedElements.some(e => 
+            p.affectedElements.some(e =>
                 data.affectedElements.some(de => de.selector === e.selector)
             )
         );
@@ -432,7 +432,7 @@ export class AdaptiveUIService extends EventEmitter {
             pattern.frequency += data.frequency;
             pattern.lastDetected = new Date();
             pattern.sessionCount++;
-            
+
             // Upgrade severity if needed
             if (this.getSeverityLevel(data.severity) > this.getSeverityLevel(pattern.severity)) {
                 pattern.severity = data.severity;
@@ -600,7 +600,7 @@ export class AdaptiveUIService extends EventEmitter {
      */
     getHeatmapData(projectId: string, pageUrl?: string): HeatmapData {
         const signals = this.signals.get(projectId) || [];
-        
+
         const relevantSignals = pageUrl
             ? signals.filter(s => s.context.pageUrl === pageUrl)
             : signals;

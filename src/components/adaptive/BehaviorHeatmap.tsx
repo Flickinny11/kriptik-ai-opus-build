@@ -46,7 +46,7 @@ export function BehaviorHeatmap({
     // Get color based on intensity (blue → green → yellow → red)
     const getColor = (intensity: number) => {
         const normalized = intensity / maxIntensity;
-        
+
         if (normalized < 0.25) {
             // Blue to cyan
             const t = normalized / 0.25;

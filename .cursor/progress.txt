@@ -3614,3 +3614,69 @@ Frontend:
 - src/components/api-autopilot/CodePreview.tsx
 - src/components/api-autopilot/TestRunner.tsx
 - src/components/api-autopilot/APIAutopilotPanel.tsx
+
+═══ [2025-12-07 ADAPTIVE UI IMPLEMENTATION] ═══
+COMPLETED: Adaptive UI - Behavior learning and UI improvement system
+
+FEATURE NOW ACCESSIBLE TO USERS:
+1. Click "Adaptive" button (📊) in Builder header
+2. Opens Adaptive UI analytics dashboard
+3. View patterns, suggestions, and heatmaps
+
+USER FLOW:
+1. Deploy app with Adaptive Tracker SDK embedded
+2. Users interact with deployed app → signals collected
+3. AI detects patterns (friction, confusion, success, drop-off)
+4. Suggestions generated with predicted impact percentages
+5. Review and apply suggestions with code previews
+6. View interaction heatmaps to understand user behavior
+
+COMPONENTS CREATED:
+
+Backend:
+- AdaptiveUIService: Pattern detection, suggestion generation
+- Signal types: click, scroll, hover, rage-click, dead-click, form-abandon, navigation, hesitation
+- Pattern types: friction, engagement, confusion, success, drop-off
+- Suggestion types: reposition, resize, restyle, add-feedback, simplify, add-tooltip, improve-contrast, increase-click-area, add-loading-state
+
+API Routes (/api/adaptive/*):
+- POST /signals - Receive behavior signals
+- GET /patterns/:projectId - Get detected patterns
+- GET /suggestions/:projectId - Get UI suggestions
+- POST /apply/:suggestionId - Apply changes
+- POST /dismiss/:suggestionId - Dismiss suggestion
+- GET /heatmap/:projectId - Get heatmap data
+- GET /stats/:projectId - Get statistics
+- GET /stream/:projectId - SSE real-time updates
+
+Client SDK (src/lib/adaptive-tracker.ts):
+- Lightweight behavior tracking
+- Rage-click detection (3+ clicks in 2 sec)
+- Dead-click detection
+- Form abandonment tracking
+- Hesitation detection (5+ sec hover)
+- Auto-batching and flushing
+
+Frontend:
+- AdaptiveUIPanel: 4-tab dashboard (Overview, Patterns, Suggestions, Heatmap)
+- BehaviorHeatmap: Gradient visualization (blue→red)
+- SuggestionCard: Code preview, apply button, impact prediction
+- PatternTimeline: Chronological pattern view
+
+Database Schema:
+- adaptiveBehaviorSignals table
+- adaptivePatterns table
+
+INTEGRATION:
+- Button in Builder header
+- Analytics dashboard with tabs
+- Real-time SSE updates
+- Code suggestions with before/after preview
+
+BUILD: PASSING ✅
+PUSHED: 6bcd78f
+
+SESSION SUMMARY - ALL FEATURES IMPLEMENTED:
+1. ✅ Voice Architect - Voice-to-code capability
+2. ✅ API Autopilot - Automatic API integration
+3. ✅ Adaptive UI - Behavior learning system
