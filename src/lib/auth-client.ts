@@ -69,6 +69,10 @@ export const signInWithEmail = async (email: string, password: string) => {
         throw new Error(response.error.message || 'Login failed');
     }
 
+    if (!response.data) {
+        throw new Error('Login failed - no user data returned');
+    }
+
     return response.data;
 };
 
@@ -84,6 +88,10 @@ export const signUp = async (email: string, password: string, name: string) => {
 
     if (response.error) {
         throw new Error(response.error.message || 'Signup failed');
+    }
+
+    if (!response.data) {
+        throw new Error('Signup failed - no user data returned');
     }
 
     return response.data;
