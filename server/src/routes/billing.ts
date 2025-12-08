@@ -13,6 +13,8 @@ import {
     KRIPTIK_BILLING_CONFIG,
     calculateCreditsForFeature,
 } from '../services/billing/stripe-setup.js';
+import { getCreditPoolService } from '../services/billing/credit-pool.js';
+import { getUsageService } from '../services/billing/usage-service.js';
 import { db } from '../db.js';
 import { subscriptions, users } from '../schema.js';
 import { eq } from 'drizzle-orm';
@@ -101,8 +103,17 @@ router.get('/usage', async (req: Request, res: Response) => {
             return;
         }
 
-        const summary = await usageTracker.getUsageSummary(userId);
-        res.json({ usage: summary });
+        // Get from persistent usage service
+        const usageService = getUsageService();
+        const monthlyUsage = await usageService.getMonthlyUsage(userId);
+
+        // Also get session-based summary for real-time data
+        const sessionSummary = await usageTracker.getUsageSummary(userId);
+
+        res.json({
+            usage: sessionSummary,
+            monthly: monthlyUsage,
+        });
     } catch (error) {
         console.error('Error fetching usage:', error);
         res.status(500).json({ error: 'Failed to fetch usage' });
@@ -131,7 +142,7 @@ router.get('/usage/breakdown', async (req: Request, res: Response) => {
 
 /**
  * GET /api/billing/usage/history
- * Get usage over time
+ * Get usage over time (persistent)
  */
 router.get('/usage/history', async (req: Request, res: Response) => {
     try {
@@ -142,9 +153,18 @@ router.get('/usage/history', async (req: Request, res: Response) => {
         }
 
         const days = parseInt(req.query.days as string) || 30;
-        const history = await usageTracker.getUsageOverTime(userId, days);
 
-        res.json({ history });
+        // Get persistent history from database
+        const usageService = getUsageService();
+        const persistentHistory = await usageService.getDailyHistory(userId, days);
+
+        // Also get session-based history for real-time
+        const sessionHistory = await usageTracker.getUsageOverTime(userId, days);
+
+        res.json({
+            history: persistentHistory,
+            sessionHistory, // Real-time session data
+        });
     } catch (error) {
         console.error('Error fetching usage history:', error);
         res.status(500).json({ error: 'Failed to fetch history' });
@@ -343,6 +363,16 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                             .where(eq(users.id, userId));
 
                         console.log(`Custom top-up: Added ${credits} credits to user ${userId}`);
+
+                        // Record revenue in credit pool
+                        const amountCents = session.amount_total || 0;
+                        if (amountCents > 0) {
+                            const pool = getCreditPoolService();
+                            await pool.recordRevenue(amountCents, 'topup', userId, {
+                                stripeSessionId: session.id,
+                                type: 'custom_topup',
+                            });
+                        }
                     }
                     break;
                 }
@@ -365,6 +395,16 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                             .where(eq(users.id, userId));
 
                         console.log(`Top-up: Added ${credits} credits to user ${userId}`);
+
+                        // Record revenue in credit pool
+                        const amountCents = session.amount_total || 0;
+                        if (amountCents > 0) {
+                            const pool = getCreditPoolService();
+                            await pool.recordRevenue(amountCents, 'topup', userId, {
+                                stripeSessionId: session.id,
+                                topupId: session.metadata?.topup_id,
+                            });
+                        }
                     }
                     break;
                 }
@@ -427,6 +467,17 @@ router.post('/webhook', raw({ type: 'application/json' }), async (req: Request, 
                         .where(eq(users.id, userId));
 
                     console.log(`Subscription created for user ${userId}: ${plan} (${creditsPerMonth} credits/month)`);
+
+                    // Record subscription revenue in credit pool
+                    const amountCents = session.amount_total || 0;
+                    if (amountCents > 0) {
+                        const pool = getCreditPoolService();
+                        await pool.recordRevenue(amountCents, 'subscription', userId, {
+                            stripeSessionId: session.id,
+                            plan,
+                            subscriptionId,
+                        });
+                    }
                 }
                 break;
             }

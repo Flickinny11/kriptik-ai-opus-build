@@ -2156,3 +2156,93 @@ export const contextBridgeImports = sqliteTable('context_bridge_imports', {
     lastSynced: text('last_synced'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// CREDIT POOL - Self-Funding System
+// =============================================================================
+
+// Credit Pool - tracks overall financial health
+export const creditPool = sqliteTable('credit_pool', {
+    id: text('id').primaryKey().default('main'),
+    apiReserve: integer('api_reserve').notNull().default(0), // cents
+    freeSubsidy: integer('free_subsidy').notNull().default(0), // cents
+    infraReserve: integer('infra_reserve').notNull().default(0), // cents
+    profitReserve: integer('profit_reserve').notNull().default(0), // cents
+    totalRevenue: integer('total_revenue').notNull().default(0), // cents
+    totalApiSpend: integer('total_api_spend').notNull().default(0), // cents
+    lastUpdated: text('last_updated').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Pool Transactions - audit trail
+export const poolTransactions = sqliteTable('pool_transactions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    type: text('type').notNull().$type<'revenue' | 'api_cost' | 'free_subsidy' | 'infra_cost' | 'withdrawal'>(),
+    category: text('category').$type<'subscription' | 'topup' | 'generation' | 'deployment' | 'overage'>(),
+    amount: integer('amount').notNull(), // cents - positive = income, negative = expense
+    description: text('description'),
+    userId: text('user_id'),
+    apiReserveAfter: integer('api_reserve_after'),
+    freeSubsidyAfter: integer('free_subsidy_after'),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Daily Pool Snapshots - for analytics
+export const poolSnapshots = sqliteTable('pool_snapshots', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    date: text('date').notNull(), // YYYY-MM-DD
+    apiReserve: integer('api_reserve').notNull(),
+    freeSubsidy: integer('free_subsidy').notNull(),
+    infraReserve: integer('infra_reserve').notNull(),
+    profitReserve: integer('profit_reserve').notNull(),
+    dailyRevenue: integer('daily_revenue').notNull(),
+    dailyApiSpend: integer('daily_api_spend').notNull(),
+    freeUserCount: integer('free_user_count'),
+    paidUserCount: integer('paid_user_count'),
+});
+
+// =============================================================================
+// USAGE TRACKING - Persistent Usage Records
+// =============================================================================
+
+// Usage records - individual usage events
+export const usageRecords = sqliteTable('usage_records', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    projectId: text('project_id'),
+    category: text('category').notNull().$type<'generation' | 'deployment' | 'api_call' | 'storage'>(),
+    subcategory: text('subcategory'), // 'openrouter' | 'claude' | 'vercel' | etc.
+    creditsUsed: integer('credits_used').notNull(),
+    tokensUsed: integer('tokens_used'),
+    model: text('model'),
+    endpoint: text('endpoint'),
+    metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Usage summaries - daily aggregates per user
+export const usageSummaries = sqliteTable('usage_summaries', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    date: text('date').notNull(), // YYYY-MM-DD
+    totalCredits: integer('total_credits').notNull().default(0),
+    generationCredits: integer('generation_credits').notNull().default(0),
+    deploymentCredits: integer('deployment_credits').notNull().default(0),
+    apiCredits: integer('api_credits').notNull().default(0),
+    generationCount: integer('generation_count').notNull().default(0),
+    totalTokens: integer('total_tokens').notNull().default(0),
+});
+
+// =============================================================================
+// CONTENT FLAGS - Competitor Protection Logging
+// =============================================================================
+
+export const contentFlags = sqliteTable('content_flags', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    prompt: text('prompt').notNull(),
+    category: text('category').notNull().$type<'competitor_clone' | 'platform_replica' | 'ip_concern' | 'none'>(),
+    confidence: integer('confidence').notNull(), // 0-100
+    matchedPatterns: text('matched_patterns', { mode: 'json' }).$type<string[]>(),
+    userAcknowledged: integer('user_acknowledged', { mode: 'boolean' }).default(false),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});

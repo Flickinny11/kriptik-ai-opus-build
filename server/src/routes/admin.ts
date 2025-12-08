@@ -1,479 +1,302 @@
 /**
  * Admin Routes
- *
- * For user management, debugging, and administrative tasks.
- * Protected by admin secret header.
+ * 
+ * Protected endpoints for system administration:
+ * - Credit pool management
+ * - Health monitoring
+ * - Alert management
+ * - Content moderation
  */
 
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { getCreditPoolService } from '../services/billing/credit-pool.js';
+import { getSelfHealingCoordinator, getHealthMonitor, getAlertSystem } from '../services/self-healing/index.js';
+import { getContentAnalyzer } from '../services/moderation/content-analyzer.js';
 import { db } from '../db.js';
-import { users, sessions, accounts, projects, files, generations } from '../schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { poolTransactions, poolSnapshots, contentFlags } from '../schema.js';
+import { desc, gte, eq } from 'drizzle-orm';
 
 const router = Router();
 
-// Admin secret check
-const checkAdminSecret = (req: Request, res: Response): boolean => {
-    const secret = req.headers['x-admin-secret'];
-    const adminSecret = process.env.ADMIN_SECRET;
-
-    // If no admin secret is set in env, allow access (for initial setup)
-    // IMPORTANT: Set ADMIN_SECRET in production!
-    if (!adminSecret) {
-        console.warn('[Admin] No ADMIN_SECRET set - allowing access. Set ADMIN_SECRET for production!');
-        return true;
+// Middleware to check admin auth
+const requireAdmin = (req: any, res: any, next: any) => {
+    const adminKey = req.headers['x-admin-key'];
+    
+    if (!process.env.ADMIN_API_KEY) {
+        console.warn('[Admin] ADMIN_API_KEY not configured - admin access disabled');
+        return res.status(503).json({ error: 'Admin API not configured' });
     }
-
-    if (!secret || secret !== adminSecret) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid admin secret' });
-        return false;
+    
+    if (adminKey !== process.env.ADMIN_API_KEY) {
+        return res.status(403).json({ error: 'Admin access required' });
     }
-    return true;
+    
+    next();
 };
 
-/**
- * GET /api/admin/users
- * List all users
- */
-router.get('/users', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
+// =============================================================================
+// CREDIT POOL ENDPOINTS
+// =============================================================================
 
+// Get pool status
+router.get('/pool/status', requireAdmin, async (req, res) => {
     try {
-        const allUsers = await db.select({
-            id: users.id,
-            email: users.email,
-            name: users.name,
-            credits: users.credits,
-            tier: users.tier,
-            createdAt: users.createdAt,
-        }).from(users);
-
-        res.json({ users: allUsers });
-    } catch (error: any) {
-        console.error('Error listing users:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * GET /api/admin/users/:email
- * Get user by email
- */
-router.get('/users/:email', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        const { email } = req.params;
-
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1);
-
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        res.json({ user: userRecords[0] });
-    } catch (error: any) {
-        console.error('Error getting user:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * DELETE /api/admin/users/:email
- * Delete user by email
- */
-router.delete('/users/:email', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        const { email } = req.params;
-
-        // Find user
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1);
-
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const userId = userRecords[0].id;
-
-        // Delete related records first (in order of dependencies)
-        await db.delete(generations).where(eq(generations.userId, userId));
-        await db.delete(files).where(eq(files.projectId, userId)); // files reference projects
-        await db.delete(projects).where(eq(projects.ownerId, userId));
-        await db.delete(sessions).where(eq(sessions.userId, userId));
-        await db.delete(accounts).where(eq(accounts.userId, userId));
-
-        // Finally delete user
-        await db.delete(users).where(eq(users.id, userId));
-
-        console.log(`[Admin] Deleted user: ${email}`);
+        const pool = getCreditPoolService();
+        const status = await pool.getPool();
+        const health = await pool.getHealth();
 
         res.json({
             success: true,
-            message: `User ${email} deleted successfully`,
-            deletedUserId: userId,
-        });
-    } catch (error: any) {
-        console.error('Error deleting user:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * PATCH /api/admin/users/:email/credits
- * Set credits for a user
- */
-router.patch('/users/:email/credits', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        const { email } = req.params;
-        const { credits } = req.body;
-
-        if (typeof credits !== 'number' || credits < 0) {
-            return res.status(400).json({ error: 'Invalid credits value' });
-        }
-
-        // Find user
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1);
-
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Update credits
-        await db
-            .update(users)
-            .set({ credits, updatedAt: new Date().toISOString() })
-            .where(eq(users.email, email));
-
-        console.log(`[Admin] Set credits for ${email}: ${credits}`);
-
-        res.json({
-            success: true,
-            message: `Credits set to ${credits} for ${email}`,
-            email,
-            credits,
-        });
-    } catch (error: any) {
-        console.error('Error setting credits:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * PATCH /api/admin/users/:email/tier
- * Set tier for a user (free, pro, enterprise, unlimited)
- */
-router.patch('/users/:email/tier', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        const { email } = req.params;
-        const { tier } = req.body;
-
-        const validTiers = ['free', 'pro', 'enterprise', 'unlimited'];
-        if (!validTiers.includes(tier)) {
-            return res.status(400).json({
-                error: 'Invalid tier',
-                validTiers
-            });
-        }
-
-        // Find user
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1);
-
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Update tier
-        await db
-            .update(users)
-            .set({ tier, updatedAt: new Date().toISOString() })
-            .where(eq(users.email, email));
-
-        console.log(`[Admin] Set tier for ${email}: ${tier}`);
-
-        res.json({
-            success: true,
-            message: `Tier set to ${tier} for ${email}`,
-            email,
-            tier,
-        });
-    } catch (error: any) {
-        console.error('Error setting tier:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * GET /api/admin/debug/auth
- * Debug authentication - show all users, accounts, sessions
- * Useful for diagnosing login issues
- */
-router.get('/debug/auth', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        // Get all users
-        const allUsers = await db.select({
-            id: users.id,
-            email: users.email,
-            name: users.name,
-            credits: users.credits,
-            tier: users.tier,
-            createdAt: users.createdAt,
-        }).from(users);
-
-        // Get all accounts (OAuth links)
-        const allAccounts = await db.select({
-            id: accounts.id,
-            accountId: accounts.accountId,
-            providerId: accounts.providerId,
-            userId: accounts.userId,
-            createdAt: accounts.createdAt,
-        }).from(accounts);
-
-        // Get all active sessions
-        const allSessions = await db.select({
-            id: sessions.id,
-            userId: sessions.userId,
-            expiresAt: sessions.expiresAt,
-            createdAt: sessions.createdAt,
-        }).from(sessions);
-
-        // Get all projects with owner emails
-        const allProjects = await db.select({
-            id: projects.id,
-            name: projects.name,
-            ownerId: projects.ownerId,
-            createdAt: projects.createdAt,
-        }).from(projects);
-
-        // Build a detailed view
-        const userDetails = allUsers.map(user => {
-            const userAccounts = allAccounts.filter(a => a.userId === user.id);
-            const userSessions = allSessions.filter(s => s.userId === user.id);
-            const userProjects = allProjects.filter(p => p.ownerId === user.id);
-
-            return {
-                ...user,
-                accounts: userAccounts,
-                sessions: userSessions,
-                projectCount: userProjects.length,
-                projects: userProjects,
-            };
-        });
-
-        // Check for duplicate emails (shouldn't happen due to unique constraint)
-        const emailCounts: Record<string, number> = {};
-        allUsers.forEach(u => {
-            emailCounts[u.email] = (emailCounts[u.email] || 0) + 1;
-        });
-        const duplicateEmails = Object.entries(emailCounts)
-            .filter(([, count]) => count > 1)
-            .map(([email]) => email);
-
-        // Check for orphaned accounts (accounts without users)
-        const orphanedAccounts = allAccounts.filter(
-            a => !allUsers.some(u => u.id === a.userId)
-        );
-
-        res.json({
-            summary: {
-                totalUsers: allUsers.length,
-                totalAccounts: allAccounts.length,
-                totalSessions: allSessions.length,
-                totalProjects: allProjects.length,
-                duplicateEmails,
-                orphanedAccounts: orphanedAccounts.length,
+            pool: {
+                ...status,
+                // Convert cents to dollars for display
+                apiReserveUSD: (status.apiReserve / 100).toFixed(2),
+                freeSubsidyUSD: (status.freeSubsidy / 100).toFixed(2),
+                infraReserveUSD: (status.infraReserve / 100).toFixed(2),
+                profitReserveUSD: (status.profitReserve / 100).toFixed(2),
+                totalRevenueUSD: (status.totalRevenue / 100).toFixed(2),
+                totalApiSpendUSD: (status.totalApiSpend / 100).toFixed(2),
             },
-            users: userDetails,
-            orphanedAccounts,
+            health,
+            allocation: {
+                api: '60%',
+                free: '20%',
+                infra: '10%',
+                profit: '10%',
+            },
         });
-    } catch (error: any) {
-        console.error('Error in debug/auth:', error);
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
     }
 });
 
-/**
- * GET /api/admin/debug/user/:email
- * Debug specific user - show all related data
- */
-router.get('/debug/user/:email', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
+// Get recent transactions
+router.get('/pool/transactions', requireAdmin, async (req, res) => {
     try {
-        const { email } = req.params;
+        const limit = parseInt(req.query.limit as string) || 100;
 
-        // Get user
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email));
+        const transactions = await db.select()
+            .from(poolTransactions)
+            .orderBy(desc(poolTransactions.timestamp))
+            .limit(limit);
 
-        if (userRecords.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+        res.json({ 
+            success: true, 
+            transactions: transactions.map(t => ({
+                ...t,
+                amountUSD: (t.amount / 100).toFixed(4),
+            })),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Get daily snapshots (last 30 days)
+router.get('/pool/history', requireAdmin, async (req, res) => {
+    try {
+        const days = parseInt(req.query.days as string) || 30;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const snapshots = await db.select()
+            .from(poolSnapshots)
+            .where(gte(poolSnapshots.date, startDate.toISOString().split('T')[0]))
+            .orderBy(desc(poolSnapshots.date));
+
+        res.json({ 
+            success: true, 
+            snapshots: snapshots.map(s => ({
+                ...s,
+                apiReserveUSD: (s.apiReserve / 100).toFixed(2),
+                dailyRevenueUSD: (s.dailyRevenue / 100).toFixed(2),
+                dailyApiSpendUSD: (s.dailyApiSpend / 100).toFixed(2),
+            })),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Seed pool (one-time initial funding)
+router.post('/pool/seed', requireAdmin, async (req, res) => {
+    try {
+        const { amountUSD } = req.body;
+
+        if (!amountUSD || amountUSD <= 0) {
+            return res.status(400).json({ error: 'Invalid amount - provide amountUSD (dollars)' });
         }
 
-        // If multiple users with same email, show all (shouldn't happen)
-        const userData = await Promise.all(userRecords.map(async (user) => {
-            const userAccounts = await db
-                .select()
-                .from(accounts)
-                .where(eq(accounts.userId, user.id));
-
-            const userSessions = await db
-                .select()
-                .from(sessions)
-                .where(eq(sessions.userId, user.id));
-
-            const userProjects = await db
-                .select()
-                .from(projects)
-                .where(eq(projects.ownerId, user.id));
-
-            return {
-                user,
-                accounts: userAccounts,
-                sessions: userSessions,
-                projects: userProjects,
-            };
-        }));
+        const amountCents = Math.round(amountUSD * 100);
+        const pool = getCreditPoolService();
+        await pool.seedPool(amountCents);
 
         res.json({
-            email,
-            userCount: userRecords.length,
-            data: userData,
+            success: true,
+            message: `Pool seeded with $${amountUSD}`,
+            newStatus: await pool.getPool(),
         });
-    } catch (error: any) {
-        console.error('Error in debug/user:', error);
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
     }
 });
 
-/**
- * POST /api/admin/fix/merge-users
- * Merge duplicate users with same email into one
- * Keeps the oldest user, moves all projects/accounts to it
- */
-router.post('/fix/merge-users/:email', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
+// Record daily snapshot manually
+router.post('/pool/snapshot', requireAdmin, async (req, res) => {
     try {
-        const { email } = req.params;
+        const pool = getCreditPoolService();
+        await pool.recordDailySnapshot();
 
-        // Find all users with this email
-        const userRecords = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email));
+        res.json({
+            success: true,
+            message: 'Daily snapshot recorded',
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
 
-        if (userRecords.length < 2) {
-            return res.json({
-                message: 'No duplicate users to merge',
-                userCount: userRecords.length,
-            });
-        }
+// =============================================================================
+// HEALTH & SELF-HEALING ENDPOINTS
+// =============================================================================
 
-        // Sort by creation date, keep the oldest
-        userRecords.sort((a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
+// Get comprehensive health status
+router.get('/health/detailed', requireAdmin, async (req, res) => {
+    try {
+        const coordinator = getSelfHealingCoordinator();
+        const status = coordinator.getStatus();
 
-        const primaryUser = userRecords[0];
-        const duplicateUsers = userRecords.slice(1);
+        res.json({
+            success: true,
+            ...status,
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
 
-        console.log(`[Admin] Merging ${duplicateUsers.length} duplicate users into ${primaryUser.id}`);
+// Trigger manual recovery
+router.post('/health/recover/:service', requireAdmin, async (req, res) => {
+    try {
+        const { service } = req.params;
+        const coordinator = getSelfHealingCoordinator();
+        const success = await coordinator.triggerRecovery(service);
 
-        const mergeResults = {
-            primaryUserId: primaryUser.id,
-            mergedUserIds: [] as string[],
-            movedProjects: 0,
-            movedAccounts: 0,
-            movedSessions: 0,
+        res.json({
+            success,
+            message: success ? `Recovery triggered for ${service}` : `Recovery failed for ${service}`,
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Get active alerts
+router.get('/alerts', requireAdmin, async (req, res) => {
+    try {
+        const alerts = getAlertSystem();
+        res.json({
+            success: true,
+            alerts: alerts.getActiveAlerts(),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Get all alerts
+router.get('/alerts/all', requireAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 100;
+        const alerts = getAlertSystem();
+        res.json({
+            success: true,
+            alerts: alerts.getAllAlerts(limit),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Acknowledge alert
+router.post('/alerts/:alertId/acknowledge', requireAdmin, async (req, res) => {
+    try {
+        const { alertId } = req.params;
+        const alerts = getAlertSystem();
+        const success = alerts.acknowledgeAlert(alertId);
+
+        res.json({ success });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Get recent errors
+router.get('/health/errors', requireAdmin, async (req, res) => {
+    try {
+        const count = parseInt(req.query.count as string) || 50;
+        const monitor = getHealthMonitor();
+        const errors = monitor.getRecentErrors(count);
+
+        res.json({
+            success: true,
+            errors,
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// =============================================================================
+// CONTENT MODERATION ENDPOINTS
+// =============================================================================
+
+// Get flagged content for review
+router.get('/content-flags', requireAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 100;
+        
+        const flags = await db.select()
+            .from(contentFlags)
+            .orderBy(desc(contentFlags.timestamp))
+            .limit(limit);
+
+        res.json({
+            success: true,
+            flags: flags.map(f => ({
+                ...f,
+                confidencePercent: f.confidence,
+            })),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// Get content flag stats
+router.get('/content-flags/stats', requireAdmin, async (req, res) => {
+    try {
+        const analyzer = getContentAnalyzer();
+        const flags = await analyzer.getFlaggedContent(1000);
+
+        const stats = {
+            total: flags.length,
+            byCategory: {} as Record<string, number>,
+            acknowledged: flags.filter(f => f.userAcknowledged).length,
+            unacknowledged: flags.filter(f => !f.userAcknowledged).length,
         };
 
-        for (const duplicate of duplicateUsers) {
-            // Move projects
-            const projectResult = await db
-                .update(projects)
-                .set({ ownerId: primaryUser.id })
-                .where(eq(projects.ownerId, duplicate.id));
-            mergeResults.movedProjects += projectResult.rowsAffected || 0;
-
-            // Move accounts (OAuth links)
-            const accountResult = await db
-                .update(accounts)
-                .set({ userId: primaryUser.id })
-                .where(eq(accounts.userId, duplicate.id));
-            mergeResults.movedAccounts += accountResult.rowsAffected || 0;
-
-            // Delete duplicate sessions (don't move, just clean up)
-            await db.delete(sessions).where(eq(sessions.userId, duplicate.id));
-
-            // Delete duplicate user
-            await db.delete(users).where(eq(users.id, duplicate.id));
-            mergeResults.mergedUserIds.push(duplicate.id);
+        for (const flag of flags) {
+            stats.byCategory[flag.category] = (stats.byCategory[flag.category] || 0) + 1;
         }
 
-        console.log(`[Admin] Merge complete:`, mergeResults);
-
         res.json({
             success: true,
-            message: `Merged ${duplicateUsers.length} duplicate users`,
-            ...mergeResults,
+            stats,
         });
-    } catch (error: any) {
-        console.error('Error in fix/merge-users:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * POST /api/admin/fix/cleanup-sessions
- * Clean up expired sessions from the database
- */
-router.post('/fix/cleanup-sessions', async (req: Request, res: Response) => {
-    if (!checkAdminSecret(req, res)) return;
-
-    try {
-        const now = new Date().toISOString();
-
-        // Delete expired sessions
-        const result = await db
-            .delete(sessions)
-            .where(sql`${sessions.expiresAt} < ${now}`);
-
-        res.json({
-            success: true,
-            message: 'Cleaned up expired sessions',
-            deletedCount: result.rowsAffected || 0,
-        });
-    } catch (error: any) {
-        console.error('Error in cleanup-sessions:', error);
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
     }
 });
 
 export default router;
-

@@ -531,6 +531,41 @@ import contextBridgeRouter from './routes/context-bridge.js';
 app.use("/api/context", requireCredits(25), contextBridgeRouter);
 
 // =============================================================================
+// SELF-HEALING SYSTEM
+// =============================================================================
+
+import { getSelfHealingCoordinator } from './services/self-healing/coordinator.js';
+import { getCreditPoolService } from './services/billing/credit-pool.js';
+
+// Initialize self-healing and credit pool
+const initializeSelfHealing = async () => {
+    try {
+        // Initialize credit pool
+        const pool = getCreditPoolService();
+        await pool.initialize();
+        console.log('[CreditPool] Initialized');
+
+        // Start self-healing coordinator
+        const coordinator = getSelfHealingCoordinator();
+        await coordinator.start();
+
+        // Graceful shutdown handler
+        const shutdown = () => {
+            coordinator.stop();
+            process.exit(0);
+        };
+
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
+    } catch (error) {
+        console.error('[SelfHealing] Failed to initialize:', error);
+    }
+};
+
+// Initialize on startup (but not blocking)
+initializeSelfHealing();
+
+// =============================================================================
 // HEALTH & STATUS
 // =============================================================================
 

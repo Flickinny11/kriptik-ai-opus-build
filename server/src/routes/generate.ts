@@ -7,7 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { db } from '../db.js';
-import { projects, files, generations } from '../schema.js';
+import { projects, files, generations, users } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { createOrchestrator, AgentLog, AgentType, AgentState } from '../services/ai/agent-orchestrator.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +15,9 @@ import { getDesignTokensFile } from '../templates/design-tokens.js';
 import { getQualityGateService } from '../services/ai/quality-gate.js';
 import { getComponentRegistry } from '../services/templates/component-registry.js';
 import { getCreditService, calculateCreditsForGeneration } from '../services/billing/credits.js';
+import { getContentAnalyzer } from '../services/moderation/content-analyzer.js';
+import { getUsageService } from '../services/billing/usage-service.js';
+import { getCreditPoolService } from '../services/billing/credit-pool.js';
 
 const router = Router();
 
@@ -31,6 +34,7 @@ interface GenerateBody {
     prompt: string;
     skipPhases?: AgentType[];
     intelligenceSettings?: IntelligenceSettings;
+    acknowledgedWarningId?: string;
 }
 
 interface ChatBody {
@@ -72,6 +76,58 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
 
         if (!project) {
             return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Content analysis for competitor protection
+        const contentAnalyzer = getContentAnalyzer();
+        const analysis = contentAnalyzer.analyze(prompt);
+
+        if (analysis.flagged && analysis.requiresAcknowledgment) {
+            // Check if user already acknowledged this warning
+            const acknowledgedWarningId = req.body.acknowledgedWarningId;
+
+            if (!acknowledgedWarningId) {
+                // Log the flag
+                await contentAnalyzer.logFlag(userId, prompt, analysis, false);
+
+                // Return warning - user must acknowledge to proceed
+                const warningId = uuidv4();
+                return res.json({
+                    success: false,
+                    requiresAcknowledgment: true,
+                    warning: {
+                        type: analysis.category === 'competitor_clone' ? 'ip_warning' : 'competitor_warning',
+                        message: analysis.warningMessage,
+                        requiresAcknowledgment: true,
+                        warningId,
+                        category: analysis.category,
+                        confidence: analysis.confidence,
+                    },
+                });
+            }
+
+            // User acknowledged - log and proceed
+            await contentAnalyzer.logFlag(userId, prompt, analysis, true);
+        } else if (analysis.flagged && !analysis.requiresAcknowledgment) {
+            // Soft warning - just log, don't block
+            await contentAnalyzer.logFlag(userId, prompt, analysis, true);
+        }
+
+        // Get user tier for credit pool tracking
+        const [user] = await db.select({ tier: users.tier }).from(users).where(eq(users.id, userId));
+        const isFreeTier = !user || user.tier === 'free';
+
+        // Check credit pool can afford this call
+        const pool = getCreditPoolService();
+        const estimatedCostCents = 50; // Rough estimate - adjust based on model
+        const affordCheck = await pool.canAffordApiCall(estimatedCostCents, isFreeTier);
+
+        if (!affordCheck.allowed) {
+            return res.status(503).json({
+                error: 'service_capacity_reached',
+                message: 'Our AI services are temporarily at capacity. Please try again in a few minutes.',
+                retryAfter: 60,
+            });
         }
 
         // Set up SSE headers
@@ -298,6 +354,31 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             sendSSE(res, 'credits', {
                 deducted: actualCredits,
                 reason: 'AI code generation',
+            });
+
+            // Record usage in persistent storage
+            const usageService = getUsageService();
+            await usageService.recordUsage({
+                userId,
+                projectId,
+                category: 'generation',
+                subcategory: 'code_generation',
+                creditsUsed: actualCredits,
+                tokensUsed: result.usage.totalInputTokens + result.usage.totalOutputTokens,
+                model: 'claude-sonnet-4-5',
+                endpoint: '/api/generate',
+                metadata: {
+                    promptLength: prompt.length,
+                    filesGenerated: result.files.size,
+                },
+            });
+
+            // Deduct actual cost from credit pool (estimate API cost in cents)
+            const apiCostCents = Math.ceil((result.usage.totalInputTokens * 0.003 + result.usage.totalOutputTokens * 0.015) / 10);
+            await pool.deductApiCost(apiCostCents, isFreeTier, userId, {
+                model: 'claude-sonnet-4-5',
+                tokens: result.usage.totalInputTokens + result.usage.totalOutputTokens,
+                endpoint: '/api/generate',
             });
         } catch (creditError) {
             // Log but don't fail the request
