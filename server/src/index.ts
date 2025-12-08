@@ -6,9 +6,9 @@ import { getModelRouter } from './services/ai/model-router.js';
 dotenv.config();
 
 // Build timestamp for cache busting and deployment verification
-const BUILD_TIMESTAMP = '2025-12-08T15:28:00Z';
+const BUILD_TIMESTAMP = '2025-12-08T15:33:00Z';
 console.log(`[Server] Build timestamp: ${BUILD_TIMESTAMP}`);
-console.log(`[Server] DEPLOYMENT FIX: Forcing redeploy after Vercel GitHub webhook issue`);
+console.log(`[Server] DEPLOYMENT FIX: Re-linked GitHub repo, testing webhook delivery`);
 
 // Pre-warm model router for faster first request (2-3s improvement)
 const warmupRouter = () => {
