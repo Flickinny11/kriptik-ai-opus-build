@@ -1,17 +1,24 @@
 /**
- * GlassSphere.tsx - Photorealistic Glass Sphere with Refraction
+ * GlassSphere.tsx - Adaptive Glass Sphere with Performance-Based Materials
  *
- * Creates floating glass orbs with realistic light refraction,
- * caustics, and responsive mouse/scroll interactions.
+ * Creates floating glass orbs with:
+ * - MeshTransmissionMaterial for high-end devices (realistic refraction)
+ * - MeshPhysicalMaterial for medium devices (good-looking glass)
+ * - MeshStandardMaterial for low-end devices (basic glass look)
+ *
+ * Automatically detects device capabilities and adapts.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   MeshTransmissionMaterial,
   Float,
 } from '@react-three/drei';
 import * as THREE from 'three';
+import { supportsTransmission, getQualityLevel } from '../../lib/webgl';
+
+type QualityLevel = 'high' | 'medium' | 'low';
 
 interface GlassSphereProps {
   position?: [number, number, number];
@@ -28,6 +35,178 @@ interface GlassSphereProps {
   ior?: number;
   innerGlow?: boolean;
   glowColor?: string;
+  /** Force a specific quality level (auto-detected if not provided) */
+  quality?: QualityLevel;
+}
+
+/**
+ * High Quality Glass Material - MeshTransmissionMaterial
+ * Uses multiple render passes for realistic refraction
+ */
+function HighQualityGlassMaterial({
+  color,
+  transmission,
+  roughness,
+  thickness,
+  ior,
+  chromaticAberration,
+  distortion,
+}: {
+  color: string;
+  transmission: number;
+  roughness: number;
+  thickness: number;
+  ior: number;
+  chromaticAberration: number;
+  distortion: number;
+}) {
+  return (
+    <MeshTransmissionMaterial
+      backside
+      samples={16}
+      resolution={512}
+      transmission={transmission}
+      roughness={roughness}
+      thickness={thickness}
+      ior={ior}
+      chromaticAberration={chromaticAberration}
+      anisotropy={0.1}
+      distortion={distortion}
+      distortionScale={0.3}
+      temporalDistortion={0.5}
+      clearcoat={1}
+      attenuationDistance={0.5}
+      attenuationColor={color}
+      color={color}
+    />
+  );
+}
+
+/**
+ * Medium Quality Glass Material - MeshPhysicalMaterial
+ * Single pass but still looks great
+ */
+function MediumQualityGlassMaterial({
+  color,
+  transmission,
+  roughness,
+  thickness,
+  ior,
+}: {
+  color: string;
+  transmission: number;
+  roughness: number;
+  thickness: number;
+  ior: number;
+}) {
+  return (
+    <meshPhysicalMaterial
+      color={color}
+      transmission={transmission}
+      roughness={roughness}
+      thickness={thickness}
+      ior={ior}
+      clearcoat={1}
+      clearcoatRoughness={0.1}
+      envMapIntensity={1}
+      transparent
+    />
+  );
+}
+
+/**
+ * Low Quality Glass Material - MeshStandardMaterial
+ * Basic glass look for low-end devices
+ */
+function LowQualityGlassMaterial({
+  color,
+  glowColor,
+}: {
+  color: string;
+  glowColor: string;
+}) {
+  const parsedColor = useMemo(() => new THREE.Color(color), [color]);
+  const parsedGlow = useMemo(() => new THREE.Color(glowColor), [glowColor]);
+
+  return (
+    <meshStandardMaterial
+      color={parsedColor}
+      emissive={parsedGlow}
+      emissiveIntensity={0.1}
+      transparent
+      opacity={0.85}
+      metalness={0.1}
+      roughness={0.15}
+    />
+  );
+}
+
+/**
+ * Adaptive Glass Material - Automatically selects based on device capability
+ */
+function AdaptiveGlassMaterial({
+  color,
+  glowColor,
+  transmission,
+  roughness,
+  thickness,
+  ior,
+  chromaticAberration,
+  distortion,
+  quality: qualityOverride,
+}: {
+  color: string;
+  glowColor: string;
+  transmission: number;
+  roughness: number;
+  thickness: number;
+  ior: number;
+  chromaticAberration: number;
+  distortion: number;
+  quality?: QualityLevel;
+}) {
+  const [quality, setQuality] = useState<QualityLevel>(() => {
+    if (qualityOverride) return qualityOverride;
+    const detected = getQualityLevel();
+    if (detected === 'high' && supportsTransmission()) return 'high';
+    if (detected === 'medium' || detected === 'high') return 'medium';
+    return 'low';
+  });
+
+  // Allow dynamic quality changes (e.g., from performance monitor)
+  useEffect(() => {
+    if (qualityOverride) {
+      setQuality(qualityOverride);
+    }
+  }, [qualityOverride]);
+
+  if (quality === 'high') {
+    return (
+      <HighQualityGlassMaterial
+        color={color}
+        transmission={transmission}
+        roughness={roughness}
+        thickness={thickness}
+        ior={ior}
+        chromaticAberration={chromaticAberration}
+        distortion={distortion}
+      />
+    );
+  }
+
+  if (quality === 'medium') {
+    return (
+      <MediumQualityGlassMaterial
+        color={color}
+        transmission={transmission}
+        roughness={roughness}
+        thickness={thickness}
+        ior={ior}
+      />
+    );
+  }
+
+  return <LowQualityGlassMaterial color={color} glowColor={glowColor} />;
 }
 
 export function GlassSphere({
@@ -45,9 +224,18 @@ export function GlassSphere({
   ior = 1.5,
   innerGlow = false,
   glowColor = '#c8ff64',
+  quality,
 }: GlassSphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const innerGlowRef = useRef<THREE.Mesh>(null);
+
+  // Determine geometry detail based on quality
+  const geometryDetail = useMemo(() => {
+    const q = quality || getQualityLevel();
+    if (q === 'high') return 64;
+    if (q === 'medium') return 32;
+    return 24;
+  }, [quality]);
 
   // Subtle animation based on time
   useFrame((state) => {
@@ -73,31 +261,24 @@ export function GlassSphere({
       <group position={position}>
         {/* Main glass sphere */}
         <mesh ref={meshRef} scale={scale}>
-          <sphereGeometry args={[1, 64, 64]} />
-          <MeshTransmissionMaterial
-            backside
-            samples={16}
-            resolution={512}
+          <sphereGeometry args={[1, geometryDetail, geometryDetail]} />
+          <AdaptiveGlassMaterial
+            color={color}
+            glowColor={glowColor}
             transmission={transmission}
             roughness={roughness}
             thickness={thickness}
             ior={ior}
             chromaticAberration={chromaticAberration}
-            anisotropy={0.1}
             distortion={distortion}
-            distortionScale={0.3}
-            temporalDistortion={0.5}
-            clearcoat={1}
-            attenuationDistance={0.5}
-            attenuationColor={color}
-            color={color}
+            quality={quality}
           />
         </mesh>
 
         {/* Inner glow sphere */}
         {innerGlow && (
           <mesh ref={innerGlowRef} scale={0.6 * scale}>
-            <sphereGeometry args={[1, 32, 32]} />
+            <sphereGeometry args={[1, 24, 24]} />
             <meshBasicMaterial
               color={glowColor}
               transparent
@@ -108,7 +289,7 @@ export function GlassSphere({
 
         {/* Highlight reflection point */}
         <mesh position={[0.3 * scale, 0.3 * scale, 0.8 * scale]} scale={0.08 * scale}>
-          <sphereGeometry args={[1, 16, 16]} />
+          <sphereGeometry args={[1, 12, 12]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
         </mesh>
       </group>
@@ -160,6 +341,7 @@ interface GlassSphereClusterProps {
   spread?: number;
   minScale?: number;
   maxScale?: number;
+  quality?: QualityLevel;
 }
 
 export function GlassSphereCluster({
@@ -167,6 +349,7 @@ export function GlassSphereCluster({
   spread = 8,
   minScale = 0.3,
   maxScale = 1.5,
+  quality,
 }: GlassSphereClusterProps) {
   const spheres = useMemo(() => {
     return Array.from({ length: count }).map(() => ({
@@ -200,6 +383,7 @@ export function GlassSphereCluster({
             speed={sphere.speed}
             floatIntensity={sphere.floatIntensity}
             rotationIntensity={sphere.rotationIntensity}
+            quality={quality}
           />
         );
       })}
@@ -208,4 +392,3 @@ export function GlassSphereCluster({
 }
 
 export default GlassSphere;
-
