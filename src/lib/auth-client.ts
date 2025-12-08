@@ -91,26 +91,19 @@ async function authFetch(endpoint: string, body?: object): Promise<AuthResponse>
 }
 
 // ============================================================================
-// SOCIAL SIGN-IN - Uses redirect for mobile compatibility
+// SOCIAL SIGN-IN - Uses Better Auth's built-in OAuth flow
 // ============================================================================
 
 export const signInWithGoogle = async () => {
     console.log('[Auth] Starting Google sign-in...', { isMobile: isMobile() });
 
     try {
-        // Get the OAuth URL from the server
-        const response = await authFetch('/sign-in/social', {
+        // Use Better Auth's built-in social sign-in
+        // This handles the OAuth flow and redirects automatically
+        await authClient.signIn.social({
             provider: 'google',
-            callbackURL: window.location.origin + '/dashboard',
+            callbackURL: '/dashboard', // Relative path, not full URL
         });
-
-        // Redirect to the OAuth URL
-        if (response.url) {
-            console.log('[Auth] Redirecting to OAuth URL:', response.url);
-            window.location.href = response.url;
-        } else {
-            throw new Error('No OAuth URL returned from server');
-        }
     } catch (error) {
         console.error('[Auth] Google sign-in error:', error);
         throw error;
@@ -121,19 +114,12 @@ export const signInWithGitHub = async () => {
     console.log('[Auth] Starting GitHub sign-in...', { isMobile: isMobile() });
 
     try {
-        // Get the OAuth URL from the server
-        const response = await authFetch('/sign-in/social', {
+        // Use Better Auth's built-in social sign-in
+        // This handles the OAuth flow and redirects automatically
+        await authClient.signIn.social({
             provider: 'github',
-            callbackURL: window.location.origin + '/dashboard',
+            callbackURL: '/dashboard', // Relative path, not full URL
         });
-
-        // Redirect to the OAuth URL
-        if (response.url) {
-            console.log('[Auth] Redirecting to OAuth URL:', response.url);
-            window.location.href = response.url;
-        } else {
-            throw new Error('No OAuth URL returned from server');
-        }
     } catch (error) {
         console.error('[Auth] GitHub sign-in error:', error);
         throw error;
