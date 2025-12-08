@@ -1,6 +1,6 @@
 /**
  * Credit Pool Service - Self-Funding Revenue Allocation
- * 
+ *
  * Automatically allocates revenue to different reserves:
  * - 60% → API Reserve (pays OpenRouter/Anthropic)
  * - 20% → Free Tier Subsidy (funds free users)

@@ -1,9 +1,9 @@
 /**
  * Content Analyzer - Soft Competitor Protection
- * 
- * Provides a warning system (not hard blocking) when users attempt 
+ *
+ * Provides a warning system (not hard blocking) when users attempt
  * to build KripTik clones or direct competitors.
- * 
+ *
  * Design Principles:
  * - Warn, don't block
  * - User can acknowledge and proceed

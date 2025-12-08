@@ -1,6 +1,6 @@
 /**
  * Usage Service - Persistent Usage Tracking
- * 
+ *
  * Records all usage events to the database for billing accuracy and analytics.
  */
 

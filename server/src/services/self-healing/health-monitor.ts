@@ -1,6 +1,6 @@
 /**
  * Health Monitor Service
- * 
+ *
  * Continuous health monitoring of all KripTik services.
  * Detects failures and emits events for auto-recovery.
  */
@@ -75,12 +75,12 @@ export class HealthMonitor extends EventEmitter {
                     }
                     const controller = new AbortController();
                     const timeout = setTimeout(() => controller.abort(), 10000);
-                    
+
                     const response = await fetch('https://openrouter.ai/api/v1/models', {
                         headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` },
                         signal: controller.signal,
                     });
-                    
+
                     clearTimeout(timeout);
                     return {
                         healthy: response.ok,
@@ -106,12 +106,12 @@ export class HealthMonitor extends EventEmitter {
                     }
                     const controller = new AbortController();
                     const timeout = setTimeout(() => controller.abort(), 10000);
-                    
+
                     const response = await fetch('https://api.stripe.com/v1/balance', {
                         headers: { 'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}` },
                         signal: controller.signal,
                     });
-                    
+
                     clearTimeout(timeout);
                     return {
                         healthy: response.ok,

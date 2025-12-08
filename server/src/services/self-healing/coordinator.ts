@@ -1,6 +1,6 @@
 /**
  * Self-Healing Coordinator
- * 
+ *
  * Main entry point for the self-healing system.
  * Coordinates health monitoring, auto-recovery, and alerts.
  */

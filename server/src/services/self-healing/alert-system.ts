@@ -1,6 +1,6 @@
 /**
  * Alert System Service
- * 
+ *
  * Manages alerts and notifications for system events.
  * Supports Slack, Discord, and PagerDuty integrations.
  */
@@ -46,7 +46,7 @@ export class AlertSystem {
      */
     initialize(): void {
         if (this.initialized) return;
-        
+
         this.setupListeners();
         this.initialized = true;
         console.log('[AlertSystem] Initialized');

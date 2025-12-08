@@ -1,6 +1,6 @@
 /**
  * Admin Routes
- * 
+ *
  * Protected endpoints for system administration:
  * - Credit pool management
  * - Health monitoring
@@ -21,16 +21,16 @@ const router = Router();
 // Middleware to check admin auth
 const requireAdmin = (req: any, res: any, next: any) => {
     const adminKey = req.headers['x-admin-key'];
-    
+
     if (!process.env.ADMIN_API_KEY) {
         console.warn('[Admin] ADMIN_API_KEY not configured - admin access disabled');
         return res.status(503).json({ error: 'Admin API not configured' });
     }
-    
+
     if (adminKey !== process.env.ADMIN_API_KEY) {
         return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     next();
 };
 
@@ -80,8 +80,8 @@ router.get('/pool/transactions', requireAdmin, async (req, res) => {
             .orderBy(desc(poolTransactions.timestamp))
             .limit(limit);
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             transactions: transactions.map(t => ({
                 ...t,
                 amountUSD: (t.amount / 100).toFixed(4),
@@ -104,8 +104,8 @@ router.get('/pool/history', requireAdmin, async (req, res) => {
             .where(gte(poolSnapshots.date, startDate.toISOString().split('T')[0]))
             .orderBy(desc(poolSnapshots.date));
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             snapshots: snapshots.map(s => ({
                 ...s,
                 apiReserveUSD: (s.apiReserve / 100).toFixed(2),
@@ -255,7 +255,7 @@ router.get('/health/errors', requireAdmin, async (req, res) => {
 router.get('/content-flags', requireAdmin, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit as string) || 100;
-        
+
         const flags = await db.select()
             .from(contentFlags)
             .orderBy(desc(contentFlags.timestamp))

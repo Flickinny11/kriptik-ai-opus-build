@@ -1,6 +1,6 @@
 /**
  * Auto-Recovery Service
- * 
+ *
  * Automatically attempts to fix common issues when detected.
  */
 

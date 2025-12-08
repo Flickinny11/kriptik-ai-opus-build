@@ -1,18 +1,13 @@
 /**
- * Hero3D.tsx - Premium 3D Hero Section
+ * Hero3D.tsx - Premium Hero Section
  *
- * Full-viewport hero with floating glass spheres,
+ * Full-viewport hero with CSS-based glass effects,
  * split text animation, and atmospheric particles.
+ * Uses pure CSS/Framer Motion for maximum compatibility.
  */
 
-import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
-import { MagneticButton, MagneticCTA, ArrowIcon } from '../3d';
-
-// Lazy load 3D scene for performance
-const Scene3D = lazy(() => import('../3d/Scene').then(m => ({ default: m.Scene3D })));
-const GlassSphereCluster = lazy(() => import('../3d/GlassSphere').then(m => ({ default: m.GlassSphereCluster })));
-const ParticleField = lazy(() => import('../3d/ParticleField').then(m => ({ default: m.ParticleField })));
 
 // Split text animation component
 function SplitText({
@@ -168,6 +163,250 @@ function GradientMesh() {
   );
 }
 
+// CSS-based glass sphere (no Three.js)
+function CSSGlassSphere({
+  size,
+  top,
+  left,
+  delay = 0,
+  color = 'lime',
+}: {
+  size: number;
+  top: string;
+  left: string;
+  delay?: number;
+  color?: 'lime' | 'amber' | 'cyan' | 'white';
+}) {
+  const colorMap = {
+    lime: {
+      gradient: 'radial-gradient(circle at 30% 30%, rgba(200,255,100,0.4), rgba(200,255,100,0.1) 50%, transparent 70%)',
+      glow: 'rgba(200,255,100,0.3)',
+      highlight: 'rgba(200,255,100,0.8)',
+    },
+    amber: {
+      gradient: 'radial-gradient(circle at 30% 30%, rgba(245,158,11,0.4), rgba(245,158,11,0.1) 50%, transparent 70%)',
+      glow: 'rgba(245,158,11,0.3)',
+      highlight: 'rgba(245,158,11,0.8)',
+    },
+    cyan: {
+      gradient: 'radial-gradient(circle at 30% 30%, rgba(6,182,212,0.4), rgba(6,182,212,0.1) 50%, transparent 70%)',
+      glow: 'rgba(6,182,212,0.3)',
+      highlight: 'rgba(6,182,212,0.8)',
+    },
+    white: {
+      gradient: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0.1) 50%, transparent 70%)',
+      glow: 'rgba(255,255,255,0.2)',
+      highlight: 'rgba(255,255,255,0.9)',
+    },
+  };
+
+  const colors = colorMap[color];
+
+  return (
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{
+        width: size,
+        height: size,
+        top,
+        left,
+      }}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1,
+        y: [0, -20, 0],
+        x: [0, 10, 0],
+      }}
+      transition={{
+        opacity: { duration: 1, delay },
+        scale: { duration: 1.2, delay },
+        y: { duration: 8 + Math.random() * 4, repeat: Infinity, ease: 'easeInOut', delay },
+        x: { duration: 10 + Math.random() * 5, repeat: Infinity, ease: 'easeInOut', delay },
+      }}
+    >
+      {/* Outer glow */}
+      <div 
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: colors.glow,
+          filter: 'blur(40px)',
+          transform: 'scale(1.5)',
+        }}
+      />
+      
+      {/* Glass sphere */}
+      <div 
+        className="absolute inset-0 rounded-full backdrop-blur-sm"
+        style={{
+          background: colors.gradient,
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: `
+            inset 0 0 60px rgba(255,255,255,0.05),
+            0 0 40px ${colors.glow}
+          `,
+        }}
+      />
+      
+      {/* Highlight */}
+      <div 
+        className="absolute rounded-full"
+        style={{
+          width: size * 0.15,
+          height: size * 0.15,
+          top: '20%',
+          left: '25%',
+          background: colors.highlight,
+          filter: 'blur(4px)',
+        }}
+      />
+      
+      {/* Secondary highlight */}
+      <div 
+        className="absolute rounded-full"
+        style={{
+          width: size * 0.08,
+          height: size * 0.08,
+          top: '35%',
+          left: '35%',
+          background: 'rgba(255,255,255,0.6)',
+          filter: 'blur(2px)',
+        }}
+      />
+    </motion.div>
+  );
+}
+
+// CSS Particle system
+function CSSParticles() {
+  const particles = Array.from({ length: 50 }).map((_, i) => ({
+    id: i,
+    size: 2 + Math.random() * 4,
+    top: `${Math.random() * 100}%`,
+    left: `${Math.random() * 100}%`,
+    delay: Math.random() * 5,
+    duration: 10 + Math.random() * 10,
+  }));
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-kriptik-lime/40"
+          style={{
+            width: p.size,
+            height: p.size,
+            top: p.top,
+            left: p.left,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: [0, 0.6, 0],
+            y: [0, -100],
+            x: [0, Math.random() * 40 - 20],
+          }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Magnetic button effect (CSS only)
+interface MagneticButtonProps {
+  children: React.ReactNode;
+  variant?: 'primary' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  onClick?: () => void;
+}
+
+function MagneticButton({
+  children,
+  variant = 'primary',
+  size = 'md',
+  onClick,
+}: MagneticButtonProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    setPosition({ x: x * 0.3, y: y * 0.3 });
+  };
+
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const sizeClasses = {
+    sm: 'px-4 py-2 text-sm',
+    md: 'px-6 py-3 text-base',
+    lg: 'px-8 py-4 text-lg',
+  };
+
+  const baseClasses = `
+    relative overflow-hidden font-medium transition-all duration-300
+    ${sizeClasses[size]}
+  `;
+
+  const variantClasses = {
+    primary: `
+      bg-kriptik-lime text-kriptik-black
+      hover:bg-kriptik-lime/90
+      shadow-[0_0_30px_rgba(200,255,100,0.3)]
+      hover:shadow-[0_0_50px_rgba(200,255,100,0.5)]
+    `,
+    outline: `
+      bg-transparent text-kriptik-white
+      border border-kriptik-silver/30
+      hover:border-kriptik-lime/50 hover:text-kriptik-lime
+    `,
+  };
+
+  return (
+    <motion.button
+      ref={buttonRef}
+      className={`${baseClasses} ${variantClasses[variant]}`}
+      onClick={onClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: position.x, y: position.y }}
+      transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+    >
+      <span className="relative z-10 flex items-center gap-2">
+        {children}
+      </span>
+    </motion.button>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg 
+      width="20" 
+      height="20" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
 export function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   useInView(containerRef, { once: true });
@@ -191,6 +430,17 @@ export function Hero3D() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Glass sphere configurations
+  const spheres = [
+    { size: 200, top: '10%', left: '80%', delay: 0.2, color: 'lime' as const },
+    { size: 120, top: '60%', left: '5%', delay: 0.4, color: 'amber' as const },
+    { size: 80, top: '20%', left: '15%', delay: 0.6, color: 'cyan' as const },
+    { size: 150, top: '70%', left: '85%', delay: 0.3, color: 'white' as const },
+    { size: 60, top: '40%', left: '90%', delay: 0.5, color: 'lime' as const },
+    { size: 100, top: '80%', left: '40%', delay: 0.7, color: 'amber' as const },
+    { size: 40, top: '15%', left: '60%', delay: 0.8, color: 'cyan' as const },
+  ];
+
   return (
     <section
       ref={containerRef}
@@ -199,25 +449,13 @@ export function Hero3D() {
       {/* Background layers */}
       <GradientMesh />
       <NoiseOverlay />
+      <CSSParticles />
 
-      {/* 3D Scene - Glass spheres and particles */}
+      {/* CSS Glass spheres */}
       <div className="absolute inset-0 z-0">
-        <Suspense fallback={null}>
-          <Scene3D camera={{ position: [0, 0, 12], fov: 50 }}>
-            <GlassSphereCluster
-              count={7}
-              spread={12}
-              minScale={0.4}
-              maxScale={2}
-            />
-            <ParticleField
-              count={300}
-              spread={25}
-              opacity={0.4}
-              color="#c8ff64"
-            />
-          </Scene3D>
-        </Suspense>
+        {spheres.map((sphere, i) => (
+          <CSSGlassSphere key={i} {...sphere} />
+        ))}
       </div>
 
       {/* Main content */}
@@ -282,13 +520,14 @@ export function Hero3D() {
           animate={isLoaded ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 1.6, ease: [0.23, 1, 0.32, 1] }}
         >
-          <MagneticCTA
-            text="Start Building"
+          <MagneticButton
             variant="primary"
             size="lg"
-            icon={<ArrowIcon />}
             onClick={() => window.location.href = '/signup'}
-          />
+          >
+            Start Building
+            <ArrowIcon />
+          </MagneticButton>
 
           <MagneticButton
             variant="outline"
@@ -335,4 +574,3 @@ export function Hero3D() {
 }
 
 export default Hero3D;
-
