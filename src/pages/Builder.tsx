@@ -13,14 +13,15 @@
  * Design: Liquid Glass 3D aesthetic with warm internal glow
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Code2, Eye, Settings, Brain, Blocks,
-    Cloud, ChevronRight, X, Activity,
+    Cloud, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download, Sliders
+    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download, Sliders,
+    Upload, Search, Loader2, AlertCircle, CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
@@ -1030,32 +1031,176 @@ function GlassCard({ children, className = '', onClick }: { children: React.Reac
     );
 }
 
-// Cloud Deploy Panel Component
+// Cloud Deploy Panel Component - Wired to backend services
 function CloudDeployPanel() {
+    const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
+    const { projectId } = useParams<{ projectId: string }>();
+    const [isDeploying, setIsDeploying] = useState<string | null>(null);
+    const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error' | null; message: string; provider?: string }>({ type: null, message: '' });
+    const [costEstimate, setCostEstimate] = useState<{ provider: string; hourly: number; monthly: number } | null>(null);
+
     const providers = [
-        { name: 'Vercel', icon: <VercelIcon />, available: true },
-        { name: 'Netlify', icon: <NetlifyIcon />, available: true },
-        { name: 'RunPod GPU', icon: <Layers className="w-5 h-5" />, available: true },
-        { name: 'AWS', icon: <Cloud className="w-5 h-5" />, available: true },
-        { name: 'Google Cloud', icon: <Server className="w-5 h-5" />, available: true },
+        { id: 'vercel', name: 'Vercel', icon: <VercelIcon />, available: true, description: 'Edge-first deployment', type: 'serverless' },
+        { id: 'netlify', name: 'Netlify', icon: <NetlifyIcon />, available: true, description: 'JAMstack hosting', type: 'serverless' },
+        { id: 'runpod', name: 'RunPod GPU', icon: <Layers className="w-5 h-5" />, available: true, description: 'GPU inference', type: 'gpu' },
+        { id: 'aws', name: 'AWS', icon: <Cloud className="w-5 h-5" />, available: true, description: 'Lambda, ECS, EC2', type: 'serverless' },
+        { id: 'gcp', name: 'Google Cloud', icon: <Server className="w-5 h-5" />, available: true, description: 'Cloud Run, GCE', type: 'serverless' },
     ];
+
+    // Estimate cost for a provider
+    const handleEstimateCost = async (providerId: string, _providerType: string) => {
+        try {
+            const response = await fetch('/api/deploy/providers');
+            if (response.ok) {
+                const data = await response.json();
+                const provider = data.providers?.find((p: any) => p.id === providerId);
+                if (provider) {
+                    setCostEstimate({
+                        provider: providerId,
+                        hourly: provider.minCostPerHour || 0,
+                        monthly: (provider.minCostPerHour || 0) * 24 * 30,
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Failed to estimate cost:', err);
+        }
+    };
+
+    // Trigger deployment
+    const handleDeploy = async (providerId: string) => {
+        setIsDeploying(providerId);
+        setDeployStatus({ type: null, message: '' });
+
+        try {
+            // For static hosting providers, use the deployment modal
+            if (providerId === 'vercel' || providerId === 'netlify') {
+                setDeploymentOpen(true);
+                setIsDeploying(null);
+                return;
+            }
+
+            // For GPU/cloud providers, call smart deploy API
+            const response = await fetch('/api/deploy/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: providerId,
+                    projectId: projectId || '',
+                    config: {
+                        resourceType: providerId === 'runpod' ? 'gpu' : 'serverless',
+                        name: `kriptik-deployment-${Date.now()}`,
+                    },
+                }),
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setDeployStatus({
+                    type: 'success',
+                    message: `Deployment initiated! ID: ${data.deployment.id}`,
+                    provider: providerId,
+                });
+            } else if (data.missingCredential) {
+                setDeployStatus({
+                    type: 'error',
+                    message: `Please connect your ${providerId} account in Integrations`,
+                    provider: providerId,
+                });
+            } else {
+                setDeployStatus({
+                    type: 'error',
+                    message: data.error || 'Deployment failed',
+                    provider: providerId,
+                });
+            }
+        } catch (err) {
+            setDeployStatus({
+                type: 'error',
+                message: 'Failed to initiate deployment',
+                provider: providerId,
+            });
+        } finally {
+            setIsDeploying(null);
+        }
+    };
 
     return (
         <div className="space-y-4">
             <p className="text-sm" style={{ color: '#666' }}>
                 Deploy your app to production with real-time pricing confirmation.
             </p>
-            {providers.map((provider, i) => (
-                <GlassCard key={i}>
+
+            {/* Status message */}
+            {deployStatus.type && (
+                <div
+                    className="flex items-center gap-2 p-3 rounded-xl text-sm"
+                    style={{
+                        background: deployStatus.type === 'success' 
+                            ? 'rgba(16, 185, 129, 0.1)' 
+                            : 'rgba(239, 68, 68, 0.1)',
+                        color: deployStatus.type === 'success' ? '#10b981' : '#ef4444',
+                    }}
+                >
+                    {deployStatus.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                    ) : (
+                        <AlertCircle className="w-4 h-4" />
+                    )}
+                    {deployStatus.message}
+                </div>
+            )}
+
+            {/* Cost estimate */}
+            {costEstimate && (
+                <div
+                    className="p-3 rounded-xl text-sm"
+                    style={{ background: 'rgba(255,200,170,0.2)' }}
+                >
+                    <p className="font-medium" style={{ color: '#c25a00' }}>
+                        {costEstimate.provider.toUpperCase()} Estimated Cost
+                    </p>
+                    <p style={{ color: '#666' }}>
+                        ${costEstimate.hourly.toFixed(2)}/hr • ${costEstimate.monthly.toFixed(0)}/mo
+                    </p>
+                </div>
+            )}
+
+            {providers.map((provider) => (
+                <GlassCard 
+                    key={provider.id}
+                    onClick={() => handleEstimateCost(provider.id, provider.type)}
+                >
                     <div className="flex items-center gap-3">
                         <span style={{ color: '#1a1a1a' }}>{provider.icon}</span>
                         <div className="flex-1">
                             <span className="font-medium" style={{ color: '#1a1a1a' }}>{provider.name}</span>
                             <p className="text-xs" style={{ color: '#666' }}>
-                                {provider.available ? 'Ready to deploy' : 'Coming soon'}
+                                {provider.description}
                             </p>
                         </div>
-                        <ChevronRight className="w-4 h-4" style={{ color: '#999' }} />
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleDeploy(provider.id); }}
+                            disabled={isDeploying === provider.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all"
+                            style={{
+                                background: isDeploying === provider.id ? 'rgba(0,0,0,0.05)' : '#c25a00',
+                                color: isDeploying === provider.id ? '#666' : 'white',
+                            }}
+                        >
+                            {isDeploying === provider.id ? (
+                                <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Deploying...
+                                </>
+                            ) : (
+                                <>
+                                    <Cloud className="w-3 h-3" />
+                                    Deploy
+                                </>
+                            )}
+                        </button>
                     </div>
                 </GlassCard>
             ))}
@@ -1063,44 +1208,339 @@ function CloudDeployPanel() {
     );
 }
 
-// Database Panel Component
+// Database Panel Component - Wired to backend services
 function DatabasePanel() {
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [dbStatus, setDbStatus] = useState<{ tables: string[]; userCount: number } | null>(null);
+    const [schemaStatus, setSchemaStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+    const [showSchemaModal, setShowSchemaModal] = useState(false);
+    const [schemaDescription, setSchemaDescription] = useState('');
+
+    // Fetch database status on mount
+    useEffect(() => {
+        fetchDbStatus();
+    }, []);
+
+    const fetchDbStatus = async () => {
+        try {
+            const response = await fetch('/api/db-migrate/status');
+            if (response.ok) {
+                const data = await response.json();
+                setDbStatus(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch DB status:', err);
+        }
+    };
+
+    // Generate schema from natural language
+    const handleGenerateSchema = async () => {
+        if (!schemaDescription.trim()) return;
+        setIsGenerating(true);
+        setSchemaStatus({ type: null, message: '' });
+
+        try {
+            // Use AI to generate schema
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: `Generate a PostgreSQL/SQLite database schema for the following requirements. Output only the SQL CREATE TABLE statements with appropriate indexes:\n\n${schemaDescription}`,
+                    model: 'claude-sonnet-4-20250514',
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const generatedSchema = data.output || data.message;
+                setSchemaStatus({ 
+                    type: 'success', 
+                    message: generatedSchema ? 'Schema generated successfully!' : 'Generated schema is empty'
+                });
+                // Store generated schema for review
+                localStorage.setItem('kriptik_generated_schema', generatedSchema);
+            } else {
+                setSchemaStatus({ type: 'error', message: 'Failed to generate schema' });
+            }
+        } catch (err) {
+            setSchemaStatus({ type: 'error', message: 'Failed to connect to AI service' });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    // Initialize database with migrations
+    const handleInitDatabase = async () => {
+        setIsGenerating(true);
+        try {
+            const response = await fetch('/api/db-migrate/init', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-migration-secret': process.env.MIGRATION_SECRET || 'dev-secret'
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setSchemaStatus({ type: 'success', message: `Initialized ${data.tables?.length || 0} tables` });
+                fetchDbStatus();
+            } else {
+                setSchemaStatus({ type: 'error', message: 'Failed to initialize database' });
+            }
+        } catch (err) {
+            setSchemaStatus({ type: 'error', message: 'Database initialization failed' });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <div className="space-y-4">
             <p className="text-sm" style={{ color: '#666' }}>
                 Manage your database schemas and migrations.
             </p>
+
+            {/* Status message */}
+            {schemaStatus.type && (
+                <div
+                    className="flex items-center gap-2 p-3 rounded-xl text-sm"
+                    style={{
+                        background: schemaStatus.type === 'success' 
+                            ? 'rgba(16, 185, 129, 0.1)' 
+                            : 'rgba(239, 68, 68, 0.1)',
+                        color: schemaStatus.type === 'success' ? '#10b981' : '#ef4444',
+                    }}
+                >
+                    {schemaStatus.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                    ) : (
+                        <AlertCircle className="w-4 h-4" />
+                    )}
+                    {schemaStatus.message}
+                </div>
+            )}
+
             <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
                     <Database className="w-4 h-4" style={{ color: '#c25a00' }} />
-                    <span className="font-medium" style={{ color: '#1a1a1a' }}>PostgreSQL</span>
+                    <span className="font-medium" style={{ color: '#1a1a1a' }}>Database Status</span>
                 </div>
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span style={{ color: '#666' }}>Tables</span>
-                        <span style={{ color: '#1a1a1a' }}>0</span>
+                        <span style={{ color: '#1a1a1a' }}>{dbStatus?.tables?.length || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span style={{ color: '#666' }}>Migrations</span>
-                        <span style={{ color: '#1a1a1a' }}>0</span>
+                        <span style={{ color: '#666' }}>Users</span>
+                        <span style={{ color: '#1a1a1a' }}>{dbStatus?.userCount || 0}</span>
                     </div>
+                    {dbStatus?.tables && dbStatus.tables.length > 0 && (
+                        <div className="mt-2 text-xs" style={{ color: '#666' }}>
+                            Tables: {dbStatus.tables.slice(0, 3).join(', ')}{dbStatus.tables.length > 3 ? '...' : ''}
+                        </div>
+                    )}
                 </div>
             </GlassCard>
-            <GlassButton icon={Layers}>
-                Generate Schema
-            </GlassButton>
+
+            {/* Schema Generation */}
+            <GlassCard onClick={() => setShowSchemaModal(true)}>
+                <div className="flex items-center gap-2 mb-3">
+                    <Layers className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <span className="font-medium" style={{ color: '#1a1a1a' }}>Schema Generator</span>
+                </div>
+                <p className="text-sm" style={{ color: '#666' }}>
+                    Describe your data model in plain English.
+                </p>
+            </GlassCard>
+
+            {/* Schema Generation Modal */}
+            {showSchemaModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div
+                        className="w-[520px] p-6 rounded-2xl"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,248,250,0.95) 100%)',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-lg" style={{ color: '#1a1a1a' }}>Generate Database Schema</h3>
+                            <button onClick={() => setShowSchemaModal(false)}>
+                                <X className="w-5 h-5" style={{ color: '#666' }} />
+                            </button>
+                        </div>
+                        <textarea
+                            value={schemaDescription}
+                            onChange={(e) => setSchemaDescription(e.target.value)}
+                            placeholder="Describe your data model...&#10;&#10;Example: I need a blog with users, posts, and comments. Users have email and name. Posts have title, content, and author. Comments belong to posts and users."
+                            className="w-full h-32 p-3 rounded-xl text-sm resize-none"
+                            style={{
+                                background: 'rgba(255,255,255,0.8)',
+                                border: '1px solid rgba(0,0,0,0.1)',
+                                outline: 'none',
+                                color: '#1a1a1a',
+                            }}
+                        />
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                onClick={() => setShowSchemaModal(false)}
+                                className="px-4 py-2 rounded-xl text-sm"
+                                style={{ background: 'rgba(0,0,0,0.05)', color: '#666' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleGenerateSchema}
+                                disabled={isGenerating || !schemaDescription.trim()}
+                                className="px-4 py-2 rounded-xl text-sm flex items-center gap-2"
+                                style={{ 
+                                    background: '#c25a00', 
+                                    color: 'white',
+                                    opacity: isGenerating || !schemaDescription.trim() ? 0.5 : 1
+                                }}
+                            >
+                                {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Generate Schema
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex gap-2">
+                <GlassButton icon={Layers} onClick={() => setShowSchemaModal(true)}>
+                    Generate Schema
+                </GlassButton>
+                <GlassButton icon={Database} onClick={handleInitDatabase}>
+                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Init DB'}
+                </GlassButton>
+            </div>
         </div>
     );
 }
 
-// Workflows Panel Component
+// Workflows Panel Component - Wired to backend services
 function WorkflowsPanel() {
+    const [isImporting, setIsImporting] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [showHFSearch, setShowHFSearch] = useState(false);
+    const [hfSearchQuery, setHFSearchQuery] = useState('');
+    const [hfModels, setHFModels] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedModel, setSelectedModel] = useState<any>(null);
+    const [workflowFile, setWorkflowFile] = useState<File | null>(null);
+    const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+
+    // Search HuggingFace models
+    const searchHuggingFace = useCallback(async () => {
+        if (!hfSearchQuery.trim()) return;
+        setIsSearching(true);
+        try {
+            const response = await fetch('/api/workflows/models/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requirement: hfSearchQuery,
+                    sources: ['huggingface'],
+                    maxResults: 10,
+                }),
+            });
+            const data = await response.json();
+            setHFModels(data.models || []);
+        } catch (err) {
+            console.error('Failed to search HuggingFace:', err);
+            setDeployStatus({ type: 'error', message: 'Failed to search models' });
+        } finally {
+            setIsSearching(false);
+        }
+    }, [hfSearchQuery]);
+
+    // Import ComfyUI workflow
+    const handleWorkflowUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setWorkflowFile(file);
+        setIsImporting(true);
+
+        try {
+            const content = await file.text();
+            const workflow = JSON.parse(content);
+            
+            // Validate workflow format
+            const response = await fetch('/api/workflows/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ workflow }),
+            });
+            
+            if (response.ok) {
+                setDeployStatus({ type: 'success', message: 'Workflow validated successfully!' });
+            } else {
+                const error = await response.json();
+                setDeployStatus({ type: 'error', message: error.message || 'Invalid workflow' });
+            }
+        } catch (err) {
+            setDeployStatus({ type: 'error', message: 'Failed to parse workflow JSON' });
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
+    // Deploy HuggingFace model
+    const handleDeployModel = async (model: any) => {
+        setIsImporting(true);
+        try {
+            const response = await fetch('/api/deploy/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modelId: model.modelId || model.id,
+                    provider: 'runpod',
+                    gpuType: 'nvidia-rtx-4090',
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setDeployStatus({ type: 'success', message: `Deployment initiated! ID: ${data.deployment.id}` });
+            } else {
+                setDeployStatus({ type: 'error', message: data.error || 'Deployment failed' });
+            }
+        } catch (err) {
+            setDeployStatus({ type: 'error', message: 'Failed to deploy model' });
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     return (
         <div className="space-y-4">
             <p className="text-sm" style={{ color: '#666' }}>
                 Deploy ComfyUI workflows and HuggingFace models.
             </p>
-            <GlassCard>
+
+            {/* Status message */}
+            {deployStatus.type && (
+                <div
+                    className="flex items-center gap-2 p-3 rounded-xl text-sm"
+                    style={{
+                        background: deployStatus.type === 'success' 
+                            ? 'rgba(16, 185, 129, 0.1)' 
+                            : 'rgba(239, 68, 68, 0.1)',
+                        color: deployStatus.type === 'success' ? '#10b981' : '#ef4444',
+                    }}
+                >
+                    {deployStatus.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                    ) : (
+                        <AlertCircle className="w-4 h-4" />
+                    )}
+                    {deployStatus.message}
+                </div>
+            )}
+
+            {/* ComfyUI Section */}
+            <GlassCard onClick={() => setShowImportModal(true)}>
                 <div className="flex items-center gap-2 mb-3">
                     <Workflow className="w-4 h-4" style={{ color: '#c25a00' }} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>ComfyUI</span>
@@ -1108,8 +1548,58 @@ function WorkflowsPanel() {
                 <p className="text-sm" style={{ color: '#666' }}>
                     Upload workflow JSON to deploy as API endpoint.
                 </p>
+                {workflowFile && (
+                    <p className="text-xs mt-2" style={{ color: '#c25a00' }}>
+                        Selected: {workflowFile.name}
+                    </p>
+                )}
             </GlassCard>
-            <GlassCard>
+
+            {/* ComfyUI Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div
+                        className="w-[480px] p-6 rounded-2xl"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,248,250,0.95) 100%)',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-lg" style={{ color: '#1a1a1a' }}>Import ComfyUI Workflow</h3>
+                            <button onClick={() => setShowImportModal(false)}>
+                                <X className="w-5 h-5" style={{ color: '#666' }} />
+                            </button>
+                        </div>
+                        <div
+                            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-amber-500 transition-colors"
+                            style={{ borderColor: '#d1d5db' }}
+                        >
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleWorkflowUpload}
+                                className="hidden"
+                                id="workflow-upload"
+                            />
+                            <label htmlFor="workflow-upload" className="cursor-pointer">
+                                <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: '#c25a00' }} />
+                                <p className="font-medium" style={{ color: '#1a1a1a' }}>Drop workflow JSON here</p>
+                                <p className="text-sm mt-1" style={{ color: '#666' }}>or click to browse</p>
+                            </label>
+                        </div>
+                        {isImporting && (
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                                <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#c25a00' }} />
+                                <span className="text-sm" style={{ color: '#666' }}>Validating workflow...</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* HuggingFace Section */}
+            <GlassCard onClick={() => setShowHFSearch(!showHFSearch)}>
                 <div className="flex items-center gap-2 mb-3">
                     <Server className="w-4 h-4" style={{ color: '#c25a00' }} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>HuggingFace</span>
@@ -1118,7 +1608,67 @@ function WorkflowsPanel() {
                     Search and deploy ML models with GPU inference.
                 </p>
             </GlassCard>
-            <GlassButton icon={Workflow}>
+
+            {/* HuggingFace Search Panel */}
+            {showHFSearch && (
+                <div className="space-y-3 p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={hfSearchQuery}
+                            onChange={(e) => setHFSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && searchHuggingFace()}
+                            placeholder="Search models (e.g., 'stable diffusion', 'llama')"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm"
+                            style={{
+                                background: 'rgba(255,255,255,0.8)',
+                                border: '1px solid rgba(0,0,0,0.1)',
+                                outline: 'none',
+                            }}
+                        />
+                        <button
+                            onClick={searchHuggingFace}
+                            disabled={isSearching}
+                            className="px-3 py-2 rounded-lg"
+                            style={{ background: '#c25a00', color: 'white' }}
+                        >
+                            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        </button>
+                    </div>
+
+                    {/* Model Results */}
+                    {hfModels.length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {hfModels.map((model, i) => (
+                                <div
+                                    key={i}
+                                    className="p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors"
+                                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                                    onClick={() => setSelectedModel(model)}
+                                >
+                                    <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
+                                        {model.name || model.modelId}
+                                    </p>
+                                    <p className="text-xs" style={{ color: '#666' }}>
+                                        {model.taskType || 'AI Model'} • {model.downloads?.toLocaleString() || '?'} downloads
+                                    </p>
+                                    {selectedModel === model && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeployModel(model); }}
+                                            className="mt-2 px-3 py-1 rounded-lg text-xs"
+                                            style={{ background: '#c25a00', color: 'white' }}
+                                        >
+                                            Deploy to RunPod
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <GlassButton icon={Workflow} onClick={() => setShowImportModal(true)}>
                 Import Workflow
             </GlassButton>
         </div>

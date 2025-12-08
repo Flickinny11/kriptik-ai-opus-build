@@ -222,16 +222,59 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             type: 'info',
         });
 
-        // Simulate agent work (in production, this calls the backend)
+        // Call the backend Developer Mode orchestrator
         try {
-            // Phase 1: Thinking
+            // Phase 1: Thinking - Call backend to create session/agent
             updateAgentStatus(agent.id, 'thinking');
             addLog({
                 agentId: agent.id,
-                message: 'Analyzing requirements...',
+                message: 'Connecting to backend orchestrator...',
                 type: 'thought',
             });
-            await simulateWork(1500);
+
+            // Try to call the actual backend Developer Mode API
+            let backendResponse: any = null;
+            try {
+                const sessionResponse = await fetch('/api/developer-mode/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: task.type === 'fix' ? 'current-project' : undefined,
+                    }),
+                });
+
+                if (sessionResponse.ok) {
+                    const session = await sessionResponse.json();
+                    
+                    // Deploy agent to session
+                    const agentResponse = await fetch(`/api/developer-mode/sessions/${session.sessionId}/agents`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            task: task.description,
+                            model: 'claude-sonnet-4-20250514',
+                            verificationMode: task.type === 'fix' ? 'standard' : 'quick',
+                        }),
+                    });
+
+                    if (agentResponse.ok) {
+                        backendResponse = await agentResponse.json();
+                        addLog({
+                            agentId: agent.id,
+                            message: `Backend agent deployed: ${backendResponse.agentId || 'Agent started'}`,
+                            type: 'info',
+                        });
+                    }
+                }
+            } catch (backendError) {
+                // Backend not available, continue with local simulation
+                addLog({
+                    agentId: agent.id,
+                    message: 'Backend offline, using local simulation',
+                    type: 'warning',
+                });
+            }
+
             updateTaskProgress(agent.id, 20);
 
             // Phase 2: Planning
@@ -250,8 +293,43 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 message: 'Executing task...',
                 type: 'info',
             });
-            await simulateWork(2000);
-            updateTaskProgress(agent.id, 70);
+
+            // If we have backend response, poll for status
+            if (backendResponse?.agentId) {
+                let isComplete = false;
+                let pollCount = 0;
+                const maxPolls = 60; // 2 minutes max
+
+                while (!isComplete && pollCount < maxPolls) {
+                    await simulateWork(2000);
+                    pollCount++;
+                    
+                    try {
+                        const statusResponse = await fetch(`/api/developer-mode/agents/${backendResponse.agentId}`);
+                        if (statusResponse.ok) {
+                            const status = await statusResponse.json();
+                            updateTaskProgress(agent.id, Math.min(90, 40 + pollCount * 2));
+                            
+                            if (status.status === 'completed' || status.status === 'done') {
+                                isComplete = true;
+                                addLog({
+                                    agentId: agent.id,
+                                    message: 'Backend task completed',
+                                    type: 'success',
+                                });
+                            } else if (status.status === 'error' || status.status === 'failed') {
+                                throw new Error(status.error || 'Backend task failed');
+                            }
+                        }
+                    } catch {
+                        // Continue polling
+                    }
+                }
+            } else {
+                // Local simulation fallback
+                await simulateWork(2000);
+                updateTaskProgress(agent.id, 70);
+            }
 
             // Phase 4: Validating
             addLog({

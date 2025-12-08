@@ -46,3 +46,5 @@ drizzle/
 .temp/
 .turbo/
 
+.vercel
+.env*.local
