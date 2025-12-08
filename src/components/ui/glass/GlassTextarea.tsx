@@ -1,6 +1,6 @@
 /**
  * GlassTextarea - Premium Glass Textarea Input
- * 
+ *
  * Multi-line text input with glass morphism styling supporting dark/light variants.
  * Features focus glow, error states, auto-resize, and character count.
  */
@@ -196,19 +196,19 @@ export const GlassTextarea = forwardRef<HTMLTextAreaElement, GlassTextareaProps>
 
   const charCountStyle: React.CSSProperties = {
     fontSize: '11px',
-    color: maxLength && charCount >= maxLength 
-      ? '#f43f5e' 
+    color: maxLength && charCount >= maxLength
+      ? '#f43f5e'
       : variant === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
   };
 
   return (
-    <motion.div 
+    <motion.div
       className={className}
       style={containerStyle}
       initial={false}
     >
       {label && <label style={labelStyle}>{label}</label>}
-      
+
       <div style={textareaWrapperStyle}>
         <textarea
           ref={setRefs}
@@ -227,7 +227,7 @@ export const GlassTextarea = forwardRef<HTMLTextAreaElement, GlassTextareaProps>
           }}
         />
       </div>
-      
+
       <div style={footerStyle}>
         <div>
           {error && errorMessage && <span style={errorStyle}>{errorMessage}</span>}

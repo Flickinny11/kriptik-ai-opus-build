@@ -1,12 +1,12 @@
 /**
  * DashboardLayout - Premium Full Dashboard Layout
- * 
+ *
  * Complete dashboard layout with sidebar, header, and main content area.
  * Features glass morphism styling and responsive behavior.
  */
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,7 +38,7 @@ export function DashboardLayout({
     onSidebarToggle?.(newState);
   };
 
-  const currentSidebarWidth = isSidebarCollapsed 
+  const currentSidebarWidth = isSidebarCollapsed
     ? (isSidebarHovered ? sidebarWidth : collapsedSidebarWidth)
     : sidebarWidth;
 
@@ -116,7 +116,7 @@ export function DashboardLayout({
               zIndex: 10,
               color: 'rgba(255,255,255,0.6)',
             }}
-            whileHover={{ 
+            whileHover={{
               scale: 1.1,
               background: 'linear-gradient(145deg, #2a2a30 0%, #1a1a20 100%)',
             }}
@@ -137,8 +137,8 @@ export function DashboardLayout({
           </motion.button>
 
           {/* Sidebar content wrapper */}
-          <div style={{ 
-            height: '100%', 
+          <div style={{
+            height: '100%',
             width: sidebarWidth,
             overflow: 'hidden',
           }}>
@@ -219,10 +219,10 @@ export function DashboardHeader({
                   </svg>
                 )}
                 {crumb.href ? (
-                  <a 
+                  <a
                     href={crumb.href}
-                    style={{ 
-                      color: 'inherit', 
+                    style={{
+                      color: 'inherit',
                       textDecoration: 'none',
                       transition: 'color 0.2s',
                     }}
@@ -240,7 +240,7 @@ export function DashboardHeader({
             ))}
           </nav>
         )}
-        
+
         {title && (
           <h1 style={{
             fontSize: '20px',
@@ -251,7 +251,7 @@ export function DashboardHeader({
             {title}
           </h1>
         )}
-        
+
         {children}
       </div>
 

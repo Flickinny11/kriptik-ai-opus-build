@@ -1,9 +1,9 @@
 /**
  * GlassButton - Premium 3D Glass Button with Interactions
- * 
+ *
  * Interactive button with liquid glass styling, 3D depth, and smooth animations.
  * Supports multiple variants: primary (warm), secondary, ghost, and accent (fluorescent).
- * 
+ *
  * Features:
  * - Multi-layer photorealistic shadows
  * - Warm glow on hover
@@ -255,9 +255,9 @@ export function GlassButton({
       )}
 
       {/* Content */}
-      <span style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <span style={{
+        display: 'flex',
+        alignItems: 'center',
         gap: '8px',
         opacity: loading ? 0.5 : 1,
         transition: 'opacity 0.2s',

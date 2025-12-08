@@ -1,6 +1,6 @@
 /**
  * GlassModal - Premium Glass Modal Dialog
- * 
+ *
  * Modal dialog with glass morphism styling, smooth animations, and accessibility features.
  * Features backdrop blur, scale entrance animation, escape key handling, and focus trap.
  */
@@ -78,10 +78,10 @@ export function GlassModal({
     if (isOpen) {
       // Store current focused element
       previousActiveElement.current = document.activeElement as HTMLElement;
-      
+
       // Lock body scroll
       document.body.style.overflow = 'hidden';
-      
+
       // Add escape listener
       document.addEventListener('keydown', handleEscape);
 
@@ -92,7 +92,7 @@ export function GlassModal({
     } else {
       // Restore body scroll
       document.body.style.overflow = '';
-      
+
       // Restore focus
       previousActiveElement.current?.focus();
     }
@@ -237,9 +237,9 @@ export function GlassModal({
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            transition={{ 
-              type: 'spring', 
-              damping: 25, 
+            transition={{
+              type: 'spring',
+              damping: 25,
               stiffness: 300,
               duration: 0.3,
             }}
@@ -265,12 +265,12 @@ export function GlassModal({
                     )}
                   </div>
                 </div>
-                
+
                 {showCloseButton && (
                   <motion.button
                     style={closeButtonStyle}
                     onClick={onClose}
-                    whileHover={{ 
+                    whileHover={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       color: 'rgba(255,255,255,0.8)',
                     }}

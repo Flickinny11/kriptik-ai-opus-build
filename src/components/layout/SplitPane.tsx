@@ -1,12 +1,11 @@
 /**
  * SplitPane - Resizable Split View Component
- * 
+ *
  * A flexible split view with draggable divider for resizing.
  * Supports horizontal and vertical orientations.
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface SplitPaneProps {
   children: [React.ReactNode, React.ReactNode];
@@ -98,7 +97,7 @@ export function SplitPane({
 
   const dividerStyle: React.CSSProperties = {
     [isHorizontal ? 'width' : 'height']: '6px',
-    background: isDragging 
+    background: isDragging
       ? 'rgba(200,255,100,0.2)'
       : 'rgba(255,255,255,0.03)',
     cursor: isHorizontal ? 'col-resize' : 'row-resize',
@@ -114,7 +113,7 @@ export function SplitPane({
     transform: 'translate(-50%, -50%)',
     [isHorizontal ? 'width' : 'height']: '2px',
     [isHorizontal ? 'height' : 'width']: '32px',
-    background: isDragging 
+    background: isDragging
       ? '#c8ff64'
       : 'rgba(255,255,255,0.15)',
     borderRadius: '1px',

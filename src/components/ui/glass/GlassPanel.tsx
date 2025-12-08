@@ -1,9 +1,9 @@
 /**
  * GlassPanel - Premium Frosted Glass Container
- * 
+ *
  * Base container component with dark/light glass morphism styling.
  * Supports multiple padding sizes, rounded corners, glow effects, and border options.
- * 
+ *
  * Dark variant: Inspired by DeveloperModeSettings panel
  * Light variant: Inspired by ProjectCard3D liquid glass
  */
@@ -74,7 +74,7 @@ export function GlassPanel({
   ...motionProps
 }: GlassPanelProps) {
   const tokens = GLASS_TOKENS[variant];
-  
+
   // Build glow shadow
   const getGlowShadow = () => {
     switch (glow) {
@@ -105,7 +105,7 @@ export function GlassPanel({
     `;
 
   const glowShadow = getGlowShadow();
-  const combinedShadow = glow !== 'none' 
+  const combinedShadow = glow !== 'none'
     ? `${baseShadow}, ${glowShadow}`
     : baseShadow;
 

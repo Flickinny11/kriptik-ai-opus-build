@@ -1,6 +1,6 @@
 /**
  * CodeBlock - Premium Syntax Highlighted Code Block
- * 
+ *
  * A styled code block component with syntax highlighting,
  * copy functionality, and glass morphism styling.
  */
@@ -79,7 +79,7 @@ interface CodeBlockProps {
 }
 
 // Simple syntax highlighting (can be replaced with Prism/Shiki)
-function highlightCode(code: string, language: string): string {
+function highlightCode(code: string, _language: string): string {
   // Basic keyword highlighting for common languages
   const keywords = [
     'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while',
@@ -88,15 +88,15 @@ function highlightCode(code: string, language: string): string {
     'private', 'protected', 'static', 'readonly', 'abstract', 'default', 'case',
     'switch', 'break', 'continue', 'in', 'of', 'true', 'false', 'null', 'undefined',
   ];
-  
+
   let highlighted = code;
-  
+
   // Escape HTML
   highlighted = highlighted
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  
+
   // Strings (double quotes)
   highlighted = highlighted.replace(
     /"([^"\\]|\\.)*"/g,
@@ -106,37 +106,37 @@ function highlightCode(code: string, language: string): string {
     /"([^"\\]|\\.)*"/g,
     '<span class="token-string">$&</span>'
   );
-  
+
   // Strings (single quotes)
   highlighted = highlighted.replace(
     /'([^'\\]|\\.)*'/g,
     '<span class="token-string">$&</span>'
   );
-  
+
   // Template literals
   highlighted = highlighted.replace(
     /`([^`\\]|\\.)*`/g,
     '<span class="token-string">$&</span>'
   );
-  
+
   // Comments (single line)
   highlighted = highlighted.replace(
     /(\/\/.*$)/gm,
     '<span class="token-comment">$1</span>'
   );
-  
+
   // Comments (multi line)
   highlighted = highlighted.replace(
     /(\/\*[\s\S]*?\*\/)/g,
     '<span class="token-comment">$1</span>'
   );
-  
+
   // Numbers
   highlighted = highlighted.replace(
     /\b(\d+\.?\d*)\b/g,
     '<span class="token-number">$1</span>'
   );
-  
+
   // Keywords
   keywords.forEach(keyword => {
     const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
@@ -145,13 +145,13 @@ function highlightCode(code: string, language: string): string {
       '<span class="token-keyword">$1</span>'
     );
   });
-  
+
   // Functions
   highlighted = highlighted.replace(
     /\b([a-zA-Z_]\w*)\s*(?=\()/g,
     '<span class="token-function">$1</span>'
   );
-  
+
   return highlighted;
 }
 
@@ -254,7 +254,7 @@ export function CodeBlock({
           >
             {langName}
           </span>
-          
+
           {/* Filename */}
           {filename && (
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
@@ -315,7 +315,7 @@ export function CodeBlock({
             {lines.map((line, index) => {
               const lineNumber = startLineNumber + index;
               const isHighlighted = highlightLines.includes(lineNumber);
-              
+
               return (
                 <tr
                   key={index}
@@ -332,15 +332,15 @@ export function CodeBlock({
                         textAlign: 'right',
                         userSelect: 'none',
                         color: isHighlighted ? '#c8ff64' : 'rgba(255,255,255,0.25)',
-                        borderRight: isHighlighted 
-                          ? '2px solid #c8ff64' 
+                        borderRight: isHighlighted
+                          ? '2px solid #c8ff64'
                           : '2px solid transparent',
                       }}
                     >
                       {lineNumber}
                     </td>
                   )}
-                  
+
                   {/* Code */}
                   <td
                     style={{

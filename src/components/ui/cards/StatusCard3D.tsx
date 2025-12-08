@@ -1,6 +1,6 @@
 /**
  * StatusCard3D - Premium Status/Activity Card
- * 
+ *
  * Card for displaying status, progress, or activity information
  * with animated indicators and premium glass styling.
  */
@@ -128,9 +128,9 @@ export function StatusCard3D({
       />
 
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'flex-start', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
         marginBottom: children ? '16px' : '0',
       }}>
@@ -294,7 +294,7 @@ export function StatusCard3D({
                 fontWeight: 500,
                 cursor: 'pointer',
               }}
-              whileHover={{ 
+              whileHover={{
                 scale: 1.02,
                 background: `${config.color}30`,
               }}

@@ -1,6 +1,6 @@
 /**
  * Premium Chart Theme for KripTik AI
- * 
+ *
  * Design tokens and configurations for consistent chart styling.
  */
 
@@ -17,13 +17,13 @@ export const CHART_COLORS = {
     '#06b6d4', // Teal
     '#f97316', // Orange
   ],
-  
+
   // Status colors
   success: '#10b981',
   warning: '#f59e0b',
   error: '#f43f5e',
   info: '#06b6d4',
-  
+
   // Gradient pairs for area fills
   gradients: {
     accent: {
@@ -43,7 +43,7 @@ export const CHART_COLORS = {
       to: 'rgba(167,139,250,0)',
     },
   },
-  
+
   // UI colors
   grid: 'rgba(255,255,255,0.05)',
   gridStrong: 'rgba(255,255,255,0.1)',
@@ -72,40 +72,40 @@ export const CHART_STYLES = {
       large: 14,
     },
   },
-  
+
   // Animation settings
   animation: {
     duration: 800,
     easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
   },
-  
+
   // Grid settings
   grid: {
     strokeDasharray: '4 4',
     strokeWidth: 1,
   },
-  
+
   // Line/Area chart settings
   line: {
     strokeWidth: 2,
     dotRadius: 4,
     dotRadiusHover: 6,
   },
-  
+
   // Bar chart settings
   bar: {
     borderRadius: 4,
     maxBarWidth: 40,
     gap: 0.3, // Gap ratio
   },
-  
+
   // Pie/Donut settings
   pie: {
     innerRadius: 0.6, // For donut
     padAngle: 0.02,
     cornerRadius: 4,
   },
-  
+
   // Tooltip settings
   tooltip: {
     borderRadius: 12,
@@ -113,7 +113,7 @@ export const CHART_STYLES = {
     shadow: '0 10px 40px rgba(0,0,0,0.4)',
     backdropBlur: 20,
   },
-  
+
   // Legend settings
   legend: {
     dotSize: 10,
@@ -144,7 +144,7 @@ export function generateGradient(
   const y1 = direction === 'horizontal' ? '0' : '0';
   const x2 = direction === 'horizontal' ? '1' : '0';
   const y2 = direction === 'horizontal' ? '0' : '1';
-  
+
   return `
     <linearGradient id="${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
       <stop offset="0%" stopColor="${from}" />

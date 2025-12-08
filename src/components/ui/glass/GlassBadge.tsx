@@ -1,6 +1,6 @@
 /**
  * GlassBadge - Premium Glass Status Badge
- * 
+ *
  * Status badge with glass morphism styling and multiple variants.
  * Features pulse animation for live/active states.
  */

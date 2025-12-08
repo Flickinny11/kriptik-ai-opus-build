@@ -1,6 +1,6 @@
 /**
  * StepNav - Premium Step/Wizard Navigation
- * 
+ *
  * A styled stepper component for multi-step processes
  * with glass morphism styling and animated progress.
  */
@@ -138,7 +138,7 @@ export function StepNav({
                   fontSize: '14px',
                   fontWeight: 600,
                   flexShrink: 0,
-                  boxShadow: status === 'current' 
+                  boxShadow: status === 'current'
                     ? '0 0 20px rgba(200,255,100,0.2)'
                     : status === 'complete'
                       ? '0 0 15px rgba(16,185,129,0.2)'
@@ -224,6 +224,8 @@ export function StepNav({
                       height: isHorizontal ? '100%' : '100%',
                       background: index < currentStepIndex ? '#10b981' : 'transparent',
                       borderRadius: '1px',
+                      originX: 0,
+                      originY: 0,
                     }}
                     initial={false}
                     animate={{
@@ -231,10 +233,6 @@ export function StepNav({
                       scaleY: !isHorizontal ? (index < currentStepIndex ? 1 : 0) : 1,
                     }}
                     transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                    style={{
-                      originX: 0,
-                      originY: 0,
-                    }}
                   />
                 </motion.div>
               </div>

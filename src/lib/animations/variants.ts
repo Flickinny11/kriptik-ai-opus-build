@@ -1,6 +1,6 @@
 /**
  * Premium Animation Variants for KripTik AI
- * 
+ *
  * Reusable Framer Motion animation variants for consistent,
  * premium-feeling animations across the application.
  */
@@ -260,7 +260,7 @@ export const tapScale = {
  */
 export const buttonPress: Variants = {
   initial: { scale: 1 },
-  hover: { 
+  hover: {
     scale: 1.02,
     y: -2,
     transition: {
@@ -268,7 +268,7 @@ export const buttonPress: Variants = {
       ease: [0.23, 1, 0.32, 1],
     },
   },
-  tap: { 
+  tap: {
     scale: 0.98,
     y: 0,
     transition: {

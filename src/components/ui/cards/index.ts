@@ -1,6 +1,6 @@
 /**
  * Premium 3D Card Components for KripTik AI
- * 
+ *
  * A collection of interactive, 3D-enhanced card components
  * with premium glass styling and smooth animations.
  */

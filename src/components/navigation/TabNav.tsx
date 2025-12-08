@@ -1,6 +1,6 @@
 /**
  * TabNav - Premium Tab Navigation
- * 
+ *
  * A styled tab navigation component with glass morphism styling
  * and smooth indicator animations.
  */
@@ -49,7 +49,7 @@ export function TabNav({
   // Update indicator position
   useEffect(() => {
     if (!activeTabId || !containerRef.current) return;
-    
+
     const activeTab = tabRefs.current.get(activeTabId);
     if (!activeTab) return;
 
@@ -83,9 +83,9 @@ export function TabNav({
       padding: sizeConfig.padding,
       fontSize: sizeConfig.fontSize,
       fontWeight: 500,
-      color: isDisabled 
+      color: isDisabled
         ? 'rgba(255,255,255,0.3)'
-        : isActive 
+        : isActive
           ? variant === 'underline' ? '#c8ff64' : 'rgba(255,255,255,0.95)'
           : 'rgba(255,255,255,0.6)',
       background: 'transparent',
@@ -134,7 +134,7 @@ export function TabNav({
       {/* Tabs */}
       {tabs.map(tab => {
         const isActive = tab.id === activeTabId;
-        
+
         return (
           <motion.button
             key={tab.id}
@@ -143,14 +143,14 @@ export function TabNav({
             }}
             style={getTabStyle(isActive, !!tab.disabled)}
             onClick={() => !tab.disabled && onTabChange?.(tab.id)}
-            whileHover={!tab.disabled ? { 
+            whileHover={!tab.disabled ? {
               color: 'rgba(255,255,255,0.9)',
             } : undefined}
             whileTap={!tab.disabled ? { scale: 0.98 } : undefined}
           >
             {tab.icon && (
-              <span style={{ 
-                display: 'flex', 
+              <span style={{
+                display: 'flex',
                 alignItems: 'center',
                 fontSize: sizeConfig.iconSize,
               }}>
@@ -171,7 +171,7 @@ export function TabNav({
                 {tab.badge}
               </span>
             )}
-            
+
             {/* Underline indicator */}
             {variant === 'underline' && isActive && (
               <motion.div

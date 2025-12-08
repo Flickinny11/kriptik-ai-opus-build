@@ -1,9 +1,9 @@
 /**
  * KripTik AI Premium UI Component Library
- * 
+ *
  * A comprehensive collection of premium, glass-morphism styled components
  * for building beautiful, consistent user interfaces.
- * 
+ *
  * Usage:
  * ```tsx
  * import { GlassPanel, GlassButton, FadeIn, Card3D } from '@/components/ui/premium';
@@ -58,7 +58,7 @@ export {
   toastSlideIn,
   pageFade,
   pageSlideUp,
-  
+
   // Transitions
   EASE_PREMIUM,
   EASE_SNAP,
@@ -70,7 +70,7 @@ export {
   transitionModal,
   DELAY,
   DURATION,
-  
+
   // Hooks
   useScrollAnimation,
   useStaggerAnimation,
@@ -79,7 +79,7 @@ export {
   useTypewriter,
   useHoverAnimation,
   useAnimationPreference,
-  
+
   // Components
   FadeIn,
   ScaleIn,
@@ -93,7 +93,7 @@ export {
   Pulse,
   Skeleton,
   LayoutAnimationGroup,
-} from '../../lib/animations';
+} from '../../../lib/animations';
 
 // ============================================
 // Code Editor Components
@@ -107,7 +107,7 @@ export {
   EditorWrapper,
   type EditorTheme,
   type EditorThemeName,
-} from '../editor';
+} from '../../editor';
 
 // ============================================
 // Layout Components
@@ -119,7 +119,7 @@ export {
   DashboardLayout,
   DashboardHeader,
   SplitPane,
-} from '../layout';
+} from '../../layout';
 
 // ============================================
 // Chart Components
@@ -135,7 +135,7 @@ export {
   ProgressRing,
   SparkLine,
   MiniBar,
-} from '../charts';
+} from '../../charts';
 
 // ============================================
 // Navigation Components
@@ -145,18 +145,18 @@ export {
   TabNav,
   Breadcrumbs,
   StepNav,
-} from '../navigation';
+} from '../../navigation';
 
 // ============================================
 // Icon Components
 // ============================================
 export {
   KripTikNiteLogo,
-  ClaudeLogo,
-  GPTLogo,
-  GeminiLogo,
+  AnthropicLogo,
+  OpenAILogo,
+  GoogleLogo,
   MistralLogo,
-  GrokLogo,
+  XGrokLogo,
   DeepSeekLogo,
   QwenLogo,
   CodestralLogo,
@@ -172,4 +172,3 @@ export {
   PauseIcon,
   PlayIcon,
 } from '../ChatIcons';
-

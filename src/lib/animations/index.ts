@@ -1,9 +1,9 @@
 /**
  * Premium Animation System for KripTik AI
- * 
+ *
  * A comprehensive animation library providing consistent,
  * premium-feeling animations across the application.
- * 
+ *
  * Usage:
  * ```tsx
  * import { fadeInUp, transitionSpring, FadeIn, useScrollAnimation } from '@/lib/animations';
@@ -18,39 +18,39 @@ export {
   scaleIn,
   slideInLeft,
   slideInRight,
-  
+
   // Stagger animations
   staggerContainer,
   staggerContainerFast,
   staggerItem,
-  
+
   // Interactive animations
   hoverScale,
   hoverLift,
   tapScale,
   buttonPress,
-  
+
   // Glow animations
   pulseGlow,
   warmGlowPulse,
-  
+
   // Progress animations
   progressFill,
   spinnerRotate,
-  
+
   // Card animations
   cardFlip,
-  
+
   // Notification animations
   toastSlideIn,
-  
+
   // Text animations
   typewriter,
   wordReveal,
-  
+
   // Loading animations
   skeletonShimmer,
-  
+
   // Page animations
   pageFade,
   pageSlideUp,
@@ -64,7 +64,7 @@ export {
   EASE_SMOOTH,
   EASE_ELASTIC,
   EASE_SOFT,
-  
+
   // Transition presets
   transitionDefault,
   transitionFast,
@@ -73,7 +73,7 @@ export {
   transitionSpringSoft,
   transitionSpringBouncy,
   transitionSpringStiff,
-  
+
   // Specialized transitions
   transitionModal,
   transitionDropdown,
@@ -84,13 +84,13 @@ export {
   transitionSkeleton,
   transitionPulse,
   transitionRotate,
-  
+
   // Stagger configurations
   staggerDefault,
   staggerFast,
   staggerSlow,
   staggerExit,
-  
+
   // Constants
   DELAY,
   DURATION,

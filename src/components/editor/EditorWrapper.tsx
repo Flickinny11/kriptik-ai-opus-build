@@ -1,12 +1,12 @@
 /**
  * EditorWrapper - Premium Glass Container for Code Editors
- * 
+ *
  * A styled wrapper component for Monaco/CodeMirror editors
  * with glass morphism styling and premium features.
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 interface EditorTab {
   id: string;
@@ -134,7 +134,7 @@ export function EditorWrapper({
           {tabs.map((tab) => {
             const isActive = tab.id === activeTabId;
             const langIcon = LANGUAGE_ICONS[tab.language.toLowerCase()];
-            
+
             return (
               <motion.div
                 key={tab.id}
@@ -155,14 +155,14 @@ export function EditorWrapper({
               >
                 {/* Language icon */}
                 {tab.icon || langIcon || (
-                  <span style={{ 
-                    width: 14, 
-                    height: 14, 
+                  <span style={{
+                    width: 14,
+                    height: 14,
                     borderRadius: '3px',
                     background: 'rgba(255,255,255,0.1)',
                   }} />
                 )}
-                
+
                 {/* Filename */}
                 <span style={{
                   fontSize: '12px',
@@ -174,7 +174,7 @@ export function EditorWrapper({
                 }}>
                   {tab.filename}
                 </span>
-                
+
                 {/* Modified indicator */}
                 {tab.isModified && (
                   <span style={{
@@ -184,7 +184,7 @@ export function EditorWrapper({
                     background: '#c8ff64',
                   }} />
                 )}
-                
+
                 {/* Close button */}
                 {onTabClose && (
                   <motion.button
@@ -205,7 +205,7 @@ export function EditorWrapper({
                       color: 'rgba(255,255,255,0.3)',
                       cursor: 'pointer',
                     }}
-                    whileHover={{ 
+                    whileHover={{
                       background: 'rgba(255,255,255,0.1)',
                       color: 'rgba(255,255,255,0.7)',
                     }}
@@ -213,7 +213,7 @@ export function EditorWrapper({
                     <CloseIcon />
                   </motion.button>
                 )}
-                
+
                 {/* Active indicator */}
                 {isActive && (
                   <motion.div

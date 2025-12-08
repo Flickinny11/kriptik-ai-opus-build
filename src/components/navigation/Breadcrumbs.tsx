@@ -1,6 +1,6 @@
 /**
  * Breadcrumbs - Premium Breadcrumb Navigation
- * 
+ *
  * A styled breadcrumb component with glass morphism styling
  * and smooth hover effects.
  */
@@ -76,8 +76,8 @@ export function Breadcrumbs({
         const content = (
           <>
             {item.icon && (
-              <span style={{ 
-                display: 'flex', 
+              <span style={{
+                display: 'flex',
                 alignItems: 'center',
                 opacity: isLast ? 1 : 0.7,
               }}>
@@ -95,7 +95,7 @@ export function Breadcrumbs({
                 {separator}
               </span>
             )}
-            
+
             {item.href ? (
               <motion.a
                 href={item.href}

@@ -1,6 +1,6 @@
 /**
  * ProgressRing - Animated Circular Progress Indicator
- * 
+ *
  * A premium circular progress indicator with glass styling.
  */
 
@@ -49,7 +49,7 @@ export function ProgressRing({
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const normalizedValue = Math.min(100, Math.max(0, value));
-  
+
   const springValue = useSpring(0, {
     damping: 30,
     stiffness: 100,
@@ -105,7 +105,7 @@ export function ProgressRing({
             <stop offset="0%" stopColor={color} />
             <stop offset="100%" stopColor={`${color}80`} />
           </linearGradient>
-          
+
           {/* Glow filter */}
           <filter id={`glow-${color.replace('#', '')}`} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -183,7 +183,7 @@ export function ProgressRing({
             {valueSuffix}
           </motion.span>
         )}
-        
+
         {label && (
           <span style={{
             fontSize: size * 0.1,
@@ -194,7 +194,7 @@ export function ProgressRing({
             {label}
           </span>
         )}
-        
+
         {sublabel && (
           <span style={{
             fontSize: size * 0.08,

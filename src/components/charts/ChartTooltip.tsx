@@ -1,6 +1,6 @@
 /**
  * ChartTooltip - Premium Glass Tooltip for Charts
- * 
+ *
  * A styled tooltip component for chart hover states.
  */
 

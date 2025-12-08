@@ -1,6 +1,6 @@
 /**
  * Premium Transition Presets for KripTik AI
- * 
+ *
  * Reusable transition configurations for Framer Motion.
  * Based on professional animation curves used in premium apps.
  */

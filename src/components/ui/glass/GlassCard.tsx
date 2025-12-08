@@ -1,9 +1,9 @@
 /**
  * GlassCard - Premium 3D Glass Card with Hover Effects
- * 
+ *
  * Interactive content card with liquid glass styling and premium hover effects.
  * Features warm glow on hover, 3D transform, and glass shine animation.
- * 
+ *
  * Inspired by ProjectCard3D but as a reusable component.
  */
 
@@ -179,7 +179,7 @@ export function GlassCard({
             position: 'absolute',
             inset: '2px',
             borderRadius: `calc(${ROUNDED_MAP[rounded]} - 2px)`,
-            border: variant === 'light' 
+            border: variant === 'light'
               ? '1px solid rgba(255,180,140,0.3)'
               : '1px solid rgba(200,255,100,0.15)',
             boxShadow: variant === 'light'

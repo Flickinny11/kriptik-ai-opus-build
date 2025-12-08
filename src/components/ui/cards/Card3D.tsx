@@ -1,9 +1,9 @@
 /**
  * Card3D - Premium 3D Interactive Card Base Component
- * 
+ *
  * A highly customizable 3D card with mouse tracking, tilt effects,
  * and premium glass morphism styling.
- * 
+ *
  * Features:
  * - Mouse-tracking 3D tilt effect
  * - Customizable tilt intensity
@@ -104,21 +104,21 @@ export function Card3D({
     const rect = cardRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     const mouseX = e.clientX - centerX;
     const mouseY = e.clientY - centerY;
-    
+
     // Calculate tilt (inverted for natural feel)
     const tiltX = (mouseY / (rect.height / 2)) * -15 * tiltIntensity;
     const tiltY = (mouseX / (rect.width / 2)) * 15 * tiltIntensity;
-    
+
     // Calculate glare position
     const glareX = ((e.clientX - rect.left) / rect.width) * 100;
     const glareY = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     setTilt({ x: tiltX, y: tiltY });
     setGlarePosition({ x: glareX, y: glareY });
-    
+
     onTiltChange?.(tiltX, tiltY);
   }, [disabled, tiltIntensity, onTiltChange]);
 

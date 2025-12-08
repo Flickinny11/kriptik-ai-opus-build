@@ -1,6 +1,6 @@
 /**
  * SidebarNav - Premium Glass Sidebar Navigation
- * 
+ *
  * A feature-rich sidebar navigation with glass morphism styling,
  * collapsible sections, and smooth animations.
  */
@@ -56,7 +56,7 @@ export function SidebarNav({
 
   const handleItemClick = (item: NavItem) => {
     if (item.disabled) return;
-    
+
     if (item.children && item.children.length > 0) {
       toggleSection(item.id);
     } else {
@@ -235,7 +235,7 @@ function NavItemComponent({
         {!collapsed && (
           <>
             <span style={labelStyle}>{item.label}</span>
-            
+
             {/* Badge */}
             {item.badge && (
               <span style={badgeStyle}>{item.badge}</span>

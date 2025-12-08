@@ -1,12 +1,15 @@
 /**
  * Premium Animation Hooks for KripTik AI
- * 
+ *
  * Custom React hooks for common animation patterns.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useInView, useAnimation, useSpring, useReducedMotion } from 'framer-motion';
-import type { AnimationControls, SpringOptions } from 'framer-motion';
+import type { SpringOptions } from 'framer-motion';
+
+// Infer AnimationControls type from useAnimation hook
+type AnimationControls = ReturnType<typeof useAnimation>;
 
 // ============================================
 // Scroll-based Animation Hook
@@ -24,8 +27,8 @@ interface UseScrollAnimationOptions {
 export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
   const { threshold = 0.3, once = true, delay = 0 } = options;
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { 
-    once, 
+  const isInView = useInView(ref, {
+    once,
     amount: threshold,
   });
   const controls = useAnimation();
@@ -181,13 +184,13 @@ export function useSmoothValue(
   targetValue: number,
   options: UseSmoothValueOptions = {}
 ) {
-  const { 
+  const {
     initialValue = targetValue,
     stiffness = 300,
     damping = 30,
     mass = 1,
   } = options;
-  
+
   const spring = useSpring(initialValue, { stiffness, damping, mass });
 
   useEffect(() => {
@@ -216,9 +219,9 @@ export function useTypewriter(
   text: string,
   options: UseTypewriterOptions = {}
 ) {
-  const { 
-    speed = 50, 
-    startDelay = 0, 
+  const {
+    speed = 50,
+    startDelay = 0,
     cursor = true,
     loop = false,
     loopDelay = 2000,
@@ -235,7 +238,7 @@ export function useTypewriter(
 
     const startTyping = () => {
       setIsTyping(true);
-      
+
       const typeChar = () => {
         if (charIndex < text.length) {
           setDisplayText(text.slice(0, charIndex + 1));
@@ -244,7 +247,7 @@ export function useTypewriter(
         } else {
           setIsTyping(false);
           setIsComplete(true);
-          
+
           if (loop) {
             timeout = setTimeout(() => {
               charIndex = 0;
@@ -327,7 +330,7 @@ export function useAnimationPreference() {
 
 interface SequenceStep {
   target: AnimationControls;
-  animation: string | object;
+  animation: string | Record<string, unknown>;
   duration?: number;
 }
 
@@ -340,13 +343,14 @@ export function useAnimationSequence() {
 
   const playSequence = useCallback(async (steps: SequenceStep[]) => {
     setIsPlaying(true);
-    
+
     for (let i = 0; i < steps.length; i++) {
       setCurrentStep(i);
       const step = steps[i];
-      await step.target.start(step.animation);
+      // Use type assertion for animation parameter
+      await step.target.start(step.animation as Parameters<typeof step.target.start>[0]);
     }
-    
+
     setCurrentStep(-1);
     setIsPlaying(false);
   }, []);

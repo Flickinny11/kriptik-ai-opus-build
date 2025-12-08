@@ -1,6 +1,6 @@
 /**
  * Glass Component Library
- * 
+ *
  * Premium glass morphism components for KripTik AI.
  * Ensures visual consistency across the application with
  * dark and light variants, smooth animations, and premium styling.

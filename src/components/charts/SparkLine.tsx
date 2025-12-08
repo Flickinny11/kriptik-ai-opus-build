@@ -1,10 +1,10 @@
 /**
  * SparkLine - Minimal Inline Chart
- * 
+ *
  * A compact line chart for inline data visualization.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CHART_COLORS } from './ChartTheme';
 
@@ -47,7 +47,7 @@ export function SparkLine({
 
     // Create smooth curved path
     let pathD = `M ${points[0].x},${points[0].y}`;
-    
+
     for (let i = 0; i < points.length - 1; i++) {
       const current = points[i];
       const next = points[i + 1];

@@ -1,6 +1,6 @@
 /**
  * GlassSelect - Premium Glass Dropdown Select
- * 
+ *
  * Custom select dropdown with glass morphism styling supporting dark/light variants.
  * Features animated dropdown, keyboard navigation, and search functionality.
  */
@@ -85,12 +85,12 @@ interface GlassSelectProps {
 // Chevron icon
 function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   return (
-    <svg 
-      width="16" 
-      height="16" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
       strokeWidth="2"
       style={{
         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -136,7 +136,7 @@ export function GlassSelect({
   const selectedOption = options.find(opt => opt.value === value);
 
   const filteredOptions = searchable && searchQuery
-    ? options.filter(opt => 
+    ? options.filter(opt =>
         opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         opt.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -178,14 +178,14 @@ export function GlassSelect({
         if (!isOpen) {
           setIsOpen(true);
         } else {
-          setHighlightedIndex(prev => 
+          setHighlightedIndex(prev =>
             prev < filteredOptions.length - 1 ? prev + 1 : 0
           );
         }
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev > 0 ? prev - 1 : filteredOptions.length - 1
         );
         break;
@@ -244,7 +244,7 @@ export function GlassSelect({
     overflowY: 'auto',
   };
 
-  const optionStyle = (isHighlighted: boolean, isSelected: boolean, isDisabled: boolean): React.CSSProperties => ({
+  const optionStyle = (isHighlighted: boolean, _isSelected: boolean, isDisabled: boolean): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -281,7 +281,7 @@ export function GlassSelect({
   return (
     <div ref={containerRef} className={className} style={containerStyle}>
       {label && <label style={labelStyle}>{label}</label>}
-      
+
       <div
         role="combobox"
         aria-expanded={isOpen}
@@ -293,7 +293,7 @@ export function GlassSelect({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
           {selectedOption?.icon && selectedOption.icon}
-          <span style={{ 
+          <span style={{
             color: selectedOption ? tokens.text : tokens.textMuted,
             fontSize: '14px',
           }}>
@@ -346,7 +346,7 @@ export function GlassSelect({
                 filteredOptions.map((option, index) => {
                   const isSelected = option.value === value;
                   const isHighlighted = index === highlightedIndex;
-                  
+
                   return (
                     <div
                       key={option.value}
@@ -388,7 +388,7 @@ export function GlassSelect({
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {error && errorMessage && <span style={errorStyle}>{errorMessage}</span>}
       {!error && hint && <span style={hintStyle}>{hint}</span>}
     </div>

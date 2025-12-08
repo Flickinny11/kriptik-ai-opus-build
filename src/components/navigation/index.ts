@@ -1,6 +1,6 @@
 /**
  * Premium Navigation Components for KripTik AI
- * 
+ *
  * A collection of styled navigation components with
  * glass morphism styling and smooth animations.
  */

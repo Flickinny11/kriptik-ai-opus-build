@@ -1,10 +1,9 @@
 /**
  * MiniBar - Minimal Inline Bar Chart
- * 
+ *
  * A compact bar chart for inline data visualization.
  */
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { CHART_COLORS, getSeriesColor } from './ChartTheme';
 
@@ -66,7 +65,7 @@ export function MiniBar({
               delay: animated ? index * 0.05 : 0,
               ease: [0.23, 1, 0.32, 1],
             }}
-            style={{ 
+            style={{
               originY: 1,
               filter: `drop-shadow(0 0 3px ${barColor}40)`,
             }}

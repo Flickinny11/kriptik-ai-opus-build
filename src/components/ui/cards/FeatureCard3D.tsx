@@ -1,6 +1,6 @@
 /**
  * FeatureCard3D - Premium Feature/Stat Card with 3D Effects
- * 
+ *
  * Designed for displaying features, stats, or highlights with
  * premium glass styling and subtle animations.
  */
@@ -194,9 +194,9 @@ export function FeatureCard3D({
         )}
 
         {value !== undefined && (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'baseline', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'baseline',
             gap: '8px',
             marginTop: '12px',
           }}>
@@ -208,7 +208,7 @@ export function FeatureCard3D({
             }}>
               {value}
             </span>
-            
+
             {trend && (
               <span style={{
                 display: 'flex',

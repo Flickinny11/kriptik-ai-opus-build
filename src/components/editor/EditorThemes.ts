@@ -1,6 +1,6 @@
 /**
  * Premium Code Editor Themes for KripTik AI
- * 
+ *
  * Custom themes designed to match the premium glass morphism aesthetic.
  * These themes are compatible with Monaco Editor and CodeMirror.
  */
@@ -12,47 +12,47 @@ export interface EditorTheme {
     // Editor background and foreground
     'editor.background': string;
     'editor.foreground': string;
-    
+
     // Line numbers
     'editorLineNumber.foreground': string;
     'editorLineNumber.activeForeground': string;
-    
+
     // Cursor
     'editorCursor.foreground': string;
-    
+
     // Selection
     'editor.selectionBackground': string;
     'editor.inactiveSelectionBackground': string;
     'editor.selectionHighlightBackground': string;
-    
+
     // Current line
     'editor.lineHighlightBackground': string;
     'editor.lineHighlightBorder': string;
-    
+
     // Search
     'editor.findMatchBackground': string;
     'editor.findMatchHighlightBackground': string;
-    
+
     // Minimap
     'minimap.background': string;
     'minimapSlider.background': string;
-    
+
     // Scrollbar
     'scrollbar.shadow': string;
     'scrollbarSlider.background': string;
     'scrollbarSlider.hoverBackground': string;
-    
+
     // Widget (autocomplete, etc.)
     'editorWidget.background': string;
     'editorWidget.border': string;
-    
+
     // Gutter
     'editorGutter.background': string;
-    
+
     // Indent guides
     'editorIndentGuide.background': string;
     'editorIndentGuide.activeBackground': string;
-    
+
     // Bracket matching
     'editorBracketMatch.background': string;
     'editorBracketMatch.border': string;
@@ -77,37 +77,37 @@ export const kriptikNight: EditorTheme = {
   colors: {
     'editor.background': '#0a0a0c',
     'editor.foreground': '#e4e4e7',
-    
+
     'editorLineNumber.foreground': '#3f3f46',
     'editorLineNumber.activeForeground': '#c8ff64',
-    
+
     'editorCursor.foreground': '#c8ff64',
-    
+
     'editor.selectionBackground': 'rgba(200, 255, 100, 0.15)',
     'editor.inactiveSelectionBackground': 'rgba(200, 255, 100, 0.08)',
     'editor.selectionHighlightBackground': 'rgba(200, 255, 100, 0.1)',
-    
+
     'editor.lineHighlightBackground': 'rgba(255, 255, 255, 0.03)',
     'editor.lineHighlightBorder': 'transparent',
-    
+
     'editor.findMatchBackground': 'rgba(200, 255, 100, 0.3)',
     'editor.findMatchHighlightBackground': 'rgba(200, 255, 100, 0.15)',
-    
+
     'minimap.background': '#0a0a0c',
     'minimapSlider.background': 'rgba(200, 255, 100, 0.1)',
-    
+
     'scrollbar.shadow': 'rgba(0, 0, 0, 0.5)',
     'scrollbarSlider.background': 'rgba(200, 255, 100, 0.1)',
     'scrollbarSlider.hoverBackground': 'rgba(200, 255, 100, 0.2)',
-    
+
     'editorWidget.background': '#14141a',
     'editorWidget.border': 'rgba(200, 255, 100, 0.1)',
-    
+
     'editorGutter.background': '#0a0a0c',
-    
+
     'editorIndentGuide.background': 'rgba(255, 255, 255, 0.05)',
     'editorIndentGuide.activeBackground': 'rgba(200, 255, 100, 0.2)',
-    
+
     'editorBracketMatch.background': 'rgba(200, 255, 100, 0.2)',
     'editorBracketMatch.border': '#c8ff64',
   },
@@ -256,37 +256,37 @@ export const kriptikGlass: EditorTheme = {
   colors: {
     'editor.background': 'rgba(255, 255, 255, 0)',
     'editor.foreground': '#1e1e24',
-    
+
     'editorLineNumber.foreground': 'rgba(0, 0, 0, 0.25)',
     'editorLineNumber.activeForeground': '#d35f00',
-    
+
     'editorCursor.foreground': '#d35f00',
-    
+
     'editor.selectionBackground': 'rgba(255, 150, 100, 0.2)',
     'editor.inactiveSelectionBackground': 'rgba(255, 150, 100, 0.1)',
     'editor.selectionHighlightBackground': 'rgba(255, 150, 100, 0.15)',
-    
+
     'editor.lineHighlightBackground': 'rgba(0, 0, 0, 0.03)',
     'editor.lineHighlightBorder': 'transparent',
-    
+
     'editor.findMatchBackground': 'rgba(255, 150, 100, 0.4)',
     'editor.findMatchHighlightBackground': 'rgba(255, 150, 100, 0.2)',
-    
+
     'minimap.background': 'rgba(255, 255, 255, 0.5)',
     'minimapSlider.background': 'rgba(255, 150, 100, 0.15)',
-    
+
     'scrollbar.shadow': 'rgba(0, 0, 0, 0.1)',
     'scrollbarSlider.background': 'rgba(255, 150, 100, 0.2)',
     'scrollbarSlider.hoverBackground': 'rgba(255, 150, 100, 0.3)',
-    
+
     'editorWidget.background': 'rgba(255, 255, 255, 0.9)',
     'editorWidget.border': 'rgba(255, 150, 100, 0.2)',
-    
+
     'editorGutter.background': 'transparent',
-    
+
     'editorIndentGuide.background': 'rgba(0, 0, 0, 0.06)',
     'editorIndentGuide.activeBackground': 'rgba(255, 150, 100, 0.3)',
-    
+
     'editorBracketMatch.background': 'rgba(255, 150, 100, 0.25)',
     'editorBracketMatch.border': '#d35f00',
   },
@@ -435,37 +435,37 @@ export const kriptikAmber: EditorTheme = {
   colors: {
     'editor.background': '#0f0d0a',
     'editor.foreground': '#f5f0e8',
-    
+
     'editorLineNumber.foreground': '#4a4540',
     'editorLineNumber.activeForeground': '#ffb088',
-    
+
     'editorCursor.foreground': '#ffb088',
-    
+
     'editor.selectionBackground': 'rgba(255, 176, 136, 0.2)',
     'editor.inactiveSelectionBackground': 'rgba(255, 176, 136, 0.1)',
     'editor.selectionHighlightBackground': 'rgba(255, 176, 136, 0.12)',
-    
+
     'editor.lineHighlightBackground': 'rgba(255, 200, 150, 0.03)',
     'editor.lineHighlightBorder': 'transparent',
-    
+
     'editor.findMatchBackground': 'rgba(255, 176, 136, 0.35)',
     'editor.findMatchHighlightBackground': 'rgba(255, 176, 136, 0.18)',
-    
+
     'minimap.background': '#0f0d0a',
     'minimapSlider.background': 'rgba(255, 176, 136, 0.12)',
-    
+
     'scrollbar.shadow': 'rgba(0, 0, 0, 0.5)',
     'scrollbarSlider.background': 'rgba(255, 176, 136, 0.12)',
     'scrollbarSlider.hoverBackground': 'rgba(255, 176, 136, 0.22)',
-    
+
     'editorWidget.background': '#1a1714',
     'editorWidget.border': 'rgba(255, 176, 136, 0.12)',
-    
+
     'editorGutter.background': '#0f0d0a',
-    
+
     'editorIndentGuide.background': 'rgba(255, 200, 150, 0.06)',
     'editorIndentGuide.activeBackground': 'rgba(255, 176, 136, 0.22)',
-    
+
     'editorBracketMatch.background': 'rgba(255, 176, 136, 0.22)',
     'editorBracketMatch.border': '#ffb088',
   },

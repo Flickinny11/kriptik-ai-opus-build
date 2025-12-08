@@ -1,20 +1,18 @@
 /**
  * Premium Animation Components for KripTik AI
- * 
+ *
  * Reusable animated wrapper components for common patterns.
  */
 
 import React, { forwardRef } from 'react';
 import { motion, AnimatePresence, HTMLMotionProps, LayoutGroup } from 'framer-motion';
-import { 
-  fadeInUp, 
-  scaleIn, 
-  staggerContainer, 
+import {
+  scaleIn,
   staggerItem,
   toastSlideIn,
   pageSlideUp,
 } from './variants';
-import { transitionSpring, transitionDefault } from './transitions';
+import { transitionSpring } from './transitions';
 
 // ============================================
 // FadeIn Component
@@ -332,12 +330,12 @@ export const HoverScale = forwardRef<HTMLDivElement, HoverScaleProps>(({
   return (
     <motion.div
       ref={ref}
-      whileHover={{ 
-        scale, 
+      whileHover={{
+        scale,
         y: -lift,
         transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] },
       }}
-      whileTap={{ 
+      whileTap={{
         scale: 0.98,
         transition: { duration: 0.1 },
       }}
@@ -405,9 +403,9 @@ interface SkeletonProps {
 /**
  * Animated skeleton loader
  */
-export function Skeleton({ 
-  width = '100%', 
-  height = 20, 
+export function Skeleton({
+  width = '100%',
+  height = 20,
   borderRadius = 8,
   className = '',
 }: SkeletonProps) {

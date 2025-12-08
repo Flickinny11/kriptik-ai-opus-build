@@ -1,6 +1,6 @@
 /**
  * GlassToggle - Premium Glass Toggle Switch
- * 
+ *
  * Toggle switch with glass morphism styling supporting dark/light variants.
  * Features smooth spring animation and customizable accent colors.
  */

@@ -1,6 +1,6 @@
 /**
  * FlipCard3D - Premium 3D Flip Card Component
- * 
+ *
  * Interactive card that flips to reveal back content.
  * Features smooth 3D rotation and glass styling on both sides.
  */
@@ -36,7 +36,7 @@ export function FlipCard3D({
   backStyle,
 }: FlipCard3DProps) {
   const [internalFlipped, setInternalFlipped] = useState(false);
-  
+
   // Support controlled and uncontrolled modes
   const isFlipped = controlledIsFlipped !== undefined ? controlledIsFlipped : internalFlipped;
 

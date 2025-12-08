@@ -1,6 +1,6 @@
 /**
  * GlassInput - Premium Glass Form Input
- * 
+ *
  * Form input with glass morphism styling supporting dark/light variants.
  * Features focus glow, error states, and optional icon support.
  */
@@ -118,7 +118,7 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
 
   const inputElementStyle: React.CSSProperties = {
     width: '100%',
-    padding: icon 
+    padding: icon
       ? (iconPosition === 'left' ? '14px 16px 14px 44px' : '14px 44px 14px 16px')
       : '14px 16px',
     background: 'transparent',
@@ -166,14 +166,14 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
   };
 
   return (
-    <motion.div 
+    <motion.div
       className={className}
       style={containerStyle}
       initial={false}
       animate={{ y: 0 }}
     >
       {label && <label style={labelStyle}>{label}</label>}
-      
+
       <div style={inputWrapperStyle}>
         {icon && (
           <span style={iconStyle}>{icon}</span>
@@ -192,7 +192,7 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
           }}
         />
       </div>
-      
+
       {error && errorMessage && <span style={errorStyle}>{errorMessage}</span>}
       {!error && hint && <span style={hintStyle}>{hint}</span>}
     </motion.div>
