@@ -6,7 +6,7 @@ import { getModelRouter } from './services/ai/model-router.js';
 dotenv.config();
 
 // Build timestamp for cache busting and deployment verification
-const BUILD_TIMESTAMP = '2025-12-08T16:18:00Z';
+const BUILD_TIMESTAMP = '2025-12-08T18:05:00Z';
 console.log(`[Server] Build timestamp: ${BUILD_TIMESTAMP}`);
 
 // Pre-warm model router for faster first request (2-3s improvement)
@@ -318,8 +318,8 @@ app.get("/dashboard", (req, res) => {
     res.redirect(`${FRONTEND_URL}/dashboard`);
 });
 
-// Also catch /dashboard/* paths
-app.get("/dashboard/*", (req, res) => {
+// Also catch /dashboard/... paths using regex to avoid path-to-regexp errors
+app.get(/^\/dashboard\/(.*)$/, (req, res) => {
     const path = req.path;
     console.log(`[Dashboard Redirect] User landed on backend ${path}, redirecting to frontend`);
     res.redirect(`${FRONTEND_URL}${path}`);
