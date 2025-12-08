@@ -746,3 +746,4 @@ if (!process.env.VERCEL) {
         }
     });
 }
+// Trigger deploy after fixing Vercel settings
