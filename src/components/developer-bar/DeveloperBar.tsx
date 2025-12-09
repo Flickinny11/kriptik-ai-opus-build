@@ -1,24 +1,20 @@
 /**
- * Developer Bar - 3D Liquid Glass Command Center
- * 
- * A floating, photorealistic translucent glass toolbar with:
- * - True glass morphism with refraction effects
- * - Warm photorealistic glow on active buttons
- * - Click to open, click again to close (multi-panel support)
- * - Button pagination with smooth slide animation
- * - Custom 3D geometric icons
- * - Buttery smooth 60fps animations
- * 
- * Design: Inspired by Spline glass aesthetics
+ * Developer Bar - Frosted Glass Toolbar
+ *
+ * Inspired by Spline glass design:
+ * - Real frosted glass pill-shaped buttons
+ * - Warm amber glow when active
+ * - Physics-based 3D flip animations
+ * - Resizable toolbar (drag to expand)
+ * - Buttons that look like actual glass objects
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { DeveloperBarPanel } from './DeveloperBarPanel';
 import './developer-bar.css';
 
-// Feature button configuration
 export interface FeatureButton {
   id: string;
   name: string;
@@ -27,44 +23,35 @@ export interface FeatureButton {
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
-  // Core Features
   { id: 'agents', name: 'Agents', icon: 'agents', category: 'core' },
   { id: 'memory', name: 'Memory', icon: 'memory', category: 'core' },
-  { id: 'quality-check', name: 'Quality Check', icon: 'qualityCheck', category: 'core' },
+  { id: 'quality-check', name: 'Quality', icon: 'qualityCheck', category: 'core' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations', category: 'core' },
-  
-  // AI & Intelligence
   { id: 'ghost-mode', name: 'Ghost Mode', icon: 'ghostMode', category: 'ai' },
   { id: 'market-fit', name: 'Market Fit', icon: 'marketFit', category: 'ai' },
-  { id: 'predictive-engine', name: 'Predictive Engine', icon: 'predictiveEngine', category: 'ai' },
-  { id: 'ai-slop-catch', name: 'AI-Slop Catch', icon: 'aiSlopCatch', category: 'ai' },
+  { id: 'predictive-engine', name: 'Predictive', icon: 'predictiveEngine', category: 'ai' },
+  { id: 'ai-slop-catch', name: 'AI-Slop', icon: 'aiSlopCatch', category: 'ai' },
   { id: 'user-twin', name: 'User Twin', icon: 'userTwin', category: 'ai' },
-  
-  // Development Tools
   { id: 'workflows', name: 'Workflows', icon: 'workflows', category: 'tools' },
   { id: 'database', name: 'Database', icon: 'database', category: 'tools' },
   { id: 'developer-settings', name: 'Dev Settings', icon: 'developerSettings', category: 'tools' },
-  { id: 'voice-first', name: 'Voice-First', icon: 'voiceFirst', category: 'tools' },
+  { id: 'voice-first', name: 'Voice', icon: 'voiceFirst', category: 'tools' },
   { id: 'dna', name: 'DNA', icon: 'dna', category: 'tools' },
-  { id: 'live-debug', name: 'Live Debug', icon: 'liveDebug', category: 'tools' },
-  { id: 'live-health', name: 'Live Health', icon: 'liveHealth', category: 'tools' },
+  { id: 'live-debug', name: 'Debug', icon: 'liveDebug', category: 'tools' },
+  { id: 'live-health', name: 'Health', icon: 'liveHealth', category: 'tools' },
   { id: 'test-gen', name: 'Test Gen', icon: 'testGen', category: 'tools' },
   { id: 'time-machine', name: 'Time Machine', icon: 'timeMachine', category: 'tools' },
   { id: 'self-heal', name: 'Self Heal', icon: 'selfHeal', category: 'tools' },
   { id: 'rules', name: 'Rules', icon: 'rules', category: 'tools' },
   { id: 'agent-builder', name: 'Agent Builder', icon: 'agentBuilder', category: 'tools' },
   { id: 'living-docs', name: 'Living Docs', icon: 'livingDocs', category: 'tools' },
-  { id: 'api-autopilot', name: 'API AutoPilot', icon: 'apiAutopilot', category: 'tools' },
-  
-  // Deployment
-  { id: 'deployment', name: 'Deployment', icon: 'deployment', category: 'deploy' },
-  { id: 'cloud-deploy', name: 'Cloud Deploy', icon: 'cloudDeploy', category: 'deploy' },
-  { id: 'migration-wizard', name: 'Migration Wizard', icon: 'migrationWizard', category: 'deploy' },
-  { id: 'repo-aware', name: 'Repo Aware', icon: 'repoAware', category: 'deploy' },
-  { id: 'clone-mode', name: 'Clone Mode', icon: 'cloneMode', category: 'deploy' },
-  { id: 'zero-trust-sec', name: '0 Trust Sec', icon: 'zeroTrustSec', category: 'deploy' },
-  
-  // Collaboration
+  { id: 'api-autopilot', name: 'API Pilot', icon: 'apiAutopilot', category: 'tools' },
+  { id: 'deployment', name: 'Deploy', icon: 'deployment', category: 'deploy' },
+  { id: 'cloud-deploy', name: 'Cloud', icon: 'cloudDeploy', category: 'deploy' },
+  { id: 'migration-wizard', name: 'Migration', icon: 'migrationWizard', category: 'deploy' },
+  { id: 'repo-aware', name: 'Repo', icon: 'repoAware', category: 'deploy' },
+  { id: 'clone-mode', name: 'Clone', icon: 'cloneMode', category: 'deploy' },
+  { id: 'zero-trust-sec', name: 'Security', icon: 'zeroTrustSec', category: 'deploy' },
   { id: 'multiplayer', name: 'MultiPlayer', icon: 'multiplayer', category: 'collab' },
   { id: 'publish', name: 'Publish', icon: 'publish', category: 'collab' },
   { id: 'share', name: 'Share', icon: 'share', category: 'collab' },
@@ -72,9 +59,11 @@ const FEATURE_BUTTONS: FeatureButton[] = [
 
 type Orientation = 'vertical' | 'horizontal';
 
-// Number of buttons visible at once
-const VISIBLE_BUTTONS_VERTICAL = 10;
-const VISIBLE_BUTTONS_HORIZONTAL = 14;
+const BUTTON_SIZE = 72; // Height of each pill button
+const MIN_TOOLBAR_LENGTH = 300;
+const MAX_TOOLBAR_LENGTH = 800;
+const BUTTON_GAP = 8;
+const TOOLBAR_PADDING = 16;
 
 interface DeveloperBarProps {
   activeFeatures?: string[];
@@ -82,33 +71,33 @@ interface DeveloperBarProps {
   className?: string;
 }
 
-export function DeveloperBar({ 
-  activeFeatures = [], 
+export function DeveloperBar({
+  activeFeatures = [],
   onFeatureToggle,
-  className = '' 
+  className = ''
 }: DeveloperBarProps) {
   const [orientation, setOrientation] = useState<Orientation>('vertical');
   const [openPanels, setOpenPanels] = useState<string[]>([]);
-  const [position, setPosition] = useState({ x: 20, y: 100 });
+  const [position, setPosition] = useState({ x: 20, y: 80 });
+  const [toolbarLength, setToolbarLength] = useState(400);
   const [buttonPage, setButtonPage] = useState(0);
+  const [isResizing, setIsResizing] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
-  
+
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
 
-  // Calculate visible buttons based on orientation
-  const visibleCount = orientation === 'vertical' ? VISIBLE_BUTTONS_VERTICAL : VISIBLE_BUTTONS_HORIZONTAL;
-  const totalPages = Math.ceil(FEATURE_BUTTONS.length / visibleCount);
-  const startIndex = buttonPage * visibleCount;
-  const visibleButtons = FEATURE_BUTTONS.slice(startIndex, startIndex + visibleCount);
-  
-  // Calculate slide direction based on position and screen space
+  // Calculate how many buttons fit based on toolbar length
+  const visibleButtonCount = Math.floor((toolbarLength - TOOLBAR_PADDING * 2) / (BUTTON_SIZE + BUTTON_GAP));
+  const totalPages = Math.ceil(FEATURE_BUTTONS.length / Math.max(1, visibleButtonCount));
+  const startIndex = buttonPage * visibleButtonCount;
+  const visibleButtons = FEATURE_BUTTONS.slice(startIndex, startIndex + visibleButtonCount);
+
   const getSlideDirection = useCallback(() => {
     if (typeof window === 'undefined') return 'right';
-    
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
-    
+
     if (orientation === 'vertical') {
       return position.x < screenWidth / 2 ? 'right' : 'left';
     } else {
@@ -117,37 +106,34 @@ export function DeveloperBar({
   }, [orientation, position]);
 
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setPosition({
-      x: position.x + info.offset.x,
-      y: position.y + info.offset.y
-    });
-  }, [position]);
+    if (!isResizing) {
+      setPosition({
+        x: position.x + info.offset.x,
+        y: position.y + info.offset.y
+      });
+    }
+  }, [position, isResizing]);
 
-  // Simple toggle: click opens, click again closes
   const handleFeatureClick = useCallback((featureId: string) => {
     setOpenPanels(prev => {
       if (prev.includes(featureId)) {
-        // Close this panel
         return prev.filter(id => id !== featureId);
       } else {
-        // Open this panel
         return [...prev, featureId];
       }
     });
     onFeatureToggle?.(featureId);
   }, [onFeatureToggle]);
 
-  // Close a specific panel
   const handlePanelClose = useCallback((featureId: string) => {
     setOpenPanels(prev => prev.filter(id => id !== featureId));
   }, []);
 
   const toggleOrientation = useCallback(() => {
     setOrientation(prev => prev === 'vertical' ? 'horizontal' : 'vertical');
-    setButtonPage(0); // Reset to first page on orientation change
+    setButtonPage(0);
   }, []);
 
-  // Cycle to next page of buttons
   const cycleButtons = useCallback((direction: 'next' | 'prev') => {
     setButtonPage(prev => {
       if (direction === 'next') {
@@ -158,127 +144,153 @@ export function DeveloperBar({
     });
   }, [totalPages]);
 
+  // Resize handler
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+
+    const startPos = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const startLength = toolbarLength;
+
+    const onMove = (moveEvent: MouseEvent | TouchEvent) => {
+      const currentPos = 'touches' in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      const delta = orientation === 'vertical' ? currentPos - startPos : currentPos - startPos;
+      const newLength = Math.max(MIN_TOOLBAR_LENGTH, Math.min(MAX_TOOLBAR_LENGTH, startLength + delta));
+      setToolbarLength(newLength);
+    };
+
+    const onEnd = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove);
+    document.addEventListener('touchend', onEnd);
+  }, [toolbarLength, orientation]);
+
+  // Reset page when visible count changes
+  useEffect(() => {
+    if (buttonPage >= totalPages) {
+      setButtonPage(Math.max(0, totalPages - 1));
+    }
+  }, [buttonPage, totalPages]);
+
   const slideDirection = getSlideDirection();
   const isVertical = orientation === 'vertical';
 
   return (
     <>
-      {/* Main Developer Bar */}
+      {/* Frosted Glass Toolbar */}
       <motion.div
         ref={barRef}
-        className={`developer-bar developer-bar--${orientation} ${className}`}
-        style={{ x, y }}
-        drag
+        className={`glass-toolbar glass-toolbar--${orientation} ${isResizing ? 'glass-toolbar--resizing' : ''} ${className}`}
+        style={{
+          x,
+          y,
+          [isVertical ? 'height' : 'width']: toolbarLength,
+        }}
+        drag={!isResizing}
         dragMomentum={false}
         onDragEnd={handleDragEnd}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       >
-        {/* Glass Container with Refraction */}
-        <div className="developer-bar__glass">
-          {/* Refraction layer */}
-          <div className="developer-bar__refraction" />
-          
-          {/* Inner glow */}
-          <div className="developer-bar__inner-glow" />
-          
-          {/* Glass surface */}
-          <div className="developer-bar__surface">
-            {/* Orientation toggle grip */}
-            <button 
-              className="developer-bar__grip"
+        {/* Frosted glass base */}
+        <div className="glass-toolbar__base">
+          {/* Inner frost layers */}
+          <div className="glass-toolbar__frost" />
+          <div className="glass-toolbar__frost-inner" />
+
+          {/* Content container */}
+          <div className="glass-toolbar__content">
+            {/* Grip/Orientation toggle */}
+            <button
+              className="glass-toolbar__grip"
               onClick={toggleOrientation}
               title={`Switch to ${isVertical ? 'horizontal' : 'vertical'}`}
             >
-              <div className="developer-bar__grip-lines">
-                <span /><span /><span />
-              </div>
+              <span className="glass-toolbar__grip-dot" />
+              <span className="glass-toolbar__grip-dot" />
+              <span className="glass-toolbar__grip-dot" />
             </button>
 
-            {/* Previous page button */}
+            {/* Page navigation - Previous */}
             {totalPages > 1 && (
-              <motion.button
-                className="developer-bar__cycle-btn"
+              <button
+                className="glass-toolbar__nav glass-toolbar__nav--prev"
                 onClick={() => cycleButtons('prev')}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path 
-                    d={isVertical ? "M9 6L3 6M3 6L6 3M3 6L6 9" : "M6 9L6 3M6 3L3 6M6 3L9 6"}
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d={isVertical ? "M12 8H4M4 8L7 5M4 8L7 11" : "M8 12V4M8 4L5 7M8 4L11 7"}
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </motion.button>
+              </button>
             )}
 
-            {/* Feature buttons */}
-            <div className={`developer-bar__buttons ${isVertical ? 'developer-bar__buttons--vertical' : 'developer-bar__buttons--horizontal'}`}>
+            {/* Glass pill buttons */}
+            <div className="glass-toolbar__buttons">
               <AnimatePresence mode="popLayout">
                 {visibleButtons.map((feature, index) => (
-                  <GlassButton
+                  <GlassPillButton
                     key={feature.id}
                     feature={feature}
                     isActive={activeFeatures.includes(feature.id)}
                     isOpen={openPanels.includes(feature.id)}
                     onClick={() => handleFeatureClick(feature.id)}
-                    orientation={orientation}
                     index={index}
                   />
                 ))}
               </AnimatePresence>
             </div>
 
-            {/* Next page button */}
+            {/* Page navigation - Next */}
             {totalPages > 1 && (
-              <motion.button
-                className="developer-bar__cycle-btn"
+              <button
+                className="glass-toolbar__nav glass-toolbar__nav--next"
                 onClick={() => cycleButtons('next')}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path 
-                    d={isVertical ? "M3 6L9 6M9 6L6 9M9 6L6 3" : "M6 3L6 9M6 9L9 6M6 9L3 6"}
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d={isVertical ? "M4 8H12M12 8L9 5M12 8L9 11" : "M8 4V12M8 12L11 9M8 12L5 9"}
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </motion.button>
+              </button>
             )}
 
             {/* Page indicator */}
             {totalPages > 1 && (
-              <div className="developer-bar__page-indicator">
+              <div className="glass-toolbar__pages">
                 {Array.from({ length: totalPages }).map((_, i) => (
-                  <span 
-                    key={i} 
-                    className={`developer-bar__page-dot ${i === buttonPage ? 'developer-bar__page-dot--active' : ''}`}
+                  <span
+                    key={i}
+                    className={`glass-toolbar__page-dot ${i === buttonPage ? 'glass-toolbar__page-dot--active' : ''}`}
                   />
                 ))}
               </div>
             )}
+
+            {/* Resize handle */}
+            <div
+              className="glass-toolbar__resize"
+              onMouseDown={handleResizeStart}
+              onTouchStart={handleResizeStart}
+            >
+              <span className="glass-toolbar__resize-line" />
+              <span className="glass-toolbar__resize-line" />
+            </div>
           </div>
-          
-          {/* Edge highlights for 3D depth */}
-          <div className="developer-bar__edge developer-bar__edge--top" />
-          <div className="developer-bar__edge developer-bar__edge--right" />
-          <div className="developer-bar__edge developer-bar__edge--bottom" />
-          <div className="developer-bar__edge developer-bar__edge--left" />
+
+          {/* Outer shadow for depth */}
+          <div className="glass-toolbar__shadow" />
         </div>
-        
-        {/* Outer shadow layers */}
-        <div className="developer-bar__shadow developer-bar__shadow--1" />
-        <div className="developer-bar__shadow developer-bar__shadow--2" />
       </motion.div>
 
-      {/* Open Panels - Each is floating and independently draggable */}
+      {/* Glass Panels */}
       <AnimatePresence>
         {openPanels.map((panelId, index) => (
           <DeveloperBarPanel
@@ -298,96 +310,94 @@ export function DeveloperBar({
   );
 }
 
-// Individual Glass Button Component
-function GlassButton({
+// Frosted Glass Pill Button - Matching Spline reference
+function GlassPillButton({
   feature,
   isActive,
   isOpen,
   onClick,
-  orientation,
   index
 }: {
   feature: FeatureButton;
   isActive: boolean;
   isOpen: boolean;
   onClick: () => void;
-  orientation: Orientation;
   index: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const handleClick = () => {
+    // Trigger flip animation
+    setIsFlipped(true);
+    setTimeout(() => setIsFlipped(false), 600);
+    onClick();
+  };
 
   return (
     <motion.button
-      className={`
-        developer-bar__btn
-        ${isActive ? 'developer-bar__btn--active' : ''}
-        ${isOpen ? 'developer-bar__btn--open' : ''}
-      `}
-      onClick={onClick}
+      className={`glass-pill ${isActive || isOpen ? 'glass-pill--active' : ''} ${isFlipped ? 'glass-pill--flipped' : ''}`}
+      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ 
-        duration: 0.3, 
-        delay: index * 0.02,
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.03,
         ease: [0.23, 1, 0.32, 1]
       }}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.95 }}
-      title={feature.name}
       layout
     >
-      {/* Glass button body */}
-      <div className="developer-bar__btn-glass">
-        {/* Active/Open warm glow */}
+      {/* Glass pill body */}
+      <div className="glass-pill__body">
+        {/* Warm glow layer (visible when active) */}
         {(isActive || isOpen) && (
           <motion.div
-            className="developer-bar__btn-glow"
+            className="glass-pill__glow"
+            initial={{ opacity: 0 }}
             animate={{
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.05, 1],
+              opacity: [0.6, 0.9, 0.6],
             }}
             transition={{
-              duration: 2,
+              duration: 2.5,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           />
         )}
-        
-        {/* Glass refraction */}
-        <div className="developer-bar__btn-refraction" />
-        
-        {/* Icon */}
-        <div className="developer-bar__btn-icon">
-          <DeveloperBarIcon 
-            name={feature.icon} 
-            size={20} 
-            isActive={isActive || isOpen}
-            isHovered={isHovered}
-          />
+
+        {/* Frosted glass layers */}
+        <div className="glass-pill__frost" />
+        <div className="glass-pill__frost-inner" />
+
+        {/* Content */}
+        <div className="glass-pill__content">
+          <div className="glass-pill__icon">
+            <DeveloperBarIcon
+              name={feature.icon}
+              size={22}
+              isActive={isActive || isOpen}
+              isHovered={isHovered}
+            />
+          </div>
+          <span className="glass-pill__label">{feature.name}</span>
+
+          {/* Status dots (like in the Spline reference) */}
+          <div className="glass-pill__dots">
+            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
+            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
+            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
+          </div>
         </div>
 
-        {/* Glass highlight */}
-        <div className="developer-bar__btn-highlight" />
-      </div>
+        {/* Highlight edge (top light reflection) */}
+        <div className="glass-pill__highlight" />
 
-      {/* Tooltip */}
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            className={`developer-bar__tooltip developer-bar__tooltip--${orientation}`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.15 }}
-          >
-            {feature.name}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Inner shadow for depth */}
+        <div className="glass-pill__inner-shadow" />
+      </div>
     </motion.button>
   );
 }

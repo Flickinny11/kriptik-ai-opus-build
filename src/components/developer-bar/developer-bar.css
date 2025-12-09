@@ -1,558 +1,514 @@
 /**
- * Developer Bar - Photorealistic Liquid Glass Styling
- * 
- * Inspired by Spline glass aesthetics:
- * - True translucent glass with refraction
- * - Photorealistic warm glow (#FFB87A, #FF9D5C)
- * - Multi-layer 3D depth with visible edges
- * - Buttery smooth 60fps animations
- * - See-through to background content
+ * Developer Bar - Frosted Glass Styling
+ *
+ * Matching Spline reference design:
+ * - Real frosted glass appearance
+ * - Pill-shaped buttons with depth
+ * - Warm amber glow on active state
+ * - Physics-based 3D flip animation
+ * - Resizable toolbar
  */
 
 /* ============================================================================
-   CSS Custom Properties - Glass Design System
+   Design Tokens - Matching Spline Reference
    ============================================================================ */
 
-.developer-bar {
-  /* Glass colors */
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-bg-solid: rgba(30, 30, 38, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-border-inner: rgba(255, 255, 255, 0.25);
-  --glass-highlight: rgba(255, 255, 255, 0.4);
-  --glass-refraction: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.03) 75%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  
-  /* Warm glow colors - photorealistic amber */
-  --glow-color: #FFB87A;
-  --glow-color-bright: #FFD4A8;
-  --glow-color-deep: #FF9D5C;
-  --glow-shadow: rgba(255, 184, 122, 0.5);
-  --glow-shadow-soft: rgba(255, 184, 122, 0.25);
-  
-  /* Button glass */
-  --btn-glass: rgba(255, 255, 255, 0.06);
-  --btn-glass-hover: rgba(255, 255, 255, 0.12);
-  --btn-glass-active: rgba(255, 184, 122, 0.15);
-  
-  /* Shadows for 3D depth */
-  --shadow-ambient: 0 0 60px rgba(0, 0, 0, 0.15);
-  --shadow-drop-1: 0 8px 32px rgba(0, 0, 0, 0.25);
-  --shadow-drop-2: 0 16px 48px rgba(0, 0, 0, 0.15);
-  
-  /* Animation timing */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+:root {
+  /* Frosted glass - matching the Spline white/gray glass */
+  --glass-frost-bg: rgba(255, 255, 255, 0.75);
+  --glass-frost-bg-inner: rgba(255, 255, 255, 0.5);
+  --glass-frost-border: rgba(255, 255, 255, 0.9);
+  --glass-frost-shadow: rgba(0, 0, 0, 0.08);
+
+  /* Warm amber glow - matching Spline orange/peach active state */
+  --glow-warm: #F5A86C;
+  --glow-warm-light: #FFD4B0;
+  --glow-warm-deep: #E88B4D;
+  --glow-shadow: rgba(245, 168, 108, 0.6);
+  --glow-shadow-soft: rgba(245, 168, 108, 0.35);
+
+  /* Button colors */
+  --pill-bg: rgba(255, 255, 255, 0.8);
+  --pill-bg-hover: rgba(255, 255, 255, 0.9);
+  --pill-bg-active: linear-gradient(135deg, #F5A86C 0%, #E88B4D 100%);
+
+  /* Text */
+  --text-dark: #1a1a1a;
+  --text-muted: #666;
+
+  /* Animation */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.23, 1, 0.32, 1);
   --duration-fast: 0.2s;
   --duration-normal: 0.4s;
-  --duration-slow: 0.6s;
+  --duration-flip: 0.6s;
 }
 
 /* ============================================================================
-   Main Developer Bar Container
+   Main Toolbar Container
    ============================================================================ */
 
-.developer-bar {
+.glass-toolbar {
   position: fixed;
   z-index: 9999;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  
-  /* Prevent layout shift during drag */
-  will-change: transform;
 }
 
-.developer-bar:active {
+.glass-toolbar:active {
   cursor: grabbing;
 }
 
-/* ============================================================================
-   3D Liquid Glass Container
-   ============================================================================ */
-
-.developer-bar__glass {
-  position: relative;
-  border-radius: 20px;
-  background: var(--glass-bg-solid);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  
-  /* Glass border - multiple layers for realism */
-  border: 1px solid var(--glass-border);
-  box-shadow:
-    inset 0 1px 1px var(--glass-border-inner),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-    var(--shadow-ambient);
-  
-  overflow: hidden;
-}
-
-/* Refraction layer - creates light bending effect */
-.developer-bar__refraction {
-  position: absolute;
-  inset: 0;
-  background: var(--glass-refraction);
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Inner ambient glow */
-.developer-bar__inner-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 80% 50% at 50% 0%,
-    rgba(255, 255, 255, 0.08) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* Main surface containing buttons */
-.developer-bar__surface {
-  position: relative;
-  display: flex;
-  padding: 10px;
-  z-index: 3;
+.glass-toolbar--resizing {
+  cursor: ns-resize !important;
 }
 
 /* Vertical orientation */
-.developer-bar--vertical .developer-bar__surface {
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.developer-bar--vertical .developer-bar__glass {
-  width: 54px;
+.glass-toolbar--vertical {
+  width: 100px;
 }
 
 /* Horizontal orientation */
-.developer-bar--horizontal .developer-bar__surface {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-
-.developer-bar--horizontal .developer-bar__glass {
-  height: 54px;
+.glass-toolbar--horizontal {
+  height: 100px;
 }
 
 /* ============================================================================
-   Edge Highlights - 3D Depth Effect
+   Frosted Glass Base - Matching Spline Panel
    ============================================================================ */
 
-.developer-bar__edge {
-  position: absolute;
-  pointer-events: none;
-  z-index: 4;
+.glass-toolbar__base {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+  overflow: hidden;
 }
 
-.developer-bar__edge--top {
-  top: 0;
-  left: 4px;
-  right: 4px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--glass-highlight) 20%,
-    rgba(255, 255, 255, 0.6) 50%,
-    var(--glass-highlight) 80%,
-    transparent 100%
-  );
-}
-
-.developer-bar__edge--bottom {
-  bottom: 0;
-  left: 4px;
-  right: 4px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.2) 50%,
-    transparent 100%
-  );
-}
-
-.developer-bar__edge--left {
-  left: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    var(--glass-highlight) 50%,
-    transparent 100%
-  );
-}
-
-.developer-bar__edge--right {
-  right: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.15) 50%,
-    transparent 100%
-  );
-}
-
-/* ============================================================================
-   Shadow Layers - Floating Effect
-   ============================================================================ */
-
-.developer-bar__shadow {
+/* Main frosted glass layer */
+.glass-toolbar__frost {
   position: absolute;
   inset: 0;
-  border-radius: 20px;
+  background: var(--glass-frost-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-radius: inherit;
+  border: 1px solid var(--glass-frost-border);
+
+  /* Subtle gradient for depth */
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(240, 240, 245, 0.8) 100%
+  );
+}
+
+/* Inner frost layer for extra depth */
+.glass-toolbar__frost-inner {
+  position: absolute;
+  inset: 4px;
+  border-radius: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  pointer-events: none;
+}
+
+/* Shadow for floating effect */
+.glass-toolbar__shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  box-shadow:
+    0 10px 40px var(--glass-frost-shadow),
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 20px 60px rgba(0, 0, 0, 0.06);
+  transform: translateY(4px);
   pointer-events: none;
   z-index: -1;
 }
 
-.developer-bar__shadow--1 {
-  box-shadow: var(--shadow-drop-1);
-  transform: translateY(4px);
-}
-
-.developer-bar__shadow--2 {
-  box-shadow: var(--shadow-drop-2);
-  transform: translateY(10px);
-  opacity: 0.7;
-}
-
 /* ============================================================================
-   Grip Handle (Orientation Toggle)
+   Content Container
    ============================================================================ */
 
-.developer-bar__grip {
+.glass-toolbar__content {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: transform var(--duration-fast) var(--ease-out-quint);
-  
-  &:hover {
-    transform: scale(1.1);
-  }
-  
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.developer-bar__grip-lines {
-  display: flex;
-  gap: 2px;
-  
-  span {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.35);
-    transition: background var(--duration-fast) ease;
-  }
-}
-
-.developer-bar__grip:hover .developer-bar__grip-lines span {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.developer-bar--horizontal .developer-bar__grip-lines {
   flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 12px 8px;
+  gap: 8px;
+  z-index: 1;
+}
+
+.glass-toolbar--horizontal .glass-toolbar__content {
+  flex-direction: row;
+  padding: 8px 12px;
 }
 
 /* ============================================================================
-   Cycle Buttons (Page Navigation)
+   Grip Handle
    ============================================================================ */
 
-.developer-bar__cycle-btn {
+.glass-toolbar__grip {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
+  gap: 3px;
+  padding: 6px 12px;
   border: none;
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 8px;
-  background: var(--btn-glass);
-  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out-quint);
+  transition: background var(--duration-fast) ease;
   flex-shrink: 0;
-  
-  &:hover {
-    background: var(--btn-glass-hover);
-    color: rgba(255, 255, 255, 0.9);
-  }
 }
 
-/* ============================================================================
-   Button Container
-   ============================================================================ */
-
-.developer-bar__buttons {
-  display: flex;
-  gap: 4px;
-  flex: 1;
-  overflow: hidden;
+.glass-toolbar__grip:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
 
-.developer-bar__buttons--vertical {
-  flex-direction: column;
-  align-items: center;
-}
-
-.developer-bar__buttons--horizontal {
-  flex-direction: row;
-  align-items: center;
-}
-
-/* ============================================================================
-   Page Indicator Dots
-   ============================================================================ */
-
-.developer-bar__page-indicator {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-}
-
-.developer-bar--vertical .developer-bar__page-indicator {
-  flex-direction: row;
-}
-
-.developer-bar--horizontal .developer-bar__page-indicator {
-  flex-direction: column;
-}
-
-.developer-bar__page-dot {
+.glass-toolbar__grip-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: all var(--duration-fast) ease;
+  background: rgba(0, 0, 0, 0.25);
 }
 
-.developer-bar__page-dot--active {
-  background: var(--glow-color);
-  box-shadow: 0 0 6px var(--glow-shadow);
+.glass-toolbar--horizontal .glass-toolbar__grip {
+  flex-direction: column;
 }
 
 /* ============================================================================
-   Glass Button Styling
+   Navigation Buttons
    ============================================================================ */
 
-.developer-bar__btn {
+.glass-toolbar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  flex-shrink: 0;
+}
+
+.glass-toolbar__nav:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-dark);
+}
+
+/* ============================================================================
+   Buttons Container
+   ============================================================================ */
+
+.glass-toolbar__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+}
+
+.glass-toolbar--horizontal .glass-toolbar__buttons {
+  flex-direction: row;
+  height: 100%;
+  width: auto;
+}
+
+/* ============================================================================
+   Page Indicator
+   ============================================================================ */
+
+.glass-toolbar__pages {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.glass-toolbar__page-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.15);
+  transition: all var(--duration-fast) ease;
+}
+
+.glass-toolbar__page-dot--active {
+  background: var(--glow-warm);
+  box-shadow: 0 0 8px var(--glow-shadow);
+}
+
+/* ============================================================================
+   Resize Handle
+   ============================================================================ */
+
+.glass-toolbar__resize {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 16px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+}
+
+.glass-toolbar__resize-line {
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(0, 0, 0, 0.15);
+  transition: background var(--duration-fast) ease;
+}
+
+.glass-toolbar__resize:hover .glass-toolbar__resize-line {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.glass-toolbar--horizontal .glass-toolbar__resize {
+  flex-direction: row;
+  padding: 16px 8px;
+  cursor: ew-resize;
+}
+
+.glass-toolbar--horizontal .glass-toolbar__resize-line {
+  width: 2px;
+  height: 24px;
+}
+
+/* ============================================================================
+   Glass Pill Button - Matching Spline Design
+   ============================================================================ */
+
+.glass-pill {
   position: relative;
-  width: 34px;
-  height: 34px;
+  width: 100%;
+  height: 72px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
   flex-shrink: 0;
+  perspective: 1000px;
 }
 
-.developer-bar__btn-glass {
+.glass-toolbar--horizontal .glass-pill {
+  width: 72px;
+  height: 100%;
+}
+
+/* Pill body - the actual frosted glass button */
+.glass-pill__body {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
-  background: var(--btn-glass);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 36px;
   overflow: hidden;
-  transition: all var(--duration-fast) var(--ease-out-quint);
-  
-  /* Inner shadow for depth */
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.1),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05),
-    0 2px 4px rgba(0, 0, 0, 0.1);
+  transform-style: preserve-3d;
+  transition: transform var(--duration-flip) var(--ease-bounce);
 }
 
-.developer-bar__btn:hover .developer-bar__btn-glass {
-  background: var(--btn-glass-hover);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05),
-    0 4px 8px rgba(0, 0, 0, 0.15);
+/* 3D flip animation on click */
+.glass-pill--flipped .glass-pill__body {
+  transform: rotateX(360deg);
 }
 
-/* Active state - warm glow */
-.developer-bar__btn--active .developer-bar__btn-glass,
-.developer-bar__btn--open .developer-bar__btn-glass {
-  background: var(--btn-glass-active);
-  border-color: rgba(255, 184, 122, 0.3);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 212, 168, 0.2),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(255, 184, 122, 0.2),
-    0 4px 16px var(--glow-shadow-soft);
-}
-
-/* ============================================================================
-   Button Warm Glow Effect
-   ============================================================================ */
-
-.developer-bar__btn-glow {
+/* Warm glow layer (behind the button when active) */
+.glass-pill__glow {
   position: absolute;
-  inset: -6px;
-  border-radius: 16px;
+  inset: -8px;
+  border-radius: 44px;
   background: radial-gradient(
-    circle at center,
+    ellipse at center,
     var(--glow-shadow) 0%,
     var(--glow-shadow-soft) 40%,
     transparent 70%
   );
-  filter: blur(6px);
+  filter: blur(8px);
   pointer-events: none;
   z-index: -1;
 }
 
-/* ============================================================================
-   Button Refraction (Glass Shimmer)
-   ============================================================================ */
-
-.developer-bar__btn-refraction {
+/* Frosted glass surface */
+.glass-pill__frost {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    transparent 40%,
-    transparent 60%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
+  background: var(--pill-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+
+  /* Subtle depth gradient */
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(250, 250, 252, 0.85) 100%
+  );
+
+  transition: all var(--duration-fast) ease;
+}
+
+.glass-pill:hover .glass-pill__frost {
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(252, 252, 254, 0.9) 100%
+  );
+}
+
+/* Active state - warm amber */
+.glass-pill--active .glass-pill__frost {
+  background: var(--pill-bg-active);
+  border-color: var(--glow-warm);
+}
+
+/* Inner frost for depth */
+.glass-pill__frost-inner {
+  position: absolute;
+  inset: 3px;
+  border-radius: 33px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
   pointer-events: none;
 }
 
-/* ============================================================================
-   Button Icon Container
-   ============================================================================ */
-
-.developer-bar__btn-icon {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+.glass-pill--active .glass-pill__frost-inner {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
 }
 
-/* ============================================================================
-   Button Top Highlight
-   ============================================================================ */
-
-.developer-bar__btn-highlight {
+/* Top highlight reflection */
+.glass-pill__highlight {
   position: absolute;
-  top: 0;
+  top: 1px;
   left: 15%;
   right: 15%;
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.8) 50%,
     transparent 100%
   );
   border-radius: 1px;
   pointer-events: none;
 }
 
-/* ============================================================================
-   Button Tooltip
-   ============================================================================ */
-
-.developer-bar__tooltip {
+/* Inner shadow for 3D depth */
+.glass-pill__inner-shadow {
   position: absolute;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #fff;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 100;
-  
-  /* Glass tooltip */
-  background: rgba(20, 20, 28, 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  inset: 0;
+  border-radius: inherit;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
-}
-
-.developer-bar__tooltip--vertical {
-  left: calc(100% + 14px);
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.developer-bar__tooltip--horizontal {
-  bottom: calc(100% + 14px);
-  left: 50%;
-  transform: translateX(-50%);
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.03);
+  pointer-events: none;
 }
 
 /* ============================================================================
-   Smooth Animations
+   Pill Content
    ============================================================================ */
 
-@keyframes glowPulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
+.glass-pill__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 8px;
+  gap: 2px;
+  z-index: 1;
+}
+
+.glass-pill__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.glass-pill__label {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.glass-pill--active .glass-pill__label {
+  color: white;
+}
+
+/* Status dots (matching Spline reference) */
+.glass-pill__dots {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.glass-pill__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all var(--duration-fast) ease;
+}
+
+.glass-pill__dot--active {
+  background: white;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
 }
 
 /* ============================================================================
-   Reduced Motion Support
+   Responsive & Reduced Motion
    ============================================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .developer-bar *,
-  .developer-bar *::before,
-  .developer-bar *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  .glass-pill--flipped .glass-pill__body {
+    transform: none;
+  }
+
+  .glass-pill__glow {
+    animation: none !important;
   }
 }
 
-/* ============================================================================
-   High DPI Screens - Sharper Glass
-   ============================================================================ */
-
+/* High DPI enhancement */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .developer-bar__glass {
-    backdrop-filter: blur(60px) saturate(200%);
-    -webkit-backdrop-filter: blur(60px) saturate(200%);
+  .glass-toolbar__frost,
+  .glass-pill__frost {
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
   }
 }

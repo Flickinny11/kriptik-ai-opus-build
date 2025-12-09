@@ -31,6 +31,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.6",
     "@supabase/supabase-js": "^2.84.0",
     "better-auth": "^1.4.1",
     "class-variance-authority": "^0.7.1",

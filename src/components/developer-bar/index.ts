@@ -7,4 +7,5 @@
 export { DeveloperBar, type FeatureButton } from './DeveloperBar';
 export { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 export { DeveloperBarPanel } from './DeveloperBarPanel';
+export { GlassToolbar3D } from './GlassToolbar3D';
 
