@@ -288,6 +288,11 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private learningEnabled: boolean = true;
     private pendingDecisionTraces: Map<string, string> = new Map(); // taskId -> traceId
 
+    // SPEED OPTIMIZATION: Pre-cached patterns and strategies (loaded once at build start)
+    private cachedPatterns: LearnedPattern[] = [];
+    private cachedStrategies: Map<string, string> = new Map(); // domain -> strategyName
+    private learningCacheLoaded: boolean = false;
+
     // Memory Harness - Context Loading & Artifact Updates
     private initializerAgent: InitializerAgent | null = null;
     private projectPath: string;
@@ -389,6 +394,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
         try {
             // =====================================================================
             // LEARNING ENGINE: Initialize experience capture for this build
+            // SPEED: Pre-cache patterns & strategies in parallel (non-blocking)
             // =====================================================================
             if (this.learningEnabled) {
                 this.experienceCapture = this.evolutionFlywheel.initializeForBuild(
@@ -396,6 +402,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     this.state.id,
                     this.state.projectId
                 );
+
+                // Pre-load learning cache in background (doesn't block build start)
+                this.preloadLearningCache().catch(err => {
+                    console.warn('[BuildLoop] Learning cache preload failed (non-fatal):', err);
+                });
+
                 console.log(`[BuildLoop] Learning Engine activated for build ${this.state.id}`);
             }
 
@@ -792,10 +804,11 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
                 // =====================================================================
                 // LEARNING ENGINE: Get relevant patterns before building
+                // SPEED: Instant in-memory lookup from pre-cached data
                 // =====================================================================
                 let patternContext = '';
-                if (this.learningEnabled) {
-                    const patterns = await this.getRelevantPatterns(task.description);
+                if (this.learningEnabled && this.learningCacheLoaded) {
+                    const patterns = this.getRelevantPatterns(task.description); // Sync - instant
                     if (patterns.length > 0) {
                         patternContext = `\n\nLEARNED PATTERNS TO APPLY:\n${patterns.map(p =>
                             `- ${p.name}: ${p.problem}\n  Solution: ${p.solutionTemplate?.substring(0, 200) || 'N/A'}`
@@ -804,7 +817,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     }
 
                     // Get best strategy for this task
-                    const strategy = await this.getBestStrategy(task.category);
+                    const strategy = this.getBestStrategy(task.category); // Sync - instant
                     if (strategy) {
                         console.log(`[BuildLoop] Using learned strategy: ${strategy}`);
                     }
@@ -863,16 +876,17 @@ Include ALL necessary imports and exports.`;
 
                 // =====================================================================
                 // LEARNING ENGINE: Capture decision and code artifacts
+                // SPEED: Fire-and-forget - doesn't block build pipeline
                 // =====================================================================
                 if (this.learningEnabled && this.experienceCapture) {
-                    // Capture the code generation decision
-                    await this.captureCodeDecision(
+                    // Capture the code generation decision (async, non-blocking)
+                    this.captureCodeDecision(
                         task.id,
                         task.description,
                         'KTN/Claude generation',
                         ['Manual coding', 'Template-based'],
                         `Generated ${files.length} files using AI for task: ${task.description}`
-                    );
+                    ); // No await - fire and forget
                 }
 
                 // Record file changes
@@ -880,9 +894,9 @@ Include ALL necessary imports and exports.`;
                     codingAgent.recordFileChange(file.path, 'create', file.content);
                     this.projectFiles.set(file.path, file.content || '');
 
-                    // LEARNING ENGINE: Capture each code artifact
+                    // LEARNING ENGINE: Capture each code artifact (async, non-blocking)
                     if (this.learningEnabled) {
-                        await this.captureCodeArtifact(file.path, file.content || '', 'initial');
+                        this.captureCodeArtifact(file.path, file.content || '', 'initial'); // No await
                     }
                 }
 
@@ -1300,6 +1314,7 @@ Generate production-ready code for this feature.`;
 
         // =====================================================================
         // LEARNING ENGINE: Run AI judgment on verification results
+        // SPEED: Runs in background - doesn't block verification flow
         // =====================================================================
         if (this.learningEnabled) {
             // Combine all generated code for judgment
@@ -1307,11 +1322,12 @@ Generate production-ready code for this feature.`;
                 .map(([path, content]) => `// ${path}\n${content}`)
                 .join('\n\n');
 
-            await this.runAIJudgmentOnVerification(
+            // Fire-and-forget - judgment runs in background
+            this.runAIJudgmentOnVerification(
                 feature.featureId,
                 verdict.overallScore,
                 allCode
-            );
+            ).catch(err => console.warn('[BuildLoop] Background AI judgment failed:', err));
         }
 
         // Handle verification results
@@ -2034,7 +2050,37 @@ Would the user be satisfied with this result?`;
 
     // =========================================================================
     // AUTONOMOUS LEARNING ENGINE METHODS (Component 28)
+    // SPEED OPTIMIZED: Non-blocking, pre-cached, fire-and-forget
     // =========================================================================
+
+    /**
+     * Pre-load patterns and strategies at build start (runs in background)
+     * This eliminates per-task database lookups for ZERO slowdown
+     */
+    private async preloadLearningCache(): Promise<void> {
+        const startTime = Date.now();
+
+        try {
+            // Load top patterns and all strategy domains in parallel
+            const [patterns, codeStrategy, errorStrategy, designStrategy] = await Promise.all([
+                this.patternLibrary.getTopPatterns(50), // Get top 50 patterns
+                this.strategyEvolution.selectStrategy('code_generation', ['web_app']),
+                this.strategyEvolution.selectStrategy('error_recovery', ['web_app']),
+                this.strategyEvolution.selectStrategy('design_approach', ['web_app']),
+            ]);
+
+            this.cachedPatterns = patterns;
+            if (codeStrategy) this.cachedStrategies.set('code_generation', codeStrategy.name);
+            if (errorStrategy) this.cachedStrategies.set('error_recovery', errorStrategy.name);
+            if (designStrategy) this.cachedStrategies.set('design_approach', designStrategy.name);
+
+            this.learningCacheLoaded = true;
+            console.log(`[BuildLoop] Learning cache loaded in ${Date.now() - startTime}ms (${patterns.length} patterns, ${this.cachedStrategies.size} strategies)`);
+        } catch (error) {
+            console.warn('[BuildLoop] Learning cache preload failed:', error);
+            this.learningCacheLoaded = false;
+        }
+    }
 
     /**
      * Finalize the learning session and optionally trigger evolution cycle
@@ -2205,54 +2251,44 @@ Would the user be satisfied with this result?`;
 
     /**
      * Get relevant patterns from the pattern library for a task
+     * SPEED: Uses pre-cached patterns - instant lookup, no DB hit
      */
-    private async getRelevantPatterns(taskDescription: string): Promise<LearnedPattern[]> {
-        if (!this.learningEnabled) return [];
+    private getRelevantPatterns(taskDescription: string): LearnedPattern[] {
+        if (!this.learningEnabled || !this.learningCacheLoaded) return [];
 
-        try {
-            // Query pattern library for relevant patterns
-            const patterns = await this.patternLibrary.findRelevantPatterns(taskDescription, undefined, 5);
-            return patterns;
-        } catch (error) {
-            console.error('[BuildLoop] Failed to get relevant patterns:', error);
-            return [];
-        }
+        // Fast in-memory filtering using keyword matching
+        const keywords = taskDescription.toLowerCase().split(/\s+/);
+        const relevant = this.cachedPatterns
+            .filter(p => {
+                const patternText = `${p.name} ${p.problem} ${p.conditions.join(' ')}`.toLowerCase();
+                return keywords.some(kw => kw.length > 3 && patternText.includes(kw));
+            })
+            .slice(0, 5);
+
+        return relevant;
     }
 
     /**
      * Get best strategy for a task using Thompson sampling
+     * SPEED: Uses pre-cached strategies - instant lookup, no DB hit
      */
-    private async getBestStrategy(taskCategory: string): Promise<string | null> {
-        if (!this.learningEnabled) return null;
+    private getBestStrategy(taskCategory: string): string | null {
+        if (!this.learningEnabled || !this.learningCacheLoaded) return null;
 
-        try {
-            // Map task category to strategy domain
-            const domainMap: Record<string, 'code_generation' | 'error_recovery' | 'design_approach'> = {
-                'setup': 'code_generation',
-                'feature': 'code_generation',
-                'integration': 'code_generation',
-                'testing': 'code_generation',
-                'deployment': 'code_generation',
-                'visual': 'design_approach',
-                'functional': 'code_generation',
-                'error': 'error_recovery',
-            };
-            const domain = domainMap[taskCategory] || 'code_generation';
+        // Map task category to strategy domain
+        const domainMap: Record<string, 'code_generation' | 'error_recovery' | 'design_approach'> = {
+            'setup': 'code_generation',
+            'feature': 'code_generation',
+            'integration': 'code_generation',
+            'testing': 'code_generation',
+            'deployment': 'code_generation',
+            'visual': 'design_approach',
+            'functional': 'code_generation',
+            'error': 'error_recovery',
+        };
+        const domain = domainMap[taskCategory] || 'code_generation';
 
-            const context = [
-                this.state.intentContract?.appType || 'web_app',
-                taskCategory,
-            ].filter(Boolean) as string[];
-
-            const strategy = await this.strategyEvolution.selectStrategy(
-                domain,
-                context
-            );
-            return strategy?.name || null;
-        } catch (error) {
-            console.error('[BuildLoop] Failed to get best strategy:', error);
-            return null;
-        }
+        return this.cachedStrategies.get(domain) || null;
     }
 
     /**
