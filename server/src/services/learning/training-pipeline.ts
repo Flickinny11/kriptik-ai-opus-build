@@ -69,11 +69,26 @@ export interface TrainingJobStatus {
 
 export interface TrainingPipelineConfig {
     computeProvider: 'modal' | 'runpod' | 'local';
-    modelHosting: 'huggingface' | 's3' | 'local';
+    modelStorage: 'huggingface' | 's3' | 'local';  // Where to store trained models
+    inferenceProvider: 'modal' | 'vllm' | 'together' | 'runpod' | 'local';  // Where to serve models
+    trainingFramework: 'unsloth' | 'peft';  // Unsloth (faster) or standard PEFT (simpler)
     autoEvaluate: boolean;
     autoPromote: boolean;
     minEvalScore: number;
     maxConcurrentJobs: number;
+}
+
+/**
+ * Inference provider configuration for production "takeover" scenarios
+ */
+export interface InferenceProviderConfig {
+    provider: 'modal' | 'vllm' | 'together' | 'runpod' | 'sagemaker';
+    endpoint?: string;  // Custom endpoint URL for vLLM/self-hosted
+    apiKey?: string;
+    coldStartTolerance: 'high' | 'medium' | 'none';  // none = dedicated GPU required
+    maxLatencyMs: number;
+    minReplicas?: number;  // For dedicated/always-warm deployments
+    maxReplicas?: number;
 }
 
 // =============================================================================
@@ -82,11 +97,45 @@ export interface TrainingPipelineConfig {
 
 const DEFAULT_PIPELINE_CONFIG: TrainingPipelineConfig = {
     computeProvider: 'modal',
-    modelHosting: 'huggingface',
+    modelStorage: 'huggingface',           // HF Hub for model storage (good choice)
+    inferenceProvider: 'modal',             // Modal for dev/staging inference
+    trainingFramework: 'peft',              // Standard PEFT by default (simpler, no extra deps)
     autoEvaluate: true,
     autoPromote: true,
     minEvalScore: 0.75,
     maxConcurrentJobs: 2,
+};
+
+/**
+ * Production inference providers for "model takeover" scenarios
+ * Use these when models need to serve high-traffic inference
+ */
+export const INFERENCE_PROVIDER_RECOMMENDATIONS = {
+    development: {
+        provider: 'local' as const,
+        coldStartTolerance: 'high' as const,
+        maxLatencyMs: 30000,
+        notes: 'Local testing only, not for production',
+    },
+    staging: {
+        provider: 'modal' as const,
+        coldStartTolerance: 'medium' as const,
+        maxLatencyMs: 15000,
+        notes: 'Serverless GPU, 5-15s cold start, good for variable traffic',
+    },
+    production: {
+        provider: 'vllm' as const,
+        coldStartTolerance: 'none' as const,
+        maxLatencyMs: 200,
+        minReplicas: 1,
+        notes: 'Dedicated GPU cluster, always warm, for high-traffic inference',
+    },
+    enterprise: {
+        provider: 'together' as const,
+        coldStartTolerance: 'none' as const,
+        maxLatencyMs: 100,
+        notes: 'Managed inference, no infrastructure to manage, upload custom models',
+    },
 };
 
 // =============================================================================
@@ -416,16 +465,7 @@ export class TrainingPipelineService extends EventEmitter {
                 isWebEndpoint: false,
                 image: {
                     pythonVersion: '3.11',
-                    pipPackages: [
-                        'torch',
-                        'transformers',
-                        'datasets',
-                        'peft',
-                        'bitsandbytes',
-                        'accelerate',
-                        'trl',
-                        'unsloth',
-                    ],
+                    pipPackages: this.getTrainingDependencies(),
                 },
                 handler: trainingCode,
             }],
@@ -544,17 +584,55 @@ export class TrainingPipelineService extends EventEmitter {
         return 'A100';
     }
 
+    /**
+     * Get pip dependencies based on training framework choice
+     * Standard PEFT: Simpler stack, fewer dependencies
+     * Unsloth: Adds unsloth package for 2x speedup
+     */
+    private getTrainingDependencies(): string[] {
+        const baseDeps = [
+            'torch',
+            'transformers',
+            'datasets',
+            'peft',
+            'bitsandbytes',
+            'accelerate',
+            'trl',
+        ];
+
+        if (this.config.trainingFramework === 'unsloth') {
+            return [...baseDeps, 'unsloth'];
+        }
+
+        return baseDeps;
+    }
+
     private generateTrainingCode(baseModel: string, config: TrainingConfig): string {
+        // Choose between Unsloth (faster, more dependencies) and standard PEFT (simpler)
+        if (this.config.trainingFramework === 'unsloth') {
+            return this.generateUnslothTrainingCode(baseModel, config);
+        } else {
+            return this.generatePeftTrainingCode(baseModel, config);
+        }
+    }
+
+    /**
+     * Generate training code using Unsloth (2x faster, 60% less VRAM)
+     * Requires: pip install unsloth
+     * Trade-off: External dependency, opaque optimizations
+     */
+    private generateUnslothTrainingCode(baseModel: string, config: TrainingConfig): string {
         return `
-# KripTik AI Shadow Model Training
-# Generated by Training Pipeline
+# KripTik AI Shadow Model Training (Unsloth - Optimized)
+# Benefits: 2x faster training, 60% less VRAM
+# Note: Requires unsloth package installed
 
 from unsloth import FastLanguageModel
 from trl import DPOTrainer, DPOConfig
 from datasets import load_dataset
 import torch
 
-# Load model
+# Load model with Unsloth optimizations
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name="${baseModel}",
     max_seq_length=2048,
@@ -562,7 +640,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     load_in_4bit=True,
 )
 
-# Add LoRA adapters
+# Add LoRA adapters (Unsloth optimized)
 model = FastLanguageModel.get_peft_model(
     model,
     r=${config.loraRank || 64},
@@ -586,7 +664,6 @@ training_args = DPOConfig(
     bf16=True,
 )
 
-# Create trainer
 trainer = DPOTrainer(
     model=model,
     args=training_args,
@@ -594,10 +671,92 @@ trainer = DPOTrainer(
     tokenizer=tokenizer,
 )
 
-# Train
+trainer.train()
+model.save_pretrained("./output/adapter")
+tokenizer.save_pretrained("./output/adapter")
+
+return {"status": "completed", "path": "./output/adapter"}
+`.trim();
+    }
+
+    /**
+     * Generate training code using standard PEFT (simpler, no extra dependencies)
+     * Uses: transformers + peft + trl (standard HuggingFace stack)
+     * Trade-off: Slightly slower, but more transparent and maintainable
+     */
+    private generatePeftTrainingCode(baseModel: string, config: TrainingConfig): string {
+        return `
+# KripTik AI Shadow Model Training (Standard PEFT)
+# Uses standard HuggingFace transformers + PEFT stack
+# More transparent, easier to debug, fewer dependencies
+
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from trl import DPOTrainer, DPOConfig
+from datasets import load_dataset
+import torch
+
+# Quantization config for memory efficiency
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_use_double_quant=True,
+)
+
+# Load base model with quantization
+model = AutoModelForCausalLM.from_pretrained(
+    "${baseModel}",
+    quantization_config=bnb_config,
+    device_map="auto",
+    trust_remote_code=True,
+)
+tokenizer = AutoTokenizer.from_pretrained("${baseModel}")
+
+# Prepare for k-bit training
+model = prepare_model_for_kbit_training(model)
+
+# LoRA configuration
+lora_config = LoraConfig(
+    r=${config.loraRank || 64},
+    lora_alpha=${config.loraAlpha || 128},
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM",
+)
+
+# Apply LoRA
+model = get_peft_model(model, lora_config)
+model.print_trainable_parameters()
+
+# Load training data
+dataset = load_dataset("json", data_files="${config.datasetPath}")
+
+# DPO training configuration
+training_args = DPOConfig(
+    output_dir="./output",
+    num_train_epochs=${config.epochs || 3},
+    per_device_train_batch_size=${config.batchSize || 4},
+    learning_rate=${config.learningRate || 2e-4},
+    warmup_ratio=0.1,
+    logging_steps=10,
+    save_steps=100,
+    bf16=True,
+    gradient_checkpointing=True,
+    optim="paged_adamw_32bit",
+)
+
+trainer = DPOTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=dataset["train"],
+    tokenizer=tokenizer,
+)
+
 trainer.train()
 
-# Save adapter
+# Save adapter (not full model - just the LoRA weights)
 model.save_pretrained("./output/adapter")
 tokenizer.save_pretrained("./output/adapter")
 
