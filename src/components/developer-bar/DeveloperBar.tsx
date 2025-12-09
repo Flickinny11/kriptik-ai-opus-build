@@ -15,6 +15,53 @@ import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { DeveloperBarPanel } from './DeveloperBarPanel';
 import './developer-bar.css';
 
+// SVG Filter for realistic glass refraction
+const GlassRefractionFilter = () => (
+  <svg width="0" height="0" style={{ position: 'absolute' }}>
+    <defs>
+      {/* Glass refraction effect */}
+      <filter id="glass-refraction" x="-50%" y="-50%" width="200%" height="200%">
+        <feTurbulence 
+          type="fractalNoise" 
+          baseFrequency="0.01" 
+          numOctaves="2" 
+          result="noise"
+        />
+        <feDisplacementMap 
+          in="SourceGraphic" 
+          in2="noise" 
+          scale="3" 
+          xChannelSelector="R" 
+          yChannelSelector="G"
+        />
+      </filter>
+      
+      {/* Glass edge glow */}
+      <filter id="glass-edge-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+        <feOffset in="blur" dx="0" dy="1" result="offsetBlur"/>
+        <feFlood floodColor="white" floodOpacity="0.3" result="color"/>
+        <feComposite in="color" in2="offsetBlur" operator="in" result="glow"/>
+        <feMerge>
+          <feMergeNode in="glow"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      
+      {/* Warm glow for active state */}
+      <filter id="warm-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+        <feFlood floodColor="#F5A86C" floodOpacity="0.6" result="color"/>
+        <feComposite in="color" in2="blur" operator="in" result="glow"/>
+        <feMerge>
+          <feMergeNode in="glow"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+  </svg>
+);
+
 export interface FeatureButton {
   id: string;
   name: string;
@@ -185,6 +232,9 @@ export function DeveloperBar({
 
   return (
     <>
+      {/* SVG Filters for Glass Effects */}
+      <GlassRefractionFilter />
+      
       {/* Frosted Glass Toolbar */}
       <motion.div
         ref={barRef}
@@ -201,11 +251,19 @@ export function DeveloperBar({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       >
-        {/* Frosted glass base */}
+        {/* 3D Frosted glass base */}
         <div className="glass-toolbar__base">
-          {/* Inner frost layers */}
+          {/* Multi-layer shadow for floating effect */}
+          <div className="glass-toolbar__shadow" />
+          
+          {/* Main glass surface with refraction */}
           <div className="glass-toolbar__frost" />
+          
+          {/* Inner frost for depth */}
           <div className="glass-toolbar__frost-inner" />
+          
+          {/* Specular highlight - top reflection */}
+          <div className="glass-toolbar__specular" />
 
           {/* Content container */}
           <div className="glass-toolbar__content">
@@ -284,9 +342,6 @@ export function DeveloperBar({
               <span className="glass-toolbar__resize-line" />
             </div>
           </div>
-
-          {/* Outer shadow for depth */}
-          <div className="glass-toolbar__shadow" />
         </div>
       </motion.div>
 
@@ -310,7 +365,7 @@ export function DeveloperBar({
   );
 }
 
-// Frosted Glass Pill Button - Matching Spline reference
+// Photorealistic 3D Glass Pill Button - With visible thickness and edges
 function GlassPillButton({
   feature,
   isActive,
@@ -330,73 +385,85 @@ function GlassPillButton({
   const handleClick = () => {
     // Trigger flip animation
     setIsFlipped(true);
-    setTimeout(() => setIsFlipped(false), 600);
+    setTimeout(() => setIsFlipped(false), 700);
     onClick();
   };
 
+  const showGlow = isActive || isOpen;
+
   return (
     <motion.button
-      className={`glass-pill ${isActive || isOpen ? 'glass-pill--active' : ''} ${isFlipped ? 'glass-pill--flipped' : ''}`}
+      className={`glass-pill ${showGlow ? 'glass-pill--active' : ''} ${isFlipped ? 'glass-pill--flipped' : ''}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.9 }}
       transition={{
         duration: 0.4,
-        delay: index * 0.03,
+        delay: index * 0.04,
         ease: [0.23, 1, 0.32, 1]
       }}
       layout
     >
-      {/* Glass pill body */}
+      {/* 3D Glass pill body */}
       <div className="glass-pill__body">
-        {/* Warm glow layer (visible when active) */}
-        {(isActive || isOpen) && (
-          <motion.div
-            className="glass-pill__glow"
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: [0.6, 0.9, 0.6],
-            }}
-            transition={{
-              duration: 2.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-        )}
+        {/* Warm glow layer - photorealistic breathing light */}
+        <motion.div
+          className="glass-pill__glow"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: showGlow ? [0.7, 1, 0.7] : 0,
+            scale: showGlow ? [1, 1.05, 1] : 1,
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
 
-        {/* Frosted glass layers */}
+        {/* Drop shadow for 3D depth */}
+        <div className="glass-pill__drop-shadow" />
+
+        {/* 3D Edge - Top (visible thickness) */}
+        <div className="glass-pill__edge-top" />
+        
+        {/* 3D Edge - Left (visible thickness) */}
+        <div className="glass-pill__edge-left" />
+        
+        {/* 3D Edge - Bottom shadow */}
+        <div className="glass-pill__edge-shadow" />
+
+        {/* Frosted glass surface */}
         <div className="glass-pill__frost" />
+        
+        {/* Inner frost reflection */}
         <div className="glass-pill__frost-inner" />
+        
+        {/* Specular highlight - top reflection */}
+        <div className="glass-pill__highlight" />
 
         {/* Content */}
         <div className="glass-pill__content">
           <div className="glass-pill__icon">
             <DeveloperBarIcon
               name={feature.icon}
-              size={22}
-              isActive={isActive || isOpen}
+              size={24}
+              isActive={showGlow}
               isHovered={isHovered}
             />
           </div>
           <span className="glass-pill__label">{feature.name}</span>
 
-          {/* Status dots (like in the Spline reference) */}
+          {/* Status dots - visible activity indicator */}
           <div className="glass-pill__dots">
-            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
-            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
-            <span className={`glass-pill__dot ${isActive || isOpen ? 'glass-pill__dot--active' : ''}`} />
+            <span className={`glass-pill__dot ${showGlow ? 'glass-pill__dot--active' : ''}`} />
+            <span className={`glass-pill__dot ${showGlow ? 'glass-pill__dot--active' : ''}`} />
+            <span className={`glass-pill__dot ${showGlow ? 'glass-pill__dot--active' : ''}`} />
           </div>
         </div>
-
-        {/* Highlight edge (top light reflection) */}
-        <div className="glass-pill__highlight" />
-
-        {/* Inner shadow for depth */}
-        <div className="glass-pill__inner-shadow" />
       </div>
     </motion.button>
   );

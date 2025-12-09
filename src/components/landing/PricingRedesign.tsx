@@ -7,7 +7,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MagneticCTA, ArrowIcon } from '../3d';
+// Direct import to avoid loading Three.js through barrel exports
+import { MagneticCTA, ArrowIcon } from '../3d/MagneticButton';
 
 // Pricing tiers
 const PRICING_TIERS = [

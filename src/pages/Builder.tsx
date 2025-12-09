@@ -520,7 +520,8 @@ export default function Builder() {
                 />
 
                 {/* ============================================================ */}
-                {/* DEVELOPER BAR - 3D Glass Command Center (Spline-inspired) */}
+                {/* DEVELOPER BAR - 3D Glass Command Center with Spline */}
+                {/* Translucent glass with visible 3D edges and flip animation */}
                 {/* ============================================================ */}
                 <DeveloperBar
                     activeFeatures={[

@@ -2,20 +2,16 @@
  * FinalCTA.tsx - Epic Conclusion Section
  *
  * Final call-to-action with dramatic visuals,
- * 3D glass spheres (with graceful CSS fallback), and urgency messaging.
+ * CSS glass spheres, and urgency messaging.
+ *
+ * Note: Uses pure CSS fallbacks to avoid Three.js module loading issues
  */
 
-import { useRef, lazy, Suspense } from 'react';
+import { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { MagneticCTA, ArrowIcon } from '../3d';
-import {
-  Scene3DErrorBoundary,
-  CSSGlassSphereCluster,
-} from '../3d/Scene3DErrorBoundary';
-
-// Lazy load 3D elements
-const Scene3D = lazy(() => import('../3d/Scene').then(m => ({ default: m.Scene3D })));
-const GlassSphereCluster = lazy(() => import('../3d/GlassSphere').then(m => ({ default: m.GlassSphereCluster })));
+// Direct imports to avoid loading Three.js through barrel exports
+import { MagneticCTA, ArrowIcon } from '../3d/MagneticButton';
+import { CSSGlassSphereCluster } from '../3d/Scene3DErrorBoundary';
 
 // Premium CSS fallback for when 3D is unavailable
 function PremiumCSSBackground() {
@@ -47,15 +43,6 @@ function PremiumCSSBackground() {
           />
         ))}
       </div>
-    </div>
-  );
-}
-
-// Loading fallback while 3D loads
-function Scene3DLoadingFallback() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <PremiumCSSBackground />
     </div>
   );
 }
@@ -158,23 +145,9 @@ export function FinalCTA() {
         />
       </div>
 
-      {/* 3D Glass spheres with error boundary and CSS fallback */}
+      {/* Premium CSS Glass spheres - avoids Three.js module loading issues */}
       <div className="absolute inset-0 z-0">
-        <Scene3DErrorBoundary
-          cssFallback={<PremiumCSSBackground />}
-          useCSSFallbackWhenUnavailable={true}
-        >
-          <Suspense fallback={<Scene3DLoadingFallback />}>
-            <Scene3D camera={{ position: [0, 0, 15], fov: 40 }}>
-              <GlassSphereCluster
-                count={5}
-                spread={20}
-                minScale={0.8}
-                maxScale={3}
-              />
-            </Scene3D>
-          </Suspense>
-        </Scene3DErrorBoundary>
+        <PremiumCSSBackground />
       </div>
 
       {/* Content */}

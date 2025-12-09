@@ -142,13 +142,22 @@ export function DeveloperBarPanel({
         delay: stackIndex * 0.05
       }}
     >
-      {/* Frosted glass base */}
+      {/* 3D Frosted glass base */}
       <div className="glass-panel__base">
-        {/* Primary frost layer */}
+        {/* Multi-layer shadow for floating effect */}
+        <div className="glass-panel__shadow" />
+        
+        {/* Primary frost layer with refraction */}
         <div className="glass-panel__frost" />
 
         {/* Inner frost for depth */}
         <div className="glass-panel__frost-inner" />
+        
+        {/* Specular highlight - top reflection */}
+        <div className="glass-panel__specular" />
+        
+        {/* Top edge highlight */}
+        <div className="glass-panel__highlight" />
 
         {/* Header */}
         <div className="glass-panel__header">

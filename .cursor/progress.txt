@@ -1,3 +1,35 @@
+═══ [2025-12-09 THREE.JS ERROR FIX] ═══
+COMPLETED: Fixed TypeError "Cannot read properties of undefined (reading 'S')"
+
+ROOT CAUSE:
+- Barrel exports in `src/components/3d/index.ts` caused ALL Three.js modules to load
+- When `FinalCTA.tsx` and `PricingRedesign.tsx` imported from `../3d`, it triggered
+  loading of `@react-three/fiber` and related modules even when only needing CSS utilities
+- Module loading issue with `@react-three/fiber` caused the undefined 'S' error
+
+FILES MODIFIED:
+1. src/components/landing/FinalCTA.tsx
+   - Removed lazy imports for Scene3D and GlassSphereCluster
+   - Changed to use CSSGlassSphereCluster directly (CSS-only, no Three.js)
+   - Changed imports for MagneticCTA and ArrowIcon to direct paths
+
+2. src/components/landing/PricingRedesign.tsx
+   - Changed imports for MagneticCTA and ArrowIcon from barrel export to direct paths
+
+FIX PATTERN:
+- Instead of: import { MagneticCTA } from '../3d';
+- Use: import { MagneticCTA } from '../3d/MagneticButton';
+
+VERIFIED WORKING:
+✅ Landing page loads without errors
+✅ Builder page loads without errors
+✅ Developer Bar visible and functional
+✅ Panel slide-outs work (Agents panel tested)
+
+REMAINING (NON-CRITICAL):
+- React warning about GlassPillButton needing forwardRef (cosmetic)
+- CORS errors expected when backend server not running (separate issue)
+
 ═══ [2025-12-06 SESSION START] ═══
 ANALYSIS: KripTik AI Architecture Deep Dive
 
@@ -4585,3 +4617,51 @@ BUILD STATUS: ✅ PASSING
 NEXT: Remove old sidebar buttons per user request, add remaining panel implementations
 
 ═══════════════════════════════════════════════════════════════
+
+═══ [2025-12-09 DEVELOPER BAR GLASS STYLING UPDATE] ═══
+COMPLETED: Enhanced Developer Bar with dark translucent glass styling
+
+PROBLEM:
+- Previous CSS used light/white translucent glass that was invisible against light backgrounds
+- User wanted visible 3D edges, translucent glass, and warm amber glow
+
+SOLUTION:
+1. Changed glass to DARK TINT for visibility against light backgrounds:
+   - Toolbar: rgba(40-60, 50-70, 60-80, 0.55-0.65)
+   - Buttons: rgba(80-100, 90-120, 100-120, 0.65-0.75)
+   
+2. Updated text/UI elements for dark glass contrast:
+   - Labels now white with text-shadow
+   - Dots now white/light colored
+   
+3. Maintained key features:
+   - Backdrop blur for glass effect
+   - Warm amber glow on active buttons (--glow-color: #F5A86C)
+   - 3D edge borders and shadows
+   - Flip animation on button click
+
+FILES MODIFIED:
+- src/components/developer-bar/developer-bar.css
+  - Updated :root variables for darker glass
+  - Modified .glass-toolbar__frost with dark gradient
+  - Modified .glass-pill__frost with dark gradient
+  - Updated label and dot colors for contrast
+
+CURRENT STATE:
+✅ Developer Bar visible with dark translucent glass
+✅ Warm amber glow on active buttons
+✅ Panels overlay UI (don't resize)
+✅ Flip animation working
+✅ Button pagination working
+
+NOTES:
+- The Spline/Three.js integration was attempted but causes module loading errors
+- Removed GlassToolbar3D and Glass3DToolbar from barrel exports to prevent errors
+- CSS-only approach with dark glass provides acceptable visuals
+- True 3D glass with refraction would require resolving Three.js compatibility issues
+
+NEXT STEPS:
+- Could investigate Three.js version compatibility for true 3D glass
+- Panels could use similar dark glass styling
+- Add remaining feature panel implementations
+
