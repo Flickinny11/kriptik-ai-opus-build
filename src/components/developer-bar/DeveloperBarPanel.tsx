@@ -1,13 +1,17 @@
 /**
- * Developer Bar Panel - Frosted Glass Feature Panel
+ * Developer Bar Panel - Premium Feature Panels
  *
- * Real glass appearance that refracts what's behind it
- * Content appears as a projection onto the glass surface
+ * Stunning, comprehensive panels for each feature:
+ * - Real-time visualizations
+ * - Full configuration options  
+ * - Backend integration
+ * - High-tech photorealistic design
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
+import { AgentsCommandCenter } from './panels/AgentsCommandCenter';
 import './developer-bar-panel.css';
 
 interface DeveloperBarPanelProps {
@@ -21,12 +25,21 @@ interface DeveloperBarPanelProps {
   totalPanels?: number;
 }
 
+// Panel wrapper to inject AgentsCommandCenter (full-size panel, no title bar)
+const AgentsCommandCenterWrapper = ({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) => {
+  return <AgentsCommandCenter sessionId="default" projectId="current" />;
+};
+
 const FEATURE_PANELS: Record<string, {
   title: string;
   icon: IconName;
   component: React.FC<{ isActive: boolean; onClose: () => void }>;
+  fullWidth?: boolean;
 }> = {
-  'agents': { title: 'Agents', icon: 'agents', component: AgentsPanel },
+  // Premium comprehensive panels
+  'agents': { title: 'Agents Command Center', icon: 'agents', component: AgentsCommandCenterWrapper, fullWidth: true },
+  
+  // Other panels (to be upgraded to comprehensive versions)
   'memory': { title: 'Memory', icon: 'memory', component: MemoryPanel },
   'quality-check': { title: 'Quality', icon: 'qualityCheck', component: QualityCheckPanel },
   'ghost-mode': { title: 'Ghost Mode', icon: 'ghostMode', component: GhostModePanel },
@@ -63,9 +76,11 @@ export function DeveloperBarPanel({
     component: GenericPanel
   };
 
-  const { title, icon, component: PanelContent } = feature;
+  const { title, icon, component: PanelContent, fullWidth } = feature;
 
-  const [panelSize, setPanelSize] = useState({ width: 360, height: 420 });
+  // Larger size for comprehensive panels
+  const defaultSize = fullWidth ? { width: 560, height: 620 } : { width: 360, height: 420 };
+  const [panelSize, setPanelSize] = useState(defaultSize);
   const [isResizing, setIsResizing] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 

@@ -32,7 +32,7 @@ import SandpackPreviewWindow from '../components/builder/SandpackPreview';
 import ProjectMemoryPanel from '../components/builder/ProjectMemoryPanel';
 import QualityReportModal from '../components/builder/QualityReportModal';
 import CommandPalette from '../components/builder/CommandPalette';
-import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
+// AutonomousAgentsPanel replaced by Developer Bar Agents Command Center
 import DeploymentModal from '../components/deployment/DeploymentModal';
 import { PublishButton } from '../components/deployment/PublishButton';
 import IntegrationMarketplace from '../components/integrations/IntegrationMarketplace';
@@ -581,100 +581,8 @@ export default function Builder() {
                     <div className="flex items-center gap-2">
                         <CollaborationHeader />
 
-                        <div className="h-4 w-px bg-white/10 mx-2" />
-
-                        {/* Header Buttons */}
-                        <GlassButton
-                            icon={Activity}
-                            onClick={() => setShowAgentPanel(!showAgentPanel)}
-                            isActive={showAgentPanel}
-                        >
-                            Agents
-                        </GlassButton>
-
-                        <GlassButton
-                            icon={Brain}
-                            onClick={() => setShowMemory(!showMemory)}
-                            isActive={showMemory}
-                        >
-                            Memory
-                        </GlassButton>
-
-                        <GlassButton
-                            icon={Check}
-                            onClick={handleProductionCheck}
-                        >
-                            Quality Check
-                        </GlassButton>
-
-                        <GlassButton
-                            icon={Blocks}
-                            onClick={() => setIntegrationsOpen(true)}
-                        >
-                            Integrations
-                        </GlassButton>
-
-                        {/* Ghost Mode - Autonomous Building */}
-                        <GlassButton
-                            onClick={() => setShowGhostMode(!showGhostMode)}
-                            isActive={showGhostMode}
-                        >
-                            👻 Ghost Mode
-                        </GlassButton>
-
-                        {/* Market Fit Oracle - Competitor Analysis */}
-                        <GlassButton
-                            icon={TrendingUp}
-                            onClick={() => setShowMarketFit(true)}
-                            isActive={showMarketFit}
-                        >
-                            Market Fit
-                        </GlassButton>
-
-                        {/* Voice Architect - Voice-to-Code */}
-                        <GlassButton
-                            icon={Mic}
-                            onClick={() => setShowVoiceArchitect(true)}
-                            isActive={showVoiceArchitect}
-                        >
-                            Voice
-                        </GlassButton>
-
-                        {/* API Autopilot - API Integration */}
-                        <GlassButton
-                            icon={Plug}
-                            onClick={() => setShowAPIAutopilot(true)}
-                            isActive={showAPIAutopilot}
-                        >
-                            APIs
-                        </GlassButton>
-
-                        {/* Adaptive UI - Behavior Learning */}
-                        <GlassButton
-                            icon={LineChart}
-                            onClick={() => setShowAdaptiveUI(true)}
-                            isActive={showAdaptiveUI}
-                        >
-                            Adaptive
-                        </GlassButton>
-
-                        {/* Context Bridge - Import Existing Code */}
-                        <GlassButton
-                            icon={Download}
-                            onClick={() => setShowContextBridge(true)}
-                            isActive={showContextBridge}
-                        >
-                            Import
-                        </GlassButton>
-
-                        {/* Intelligence Toggles - AI Capability Settings */}
-                        <GlassButton
-                            icon={Sliders}
-                            onClick={() => setShowIntelligencePanel(!showIntelligencePanel)}
-                            isActive={showIntelligencePanel}
-                        >
-                            Intelligence
-                        </GlassButton>
+                        {/* All features now accessible via Developer Bar (floating toolbar on left) */}
+                        {/* Keeping only essential header actions */}
 
                         <div className="h-4 w-px bg-white/10 mx-2" />
 
@@ -958,27 +866,7 @@ export default function Builder() {
                     </AnimatePresence>
                     )}
 
-                    {/* Autonomous Agents Panel - Only in Builder mode */}
-                    {builderMode === 'builder' && (
-                    <AnimatePresence>
-                        {showAgentPanel && (
-                            <motion.div
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 420, opacity: 1 }}
-                                exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2"
-                            >
-                                <div
-                                    className="w-[404px] h-full rounded-2xl overflow-hidden"
-                                    style={liquidGlassPanel}
-                                >
-                                    <AutonomousAgentsPanel />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    )}
+                    {/* Autonomous Agents - Now accessed via Developer Bar toolbar */}
 
                     {/* Ghost Mode Panel */}
                     <AnimatePresence>
