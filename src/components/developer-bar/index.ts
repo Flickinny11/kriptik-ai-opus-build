@@ -1,6 +1,6 @@
 /**
  * Developer Bar - Command Center Toolbar
- * 
+ *
  * A revolutionary 3D floating toolbar for accessing all features
  */
 

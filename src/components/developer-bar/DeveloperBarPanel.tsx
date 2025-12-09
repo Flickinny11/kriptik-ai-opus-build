@@ -1,15 +1,15 @@
 /**
- * Developer Bar Panel - Slide-out Feature Visualization
+ * Developer Bar Panel - Floating Glass Feature Visualization
  * 
- * Photorealistic screen/monitor appearance with:
- * - High-quality visuals and animations
- * - Real-time data visualization
- * - Feature-specific configurations
- * - 3D depth and edge effects
+ * Each panel is:
+ * - Independently draggable
+ * - Resizable
+ * - Glass morphism styled
+ * - High-quality data visualization
  */
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import './developer-bar-panel.css';
 
@@ -30,101 +30,25 @@ const FEATURE_PANELS: Record<string, {
   icon: IconName;
   component: React.FC<{ isActive: boolean; onClose: () => void }>;
 }> = {
-  'agents': {
-    title: 'Agent Command Center',
-    icon: 'agents',
-    component: AgentsPanel,
-  },
-  'memory': {
-    title: 'Project Memory',
-    icon: 'memory',
-    component: MemoryPanel,
-  },
-  'quality-check': {
-    title: 'Quality Analysis',
-    icon: 'qualityCheck',
-    component: QualityCheckPanel,
-  },
-  'ghost-mode': {
-    title: 'Ghost Mode Control',
-    icon: 'ghostMode',
-    component: GhostModePanel,
-  },
-  'time-machine': {
-    title: 'Time Machine',
-    icon: 'timeMachine',
-    component: TimeMachinePanel,
-  },
-  'deployment': {
-    title: 'Deployment Center',
-    icon: 'deployment',
-    component: DeploymentPanel,
-  },
-  'database': {
-    title: 'Database Manager',
-    icon: 'database',
-    component: DatabasePanel,
-  },
-  'workflows': {
-    title: 'Workflow Studio',
-    icon: 'workflows',
-    component: WorkflowsPanel,
-  },
-  'live-debug': {
-    title: 'Live Debug Console',
-    icon: 'liveDebug',
-    component: LiveDebugPanel,
-  },
-  'live-health': {
-    title: 'System Health Monitor',
-    icon: 'liveHealth',
-    component: LiveHealthPanel,
-  },
-  'integrations': {
-    title: 'Integrations Hub',
-    icon: 'integrations',
-    component: IntegrationsPanel,
-  },
-  'developer-settings': {
-    title: 'Developer Settings',
-    icon: 'developerSettings',
-    component: DeveloperSettingsPanel,
-  },
-  'market-fit': {
-    title: 'Market Fit Oracle',
-    icon: 'marketFit',
-    component: MarketFitPanel,
-  },
-  'predictive-engine': {
-    title: 'Predictive Engine',
-    icon: 'predictiveEngine',
-    component: PredictiveEnginePanel,
-  },
-  'ai-slop-catch': {
-    title: 'AI-Slop Detection',
-    icon: 'aiSlopCatch',
-    component: AISlopCatchPanel,
-  },
-  'voice-first': {
-    title: 'Voice First',
-    icon: 'voiceFirst',
-    component: VoiceFirstPanel,
-  },
-  'test-gen': {
-    title: 'Test Generator',
-    icon: 'testGen',
-    component: TestGenPanel,
-  },
-  'self-heal': {
-    title: 'Self-Healing Engine',
-    icon: 'selfHeal',
-    component: SelfHealPanel,
-  },
-  'cloud-deploy': {
-    title: 'Cloud Deployment',
-    icon: 'cloudDeploy',
-    component: CloudDeployPanel,
-  },
+  'agents': { title: 'Agent Command Center', icon: 'agents', component: AgentsPanel },
+  'memory': { title: 'Project Memory', icon: 'memory', component: MemoryPanel },
+  'quality-check': { title: 'Quality Analysis', icon: 'qualityCheck', component: QualityCheckPanel },
+  'ghost-mode': { title: 'Ghost Mode Control', icon: 'ghostMode', component: GhostModePanel },
+  'time-machine': { title: 'Time Machine', icon: 'timeMachine', component: TimeMachinePanel },
+  'deployment': { title: 'Deployment Center', icon: 'deployment', component: DeploymentPanel },
+  'database': { title: 'Database Manager', icon: 'database', component: DatabasePanel },
+  'workflows': { title: 'Workflow Studio', icon: 'workflows', component: WorkflowsPanel },
+  'live-debug': { title: 'Live Debug Console', icon: 'liveDebug', component: LiveDebugPanel },
+  'live-health': { title: 'System Health Monitor', icon: 'liveHealth', component: LiveHealthPanel },
+  'integrations': { title: 'Integrations Hub', icon: 'integrations', component: IntegrationsPanel },
+  'developer-settings': { title: 'Developer Settings', icon: 'developerSettings', component: DeveloperSettingsPanel },
+  'market-fit': { title: 'Market Fit Oracle', icon: 'marketFit', component: MarketFitPanel },
+  'predictive-engine': { title: 'Predictive Engine', icon: 'predictiveEngine', component: PredictiveEnginePanel },
+  'ai-slop-catch': { title: 'AI-Slop Detection', icon: 'aiSlopCatch', component: AISlopCatchPanel },
+  'voice-first': { title: 'Voice First', icon: 'voiceFirst', component: VoiceFirstPanel },
+  'test-gen': { title: 'Test Generator', icon: 'testGen', component: TestGenPanel },
+  'self-heal': { title: 'Self-Healing Engine', icon: 'selfHeal', component: SelfHealPanel },
+  'cloud-deploy': { title: 'Cloud Deployment', icon: 'cloudDeploy', component: CloudDeployPanel },
 };
 
 export function DeveloperBarPanel({
@@ -137,152 +61,158 @@ export function DeveloperBarPanel({
   stackIndex = 0,
   totalPanels: _totalPanels = 1,
 }: DeveloperBarPanelProps) {
-  const feature = FEATURE_PANELS[featureId];
-  
-  if (!feature) {
-    return <DefaultPanel featureId={featureId} onClose={onClose} />;
-  }
+  const feature = FEATURE_PANELS[featureId] || { 
+    title: featureId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    icon: 'agents' as IconName,
+    component: DefaultPanelContent
+  };
 
   const { title, icon, component: PanelContent } = feature;
-
-  // Calculate panel position based on bar position and slide direction
-  const getPanelPosition = () => {
-    const panelWidth = 380;
-    const panelHeight = 480;
+  
+  // Panel position and size state
+  const [panelSize, setPanelSize] = useState({ width: 380, height: 480 });
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Calculate initial position
+  const getInitialPosition = () => {
     const gap = 16;
-    const stackOffset = stackIndex * (panelWidth + gap);
+    const stackOffset = stackIndex * 30; // Offset for stacked panels
 
     switch (slideDirection) {
       case 'right':
-        return {
-          left: barPosition.x + 72 + stackOffset,
-          top: barPosition.y,
-        };
+        return { x: barPosition.x + 72 + stackOffset, y: barPosition.y + stackOffset };
       case 'left':
-        return {
-          left: barPosition.x - panelWidth - gap - stackOffset,
-          top: barPosition.y,
-        };
+        return { x: barPosition.x - panelSize.width - gap - stackOffset, y: barPosition.y + stackOffset };
       case 'down':
-        return {
-          left: barPosition.x + stackOffset,
-          top: barPosition.y + 72,
-        };
+        return { x: barPosition.x + stackOffset, y: barPosition.y + 72 + stackOffset };
       case 'up':
-        return {
-          left: barPosition.x + stackOffset,
-          top: barPosition.y - panelHeight - gap,
-        };
+        return { x: barPosition.x + stackOffset, y: barPosition.y - panelSize.height - gap - stackOffset };
     }
   };
 
-  const getSlideAnimation = () => {
-    const distance = 40;
-    switch (slideDirection) {
-      case 'right':
-        return { x: [-distance, 0], opacity: [0, 1] };
-      case 'left':
-        return { x: [distance, 0], opacity: [0, 1] };
-      case 'down':
-        return { y: [-distance, 0], opacity: [0, 1] };
-      case 'up':
-        return { y: [distance, 0], opacity: [0, 1] };
-    }
+  const initialPos = getInitialPosition();
+  const x = useMotionValue(initialPos.x);
+  const y = useMotionValue(initialPos.y);
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, _info: PanInfo) => {
+    // Position is automatically updated by motion
   };
 
-  const position = getPanelPosition();
-  const slideAnim = getSlideAnimation();
+  const handleResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = panelSize.width;
+    const startHeight = panelSize.height;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(300, Math.min(800, startWidth + (e.clientX - startX)));
+      const newHeight = Math.max(350, Math.min(800, startHeight + (e.clientY - startY)));
+      setPanelSize({ width: newWidth, height: newHeight });
+    };
+
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const slideAnim = {
+    x: slideDirection === 'right' ? [-40, 0] : slideDirection === 'left' ? [40, 0] : 0,
+    y: slideDirection === 'down' ? [-40, 0] : slideDirection === 'up' ? [40, 0] : 0,
+    opacity: [0, 1],
+  };
 
   return (
     <motion.div
-      className="developer-bar-panel"
-      style={position}
+      ref={panelRef}
+      className={`devbar-panel ${isResizing ? 'devbar-panel--resizing' : ''}`}
+      style={{ 
+        x, 
+        y, 
+        width: panelSize.width,
+        height: panelSize.height,
+      }}
+      drag
+      dragMomentum={false}
+      dragListener={!isResizing}
+      onDragEnd={handleDragEnd}
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ 
-        scale: 1,
-        ...slideAnim,
-      }}
-      exit={{ 
-        opacity: 0, 
-        scale: 0.95,
-        transition: { duration: 0.2 }
-      }}
-      transition={{ 
-        duration: 0.4, 
-        ease: [0.23, 1, 0.32, 1],
-        delay: stackIndex * 0.05,
-      }}
+      animate={{ scale: 1, ...slideAnim }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: stackIndex * 0.05 }}
     >
-      {/* Panel 3D Container */}
-      <div className="developer-bar-panel__container">
-        {/* Screen bezel edge - top */}
-        <div className="developer-bar-panel__bezel developer-bar-panel__bezel--top" />
+      {/* Glass container */}
+      <div className="devbar-panel__glass">
+        {/* Refraction layer */}
+        <div className="devbar-panel__refraction" />
         
-        {/* Main screen surface */}
-        <div className="developer-bar-panel__screen">
-          {/* Header */}
-          <div className="developer-bar-panel__header">
-            <div className="developer-bar-panel__header-left">
-              <div className="developer-bar-panel__icon-wrapper">
-                <DeveloperBarIcon name={icon} size={20} isActive={isActive} />
-              </div>
-              <span className="developer-bar-panel__title">{title}</span>
+        {/* Header (draggable area) */}
+        <div className="devbar-panel__header">
+          <div className="devbar-panel__header-left">
+            <div className="devbar-panel__icon">
+              <DeveloperBarIcon name={icon} size={18} isActive={isActive} />
             </div>
-            <div className="developer-bar-panel__header-right">
-              {/* Status indicator */}
-              <div className={`developer-bar-panel__status ${isActive ? 'developer-bar-panel__status--active' : ''}`}>
-                <span className="developer-bar-panel__status-dot" />
-                <span className="developer-bar-panel__status-text">
-                  {isActive ? 'Active' : 'Idle'}
-                </span>
-              </div>
-              {/* Close button */}
-              <button 
-                className="developer-bar-panel__close"
-                onClick={onClose}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14">
-                  <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
+            <span className="devbar-panel__title">{title}</span>
           </div>
-
-          {/* Content area */}
-          <div className="developer-bar-panel__content">
-            <PanelContent isActive={isActive} onClose={onClose} />
+          <div className="devbar-panel__header-right">
+            <div className={`devbar-panel__status ${isActive ? 'devbar-panel__status--active' : ''}`}>
+              <span className="devbar-panel__status-dot" />
+              <span className="devbar-panel__status-text">{isActive ? 'Active' : 'Idle'}</span>
+            </div>
+            <button className="devbar-panel__close" onClick={onClose}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Screen bezel edge - bottom */}
-        <div className="developer-bar-panel__bezel developer-bar-panel__bezel--bottom" />
+        {/* Content */}
+        <div className="devbar-panel__content">
+          <PanelContent isActive={isActive} onClose={onClose} />
+        </div>
+
+        {/* Resize handle */}
+        <div className="devbar-panel__resize" onMouseDown={handleResize}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+          </svg>
+        </div>
         
-        {/* Panel shadows for 3D depth */}
-        <div className="developer-bar-panel__shadow developer-bar-panel__shadow--1" />
-        <div className="developer-bar-panel__shadow developer-bar-panel__shadow--2" />
+        {/* Edge highlights */}
+        <div className="devbar-panel__edge devbar-panel__edge--top" />
+        <div className="devbar-panel__edge devbar-panel__edge--bottom" />
       </div>
+      
+      {/* Shadow */}
+      <div className="devbar-panel__shadow" />
     </motion.div>
   );
 }
 
-// Default panel for features without custom implementation
-function DefaultPanel({ featureId, onClose: _onClose }: { featureId: string; onClose: () => void }) {
+// Default panel content for features without custom implementation
+function DefaultPanelContent({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) {
   return (
-    <div className="developer-bar-panel__default">
-      <p className="developer-bar-panel__default-text">
-        Feature "{featureId}" panel coming soon...
-      </p>
+    <div className="devbar-panel__default">
+      <p>Panel content coming soon...</p>
     </div>
   );
 }
 
 // ============================================================================
-// Feature-Specific Panel Components
+// Feature Panel Implementations
 // ============================================================================
 
-// Agents Panel - Shows active agents as 3D tiles
 function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) {
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; status: string; progress: number; task: string }>>([]);
   const [showNewAgent, setShowNewAgent] = useState(false);
   const [newAgentPrompt, setNewAgentPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514');
@@ -291,10 +221,8 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
     { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', tier: 'fast' },
     { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', tier: 'powerful' },
     { id: 'gpt-4o', name: 'GPT-4o', tier: 'balanced' },
-    { id: 'o3-mini', name: 'O3 Mini', tier: 'reasoning' },
   ];
 
-  // Mock agent data - in production, fetch from backend
   useEffect(() => {
     setAgents([
       { id: '1', name: 'Code Generator', status: 'working', progress: 67, task: 'Building authentication flow' },
@@ -305,18 +233,12 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
 
   const handleDeployAgent = async () => {
     if (!newAgentPrompt.trim()) return;
-    
-    // Deploy agent via API
     try {
       const response = await fetch('/api/developer-mode/agents/deploy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          task: newAgentPrompt,
-          model: selectedModel,
-        }),
+        body: JSON.stringify({ task: newAgentPrompt, model: selectedModel }),
       });
-      
       if (response.ok) {
         const newAgent = await response.json();
         setAgents(prev => [...prev, newAgent]);
@@ -330,7 +252,6 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
 
   return (
     <div className="panel-agents">
-      {/* Active Agents Grid */}
       <div className="panel-agents__grid">
         {agents.map((agent) => (
           <motion.div
@@ -342,10 +263,7 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
             {agent.status === 'working' && (
               <motion.div
                 className="panel-agents__tile-glow"
-                animate={{
-                  opacity: [0.3, 0.7, 0.3],
-                  scale: [1, 1.05, 1],
-                }}
+                animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
             )}
@@ -355,29 +273,21 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
                 {agent.status}
               </span>
             </div>
-            {agent.task && (
-              <p className="panel-agents__tile-task">{agent.task}</p>
-            )}
+            {agent.task && <p className="panel-agents__tile-task">{agent.task}</p>}
             {agent.status === 'working' && (
               <div className="panel-agents__tile-progress">
-                <div 
-                  className="panel-agents__tile-progress-bar"
-                  style={{ width: `${agent.progress}%` }}
-                />
+                <div className="panel-agents__tile-progress-bar" style={{ width: `${agent.progress}%` }} />
               </div>
             )}
             {agent.status === 'completed' && (
               <div className="panel-agents__tile-actions">
                 <button className="panel-agents__action-btn">View Diff</button>
-                <button className="panel-agents__action-btn panel-agents__action-btn--primary">
-                  Create PR
-                </button>
+                <button className="panel-agents__action-btn panel-agents__action-btn--primary">Create PR</button>
               </div>
             )}
           </motion.div>
         ))}
         
-        {/* New Agent Button */}
         <motion.button
           className="panel-agents__new-tile"
           onClick={() => setShowNewAgent(true)}
@@ -391,7 +301,6 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
         </motion.button>
       </div>
 
-      {/* New Agent Modal */}
       <AnimatePresence>
         {showNewAgent && (
           <motion.div
@@ -410,54 +319,24 @@ function AgentsPanel({ isActive: _isActive, onClose: _onClose }: { isActive: boo
               />
               <div className="panel-agents__model-selector">
                 <label>Model</label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                >
+                <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
                   {models.map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name} ({model.tier})
-                    </option>
+                    <option key={model.id} value={model.id}>{model.name} ({model.tier})</option>
                   ))}
                 </select>
               </div>
               <div className="panel-agents__modal-actions">
-                <button 
-                  className="panel-agents__btn panel-agents__btn--secondary"
-                  onClick={() => setShowNewAgent(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="panel-agents__btn panel-agents__btn--primary"
-                  onClick={handleDeployAgent}
-                  disabled={!newAgentPrompt.trim()}
-                >
-                  Deploy Agent
-                </button>
+                <button className="panel-agents__btn panel-agents__btn--secondary" onClick={() => setShowNewAgent(false)}>Cancel</button>
+                <button className="panel-agents__btn panel-agents__btn--primary" onClick={handleDeployAgent} disabled={!newAgentPrompt.trim()}>Deploy Agent</button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Agent History (scrollable) */}
-      <div className="panel-agents__history">
-        <h5>Agent History</h5>
-        <div className="panel-agents__history-list">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="panel-agents__history-item">
-              <span className="panel-agents__history-time">2h ago</span>
-              <span className="panel-agents__history-task">Built login form component</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
-// Memory Panel
 function MemoryPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
   return (
     <div className="panel-memory">
@@ -490,35 +369,24 @@ function MemoryPanel({ isActive: _isActive }: { isActive: boolean; onClose: () =
   );
 }
 
-// Quality Check Panel
 function QualityCheckPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  const [scores] = useState({
-    code: 87,
-    visual: 92,
-    security: 95,
-    performance: 78,
-  });
+  const [scores] = useState({ code: 87, visual: 92, security: 95, performance: 78 });
 
   return (
     <div className="panel-quality">
       <div className="panel-quality__overview">
         <div className="panel-quality__score-ring">
           <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a3c" strokeWidth="8" />
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
             <motion.circle
-              cx="50" cy="50" r="45"
-              fill="none"
-              stroke="url(#qualityGradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={283}
-              strokeDashoffset={283 - (283 * 88) / 100}
+              cx="50" cy="50" r="45" fill="none" stroke="url(#qualityGrad)" strokeWidth="8"
+              strokeLinecap="round" strokeDasharray={283} strokeDashoffset={283 - (283 * 88) / 100}
               initial={{ strokeDashoffset: 283 }}
               animate={{ strokeDashoffset: 283 - (283 * 88) / 100 }}
               transition={{ duration: 1, ease: "easeOut" }}
             />
             <defs>
-              <linearGradient id="qualityGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="qualityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#FFB87A" />
                 <stop offset="100%" stopColor="#40C870" />
               </linearGradient>
@@ -553,7 +421,6 @@ function QualityCheckPanel({ isActive: _isActive }: { isActive: boolean; onClose
   );
 }
 
-// Ghost Mode Panel
 function GhostModePanel({ isActive }: { isActive: boolean; onClose: () => void }) {
   const [config, setConfig] = useState({
     maxRuntime: 8,
@@ -570,48 +437,28 @@ function GhostModePanel({ isActive }: { isActive: boolean; onClose: () => void }
         <div className={`panel-ghost__indicator ${isActive ? 'panel-ghost__indicator--active' : ''}`}>
           <motion.div
             className="panel-ghost__indicator-ring"
-            animate={isActive ? {
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0.8, 0.5],
-            } : {}}
+            animate={isActive ? { scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] } : {}}
             transition={{ duration: 2, repeat: Infinity }}
           />
           <DeveloperBarIcon name="ghostMode" size={32} isActive={isActive} />
         </div>
-        <span className="panel-ghost__status-text">
-          {isActive ? 'Ghost Mode Active' : 'Ghost Mode Idle'}
-        </span>
+        <span className="panel-ghost__status-text">{isActive ? 'Ghost Mode Active' : 'Ghost Mode Idle'}</span>
       </div>
       
       <div className="panel-ghost__config">
         <div className="panel-ghost__config-item">
           <label>Max Runtime (hours)</label>
-          <input
-            type="range"
-            min="1"
-            max="24"
-            value={config.maxRuntime}
-            onChange={(e) => setConfig({ ...config, maxRuntime: parseInt(e.target.value) })}
-          />
+          <input type="range" min="1" max="24" value={config.maxRuntime} onChange={(e) => setConfig({ ...config, maxRuntime: parseInt(e.target.value) })} />
           <span>{config.maxRuntime}h</span>
         </div>
         <div className="panel-ghost__config-item">
           <label>Max Credits ($)</label>
-          <input
-            type="range"
-            min="10"
-            max="200"
-            value={config.maxCredits}
-            onChange={(e) => setConfig({ ...config, maxCredits: parseInt(e.target.value) })}
-          />
+          <input type="range" min="10" max="200" value={config.maxCredits} onChange={(e) => setConfig({ ...config, maxCredits: parseInt(e.target.value) })} />
           <span>${config.maxCredits}</span>
         </div>
         <div className="panel-ghost__config-item">
           <label>Autonomy Level</label>
-          <select
-            value={config.autonomyLevel}
-            onChange={(e) => setConfig({ ...config, autonomyLevel: e.target.value })}
-          >
+          <select value={config.autonomyLevel} onChange={(e) => setConfig({ ...config, autonomyLevel: e.target.value })}>
             <option value="low">Low - Ask before changes</option>
             <option value="medium">Medium - Proceed with caution</option>
             <option value="high">High - Full autonomy</option>
@@ -619,27 +466,15 @@ function GhostModePanel({ isActive }: { isActive: boolean; onClose: () => void }
         </div>
         <div className="panel-ghost__config-toggles">
           <label className="panel-ghost__toggle">
-            <input
-              type="checkbox"
-              checked={config.pauseOnError}
-              onChange={(e) => setConfig({ ...config, pauseOnError: e.target.checked })}
-            />
+            <input type="checkbox" checked={config.pauseOnError} onChange={(e) => setConfig({ ...config, pauseOnError: e.target.checked })} />
             <span>Pause on Error</span>
           </label>
           <label className="panel-ghost__toggle">
-            <input
-              type="checkbox"
-              checked={config.notifyEmail}
-              onChange={(e) => setConfig({ ...config, notifyEmail: e.target.checked })}
-            />
+            <input type="checkbox" checked={config.notifyEmail} onChange={(e) => setConfig({ ...config, notifyEmail: e.target.checked })} />
             <span>Email Notifications</span>
           </label>
           <label className="panel-ghost__toggle">
-            <input
-              type="checkbox"
-              checked={config.notifySlack}
-              onChange={(e) => setConfig({ ...config, notifySlack: e.target.checked })}
-            />
+            <input type="checkbox" checked={config.notifySlack} onChange={(e) => setConfig({ ...config, notifySlack: e.target.checked })} />
             <span>Slack Notifications</span>
           </label>
         </div>
@@ -652,7 +487,6 @@ function GhostModePanel({ isActive }: { isActive: boolean; onClose: () => void }
   );
 }
 
-// Time Machine Panel
 function TimeMachinePanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
   const checkpoints = [
     { id: '1', time: '5 min ago', label: 'Auto-save', files: 3 },
@@ -690,62 +524,61 @@ function TimeMachinePanel({ isActive: _isActive }: { isActive: boolean; onClose:
   );
 }
 
-// Stub panels for other features
+// Stub panels
 function DeploymentPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Deployment Panel</div>;
+  return <div className="devbar-panel__default">Deployment Panel</div>;
 }
 
 function DatabasePanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Database Panel</div>;
+  return <div className="devbar-panel__default">Database Panel</div>;
 }
 
 function WorkflowsPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Workflows Panel</div>;
+  return <div className="devbar-panel__default">Workflows Panel</div>;
 }
 
 function LiveDebugPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Live Debug Panel</div>;
+  return <div className="devbar-panel__default">Live Debug Panel</div>;
 }
 
 function LiveHealthPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Live Health Panel</div>;
+  return <div className="devbar-panel__default">Live Health Panel</div>;
 }
 
 function IntegrationsPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Integrations Panel</div>;
+  return <div className="devbar-panel__default">Integrations Panel</div>;
 }
 
 function DeveloperSettingsPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Developer Settings Panel</div>;
+  return <div className="devbar-panel__default">Developer Settings Panel</div>;
 }
 
 function MarketFitPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Market Fit Panel</div>;
+  return <div className="devbar-panel__default">Market Fit Panel</div>;
 }
 
 function PredictiveEnginePanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Predictive Engine Panel</div>;
+  return <div className="devbar-panel__default">Predictive Engine Panel</div>;
 }
 
 function AISlopCatchPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">AI-Slop Catch Panel</div>;
+  return <div className="devbar-panel__default">AI-Slop Catch Panel</div>;
 }
 
 function VoiceFirstPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Voice First Panel</div>;
+  return <div className="devbar-panel__default">Voice First Panel</div>;
 }
 
 function TestGenPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Test Gen Panel</div>;
+  return <div className="devbar-panel__default">Test Gen Panel</div>;
 }
 
 function SelfHealPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Self Heal Panel</div>;
+  return <div className="devbar-panel__default">Self Heal Panel</div>;
 }
 
 function CloudDeployPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  return <div className="panel-stub">Cloud Deploy Panel</div>;
+  return <div className="devbar-panel__default">Cloud Deploy Panel</div>;
 }
 
 export default DeveloperBarPanel;
-

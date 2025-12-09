@@ -1,14 +1,15 @@
 /**
- * Developer Bar - Revolutionary 3D Command Center Toolbar
+ * Developer Bar - 3D Liquid Glass Command Center
  * 
- * A floating, photorealistic 3D toolbar with:
- * - Slide-out panel system for feature visualization
- * - Pulsing glow effects for active features
+ * A floating, photorealistic translucent glass toolbar with:
+ * - True glass morphism with refraction effects
+ * - Warm photorealistic glow on active buttons
+ * - Click to open, click again to close (multi-panel support)
+ * - Button pagination with smooth slide animation
  * - Custom 3D geometric icons
- * - Vertical/horizontal orientation support
- * - Multi-task capability for side-by-side views
+ * - Buttery smooth 60fps animations
  * 
- * Design Philosophy: "Holy shit this is amazing" within 2 seconds
+ * Design: Inspired by Spline glass aesthetics
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -22,8 +23,6 @@ export interface FeatureButton {
   id: string;
   name: string;
   icon: IconName;
-  isActive?: boolean;
-  hasNotification?: boolean;
   category: 'core' | 'ai' | 'deploy' | 'tools' | 'collab';
 }
 
@@ -73,6 +72,10 @@ const FEATURE_BUTTONS: FeatureButton[] = [
 
 type Orientation = 'vertical' | 'horizontal';
 
+// Number of buttons visible at once
+const VISIBLE_BUTTONS_VERTICAL = 10;
+const VISIBLE_BUTTONS_HORIZONTAL = 14;
+
 interface DeveloperBarProps {
   activeFeatures?: string[];
   onFeatureToggle?: (featureId: string) => void;
@@ -85,15 +88,19 @@ export function DeveloperBar({
   className = '' 
 }: DeveloperBarProps) {
   const [orientation, setOrientation] = useState<Orientation>('vertical');
-  const [expandedPanel, setExpandedPanel] = useState<string | null>(null);
-  const [multiTaskMode, setMultiTaskMode] = useState(false);
   const [openPanels, setOpenPanels] = useState<string[]>([]);
   const [position, setPosition] = useState({ x: 20, y: 100 });
-  const [_isDragging, setIsDragging] = useState(false);
+  const [buttonPage, setButtonPage] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
   
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
+
+  // Calculate visible buttons based on orientation
+  const visibleCount = orientation === 'vertical' ? VISIBLE_BUTTONS_VERTICAL : VISIBLE_BUTTONS_HORIZONTAL;
+  const totalPages = Math.ceil(FEATURE_BUTTONS.length / visibleCount);
+  const startIndex = buttonPage * visibleCount;
+  const visibleButtons = FEATURE_BUTTONS.slice(startIndex, startIndex + visibleCount);
   
   // Calculate slide direction based on position and screen space
   const getSlideDirection = useCallback(() => {
@@ -103,55 +110,53 @@ export function DeveloperBar({
     const screenHeight = window.innerHeight;
     
     if (orientation === 'vertical') {
-      // Slide to the side with more space
       return position.x < screenWidth / 2 ? 'right' : 'left';
     } else {
-      // Slide up or down based on position
       return position.y < screenHeight / 2 ? 'down' : 'up';
     }
   }, [orientation, position]);
 
-  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setPosition({
       x: position.x + info.offset.x,
       y: position.y + info.offset.y
     });
-    setIsDragging(false);
   }, [position]);
 
+  // Simple toggle: click opens, click again closes
   const handleFeatureClick = useCallback((featureId: string) => {
-    if (multiTaskMode) {
-      setOpenPanels(prev => 
-        prev.includes(featureId) 
-          ? prev.filter(id => id !== featureId)
-          : [...prev, featureId]
-      );
-    } else {
-      setExpandedPanel(prev => prev === featureId ? null : featureId);
-    }
+    setOpenPanels(prev => {
+      if (prev.includes(featureId)) {
+        // Close this panel
+        return prev.filter(id => id !== featureId);
+      } else {
+        // Open this panel
+        return [...prev, featureId];
+      }
+    });
     onFeatureToggle?.(featureId);
-  }, [multiTaskMode, onFeatureToggle]);
+  }, [onFeatureToggle]);
 
-  const toggleMultiTask = useCallback(() => {
-    if (!multiTaskMode) {
-      // Show tooltip/notification
-      setMultiTaskMode(true);
-      if (expandedPanel) {
-        setOpenPanels([expandedPanel]);
-        setExpandedPanel(null);
-      }
-    } else {
-      setMultiTaskMode(false);
-      if (openPanels.length > 0) {
-        setExpandedPanel(openPanels[0]);
-      }
-      setOpenPanels([]);
-    }
-  }, [multiTaskMode, expandedPanel, openPanels]);
+  // Close a specific panel
+  const handlePanelClose = useCallback((featureId: string) => {
+    setOpenPanels(prev => prev.filter(id => id !== featureId));
+  }, []);
 
   const toggleOrientation = useCallback(() => {
     setOrientation(prev => prev === 'vertical' ? 'horizontal' : 'vertical');
+    setButtonPage(0); // Reset to first page on orientation change
   }, []);
+
+  // Cycle to next page of buttons
+  const cycleButtons = useCallback((direction: 'next' | 'prev') => {
+    setButtonPage(prev => {
+      if (direction === 'next') {
+        return prev >= totalPages - 1 ? 0 : prev + 1;
+      } else {
+        return prev <= 0 ? totalPages - 1 : prev - 1;
+      }
+    });
+  }, [totalPages]);
 
   const slideDirection = getSlideDirection();
   const isVertical = orientation === 'vertical';
@@ -165,162 +170,184 @@ export function DeveloperBar({
         style={{ x, y }}
         drag
         dragMomentum={false}
-        onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       >
-        {/* 3D Toolbar Container */}
-        <div className="developer-bar__container">
-          {/* Ambient glow layer */}
-          <div className="developer-bar__ambient-glow" />
+        {/* Glass Container with Refraction */}
+        <div className="developer-bar__glass">
+          {/* Refraction layer */}
+          <div className="developer-bar__refraction" />
           
-          {/* Main body with metallic texture */}
-          <div className="developer-bar__body">
-            {/* Top edge highlight */}
-            <div className="developer-bar__edge developer-bar__edge--top" />
-            
-            {/* Orientation toggle */}
+          {/* Inner glow */}
+          <div className="developer-bar__inner-glow" />
+          
+          {/* Glass surface */}
+          <div className="developer-bar__surface">
+            {/* Orientation toggle grip */}
             <button 
-              className="developer-bar__orientation-toggle"
+              className="developer-bar__grip"
               onClick={toggleOrientation}
               title={`Switch to ${isVertical ? 'horizontal' : 'vertical'}`}
             >
-              <div className="developer-bar__grip">
+              <div className="developer-bar__grip-lines">
                 <span /><span /><span />
               </div>
             </button>
 
+            {/* Previous page button */}
+            {totalPages > 1 && (
+              <motion.button
+                className="developer-bar__cycle-btn"
+                onClick={() => cycleButtons('prev')}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path 
+                    d={isVertical ? "M9 6L3 6M3 6L6 3M3 6L6 9" : "M6 9L6 3M6 3L3 6M6 3L9 6"}
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </motion.button>
+            )}
+
             {/* Feature buttons */}
             <div className={`developer-bar__buttons ${isVertical ? 'developer-bar__buttons--vertical' : 'developer-bar__buttons--horizontal'}`}>
-              {FEATURE_BUTTONS.map((feature) => (
-                <FeatureButton
-                  key={feature.id}
-                  feature={feature}
-                  isActive={activeFeatures.includes(feature.id)}
-                  isExpanded={expandedPanel === feature.id || openPanels.includes(feature.id)}
-                  onClick={() => handleFeatureClick(feature.id)}
-                  orientation={orientation}
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {visibleButtons.map((feature, index) => (
+                  <GlassButton
+                    key={feature.id}
+                    feature={feature}
+                    isActive={activeFeatures.includes(feature.id)}
+                    isOpen={openPanels.includes(feature.id)}
+                    onClick={() => handleFeatureClick(feature.id)}
+                    orientation={orientation}
+                    index={index}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
 
-            {/* MultiTask button */}
-            <button
-              className={`developer-bar__multitask ${multiTaskMode ? 'developer-bar__multitask--active' : ''}`}
-              onClick={toggleMultiTask}
-              title="MultiTask Mode"
-            >
-              <DeveloperBarIcon name="multiTask" size={20} isActive={multiTaskMode} />
-              <span className="developer-bar__multitask-label">Multi</span>
-            </button>
+            {/* Next page button */}
+            {totalPages > 1 && (
+              <motion.button
+                className="developer-bar__cycle-btn"
+                onClick={() => cycleButtons('next')}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path 
+                    d={isVertical ? "M3 6L9 6M9 6L6 9M9 6L6 3" : "M6 3L6 9M6 9L9 6M6 9L3 6"}
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </motion.button>
+            )}
 
-            {/* Bottom edge shadow */}
-            <div className="developer-bar__edge developer-bar__edge--bottom" />
+            {/* Page indicator */}
+            {totalPages > 1 && (
+              <div className="developer-bar__page-indicator">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <span 
+                    key={i} 
+                    className={`developer-bar__page-dot ${i === buttonPage ? 'developer-bar__page-dot--active' : ''}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           
-          {/* Outer shadow layers for depth */}
-          <div className="developer-bar__shadow developer-bar__shadow--1" />
-          <div className="developer-bar__shadow developer-bar__shadow--2" />
-          <div className="developer-bar__shadow developer-bar__shadow--3" />
+          {/* Edge highlights for 3D depth */}
+          <div className="developer-bar__edge developer-bar__edge--top" />
+          <div className="developer-bar__edge developer-bar__edge--right" />
+          <div className="developer-bar__edge developer-bar__edge--bottom" />
+          <div className="developer-bar__edge developer-bar__edge--left" />
         </div>
+        
+        {/* Outer shadow layers */}
+        <div className="developer-bar__shadow developer-bar__shadow--1" />
+        <div className="developer-bar__shadow developer-bar__shadow--2" />
       </motion.div>
 
-      {/* Slide-out Panels */}
+      {/* Open Panels - Each is floating and independently draggable */}
       <AnimatePresence>
-        {expandedPanel && !multiTaskMode && (
-          <DeveloperBarPanel
-            featureId={expandedPanel}
-            slideDirection={slideDirection}
-            barPosition={position}
-            barOrientation={orientation}
-            onClose={() => setExpandedPanel(null)}
-            isActive={activeFeatures.includes(expandedPanel)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* MultiTask Panels */}
-      <AnimatePresence>
-        {multiTaskMode && openPanels.map((panelId, index) => (
+        {openPanels.map((panelId, index) => (
           <DeveloperBarPanel
             key={panelId}
             featureId={panelId}
             slideDirection={slideDirection}
             barPosition={position}
             barOrientation={orientation}
-            onClose={() => setOpenPanels(prev => prev.filter(id => id !== panelId))}
+            onClose={() => handlePanelClose(panelId)}
             isActive={activeFeatures.includes(panelId)}
             stackIndex={index}
             totalPanels={openPanels.length}
           />
         ))}
       </AnimatePresence>
-
-      {/* MultiTask Mode Tooltip */}
-      <AnimatePresence>
-        {multiTaskMode && openPanels.length === 0 && (
-          <motion.div
-            className="developer-bar__tooltip"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            style={{
-              left: position.x + (isVertical ? 80 : 0),
-              top: position.y + (isVertical ? 0 : 80),
-            }}
-          >
-            <div className="developer-bar__tooltip-content">
-              <span className="developer-bar__tooltip-title">MultiTask Mode Active</span>
-              <p>Click on toolbar items to open multiple views side-by-side. Compare data and multi-task efficiently.</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }
 
-// Individual Feature Button Component
-function FeatureButton({
+// Individual Glass Button Component
+function GlassButton({
   feature,
   isActive,
-  isExpanded,
+  isOpen,
   onClick,
-  orientation
+  orientation,
+  index
 }: {
   feature: FeatureButton;
   isActive: boolean;
-  isExpanded: boolean;
+  isOpen: boolean;
   onClick: () => void;
   orientation: Orientation;
+  index: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <motion.button
       className={`
-        developer-bar__button
-        ${isActive ? 'developer-bar__button--active' : ''}
-        ${isExpanded ? 'developer-bar__button--expanded' : ''}
+        developer-bar__btn
+        ${isActive ? 'developer-bar__btn--active' : ''}
+        ${isOpen ? 'developer-bar__btn--open' : ''}
       `}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ 
+        duration: 0.3, 
+        delay: index * 0.02,
+        ease: [0.23, 1, 0.32, 1]
+      }}
       whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.95 }}
       title={feature.name}
+      layout
     >
-      {/* Button 3D layers */}
-      <div className="developer-bar__button-body">
-        {/* Active pulse glow */}
-        {isActive && (
+      {/* Glass button body */}
+      <div className="developer-bar__btn-glass">
+        {/* Active/Open warm glow */}
+        {(isActive || isOpen) && (
           <motion.div
-            className="developer-bar__button-glow"
+            className="developer-bar__btn-glow"
             animate={{
-              opacity: [0.4, 0.8, 0.4],
-              scale: [1, 1.1, 1],
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.05, 1],
             }}
             transition={{
               duration: 2,
@@ -330,28 +357,28 @@ function FeatureButton({
           />
         )}
         
+        {/* Glass refraction */}
+        <div className="developer-bar__btn-refraction" />
+        
         {/* Icon */}
-        <div className="developer-bar__button-icon">
+        <div className="developer-bar__btn-icon">
           <DeveloperBarIcon 
             name={feature.icon} 
-            size={22} 
-            isActive={isActive}
+            size={20} 
+            isActive={isActive || isOpen}
             isHovered={isHovered}
           />
         </div>
 
-        {/* Button surface highlight */}
-        <div className="developer-bar__button-highlight" />
-        
-        {/* Button edge */}
-        <div className="developer-bar__button-edge" />
+        {/* Glass highlight */}
+        <div className="developer-bar__btn-highlight" />
       </div>
 
-      {/* Tooltip on hover */}
+      {/* Tooltip */}
       <AnimatePresence>
         {isHovered && (
           <motion.div
-            className={`developer-bar__button-tooltip developer-bar__button-tooltip--${orientation}`}
+            className={`developer-bar__tooltip developer-bar__tooltip--${orientation}`}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -361,14 +388,8 @@ function FeatureButton({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Notification dot */}
-      {feature.hasNotification && (
-        <div className="developer-bar__button-notification" />
-      )}
     </motion.button>
   );
 }
 
 export default DeveloperBar;
-

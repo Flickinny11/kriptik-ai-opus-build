@@ -1,6 +1,6 @@
 /**
  * Developer Bar Icons - Custom 3D Geometric Icons
- * 
+ *
  * Design Philosophy:
  * - 3D intertwining geometric shapes
  * - No lightning bolts, robot heads, or rockets
@@ -10,7 +10,7 @@
 
 import { motion } from 'framer-motion';
 
-export type IconName = 
+export type IconName =
   | 'agents' | 'memory' | 'qualityCheck' | 'integrations'
   | 'ghostMode' | 'marketFit' | 'predictiveEngine' | 'aiSlopCatch' | 'userTwin'
   | 'workflows' | 'database' | 'developerSettings' | 'voiceFirst' | 'dna'
@@ -37,13 +37,13 @@ const GradientDefs = () => (
       <stop offset="50%" stopColor="#FF8E4A" />
       <stop offset="100%" stopColor="#E85D2A" />
     </linearGradient>
-    
+
     {/* Active glow gradient */}
     <linearGradient id="activeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#FFD4A8" />
       <stop offset="100%" stopColor="#FFA050" />
     </linearGradient>
-    
+
     {/* Metallic silver gradient */}
     <linearGradient id="metallicSilver" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#E8E8EC" />
@@ -51,26 +51,26 @@ const GradientDefs = () => (
       <stop offset="70%" stopColor="#A8A8B4" />
       <stop offset="100%" stopColor="#88889C" />
     </linearGradient>
-    
+
     {/* Dark metallic gradient */}
     <linearGradient id="darkMetallic" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#4A4A5C" />
       <stop offset="50%" stopColor="#2A2A3C" />
       <stop offset="100%" stopColor="#1A1A28" />
     </linearGradient>
-    
+
     {/* Cyan tech gradient */}
     <linearGradient id="cyanTech" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#7AEAFF" />
       <stop offset="100%" stopColor="#40B8E0" />
     </linearGradient>
-    
+
     {/* Green success gradient */}
     <linearGradient id="greenSuccess" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#7AE8A0" />
       <stop offset="100%" stopColor="#40C870" />
     </linearGradient>
-    
+
     {/* Purple insight gradient */}
     <linearGradient id="purpleInsight" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stopColor="#B892FF" />
@@ -82,7 +82,7 @@ const GradientDefs = () => (
       <feGaussianBlur stdDeviation="1" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
-    
+
     {/* Drop shadow for depth */}
     <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000" floodOpacity="0.3" />
@@ -92,7 +92,7 @@ const GradientDefs = () => (
 
 // Individual icon components - 3D geometric designs
 const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean }) => JSX.Element> = {
-  
+
   // Agents - Interlocking hexagonal nodes
   agents: ({ isActive, isHovered }) => (
     <g filter="url(#dropShadow)">
@@ -114,9 +114,9 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       />
       {/* Node connections */}
       <circle cx="12" cy="12" r="2" fill={isActive ? '#FFF' : '#CCC'} />
-      <motion.circle 
-        cx="12" cy="12" r="3.5" 
-        fill="none" 
+      <motion.circle
+        cx="12" cy="12" r="3.5"
+        fill="none"
         stroke={isActive ? '#FFB87A' : '#888'}
         strokeWidth="0.5"
         strokeDasharray="2 2"
@@ -159,10 +159,10 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       {/* Outer ring */}
       <circle cx="12" cy="12" r="8" fill="none" stroke={isActive ? 'url(#greenSuccess)' : 'url(#metallicSilver)'} strokeWidth="2" />
       {/* Inner ring */}
-      <motion.circle 
-        cx="12" cy="12" r="5" 
-        fill="none" 
-        stroke={isActive ? 'url(#warmGradient)' : '#A8A8B4'} 
+      <motion.circle
+        cx="12" cy="12" r="5"
+        fill="none"
+        stroke={isActive ? 'url(#warmGradient)' : '#A8A8B4'}
         strokeWidth="1.5"
         animate={{ scale: isHovered ? 1.1 : 1 }}
         style={{ transformOrigin: 'center' }}
@@ -210,11 +210,11 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         d="M12 3C8 3 5 6 5 10V18C5 19 6 19 6.5 18.5L8 17L9.5 18.5C10 19 11 19 11.5 18.5L12 18L12.5 18.5C13 19 14 19 14.5 18.5L16 17L17.5 18.5C18 19 19 19 19 18V10C19 6 16 3 12 3Z"
         fill={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
         opacity={isActive ? 0.9 : 0.7}
-        animate={{ 
+        animate={{
           y: isHovered ? [-1, 1, -1] : 0,
           opacity: isActive ? [0.7, 0.9, 0.7] : 0.7
         }}
-        transition={{ 
+        transition={{
           y: { duration: 2, repeat: Infinity },
           opacity: { duration: 3, repeat: Infinity }
         }}
@@ -267,10 +267,10 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         fill="none"
         stroke={isActive ? '#FFF' : '#888'}
         strokeWidth="1"
-        animate={{ 
-          d: isHovered 
-            ? "M8 11C8 11 10 13 12 11C14 9 16 11 16 11" 
-            : "M8 11C8 11 10 9 12 11C14 13 16 11 16 11" 
+        animate={{
+          d: isHovered
+            ? "M8 11C8 11 10 13 12 11C14 9 16 11 16 11"
+            : "M8 11C8 11 10 9 12 11C14 13 16 11 16 11"
         }}
         transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
       />
@@ -288,14 +288,14 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       {/* Filter lines */}
       <path d="M7 7H17M8 9H16" stroke={isActive ? '#FFF' : '#666'} strokeWidth="0.5" />
       {/* Rejected particles */}
-      <motion.circle 
-        cx="18" cy="8" r="1" 
+      <motion.circle
+        cx="18" cy="8" r="1"
         fill="#E85D2A"
         animate={{ opacity: isHovered ? [0, 1, 0] : 0 }}
         transition={{ duration: 1, repeat: Infinity }}
       />
-      <motion.circle 
-        cx="6" cy="9" r="0.8" 
+      <motion.circle
+        cx="6" cy="9" r="0.8"
         fill="#E85D2A"
         animate={{ opacity: isHovered ? [0, 1, 0] : 0 }}
         transition={{ duration: 1, delay: 0.3, repeat: Infinity }}
@@ -311,7 +311,7 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       <circle cx="8" cy="8" r="3" fill={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'} />
       <path d="M4 18C4 14 5.5 12 8 12C10.5 12 12 14 12 18" fill={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'} />
       {/* Twin figure (mirrored) */}
-      <motion.g 
+      <motion.g
         opacity={0.6}
         animate={{ opacity: isHovered ? 0.9 : 0.6 }}
       >
@@ -473,7 +473,7 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        animate={{ 
+        animate={{
           pathLength: isHovered ? [0, 1, 0] : [0.5, 1, 0.5],
           opacity: [0.8, 1, 0.8]
         }}
@@ -545,8 +545,8 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         stroke={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
         strokeWidth="2"
         strokeLinecap="round"
-        animate={{ 
-          d: isHovered 
+        animate={{
+          d: isHovered
             ? "M6 12L10 10L12 12L14 10L18 12"
             : "M6 12L10 8L12 12L14 8L18 12"
         }}
@@ -556,7 +556,7 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         cx="12" cy="10"
         r="1"
         fill={isActive ? 'url(#greenSuccess)' : '#888'}
-        animate={{ 
+        animate={{
           y: isHovered ? [0, -3, 0] : 0,
           opacity: isHovered ? [0, 1, 0] : 0.5
         }}
@@ -714,8 +714,8 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         strokeWidth="1"
         strokeLinecap="round"
         strokeDasharray="2 2"
-        animate={{ 
-          strokeDashoffset: isHovered ? [0, -20] : 0 
+        animate={{
+          strokeDashoffset: isHovered ? [0, -20] : 0
         }}
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
@@ -908,7 +908,7 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
 
 export function DeveloperBarIcon({ name, size = 24, isActive = false, isHovered = false, className = '' }: IconProps) {
   const IconComponent = icons[name];
-  
+
   if (!IconComponent) {
     console.warn(`Icon "${name}" not found`);
     return null;
