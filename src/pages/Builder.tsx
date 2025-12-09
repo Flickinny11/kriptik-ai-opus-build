@@ -60,6 +60,7 @@ import { SoftInterruptInput } from '../components/builder/SoftInterruptInput';
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
 import { DeveloperBar } from '../components/developer-bar';
+import { Spline3DDropdown } from '../components/spline';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -362,6 +363,7 @@ export default function Builder() {
     });
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
     const [showTournament, setShowTournament] = useState(false);
+    const [showSpline3D, setShowSpline3D] = useState(false); // Toggle for Spline 3D overlay
     // Developer Bar active features state
     const [activeDevBarFeatures, setActiveDevBarFeatures] = useState<string[]>([]);
     const { setIsScanning, setReport } = useQualityStore();
@@ -531,6 +533,13 @@ export default function Builder() {
                         ...(showMemory ? ['memory'] : []),
                     ]}
                     onFeatureToggle={handleDevBarFeatureToggle}
+                />
+
+                {/* Spline 3D Dropdown - Premium 3D UI Overlay */}
+                <Spline3DDropdown
+                    isVisible={showSpline3D}
+                    onClose={() => setShowSpline3D(false)}
+                    position={{ x: 50, y: 45 }}
                 />
 
                 {/* Premium Liquid Glass Header */}

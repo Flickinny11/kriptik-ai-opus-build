@@ -1,83 +1,148 @@
 /**
- * Agents Command Center - PREMIUM AI Agent Control
+ * Agents Command Center - Premium 3D AI Agent Control
  * 
- * Ultra high-tech command center with:
- * - Animated holographic backgrounds
- * - 3D depth and parallax effects
- * - Real-time streaming agent visualizations
- * - Premium model selector with brand logos
- * - Crisp, dynamic, butter-smooth animations
+ * Features:
+ * - Real OpenRouter models with high/low/thinking variations
+ * - 3D skewed agent tiles with matte slate texture
+ * - Expandable streaming reasoning window
+ * - Realistic layered shadows
+ * - GitHub PR creation integration
+ * - Liquid glass UI elements
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import './AgentsCommandCenter.css';
 
-// Premium AI Models
+// Real OpenRouter Models with variations
 const AI_MODELS = [
+  // Anthropic Claude
   { 
-    id: 'claude-opus-4-5', 
-    name: 'Opus 4.5', 
+    id: 'anthropic/claude-opus-4.5', 
+    name: 'Claude Opus 4.5', 
+    variant: 'Maximum',
     provider: 'anthropic',
-    tier: 'FLAGSHIP',
     color: '#D4A574',
-    desc: 'Maximum intelligence'
+    desc: 'Highest reasoning capability',
+    icon: 'https://cdn.simpleicons.org/anthropic/D4A574'
   },
   { 
-    id: 'claude-sonnet-4-5', 
-    name: 'Sonnet 4.5', 
+    id: 'anthropic/claude-sonnet-4.5', 
+    name: 'Claude Sonnet 4.5', 
+    variant: 'Balanced',
     provider: 'anthropic',
-    tier: 'PREMIUM',
     color: '#F5A86C',
-    desc: 'Best balance'
+    desc: 'Best balance of speed & quality',
+    icon: 'https://cdn.simpleicons.org/anthropic/F5A86C'
   },
   { 
-    id: 'gpt-5-1-codex', 
-    name: 'GPT-5.1 Codex', 
+    id: 'anthropic/claude-sonnet-4', 
+    name: 'Claude Sonnet 4', 
+    variant: 'Fast',
+    provider: 'anthropic',
+    color: '#E8845B',
+    desc: 'Quick responses, good quality',
+    icon: 'https://cdn.simpleicons.org/anthropic/E8845B'
+  },
+  { 
+    id: 'anthropic/claude-3.5-haiku', 
+    name: 'Claude Haiku 3.5', 
+    variant: 'Speed',
+    provider: 'anthropic',
+    color: '#CC7A50',
+    desc: 'Fastest, cost-effective',
+    icon: 'https://cdn.simpleicons.org/anthropic/CC7A50'
+  },
+  // OpenAI
+  { 
+    id: 'openai/gpt-4o', 
+    name: 'GPT-4o', 
+    variant: 'Multimodal',
     provider: 'openai',
-    tier: 'FLAGSHIP',
     color: '#00A67E',
-    desc: 'Code specialist'
+    desc: 'Vision + code specialist',
+    icon: 'https://cdn.simpleicons.org/openai/00A67E'
   },
   { 
-    id: 'gemini-2-ultra', 
-    name: 'Gemini Ultra', 
-    provider: 'google',
-    tier: 'FLAGSHIP',
-    color: '#4285F4',
-    desc: 'Multimodal'
+    id: 'openai/o1-preview', 
+    name: 'o1 Preview', 
+    variant: 'Reasoning',
+    provider: 'openai',
+    color: '#10A37F',
+    desc: 'Chain-of-thought reasoning',
+    icon: 'https://cdn.simpleicons.org/openai/10A37F'
   },
   { 
-    id: 'kriptoe-nite', 
-    name: 'KripToe-Nite', 
-    provider: 'kriptik',
-    tier: 'CUSTOM',
-    color: '#C8FF64',
-    desc: 'Our flagship'
+    id: 'openai/o1-mini', 
+    name: 'o1 Mini', 
+    variant: 'Fast Reasoning',
+    provider: 'openai',
+    color: '#0D8C6D',
+    desc: 'Quick reasoning tasks',
+    icon: 'https://cdn.simpleicons.org/openai/0D8C6D'
   },
+  // DeepSeek
   { 
-    id: 'deepseek-v3', 
+    id: 'deepseek/deepseek-chat-v3-0324', 
     name: 'DeepSeek V3', 
+    variant: 'Performance',
     provider: 'deepseek',
-    tier: 'PERFORMANCE',
     color: '#06B6D4',
-    desc: 'Speed optimized'
+    desc: 'Speed optimized, cost-effective',
+    icon: null
+  },
+  { 
+    id: 'deepseek/deepseek-r1', 
+    name: 'DeepSeek R1', 
+    variant: 'Reasoning',
+    provider: 'deepseek',
+    color: '#0891B2',
+    desc: 'Deep reasoning capabilities',
+    icon: null
+  },
+  // Krip-Toe-Nite (Custom)
+  { 
+    id: 'krip-toe-nite', 
+    name: 'Krip-Toe-Nite', 
+    variant: 'Auto-Select',
+    provider: 'kriptik',
+    color: '#C8FF64',
+    desc: 'Intelligent model routing',
+    icon: null
   },
 ];
+
+interface AgentThought {
+  timestamp: number;
+  type: 'thinking' | 'action' | 'result';
+  content: string;
+}
+
+interface AgentDiff {
+  file: string;
+  additions: number;
+  deletions: number;
+  patch?: string;
+}
 
 interface Agent {
   id: string;
   name: string;
   model: string;
+  modelName: string;
   status: 'idle' | 'thinking' | 'building' | 'verifying' | 'complete' | 'error';
   task: string;
   progress: number;
-  thoughts?: string[];
-  currentFile?: string;
+  thoughts: AgentThought[];
+  currentAction?: string;
+  summary?: string;
+  diffs?: AgentDiff[];
+  branchName?: string;
+  prUrl?: string;
   tokensUsed?: number;
-  ttftMs?: number;
   startTime?: Date;
+  endTime?: Date;
 }
 
 interface AgentsCommandCenterProps {
@@ -90,258 +155,338 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[1].id);
   const [taskPrompt, setTaskPrompt] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'history' | 'config'>('active');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Mouse parallax effect
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+  const selectedModelData = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[1];
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x * 20);
-    mouseY.set(y * 20);
-  }, [mouseX, mouseY]);
-
-  // Deploy agent
+  // Deploy agent using the backend orchestration system
   const deployAgent = useCallback(async () => {
     if (!taskPrompt.trim() || isDeploying || agents.length >= 6) return;
     setIsDeploying(true);
     
+    const agentId = `agent-${Date.now()}`;
+    const agentName = `Agent ${agents.length + 1}`;
+    
+    // Create optimistic agent
+    const newAgent: Agent = {
+      id: agentId,
+      name: agentName,
+      model: selectedModel,
+      modelName: selectedModelData.name,
+      status: 'thinking',
+      task: taskPrompt.trim(),
+      progress: 0,
+      thoughts: [{ 
+        timestamp: Date.now(), 
+        type: 'thinking', 
+        content: 'Initializing agent and analyzing task requirements...' 
+      }],
+      startTime: new Date(),
+    };
+    
+    setAgents(prev => [...prev, newAgent]);
+    setTaskPrompt('');
+    
     try {
+      // Call the actual backend orchestration system
       const response = await apiClient.post('/api/developer-mode/agents/deploy', {
-        sessionId,
-        projectId,
+        sessionId: sessionId || `session-${Date.now()}`,
+        projectId: projectId || 'default',
         taskPrompt: taskPrompt.trim(),
         model: selectedModel,
-        name: `Agent-${agents.length + 1}`,
+        name: agentName,
+        agentId,
       });
 
-      setAgents(prev => [...prev, {
-        id: response.agentId || `agent-${Date.now()}`,
-        name: `Agent-${agents.length + 1}`,
-        model: selectedModel,
-        status: 'thinking',
-        task: taskPrompt.trim(),
-        progress: 0,
-        thoughts: ['Initializing...', 'Analyzing task requirements...'],
-        startTime: new Date(),
-      }]);
-      setTaskPrompt('');
+      // Update agent with response
+      setAgents(prev => prev.map(a => 
+        a.id === agentId 
+          ? { 
+              ...a, 
+              id: response.agentId || agentId,
+              status: 'building' as const,
+              progress: 10,
+              thoughts: [
+                ...a.thoughts,
+                { timestamp: Date.now(), type: 'action' as const, content: 'Agent deployed successfully, beginning task execution...' }
+              ]
+            }
+          : a
+      ));
+
+      // Start polling for updates or connect to SSE
+      pollAgentStatus(response.agentId || agentId);
+
     } catch (error) {
       console.error('Deploy failed:', error);
+      setAgents(prev => prev.map(a => 
+        a.id === agentId 
+          ? { ...a, status: 'error' as const, thoughts: [...a.thoughts, { timestamp: Date.now(), type: 'result' as const, content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` }] }
+          : a
+      ));
     } finally {
       setIsDeploying(false);
     }
-  }, [taskPrompt, selectedModel, sessionId, projectId, agents.length, isDeploying]);
+  }, [taskPrompt, selectedModel, selectedModelData, sessionId, projectId, agents.length, isDeploying]);
+
+  // Poll for agent status updates
+  const pollAgentStatus = useCallback(async (agentId: string) => {
+    const poll = async () => {
+      try {
+        const status = await apiClient.get(`/api/developer-mode/agents/${agentId}/status`);
+        
+        setAgents(prev => prev.map(a => {
+          if (a.id !== agentId) return a;
+          
+          const newThoughts = [...a.thoughts];
+          if (status.currentAction && status.currentAction !== a.currentAction) {
+            newThoughts.push({
+              timestamp: Date.now(),
+              type: 'action',
+              content: status.currentAction
+            });
+          }
+          if (status.thinking) {
+            newThoughts.push({
+              timestamp: Date.now(),
+              type: 'thinking',
+              content: status.thinking
+            });
+          }
+          
+          return {
+            ...a,
+            status: status.status || a.status,
+            progress: status.progress || a.progress,
+            thoughts: newThoughts,
+            currentAction: status.currentAction,
+            summary: status.summary,
+            diffs: status.diffs,
+            branchName: status.branchName,
+            endTime: status.status === 'complete' ? new Date() : undefined,
+          };
+        }));
+        
+        // Continue polling if not complete
+        const agent = agents.find(a => a.id === agentId);
+        if (agent && !['complete', 'error'].includes(agent.status)) {
+          setTimeout(poll, 2000);
+        }
+      } catch (error) {
+        console.error('Poll failed:', error);
+      }
+    };
+    
+    poll();
+  }, [agents]);
+
+  // Create GitHub PR
+  const createPR = useCallback(async (agent: Agent) => {
+    if (!agent.branchName) return;
+    
+    try {
+      const response = await apiClient.post('/api/developer-mode/agents/create-pr', {
+        agentId: agent.id,
+        branchName: agent.branchName,
+        title: `[Agent ${agent.name}] ${agent.task.slice(0, 50)}...`,
+        body: agent.summary || 'Automated changes by KripTik AI Agent',
+      });
+      
+      setAgents(prev => prev.map(a => 
+        a.id === agent.id ? { ...a, prUrl: response.prUrl } : a
+      ));
+      
+      if (response.prUrl) {
+        window.open(response.prUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('PR creation failed:', error);
+    }
+  }, []);
 
   const getStatusConfig = (status: Agent['status']) => {
     const configs = {
-      thinking: { color: '#F5A86C', label: 'THINKING', glow: true },
-      building: { color: '#4ADE80', label: 'BUILDING', glow: true },
-      verifying: { color: '#60A5FA', label: 'VERIFYING', glow: true },
-      complete: { color: '#22C55E', label: 'COMPLETE', glow: false },
-      error: { color: '#EF4444', label: 'ERROR', glow: false },
-      idle: { color: '#6B7280', label: 'IDLE', glow: false },
+      thinking: { label: 'THINKING', glow: true },
+      building: { label: 'BUILDING', glow: true },
+      verifying: { label: 'VERIFYING', glow: true },
+      complete: { label: 'COMPLETE', glow: false },
+      error: { label: 'ERROR', glow: false },
+      idle: { label: 'IDLE', glow: false },
     };
     return configs[status] || configs.idle;
   };
 
   return (
-    <div 
-      ref={containerRef}
-      className="acc"
-      onMouseMove={handleMouseMove}
-    >
-      {/* Animated background layers */}
-      <div className="acc__bg">
-        <motion.div 
-          className="acc__bg-gradient"
-          style={{ x: smoothMouseX, y: smoothMouseY }}
-        />
-        <div className="acc__bg-grid" />
-        <div className="acc__bg-noise" />
-        <div className="acc__bg-vignette" />
-      </div>
-
-      {/* Floating particles */}
-      <div className="acc__particles">
-        {[...Array(12)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="acc__particle"
-            animate={{
-              y: [0, -30, 0],
-              x: [0, Math.sin(i) * 10, 0],
-              opacity: [0.2, 0.5, 0.2],
-            }}
-            transition={{
-              duration: 4 + i * 0.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: i * 0.3,
-            }}
-            style={{
-              left: `${10 + (i * 8)}%`,
-              top: `${20 + (i % 4) * 20}%`,
-            }}
-          />
-        ))}
+    <div className="acc-v2">
+      {/* Subtle gradient background without particles */}
+      <div className="acc-v2__bg">
+        <div className="acc-v2__bg-gradient" />
+        <div className="acc-v2__bg-noise" />
       </div>
 
       {/* Content */}
-      <div className="acc__content">
+      <div className="acc-v2__content">
         {/* Header */}
-        <div className="acc__header">
-          <div className="acc__header-main">
-            <div className="acc__logo">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <div className="acc-v2__header">
+          <div className="acc-v2__header-row">
+            <div className="acc-v2__logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" fill="url(#acc-grad)" />
                 <defs>
-                  <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="acc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#F5A86C" />
-                    <stop offset="100%" stopColor="#E88B4D" />
+                    <stop offset="100%" stopColor="#D46A4A" />
                   </linearGradient>
                 </defs>
-                <path d="M14 2L4 8v12l10 6 10-6V8L14 2z" fill="url(#logo-grad)" opacity="0.9"/>
-                <path d="M14 2L4 8l10 6 10-6L14 2z" fill="#FFB87D"/>
-                <circle cx="14" cy="11" r="3" fill="#fff" opacity="0.9"/>
-                <circle cx="9" cy="14" r="2" fill="#fff" opacity="0.5"/>
-                <circle cx="19" cy="14" r="2" fill="#fff" opacity="0.5"/>
               </svg>
-              <motion.div 
-                className="acc__logo-glow"
-                animate={{ opacity: [0.4, 0.7, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
             </div>
-            <div className="acc__title-group">
-              <h1 className="acc__title">Agents Command Center</h1>
-              <p className="acc__subtitle">
-                <span className="acc__stat">{agents.filter(a => a.status !== 'idle').length}</span> active
-                <span className="acc__divider">·</span>
-                <span className="acc__stat">{agents.length}</span>/6 deployed
-              </p>
+            <div className="acc-v2__title-area">
+              <h1 className="acc-v2__title">Agents Command Center</h1>
+              <span className="acc-v2__stats">
+                {agents.filter(a => ['thinking', 'building', 'verifying'].includes(a.status)).length} running · {agents.length}/6 slots
+              </span>
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="acc__tabs">
-            {(['active', 'history', 'config'] as const).map(tab => (
-              <motion.button
+          {/* Liquid Glass Tabs */}
+          <div className="acc-v2__tabs">
+            {(['active', 'history'] as const).map(tab => (
+              <button
                 key={tab}
-                className={`acc__tab ${activeTab === tab ? 'acc__tab--active' : ''}`}
+                className={`acc-v2__tab ${activeTab === tab ? 'acc-v2__tab--active' : ''}`}
                 onClick={() => setActiveTab(tab)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
               >
-                {tab.toUpperCase()}
-                {activeTab === tab && (
-                  <motion.div 
-                    className="acc__tab-indicator"
-                    layoutId="tab-indicator"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </motion.button>
+                <span className="acc-v2__tab-text">{tab.toUpperCase()}</span>
+                {activeTab === tab && <div className="acc-v2__tab-glow" />}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Active Tab */}
-        <AnimatePresence mode="wait">
-          {activeTab === 'active' && (
-            <motion.div
-              key="active"
-              className="acc__body"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Deploy Section */}
-              <div className="acc__deploy">
-                <div className="acc__deploy-header">
-                  <span className="acc__deploy-title">Deploy New Agent</span>
-                  <span className="acc__deploy-slots">{6 - agents.length} slots</span>
-                </div>
+        {/* Body */}
+        <div className="acc-v2__body">
+          <AnimatePresence mode="wait">
+            {activeTab === 'active' && (
+              <motion.div
+                key="active"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="acc-v2__active"
+              >
+                {/* Deploy Section - Liquid Glass */}
+                <div className="acc-v2__deploy-card">
+                  <div className="acc-v2__deploy-header">
+                    <span className="acc-v2__deploy-title">Deploy New Agent</span>
+                    <span className="acc-v2__deploy-slots">{6 - agents.length} slots available</span>
+                  </div>
 
-                {/* Model Grid */}
-                <div className="acc__models">
-                  {AI_MODELS.map((model, i) => (
-                    <motion.button
-                      key={model.id}
-                      className={`acc__model ${selectedModel === model.id ? 'acc__model--selected' : ''}`}
-                      onClick={() => setSelectedModel(model.id)}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      whileHover={{ scale: 1.03, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{ '--model-color': model.color } as React.CSSProperties}
+                  {/* Model Dropdown */}
+                  <div className="acc-v2__model-select" ref={dropdownRef}>
+                    <button 
+                      className="acc-v2__model-trigger"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
-                      <div className="acc__model-icon">
-                        {model.provider === 'anthropic' && (
-                          <img src="https://cdn.simpleicons.org/anthropic/D4A574" alt="" />
+                      <div className="acc-v2__model-selected">
+                        {selectedModelData.icon ? (
+                          <img src={selectedModelData.icon} alt="" className="acc-v2__model-icon" />
+                        ) : (
+                          <div 
+                            className="acc-v2__model-icon-placeholder"
+                            style={{ background: selectedModelData.color }}
+                          >
+                            {selectedModelData.provider === 'kriptik' ? 'K' : 'DS'}
+                          </div>
                         )}
-                        {model.provider === 'openai' && (
-                          <img src="https://cdn.simpleicons.org/openai/00A67E" alt="" />
-                        )}
-                        {model.provider === 'google' && (
-                          <img src="https://cdn.simpleicons.org/google/4285F4" alt="" />
-                        )}
-                        {model.provider === 'kriptik' && (
-                          <span className="acc__model-logo acc__model-logo--k">K</span>
-                        )}
-                        {model.provider === 'deepseek' && (
-                          <span className="acc__model-logo acc__model-logo--ds">DS</span>
-                        )}
+                        <div className="acc-v2__model-info">
+                          <span className="acc-v2__model-name">{selectedModelData.name}</span>
+                          <span className="acc-v2__model-variant">{selectedModelData.variant}</span>
+                        </div>
                       </div>
-                      <div className="acc__model-info">
-                        <span className="acc__model-name">{model.name}</span>
-                        <span className="acc__model-desc">{model.desc}</span>
-                      </div>
-                      <span className={`acc__model-tier acc__model-tier--${model.tier.toLowerCase()}`}>
-                        {model.tier}
-                      </span>
-                      {selectedModel === model.id && (
-                        <motion.div 
-                          className="acc__model-glow"
-                          layoutId="model-glow"
-                          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                        />
-                      )}
-                    </motion.button>
-                  ))}
-                </div>
+                      <svg className={`acc-v2__model-chevron ${isDropdownOpen ? 'open' : ''}`} width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
 
-                {/* Prompt Input */}
-                <div className="acc__prompt">
-                  <textarea
-                    value={taskPrompt}
-                    onChange={(e) => setTaskPrompt(e.target.value)}
-                    placeholder="Describe what you want this agent to build..."
-                    className="acc__prompt-input"
-                    rows={3}
-                    disabled={agents.length >= 6}
-                  />
-                  <div className="acc__prompt-footer">
-                    <kbd className="acc__kbd">⌘</kbd>
-                    <span className="acc__hint">+ Enter to deploy</span>
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div
+                          className="acc-v2__model-dropdown"
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          {AI_MODELS.map((model) => (
+                            <button
+                              key={model.id}
+                              className={`acc-v2__model-option ${selectedModel === model.id ? 'selected' : ''}`}
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                setIsDropdownOpen(false);
+                              }}
+                            >
+                              {model.icon ? (
+                                <img src={model.icon} alt="" className="acc-v2__model-icon" />
+                              ) : (
+                                <div 
+                                  className="acc-v2__model-icon-placeholder"
+                                  style={{ background: model.color }}
+                                >
+                                  {model.provider === 'kriptik' ? 'K' : 'DS'}
+                                </div>
+                              )}
+                              <div className="acc-v2__model-info">
+                                <span className="acc-v2__model-name">{model.name}</span>
+                                <span className="acc-v2__model-desc">{model.desc}</span>
+                              </div>
+                              <span 
+                                className="acc-v2__model-badge"
+                                style={{ background: `${model.color}20`, color: model.color }}
+                              >
+                                {model.variant}
+                              </span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Prompt Input */}
+                  <div className="acc-v2__prompt-container">
+                    <textarea
+                      value={taskPrompt}
+                      onChange={(e) => setTaskPrompt(e.target.value)}
+                      placeholder="Describe what you want this agent to build..."
+                      className="acc-v2__prompt"
+                      rows={3}
+                      disabled={agents.length >= 6}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.metaKey) {
+                          deployAgent();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="acc-v2__deploy-footer">
+                    <div className="acc-v2__deploy-hint">
+                      <kbd>⌘</kbd><span>+ Enter to deploy</span>
+                    </div>
                     <motion.button
-                      className="acc__deploy-btn"
+                      className="acc-v2__deploy-btn"
                       onClick={deployAgent}
                       disabled={!taskPrompt.trim() || isDeploying || agents.length >= 6}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       {isDeploying ? (
-                        <motion.span
-                          className="acc__deploy-spinner"
+                        <motion.div
+                          className="acc-v2__spinner"
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         />
@@ -356,169 +501,240 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                     </motion.button>
                   </div>
                 </div>
-              </div>
 
-              {/* Agent Cards */}
-              <div className="acc__agents">
-                <AnimatePresence mode="popLayout">
-                  {agents.map((agent, i) => {
-                    const status = getStatusConfig(agent.status);
-                    return (
-                      <motion.div
-                        key={agent.id}
-                        className={`acc__agent ${agent.status !== 'idle' ? 'acc__agent--active' : ''}`}
-                        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: -30 }}
-                        transition={{ delay: i * 0.05, type: 'spring', stiffness: 300 }}
-                        layout
-                        style={{ '--agent-color': status.color } as React.CSSProperties}
-                      >
-                        {status.glow && (
-                          <motion.div 
-                            className="acc__agent-glow"
-                            animate={{ opacity: [0.3, 0.6, 0.3] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          />
-                        )}
-                        <div className="acc__agent-header">
-                          <div className="acc__agent-avatar">
-                            <span>{agent.name.replace('Agent-', '')}</span>
-                            {status.glow && <div className="acc__agent-pulse" />}
-                          </div>
-                          <div className="acc__agent-meta">
-                            <span className="acc__agent-name">{agent.name}</span>
-                            <span className="acc__agent-model">
-                              {AI_MODELS.find(m => m.id === agent.model)?.name}
-                            </span>
-                          </div>
-                          <div className="acc__agent-status">
-                            <span className="acc__agent-dot" />
-                            {status.label}
-                          </div>
-                        </div>
+                {/* 3D Agent Tiles */}
+                <div className="acc-v2__agents">
+                  <AnimatePresence>
+                    {agents.map((agent, index) => {
+                      const status = getStatusConfig(agent.status);
+                      const isExpanded = expandedAgentId === agent.id;
+                      const modelData = AI_MODELS.find(m => m.id === agent.model);
+                      
+                      return (
+                        <motion.div
+                          key={agent.id}
+                          className={`acc-v2__tile ${isExpanded ? 'acc-v2__tile--expanded' : ''} acc-v2__tile--${agent.status}`}
+                          initial={{ opacity: 0, scale: 0.8, rotateY: -15, rotateX: 5 }}
+                          animate={{ 
+                            opacity: 1, 
+                            scale: 1, 
+                            rotateY: isExpanded ? 0 : -8,
+                            rotateX: isExpanded ? 0 : 3,
+                          }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ 
+                            type: 'spring', 
+                            stiffness: 300, 
+                            damping: 25,
+                            delay: index * 0.05 
+                          }}
+                          onClick={() => setExpandedAgentId(isExpanded ? null : agent.id)}
+                          style={{ 
+                            '--tile-color': modelData?.color || '#F5A86C',
+                            zIndex: isExpanded ? 100 : agents.length - index,
+                          } as React.CSSProperties}
+                        >
+                          {/* Tile Glow for active states */}
+                          {status.glow && (
+                            <motion.div 
+                              className="acc-v2__tile-glow"
+                              animate={{ opacity: [0.3, 0.6, 0.3] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            />
+                          )}
 
-                        <p className="acc__agent-task">{agent.task}</p>
-
-                        {agent.status !== 'idle' && (
-                          <div className="acc__agent-progress">
-                            <div className="acc__agent-bar">
-                              <motion.div 
-                                className="acc__agent-fill"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${agent.progress}%` }}
-                                transition={{ duration: 0.5 }}
-                              />
+                          {/* Tile Header */}
+                          <div className="acc-v2__tile-header">
+                            <div className="acc-v2__tile-model">
+                              {modelData?.icon ? (
+                                <img src={modelData.icon} alt="" className="acc-v2__tile-model-icon" />
+                              ) : (
+                                <div 
+                                  className="acc-v2__tile-model-placeholder"
+                                  style={{ background: modelData?.color }}
+                                >
+                                  {modelData?.provider === 'kriptik' ? 'K' : 'DS'}
+                                </div>
+                              )}
+                              <span className="acc-v2__tile-model-name">{agent.modelName}</span>
                             </div>
-                            <span className="acc__agent-pct">{agent.progress}%</span>
+                            <div className={`acc-v2__tile-status acc-v2__tile-status--${agent.status}`}>
+                              {status.glow && <span className="acc-v2__tile-status-dot" />}
+                              {status.label}
+                            </div>
                           </div>
-                        )}
 
-                        {agent.thoughts && agent.thoughts.length > 0 && (
-                          <div className="acc__agent-thoughts">
-                            <div className="acc__thoughts-header">AGENT THINKING</div>
-                            {agent.thoughts.slice(-2).map((thought, ti) => (
+                          {/* Task Description */}
+                          <p className="acc-v2__tile-task">{agent.task}</p>
+
+                          {/* Progress Bar */}
+                          {agent.status !== 'idle' && agent.status !== 'complete' && (
+                            <div className="acc-v2__tile-progress">
+                              <div className="acc-v2__tile-progress-bar">
+                                <motion.div 
+                                  className="acc-v2__tile-progress-fill"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${agent.progress}%` }}
+                                />
+                              </div>
+                              <span className="acc-v2__tile-progress-pct">{agent.progress}%</span>
+                            </div>
+                          )}
+
+                          {/* Expanded Content */}
+                          <AnimatePresence>
+                            {isExpanded && (
                               <motion.div
-                                key={ti}
-                                className="acc__thought"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: ti * 0.1 }}
+                                className="acc-v2__tile-expanded"
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
                               >
-                                {thought}
+                                {/* Streaming Thoughts */}
+                                <div className="acc-v2__tile-thoughts">
+                                  <div className="acc-v2__tile-thoughts-header">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
+                                      <path d="M7 4v3l2 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                    </svg>
+                                    AGENT REASONING
+                                  </div>
+                                  <div className="acc-v2__tile-thoughts-list">
+                                    {agent.thoughts.slice(-5).map((thought, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className={`acc-v2__thought acc-v2__thought--${thought.type}`}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                      >
+                                        {thought.content}
+                                      </motion.div>
+                                    ))}
+                                    {agent.status === 'thinking' && (
+                                      <motion.span 
+                                        className="acc-v2__cursor"
+                                        animate={{ opacity: [1, 0, 1] }}
+                                        transition={{ duration: 1, repeat: Infinity }}
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Summary & Actions for completed agents */}
+                                {agent.status === 'complete' && (
+                                  <div className="acc-v2__tile-complete">
+                                    {agent.summary && (
+                                      <div className="acc-v2__tile-summary">
+                                        <div className="acc-v2__tile-summary-header">Summary</div>
+                                        <p>{agent.summary}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {agent.diffs && agent.diffs.length > 0 && (
+                                      <div className="acc-v2__tile-diffs">
+                                        <div className="acc-v2__tile-diffs-header">
+                                          Changes ({agent.diffs.length} files)
+                                        </div>
+                                        {agent.diffs.map((diff, i) => (
+                                          <div key={i} className="acc-v2__tile-diff">
+                                            <span className="acc-v2__tile-diff-file">{diff.file}</span>
+                                            <span className="acc-v2__tile-diff-stats">
+                                              <span className="additions">+{diff.additions}</span>
+                                              <span className="deletions">-{diff.deletions}</span>
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    <div className="acc-v2__tile-actions">
+                                      {agent.prUrl ? (
+                                        <a 
+                                          href={agent.prUrl} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="acc-v2__tile-btn acc-v2__tile-btn--primary"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                            <path d="M6 3H3v10h10v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                            <path d="M7 9L13 3M13 3H9M13 3v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                          View PR
+                                        </a>
+                                      ) : (
+                                        <button 
+                                          className="acc-v2__tile-btn acc-v2__tile-btn--primary"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            createPR(agent);
+                                          }}
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                            <circle cx="5" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                                            <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                                            <circle cx="11" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                                            <path d="M5 6v4M7 12h2c1 0 2-1 2-2V8" stroke="currentColor" strokeWidth="1.5"/>
+                                          </svg>
+                                          Create PR
+                                        </button>
+                                      )}
+                                      <button 
+                                        className="acc-v2__tile-btn"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        Review Changes
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </motion.div>
-                            ))}
-                            {agent.status === 'thinking' && (
-                              <motion.span 
-                                className="acc__cursor"
-                                animate={{ opacity: [1, 0, 1] }}
-                                transition={{ duration: 1, repeat: Infinity }}
-                              />
                             )}
-                          </div>
-                        )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
 
-                        {agent.status === 'complete' && (
-                          <div className="acc__agent-actions">
-                            <button className="acc__action acc__action--primary">Review</button>
-                            <button className="acc__action">Create PR</button>
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* Empty slots */}
-                  {Array.from({ length: Math.max(0, 6 - agents.length) }).map((_, i) => (
-                    <motion.div
-                      key={`empty-${i}`}
-                      className="acc__agent acc__agent--empty"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: (agents.length + i) * 0.05 }}
-                    >
-                      <div className="acc__empty">
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                          <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.3"/>
-                          <path d="M16 10v12M10 16h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+                  {/* Empty slots indicator */}
+                  {agents.length === 0 && (
+                    <div className="acc-v2__empty">
+                      <div className="acc-v2__empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                          <rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.3"/>
+                          <path d="M24 18v12M18 24h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
                         </svg>
-                        <span>Empty Slot</span>
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'history' && (
-            <motion.div
-              key="history"
-              className="acc__body acc__history"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <div className="acc__history-empty">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
-                  <path d="M24 12v12l8 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
-                </svg>
-                <span>No agent history yet</span>
-                <p>Deploy your first agent to see history</p>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'config' && (
-            <motion.div
-              key="config"
-              className="acc__body acc__config"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <div className="acc__config-section">
-                <h3>Agent Defaults</h3>
-                <div className="acc__config-row">
-                  <label>Default Model</label>
-                  <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-                    {AI_MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
+                      <span>No agents deployed</span>
+                      <p>Deploy your first agent to start building</p>
+                    </div>
+                  )}
                 </div>
-                <div className="acc__config-row">
-                  <label>Thinking Budget</label>
-                  <select>
-                    <option>Low (Fast)</option>
-                    <option>Medium</option>
-                    <option>High (Thorough)</option>
-                    <option>Maximum</option>
-                  </select>
+              </motion.div>
+            )}
+
+            {activeTab === 'history' && (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="acc-v2__history"
+              >
+                <div className="acc-v2__history-empty">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
+                    <path d="M24 14v10l6 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+                  </svg>
+                  <span>No agent history yet</span>
+                  <p>Completed agent runs will appear here</p>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
