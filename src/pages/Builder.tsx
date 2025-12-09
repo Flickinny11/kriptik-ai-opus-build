@@ -59,7 +59,7 @@ import { GhostModePanel } from '../components/builder/GhostModePanel';
 import { SoftInterruptInput } from '../components/builder/SoftInterruptInput';
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
-import { GlassToolbar3D } from '../components/developer-bar';
+import { DeveloperBar } from '../components/developer-bar';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -522,7 +522,7 @@ export default function Builder() {
                 {/* ============================================================ */}
                 {/* DEVELOPER BAR - 3D Glass Command Center (Spline-inspired) */}
                 {/* ============================================================ */}
-                <GlassToolbar3D
+                <DeveloperBar
                     activeFeatures={[
                         ...activeDevBarFeatures,
                         ...(showGhostMode ? ['ghost-mode'] : []),
