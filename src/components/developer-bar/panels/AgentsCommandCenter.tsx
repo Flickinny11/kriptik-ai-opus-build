@@ -1,6 +1,6 @@
 /**
  * Agents Command Center - Premium 3D AI Agent Control
- * 
+ *
  * Features:
  * - Real OpenRouter models with high/low/thinking variations
  * - 3D skewed agent tiles with matte slate texture
@@ -18,36 +18,36 @@ import './AgentsCommandCenter.css';
 // Real OpenRouter Models with variations
 const AI_MODELS = [
   // Anthropic Claude
-  { 
-    id: 'anthropic/claude-opus-4.5', 
-    name: 'Claude Opus 4.5', 
+  {
+    id: 'anthropic/claude-opus-4.5',
+    name: 'Claude Opus 4.5',
     variant: 'Maximum',
     provider: 'anthropic',
     color: '#D4A574',
     desc: 'Highest reasoning capability',
     icon: 'https://cdn.simpleicons.org/anthropic/D4A574'
   },
-  { 
-    id: 'anthropic/claude-sonnet-4.5', 
-    name: 'Claude Sonnet 4.5', 
+  {
+    id: 'anthropic/claude-sonnet-4.5',
+    name: 'Claude Sonnet 4.5',
     variant: 'Balanced',
     provider: 'anthropic',
     color: '#F5A86C',
     desc: 'Best balance of speed & quality',
     icon: 'https://cdn.simpleicons.org/anthropic/F5A86C'
   },
-  { 
-    id: 'anthropic/claude-sonnet-4', 
-    name: 'Claude Sonnet 4', 
+  {
+    id: 'anthropic/claude-sonnet-4',
+    name: 'Claude Sonnet 4',
     variant: 'Fast',
     provider: 'anthropic',
     color: '#E8845B',
     desc: 'Quick responses, good quality',
     icon: 'https://cdn.simpleicons.org/anthropic/E8845B'
   },
-  { 
-    id: 'anthropic/claude-3.5-haiku', 
-    name: 'Claude Haiku 3.5', 
+  {
+    id: 'anthropic/claude-3.5-haiku',
+    name: 'Claude Haiku 3.5',
     variant: 'Speed',
     provider: 'anthropic',
     color: '#CC7A50',
@@ -55,27 +55,27 @@ const AI_MODELS = [
     icon: 'https://cdn.simpleicons.org/anthropic/CC7A50'
   },
   // OpenAI
-  { 
-    id: 'openai/gpt-4o', 
-    name: 'GPT-4o', 
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
     variant: 'Multimodal',
     provider: 'openai',
     color: '#00A67E',
     desc: 'Vision + code specialist',
     icon: 'https://cdn.simpleicons.org/openai/00A67E'
   },
-  { 
-    id: 'openai/o1-preview', 
-    name: 'o1 Preview', 
+  {
+    id: 'openai/o1-preview',
+    name: 'o1 Preview',
     variant: 'Reasoning',
     provider: 'openai',
     color: '#10A37F',
     desc: 'Chain-of-thought reasoning',
     icon: 'https://cdn.simpleicons.org/openai/10A37F'
   },
-  { 
-    id: 'openai/o1-mini', 
-    name: 'o1 Mini', 
+  {
+    id: 'openai/o1-mini',
+    name: 'o1 Mini',
     variant: 'Fast Reasoning',
     provider: 'openai',
     color: '#0D8C6D',
@@ -83,18 +83,18 @@ const AI_MODELS = [
     icon: 'https://cdn.simpleicons.org/openai/0D8C6D'
   },
   // DeepSeek
-  { 
-    id: 'deepseek/deepseek-chat-v3-0324', 
-    name: 'DeepSeek V3', 
+  {
+    id: 'deepseek/deepseek-chat-v3-0324',
+    name: 'DeepSeek V3',
     variant: 'Performance',
     provider: 'deepseek',
     color: '#06B6D4',
     desc: 'Speed optimized, cost-effective',
     icon: null
   },
-  { 
-    id: 'deepseek/deepseek-r1', 
-    name: 'DeepSeek R1', 
+  {
+    id: 'deepseek/deepseek-r1',
+    name: 'DeepSeek R1',
     variant: 'Reasoning',
     provider: 'deepseek',
     color: '#0891B2',
@@ -102,9 +102,9 @@ const AI_MODELS = [
     icon: null
   },
   // Krip-Toe-Nite (Custom)
-  { 
-    id: 'krip-toe-nite', 
-    name: 'Krip-Toe-Nite', 
+  {
+    id: 'krip-toe-nite',
+    name: 'Krip-Toe-Nite',
     variant: 'Auto-Select',
     provider: 'kriptik',
     color: '#C8FF64',
@@ -166,10 +166,10 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
   const deployAgent = useCallback(async () => {
     if (!taskPrompt.trim() || isDeploying || agents.length >= 6) return;
     setIsDeploying(true);
-    
+
     const agentId = `agent-${Date.now()}`;
     const agentName = `Agent ${agents.length + 1}`;
-    
+
     // Create optimistic agent
     const newAgent: Agent = {
       id: agentId,
@@ -179,17 +179,17 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
       status: 'thinking',
       task: taskPrompt.trim(),
       progress: 0,
-      thoughts: [{ 
-        timestamp: Date.now(), 
-        type: 'thinking', 
-        content: 'Initializing agent and analyzing task requirements...' 
+      thoughts: [{
+        timestamp: Date.now(),
+        type: 'thinking',
+        content: 'Initializing agent and analyzing task requirements...'
       }],
       startTime: new Date(),
     };
-    
+
     setAgents(prev => [...prev, newAgent]);
     setTaskPrompt('');
-    
+
     try {
       // Call the actual backend orchestration system
       const response = await apiClient.post('/api/developer-mode/agents/deploy', {
@@ -202,10 +202,10 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
       });
 
       // Update agent with response
-      setAgents(prev => prev.map(a => 
-        a.id === agentId 
-          ? { 
-              ...a, 
+      setAgents(prev => prev.map(a =>
+        a.id === agentId
+          ? {
+              ...a,
               id: response.agentId || agentId,
               status: 'building' as const,
               progress: 10,
@@ -222,8 +222,8 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
 
     } catch (error) {
       console.error('Deploy failed:', error);
-      setAgents(prev => prev.map(a => 
-        a.id === agentId 
+      setAgents(prev => prev.map(a =>
+        a.id === agentId
           ? { ...a, status: 'error' as const, thoughts: [...a.thoughts, { timestamp: Date.now(), type: 'result' as const, content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` }] }
           : a
       ));
@@ -237,10 +237,10 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
     const poll = async () => {
       try {
         const status = await apiClient.get(`/api/developer-mode/agents/${agentId}/status`);
-        
+
         setAgents(prev => prev.map(a => {
           if (a.id !== agentId) return a;
-          
+
           const newThoughts = [...a.thoughts];
           if (status.currentAction && status.currentAction !== a.currentAction) {
             newThoughts.push({
@@ -256,7 +256,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
               content: status.thinking
             });
           }
-          
+
           return {
             ...a,
             status: status.status || a.status,
@@ -269,7 +269,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
             endTime: status.status === 'complete' ? new Date() : undefined,
           };
         }));
-        
+
         // Continue polling if not complete
         const agent = agents.find(a => a.id === agentId);
         if (agent && !['complete', 'error'].includes(agent.status)) {
@@ -279,14 +279,14 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
         console.error('Poll failed:', error);
       }
     };
-    
+
     poll();
   }, [agents]);
 
   // Create GitHub PR
   const createPR = useCallback(async (agent: Agent) => {
     if (!agent.branchName) return;
-    
+
     try {
       const response = await apiClient.post('/api/developer-mode/agents/create-pr', {
         agentId: agent.id,
@@ -294,11 +294,11 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
         title: `[Agent ${agent.name}] ${agent.task.slice(0, 50)}...`,
         body: agent.summary || 'Automated changes by KripTik AI Agent',
       });
-      
-      setAgents(prev => prev.map(a => 
+
+      setAgents(prev => prev.map(a =>
         a.id === agent.id ? { ...a, prUrl: response.prUrl } : a
       ));
-      
+
       if (response.prUrl) {
         window.open(response.prUrl, '_blank');
       }
@@ -386,7 +386,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
 
                   {/* Model Dropdown */}
                   <div className="acc-v2__model-select" ref={dropdownRef}>
-                    <button 
+                    <button
                       className="acc-v2__model-trigger"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
@@ -394,7 +394,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                         {selectedModelData.icon ? (
                           <img src={selectedModelData.icon} alt="" className="acc-v2__model-icon" />
                         ) : (
-                          <div 
+                          <div
                             className="acc-v2__model-icon-placeholder"
                             style={{ background: selectedModelData.color }}
                           >
@@ -432,7 +432,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                               {model.icon ? (
                                 <img src={model.icon} alt="" className="acc-v2__model-icon" />
                               ) : (
-                                <div 
+                                <div
                                   className="acc-v2__model-icon-placeholder"
                                   style={{ background: model.color }}
                                 >
@@ -443,7 +443,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                                 <span className="acc-v2__model-name">{model.name}</span>
                                 <span className="acc-v2__model-desc">{model.desc}</span>
                               </div>
-                              <span 
+                              <span
                                 className="acc-v2__model-badge"
                                 style={{ background: `${model.color}20`, color: model.color }}
                               >
@@ -509,34 +509,34 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                       const status = getStatusConfig(agent.status);
                       const isExpanded = expandedAgentId === agent.id;
                       const modelData = AI_MODELS.find(m => m.id === agent.model);
-                      
+
                       return (
                         <motion.div
                           key={agent.id}
                           className={`acc-v2__tile ${isExpanded ? 'acc-v2__tile--expanded' : ''} acc-v2__tile--${agent.status}`}
                           initial={{ opacity: 0, scale: 0.8, rotateY: -15, rotateX: 5 }}
-                          animate={{ 
-                            opacity: 1, 
-                            scale: 1, 
+                          animate={{
+                            opacity: 1,
+                            scale: 1,
                             rotateY: isExpanded ? 0 : -8,
                             rotateX: isExpanded ? 0 : 3,
                           }}
                           exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 300, 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 300,
                             damping: 25,
-                            delay: index * 0.05 
+                            delay: index * 0.05
                           }}
                           onClick={() => setExpandedAgentId(isExpanded ? null : agent.id)}
-                          style={{ 
+                          style={{
                             '--tile-color': modelData?.color || '#F5A86C',
                             zIndex: isExpanded ? 100 : agents.length - index,
                           } as React.CSSProperties}
                         >
                           {/* Tile Glow for active states */}
                           {status.glow && (
-                            <motion.div 
+                            <motion.div
                               className="acc-v2__tile-glow"
                               animate={{ opacity: [0.3, 0.6, 0.3] }}
                               transition={{ duration: 2, repeat: Infinity }}
@@ -549,7 +549,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                               {modelData?.icon ? (
                                 <img src={modelData.icon} alt="" className="acc-v2__tile-model-icon" />
                               ) : (
-                                <div 
+                                <div
                                   className="acc-v2__tile-model-placeholder"
                                   style={{ background: modelData?.color }}
                                 >
@@ -571,7 +571,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                           {agent.status !== 'idle' && agent.status !== 'complete' && (
                             <div className="acc-v2__tile-progress">
                               <div className="acc-v2__tile-progress-bar">
-                                <motion.div 
+                                <motion.div
                                   className="acc-v2__tile-progress-fill"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${agent.progress}%` }}
@@ -613,7 +613,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                                       </motion.div>
                                     ))}
                                     {agent.status === 'thinking' && (
-                                      <motion.span 
+                                      <motion.span
                                         className="acc-v2__cursor"
                                         animate={{ opacity: [1, 0, 1] }}
                                         transition={{ duration: 1, repeat: Infinity }}
@@ -631,7 +631,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                                         <p>{agent.summary}</p>
                                       </div>
                                     )}
-                                    
+
                                     {agent.diffs && agent.diffs.length > 0 && (
                                       <div className="acc-v2__tile-diffs">
                                         <div className="acc-v2__tile-diffs-header">
@@ -651,9 +651,9 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
 
                                     <div className="acc-v2__tile-actions">
                                       {agent.prUrl ? (
-                                        <a 
-                                          href={agent.prUrl} 
-                                          target="_blank" 
+                                        <a
+                                          href={agent.prUrl}
+                                          target="_blank"
                                           rel="noopener noreferrer"
                                           className="acc-v2__tile-btn acc-v2__tile-btn--primary"
                                           onClick={(e) => e.stopPropagation()}
@@ -665,7 +665,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                                           View PR
                                         </a>
                                       ) : (
-                                        <button 
+                                        <button
                                           className="acc-v2__tile-btn acc-v2__tile-btn--primary"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -681,7 +681,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                                           Create PR
                                         </button>
                                       )}
-                                      <button 
+                                      <button
                                         className="acc-v2__tile-btn"
                                         onClick={(e) => e.stopPropagation()}
                                       >

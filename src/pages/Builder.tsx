@@ -1366,8 +1366,8 @@ function DatabasePanel() {
 
             <div className="flex gap-2">
                 <GlassButton icon={Layers} onClick={() => setShowSchemaModal(true)}>
-                    Generate Schema
-                </GlassButton>
+                Generate Schema
+            </GlassButton>
                 <GlassButton icon={Database} onClick={handleInitDatabase}>
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Init DB'}
                 </GlassButton>

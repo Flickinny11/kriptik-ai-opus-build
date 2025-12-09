@@ -158,7 +158,7 @@ export function DeveloperBarPanel({
       }}
     >
       {/* 3D Frosted glass base */}
-      <div className="glass-panel__base">
+      <div className={`glass-panel__base ${fullWidth ? 'glass-panel__base--fullwidth' : ''}`}>
         {/* Multi-layer shadow for floating effect */}
         <div className="glass-panel__shadow" />
         
@@ -174,29 +174,40 @@ export function DeveloperBarPanel({
         {/* Top edge highlight */}
         <div className="glass-panel__highlight" />
 
-        {/* Header */}
-        <div className="glass-panel__header">
-          <div className="glass-panel__header-left">
-            <div className={`glass-panel__icon ${isActive ? 'glass-panel__icon--active' : ''}`}>
-              <DeveloperBarIcon name={icon} size={18} isActive={isActive} />
+        {/* Header - only show for non-fullWidth panels (fullWidth panels have their own header) */}
+        {!fullWidth && (
+          <div className="glass-panel__header">
+            <div className="glass-panel__header-left">
+              <div className={`glass-panel__icon ${isActive ? 'glass-panel__icon--active' : ''}`}>
+                <DeveloperBarIcon name={icon} size={18} isActive={isActive} />
+              </div>
+              <span className="glass-panel__title">{title}</span>
             </div>
-            <span className="glass-panel__title">{title}</span>
-          </div>
-          <div className="glass-panel__header-right">
-            <div className={`glass-panel__status ${isActive ? 'glass-panel__status--active' : ''}`}>
-              <span className="glass-panel__status-dot" />
-              <span>{isActive ? 'Active' : 'Idle'}</span>
+            <div className="glass-panel__header-right">
+              <div className={`glass-panel__status ${isActive ? 'glass-panel__status--active' : ''}`}>
+                <span className="glass-panel__status-dot" />
+                <span>{isActive ? 'Active' : 'Idle'}</span>
+              </div>
+              <button className="glass-panel__close" onClick={onClose}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
             </div>
-            <button className="glass-panel__close" onClick={onClose}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
           </div>
-        </div>
+        )}
+
+        {/* Close button for fullWidth panels (positioned absolutely) */}
+        {fullWidth && (
+          <button className="glass-panel__close glass-panel__close--floating" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
 
         {/* Content - projected onto glass */}
-        <div className="glass-panel__content">
+        <div className={`glass-panel__content ${fullWidth ? 'glass-panel__content--fullwidth' : ''}`}>
           <PanelContent isActive={isActive} onClose={onClose} />
         </div>
 

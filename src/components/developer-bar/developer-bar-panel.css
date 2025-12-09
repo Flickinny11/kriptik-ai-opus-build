@@ -372,6 +372,45 @@
   z-index: 1;
 }
 
+/* Fullwidth content - no padding, fills entire panel */
+.glass-panel__content--fullwidth {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fullwidth panels fill the entire base */
+.glass-panel__base--fullwidth {
+  display: flex;
+  flex-direction: column;
+}
+
+.glass-panel__base--fullwidth .glass-panel__content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Floating close button for fullwidth panels */
+.glass-panel__close--floating {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.glass-panel__close--floating:hover {
+  background: rgba(255, 59, 48, 0.8);
+  border-color: rgba(255, 59, 48, 0.5);
+  color: #fff;
+}
+
 /* Custom scrollbar */
 .glass-panel__content::-webkit-scrollbar {
   width: 6px;

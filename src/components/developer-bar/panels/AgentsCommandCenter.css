@@ -1,6 +1,6 @@
 /**
  * AGENTS COMMAND CENTER V2 - Premium 3D Design
- * 
+ *
  * Features:
  * - Matte slate 3D tiles with photorealistic texture
  * - Liquid glass UI elements
@@ -35,36 +35,43 @@
   --glass-shine: rgba(255, 255, 255, 0.03);
   
   position: relative;
+  width: 100%;
   height: 100%;
+  min-height: 0;
   font-family: var(--font-sans);
   color: #fff;
   overflow: hidden;
-  background: var(--slate-900);
+  background: transparent; /* Let parent glass show through */
+  border-radius: 24px;
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ============================================================================
-   BACKGROUND - Subtle gradient, no particles
+   BACKGROUND - Subtle gradient overlay
    ============================================================================ */
 .acc-v2__bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .acc-v2__bg-gradient {
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse 60% 40% at 30% 20%, rgba(245, 168, 108, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 30% at 70% 70%, rgba(96, 165, 250, 0.04) 0%, transparent 50%);
+    linear-gradient(180deg, rgba(12, 15, 20, 0.95) 0%, rgba(18, 22, 28, 0.98) 100%),
+    radial-gradient(ellipse 60% 40% at 30% 20%, rgba(245, 168, 108, 0.08) 0%, transparent 50%);
 }
 
 .acc-v2__bg-noise {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.2;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
 /* ============================================================================
@@ -73,9 +80,11 @@
 .acc-v2__content {
   position: relative;
   z-index: 10;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 16px;
 }
 
 /* ============================================================================
@@ -83,27 +92,25 @@
    ============================================================================ */
 .acc-v2__header {
   flex-shrink: 0;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--glass-border);
-  background: linear-gradient(180deg, rgba(20, 24, 33, 0.95) 0%, rgba(20, 24, 33, 0.85) 100%);
+  margin-bottom: 16px;
 }
 
 .acc-v2__header-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .acc-v2__logo {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(245, 168, 108, 0.15) 0%, rgba(245, 168, 108, 0.05) 100%);
-  border-radius: 10px;
-  border: 1px solid rgba(245, 168, 108, 0.2);
+  background: linear-gradient(135deg, rgba(245, 168, 108, 0.2) 0%, rgba(245, 168, 108, 0.08) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(245, 168, 108, 0.25);
 }
 
 .acc-v2__title-area {
@@ -112,17 +119,18 @@
 
 .acc-v2__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #fff;
 }
 
 .acc-v2__stats {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.4);
   font-family: var(--font-mono);
+  margin-top: 2px;
 }
 
 /* ============================================================================
@@ -154,9 +162,9 @@
   transition: all 0.2s ease;
   transform-style: preserve-3d;
   transform: perspective(800px) rotateX(2deg);
-  
+
   /* Visible 3D edges */
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     inset 0 -1px 0 rgba(0, 0, 0, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.2);
@@ -197,6 +205,7 @@
    ============================================================================ */
 .acc-v2__body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -204,19 +213,18 @@
 }
 
 .acc-v2__body::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
 
 .acc-v2__body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
 }
 
 .acc-v2__active {
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* ============================================================================
@@ -234,9 +242,9 @@
   padding: 16px;
   position: relative;
   overflow: hidden;
-  
+
   /* 3D depth */
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 var(--glass-shine),
     inset 0 -1px 0 rgba(0, 0, 0, 0.1),
     0 4px 16px rgba(0, 0, 0, 0.3),
@@ -375,7 +383,7 @@
   padding: 6px;
   max-height: 280px;
   overflow-y: auto;
-  box-shadow: 
+  box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.4),
     0 4px 16px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 var(--glass-shine);
@@ -437,9 +445,9 @@
   line-height: 1.5;
   resize: none;
   transition: all 0.25s;
-  
+
   /* Liquid glass inner shadow */
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
     inset 0 -1px 0 rgba(255, 255, 255, 0.02);
 }
@@ -447,7 +455,7 @@
 .acc-v2__prompt:focus {
   outline: none;
   border-color: rgba(245, 168, 108, 0.4);
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
     0 0 0 3px rgba(245, 168, 108, 0.1),
     0 0 20px rgba(245, 168, 108, 0.1);
@@ -504,13 +512,13 @@
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  
+
   /* 3D button effect */
-  box-shadow: 
+  box-shadow:
     0 2px 0 rgba(0, 0, 0, 0.2),
     0 4px 12px rgba(245, 168, 108, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  
+
   transition: all 0.2s;
 }
 
@@ -526,7 +534,7 @@
 
 .acc-v2__deploy-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 
+  box-shadow:
     0 4px 0 rgba(0, 0, 0, 0.2),
     0 8px 20px rgba(245, 168, 108, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -534,7 +542,7 @@
 
 .acc-v2__deploy-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 
+  box-shadow:
     0 1px 0 rgba(0, 0, 0, 0.2),
     0 2px 8px rgba(245, 168, 108, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -571,7 +579,7 @@
   cursor: pointer;
   transform-style: preserve-3d;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   /* Matte slate texture */
   background: linear-gradient(
     165deg,
@@ -579,17 +587,17 @@
     #1c222d 40%,
     #181e28 100%
   );
-  
+
   /* Subtle noise texture overlay */
-  background-image: 
+  background-image:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"),
     linear-gradient(165deg, #252d3a 0%, #1c222d 40%, #181e28 100%);
-  
+
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  
+
   /* Realistic layered shadow */
-  box-shadow: 
+  box-shadow:
     /* Top edge highlight */
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     /* Bottom edge shadow */
@@ -608,7 +616,7 @@
 
 .acc-v2__tile:hover {
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2),
     inset 1px 0 0 rgba(255, 255, 255, 0.03),
@@ -631,16 +639,16 @@
 }
 
 @keyframes tilePulse {
-  0%, 100% { 
-    box-shadow: 
+  0%, 100% {
+    box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
       inset 0 -1px 0 rgba(0, 0, 0, 0.2),
       0 4px 8px rgba(0, 0, 0, 0.15),
       0 8px 24px rgba(0, 0, 0, 0.25),
       0 0 30px rgba(var(--tile-color-rgb, 245, 168, 108), 0.1);
   }
-  50% { 
-    box-shadow: 
+  50% {
+    box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
       inset 0 -1px 0 rgba(0, 0, 0, 0.2),
       0 4px 8px rgba(0, 0, 0, 0.15),
