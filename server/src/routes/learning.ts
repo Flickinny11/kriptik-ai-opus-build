@@ -733,5 +733,275 @@ router.post('/training/trigger', async (req, res) => {
     }
 });
 
+// =============================================================================
+// REAL-TIME DASHBOARD (Comprehensive "Wow" Endpoint)
+// =============================================================================
+
+/**
+ * GET /api/learning/dashboard
+ * Get comprehensive learning dashboard data in one call
+ *
+ * Returns everything needed for a real-time learning dashboard:
+ * - System health
+ * - Improvement metrics
+ * - Training status
+ * - Pattern/strategy counts
+ * - Active learning signals
+ */
+router.get('/dashboard', async (req, res) => {
+    try {
+        const flywheel = getEvolutionFlywheel();
+        const patternLibrary = getPatternLibrary();
+        const strategyEvolution = getStrategyEvolution();
+        const pipeline = getTrainingPipelineService();
+        const registry = getShadowModelRegistry();
+        const judgment = getAIJudgmentService();
+
+        // Gather all metrics in parallel for speed
+        const [
+            systemStatus,
+            improvementTrend,
+            patternStats,
+            strategyStats,
+            trainingStats,
+            modelStats,
+            recentInsights,
+        ] = await Promise.all([
+            flywheel.getSystemStatus(),
+            flywheel.getImprovementTrend(10),
+            patternLibrary.getPatternStats(),
+            strategyEvolution.getStrategyStats(),
+            pipeline.getStats(),
+            registry.getRegistryStats(),
+            strategyEvolution.getRecentInsights(5),
+        ]);
+
+        // Calculate overall system health score (0-100)
+        const healthFactors = [
+            systemStatus.pairStats.total > 0 ? Math.min(systemStatus.pairStats.total / 100, 1) * 25 : 0,
+            patternStats.total > 0 ? Math.min(patternStats.total / 50, 1) * 25 : 0,
+            systemStatus.overallImprovement > 0 ? Math.min(systemStatus.overallImprovement / 0.5, 1) * 25 : 0,
+            modelStats.totalModels > 0 ? 25 : 0,
+        ];
+        const healthScore = Math.round(healthFactors.reduce((a, b) => a + b, 0));
+
+        // Build dashboard response
+        const dashboard = {
+            // System Health
+            health: {
+                score: healthScore,
+                status: healthScore >= 75 ? 'excellent' : healthScore >= 50 ? 'good' : healthScore >= 25 ? 'learning' : 'initializing',
+                lastCycle: systemStatus.lastCycle?.completedAt || null,
+                cycleCount: systemStatus.cycleStats.total,
+            },
+
+            // Learning Progress
+            progress: {
+                overallImprovement: Math.round(systemStatus.overallImprovement * 100) / 100,
+                firstAttemptSuccess: systemStatus.cycleStats.total > 0
+                    ? Math.round((patternStats.avgSuccessRate || 0)) + '%'
+                    : 'N/A',
+                trend: improvementTrend.map(t => ({
+                    cycle: t.cycleNumber,
+                    improvement: Math.round(t.improvement * 100) / 100,
+                    date: t.date,
+                })),
+            },
+
+            // Pattern Library
+            patterns: {
+                total: patternStats.total,
+                byCategory: patternStats.byCategory,
+                avgSuccessRate: Math.round(patternStats.avgSuccessRate),
+                topPatterns: patternStats.mostUsed.slice(0, 3).map(p => p.name),
+            },
+
+            // Strategies
+            strategies: {
+                total: strategyStats.total,
+                byDomain: strategyStats.byDomain,
+                experimental: strategyStats.experimental,
+            },
+
+            // Training Status
+            training: {
+                activeJobs: trainingStats.activeJobs,
+                queuedJobs: trainingStats.queuedJobs,
+                completedJobs: trainingStats.completedJobs,
+                totalCost: Math.round(trainingStats.totalCost * 100) / 100,
+                avgTrainingTime: Math.round(trainingStats.avgTrainingTime / 60) + 'm',
+            },
+
+            // Shadow Models
+            models: {
+                total: modelStats.totalModels,
+                ready: modelStats.readyModels || 0,
+                promoted: modelStats.promotedModels || 0,
+                training: modelStats.trainingModels || 0,
+            },
+
+            // Data Pipeline
+            data: {
+                preferencePairs: {
+                    total: systemStatus.pairStats.total,
+                    unused: systemStatus.pairStats.unused,
+                    usedInTraining: systemStatus.pairStats.used,
+                },
+                readyForTraining: systemStatus.pairStats.unused >= 100,
+            },
+
+            // Recent Activity
+            activity: {
+                insights: recentInsights.slice(0, 5).map(i => ({
+                    category: i.category,
+                    title: i.title,
+                    impact: i.impact,
+                    implemented: i.implemented,
+                })),
+            },
+
+            // Quick Actions
+            actions: {
+                canTrain: systemStatus.pairStats.unused >= 100,
+                canRunCycle: !systemStatus.isRunning,
+                recommendedAction: systemStatus.pairStats.unused >= 100
+                    ? 'Train shadow models with accumulated data'
+                    : systemStatus.pairStats.total < 50
+                    ? 'Run more builds to collect learning data'
+                    : 'System is learning normally',
+            },
+        };
+
+        res.json({ success: true, data: dashboard });
+    } catch (error) {
+        console.error('[Learning API] Failed to get dashboard:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get learning dashboard'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/command
+ * CLI-style command endpoint for advanced operations
+ *
+ * Commands:
+ * - train:code - Train code specialist model
+ * - train:design - Train design specialist model
+ * - cycle:run - Run evolution cycle
+ * - patterns:export - Export pattern library
+ * - status - Get full status
+ */
+router.post('/command', async (req, res) => {
+    try {
+        const { command, args = {} } = req.body;
+        const userId = args.userId || 'system';
+
+        if (!command) {
+            return res.status(400).json({
+                success: false,
+                error: 'command is required'
+            });
+        }
+
+        const [action, target] = command.split(':');
+        let result: any = {};
+
+        switch (action) {
+            case 'train': {
+                const modelTypeMap: Record<string, any> = {
+                    code: 'code_specialist',
+                    design: 'design_specialist',
+                    arch: 'architecture_specialist',
+                    reasoning: 'reasoning_specialist',
+                };
+                const modelType = modelTypeMap[target];
+                if (!modelType) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Unknown model type: ${target}. Use: code, design, arch, reasoning`
+                    });
+                }
+
+                const pipeline = getTrainingPipelineService();
+                const judgment = getAIJudgmentService();
+
+                // Get preference pairs
+                const pairs = await judgment.getUnusedPreferencePairs('code', 500);
+                if (pairs.length < 50) {
+                    return res.json({
+                        success: false,
+                        message: `Not enough training data: ${pairs.length} pairs (need 50+)`
+                    });
+                }
+
+                const jobId = await pipeline.submitTrainingJob({
+                    modelType,
+                    preferencePairs: pairs as any,
+                    priority: args.priority || 'normal',
+                });
+
+                result = {
+                    message: `Training job submitted: ${jobId}`,
+                    jobId,
+                    dataPoints: pairs.length,
+                };
+                break;
+            }
+
+            case 'cycle': {
+                if (target === 'run') {
+                    const flywheel = getEvolutionFlywheel();
+                    const cycle = await flywheel.runCycle(userId);
+                    result = {
+                        message: 'Evolution cycle completed',
+                        cycleId: cycle.cycleId,
+                        improvement: cycle.metrics?.improvement,
+                    };
+                }
+                break;
+            }
+
+            case 'patterns': {
+                if (target === 'export') {
+                    const patternLibrary = getPatternLibrary();
+                    const patterns = await patternLibrary.getTopPatterns(100);
+                    result = {
+                        message: `Exported ${patterns.length} patterns`,
+                        patterns: patterns.map(p => ({
+                            name: p.name,
+                            problem: p.problem,
+                            solution: p.solutionTemplate,
+                            successRate: p.successRate,
+                        })),
+                    };
+                }
+                break;
+            }
+
+            case 'status': {
+                const flywheel = getEvolutionFlywheel();
+                result = await flywheel.getSystemStatus();
+                break;
+            }
+
+            default:
+                return res.status(400).json({
+                    success: false,
+                    error: `Unknown command: ${command}. Available: train:code, train:design, cycle:run, patterns:export, status`
+                });
+        }
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Command failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Command execution failed'
+        });
+    }
+});
+
 export default router;
 

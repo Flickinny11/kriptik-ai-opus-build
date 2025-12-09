@@ -104,6 +104,33 @@ import {
     getWebSocketSyncService,
     type WebSocketSyncService,
 } from '../agents/websocket-sync.js';
+// ============================================================================
+// AUTONOMOUS LEARNING ENGINE INTEGRATION (Component 28)
+// ============================================================================
+import {
+    ExperienceCaptureService,
+    createExperienceCaptureService,
+} from '../learning/experience-capture.js';
+import {
+    AIJudgmentService,
+    getAIJudgmentService,
+} from '../learning/ai-judgment.js';
+import {
+    PatternLibraryService,
+    getPatternLibrary,
+} from '../learning/pattern-library.js';
+import {
+    StrategyEvolutionService,
+    getStrategyEvolution,
+} from '../learning/strategy-evolution.js';
+import {
+    EvolutionFlywheel,
+    getEvolutionFlywheel,
+} from '../learning/evolution-flywheel.js';
+import type {
+    DecisionOutcome,
+    LearnedPattern,
+} from '../learning/types.js';
 
 // =============================================================================
 // TYPES
@@ -250,6 +277,22 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // File contents cache for verification
     private projectFiles: Map<string, string> = new Map();
 
+    // =========================================================================
+    // AUTONOMOUS LEARNING ENGINE (Component 28)
+    // =========================================================================
+    private experienceCapture: ExperienceCaptureService | null = null;
+    private aiJudgment: AIJudgmentService;
+    private patternLibrary: PatternLibraryService;
+    private strategyEvolution: StrategyEvolutionService;
+    private evolutionFlywheel: EvolutionFlywheel;
+    private learningEnabled: boolean = true;
+    private pendingDecisionTraces: Map<string, string> = new Map(); // taskId -> traceId
+
+    // SPEED OPTIMIZATION: Pre-cached patterns and strategies (loaded once at build start)
+    private cachedPatterns: LearnedPattern[] = [];
+    private cachedStrategies: Map<string, string> = new Map(); // domain -> strategyName
+    private learningCacheLoaded: boolean = false;
+
     // Memory Harness - Context Loading & Artifact Updates
     private initializerAgent: InitializerAgent | null = null;
     private projectPath: string;
@@ -326,7 +369,15 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // Initialize WebSocket sync for real-time updates
         this.wsSync = getWebSocketSyncService();
 
-        console.log(`[BuildLoop] Initialized with Memory Harness integration (mode: ${mode}, path: ${this.projectPath})`);
+        // =====================================================================
+        // INITIALIZE AUTONOMOUS LEARNING ENGINE (Component 28)
+        // =====================================================================
+        this.aiJudgment = getAIJudgmentService();
+        this.patternLibrary = getPatternLibrary();
+        this.strategyEvolution = getStrategyEvolution();
+        this.evolutionFlywheel = getEvolutionFlywheel();
+
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine integration (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -341,6 +392,25 @@ export class BuildLoopOrchestrator extends EventEmitter {
         this.state.status = 'running';
 
         try {
+            // =====================================================================
+            // LEARNING ENGINE: Initialize experience capture for this build
+            // SPEED: Pre-cache patterns & strategies in parallel (non-blocking)
+            // =====================================================================
+            if (this.learningEnabled) {
+                this.experienceCapture = this.evolutionFlywheel.initializeForBuild(
+                    this.state.userId,
+                    this.state.id,
+                    this.state.projectId
+                );
+
+                // Pre-load learning cache in background (doesn't block build start)
+                this.preloadLearningCache().catch(err => {
+                    console.warn('[BuildLoop] Learning cache preload failed (non-fatal):', err);
+                });
+
+                console.log(`[BuildLoop] Learning Engine activated for build ${this.state.id}`);
+            }
+
             // Check if we need initialization or can resume
             const hasContext = await hasProjectContext(this.projectPath);
 
@@ -384,6 +454,13 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     nextSteps: ['Review completed application', 'Deploy to production'],
                 });
 
+                // =====================================================================
+                // LEARNING ENGINE: Finalize experience capture and trigger evolution
+                // =====================================================================
+                if (this.learningEnabled) {
+                    await this.finalizeLearningSession(true);
+                }
+
                 this.emitEvent('build_complete', {
                     duration: this.state.completedAt.getTime() - this.state.startedAt.getTime(),
                     stages: stages.length,
@@ -391,6 +468,10 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 });
             }
         } catch (error) {
+            // Finalize learning even on error
+            if (this.learningEnabled) {
+                await this.finalizeLearningSession(false);
+            }
             await this.handleError(error as Error);
         }
     }
@@ -721,6 +802,27 @@ export class BuildLoopOrchestrator extends EventEmitter {
             while (task && !this.aborted) {
                 console.log(`[BuildLoop] Building task: ${task.id} - ${task.description}`);
 
+                // =====================================================================
+                // LEARNING ENGINE: Get relevant patterns before building
+                // SPEED: Instant in-memory lookup from pre-cached data
+                // =====================================================================
+                let patternContext = '';
+                if (this.learningEnabled && this.learningCacheLoaded) {
+                    const patterns = this.getRelevantPatterns(task.description); // Sync - instant
+                    if (patterns.length > 0) {
+                        patternContext = `\n\nLEARNED PATTERNS TO APPLY:\n${patterns.map(p =>
+                            `- ${p.name}: ${p.problem}\n  Solution: ${p.solutionTemplate?.substring(0, 200) || 'N/A'}`
+                        ).join('\n')}`;
+                        console.log(`[BuildLoop] Injecting ${patterns.length} learned patterns`);
+                    }
+
+                    // Get best strategy for this task
+                    const strategy = this.getBestStrategy(task.category); // Sync - instant
+                    if (strategy) {
+                        console.log(`[BuildLoop] Using learned strategy: ${strategy}`);
+                    }
+                }
+
                 // Get system prompt with full context injected
                 const basePrompt = `You are a senior software engineer building production-ready code.
 You are working on a ${this.state.intentContract?.appType || 'web'} application.
@@ -728,6 +830,7 @@ You are working on a ${this.state.intentContract?.appType || 'web'} application.
 TASK: ${task.description}
 CATEGORY: ${task.category}
 PRIORITY: ${task.priority}
+${patternContext}
 
 Generate complete, production-ready code for this task.
 Follow the existing style guide and patterns.
@@ -771,10 +874,30 @@ Include ALL necessary imports and exports.`;
                 // Parse files from response
                 const files = this.claudeService.parseFileOperations(responseContent);
 
+                // =====================================================================
+                // LEARNING ENGINE: Capture decision and code artifacts
+                // SPEED: Fire-and-forget - doesn't block build pipeline
+                // =====================================================================
+                if (this.learningEnabled && this.experienceCapture) {
+                    // Capture the code generation decision (async, non-blocking)
+                    this.captureCodeDecision(
+                        task.id,
+                        task.description,
+                        'KTN/Claude generation',
+                        ['Manual coding', 'Template-based'],
+                        `Generated ${files.length} files using AI for task: ${task.description}`
+                    ); // No await - fire and forget
+                }
+
                 // Record file changes
                 for (const file of files) {
                     codingAgent.recordFileChange(file.path, 'create', file.content);
                     this.projectFiles.set(file.path, file.content || '');
+
+                    // LEARNING ENGINE: Capture each code artifact (async, non-blocking)
+                    if (this.learningEnabled) {
+                        this.captureCodeArtifact(file.path, file.content || '', 'initial'); // No await
+                    }
                 }
 
                 // Complete task (updates artifacts, commits to git)
@@ -1188,6 +1311,24 @@ Generate production-ready code for this feature.`;
             overallScore: verdict.overallScore,
             blockers: verdict.blockers,
         });
+
+        // =====================================================================
+        // LEARNING ENGINE: Run AI judgment on verification results
+        // SPEED: Runs in background - doesn't block verification flow
+        // =====================================================================
+        if (this.learningEnabled) {
+            // Combine all generated code for judgment
+            const allCode = Array.from(generatedFiles.entries())
+                .map(([path, content]) => `// ${path}\n${content}`)
+                .join('\n\n');
+
+            // Fire-and-forget - judgment runs in background
+            this.runAIJudgmentOnVerification(
+                feature.featureId,
+                verdict.overallScore,
+                allCode
+            ).catch(err => console.warn('[BuildLoop] Background AI judgment failed:', err));
+        }
 
         // Handle verification results
         if (verdict.verdict === 'BLOCKED') {
@@ -1722,6 +1863,18 @@ Would the user be satisfied with this result?`;
         const features = await this.featureManager.getAllFeatures();
         const pendingFeature = features.find(f => !f.passes);
 
+        // =====================================================================
+        // LEARNING ENGINE: Capture error for learning
+        // =====================================================================
+        let learningErrorId = '';
+        if (this.learningEnabled) {
+            learningErrorId = await this.captureErrorForLearning(
+                buildError.category,
+                buildError.message,
+                buildError.file
+            );
+        }
+
         // Attempt fix with 4-level escalation
         const result = await this.errorEscalationEngine.fixError(
             buildError,
@@ -1731,6 +1884,15 @@ Would the user be satisfied with this result?`;
 
         if (result.success && result.fix) {
             console.log(`[BuildLoop] Error fixed at Level ${result.level}: ${result.fix.strategy}`);
+
+            // LEARNING ENGINE: Record successful fix for pattern extraction
+            if (this.learningEnabled && learningErrorId) {
+                await this.recordErrorFixForLearning(
+                    learningErrorId,
+                    result.fix.strategy,
+                    result.level
+                );
+            }
 
             // Apply the fix
             await this.applyFix(result.fix);
@@ -1887,6 +2049,297 @@ Would the user be satisfied with this result?`;
     }
 
     // =========================================================================
+    // AUTONOMOUS LEARNING ENGINE METHODS (Component 28)
+    // SPEED OPTIMIZED: Non-blocking, pre-cached, fire-and-forget
+    // =========================================================================
+
+    /**
+     * Pre-load patterns and strategies at build start (runs in background)
+     * This eliminates per-task database lookups for ZERO slowdown
+     */
+    private async preloadLearningCache(): Promise<void> {
+        const startTime = Date.now();
+
+        try {
+            // Load top patterns and all strategy domains in parallel
+            const [patterns, codeStrategy, errorStrategy, designStrategy] = await Promise.all([
+                this.patternLibrary.getTopPatterns(50), // Get top 50 patterns
+                this.strategyEvolution.selectStrategy('code_generation', ['web_app']),
+                this.strategyEvolution.selectStrategy('error_recovery', ['web_app']),
+                this.strategyEvolution.selectStrategy('design_approach', ['web_app']),
+            ]);
+
+            this.cachedPatterns = patterns;
+            if (codeStrategy) this.cachedStrategies.set('code_generation', codeStrategy.name);
+            if (errorStrategy) this.cachedStrategies.set('error_recovery', errorStrategy.name);
+            if (designStrategy) this.cachedStrategies.set('design_approach', designStrategy.name);
+
+            this.learningCacheLoaded = true;
+            console.log(`[BuildLoop] Learning cache loaded in ${Date.now() - startTime}ms (${patterns.length} patterns, ${this.cachedStrategies.size} strategies)`);
+        } catch (error) {
+            console.warn('[BuildLoop] Learning cache preload failed:', error);
+            this.learningCacheLoaded = false;
+        }
+    }
+
+    /**
+     * Finalize the learning session and optionally trigger evolution cycle
+     */
+    private async finalizeLearningSession(buildSucceeded: boolean): Promise<void> {
+        try {
+            // End experience capture session
+            await this.evolutionFlywheel.finalizeForBuild();
+
+            // Record outcomes for all pending decisions
+            for (const [taskId, traceId] of this.pendingDecisionTraces) {
+                const outcome: DecisionOutcome = {
+                    immediateResult: buildSucceeded ? 'success' : 'failure',
+                    verificationScores: { overall: this.state.featureSummary?.passRate || 0 },
+                    requiredFixes: this.state.errorCount,
+                    finalInProduction: buildSucceeded,
+                    userSatisfaction: null,
+                };
+                if (this.experienceCapture) {
+                    await this.experienceCapture.recordDecisionOutcome(traceId, outcome);
+                }
+            }
+            this.pendingDecisionTraces.clear();
+
+            // Check if we should run an evolution cycle
+            const status = await this.evolutionFlywheel.getSystemStatus();
+            const pairsCount = status.pairStats.unused || 0;
+
+            if (pairsCount >= 50) {
+                console.log(`[BuildLoop] Triggering evolution cycle (${pairsCount} unused preference pairs)`);
+                // Run evolution cycle in background to not block the build
+                this.evolutionFlywheel.runCycle(this.state.userId).catch(err => {
+                    console.error('[BuildLoop] Evolution cycle failed:', err);
+                });
+            }
+
+            console.log(`[BuildLoop] Learning session finalized (success: ${buildSucceeded})`);
+        } catch (error) {
+            console.error('[BuildLoop] Failed to finalize learning session:', error);
+        }
+    }
+
+    /**
+     * Capture a code generation decision for learning
+     */
+    private async captureCodeDecision(
+        taskId: string,
+        taskDescription: string,
+        chosenApproach: string,
+        alternatives: string[],
+        reasoning: string
+    ): Promise<void> {
+        if (!this.experienceCapture || !this.learningEnabled) return;
+
+        try {
+            const traceId = await this.experienceCapture.captureDecision(
+                'build',
+                'strategy_selection', // Using strategy_selection as closest to code generation
+                {
+                    previousAttempts: 0,
+                    currentCodeState: taskDescription,
+                    relatedFiles: [],
+                    buildPhase: 'build',
+                },
+                {
+                    chosenOption: chosenApproach,
+                    rejectedOptions: alternatives,
+                    reasoning,
+                    confidence: 0.8,
+                }
+            );
+
+            this.pendingDecisionTraces.set(taskId, traceId);
+        } catch (error) {
+            console.error('[BuildLoop] Failed to capture code decision:', error);
+        }
+    }
+
+    /**
+     * Capture code artifact for learning
+     */
+    private async captureCodeArtifact(
+        filePath: string,
+        code: string,
+        trigger: 'initial' | 'fix' | 'refactor' | 'verification_feedback'
+    ): Promise<void> {
+        if (!this.experienceCapture || !this.learningEnabled) return;
+
+        try {
+            await this.experienceCapture.captureCodeChange(
+                filePath,
+                code,
+                trigger,
+                'build-loop'
+            );
+        } catch (error) {
+            console.error('[BuildLoop] Failed to capture code artifact:', error);
+        }
+    }
+
+    /**
+     * Record quality metrics for AI judgment
+     */
+    private async recordCodeQualityForLearning(
+        filePath: string,
+        codeQualityScore: number,
+        visualQualityScore?: number
+    ): Promise<void> {
+        if (!this.experienceCapture || !this.learningEnabled) return;
+
+        try {
+            await this.experienceCapture.recordCodeQuality(
+                filePath,
+                this.state.errorCount,
+                codeQualityScore,
+                visualQualityScore
+            );
+        } catch (error) {
+            console.error('[BuildLoop] Failed to record code quality:', error);
+        }
+    }
+
+    /**
+     * Capture error for learning
+     */
+    private async captureErrorForLearning(
+        errorType: string,
+        errorMessage: string,
+        filePath?: string
+    ): Promise<string> {
+        if (!this.experienceCapture || !this.learningEnabled) return '';
+
+        try {
+            return await this.experienceCapture.captureError({
+                type: errorType,
+                message: errorMessage,
+                stackTrace: '',
+                fileLocation: filePath || '',
+                firstOccurrence: new Date().toISOString(),
+            });
+        } catch (error) {
+            console.error('[BuildLoop] Failed to capture error:', error);
+            return '';
+        }
+    }
+
+    /**
+     * Record successful error fix for pattern extraction
+     */
+    private async recordErrorFixForLearning(
+        errorId: string,
+        fixStrategy: string,
+        escalationLevel: number
+    ): Promise<void> {
+        if (!this.experienceCapture || !this.learningEnabled || !errorId) return;
+
+        try {
+            await this.experienceCapture.recordSuccessfulFix(errorId, {
+                levelRequired: escalationLevel,
+                fixDescription: fixStrategy,
+                codeDiff: '', // Would need actual diff from the fix
+                generalizablePattern: null,
+            });
+        } catch (error) {
+            console.error('[BuildLoop] Failed to record error fix:', error);
+        }
+    }
+
+    /**
+     * Get relevant patterns from the pattern library for a task
+     * SPEED: Uses pre-cached patterns - instant lookup, no DB hit
+     */
+    private getRelevantPatterns(taskDescription: string): LearnedPattern[] {
+        if (!this.learningEnabled || !this.learningCacheLoaded) return [];
+
+        // Fast in-memory filtering using keyword matching
+        const keywords = taskDescription.toLowerCase().split(/\s+/);
+        const relevant = this.cachedPatterns
+            .filter(p => {
+                const patternText = `${p.name} ${p.problem} ${p.conditions.join(' ')}`.toLowerCase();
+                return keywords.some(kw => kw.length > 3 && patternText.includes(kw));
+            })
+            .slice(0, 5);
+
+        return relevant;
+    }
+
+    /**
+     * Get best strategy for a task using Thompson sampling
+     * SPEED: Uses pre-cached strategies - instant lookup, no DB hit
+     */
+    private getBestStrategy(taskCategory: string): string | null {
+        if (!this.learningEnabled || !this.learningCacheLoaded) return null;
+
+        // Map task category to strategy domain
+        const domainMap: Record<string, 'code_generation' | 'error_recovery' | 'design_approach'> = {
+            'setup': 'code_generation',
+            'feature': 'code_generation',
+            'integration': 'code_generation',
+            'testing': 'code_generation',
+            'deployment': 'code_generation',
+            'visual': 'design_approach',
+            'functional': 'code_generation',
+            'error': 'error_recovery',
+        };
+        const domain = domainMap[taskCategory] || 'code_generation';
+
+        return this.cachedStrategies.get(domain) || null;
+    }
+
+    /**
+     * Run AI judgment on verification results
+     */
+    private async runAIJudgmentOnVerification(
+        featureId: string,
+        verificationScore: number,
+        codeContent: string
+    ): Promise<void> {
+        if (!this.learningEnabled) return;
+
+        try {
+            // Create a code artifact trace for judgment
+            const artifactTrace = {
+                artifactId: `ca_${featureId}`,
+                buildId: this.state.id,
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                filePath: `feature/${featureId}`,
+                versions: [{
+                    version: 1,
+                    code: codeContent,
+                    timestamp: new Date().toISOString(),
+                    trigger: 'initial' as const,
+                }],
+                qualityTrajectory: [],
+                patternsUsed: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+
+            // Run AI judgment
+            const judgment = await this.aiJudgment.judgeCodeQuality(artifactTrace, {
+                userId: this.state.userId,
+            });
+
+            console.log(`[BuildLoop] AI Judgment for ${featureId}: score=${judgment.scores.overall}`);
+
+            // Record quality for learning
+            await this.recordCodeQualityForLearning(
+                `feature/${featureId}`,
+                judgment.scores.overall,
+                verificationScore
+            );
+        } catch (error) {
+            console.error('[BuildLoop] Failed to run AI judgment:', error);
+        }
+    }
+
+    // =========================================================================
     // PUBLIC API
     // =========================================================================
 
@@ -1894,9 +2347,86 @@ Would the user be satisfied with this result?`;
         return { ...this.state };
     }
 
-    abort(): void {
+    async abort(): Promise<void> {
         this.aborted = true;
         this.state.status = 'failed';
+
+        // Finalize learning on abort
+        if (this.learningEnabled) {
+            await this.finalizeLearningSession(false);
+        }
+    }
+
+    // =========================================================================
+    // LEARNING ENGINE PUBLIC API
+    // =========================================================================
+
+    /**
+     * Get the current learning system status
+     */
+    async getLearningStatus(): Promise<{
+        enabled: boolean;
+        buildId: string;
+        tracesCollected: number;
+        patternsAvailable: number;
+        strategiesActive: number;
+        lastEvolutionCycle: Date | null;
+        overallImprovement: number;
+    }> {
+        try {
+            const status = await this.evolutionFlywheel.getSystemStatus();
+            return {
+                enabled: this.learningEnabled,
+                buildId: this.state.id,
+                tracesCollected: status.pairStats.total * 2, // Approximate
+                patternsAvailable: status.patternStats.total,
+                strategiesActive: status.strategyStats.total,
+                lastEvolutionCycle: status.lastCycle?.completedAt || null,
+                overallImprovement: status.overallImprovement,
+            };
+        } catch (error) {
+            return {
+                enabled: this.learningEnabled,
+                buildId: this.state.id,
+                tracesCollected: 0,
+                patternsAvailable: 0,
+                strategiesActive: 0,
+                lastEvolutionCycle: null,
+                overallImprovement: 0,
+            };
+        }
+    }
+
+    /**
+     * Enable or disable learning for this build
+     */
+    setLearningEnabled(enabled: boolean): void {
+        this.learningEnabled = enabled;
+        console.log(`[BuildLoop] Learning ${enabled ? 'enabled' : 'disabled'} for build ${this.state.id}`);
+    }
+
+    /**
+     * Manually trigger an evolution cycle
+     */
+    async triggerEvolutionCycle(): Promise<void> {
+        if (!this.learningEnabled) {
+            throw new Error('Learning is disabled');
+        }
+
+        console.log('[BuildLoop] Manually triggering evolution cycle');
+        await this.evolutionFlywheel.runCycle(this.state.userId);
+    }
+
+    /**
+     * Get improvement trend over recent builds
+     */
+    async getImprovementTrend(cycleCount: number = 20): Promise<Array<{
+        cycleNumber: number;
+        improvement: number;
+        avgSuccessRate: number;
+        date: string;
+    }>> {
+        return this.evolutionFlywheel.getImprovementTrend(cycleCount);
     }
 
     async restoreFromCheckpoint(checkpointId: string): Promise<void> {
