@@ -59,6 +59,7 @@ import { GhostModePanel } from '../components/builder/GhostModePanel';
 import { SoftInterruptInput } from '../components/builder/SoftInterruptInput';
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
+import { DeveloperBar } from '../components/developer-bar';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -361,6 +362,8 @@ export default function Builder() {
     });
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
     const [showTournament, setShowTournament] = useState(false);
+    // Developer Bar active features state
+    const [activeDevBarFeatures, setActiveDevBarFeatures] = useState<string[]>([]);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
@@ -402,6 +405,48 @@ export default function Builder() {
         setShowTournament(false);
         setActiveTournamentId(null);
     };
+
+    // Handler for Developer Bar feature toggle
+    const handleDevBarFeatureToggle = useCallback((featureId: string) => {
+        // Map feature IDs to their corresponding panel states
+        switch (featureId) {
+            case 'ghost-mode':
+                setShowGhostMode(prev => !prev);
+                break;
+            case 'market-fit':
+                setShowMarketFit(true);
+                break;
+            case 'voice-first':
+                setShowVoiceArchitect(true);
+                break;
+            case 'api-autopilot':
+                setShowAPIAutopilot(true);
+                break;
+            case 'integrations':
+                setIntegrationsOpen(true);
+                break;
+            case 'deployment':
+            case 'cloud-deploy':
+                setDeploymentOpen(true);
+                break;
+            case 'quality-check':
+                handleProductionCheck();
+                break;
+            case 'memory':
+                setShowMemory(prev => !prev);
+                break;
+            case 'agents':
+                setShowAgentPanel(prev => !prev);
+                break;
+            default:
+                // Toggle in active features list for Developer Bar panel handling
+                setActiveDevBarFeatures(prev =>
+                    prev.includes(featureId)
+                        ? prev.filter(id => id !== featureId)
+                        : [...prev, featureId]
+                );
+        }
+    }, [setIntegrationsOpen, setDeploymentOpen, handleProductionCheck]);
 
     return (
         <SandpackProvider initialFiles={INITIAL_FILES}>
@@ -472,6 +517,19 @@ export default function Builder() {
                     onImportComplete={(profile) => {
                         console.log('Codebase imported:', profile);
                     }}
+                />
+
+                {/* ============================================================ */}
+                {/* DEVELOPER BAR - 3D Command Center Toolbar */}
+                {/* ============================================================ */}
+                <DeveloperBar
+                    activeFeatures={[
+                        ...activeDevBarFeatures,
+                        ...(showGhostMode ? ['ghost-mode'] : []),
+                        ...(showAgentPanel ? ['agents'] : []),
+                        ...(showMemory ? ['memory'] : []),
+                    ]}
+                    onFeatureToggle={handleDevBarFeatureToggle}
                 />
 
                 {/* Premium Liquid Glass Header */}
@@ -1095,7 +1153,7 @@ function CloudDeployPanel() {
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 setDeployStatus({
                     type: 'success',
@@ -1137,8 +1195,8 @@ function CloudDeployPanel() {
                 <div
                     className="flex items-center gap-2 p-3 rounded-xl text-sm"
                     style={{
-                        background: deployStatus.type === 'success' 
-                            ? 'rgba(16, 185, 129, 0.1)' 
+                        background: deployStatus.type === 'success'
+                            ? 'rgba(16, 185, 129, 0.1)'
                             : 'rgba(239, 68, 68, 0.1)',
                         color: deployStatus.type === 'success' ? '#10b981' : '#ef4444',
                     }}
@@ -1168,7 +1226,7 @@ function CloudDeployPanel() {
             )}
 
             {providers.map((provider) => (
-                <GlassCard 
+                <GlassCard
                     key={provider.id}
                     onClick={() => handleEstimateCost(provider.id, provider.type)}
                 >
@@ -1253,8 +1311,8 @@ function DatabasePanel() {
             if (response.ok) {
                 const data = await response.json();
                 const generatedSchema = data.output || data.message;
-                setSchemaStatus({ 
-                    type: 'success', 
+                setSchemaStatus({
+                    type: 'success',
                     message: generatedSchema ? 'Schema generated successfully!' : 'Generated schema is empty'
                 });
                 // Store generated schema for review
@@ -1275,7 +1333,7 @@ function DatabasePanel() {
         try {
             const response = await fetch('/api/db-migrate/init', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'x-migration-secret': process.env.MIGRATION_SECRET || 'dev-secret'
                 },
@@ -1306,8 +1364,8 @@ function DatabasePanel() {
                 <div
                     className="flex items-center gap-2 p-3 rounded-xl text-sm"
                     style={{
-                        background: schemaStatus.type === 'success' 
-                            ? 'rgba(16, 185, 129, 0.1)' 
+                        background: schemaStatus.type === 'success'
+                            ? 'rgba(16, 185, 129, 0.1)'
                             : 'rgba(239, 68, 68, 0.1)',
                         color: schemaStatus.type === 'success' ? '#10b981' : '#ef4444',
                     }}
@@ -1394,8 +1452,8 @@ function DatabasePanel() {
                                 onClick={handleGenerateSchema}
                                 disabled={isGenerating || !schemaDescription.trim()}
                                 className="px-4 py-2 rounded-xl text-sm flex items-center gap-2"
-                                style={{ 
-                                    background: '#c25a00', 
+                                style={{
+                                    background: '#c25a00',
                                     color: 'white',
                                     opacity: isGenerating || !schemaDescription.trim() ? 0.5 : 1
                                 }}
@@ -1466,14 +1524,14 @@ function WorkflowsPanel() {
         try {
             const content = await file.text();
             const workflow = JSON.parse(content);
-            
+
             // Validate workflow format
             const response = await fetch('/api/workflows/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workflow }),
             });
-            
+
             if (response.ok) {
                 setDeployStatus({ type: 'success', message: 'Workflow validated successfully!' });
             } else {
@@ -1524,8 +1582,8 @@ function WorkflowsPanel() {
                 <div
                     className="flex items-center gap-2 p-3 rounded-xl text-sm"
                     style={{
-                        background: deployStatus.type === 'success' 
-                            ? 'rgba(16, 185, 129, 0.1)' 
+                        background: deployStatus.type === 'success'
+                            ? 'rgba(16, 185, 129, 0.1)'
                             : 'rgba(239, 68, 68, 0.1)',
                         color: deployStatus.type === 'success' ? '#10b981' : '#ef4444',
                     }}

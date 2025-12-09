@@ -245,7 +245,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
                 if (sessionResponse.ok) {
                     const session = await sessionResponse.json();
-                    
+
                     // Deploy agent to session
                     const agentResponse = await fetch(`/api/developer-mode/sessions/${session.sessionId}/agents`, {
                         method: 'POST',
@@ -303,13 +303,13 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 while (!isComplete && pollCount < maxPolls) {
                     await simulateWork(2000);
                     pollCount++;
-                    
+
                     try {
                         const statusResponse = await fetch(`/api/developer-mode/agents/${backendResponse.agentId}`);
                         if (statusResponse.ok) {
                             const status = await statusResponse.json();
                             updateTaskProgress(agent.id, Math.min(90, 40 + pollCount * 2));
-                            
+
                             if (status.status === 'completed' || status.status === 'done') {
                                 isComplete = true;
                                 addLog({
