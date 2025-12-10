@@ -423,6 +423,7 @@ export function VerificationSwarmStatus({
 
     return (
         <div className={`swarm-panel ${isRunning ? 'swarm-panel--running' : ''}`}>
+            <div className="swarm-panel__inner">
             {/* Header */}
             <div className="swarm-panel__header">
                 <div className="swarm-panel__header-left">
@@ -518,6 +519,7 @@ export function VerificationSwarmStatus({
                     <p className="swarm-panel__score-message">{verdict.message}</p>
                 </div>
             )}
+            </div>
         </div>
     );
 }
