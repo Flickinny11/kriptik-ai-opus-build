@@ -269,28 +269,7 @@
     0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Shine effect on whole panel */
-.swarm-panel__inner > .swarm-panel__shine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    transparent 100%
-  );
-  transform: skewX(-20deg);
-  pointer-events: none;
-  z-index: 200;
-  border-radius: inherit;
-}
-
-.swarm-panel:hover .swarm-panel__inner > .swarm-panel__shine {
-  animation: shine-sweep 1.2s ease forwards;
-}
+/* Shine effect removed - was mispositioned */
 
 /* ============================================================================
    HEADER
@@ -469,10 +448,10 @@
 .swarm-panel__agents {
   position: relative;
   z-index: 10;
-  padding: 20px 24px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* ============================================================================
@@ -481,11 +460,11 @@
 
 .agent-card {
   position: relative;
-  border-radius: 50px;
+  border-radius: 24px;
   overflow: visible !important; /* Critical - never hide 3D edges */
   transform-style: preserve-3d;
-  margin-right: 8px; /* Space for right edge pseudo-element */
-  margin-bottom: 8px; /* Space for bottom shadow */
+  margin-right: 4px; /* Space for right edge */
+  margin-bottom: 4px; /* Space for bottom shadow */
 
   /* Photorealistic glass - more translucent like reference */
   background: linear-gradient(
@@ -616,7 +595,7 @@
   );
   border-radius: 0 25px 25px 0;
   pointer-events: none;
-  box-shadow: 
+  box-shadow:
     inset -1px 0 2px rgba(255, 255, 255, 0.4),
     inset 0 2px 2px rgba(255, 255, 255, 0.3),
     2px 0 4px rgba(0, 0, 0, 0.08);
@@ -639,34 +618,13 @@
   );
   border-radius: 0 0 20px 20px;
   pointer-events: none;
-  box-shadow: 
+  box-shadow:
     inset 0 -1px 2px rgba(255, 255, 255, 0.3),
     0 3px 6px rgba(0, 0, 0, 0.1);
   z-index: -1; /* Below but visible */
 }
 
-/* Shine sweep effect */
-.agent-card__shine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    transparent 100%
-  );
-  transform: skewX(-20deg);
-  pointer-events: none;
-  z-index: 50;
-  border-radius: inherit;
-}
-
-.agent-card:hover .agent-card__shine {
-  animation: shine-sweep 0.8s ease forwards;
-}
+/* Shine effect removed - was mispositioned */
 
 /* Content */
 .agent-card__content {
@@ -674,9 +632,9 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   width: 100%;
-  padding: 16px 20px;
+  padding: 10px 14px;
   border: none;
   background: none;
   cursor: pointer;
@@ -686,12 +644,13 @@
 /* Icon container - 3D glass circle */
 .agent-card__icon-container {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
 
   background: linear-gradient(
     145deg,
@@ -700,8 +659,8 @@
   );
 
   box-shadow:
-    0 3px 0 rgba(200, 195, 190, 0.4),
-    0 6px 12px rgba(0, 0, 0, 0.06),
+    0 2px 0 rgba(200, 195, 190, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.05),
     inset 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 

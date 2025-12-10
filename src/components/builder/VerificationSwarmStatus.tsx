@@ -267,7 +267,6 @@ function AgentCard({
             transition={{ delay: index * 0.05, duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             layout
         >
-            <div className="agent-card__shine" />
             <button onClick={onToggle} className="agent-card__content">
                 {/* Icon */}
                 <div className="agent-card__icon-container">
@@ -425,7 +424,6 @@ export function VerificationSwarmStatus({
     return (
         <div className={`swarm-panel ${isRunning ? 'swarm-panel--running' : ''}`}>
             <div className="swarm-panel__inner">
-            <div className="swarm-panel__shine" />
             {/* Header */}
             <div className="swarm-panel__header">
                 <div className="swarm-panel__header-left">

@@ -152,9 +152,9 @@
   bottom: 24px;
   right: 24px;
   z-index: 9999;
-  width: 320px;
-  border-radius: 24px;
-  overflow: visible;
+  width: 280px;
+  border-radius: 20px;
+  overflow: hidden; /* Clip the shine effect */
   transform-style: preserve-3d;
 
   /* Liquid glass */
@@ -164,18 +164,18 @@
 
   /* 3D shadow system */
   box-shadow:
-    0 6px 0 rgba(200, 195, 190, 0.5),
-    0 20px 60px rgba(0, 0, 0, 0.12),
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    inset 0 2px 4px rgba(255, 255, 255, 0.95),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.03),
+    0 4px 0 rgba(200, 195, 190, 0.5),
+    0 16px 48px rgba(0, 0, 0, 0.1),
+    0 6px 18px rgba(0, 0, 0, 0.06),
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.03),
     0 0 0 1px var(--fs-glass-border);
 
   transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .floating-swarm--expanded {
-  width: 400px;
+  width: 320px;
 }
 
 .floating-swarm--running {
@@ -199,29 +199,7 @@
   pointer-events: none;
 }
 
-/* Shine sweep */
-.floating-swarm::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.5) 50%,
-    transparent 100%
-  );
-  transform: skewX(-15deg);
-  pointer-events: none;
-  z-index: 100;
-  border-radius: inherit;
-}
-
-.floating-swarm:hover::before {
-  animation: fs-shine 1.2s ease forwards;
-}
+/* Shine effect removed - was causing positioning issues */
 
 .floating-swarm:hover {
   transform: translateY(-2px);
