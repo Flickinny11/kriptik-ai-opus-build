@@ -149,33 +149,30 @@
 
 .floating-swarm {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 20px;
+  right: 20px;
   z-index: 9999;
-  width: 280px;
-  border-radius: 20px;
-  overflow: hidden; /* Clip the shine effect */
-  transform-style: preserve-3d;
+  width: 200px;
+  border-radius: 14px;
+  overflow: hidden;
 
-  /* Liquid glass */
+  /* Subtle glass */
   background: var(--fs-glass-bg);
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 
-  /* 3D shadow system */
+  /* Simple shadow */
   box-shadow:
-    0 4px 0 rgba(200, 195, 190, 0.5),
-    0 16px 48px rgba(0, 0, 0, 0.1),
-    0 6px 18px rgba(0, 0, 0, 0.06),
-    inset 0 2px 3px rgba(255, 255, 255, 0.95),
-    inset 0 -1px 3px rgba(0, 0, 0, 0.03),
+    0 2px 0 rgba(200, 195, 190, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9),
     0 0 0 1px var(--fs-glass-border);
 
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .floating-swarm--expanded {
-  width: 320px;
+  width: 220px;
 }
 
 .floating-swarm--running {
@@ -215,45 +212,44 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   transition: background 0.2s ease;
 }
 
 .floating-swarm__header:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .floating-swarm__header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* Logo container */
 .floating-swarm__logo {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 8px;
   background: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(248, 248, 250, 0.6) 100%
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(248, 248, 250, 0.5) 100%
   );
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, 0.08),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.03);
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 .floating-swarm__logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
 }
 
 .floating-swarm__logo-pulse {
@@ -274,20 +270,20 @@
 .floating-swarm__title-area {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .floating-swarm__title {
   font-family: 'Cal Sans', 'SF Pro Display', system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--fs-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .floating-swarm__subtitle {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--fs-text-muted);
   margin: 0;
@@ -296,31 +292,27 @@
 .floating-swarm__header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 /* Status orbs */
 .floating-swarm__orbs {
   display: flex;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .floating-swarm__orb {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
 }
 
 .floating-swarm__orb:hover {
-  transform: scale(1.4) translateY(-2px);
+  transform: scale(1.3);
 }
 
 .floating-swarm__orb--passed {
@@ -355,25 +347,27 @@
 
 /* Close button */
 .floating-swarm__close {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px;
   border: none;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.3);
   color: var(--fs-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.05),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 .floating-swarm__close:hover {
   background: rgba(196, 30, 58, 0.15);
   color: var(--fs-error);
+}
+
+.floating-swarm__close svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* Chevron */
@@ -431,124 +425,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.3) 100%);
+  padding: 8px 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .floating-swarm__timestamp {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--fs-text-dim);
 }
 
 .floating-swarm__report-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   font-family: 'Cal Sans', system-ui, sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
-  box-shadow:
-    0 3px 0 rgba(0, 0, 0, 0.3),
-    0 6px 16px rgba(0, 0, 0, 0.15),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.floating-swarm__report-btn:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.3),
-    0 10px 24px rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
-}
-
-.floating-swarm__report-btn:active {
-  transform: translateY(1px);
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.3),
-    0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* ============================================================================
-   VIEW TOGGLE (2D/3D)
-   ============================================================================ */
-
-.floating-swarm__view-toggle {
-  display: flex;
-  gap: 4px;
-  padding: 8px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.floating-swarm__view-btn {
-  flex: 1;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: none;
-  font-family: 'Cal Sans', system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--fs-text-muted);
-  background: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.floating-swarm__view-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
+.floating-swarm__report-btn:hover {
+  background: linear-gradient(135deg, #333 0%, #444 100%);
 }
 
-.floating-swarm__view-btn--active {
-  color: #fff;
-  background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* ============================================================================
-   3D CONTAINER
-   ============================================================================ */
-
-.floating-swarm__3d-container {
-  width: 100%;
-  height: 340px;
-  background: linear-gradient(180deg, #f0ebe6 0%, #e0dbd6 100%);
-  border-radius: 12px;
-  overflow: visible; /* Allow 3D effects to extend beyond container */
-}
-
-.floating-swarm__3d-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 340px;
-  gap: 12px;
-  color: var(--fs-text-muted);
-  font-size: 13px;
-  background: linear-gradient(180deg, #f0ebe6 0%, #e0dbd6 100%);
-  border-radius: 12px;
-}
-
-.floating-swarm__3d-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #ff8c50;
-  border-radius: 50%;
-  animation: fs-spin 0.8s linear infinite;
-}
-
-@keyframes fs-spin {
-  to { transform: rotate(360deg); }
-}
+/* 3D toggle removed - not needed for a status indicator */
 
 /* ============================================================================
    RESPONSIVE

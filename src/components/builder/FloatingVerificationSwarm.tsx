@@ -8,13 +8,10 @@
  * - Polls quality API during active builds
  */
 
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VerificationSwarmStatus, type AgentState, type SwarmVerdict, type VerificationAgentType } from './VerificationSwarmStatus';
 import './FloatingVerificationSwarm.css';
-
-// Lazy load 3D component
-const VerificationSwarm3D = lazy(() => import('./VerificationSwarm3D'));
 
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
@@ -75,9 +72,8 @@ export function FloatingVerificationSwarm({
   isBuilding,
   onOpenReport,
 }: FloatingVerificationSwarmProps) {
-  const [isExpanded, setIsExpanded] = useState(true); // Start expanded to show design
+  const [isExpanded, setIsExpanded] = useState(false); // Collapsed by default - compact status indicator
   const [isMinimized, setIsMinimized] = useState(false);
-  const [use3D, setUse3D] = useState(false); // Start with 2D (CSS) mode which has the photorealistic styling
   const [agents, setAgents] = useState<AgentState[]>([]);
   const [verdict, setVerdict] = useState<SwarmVerdict | undefined>();
   const [isRunning, setIsRunning] = useState(false);
@@ -341,77 +337,40 @@ export function FloatingVerificationSwarm({
         </div>
       </div>
 
-      {/* Expanded Content */}
+      {/* Expanded Content - Compact status list */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="floating-swarm__expanded"
           >
-            {/* 3D/2D Toggle */}
-            <div className="floating-swarm__view-toggle">
-              <button
-                className={`floating-swarm__view-btn ${!use3D ? 'floating-swarm__view-btn--active' : ''}`}
-                onClick={() => setUse3D(false)}
-              >
-                2D
-              </button>
-              <button
-                className={`floating-swarm__view-btn ${use3D ? 'floating-swarm__view-btn--active' : ''}`}
-                onClick={() => setUse3D(true)}
-              >
-                3D
-              </button>
-            </div>
-
             <div className="floating-swarm__content">
-              {use3D ? (
-                <Suspense fallback={
-                  <div className="floating-swarm__3d-loading">
-                    <div className="floating-swarm__3d-spinner" />
-                    <span>Loading 3D...</span>
-                  </div>
-                }>
-                  <div className="floating-swarm__3d-container">
-                    <VerificationSwarm3D
-                      agents={agents}
-                      isRunning={isRunning}
-                    />
-                  </div>
-                </Suspense>
-              ) : (
-                <VerificationSwarmStatus
-                  agents={agents}
-                  verdict={verdict}
-                  isRunning={isRunning}
-                  onRerun={fetchQualityStatus}
-                  compact={false}
-                />
-              )}
+              <VerificationSwarmStatus
+                agents={agents}
+                verdict={verdict}
+                isRunning={isRunning}
+                onRerun={fetchQualityStatus}
+                compact={false}
+              />
             </div>
 
             {/* Footer */}
             <div className="floating-swarm__footer">
               {lastChecked && (
                 <span className="floating-swarm__timestamp">
-                  Last: {lastChecked.toLocaleTimeString()}
+                  {lastChecked.toLocaleTimeString()}
                 </span>
               )}
               {onOpenReport && (
-                <motion.button
+                <button
                   onClick={onOpenReport}
                   className="floating-swarm__report-btn"
-                  whileHover={{ y: -1 }}
-                  whileTap={{ y: 1 }}
                 >
-                  <span>Full Report</span>
-                  <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5">
-                    <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </motion.button>
+                  Details
+                </button>
               )}
             </div>
           </motion.div>
