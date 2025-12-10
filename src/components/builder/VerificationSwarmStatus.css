@@ -1,0 +1,651 @@
+/**
+ * Verification Swarm Status - Premium Styling
+ *
+ * Design System:
+ * - Atmospheric gradients with depth
+ * - Semitranslucent glass textures
+ * - Dynamic microanimations
+ * - High-tech premium aesthetics
+ */
+
+/* ============================================================================
+   FONTS
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ============================================================================
+   CSS VARIABLES
+   ============================================================================ */
+
+.swarm-panel,
+.swarm-compact {
+  --swarm-bg: rgba(12, 15, 20, 0.95);
+  --swarm-glass: rgba(255, 255, 255, 0.03);
+  --swarm-border: rgba(255, 255, 255, 0.06);
+  --swarm-text: rgba(255, 255, 255, 0.9);
+  --swarm-text-muted: rgba(255, 255, 255, 0.5);
+  --swarm-text-dim: rgba(255, 255, 255, 0.3);
+  --swarm-accent: #8b5cf6;
+  --swarm-accent-glow: rgba(139, 92, 246, 0.4);
+
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', monospace;
+}
+
+/* ============================================================================
+   COMPACT MODE
+   ============================================================================ */
+
+.swarm-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.swarm-compact__orbs {
+  display: flex;
+  gap: 4px;
+}
+
+.swarm-compact__orb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  cursor: pointer;
+}
+
+.swarm-compact__orb--passed {
+  background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.swarm-compact__orb--failed {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+}
+
+.swarm-compact__orb--warning {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+.swarm-compact__orb--running {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  animation: orb-pulse 1.5s ease-in-out infinite;
+}
+
+.swarm-compact__orb--idle {
+  background: rgba(71, 85, 105, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+.swarm-compact__summary {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--swarm-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================================
+   MAIN PANEL
+   ============================================================================ */
+
+.swarm-panel {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--swarm-bg);
+  border: 1px solid var(--swarm-border);
+}
+
+/* Atmospheric background */
+.swarm-panel__atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.swarm-panel__gradient-1 {
+  position: absolute;
+  top: -50%;
+  left: -20%;
+  width: 80%;
+  height: 100%;
+  background: radial-gradient(ellipse, var(--swarm-accent-glow) 0%, transparent 70%);
+  opacity: 0.15;
+  animation: gradient-drift 20s ease-in-out infinite;
+}
+
+.swarm-panel__gradient-2 {
+  position: absolute;
+  bottom: -30%;
+  right: -20%;
+  width: 60%;
+  height: 80%;
+  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
+  opacity: 0.1;
+  animation: gradient-drift 25s ease-in-out infinite reverse;
+}
+
+@keyframes gradient-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(10%, 5%) rotate(5deg); }
+  66% { transform: translate(-5%, -10%) rotate(-3deg); }
+}
+
+.swarm-panel__noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.swarm-panel__header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--swarm-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+}
+
+.swarm-panel__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.swarm-panel__logo {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swarm-panel__logo-icon {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px var(--swarm-accent-glow));
+}
+
+.swarm-panel__logo-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--swarm-accent);
+  opacity: 0;
+}
+
+.swarm-panel__title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.swarm-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--swarm-text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.swarm-panel__subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--swarm-text-muted);
+  margin: 0;
+}
+
+.swarm-panel__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swarm-panel__rerun {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--swarm-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--swarm-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.swarm-panel__rerun:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--swarm-text);
+  border-color: var(--swarm-accent);
+  box-shadow: 0 0 12px var(--swarm-accent-glow);
+}
+
+.swarm-panel__rerun:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   VERDICT BADGE
+   ============================================================================ */
+
+.verdict-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.verdict-badge__text {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.verdict-badge__score {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================================================
+   AGENT LIST
+   ============================================================================ */
+
+.swarm-panel__agents {
+  position: relative;
+  z-index: 10;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ============================================================================
+   AGENT CARD
+   ============================================================================ */
+
+.agent-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--swarm-border);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.agent-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.agent-card--running {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.agent-card--passed {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.agent-card--failed {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.agent-card--warning {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Atmospheric glow */
+.agent-card__atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.agent-card:hover .agent-card__atmosphere {
+  opacity: 1;
+}
+
+/* Glass texture */
+.agent-card__glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  pointer-events: none;
+}
+
+/* Edge highlights */
+.agent-card__edge-top {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.agent-card__edge-left {
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+}
+
+/* Content */
+.agent-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Icon */
+.agent-card__icon-container {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-card__icon-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+
+.agent-card__icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Info */
+.agent-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-card__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--swarm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-card__interval {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--swarm-text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Stats */
+.agent-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-card__score {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.agent-card__score--good {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.agent-card__score--warn {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.agent-card__score--bad {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.agent-card__issues {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ef4444;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.agent-card__chevron {
+  color: var(--swarm-text-dim);
+  transition: color 0.2s ease;
+}
+
+.agent-card:hover .agent-card__chevron {
+  color: var(--swarm-text-muted);
+}
+
+/* Details */
+.agent-card__details {
+  overflow: hidden;
+  border-top: 1px solid var(--swarm-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.agent-card__details-inner {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-card__description {
+  font-size: 11px;
+  color: var(--swarm-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.agent-card__message {
+  font-size: 11px;
+  color: var(--swarm-text);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.agent-card__detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-card__detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--swarm-text-muted);
+}
+
+.agent-card__detail-dot {
+  width: 4px;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--swarm-accent);
+  flex-shrink: 0;
+}
+
+.agent-card__detail-more {
+  font-size: 10px;
+  color: var(--swarm-text-dim);
+  font-style: italic;
+}
+
+.agent-card__timestamp {
+  font-size: 9px;
+  color: var(--swarm-text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================================================
+   SCORE SECTION
+   ============================================================================ */
+
+.swarm-panel__score-section {
+  position: relative;
+  z-index: 10;
+  padding: 16px;
+  border-top: 1px solid var(--swarm-border);
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.2) 100%);
+}
+
+.swarm-panel__score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.swarm-panel__score-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--swarm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.swarm-panel__score-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--swarm-text);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.swarm-panel__score-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  position: relative;
+}
+
+.swarm-panel__score-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0.02) 0%, 
+    rgba(255, 255, 255, 0.05) 50%, 
+    rgba(255, 255, 255, 0.02) 100%
+  );
+}
+
+.swarm-panel__score-fill {
+  height: 100%;
+  border-radius: 3px;
+  position: relative;
+}
+
+.swarm-panel__score-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+  animation: score-shine 2s ease-in-out infinite;
+}
+
+@keyframes score-shine {
+  0%, 100% { opacity: 0; transform: translateX(-10px); }
+  50% { opacity: 1; transform: translateX(0); }
+}
+
+.swarm-panel__score-message {
+  font-size: 11px;
+  color: var(--swarm-text-muted);
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 400px) {
+  .swarm-panel__agents {
+    padding: 8px;
+  }
+
+  .agent-card__content {
+    padding: 8px 10px;
+  }
+
+  .agent-card__name {
+    font-size: 11px;
+  }
+
+  .verdict-badge {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+}
+
+/* ============================================================================
+   DARK MODE ENHANCEMENTS
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .swarm-panel {
+    --swarm-bg: rgba(8, 10, 14, 0.98);
+  }
+}
+

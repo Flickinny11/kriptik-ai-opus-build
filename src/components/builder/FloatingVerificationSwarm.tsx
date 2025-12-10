@@ -1,6 +1,6 @@
 /**
  * Floating Verification Swarm Panel
- * 
+ *
  * Shows real-time 6-agent verification swarm status during builds.
  * - Compact mode by default
  * - Expandable on click
@@ -10,11 +10,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, ChevronUp, ChevronDown, X, 
-  Loader2, ExternalLink 
-} from 'lucide-react';
 import { VerificationSwarmStatus, type AgentState, type SwarmVerdict, type VerificationAgentType } from './VerificationSwarmStatus';
+import './FloatingVerificationSwarm.css';
 
 interface FloatingVerificationSwarmProps {
   projectId: string;
@@ -67,11 +64,11 @@ export function FloatingVerificationSwarm({
   // Convert API response to agent states
   const processQualityResponse = useCallback((data: QualityCheckResponse): AgentState[] => {
     const categories = data.categories || {};
-    
+
     return [
       {
         type: 'error_checker' as VerificationAgentType,
-        status: categories.errors?.score !== undefined 
+        status: categories.errors?.score !== undefined
           ? (categories.errors.score >= 90 ? 'passed' : categories.errors.score >= 60 ? 'warning' : 'failed')
           : (data.lint?.some(l => l.errorCount > 0) ? 'failed' : 'passed'),
         score: categories.errors?.score ?? (data.lint?.reduce((sum, l) => sum + l.errorCount, 0) === 0 ? 100 : 50),
@@ -139,33 +136,33 @@ export function FloatingVerificationSwarm({
   // Fetch quality status
   const fetchQualityStatus = useCallback(async () => {
     if (!projectId || projectId === 'new') return;
-    
+
     setIsRunning(true);
-    
+
     // Set all agents to running initially
     setAgents(prev => prev.map(a => ({ ...a, status: 'running' as const })));
-    
+
     try {
       const response = await fetch(`/api/quality/${projectId}/report`);
-      
+
       if (response.ok) {
         const data: QualityCheckResponse = await response.json();
         const newAgents = processQualityResponse(data);
         setAgents(newAgents);
-        
+
         // Calculate verdict
         const passedCount = newAgents.filter(a => a.status === 'passed').length;
         const failedCount = newAgents.filter(a => a.status === 'failed').length;
         const avgScore = newAgents.reduce((sum, a) => sum + (a.score || 0), 0) / newAgents.length;
-        
+
         setVerdict({
           verdict: failedCount > 1 ? 'blocked' : failedCount > 0 ? 'needs_work' : passedCount === 6 ? 'approved' : 'needs_work',
-          message: failedCount > 0 
-            ? `${failedCount} agent${failedCount > 1 ? 's' : ''} found issues` 
+          message: failedCount > 0
+            ? `${failedCount} agent${failedCount > 1 ? 's' : ''} found issues`
             : 'All checks passing',
           overallScore: Math.round(avgScore),
         });
-        
+
         setLastChecked(new Date());
       }
     } catch (error) {
@@ -194,7 +191,7 @@ export function FloatingVerificationSwarm({
       { type: 'placeholder_eliminator', status: 'idle' },
       { type: 'design_style', status: 'idle' },
     ]);
-    
+
     // Fetch initial status if we have a project
     if (projectId && projectId !== 'new') {
       fetchQualityStatus();
@@ -207,15 +204,32 @@ export function FloatingVerificationSwarm({
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="fixed bottom-6 right-6 z-50 p-3 rounded-xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-xl hover:border-violet-500/30 transition-colors"
+        className="floating-swarm__minimized"
         onClick={() => setIsMinimized(false)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
       >
-        <Shield className="w-5 h-5 text-violet-400" />
+        {/* Custom hexagon icon */}
+        <svg viewBox="0 0 24 24" fill="none" className="floating-swarm__minimized-icon">
+          <path 
+            d="M12 2L20 7v10l-8 5-8-5V7l8-5z" 
+            stroke="url(#min-grad)" 
+            strokeWidth="1.5" 
+            fill="rgba(139, 92, 246, 0.2)"
+          />
+          <circle cx="12" cy="12" r="3" fill="url(#min-grad)" />
+          <defs>
+            <linearGradient id="min-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+        </svg>
         {isRunning && (
           <motion.div
-            className="absolute -top-1 -right-1 w-3 h-3 bg-violet-500 rounded-full"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
+            className="floating-swarm__minimized-pulse"
+            animate={{ scale: [1, 1.5, 1], opacity: [0.8, 0, 0.8] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           />
         )}
       </motion.button>
@@ -226,92 +240,138 @@ export function FloatingVerificationSwarm({
   const failedCount = agents.filter(a => a.status === 'failed').length;
   const warningCount = agents.filter(a => a.status === 'warning').length;
 
+  // Agent config for glows
+  const agentGlows: Record<string, string> = {
+    error_checker: 'rgba(239, 68, 68, 0.5)',
+    code_quality: 'rgba(59, 130, 246, 0.5)',
+    visual_verifier: 'rgba(168, 85, 247, 0.5)',
+    security_scanner: 'rgba(245, 158, 11, 0.5)',
+    placeholder_eliminator: 'rgba(244, 63, 94, 0.5)',
+    design_style: 'rgba(6, 182, 212, 0.5)',
+  };
+
   return (
     <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      className={`
-        fixed bottom-6 right-6 z-50
-        rounded-2xl overflow-hidden
-        bg-slate-900/95 backdrop-blur-xl
-        border border-white/10
-        shadow-2xl shadow-black/30
-        ${isExpanded ? 'w-[380px]' : 'w-[280px]'}
-      `}
-      style={{
-        boxShadow: `
-          0 25px 50px -12px rgba(0, 0, 0, 0.4),
-          0 0 0 1px rgba(255, 255, 255, 0.05),
-          inset 0 1px 0 rgba(255, 255, 255, 0.1)
-        `,
-      }}
+      initial={{ y: 100, opacity: 0, scale: 0.9 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      exit={{ y: 100, opacity: 0, scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className={`floating-swarm ${isExpanded ? 'floating-swarm--expanded' : ''}`}
     >
+      {/* Atmospheric gradient background */}
+      <div className="floating-swarm__atmosphere">
+        <div className="floating-swarm__gradient-1" />
+        <div className="floating-swarm__gradient-2" />
+      </div>
+
+      {/* Glass layer */}
+      <div className="floating-swarm__glass" />
+
+      {/* Edge highlights */}
+      <div className="floating-swarm__edge-top" />
+      <div className="floating-swarm__edge-left" />
+
       {/* Header */}
       <div 
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors"
+        className="floating-swarm__header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20">
-              <Shield className="w-4 h-4 text-violet-400" />
-            </div>
+        <div className="floating-swarm__header-left">
+          {/* Animated hexagon logo */}
+          <div className="floating-swarm__logo">
+            <svg viewBox="0 0 28 28" fill="none" className="floating-swarm__logo-icon">
+              <defs>
+                <linearGradient id="float-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8b5cf6" />
+                  <stop offset="50%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#c084fc" />
+                </linearGradient>
+              </defs>
+              <path 
+                d="M14 2L24 8v12l-10 6L4 20V8l10-6z" 
+                stroke="url(#float-logo-grad)" 
+                strokeWidth="1.5" 
+                fill="rgba(139, 92, 246, 0.15)"
+              />
+              <path 
+                d="M14 7L19 10v6l-5 3-5-3v-6l5-3z" 
+                fill="url(#float-logo-grad)"
+                opacity="0.5"
+              />
+              <circle cx="14" cy="13" r="2" fill="url(#float-logo-grad)" />
+            </svg>
             {isRunning && (
               <motion.div
-                className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-violet-500 rounded-full"
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
+                className="floating-swarm__logo-pulse"
+                animate={{ scale: [1, 1.6, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity }}
               />
             )}
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white">Verification Swarm</h4>
-            <p className="text-xs text-slate-400">
+
+          <div className="floating-swarm__title-area">
+            <h4 className="floating-swarm__title">Verification Swarm</h4>
+            <p className="floating-swarm__subtitle">
               {isRunning ? (
-                <span className="flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Checking...
+                <span className="floating-swarm__scanning">
+                  <motion.span
+                    animate={{ opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    Scanning...
+                  </motion.span>
                 </span>
               ) : (
-                `${passedCount}/6 passed${failedCount > 0 ? `, ${failedCount} failed` : ''}${warningCount > 0 ? `, ${warningCount} warnings` : ''}`
+                `${passedCount}/6 passed${failedCount > 0 ? ` · ${failedCount} failed` : ''}${warningCount > 0 ? ` · ${warningCount} warnings` : ''}`
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Mini status indicators when collapsed */}
+        <div className="floating-swarm__header-right">
+          {/* Premium status orbs when collapsed */}
           {!isExpanded && (
-            <div className="flex gap-0.5 mr-2">
-              {agents.map((agent) => (
-                <div
+            <div className="floating-swarm__orbs">
+              {agents.map((agent, i) => (
+                <motion.div
                   key={agent.type}
-                  className={`
-                    w-1.5 h-1.5 rounded-full transition-all duration-300
-                    ${agent.status === 'passed' ? 'bg-emerald-500' : ''}
-                    ${agent.status === 'failed' ? 'bg-red-500' : ''}
-                    ${agent.status === 'warning' ? 'bg-amber-500' : ''}
-                    ${agent.status === 'running' ? 'bg-violet-500 animate-pulse' : ''}
-                    ${agent.status === 'idle' ? 'bg-slate-600' : ''}
-                  `}
+                  className={`floating-swarm__orb floating-swarm__orb--${agent.status}`}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.03, type: 'spring' }}
+                  whileHover={{ scale: 1.5, y: -2 }}
+                  style={{
+                    boxShadow: agent.status !== 'idle' 
+                      ? `0 0 6px ${agentGlows[agent.type]}`
+                      : 'none',
+                  }}
                 />
               ))}
             </div>
           )}
 
-          <button
+          <motion.button
             onClick={(e) => {
               e.stopPropagation();
               setIsMinimized(true);
             }}
-            className="p-1 rounded hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+            className="floating-swarm__close"
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+            whileTap={{ scale: 0.9 }}
           >
-            <X className="w-4 h-4" />
-          </button>
+            <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5">
+              <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </motion.button>
 
-          <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+          <motion.div 
+            className="floating-swarm__chevron"
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <svg viewBox="0 0 14 14" fill="none" className="w-4 h-4">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </motion.div>
         </div>
       </div>
@@ -323,10 +383,10 @@ export function FloatingVerificationSwarm({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="floating-swarm__expanded"
           >
-            <div className="border-t border-white/5">
+            <div className="floating-swarm__content">
               <VerificationSwarmStatus
                 agents={agents}
                 verdict={verdict}
@@ -336,21 +396,24 @@ export function FloatingVerificationSwarm({
               />
             </div>
 
-            {/* Footer actions */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-white/5 bg-slate-950/50">
+            {/* Premium footer */}
+            <div className="floating-swarm__footer">
               {lastChecked && (
-                <span className="text-xs text-slate-500">
-                  Last checked: {lastChecked.toLocaleTimeString()}
+                <span className="floating-swarm__timestamp">
+                  {lastChecked.toLocaleTimeString()}
                 </span>
               )}
               {onOpenReport && (
-                <button
+                <motion.button
                   onClick={onOpenReport}
-                  className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  className="floating-swarm__report-btn"
+                  whileHover={{ x: 2 }}
                 >
-                  <span>View Full Report</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
+                  <span>Full Report</span>
+                  <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3">
+                    <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.button>
               )}
             </div>
           </motion.div>
