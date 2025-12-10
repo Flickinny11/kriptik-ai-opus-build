@@ -19,14 +19,14 @@ const VerificationSwarm3D = lazy(() => import('./VerificationSwarm3D'));
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
     <svg viewBox="0 0 28 28" fill="none" className="floating-swarm__logo-icon">
-        <path 
-            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z" 
-            stroke="#1a1a1a" 
-            strokeWidth="1.5" 
+        <path
+            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z"
+            stroke="#1a1a1a"
+            strokeWidth="1.5"
             fill="rgba(255, 255, 255, 0.5)"
         />
-        <path 
-            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z" 
+        <path
+            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z"
             fill="#1a1a1a"
             opacity="0.8"
         />
@@ -75,9 +75,9 @@ export function FloatingVerificationSwarm({
   isBuilding,
   onOpenReport,
 }: FloatingVerificationSwarmProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Start expanded to show design
   const [isMinimized, setIsMinimized] = useState(false);
-  const [use3D, setUse3D] = useState(true); // Default to 3D mode
+  const [use3D, setUse3D] = useState(false); // Start with 2D (CSS) mode which has the photorealistic styling
   const [agents, setAgents] = useState<AgentState[]>([]);
   const [verdict, setVerdict] = useState<SwarmVerdict | undefined>();
   const [isRunning, setIsRunning] = useState(false);
@@ -233,14 +233,14 @@ export function FloatingVerificationSwarm({
       >
         {/* Custom hexagon icon - black, white, red */}
         <svg viewBox="0 0 28 28" fill="none" className="floating-swarm__minimized-icon">
-          <path 
-            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z" 
-            stroke="#1a1a1a" 
-            strokeWidth="1.5" 
+          <path
+            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z"
+            stroke="#1a1a1a"
+            strokeWidth="1.5"
             fill="rgba(255, 255, 255, 0.5)"
           />
-          <path 
-            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z" 
+          <path
+            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z"
             fill="#1a1a1a"
             opacity="0.8"
           />
@@ -270,7 +270,7 @@ export function FloatingVerificationSwarm({
       className={`floating-swarm ${isExpanded ? 'floating-swarm--expanded' : ''} ${isRunning ? 'floating-swarm--running' : ''}`}
     >
       {/* Header */}
-      <div 
+      <div
         className="floating-swarm__header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -329,7 +329,7 @@ export function FloatingVerificationSwarm({
             </svg>
           </motion.button>
 
-          <motion.div 
+          <motion.div
             className="floating-swarm__chevron"
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.25 }}

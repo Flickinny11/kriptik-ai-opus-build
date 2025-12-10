@@ -1,6 +1,6 @@
 /**
  * Lazy-loaded wrapper for VerificationSwarm3D
- * 
+ *
  * This prevents Three.js from loading until the component is needed
  */
 
@@ -21,13 +21,13 @@ interface VerificationSwarm3DWrapperProps {
 function LoadingFallback() {
   return (
     <div className="swarm-3d-loading">
-      <motion.div 
+      <motion.div
         className="swarm-3d-loading__spinner"
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
       />
       <span>Loading 3D View...</span>
-      
+
       <style>{`
         .swarm-3d-loading {
           display: flex;
@@ -59,10 +59,10 @@ function ErrorFallback({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="swarm-3d-error">
       <svg viewBox="0 0 24 24" fill="none" className="swarm-3d-error__icon">
-        <path 
-          d="M12 2L2 7v10l10 5 10-5V7L12 2z" 
-          stroke="#c41e3a" 
-          strokeWidth="1.5" 
+        <path
+          d="M12 2L2 7v10l10 5 10-5V7L12 2z"
+          stroke="#c41e3a"
+          strokeWidth="1.5"
           fill="rgba(196, 30, 58, 0.1)"
         />
         <path d="M12 8v4" stroke="#c41e3a" strokeWidth="2" strokeLinecap="round" />
@@ -131,7 +131,7 @@ export function VerificationSwarm3DWrapper({
   }
 
   return (
-    <div 
+    <div
       className={`swarm-3d-wrapper ${className}`}
       style={{
         width: '100%',

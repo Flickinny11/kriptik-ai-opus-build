@@ -1,6 +1,6 @@
 /**
  * Verification Swarm 3D - Photorealistic Glass UI
- * 
+ *
  * True 3D glass rendering with:
  * - MeshTransmissionMaterial for real glass refraction
  * - Physical glass with chromatic aberration
@@ -12,8 +12,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { 
-  RoundedBox, 
+import {
+  RoundedBox,
   MeshTransmissionMaterial,
   Environment,
   Float,
@@ -68,7 +68,7 @@ const AGENTS_CONFIG: { type: VerificationAgentType; label: string }[] = [
 
 function AgentIcon({ type, color }: { type: VerificationAgentType; color: string }) {
   const iconColor = new THREE.Color(color);
-  
+
   switch (type) {
     case 'error_checker':
       return (
@@ -139,15 +139,15 @@ function AgentIcon({ type, color }: { type: VerificationAgentType; color: string
 // GLASS PILL - Individual agent button
 // ============================================================================
 
-function GlassPill({ 
-  position, 
+function GlassPill({
+  position,
   label,
   type,
   status,
   isActive,
   onClick,
   index,
-}: { 
+}: {
   position: [number, number, number];
   label: string;
   type: VerificationAgentType;
@@ -159,24 +159,24 @@ function GlassPill({
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  
+
   // Animate glow
   useFrame((state) => {
     if (glowRef.current && (isActive || status === 'running')) {
       const t = state.clock.elapsedTime;
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
         0.25 + Math.sin(t * 2.5 + index) * 0.15;
     }
     if (groupRef.current && hovered) {
       groupRef.current.position.z = THREE.MathUtils.lerp(
-        groupRef.current.position.z, 
-        position[2] + 0.08, 
+        groupRef.current.position.z,
+        position[2] + 0.08,
         0.1
       );
     } else if (groupRef.current) {
       groupRef.current.position.z = THREE.MathUtils.lerp(
-        groupRef.current.position.z, 
-        position[2], 
+        groupRef.current.position.z,
+        position[2],
         0.1
       );
     }
@@ -197,7 +197,7 @@ function GlassPill({
   const isWarm = isActive || status === 'running';
 
   return (
-    <group 
+    <group
       ref={groupRef}
       position={position}
       onClick={onClick}
@@ -208,9 +208,9 @@ function GlassPill({
       {isWarm && (
         <mesh ref={glowRef} position={[0, 0, -0.05]} scale={[1.15, 1.15, 1]}>
           <capsuleGeometry args={[0.22, 0.9, 4, 16]} />
-          <meshBasicMaterial 
-            color={warmGlow} 
-            transparent 
+          <meshBasicMaterial
+            color={warmGlow}
+            transparent
             opacity={0.3}
             side={THREE.BackSide}
           />
@@ -253,7 +253,7 @@ function GlassPill({
         {/* Status dot */}
         <mesh position={[0.4, 0.1, 0.2]}>
           <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial 
+          <meshStandardMaterial
             color={statusColor}
             emissive={statusColor}
             emissiveIntensity={status === 'running' ? 0.6 : 0.3}
@@ -347,16 +347,16 @@ function SceneLighting() {
   return (
     <>
       <ambientLight intensity={0.6} />
-      <directionalLight 
-        position={[4, 6, 4]} 
+      <directionalLight
+        position={[4, 6, 4]}
         intensity={1.2}
         castShadow
         shadow-mapSize={[512, 512]}
       />
       <directionalLight position={[-4, 4, -4]} intensity={0.4} />
       {/* Warm rim light */}
-      <pointLight 
-        position={[2, 0, 3]} 
+      <pointLight
+        position={[2, 0, 3]}
         intensity={1.5}
         color="#ff9060"
         distance={6}
@@ -369,11 +369,11 @@ function SceneLighting() {
 // MAIN SCENE
 // ============================================================================
 
-function SwarmScene({ 
-  agents, 
+function SwarmScene({
+  agents,
   isRunning,
   onAgentClick,
-}: { 
+}: {
   agents: AgentState[];
   isRunning: boolean;
   onAgentClick?: (type: VerificationAgentType) => void;
@@ -393,7 +393,7 @@ function SwarmScene({
           {AGENTS_CONFIG.map((config, index) => {
             const agent = agentMap.get(config.type);
             const yPos = 1.1 - index * 0.45;
-            
+
             return (
               <GlassPill
                 key={config.type}
@@ -469,9 +469,9 @@ export function VerificationSwarm3D({
 
   if (!mounted) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
         color: '#4a4a4a',
@@ -484,14 +484,14 @@ export function VerificationSwarm3D({
 
   return (
     <Canvas
-      camera={{ 
-        position: [0, 0, 4.5], 
+      camera={{
+        position: [0, 0, 4.5],
         fov: 40,
         near: 0.1,
         far: 50,
       }}
       dpr={[1, 2]}
-      gl={{ 
+      gl={{
         antialias: true,
         alpha: true,
         powerPreference: 'high-performance',
@@ -506,8 +506,8 @@ export function VerificationSwarm3D({
       }}
       style={{ background: 'transparent' }}
     >
-      <SwarmScene 
-        agents={agents} 
+      <SwarmScene
+        agents={agents}
         isRunning={isRunning}
         onAgentClick={onAgentClick}
       />

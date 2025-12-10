@@ -14,14 +14,14 @@
 
 .floating-swarm,
 .floating-swarm__minimized {
-  /* Glass */
+  /* Glass - More opaque to prevent dark background bleed-through */
   --fs-glass-bg: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.45) 40%,
-    rgba(248, 248, 250, 0.5) 100%
+    rgba(245, 243, 240, 0.97) 0%,
+    rgba(240, 238, 235, 0.95) 40%,
+    rgba(235, 232, 228, 0.96) 100%
   );
-  --fs-glass-border: rgba(255, 255, 255, 0.7);
+  --fs-glass-border: rgba(255, 255, 255, 0.9);
 
   /* Warm glow */
   --fs-glow: rgba(255, 160, 100, 0.5);
@@ -413,19 +413,25 @@
    ============================================================================ */
 
 .floating-swarm__expanded {
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to allow 3D edge pseudo-elements to show */
 }
 
 .floating-swarm__content {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* Hide nested panel styles */
+/* Nested panel styling - allow 3D elements to show */
 .floating-swarm__content .swarm-panel {
   border: none;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  overflow: visible; /* Critical for 3D edges */
+}
+
+.floating-swarm__content .swarm-panel__inner {
+  overflow: visible; /* Critical for 3D edges */
+  padding: 8px;
 }
 
 .floating-swarm__content .swarm-panel::before,
@@ -537,7 +543,7 @@
   height: 340px;
   background: linear-gradient(180deg, #f0ebe6 0%, #e0dbd6 100%);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible; /* Allow 3D effects to extend beyond container */
 }
 
 .floating-swarm__3d-loading {
