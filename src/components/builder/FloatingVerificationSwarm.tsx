@@ -8,10 +8,13 @@
  * - Polls quality API during active builds
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VerificationSwarmStatus, type AgentState, type SwarmVerdict, type VerificationAgentType } from './VerificationSwarmStatus';
 import './FloatingVerificationSwarm.css';
+
+// Lazy load 3D component
+const VerificationSwarm3D = lazy(() => import('./VerificationSwarm3D'));
 
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
@@ -74,6 +77,7 @@ export function FloatingVerificationSwarm({
 }: FloatingVerificationSwarmProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [use3D, setUse3D] = useState(true); // Default to 3D mode
   const [agents, setAgents] = useState<AgentState[]>([]);
   const [verdict, setVerdict] = useState<SwarmVerdict | undefined>();
   const [isRunning, setIsRunning] = useState(false);
@@ -347,14 +351,46 @@ export function FloatingVerificationSwarm({
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             className="floating-swarm__expanded"
           >
+            {/* 3D/2D Toggle */}
+            <div className="floating-swarm__view-toggle">
+              <button
+                className={`floating-swarm__view-btn ${!use3D ? 'floating-swarm__view-btn--active' : ''}`}
+                onClick={() => setUse3D(false)}
+              >
+                2D
+              </button>
+              <button
+                className={`floating-swarm__view-btn ${use3D ? 'floating-swarm__view-btn--active' : ''}`}
+                onClick={() => setUse3D(true)}
+              >
+                3D
+              </button>
+            </div>
+
             <div className="floating-swarm__content">
-              <VerificationSwarmStatus
-                agents={agents}
-                verdict={verdict}
-                isRunning={isRunning}
-                onRerun={fetchQualityStatus}
-                compact={false}
-              />
+              {use3D ? (
+                <Suspense fallback={
+                  <div className="floating-swarm__3d-loading">
+                    <div className="floating-swarm__3d-spinner" />
+                    <span>Loading 3D...</span>
+                  </div>
+                }>
+                  <div className="floating-swarm__3d-container">
+                    <VerificationSwarm3D
+                      agents={agents}
+                      isRunning={isRunning}
+                    />
+                  </div>
+                </Suspense>
+              ) : (
+                <VerificationSwarmStatus
+                  agents={agents}
+                  verdict={verdict}
+                  isRunning={isRunning}
+                  onRerun={fetchQualityStatus}
+                  compact={false}
+                />
+              )}
             </div>
 
             {/* Footer */}

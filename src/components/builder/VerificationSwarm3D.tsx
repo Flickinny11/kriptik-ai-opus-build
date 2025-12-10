@@ -1,37 +1,51 @@
 /**
  * Verification Swarm 3D - Photorealistic Glass UI
  * 
- * Uses Three.js with transmission materials for real glass appearance:
- * - Physical glass with refraction and transmission
+ * True 3D glass rendering with:
+ * - MeshTransmissionMaterial for real glass refraction
+ * - Physical glass with chromatic aberration
  * - Warm copper glow for active states
- * - Visible 3D edges and depth
- * - Perspective camera for realistic viewing angle
- * - Custom shaders for layered shadows
+ * - Visible 3D edges with depth
+ * - Environment-based reflections
+ * - Contact shadows for realism
  */
 
-import { useRef, useState, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useRef, useState, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { 
   RoundedBox, 
-  MeshTransmissionMaterial, 
+  MeshTransmissionMaterial,
   Environment,
   Float,
-  Text,
   ContactShadows,
+  Center,
+  Html,
 } from '@react-three/drei';
-import { motion } from 'framer-motion';
 import * as THREE from 'three';
-import type { AgentState, SwarmVerdict, VerificationAgentType } from './VerificationSwarmStatus';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
+export type VerificationAgentType =
+  | 'error_checker'
+  | 'code_quality'
+  | 'visual_verifier'
+  | 'security_scanner'
+  | 'placeholder_eliminator'
+  | 'design_style';
+
+export type AgentStatus = 'idle' | 'running' | 'passed' | 'failed' | 'warning';
+
+export interface AgentState {
+  type: VerificationAgentType;
+  status: AgentStatus;
+  score?: number;
+}
+
 interface VerificationSwarm3DProps {
   agents: AgentState[];
-  verdict?: SwarmVerdict;
   isRunning?: boolean;
-  onRerun?: () => void;
   onAgentClick?: (type: VerificationAgentType) => void;
 }
 
@@ -39,23 +53,96 @@ interface VerificationSwarm3DProps {
 // AGENT CONFIG
 // ============================================================================
 
-const AGENTS: { type: VerificationAgentType; label: string; icon: string }[] = [
-  { type: 'error_checker', label: 'Errors', icon: '!' },
-  { type: 'code_quality', label: 'Quality', icon: '</>' },
-  { type: 'visual_verifier', label: 'Visual', icon: '◎' },
-  { type: 'security_scanner', label: 'Security', icon: '⬡' },
-  { type: 'placeholder_eliminator', label: 'Placeholders', icon: '✕' },
-  { type: 'design_style', label: 'Design', icon: '◇' },
+const AGENTS_CONFIG: { type: VerificationAgentType; label: string }[] = [
+  { type: 'error_checker', label: 'Errors' },
+  { type: 'code_quality', label: 'Quality' },
+  { type: 'visual_verifier', label: 'Visual' },
+  { type: 'security_scanner', label: 'Security' },
+  { type: 'placeholder_eliminator', label: 'Placeholders' },
+  { type: 'design_style', label: 'Design' },
 ];
 
 // ============================================================================
-// GLASS PILL BUTTON - 3D Glass with transmission
+// CUSTOM ICONS AS 3D GEOMETRY
+// ============================================================================
+
+function AgentIcon({ type, color }: { type: VerificationAgentType; color: string }) {
+  const iconColor = new THREE.Color(color);
+  
+  switch (type) {
+    case 'error_checker':
+      return (
+        <group>
+          <mesh position={[0, 0.08, 0]}>
+            <boxGeometry args={[0.03, 0.14, 0.03]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+          <mesh position={[0, -0.08, 0]}>
+            <sphereGeometry args={[0.025, 8, 8]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+        </group>
+      );
+    case 'code_quality':
+      return (
+        <group>
+          <mesh rotation={[0, 0, Math.PI / 6]}>
+            <boxGeometry args={[0.08, 0.02, 0.02]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+          <mesh rotation={[0, 0, -Math.PI / 6]}>
+            <boxGeometry args={[0.08, 0.02, 0.02]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+        </group>
+      );
+    case 'visual_verifier':
+      return (
+        <mesh>
+          <torusGeometry args={[0.06, 0.015, 8, 24]} />
+          <meshStandardMaterial color={iconColor} />
+        </mesh>
+      );
+    case 'security_scanner':
+      return (
+        <mesh>
+          <cylinderGeometry args={[0.07, 0.07, 0.02, 6]} />
+          <meshStandardMaterial color={iconColor} />
+        </mesh>
+      );
+    case 'placeholder_eliminator':
+      return (
+        <group rotation={[0, 0, Math.PI / 4]}>
+          <mesh>
+            <boxGeometry args={[0.12, 0.02, 0.02]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <boxGeometry args={[0.12, 0.02, 0.02]} />
+            <meshStandardMaterial color={iconColor} />
+          </mesh>
+        </group>
+      );
+    case 'design_style':
+      return (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.02, 4]} />
+          <meshStandardMaterial color={iconColor} />
+        </mesh>
+      );
+    default:
+      return null;
+  }
+}
+
+// ============================================================================
+// GLASS PILL - Individual agent button
 // ============================================================================
 
 function GlassPill({ 
   position, 
-  label, 
-  icon,
+  label,
+  type,
   status,
   isActive,
   onClick,
@@ -63,25 +150,38 @@ function GlassPill({
 }: { 
   position: [number, number, number];
   label: string;
-  icon: string;
-  status: string;
+  type: VerificationAgentType;
+  status: AgentStatus;
   isActive: boolean;
   onClick?: () => void;
   index: number;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-
-  // Animate glow for active/running states
+  
+  // Animate glow
   useFrame((state) => {
     if (glowRef.current && (isActive || status === 'running')) {
       const t = state.clock.elapsedTime;
-      glowRef.current.material.opacity = 0.3 + Math.sin(t * 2 + index) * 0.15;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 
+        0.25 + Math.sin(t * 2.5 + index) * 0.15;
+    }
+    if (groupRef.current && hovered) {
+      groupRef.current.position.z = THREE.MathUtils.lerp(
+        groupRef.current.position.z, 
+        position[2] + 0.08, 
+        0.1
+      );
+    } else if (groupRef.current) {
+      groupRef.current.position.z = THREE.MathUtils.lerp(
+        groupRef.current.position.z, 
+        position[2], 
+        0.1
+      );
     }
   });
 
-  // Determine colors based on status
   const getStatusColor = () => {
     switch (status) {
       case 'passed': return '#1a8754';
@@ -92,175 +192,181 @@ function GlassPill({
     }
   };
 
-  const warmGlow = new THREE.Color('#ff9060');
-  const statusColor = new THREE.Color(getStatusColor());
+  const warmGlow = '#ff9060';
+  const statusColor = getStatusColor();
+  const isWarm = isActive || status === 'running';
 
   return (
-    <Float
-      speed={1.5}
-      rotationIntensity={0.1}
-      floatIntensity={0.2}
-      floatingRange={[-0.02, 0.02]}
+    <group 
+      ref={groupRef}
+      position={position}
+      onClick={onClick}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
     >
-      <group 
-        position={position}
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        {/* Warm glow behind active pills */}
-        {(isActive || status === 'running') && (
-          <mesh ref={glowRef} position={[0, 0, -0.1]}>
-            <capsuleGeometry args={[0.35, 1.4, 8, 16]} />
-            <meshBasicMaterial 
-              color={warmGlow} 
-              transparent 
-              opacity={0.3}
-              side={THREE.BackSide}
-            />
-          </mesh>
-        )}
+      {/* Warm glow behind active pills */}
+      {isWarm && (
+        <mesh ref={glowRef} position={[0, 0, -0.05]} scale={[1.15, 1.15, 1]}>
+          <capsuleGeometry args={[0.22, 0.9, 4, 16]} />
+          <meshBasicMaterial 
+            color={warmGlow} 
+            transparent 
+            opacity={0.3}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
 
-        {/* Main glass pill */}
-        <mesh 
-          ref={meshRef}
-          rotation={[0, 0, Math.PI / 2]}
-          scale={hovered ? 1.02 : 1}
-        >
-          <capsuleGeometry args={[0.3, 1.2, 16, 32]} />
+      {/* Main glass pill - horizontal capsule */}
+      <Float
+        speed={1.2}
+        rotationIntensity={0.02}
+        floatIntensity={0.03}
+        floatingRange={[-0.01, 0.01]}
+      >
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <capsuleGeometry args={[0.18, 0.8, 8, 24]} />
           <MeshTransmissionMaterial
             backside
-            samples={16}
-            resolution={512}
-            transmission={0.95}
-            roughness={0.05}
-            thickness={0.3}
-            ior={1.5}
-            chromaticAberration={0.02}
-            anisotropy={0.3}
-            distortion={0.1}
-            distortionScale={0.2}
-            temporalDistortion={0.1}
-            color={isActive ? '#ffe8dc' : '#ffffff'}
-            attenuationColor={isActive ? '#ffb090' : '#f0f0f0'}
-            attenuationDistance={0.5}
+            samples={8}
+            resolution={256}
+            transmission={isWarm ? 0.85 : 0.92}
+            roughness={0.08}
+            thickness={0.18}
+            ior={1.45}
+            chromaticAberration={0.015}
+            anisotropy={0.2}
+            distortion={0.05}
+            distortionScale={0.15}
+            temporalDistortion={0.05}
+            color={isWarm ? '#fff0e8' : '#ffffff'}
+            attenuationColor={isWarm ? '#ffb090' : '#f5f5f5'}
+            attenuationDistance={0.6}
           />
         </mesh>
 
-        {/* Glass edge highlight - top */}
-        <mesh position={[0, 0.58, 0.25]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.28, 0.015, 8, 32, Math.PI]} />
-          <meshStandardMaterial 
-            color="#ffffff" 
-            emissive="#ffffff"
-            emissiveIntensity={0.3}
-            transparent
-            opacity={0.6}
-          />
-        </mesh>
+        {/* Icon container */}
+        <group position={[-0.32, 0, 0.2]}>
+          <AgentIcon type={type} color="#1a1a1a" />
+        </group>
 
-        {/* Status indicator dot */}
-        <mesh position={[0.5, 0, 0.35]}>
-          <sphereGeometry args={[0.06, 16, 16]} />
+        {/* Status dot */}
+        <mesh position={[0.4, 0.1, 0.2]}>
+          <sphereGeometry args={[0.04, 12, 12]} />
           <meshStandardMaterial 
             color={statusColor}
             emissive={statusColor}
-            emissiveIntensity={status === 'running' ? 0.8 : 0.4}
+            emissiveIntensity={status === 'running' ? 0.6 : 0.3}
           />
         </mesh>
 
-        {/* Icon */}
-        <Text
-          position={[-0.35, 0, 0.32]}
-          fontSize={0.25}
-          color="#1a1a1a"
-          anchorX="center"
-          anchorY="middle"
-          font="/fonts/cal-sans.woff"
-        >
-          {icon}
-        </Text>
-
-        {/* Label */}
-        <Text
-          position={[0.1, 0, 0.32]}
-          fontSize={0.12}
-          color="#1a1a1a"
-          anchorX="left"
-          anchorY="middle"
-          font="/fonts/outfit-medium.woff"
+        {/* Label as HTML overlay for crisp text */}
+        <Html
+          position={[0.05, 0, 0.22]}
+          center
+          style={{
+            fontFamily: "'Cal Sans', system-ui, sans-serif",
+            fontSize: '11px',
+            fontWeight: 600,
+            color: '#1a1a1a',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
         >
           {label}
-        </Text>
-      </group>
-    </Float>
-  );
-}
-
-// ============================================================================
-// GLASS BASE PANEL - The tray holding the pills
-// ============================================================================
-
-function GlassBasePanel({ children }: { children: React.ReactNode }) {
-  return (
-    <group>
-      {/* Main glass base */}
-      <RoundedBox
-        args={[3.5, 5, 0.15]}
-        radius={0.3}
-        smoothness={4}
-        position={[0, 0, -0.2]}
-      >
-        <MeshTransmissionMaterial
-          backside
-          samples={8}
-          resolution={256}
-          transmission={0.85}
-          roughness={0.15}
-          thickness={0.15}
-          ior={1.45}
-          chromaticAberration={0.01}
-          color="#f8f8f8"
-          attenuationColor="#e8e8e8"
-          attenuationDistance={1}
-        />
-      </RoundedBox>
-
-      {/* Frosted inner layer */}
-      <RoundedBox
-        args={[3.3, 4.8, 0.08]}
-        radius={0.25}
-        smoothness={4}
-        position={[0, 0, -0.12]}
-      >
-        <meshPhysicalMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.4}
-          roughness={0.8}
-          metalness={0}
-        />
-      </RoundedBox>
-
-      {/* Edge highlight */}
-      <mesh position={[0, 2.35, 0]}>
-        <boxGeometry args={[3.2, 0.02, 0.12]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#ffffff"
-          emissiveIntensity={0.2}
-          transparent
-          opacity={0.8}
-        />
-      </mesh>
-
-      {children}
+        </Html>
+      </Float>
     </group>
   );
 }
 
 // ============================================================================
-// MAIN 3D SCENE
+// GLASS BASE TRAY
+// ============================================================================
+
+function GlassBase() {
+  return (
+    <group position={[0, 0, -0.15]}>
+      {/* Main frosted glass base */}
+      <RoundedBox
+        args={[2.2, 3.2, 0.12]}
+        radius={0.2}
+        smoothness={4}
+      >
+        <MeshTransmissionMaterial
+          backside
+          samples={6}
+          resolution={128}
+          transmission={0.8}
+          roughness={0.2}
+          thickness={0.12}
+          ior={1.4}
+          color="#f8f8f8"
+          attenuationColor="#e8e8e8"
+          attenuationDistance={1.2}
+        />
+      </RoundedBox>
+
+      {/* Inner frosted layer */}
+      <RoundedBox
+        args={[2.0, 3.0, 0.06]}
+        radius={0.15}
+        smoothness={4}
+        position={[0, 0, 0.04]}
+      >
+        <meshPhysicalMaterial
+          color="#ffffff"
+          transparent
+          opacity={0.35}
+          roughness={0.85}
+          metalness={0}
+        />
+      </RoundedBox>
+
+      {/* Top edge highlight */}
+      <mesh position={[0, 1.5, 0.06]}>
+        <boxGeometry args={[1.9, 0.015, 0.08]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={0.15}
+          transparent
+          opacity={0.7}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// ============================================================================
+// SCENE SETUP WITH PROPER LIGHTING
+// ============================================================================
+
+function SceneLighting() {
+  return (
+    <>
+      <ambientLight intensity={0.6} />
+      <directionalLight 
+        position={[4, 6, 4]} 
+        intensity={1.2}
+        castShadow
+        shadow-mapSize={[512, 512]}
+      />
+      <directionalLight position={[-4, 4, -4]} intensity={0.4} />
+      {/* Warm rim light */}
+      <pointLight 
+        position={[2, 0, 3]} 
+        intensity={1.5}
+        color="#ff9060"
+        distance={6}
+      />
+    </>
+  );
+}
+
+// ============================================================================
+// MAIN SCENE
 // ============================================================================
 
 function SwarmScene({ 
@@ -276,71 +382,67 @@ function SwarmScene({
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.5} />
-      <directionalLight 
-        position={[5, 5, 5]} 
-        intensity={1} 
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
-      <directionalLight position={[-5, 3, -5]} intensity={0.3} />
-      
-      {/* Warm rim light for active glow effect */}
-      <pointLight 
-        position={[2, 0, 3]} 
-        intensity={isRunning ? 2 : 0.5} 
-        color="#ff9060"
-        distance={8}
-      />
+      <SceneLighting />
+      <Environment preset="studio" environmentIntensity={0.5} />
 
-      {/* Environment for reflections */}
-      <Environment preset="studio" />
+      <Center>
+        <group rotation={[0.25, -0.15, 0]}>
+          <GlassBase />
 
-      {/* Glass base panel with pills */}
-      <group rotation={[0.3, -0.2, 0]} position={[0, 0, 0]}>
-        <GlassBasePanel>
-          {AGENTS.map((agent, index) => {
-            const agentState = agentMap.get(agent.type);
-            const yPos = 1.8 - index * 0.75;
+          {/* Agent pills stacked vertically */}
+          {AGENTS_CONFIG.map((config, index) => {
+            const agent = agentMap.get(config.type);
+            const yPos = 1.1 - index * 0.45;
             
             return (
               <GlassPill
-                key={agent.type}
+                key={config.type}
                 position={[0, yPos, 0.1]}
-                label={agent.label}
-                icon={agent.icon}
-                status={agentState?.status || 'idle'}
-                isActive={agentState?.status === 'running' || agentState?.status === 'passed'}
-                onClick={() => onAgentClick?.(agent.type)}
+                label={config.label}
+                type={config.type}
+                status={agent?.status || 'idle'}
+                isActive={agent?.status === 'running' || agent?.status === 'passed'}
+                onClick={() => onAgentClick?.(config.type)}
                 index={index}
               />
             );
           })}
-        </GlassBasePanel>
+        </group>
+      </Center>
 
-        {/* Contact shadow for grounding */}
-        <ContactShadows
-          position={[0, -2.8, 0]}
-          opacity={0.4}
-          scale={8}
-          blur={2}
-          far={3}
-        />
-      </group>
+      {/* Contact shadow for grounding */}
+      <ContactShadows
+        position={[0, -1.8, 0]}
+        opacity={0.35}
+        scale={6}
+        blur={2.5}
+        far={2.5}
+      />
     </>
   );
 }
 
 // ============================================================================
-// LOADING FALLBACK
+// ERROR BOUNDARY FOR 3D
 // ============================================================================
 
-function LoadingFallback() {
+function ErrorFallback({ error }: { error: Error }) {
   return (
-    <div className="swarm-3d__loading">
-      <div className="swarm-3d__loading-spinner" />
-      <span>Loading 3D View...</span>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      padding: '20px',
+      color: '#c41e3a',
+      fontFamily: 'system-ui',
+      fontSize: '13px',
+      textAlign: 'center',
+    }}>
+      <div>
+        <p style={{ margin: '0 0 8px' }}>3D rendering unavailable</p>
+        <p style={{ margin: 0, opacity: 0.7, fontSize: '11px' }}>{error.message}</p>
+      </div>
     </div>
   );
 }
@@ -351,79 +453,66 @@ function LoadingFallback() {
 
 export function VerificationSwarm3D({
   agents,
-  verdict,
   isRunning = false,
-  onRerun,
   onAgentClick,
 }: VerificationSwarm3DProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const passedCount = agents.filter(a => a.status === 'passed').length;
-  const failedCount = agents.filter(a => a.status === 'failed').length;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (error) {
+    return <ErrorFallback error={error} />;
+  }
+
+  if (!mounted) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        height: '100%',
+        color: '#4a4a4a',
+        fontSize: '13px',
+      }}>
+        Loading 3D...
+      </div>
+    );
+  }
 
   return (
-    <motion.div 
-      className="swarm-3d"
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+    <Canvas
+      camera={{ 
+        position: [0, 0, 4.5], 
+        fov: 40,
+        near: 0.1,
+        far: 50,
+      }}
+      dpr={[1, 2]}
+      gl={{ 
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+      }}
+      onCreated={({ gl }) => {
+        gl.setClearColor(0x000000, 0);
+      }}
+      onError={(e) => {
+        console.error('Canvas error:', e);
+        setError(e instanceof Error ? e : new Error('WebGL error'));
+      }}
+      style={{ background: 'transparent' }}
     >
-      {/* Header */}
-      <div className="swarm-3d__header" onClick={() => setExpanded(!expanded)}>
-        <div className="swarm-3d__title">
-          <span className="swarm-3d__title-text">Verification Swarm</span>
-          <span className="swarm-3d__subtitle">
-            {isRunning ? 'Scanning...' : `${passedCount}/6 passed${failedCount > 0 ? ` · ${failedCount} failed` : ''}`}
-          </span>
-        </div>
-        {verdict && (
-          <div className={`swarm-3d__verdict swarm-3d__verdict--${verdict.verdict}`}>
-            {verdict.verdict.replace('_', ' ')}
-          </div>
-        )}
-      </div>
-
-      {/* 3D Canvas */}
-      <div className={`swarm-3d__canvas ${expanded ? 'swarm-3d__canvas--expanded' : ''}`}>
-        <Suspense fallback={<LoadingFallback />}>
-          <Canvas
-            camera={{ 
-              position: [0, 0, 6], 
-              fov: 35,
-              near: 0.1,
-              far: 100,
-            }}
-            dpr={[1, 2]}
-            gl={{ 
-              antialias: true,
-              alpha: true,
-              powerPreference: 'high-performance',
-            }}
-          >
-            <SwarmScene 
-              agents={agents} 
-              isRunning={isRunning}
-              onAgentClick={onAgentClick}
-            />
-          </Canvas>
-        </Suspense>
-      </div>
-
-      {/* Footer */}
-      <div className="swarm-3d__footer">
-        {onRerun && (
-          <button 
-            className="swarm-3d__rerun"
-            onClick={onRerun}
-            disabled={isRunning}
-          >
-            {isRunning ? 'Scanning...' : 'Re-scan'}
-          </button>
-        )}
-      </div>
-    </motion.div>
+      <SwarmScene 
+        agents={agents} 
+        isRunning={isRunning}
+        onAgentClick={onAgentClick}
+      />
+    </Canvas>
   );
 }
 
 export default VerificationSwarm3D;
-

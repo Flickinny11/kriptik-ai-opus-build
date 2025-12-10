@@ -55,14 +55,14 @@ interface VerificationSwarmStatusProps {
 
 const SwarmLogo = () => (
     <svg viewBox="0 0 28 28" fill="none" className="swarm-panel__logo-icon">
-        <path 
-            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z" 
-            stroke="#1a1a1a" 
-            strokeWidth="1.5" 
+        <path
+            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z"
+            stroke="#1a1a1a"
+            strokeWidth="1.5"
             fill="rgba(255, 255, 255, 0.5)"
         />
-        <path 
-            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z" 
+        <path
+            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z"
             fill="#1a1a1a"
             opacity="0.8"
         />
@@ -283,10 +283,10 @@ function AgentCard({
                 {/* Stats */}
                 <div className="agent-card__stats">
                     {agent.score !== undefined && (
-                        <motion.div 
+                        <motion.div
                             className={`agent-card__score ${
-                                agent.score >= 80 ? 'agent-card__score--good' : 
-                                agent.score >= 60 ? 'agent-card__score--warn' : 
+                                agent.score >= 80 ? 'agent-card__score--good' :
+                                agent.score >= 60 ? 'agent-card__score--warn' :
                                 'agent-card__score--bad'
                             }`}
                             initial={{ scale: 0 }}
@@ -297,7 +297,7 @@ function AgentCard({
                         </motion.div>
                     )}
                     {agent.issues !== undefined && agent.issues > 0 && (
-                        <motion.div 
+                        <motion.div
                             className="agent-card__issues"
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -307,7 +307,7 @@ function AgentCard({
                         </motion.div>
                     )}
                     <StatusIcon />
-                    <motion.div 
+                    <motion.div
                         className="agent-card__chevron"
                         animate={{ rotate: expanded ? 180 : 0 }}
                         transition={{ duration: 0.25 }}
@@ -339,8 +339,8 @@ function AgentCard({
                             {agent.details && agent.details.length > 0 && (
                                 <div className="agent-card__detail-list">
                                     {agent.details.slice(0, 3).map((detail, i) => (
-                                        <motion.div 
-                                            key={i} 
+                                        <motion.div
+                                            key={i}
                                             className="agent-card__detail-item"
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
@@ -453,23 +453,23 @@ export function VerificationSwarmStatus({
                             whileHover={{ scale: 1.05, y: -1 }}
                             whileTap={{ scale: 0.95, y: 1 }}
                         >
-                            <svg 
-                                viewBox="0 0 20 20" 
-                                fill="none" 
+                            <svg
+                                viewBox="0 0 20 20"
+                                fill="none"
                                 className={`w-5 h-5 ${isRunning ? 'animate-spin' : ''}`}
                             >
-                                <path 
-                                    d="M4 10a6 6 0 0 1 10.5-4M16 10a6 6 0 0 1-10.5 4" 
-                                    stroke="currentColor" 
-                                    strokeWidth="1.5" 
+                                <path
+                                    d="M4 10a6 6 0 0 1 10.5-4M16 10a6 6 0 0 1-10.5 4"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
                                     strokeLinecap="round"
                                 />
-                                <path 
-                                    d="M14 4l2 2-2 2M6 12l-2 2 2 2" 
-                                    stroke="currentColor" 
-                                    strokeWidth="1.5" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
+                                <path
+                                    d="M14 4l2 2-2 2M6 12l-2 2 2 2"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                 />
                             </svg>
                         </motion.button>
