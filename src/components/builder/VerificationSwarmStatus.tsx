@@ -1,13 +1,10 @@
 /**
- * Verification Swarm Status Component - Premium Edition
+ * Verification Swarm Status Component - Premium Liquid Glass
  *
- * Stunning, dynamic 6-agent verification swarm display.
- * Features:
- * - Custom geometric SVG icons
- * - Atmospheric gradients and glows
- * - Microanimations and hover effects
- * - Semitranslucent glass textures
- * - High-tech premium aesthetics
+ * Design: Photorealistic liquid glass with visible 3D edges
+ * Colors: Warm amber/copper glow (NO purple)
+ * Typography: Cal Sans / Outfit
+ * Icons: Custom white, black, and red geometric icons
  */
 
 import { useState } from 'react';
@@ -53,122 +50,105 @@ interface VerificationSwarmStatusProps {
 }
 
 // ============================================================================
-// CUSTOM 3D GEOMETRIC ICONS
+// CUSTOM ICONS - White, Black, Red geometric designs
 // ============================================================================
 
-const AgentIcons: Record<VerificationAgentType, React.FC<{ className?: string; isActive?: boolean }>> = {
-    error_checker: ({ className, isActive }) => (
+const SwarmLogo = () => (
+    <svg viewBox="0 0 28 28" fill="none" className="swarm-panel__logo-icon">
+        <path 
+            d="M14 3L23 8.5v11L14 25L5 19.5v-11L14 3z" 
+            stroke="#1a1a1a" 
+            strokeWidth="1.5" 
+            fill="rgba(255, 255, 255, 0.5)"
+        />
+        <path 
+            d="M14 8L18 10.5v5L14 18l-4-2.5v-5L14 8z" 
+            fill="#1a1a1a"
+            opacity="0.8"
+        />
+        <circle cx="14" cy="13" r="2" fill="#c41e3a" />
+    </svg>
+);
+
+const AgentIcons: Record<VerificationAgentType, React.FC<{ className?: string }>> = {
+    error_checker: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="error-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#ef4444" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#f97316" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="url(#error-grad)" strokeWidth="1.5" fill="none" />
-            <path d="M12 6v6M12 16v.01" stroke="url(#error-grad)" strokeWidth="2" strokeLinecap="round" />
-            <path d="M7 9.5l5 2.5 5-2.5" stroke="url(#error-grad)" strokeWidth="1" opacity="0.5" />
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#1a1a1a" strokeWidth="1.5" fill="rgba(255,255,255,0.4)" />
+            <path d="M12 6v6" stroke="#c41e3a" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="16" r="1.5" fill="#c41e3a" />
         </svg>
     ),
-    code_quality: ({ className, isActive }) => (
+    code_quality: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="quality-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#3b82f6" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#8b5cf6" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <rect x="3" y="3" width="18" height="18" rx="3" stroke="url(#quality-grad)" strokeWidth="1.5" fill="none" />
-            <path d="M7 8l3 3-3 3M12 14h5" stroke="url(#quality-grad)" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="18" cy="6" r="2" fill={isActive ? "#3b82f6" : "#475569"} opacity="0.6" />
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke="#1a1a1a" strokeWidth="1.5" fill="rgba(255,255,255,0.4)" />
+            <path d="M7 8l3 3-3 3" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M13 14h4" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="18" cy="6" r="2" fill="#c41e3a" />
         </svg>
     ),
-    visual_verifier: ({ className, isActive }) => (
+    visual_verifier: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="visual-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#a855f7" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#ec4899" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <circle cx="12" cy="12" r="9" stroke="url(#visual-grad)" strokeWidth="1.5" fill="none" />
-            <circle cx="12" cy="12" r="5" stroke="url(#visual-grad)" strokeWidth="1.5" fill="none" />
-            <circle cx="12" cy="12" r="2" fill="url(#visual-grad)" />
-            <path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="url(#visual-grad)" strokeWidth="1" opacity="0.5" />
+            <circle cx="12" cy="12" r="9" stroke="#1a1a1a" strokeWidth="1.5" fill="rgba(255,255,255,0.4)" />
+            <circle cx="12" cy="12" r="5" stroke="#1a1a1a" strokeWidth="1.5" fill="none" />
+            <circle cx="12" cy="12" r="2" fill="#c41e3a" />
+            <path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="#1a1a1a" strokeWidth="1" />
         </svg>
     ),
-    security_scanner: ({ className, isActive }) => (
+    security_scanner: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="security-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#f59e0b" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#ef4444" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <path d="M12 2L4 6v6c0 5.5 3.5 10 8 11 4.5-1 8-5.5 8-11V6l-8-4z" stroke="url(#security-grad)" strokeWidth="1.5" fill="none" />
-            <path d="M9 12l2 2 4-4" stroke="url(#security-grad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="8" r="1" fill={isActive ? "#f59e0b" : "#475569"} opacity="0.6" />
+            <path d="M12 2L4 6v6c0 5.5 3.5 10 8 11 4.5-1 8-5.5 8-11V6l-8-4z" stroke="#1a1a1a" strokeWidth="1.5" fill="rgba(255,255,255,0.4)" />
+            <path d="M9 12l2 2 4-4" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="7" r="1.5" fill="#c41e3a" />
         </svg>
     ),
-    placeholder_eliminator: ({ className, isActive }) => (
+    placeholder_eliminator: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="placeholder-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#f43f5e" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#fb923c" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <rect x="4" y="4" width="16" height="16" rx="2" stroke="url(#placeholder-grad)" strokeWidth="1.5" fill="none" />
-            <path d="M8 8h8M8 12h6M8 16h4" stroke="url(#placeholder-grad)" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M16 14l4 4M20 14l-4 4" stroke={isActive ? "#f43f5e" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" />
+            <rect x="4" y="4" width="16" height="16" rx="2" stroke="#1a1a1a" strokeWidth="1.5" fill="rgba(255,255,255,0.4)" />
+            <path d="M8 8h8M8 12h6M8 16h4" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M16 14l3 3M19 14l-3 3" stroke="#c41e3a" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
     ),
-    design_style: ({ className, isActive }) => (
+    design_style: ({ className }) => (
         <svg viewBox="0 0 24 24" fill="none" className={className}>
-            <defs>
-                <linearGradient id="design-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isActive ? "#06b6d4" : "#64748b"} />
-                    <stop offset="100%" stopColor={isActive ? "#10b981" : "#475569"} />
-                </linearGradient>
-            </defs>
-            <path d="M12 2L4 6l8 4 8-4-8-4z" fill="url(#design-grad)" opacity="0.3" />
-            <path d="M4 10l8 4 8-4" stroke="url(#design-grad)" strokeWidth="1.5" fill="none" />
-            <path d="M4 14l8 4 8-4" stroke="url(#design-grad)" strokeWidth="1.5" fill="none" />
-            <circle cx="12" cy="10" r="2" fill={isActive ? "#06b6d4" : "#475569"} />
+            <path d="M12 2L4 6l8 4 8-4-8-4z" fill="rgba(255,255,255,0.5)" stroke="#1a1a1a" strokeWidth="1" />
+            <path d="M4 10l8 4 8-4" stroke="#1a1a1a" strokeWidth="1.5" />
+            <path d="M4 14l8 4 8-4" stroke="#1a1a1a" strokeWidth="1.5" />
+            <circle cx="12" cy="10" r="2" fill="#c41e3a" />
         </svg>
     ),
 };
 
-// Status indicator icons
+// Status icons - Clean geometric
 const StatusIcons = {
     passed: () => (
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-            <circle cx="8" cy="8" r="7" stroke="#10b981" strokeWidth="1.5" fill="rgba(16, 185, 129, 0.15)" />
-            <path d="M5 8l2 2 4-4" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg viewBox="0 0 18 18" fill="none" className="w-[18px] h-[18px]">
+            <circle cx="9" cy="9" r="8" stroke="#1a8754" strokeWidth="1.5" fill="rgba(26, 135, 84, 0.1)" />
+            <path d="M5.5 9l2.5 2.5 4.5-5" stroke="#1a8754" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     ),
     failed: () => (
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-            <circle cx="8" cy="8" r="7" stroke="#ef4444" strokeWidth="1.5" fill="rgba(239, 68, 68, 0.15)" />
-            <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+        <svg viewBox="0 0 18 18" fill="none" className="w-[18px] h-[18px]">
+            <circle cx="9" cy="9" r="8" stroke="#c41e3a" strokeWidth="1.5" fill="rgba(196, 30, 58, 0.1)" />
+            <path d="M6 6l6 6M12 6l-6 6" stroke="#c41e3a" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
     ),
     warning: () => (
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-            <path d="M8 2L1 14h14L8 2z" stroke="#f59e0b" strokeWidth="1.5" fill="rgba(245, 158, 11, 0.15)" />
-            <path d="M8 6v4M8 12v.01" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+        <svg viewBox="0 0 18 18" fill="none" className="w-[18px] h-[18px]">
+            <path d="M9 2L1 16h16L9 2z" stroke="#cc7722" strokeWidth="1.5" fill="rgba(204, 119, 34, 0.1)" strokeLinejoin="round" />
+            <path d="M9 7v4" stroke="#cc7722" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="9" cy="13" r="1" fill="#cc7722" />
         </svg>
     ),
     running: () => (
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 animate-spin">
-            <circle cx="8" cy="8" r="6" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="2" fill="none" />
-            <path d="M8 2a6 6 0 0 1 6 6" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" fill="none" />
+        <svg viewBox="0 0 18 18" fill="none" className="w-[18px] h-[18px] animate-spin">
+            <circle cx="9" cy="9" r="7" stroke="rgba(255, 140, 80, 0.25)" strokeWidth="2" fill="none" />
+            <path d="M9 2a7 7 0 0 1 7 7" stroke="#ff8c50" strokeWidth="2" strokeLinecap="round" fill="none" />
         </svg>
     ),
     idle: () => (
-        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-            <circle cx="8" cy="8" r="6" stroke="#475569" strokeWidth="1.5" fill="rgba(71, 85, 105, 0.15)" />
-            <circle cx="8" cy="8" r="2" fill="#475569" />
+        <svg viewBox="0 0 18 18" fill="none" className="w-[18px] h-[18px]">
+            <circle cx="9" cy="9" r="7" stroke="#a0a0a0" strokeWidth="1.5" fill="rgba(160, 160, 160, 0.1)" />
+            <circle cx="9" cy="9" r="2.5" fill="#a0a0a0" />
         </svg>
     ),
 };
@@ -181,56 +161,42 @@ const AGENT_CONFIG: Record<VerificationAgentType, {
     name: string;
     shortName: string;
     description: string;
-    gradient: string;
-    glowColor: string;
     interval: string;
 }> = {
     error_checker: {
         name: 'Error Checker',
         shortName: 'Errors',
         description: 'TypeScript, ESLint, runtime errors',
-        gradient: 'from-red-500/20 via-orange-500/10 to-transparent',
-        glowColor: 'rgba(239, 68, 68, 0.4)',
         interval: '5s',
     },
     code_quality: {
         name: 'Code Quality',
         shortName: 'Quality',
         description: 'DRY, naming, organization',
-        gradient: 'from-blue-500/20 via-violet-500/10 to-transparent',
-        glowColor: 'rgba(59, 130, 246, 0.4)',
         interval: '30s',
     },
     visual_verifier: {
         name: 'Visual Verifier',
         shortName: 'Visual',
         description: 'Screenshot AI analysis',
-        gradient: 'from-purple-500/20 via-pink-500/10 to-transparent',
-        glowColor: 'rgba(168, 85, 247, 0.4)',
         interval: '60s',
     },
     security_scanner: {
         name: 'Security Scanner',
         shortName: 'Security',
         description: 'Vulnerabilities, secrets',
-        gradient: 'from-amber-500/20 via-red-500/10 to-transparent',
-        glowColor: 'rgba(245, 158, 11, 0.4)',
         interval: '60s',
     },
     placeholder_eliminator: {
         name: 'Placeholder Eliminator',
         shortName: 'Placeholders',
         description: 'TODOs, lorem ipsum, mocks',
-        gradient: 'from-rose-500/20 via-orange-500/10 to-transparent',
-        glowColor: 'rgba(244, 63, 94, 0.4)',
         interval: '10s',
     },
     design_style: {
         name: 'Design Style',
         shortName: 'Design',
         description: 'Soul-appropriate design',
-        gradient: 'from-cyan-500/20 via-emerald-500/10 to-transparent',
-        glowColor: 'rgba(6, 182, 212, 0.4)',
         interval: 'on-feature',
     },
 };
@@ -245,31 +211,15 @@ const AGENT_ORDER: VerificationAgentType[] = [
 ];
 
 // ============================================================================
-// VERDICT BADGE - Premium Version
+// VERDICT BADGE
 // ============================================================================
 
 function VerdictBadge({ verdict }: { verdict: SwarmVerdict }) {
     const config = {
-        approved: {
-            gradient: 'from-emerald-600 to-green-500',
-            glow: 'rgba(16, 185, 129, 0.5)',
-            text: 'APPROVED',
-        },
-        needs_work: {
-            gradient: 'from-amber-600 to-yellow-500',
-            glow: 'rgba(245, 158, 11, 0.5)',
-            text: 'NEEDS WORK',
-        },
-        blocked: {
-            gradient: 'from-red-600 to-orange-500',
-            glow: 'rgba(239, 68, 68, 0.5)',
-            text: 'BLOCKED',
-        },
-        rejected: {
-            gradient: 'from-rose-600 to-red-500',
-            glow: 'rgba(244, 63, 94, 0.5)',
-            text: 'REJECTED',
-        },
+        approved: { bg: 'linear-gradient(135deg, #1a8754, #22a366)', text: 'APPROVED' },
+        needs_work: { bg: 'linear-gradient(135deg, #cc7722, #e8973d)', text: 'NEEDS WORK' },
+        blocked: { bg: 'linear-gradient(135deg, #c41e3a, #e63950)', text: 'BLOCKED' },
+        rejected: { bg: 'linear-gradient(135deg, #8b0000, #c41e3a)', text: 'REJECTED' },
     }[verdict.verdict];
 
     return (
@@ -277,10 +227,9 @@ function VerdictBadge({ verdict }: { verdict: SwarmVerdict }) {
             className="verdict-badge"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            style={{
-                background: `linear-gradient(135deg, ${config.gradient.replace('from-', '').replace(' to-', ', ')})`,
-                boxShadow: `0 0 20px ${config.glow}, inset 0 1px 0 rgba(255,255,255,0.2)`,
-            }}
+            style={{ background: config.bg }}
+            whileHover={{ scale: 1.02, y: -1 }}
+            transition={{ type: 'spring', stiffness: 400 }}
         >
             <span className="verdict-badge__text">{config.text}</span>
             <span className="verdict-badge__score">{verdict.overallScore}</span>
@@ -289,7 +238,7 @@ function VerdictBadge({ verdict }: { verdict: SwarmVerdict }) {
 }
 
 // ============================================================================
-// AGENT CARD - Premium Version
+// AGENT CARD
 // ============================================================================
 
 function AgentCard({
@@ -309,44 +258,20 @@ function AgentCard({
 }) {
     const Icon = AgentIcons[type];
     const StatusIcon = StatusIcons[agent.status];
-    const isActive = agent.status !== 'idle';
 
     return (
         <motion.div
             className={`agent-card agent-card--${agent.status}`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.3 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05, duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             layout
         >
-            {/* Atmospheric gradient background */}
-            <div 
-                className="agent-card__atmosphere"
-                style={{
-                    background: isActive 
-                        ? `radial-gradient(ellipse at 0% 50%, ${config.glowColor} 0%, transparent 70%)`
-                        : 'none',
-                }}
-            />
-
-            {/* Glass texture layer */}
-            <div className="agent-card__glass" />
-
-            {/* Content */}
-            <button
-                onClick={onToggle}
-                className="agent-card__content"
-            >
-                {/* Icon with glow */}
+            <button onClick={onToggle} className="agent-card__content">
+                {/* Icon */}
                 <div className="agent-card__icon-container">
-                    <div 
-                        className="agent-card__icon-glow"
-                        style={{
-                            background: isActive ? config.glowColor : 'transparent',
-                            opacity: isActive ? 0.6 : 0,
-                        }}
-                    />
-                    <Icon className="agent-card__icon" isActive={isActive} />
+                    <div className="agent-card__icon-glow" />
+                    <Icon className="agent-card__icon" />
                 </div>
 
                 {/* Info */}
@@ -366,7 +291,7 @@ function AgentCard({
                             }`}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ type: 'spring', stiffness: 500 }}
+                            transition={{ type: 'spring', stiffness: 500, delay: index * 0.05 + 0.1 }}
                         >
                             {agent.score}
                         </motion.div>
@@ -385,10 +310,10 @@ function AgentCard({
                     <motion.div 
                         className="agent-card__chevron"
                         animate={{ rotate: expanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.25 }}
                     >
-                        <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-                            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        <svg viewBox="0 0 14 14" fill="none" className="w-4 h-4">
+                            <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                     </motion.div>
                 </div>
@@ -402,7 +327,7 @@ function AgentCard({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
                     >
                         <div className="agent-card__details-inner">
                             <p className="agent-card__description">{config.description}</p>
@@ -442,16 +367,12 @@ function AgentCard({
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Edge highlights */}
-            <div className="agent-card__edge-top" />
-            <div className="agent-card__edge-left" />
         </motion.div>
     );
 }
 
 // ============================================================================
-// MAIN COMPONENT - Premium Version
+// MAIN COMPONENT
 // ============================================================================
 
 export function VerificationSwarmStatus({
@@ -475,33 +396,24 @@ export function VerificationSwarmStatus({
     if (compact) {
         return (
             <div className="swarm-compact">
-                {/* Animated status orbs */}
                 <div className="swarm-compact__orbs">
                     {AGENT_ORDER.map((type, i) => {
                         const agent = agentMap.get(type);
-                        const config = AGENT_CONFIG[type];
                         const status = agent?.status || 'idle';
 
                         return (
                             <motion.div
                                 key={type}
                                 className={`swarm-compact__orb swarm-compact__orb--${status}`}
-                                title={config.name}
+                                title={AGENT_CONFIG[type].name}
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                transition={{ delay: i * 0.05, type: 'spring' }}
-                                whileHover={{ scale: 1.3, y: -2 }}
-                                style={{
-                                    boxShadow: status !== 'idle' 
-                                        ? `0 0 8px ${config.glowColor}, 0 0 2px ${config.glowColor}`
-                                        : 'none',
-                                }}
+                                transition={{ delay: i * 0.04, type: 'spring', stiffness: 400 }}
+                                whileHover={{ scale: 1.4, y: -3 }}
                             />
                         );
                     })}
                 </div>
-
-                {/* Summary text */}
                 <span className="swarm-compact__summary">
                     {passedCount}/{AGENT_ORDER.length} passed
                 </span>
@@ -510,49 +422,14 @@ export function VerificationSwarmStatus({
     }
 
     return (
-        <div className="swarm-panel">
-            {/* Atmospheric background */}
-            <div className="swarm-panel__atmosphere">
-                <div className="swarm-panel__gradient-1" />
-                <div className="swarm-panel__gradient-2" />
-                <div className="swarm-panel__noise" />
-            </div>
-
+        <div className={`swarm-panel ${isRunning ? 'swarm-panel--running' : ''}`}>
             {/* Header */}
             <div className="swarm-panel__header">
                 <div className="swarm-panel__header-left">
-                    {/* Animated hexagon logo */}
                     <div className="swarm-panel__logo">
-                        <svg viewBox="0 0 32 32" fill="none" className="swarm-panel__logo-icon">
-                            <defs>
-                                <linearGradient id="swarm-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#8b5cf6" />
-                                    <stop offset="50%" stopColor="#a855f7" />
-                                    <stop offset="100%" stopColor="#c084fc" />
-                                </linearGradient>
-                            </defs>
-                            <path 
-                                d="M16 2L28 9v14l-12 7L4 23V9l12-7z" 
-                                stroke="url(#swarm-logo-grad)" 
-                                strokeWidth="2" 
-                                fill="rgba(139, 92, 246, 0.15)"
-                            />
-                            <path 
-                                d="M16 8L22 11.5v7L16 22l-6-3.5v-7L16 8z" 
-                                fill="url(#swarm-logo-grad)"
-                                opacity="0.6"
-                            />
-                            <circle cx="16" cy="15" r="3" fill="url(#swarm-logo-grad)" />
-                        </svg>
-                        {isRunning && (
-                            <motion.div
-                                className="swarm-panel__logo-pulse"
-                                animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0, 0.8] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                            />
-                        )}
+                        <SwarmLogo />
+                        <div className="swarm-panel__logo-pulse" />
                     </div>
-
                     <div className="swarm-panel__title-area">
                         <h3 className="swarm-panel__title">Verification Swarm</h3>
                         <p className="swarm-panel__subtitle">
@@ -572,17 +449,27 @@ export function VerificationSwarmStatus({
                             onClick={onRerun}
                             disabled={isRunning}
                             className="swarm-panel__rerun"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.05, y: -1 }}
+                            whileTap={{ scale: 0.95, y: 1 }}
                         >
-                            <svg viewBox="0 0 20 20" fill="none" className={`w-5 h-5 ${isRunning ? 'animate-spin' : ''}`}>
+                            <svg 
+                                viewBox="0 0 20 20" 
+                                fill="none" 
+                                className={`w-5 h-5 ${isRunning ? 'animate-spin' : ''}`}
+                            >
                                 <path 
                                     d="M4 10a6 6 0 0 1 10.5-4M16 10a6 6 0 0 1-10.5 4" 
                                     stroke="currentColor" 
                                     strokeWidth="1.5" 
                                     strokeLinecap="round"
                                 />
-                                <path d="M14 4l2 2-2 2M6 12l-2 2 2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <path 
+                                    d="M14 4l2 2-2 2M6 12l-2 2 2 2" 
+                                    stroke="currentColor" 
+                                    strokeWidth="1.5" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                />
                             </svg>
                         </motion.button>
                     )}
@@ -618,22 +505,14 @@ export function VerificationSwarmStatus({
                     </div>
                     <div className="swarm-panel__score-track">
                         <motion.div
-                            className="swarm-panel__score-fill"
+                            className={`swarm-panel__score-fill ${
+                                verdict.overallScore >= 85 ? 'swarm-panel__score-fill--good' :
+                                verdict.overallScore >= 70 ? 'swarm-panel__score-fill--warn' :
+                                'swarm-panel__score-fill--bad'
+                            }`}
                             initial={{ width: 0 }}
                             animate={{ width: `${verdict.overallScore}%` }}
                             transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                            style={{
-                                background: verdict.overallScore >= 85 
-                                    ? 'linear-gradient(90deg, #10b981, #34d399)'
-                                    : verdict.overallScore >= 70 
-                                    ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                                    : 'linear-gradient(90deg, #ef4444, #f87171)',
-                                boxShadow: verdict.overallScore >= 85 
-                                    ? '0 0 20px rgba(16, 185, 129, 0.5)'
-                                    : verdict.overallScore >= 70 
-                                    ? '0 0 20px rgba(245, 158, 11, 0.5)'
-                                    : '0 0 20px rgba(239, 68, 68, 0.5)',
-                            }}
                         />
                     </div>
                     <p className="swarm-panel__score-message">{verdict.message}</p>
