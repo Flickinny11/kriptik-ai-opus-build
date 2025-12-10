@@ -3,7 +3,7 @@
  *
  * Stunning, comprehensive panels for each feature:
  * - Real-time visualizations
- * - Full configuration options  
+ * - Full configuration options
  * - Backend integration
  * - High-tech photorealistic design
  */
@@ -38,7 +38,7 @@ const FEATURE_PANELS: Record<string, {
 }> = {
   // Premium comprehensive panels
   'agents': { title: 'Agents Command Center', icon: 'agents', component: AgentsCommandCenterWrapper, fullWidth: true },
-  
+
   // Other panels (to be upgraded to comprehensive versions)
   'memory': { title: 'Memory', icon: 'memory', component: MemoryPanel },
   'quality-check': { title: 'Quality', icon: 'qualityCheck', component: QualityCheckPanel },
@@ -161,16 +161,16 @@ export function DeveloperBarPanel({
       <div className={`glass-panel__base ${fullWidth ? 'glass-panel__base--fullwidth' : ''}`}>
         {/* Multi-layer shadow for floating effect */}
         <div className="glass-panel__shadow" />
-        
+
         {/* Primary frost layer with refraction */}
         <div className="glass-panel__frost" />
 
         {/* Inner frost for depth */}
         <div className="glass-panel__frost-inner" />
-        
+
         {/* Specular highlight - top reflection */}
         <div className="glass-panel__specular" />
-        
+
         {/* Top edge highlight */}
         <div className="glass-panel__highlight" />
 
