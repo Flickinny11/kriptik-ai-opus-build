@@ -118,6 +118,34 @@ async function runMigration() {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
+
+            // Notifications table
+            `CREATE TABLE IF NOT EXISTS notifications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                feature_agent_id TEXT,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                action_url TEXT,
+                channels TEXT,
+                metadata TEXT,
+                read INTEGER DEFAULT 0,
+                dismissed INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')) NOT NULL
+            )`,
+
+            // Notification preferences table
+            `CREATE TABLE IF NOT EXISTS notification_preferences (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL UNIQUE,
+                email TEXT,
+                phone TEXT,
+                slack_webhook TEXT,
+                push_enabled INTEGER DEFAULT 0,
+                push_subscription TEXT,
+                updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+            )`,
         ];
 
         // Create indexes
@@ -129,6 +157,9 @@ async function runMigration() {
             `CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)`,
             `CREATE INDEX IF NOT EXISTS idx_files_project_id ON files(project_id)`,
             `CREATE INDEX IF NOT EXISTS idx_deployments_project_id ON deployments(project_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_notifications_feature_agent_id ON notifications(feature_agent_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`,
         ];
 
         // Execute table creation

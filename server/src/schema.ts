@@ -41,6 +41,36 @@ export const files = sqliteTable('files', {
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
 
+// ============================================================================
+// Notifications (Feature Agent + System)
+// ============================================================================
+
+export const notifications = sqliteTable('notifications', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    featureAgentId: text('feature_agent_id'),
+    type: text('type').notNull(), // feature_complete | error | decision_needed | budget_warning
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    actionUrl: text('action_url'),
+    channels: text('channels'), // JSON array of channels attempted
+    metadata: text('metadata'), // JSON
+    read: integer('read', { mode: 'boolean' }).default(false),
+    dismissed: integer('dismissed', { mode: 'boolean' }).default(false),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+export const notificationPreferences = sqliteTable('notification_preferences', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().unique(),
+    email: text('email'),
+    phone: text('phone'),
+    slackWebhook: text('slack_webhook'),
+    pushEnabled: integer('push_enabled', { mode: 'boolean' }).default(false),
+    pushSubscription: text('push_subscription'), // JSON
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
 // Generations table
 export const generations = sqliteTable('generations', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

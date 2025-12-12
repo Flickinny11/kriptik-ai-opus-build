@@ -406,6 +406,7 @@ import ghostModeRouter from './routes/ghost-mode.js';
 import learningRouter from './routes/learning.js';
 import developerModeRouter from './routes/developer-mode.js';
 import featureAgentRouter from './routes/feature-agent.js';
+import notificationsRouter from './routes/notifications.js';
 import autonomyRouter from './routes/autonomy.js';
 import checkpointsRouter from './routes/checkpoints.js';
 import intelligenceDialRouter from './routes/intelligence-dial.js';
@@ -535,6 +536,9 @@ app.use("/api/developer-mode", promptSanitizer, requireCredits(100), developerMo
 // Feature Agent - Dedicated route module (alias wrapper around FeatureAgentService)
 // Requires 100 credits for agent operations
 app.use("/api/feature-agent", promptSanitizer, requireCredits(100), featureAgentRouter);
+
+// Notifications - in-app + external channels
+app.use("/api/notifications", promptSanitizer, requireCredits(10), notificationsRouter);
 
 // Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
 app.use("/api/speed-dial", speedDialRouter);

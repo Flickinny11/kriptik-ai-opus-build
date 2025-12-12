@@ -42,6 +42,7 @@
     "pg": "^8.16.3",
     "stripe": "^20.0.0",
     "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "zod": "^4.1.13"
   },
   "optionalDependencies": {
@@ -56,6 +57,7 @@
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.1",
     "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "@vercel/node": "^3.2.0",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3"

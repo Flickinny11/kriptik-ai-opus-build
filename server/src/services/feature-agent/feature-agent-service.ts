@@ -32,6 +32,7 @@ import {
 import { getCredentialVault } from '../security/credential-vault.js';
 import { createVerificationSwarm, type CombinedVerificationResult } from '../verification/index.js';
 import { GhostModeController } from '../ghost-mode/ghost-controller.js';
+import { getNotificationService } from '../notifications/notification-service.js';
 
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
@@ -176,6 +177,7 @@ async function upsertProjectEnv(projectId: string, vars: Record<string, string>)
 export class FeatureAgentService extends EventEmitter {
     private agents: Map<string, FeatureAgentRuntime> = new Map();
     private ghost = new GhostModeController();
+    private notifications = getNotificationService();
 
     private emitStream(agentId: string, msg: StreamMessage): void {
         this.emit('feature-agent:stream', { agentId, message: msg });
@@ -208,6 +210,38 @@ export class FeatureAgentService extends EventEmitter {
         const rt = this.getRuntimeOrThrow(agentId);
         rt.config.status = status;
         this.emitStream(agentId, { type: 'status', content: `Status: ${status}`, timestamp: Date.now(), metadata: { status } });
+
+        // Ghost Mode notifications: decision needed when awaiting plan approval/credentials
+        const gm = rt.config.ghostModeConfig;
+        if (gm?.enabled && (status === 'awaiting_plan_approval' || status === 'awaiting_credentials')) {
+            if (gm.notifyOn.includes('decision_needed')) {
+                void this.notifications.sendNotification(rt.config.userId, this.channelsFromGhostConfig(gm), {
+                    type: 'decision_needed',
+                    title: status === 'awaiting_plan_approval' ? 'Decision Needed: Approve Implementation Plan' : 'Decision Needed: Provide Required Credentials',
+                    message: status === 'awaiting_plan_approval'
+                        ? 'A Feature Agent generated an implementation plan and needs your approval to proceed.'
+                        : 'A Feature Agent requires credentials to proceed with the approved plan.',
+                    featureAgentId: rt.config.id,
+                    featureAgentName: rt.config.name,
+                    actionUrl: `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/builder/${rt.config.projectId}`,
+                    metadata: {
+                        developerModeAgentId: rt.developerModeAgentId,
+                        developerModeSessionId: rt.sessionId,
+                        projectId: rt.config.projectId,
+                        status,
+                    },
+                }).catch((e) => console.warn('[FeatureAgent] Notification send failed:', e));
+            }
+        }
+    }
+
+    private channelsFromGhostConfig(config: GhostModeAgentConfig): Array<'email' | 'sms' | 'slack' | 'push'> {
+        const out: Array<'email' | 'sms' | 'slack' | 'push'> = [];
+        if (config.notificationChannels.email) out.push('email');
+        if (config.notificationChannels.sms) out.push('sms');
+        if (config.notificationChannels.slack) out.push('slack');
+        if (config.notificationChannels.push) out.push('push');
+        return out.length > 0 ? out : ['push'];
     }
 
     async createFeatureAgent(config: CreateFeatureAgentRequest): Promise<FeatureAgentConfig> {
@@ -615,6 +649,33 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
                 rt.config.completedAt = now();
                 this.setStatus(agentId, combined.verdict === 'APPROVED' ? 'complete' : 'failed');
+
+                // Ghost Mode notifications on completion/error
+                const gm = rt.config.ghostModeConfig;
+                if (gm?.enabled) {
+                    const channels = this.channelsFromGhostConfig(gm);
+                    const type = combined.verdict === 'APPROVED' ? 'feature_complete' : 'error';
+                    const title = combined.verdict === 'APPROVED'
+                        ? `Feature Complete: ${rt.config.name}`
+                        : `Error: Verification ${combined.verdict} (${rt.config.name})`;
+                    const message = combined.verdict === 'APPROVED'
+                        ? 'Feature Agent finished and passed verification.'
+                        : `Feature Agent did not pass verification: ${combined.verdict} (score: ${combined.overallScore}).`;
+                    void this.notifications.sendNotification(rt.config.userId, channels, {
+                        type,
+                        title,
+                        message,
+                        featureAgentId: rt.config.id,
+                        featureAgentName: rt.config.name,
+                        actionUrl: `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/builder/${rt.config.projectId}`,
+                        metadata: {
+                            verification: combined,
+                            developerModeAgentId: rt.developerModeAgentId,
+                            developerModeSessionId: rt.sessionId,
+                            projectId: rt.config.projectId,
+                        },
+                    }).catch((e) => console.warn('[FeatureAgent] Completion notification failed:', e));
+                }
             } catch (e) {
                 rt.config.completedAt = now();
                 this.setStatus(agentId, 'failed');
@@ -672,6 +733,20 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         } as any);
 
         this.emitStream(agentId, { type: 'status', content: 'Ghost Mode enabled.', timestamp: Date.now() });
+
+        // Persist basic preferences if provided (email/sms/slack) so notifications can be delivered.
+        try {
+            await this.notifications.savePreferences({
+                userId: rt.config.userId,
+                email: config.notificationChannels.email,
+                phone: config.notificationChannels.sms,
+                slackWebhook: config.notificationChannels.slack,
+                pushEnabled: config.notificationChannels.push,
+                pushSubscription: null,
+            });
+        } catch (e) {
+            console.warn('[FeatureAgent] Failed to save notification preferences:', e);
+        }
     }
 
     async getFeatureAgentStatus(agentId: string): Promise<FeatureAgentStatus> {

@@ -12,6 +12,7 @@ import UploadDesignModal from '../components/builder/UploadDesignModal';
 import FigmaImportModal from '../components/builder/FigmaImportModal';
 import GitHubCloneModal from '../components/builder/GitHubCloneModal';
 import NewProjectModal from '../components/dashboard/NewProjectModal';
+import NotificationsSection from '../components/dashboard/NotificationsSection';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
@@ -759,6 +760,13 @@ export default function Dashboard() {
 
                 {/* My Stuff Section */}
                 <div className="mt-16">
+                    {/* Notifications (above My Stuff/Projects) */}
+                    {isAuthenticated && user?.id && (
+                        <div className="mb-8">
+                            <NotificationsSection userId={user.id} />
+                        </div>
+                    )}
+
                     {/* Section Header with Actions */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
