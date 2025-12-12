@@ -2,8 +2,8 @@
   "project": "KripTik AI Ultimate Builder Architecture",
   "version": "3.0",
   "last_updated": "2025-12-12",
-  "total_features": 65,
-  "completed": 50,
+  "total_features": 66,
+  "completed": 51,
   "in_progress": 0,
   "pending": 15,
 
@@ -521,6 +521,32 @@
             "Credentials collection UI (secure inputs, platform links, proceed gating)",
             "Backend FeatureAgentService (intent lock, plan generation, approvals, credential vault + .env write, execution via Developer Mode, verification swarm, merge)",
             "Feature Agent SSE stream supports plan/credentials/verification messages"
+          ]
+        },
+        {
+          "id": "F066",
+          "name": "Notifications System (Feature Agents + Dashboard UI)",
+          "description": "Notification service + DB schema + API routes + Dashboard notifications panel for Feature Agent events",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/notifications/notification-service.ts",
+            "server/src/routes/notifications.ts",
+            "server/src/schema.ts",
+            "server/src/run-migration.ts",
+            "server/src/index.ts",
+            "server/src/services/feature-agent/feature-agent-service.ts",
+            "src/components/dashboard/NotificationsSection.tsx",
+            "src/pages/Dashboard.tsx"
+          ],
+          "dependencies": ["F034", "F065"],
+          "phase": 14,
+          "completed_at": "2025-12-12",
+          "features_implemented": [
+            "DB tables: notifications + notification_preferences",
+            "NotificationService supports email/sms/slack/push (push via VAPID + web-push)",
+            "API endpoints for listing/reading/dismissing notifications + saving preferences",
+            "Dashboard NotificationsSection (glass styling, expandable, detail modal, timeline via agent logs when available)"
           ]
         },
         {
