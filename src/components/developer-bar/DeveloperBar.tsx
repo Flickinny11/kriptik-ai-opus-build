@@ -21,21 +21,21 @@ const GlassRefractionFilter = () => (
     <defs>
       {/* Glass refraction effect */}
       <filter id="glass-refraction" x="-50%" y="-50%" width="200%" height="200%">
-        <feTurbulence 
-          type="fractalNoise" 
-          baseFrequency="0.01" 
-          numOctaves="2" 
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.01"
+          numOctaves="2"
           result="noise"
         />
-        <feDisplacementMap 
-          in="SourceGraphic" 
-          in2="noise" 
-          scale="3" 
-          xChannelSelector="R" 
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="noise"
+          scale="3"
+          xChannelSelector="R"
           yChannelSelector="G"
         />
       </filter>
-      
+
       {/* Glass edge glow */}
       <filter id="glass-edge-glow" x="-20%" y="-20%" width="140%" height="140%">
         <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
@@ -47,7 +47,7 @@ const GlassRefractionFilter = () => (
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
-      
+
       {/* Warm glow for active state */}
       <filter id="warm-glow" x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
@@ -70,11 +70,10 @@ export interface FeatureButton {
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
-  { id: 'agents', name: 'Agents', icon: 'agents', category: 'core' },
+  { id: 'feature-agent', name: 'Feature Agent', icon: 'agents', category: 'core' },
   { id: 'memory', name: 'Memory', icon: 'memory', category: 'core' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck', category: 'core' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations', category: 'core' },
-  { id: 'ghost-mode', name: 'Ghost Mode', icon: 'ghostMode', category: 'ai' },
   { id: 'market-fit', name: 'Market Fit', icon: 'marketFit', category: 'ai' },
   { id: 'predictive-engine', name: 'Predictive', icon: 'predictiveEngine', category: 'ai' },
   { id: 'ai-slop-catch', name: 'AI-Slop', icon: 'aiSlopCatch', category: 'ai' },
@@ -234,7 +233,7 @@ export function DeveloperBar({
     <>
       {/* SVG Filters for Glass Effects */}
       <GlassRefractionFilter />
-      
+
       {/* Frosted Glass Toolbar */}
       <motion.div
         ref={barRef}
@@ -255,13 +254,13 @@ export function DeveloperBar({
         <div className="glass-toolbar__base">
           {/* Multi-layer shadow for floating effect */}
           <div className="glass-toolbar__shadow" />
-          
+
           {/* Main glass surface with refraction */}
           <div className="glass-toolbar__frost" />
-          
+
           {/* Inner frost for depth */}
           <div className="glass-toolbar__frost-inner" />
-          
+
           {/* Specular highlight - top reflection */}
           <div className="glass-toolbar__specular" />
 
@@ -429,19 +428,19 @@ function GlassPillButton({
 
         {/* 3D Edge - Top (visible thickness) */}
         <div className="glass-pill__edge-top" />
-        
+
         {/* 3D Edge - Left (visible thickness) */}
         <div className="glass-pill__edge-left" />
-        
+
         {/* 3D Edge - Bottom shadow */}
         <div className="glass-pill__edge-shadow" />
 
         {/* Frosted glass surface */}
         <div className="glass-pill__frost" />
-        
+
         {/* Inner frost reflection */}
         <div className="glass-pill__frost-inner" />
-        
+
         {/* Specular highlight - top reflection */}
         <div className="glass-pill__highlight" />
 

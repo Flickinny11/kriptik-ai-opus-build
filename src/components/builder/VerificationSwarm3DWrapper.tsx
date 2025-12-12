@@ -4,7 +4,7 @@
  * This prevents Three.js from loading until the component is needed
  */
 
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AgentState, VerificationAgentType } from './VerificationSwarmStatus';
 

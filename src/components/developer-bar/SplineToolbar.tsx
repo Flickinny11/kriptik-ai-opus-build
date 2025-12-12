@@ -4,7 +4,7 @@
  * This uses the Spline scene directly for the authentic glass look
  */
 
-import { Suspense, lazy, useState, useCallback, useRef, useEffect } from 'react';
+import { Suspense, lazy, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { DeveloperBarPanel } from './DeveloperBarPanel';
@@ -19,11 +19,10 @@ interface FeatureButton {
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
-  { id: 'agents', name: 'Agents', icon: 'agents' },
+  { id: 'feature-agent', name: 'Feature Agent', icon: 'agents' },
   { id: 'memory', name: 'Memory', icon: 'memory' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations' },
-  { id: 'ghost-mode', name: 'Ghost', icon: 'ghostMode' },
   { id: 'time-machine', name: 'Time', icon: 'timeMachine' },
   { id: 'deployment', name: 'Deploy', icon: 'deployment' },
   { id: 'database', name: 'Database', icon: 'database' },
@@ -113,7 +112,7 @@ export function SplineToolbar({
           position: 'absolute',
           inset: -100,
           pointerEvents: 'none',
-          opacity: splineLoaded ? 0.9 : 0,
+          opacity: splineLoaded && !splineError ? 0.9 : 0,
           transition: 'opacity 0.5s ease',
           transform: 'scale(0.3)',
           transformOrigin: 'center center',
@@ -223,7 +222,7 @@ export function SplineToolbar({
                       width: isVertical ? 80 : 70,
                       height: isVertical ? 64 : 70,
                       padding: 8,
-                      border: 'none',
+                      outline: 'none',
                       borderRadius: 20,
                       cursor: 'pointer',
                       display: 'flex',

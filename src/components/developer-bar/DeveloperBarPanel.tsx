@@ -8,10 +8,11 @@
  * - High-tech photorealistic design
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
-import { AgentsCommandCenter } from './panels/AgentsCommandCenter';
+import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
+import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
 
 interface DeveloperBarPanelProps {
@@ -25,9 +26,10 @@ interface DeveloperBarPanelProps {
   totalPanels?: number;
 }
 
-// Panel wrapper to inject AgentsCommandCenter (full-size panel, no title bar)
-const AgentsCommandCenterWrapper = ({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) => {
-  return <AgentsCommandCenter sessionId="default" projectId="current" />;
+// Panel wrapper to inject FeatureAgentCommandCenter (full-size panel, no title bar)
+const FeatureAgentCommandCenterWrapper = ({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) => {
+  const { projectId } = useParams();
+  return <FeatureAgentCommandCenter projectId={projectId || undefined} />;
 };
 
 const FEATURE_PANELS: Record<string, {
@@ -37,7 +39,7 @@ const FEATURE_PANELS: Record<string, {
   fullWidth?: boolean;
 }> = {
   // Premium comprehensive panels
-  'agents': { title: 'Agents Command Center', icon: 'agents', component: AgentsCommandCenterWrapper, fullWidth: true },
+  'feature-agent': { title: 'Feature Agent Command Center', icon: 'agents', component: FeatureAgentCommandCenterWrapper, fullWidth: true },
 
   // Other panels (to be upgraded to comprehensive versions)
   'memory': { title: 'Memory', icon: 'memory', component: MemoryPanel },
@@ -236,147 +238,6 @@ function GenericPanel({ isActive: _isActive }: { isActive: boolean; onClose: () 
   return (
     <div className="panel-generic">
       <p className="panel-generic__text">Panel content loading...</p>
-    </div>
-  );
-}
-
-function AgentsPanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; status: string; progress: number; task: string }>>([]);
-  const [showNewAgent, setShowNewAgent] = useState(false);
-  const [newAgentPrompt, setNewAgentPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514');
-
-  const models = [
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-    { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
-    { id: 'gpt-4o', name: 'GPT-4o' },
-  ];
-
-  useEffect(() => {
-    setAgents([
-      { id: '1', name: 'Code Gen', status: 'working', progress: 67, task: 'Building auth flow' },
-      { id: '2', name: 'Tester', status: 'completed', progress: 100, task: 'Unit tests done' },
-      { id: '3', name: 'Fixer', status: 'idle', progress: 0, task: '' },
-    ]);
-  }, []);
-
-  const handleDeployAgent = async () => {
-    if (!newAgentPrompt.trim()) return;
-    try {
-      const response = await fetch('/api/developer-mode/agents/deploy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: newAgentPrompt, model: selectedModel }),
-      });
-      if (response.ok) {
-        const newAgent = await response.json();
-        setAgents(prev => [...prev, newAgent]);
-        setNewAgentPrompt('');
-        setShowNewAgent(false);
-      }
-    } catch (err) {
-      console.error('Failed to deploy agent:', err);
-    }
-  };
-
-  return (
-    <div className="panel-agents">
-      <div className="panel-agents__grid">
-        {agents.map((agent) => (
-          <motion.div
-            key={agent.id}
-            className={`panel-agents__card panel-agents__card--${agent.status}`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {agent.status === 'working' && (
-              <motion.div
-                className="panel-agents__card-glow"
-                animate={{ opacity: [0.4, 0.7, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-            )}
-            <div className="panel-agents__card-header">
-              <span className="panel-agents__card-name">{agent.name}</span>
-              <span className={`panel-agents__card-badge panel-agents__card-badge--${agent.status}`}>
-                {agent.status}
-              </span>
-            </div>
-            {agent.task && <p className="panel-agents__card-task">{agent.task}</p>}
-            {agent.status === 'working' && (
-              <div className="panel-agents__card-progress">
-                <motion.div
-                  className="panel-agents__card-progress-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${agent.progress}%` }}
-                />
-              </div>
-            )}
-            {agent.status === 'completed' && (
-              <div className="panel-agents__card-actions">
-                <button className="panel-agents__btn">Diff</button>
-                <button className="panel-agents__btn panel-agents__btn--primary">PR</button>
-              </div>
-            )}
-          </motion.div>
-        ))}
-
-        <motion.button
-          className="panel-agents__new-card"
-          onClick={() => setShowNewAgent(true)}
-          whileHover={{ scale: 1.02 }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 4V16M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <span>New Agent</span>
-        </motion.button>
-      </div>
-
-      <AnimatePresence>
-        {showNewAgent && (
-          <motion.div
-            className="panel-agents__modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="panel-agents__modal-content">
-              <h4>Deploy Agent</h4>
-              <textarea
-                className="panel-agents__textarea"
-                placeholder="Describe the task..."
-                value={newAgentPrompt}
-                onChange={(e) => setNewAgentPrompt(e.target.value)}
-              />
-              <select
-                className="panel-agents__select"
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-              >
-                {models.map((model) => (
-                  <option key={model.id} value={model.id}>{model.name}</option>
-                ))}
-              </select>
-              <div className="panel-agents__modal-actions">
-                <button
-                  className="panel-agents__btn panel-agents__btn--secondary"
-                  onClick={() => setShowNewAgent(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="panel-agents__btn panel-agents__btn--primary"
-                  onClick={handleDeployAgent}
-                  disabled={!newAgentPrompt.trim()}
-                >
-                  Deploy
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

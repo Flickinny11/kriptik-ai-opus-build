@@ -1,5 +1,5 @@
 /**
- * Agents Command Center - Premium 3D AI Agent Control
+ * Feature Agent Command Center - Premium 3D AI Agent Control
  *
  * Features:
  * - Real OpenRouter models with high/low/thinking variations
@@ -13,6 +13,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
+import { useFeatureAgentTileStore } from '@/store/useFeatureAgentTileStore';
 import './AgentsCommandCenter.css';
 
 // Real OpenRouter Models with variations
@@ -145,12 +146,31 @@ interface Agent {
   endTime?: Date;
 }
 
-interface AgentsCommandCenterProps {
-  sessionId?: string;
+interface FeatureAgentCommandCenterProps {
   projectId?: string;
 }
 
-export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCenterProps) {
+type DeveloperModeAgentModel =
+  | 'krip-toe-nite'
+  | 'claude-opus-4-5'
+  | 'claude-sonnet-4-5'
+  | 'claude-haiku-3-5'
+  | 'gpt-5-codex'
+  | 'gemini-2-5-pro'
+  | 'deepseek-r1';
+
+function mapUiModelToDeveloperModeModel(uiModelId: string): DeveloperModeAgentModel {
+  if (uiModelId === 'krip-toe-nite') return 'krip-toe-nite';
+  if (uiModelId === 'anthropic/claude-opus-4.5') return 'claude-opus-4-5';
+  if (uiModelId === 'anthropic/claude-sonnet-4.5') return 'claude-sonnet-4-5';
+  if (uiModelId === 'anthropic/claude-sonnet-4') return 'claude-sonnet-4-5';
+  if (uiModelId === 'anthropic/claude-3.5-haiku') return 'claude-haiku-3-5';
+  if (uiModelId.startsWith('deepseek/')) return 'deepseek-r1';
+  if (uiModelId.startsWith('openai/')) return 'gpt-5-codex';
+  return 'claude-sonnet-4-5';
+}
+
+export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCenterProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[1].id);
   const [taskPrompt, setTaskPrompt] = useState('');
@@ -159,20 +179,40 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const openTile = useFeatureAgentTileStore((s) => s.openTile);
 
   const selectedModelData = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[1];
 
   // Deploy agent using the backend orchestration system
   const deployAgent = useCallback(async () => {
     if (!taskPrompt.trim() || isDeploying || agents.length >= 6) return;
+    if (!projectId) {
+      setAgents(prev => [...prev, {
+        id: `agent-${Date.now()}`,
+        name: 'Feature Agent',
+        model: selectedModel,
+        modelName: selectedModelData.name,
+        status: 'error',
+        task: taskPrompt.trim(),
+        progress: 0,
+        thoughts: [{
+          timestamp: Date.now(),
+          type: 'result',
+          content: 'No project selected. Open Builder with a projectId (e.g. /builder/:projectId) to deploy feature agents.'
+        }],
+        startTime: new Date(),
+      }]);
+      return;
+    }
+
     setIsDeploying(true);
 
-    const agentId = `agent-${Date.now()}`;
     const agentName = `Agent ${agents.length + 1}`;
+    const optimisticId = `agent-${Date.now()}`;
 
     // Create optimistic agent
     const newAgent: Agent = {
-      id: agentId,
+      id: optimisticId,
       name: agentName,
       model: selectedModel,
       modelName: selectedModelData.name,
@@ -191,82 +231,88 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
     setTaskPrompt('');
 
     try {
-      // Call the actual backend orchestration system
-      const response = await apiClient.post('/api/developer-mode/agents/deploy', {
-        sessionId: sessionId || `session-${Date.now()}`,
-        projectId: projectId || 'default',
-        taskPrompt: taskPrompt.trim(),
-        model: selectedModel,
-        name: agentName,
-        agentId,
-      });
+      // Create a Feature Agent (Intent Lock -> Plan -> Approval -> Credentials -> Execution)
+      const { data: created } = await apiClient.post<{ success: boolean; agent: any }>(
+        '/api/developer-mode/feature-agent',
+        {
+          projectId,
+          name: agentName,
+          taskPrompt: taskPrompt.trim(),
+          model: mapUiModelToDeveloperModeModel(selectedModel),
+        }
+      );
+      const realAgentId = created.agent?.id as string;
 
       // Update agent with response
       setAgents(prev => prev.map(a =>
-        a.id === agentId
+        a.id === optimisticId
           ? {
               ...a,
-              id: response.agentId || agentId,
-              status: 'building' as const,
-              progress: 10,
+              id: realAgentId || optimisticId,
+              status: 'thinking' as const,
+              progress: 5,
               thoughts: [
                 ...a.thoughts,
-                { timestamp: Date.now(), type: 'action' as const, content: 'Agent deployed successfully, beginning task execution...' }
+                { timestamp: Date.now(), type: 'action' as const, content: 'Feature Agent created. Intent Lock and plan generation starting...' }
               ]
             }
           : a
       ));
 
-      // Start polling for updates or connect to SSE
-      pollAgentStatus(response.agentId || agentId);
+      // Open the Feature Agent Tile popout (real SSE stream)
+      if (realAgentId) {
+        openTile(realAgentId, {
+          agentName,
+          modelName: selectedModelData.name,
+          position: { x: 90 + (agents.length * 22), y: 130 + (agents.length * 18) },
+        });
+      }
+
+      // Start polling for coarse status updates (tile receives real-time stream)
+      if (realAgentId) pollAgentStatus(realAgentId);
 
     } catch (error) {
       console.error('Deploy failed:', error);
       setAgents(prev => prev.map(a =>
-        a.id === agentId
+        a.id === optimisticId
           ? { ...a, status: 'error' as const, thoughts: [...a.thoughts, { timestamp: Date.now(), type: 'result' as const, content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` }] }
           : a
       ));
     } finally {
       setIsDeploying(false);
     }
-  }, [taskPrompt, selectedModel, selectedModelData, sessionId, projectId, agents.length, isDeploying]);
+  }, [taskPrompt, selectedModel, selectedModelData, projectId, agents.length, isDeploying, openTile]);
 
   // Poll for agent status updates
   const pollAgentStatus = useCallback(async (agentId: string) => {
     const poll = async () => {
       try {
-        const status = await apiClient.get(`/api/developer-mode/agents/${agentId}/status`);
+        const { data: statusResp } = await apiClient.get<{ success: boolean; agent: any }>(
+          `/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}`
+        );
+        const status = statusResp.agent;
 
         setAgents(prev => prev.map(a => {
           if (a.id !== agentId) return a;
 
           const newThoughts = [...a.thoughts];
-          if (status.currentAction && status.currentAction !== a.currentAction) {
+          if (status?.progress?.currentStep && status.progress.currentStep !== a.currentAction) {
             newThoughts.push({
               timestamp: Date.now(),
               type: 'action',
-              content: status.currentAction
-            });
-          }
-          if (status.thinking) {
-            newThoughts.push({
-              timestamp: Date.now(),
-              type: 'thinking',
-              content: status.thinking
+              content: status.progress.currentStep
             });
           }
 
           return {
             ...a,
-            status: status.status || a.status,
-            progress: status.progress || a.progress,
+            status: (status?.status === 'complete' ? 'complete' : status?.status === 'failed' ? 'error' : a.status),
+            progress: typeof status?.progress?.progress === 'number' ? status.progress.progress : a.progress,
             thoughts: newThoughts,
-            currentAction: status.currentAction,
-            summary: status.summary,
-            diffs: status.diffs,
-            branchName: status.branchName,
-            endTime: status.status === 'complete' ? new Date() : undefined,
+            currentAction: status?.progress?.currentStep,
+            branchName: status?.branchName,
+            tokensUsed: status?.progress?.tokensUsed,
+            endTime: status?.status === 'complete' ? new Date() : undefined,
           };
         }));
 
@@ -288,20 +334,19 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
     if (!agent.branchName) return;
 
     try {
-      const response = await apiClient.post('/api/developer-mode/agents/create-pr', {
-        agentId: agent.id,
-        branchName: agent.branchName,
-        title: `[Agent ${agent.name}] ${agent.task.slice(0, 50)}...`,
-        body: agent.summary || 'Automated changes by KripTik AI Agent',
-      });
-
+      // No route is currently defined for PR creation in developer-mode routes.
+      // Keep the UI flow, but avoid calling a non-existent endpoint.
       setAgents(prev => prev.map(a =>
-        a.id === agent.id ? { ...a, prUrl: response.prUrl } : a
+        a.id === agent.id
+          ? {
+              ...a,
+              thoughts: [
+                ...a.thoughts,
+                { timestamp: Date.now(), type: 'result' as const, content: 'PR creation endpoint is not configured yet for Developer Mode.' }
+              ]
+            }
+          : a
       ));
-
-      if (response.prUrl) {
-        window.open(response.prUrl, '_blank');
-      }
     } catch (error) {
       console.error('PR creation failed:', error);
     }
@@ -344,9 +389,9 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
               </svg>
             </div>
             <div className="acc-v2__title-area">
-              <h1 className="acc-v2__title">Agents Command Center</h1>
+              <h1 className="acc-v2__title">Feature Agent Command Center</h1>
               <span className="acc-v2__stats">
-                {agents.filter(a => ['thinking', 'building', 'verifying'].includes(a.status)).length} running · {agents.length}/6 slots
+                {agents.filter(a => ['thinking', 'building', 'verifying'].includes(a.status)).length} running · {agents.length}/6 feature agents
               </span>
             </div>
           </div>
@@ -380,8 +425,8 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                 {/* Deploy Section - Liquid Glass */}
                 <div className="acc-v2__deploy-card">
                   <div className="acc-v2__deploy-header">
-                    <span className="acc-v2__deploy-title">Deploy New Agent</span>
-                    <span className="acc-v2__deploy-slots">{6 - agents.length} slots available</span>
+                    <span className="acc-v2__deploy-title">Deploy New Feature Agent</span>
+                    <span className="acc-v2__deploy-slots">{6 - agents.length} feature agents available</span>
                   </div>
 
                   {/* Model Dropdown */}
@@ -495,7 +540,7 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
                           </svg>
-                          Deploy Agent
+                          Deploy Feature Agent
                         </>
                       )}
                     </motion.button>
@@ -740,4 +785,4 @@ export function AgentsCommandCenter({ sessionId, projectId }: AgentsCommandCente
   );
 }
 
-export default AgentsCommandCenter;
+export default FeatureAgentCommandCenter;

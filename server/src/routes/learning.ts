@@ -792,13 +792,13 @@ router.get('/dashboard', async (req, res) => {
                 score: healthScore,
                 status: healthScore >= 75 ? 'excellent' : healthScore >= 50 ? 'good' : healthScore >= 25 ? 'learning' : 'initializing',
                 lastCycle: systemStatus.lastCycle?.completedAt || null,
-                cycleCount: systemStatus.cycleStats.total,
+                cycleCount: systemStatus.totalCycles,
             },
 
             // Learning Progress
             progress: {
                 overallImprovement: Math.round(systemStatus.overallImprovement * 100) / 100,
-                firstAttemptSuccess: systemStatus.cycleStats.total > 0
+                firstAttemptSuccess: systemStatus.totalCycles > 0
                     ? Math.round((patternStats.avgSuccessRate || 0)) + '%'
                     : 'N/A',
                 trend: improvementTrend.map(t => ({
@@ -835,9 +835,9 @@ router.get('/dashboard', async (req, res) => {
             // Shadow Models
             models: {
                 total: modelStats.totalModels,
-                ready: modelStats.readyModels || 0,
-                promoted: modelStats.promotedModels || 0,
-                training: modelStats.trainingModels || 0,
+                ready: modelStats.activeModels || 0,
+                promoted: modelStats.activeModels || 0,
+                training: modelStats.pendingRuns || 0,
             },
 
             // Data Pipeline
@@ -845,7 +845,7 @@ router.get('/dashboard', async (req, res) => {
                 preferencePairs: {
                     total: systemStatus.pairStats.total,
                     unused: systemStatus.pairStats.unused,
-                    usedInTraining: systemStatus.pairStats.used,
+                    usedInTraining: Math.max(0, systemStatus.pairStats.total - systemStatus.pairStats.unused),
                 },
                 readyForTraining: systemStatus.pairStats.unused >= 100,
             },
@@ -854,8 +854,8 @@ router.get('/dashboard', async (req, res) => {
             activity: {
                 insights: recentInsights.slice(0, 5).map(i => ({
                     category: i.category,
-                    title: i.title,
-                    impact: i.impact,
+                    title: i.observation,
+                    impact: i.expectedImpact,
                     implemented: i.implemented,
                 })),
             },
@@ -957,7 +957,7 @@ router.post('/command', async (req, res) => {
                     result = {
                         message: 'Evolution cycle completed',
                         cycleId: cycle.cycleId,
-                        improvement: cycle.metrics?.improvement,
+                        improvement: cycle.improvementPercent,
                     };
                 }
                 break;

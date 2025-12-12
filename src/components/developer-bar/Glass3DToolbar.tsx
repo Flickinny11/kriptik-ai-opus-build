@@ -8,8 +8,8 @@
  * - Physics-based animations
  */
 
-import { Suspense, useRef, useState, useCallback, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Suspense, useRef, useState, useCallback } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import {
   RoundedBox,
   MeshTransmissionMaterial,
@@ -30,11 +30,10 @@ interface FeatureButton {
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
-  { id: 'agents', name: 'Agents', icon: 'agents' },
+  { id: 'feature-agent', name: 'Feature Agent', icon: 'agents' },
   { id: 'memory', name: 'Memory', icon: 'memory' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations' },
-  { id: 'ghost-mode', name: 'Ghost', icon: 'ghostMode' },
   { id: 'time-machine', name: 'Time', icon: 'timeMachine' },
   { id: 'deployment', name: 'Deploy', icon: 'deployment' },
   { id: 'database', name: 'Database', icon: 'database' },

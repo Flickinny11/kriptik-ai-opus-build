@@ -181,6 +181,9 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
+    // Any localhost port (Vite can auto-increment ports)
+    /^http:\/\/localhost:\d+$/,
+    /^http:\/\/127\.0\.0\.1:\d+$/,
 ].filter(Boolean);
 
 // Log allowed origins for debugging
@@ -402,6 +405,7 @@ import validationRouter from './routes/validation.js';
 import ghostModeRouter from './routes/ghost-mode.js';
 import learningRouter from './routes/learning.js';
 import developerModeRouter from './routes/developer-mode.js';
+import featureAgentRouter from './routes/feature-agent.js';
 import autonomyRouter from './routes/autonomy.js';
 import checkpointsRouter from './routes/checkpoints.js';
 import intelligenceDialRouter from './routes/intelligence-dial.js';
@@ -527,6 +531,10 @@ app.use("/api/execute", promptSanitizer, requireCredits(100), executeRouter);
 // Developer Mode - Multi-agent orchestration system (up to 6 concurrent agents)
 // Requires 100 credits for session operations
 app.use("/api/developer-mode", promptSanitizer, requireCredits(100), developerModeRouter);
+
+// Feature Agent - Dedicated route module (alias wrapper around FeatureAgentService)
+// Requires 100 credits for agent operations
+app.use("/api/feature-agent", promptSanitizer, requireCredits(100), featureAgentRouter);
 
 // Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
 app.use("/api/speed-dial", speedDialRouter);

@@ -1,6 +1,6 @@
 /**
  * GlassToolbar3D - Photorealistic Glass Toolbar (CSS Implementation)
- * 
+ *
  * Recreates the Spline glass design using advanced CSS:
  * - Real frosted glass appearance with backdrop-filter
  * - Pill-shaped buttons with depth and refraction effects
@@ -24,11 +24,10 @@ export interface FeatureButton {
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
-  { id: 'agents', name: 'Agents', icon: 'agents', category: 'core' },
+  { id: 'feature-agent', name: 'Feature Agent', icon: 'agents', category: 'core' },
   { id: 'memory', name: 'Memory', icon: 'memory', category: 'core' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck', category: 'core' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations', category: 'core' },
-  { id: 'ghost-mode', name: 'Ghost Mode', icon: 'ghostMode', category: 'ai' },
   { id: 'market-fit', name: 'Market Fit', icon: 'marketFit', category: 'ai' },
   { id: 'predictive-engine', name: 'Predictive', icon: 'predictiveEngine', category: 'ai' },
   { id: 'ai-slop-catch', name: 'AI-Slop', icon: 'aiSlopCatch', category: 'ai' },
@@ -96,41 +95,41 @@ function GlassPillButton({
     >
       {/* Warm glow behind active button */}
       {active && (
-        <motion.div 
+        <motion.div
           className="spline-pill__glow"
-          animate={{ 
+          animate={{
             opacity: [0.5, 0.8, 0.5],
             scale: [1, 1.05, 1]
           }}
-          transition={{ 
-            duration: 2.5, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
+          transition={{
+            duration: 2.5,
+            repeat: Infinity,
+            ease: "easeInOut"
           }}
         />
       )}
-      
+
       {/* Glass body */}
       <div className="spline-pill__body">
         {/* Frosted glass layers */}
         <div className="spline-pill__frost" />
         <div className="spline-pill__frost-inner" />
-        
+
         {/* Top highlight reflection */}
         <div className="spline-pill__highlight" />
-        
+
         {/* Content */}
         <div className="spline-pill__content">
           <div className="spline-pill__icon">
-            <DeveloperBarIcon 
-              name={feature.icon} 
-              size={20} 
+            <DeveloperBarIcon
+              name={feature.icon}
+              size={20}
               isActive={active}
               isHovered={isHovered}
             />
           </div>
           <span className="spline-pill__label">{feature.name}</span>
-          
+
           {/* Three dots indicator (like Spline reference) */}
           <div className="spline-pill__dots">
             <span className={`spline-pill__dot ${active ? 'spline-pill__dot--active' : ''}`} />
@@ -138,7 +137,7 @@ function GlassPillButton({
             <span className={`spline-pill__dot ${active ? 'spline-pill__dot--active' : ''}`} />
           </div>
         </div>
-        
+
         {/* Inner shadow for depth */}
         <div className="spline-pill__inner-shadow" />
       </div>
@@ -168,14 +167,14 @@ export function GlassToolbar3D({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isVertical = orientation === 'vertical';
-  
+
   // Calculate how many buttons fit
   const buttonHeight = 72;
   const padding = 80; // For controls
   const maxButtonsVisible = Math.max(1, Math.floor((
     isVertical ? toolbarSize.height - padding : toolbarSize.width - padding
   ) / buttonHeight));
-  
+
   const visibleButtons = FEATURE_BUTTONS.slice(
     buttonPage * maxButtonsVisible,
     (buttonPage + 1) * maxButtonsVisible
@@ -262,10 +261,10 @@ export function GlassToolbar3D({
     const onMove = (moveEvent: MouseEvent | TouchEvent) => {
       const currentX = 'touches' in moveEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const currentY = 'touches' in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
-      
+
       const newWidth = Math.max(100, Math.min(500, startSize.width + (currentX - startX)));
       const newHeight = Math.max(200, Math.min(700, startSize.height + (currentY - startY)));
-      
+
       setToolbarSize({ width: newWidth, height: newHeight });
     };
 
@@ -287,7 +286,7 @@ export function GlassToolbar3D({
     if (typeof window === 'undefined') return 'right';
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
-    
+
     if (isVertical) {
       return position.x < screenWidth / 2 ? 'right' : 'left';
     } else {
@@ -316,16 +315,16 @@ export function GlassToolbar3D({
           {/* Frosted glass layers */}
           <div className="spline-toolbar__frost" />
           <div className="spline-toolbar__frost-inner" />
-          
+
           {/* Top edge highlight */}
           <div className="spline-toolbar__edge-highlight" />
-          
+
           {/* Shadow for depth */}
           <div className="spline-toolbar__shadow" />
         </div>
 
         {/* Drag handle */}
-        <div 
+        <div
           className="spline-toolbar__grip"
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
@@ -374,8 +373,8 @@ export function GlassToolbar3D({
         {totalPages > 1 && (
           <div className="spline-toolbar__pages">
             {Array.from({ length: totalPages }).map((_, i) => (
-              <span 
-                key={i} 
+              <span
+                key={i}
                 className={`spline-toolbar__page-dot ${i === buttonPage ? 'spline-toolbar__page-dot--active' : ''}`}
               />
             ))}
@@ -392,7 +391,7 @@ export function GlassToolbar3D({
         </button>
 
         {/* Resize handle */}
-        <div 
+        <div
           className="spline-toolbar__resize"
           onMouseDown={handleResizeStart}
           onTouchStart={handleResizeStart}

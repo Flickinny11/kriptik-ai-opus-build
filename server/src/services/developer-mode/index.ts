@@ -92,3 +92,14 @@ export {
     type PRUpdateRequest,
 } from './pr-integration.js';
 
+// Feature Agent Types - Higher-level orchestration UI/state
+export type {
+    FeatureAgentConfig,
+    FeatureAgentStatus,
+    ImplementationPlan,
+    ImplementationPhase,
+    PhaseStep,
+    RequiredCredential,
+    GhostModeAgentConfig,
+} from './types.js';
+

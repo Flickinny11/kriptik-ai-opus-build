@@ -17,10 +17,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Code2, Eye, Settings, Brain, Blocks,
+    Code2, Eye, Settings,
     Cloud, X, Activity,
     Database, Server, Workflow, LayoutDashboard,
-    Check, Layers, TrendingUp, Mic, Plug, LineChart, Download, Sliders,
+    Layers,
     Upload, Search, Loader2, AlertCircle, CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +62,8 @@ import TournamentPanel from '../components/builder/TournamentPanel';
 import { DeveloperBar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
+import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
+import { FeatureAgentTileHost } from '../components/feature-agent/FeatureAgentTileHost';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -353,7 +355,7 @@ export default function Builder() {
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const [showContextBridge, setShowContextBridge] = useState(false);
-    const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
+    const [showIntelligencePanel] = useState(false);
     const [intelligenceSettings, setIntelligenceSettings] = useState<IntelligenceSettings>({
         thinkingDepth: 'normal',
         powerLevel: 'balanced',
@@ -438,7 +440,7 @@ export default function Builder() {
             case 'memory':
                 setShowMemory(prev => !prev);
                 break;
-            case 'agents':
+            case 'feature-agent':
                 setShowAgentPanel(prev => !prev);
                 break;
             default:
@@ -530,11 +532,14 @@ export default function Builder() {
                     activeFeatures={[
                         ...activeDevBarFeatures,
                         ...(showGhostMode ? ['ghost-mode'] : []),
-                        ...(showAgentPanel ? ['agents'] : []),
+                        ...(showAgentPanel ? ['feature-agent'] : []),
                         ...(showMemory ? ['memory'] : []),
                     ]}
                     onFeatureToggle={handleDevBarFeatureToggle}
                 />
+
+                {/* Feature Agent Tiles - draggable popout windows */}
+                <FeatureAgentTileHost />
 
                 {/* Spline 3D Dropdown - Premium 3D UI Overlay */}
                 <Spline3DDropdown
@@ -546,7 +551,7 @@ export default function Builder() {
                 {/* Floating Verification Swarm - Real-time 6-agent quality checks */}
                 <FloatingVerificationSwarm
                     projectId={projectId || 'new'}
-                    isBuilding={activeDevBarFeatures.includes('agents') || showAgentPanel}
+                    isBuilding={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
                     onOpenReport={() => setShowQualityReport(true)}
                 />
 

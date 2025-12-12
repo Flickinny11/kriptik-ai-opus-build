@@ -2,7 +2,7 @@
  * Developer Bar Panels - Premium Feature Panels
  */
 
-export { AgentsCommandCenter } from './AgentsCommandCenter';
+export { FeatureAgentCommandCenter } from './FeatureAgentCommandCenter';
 // Future comprehensive panels will be exported here:
 // export { MemoryCommandCenter } from './MemoryCommandCenter';
 // export { GhostModeCommandCenter } from './GhostModeCommandCenter';

@@ -378,15 +378,18 @@ function SwarmScene({
   isRunning: boolean;
   onAgentClick?: (type: VerificationAgentType) => void;
 }) {
+  const { viewport } = useThree();
   const agentMap = new Map(agents.map(a => [a.type, a]));
+  const envIntensity = isRunning ? 0.65 : 0.5;
+  const scale = Math.max(0.82, Math.min(1, viewport.width / 7.5));
 
   return (
     <>
       <SceneLighting />
-      <Environment preset="studio" environmentIntensity={0.5} />
+      <Environment preset="studio" environmentIntensity={envIntensity} />
 
       <Center>
-        <group rotation={[0.25, -0.15, 0]}>
+        <group rotation={[0.25, -0.15, 0]} scale={scale}>
           <GlassBase />
 
           {/* Agent pills stacked vertically */}

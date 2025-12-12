@@ -4696,3 +4696,31 @@ NEXT STEPS:
 - Panels could use similar dark glass styling
 - Add remaining feature panel implementations
 
+   ═══ [2025-12-12T02:09:04.412Z] ═══
+   COMPLETED: Implemented Feature Agent rename + Feature Agent Tile popout (SSE-backed) without changing existing glass aesthetic; fixed Developer Mode wiring so deploy opens a real streaming tile; removed demo/mock AgentsPanel and fixed TypeScript build blockers.
+   FILES MODIFIED: src/components/developer-bar/DeveloperBar.tsx, src/components/developer-bar/DeveloperBarPanel.tsx, src/components/developer-bar/SplineToolbar.tsx, src/components/developer-bar/Glass3DToolbar.tsx, src/components/developer-bar/GlassToolbar3D.tsx, src/components/developer-bar/panels/FeatureAgentCommandCenter.tsx, src/components/developer-bar/panels/index.ts, src/pages/Builder.tsx, src/components/feature-agent/FeatureAgentTile.tsx, src/components/feature-agent/FeatureAgentTileHost.tsx, src/components/feature-agent/feature-agent-tile.css, src/store/useFeatureAgentTileStore.ts, src/components/spline/Spline3DDropdown.tsx, src/components/builder/VerificationSwarm3D.tsx, src/components/builder/VerificationSwarm3DWrapper.tsx, server/src/routes/developer-mode.ts, server/src/services/developer-mode/types.ts, server/src/services/developer-mode/index.ts
+   CURRENT STATE: ✅ `npm run build` passing.
+   NEXT: Add a small minimized-tiles restore strip (so minimized Feature Agent tiles can be reopened), then implement Prompt 1.3/1.4 UI views inside the tile once backend endpoints exist.
+   CONTEXT: FeatureAgentTile streams real events from `/api/developer-mode/feature-agent/:id/stream` (alias over existing orchestrator events); FeatureAgentCommandCenter deploy uses `/api/developer-mode/projects/:projectId/session` + `/api/developer-mode/sessions` + `/api/developer-mode/sessions/:sessionId/agents` and opens tiles via Zustand persistence.
+
+   ═══ [2025-12-12T02:40:13.951Z] ═══
+   COMPLETED: Implemented Prompt 1.3/1.4 (Implementation Plan approval + Credentials collection views inside FeatureAgentTile) and Prompt 2.1 (backend FeatureAgentService + API endpoints) with real integrations (IntentLockEngine, CredentialVault, DeveloperModeOrchestrator, VerificationSwarm) and SSE support for plan/credentials/verification.
+   FILES MODIFIED: src/components/feature-agent/FeatureAgentTile.tsx, src/components/feature-agent/ImplementationPlanView.tsx, src/components/feature-agent/CredentialsCollectionView.tsx, src/store/useFeatureAgentTileStore.ts, src/components/developer-bar/panels/FeatureAgentCommandCenter.tsx, server/src/services/feature-agent/feature-agent-service.ts, server/src/services/feature-agent/index.ts, server/src/routes/developer-mode.ts, server/src/routes/learning.ts, feature_list.json
+   CURRENT STATE: ✅ `npm run build` passing. ✅ `server/npm run build` passing.
+   NEXT: Run local dev servers and verify end-to-end: create Feature Agent → plan arrives in tile → approve/modify phases → credentials submit → implementation starts → verification message → merge endpoint.
+   CONTEXT: Feature Agent creation is now a first-class backend flow at `POST /api/developer-mode/feature-agent`; SSE `GET /api/developer-mode/feature-agent/:id/stream` streams Feature Agent lifecycle messages (plan/credentials/verification) and forwards Developer Mode execution events once implementation starts.
+
+   ═══ [2025-12-12T02:43:09.576Z] ═══
+   COMPLETED: Fixed local dev CORS to allow `http://localhost:<any>` and `http://127.0.0.1:<any>` so Vite can auto-increment ports without breaking auth/API calls; updated feature_list.json metadata and added Feature Agent workflow feature entry.
+   FILES MODIFIED: server/src/index.ts, feature_list.json
+   CURRENT STATE: ✅ `server/npm run build` passing. CORS errors resolved for localhost dev ports.
+   NEXT: Establish a local authenticated session (seed demo user or login) to verify Feature Agent deploy end-to-end in-browser (plan → approve → creds → execution).
+   CONTEXT: Without a session, Feature Agent endpoints correctly require auth; with CORS fixed, the frontend can now call `/api/auth/get-session` and other endpoints across any local dev port.
+
+   ═══ [2025-12-12T02:47:50.782Z] ═══
+   COMPLETED: Implemented Prompt 2.2 Feature Agent API Routes by adding `server/src/routes/feature-agent.ts` and registering it at `/api/feature-agent` while reusing the existing singleton FeatureAgentService (no duplicated orchestration, no removed functionality).
+   FILES MODIFIED: server/src/routes/feature-agent.ts, server/src/services/feature-agent/feature-agent-service.ts, server/src/index.ts
+   CURRENT STATE: ✅ `server/npm run build` passing. ✅ `npm run build` passing.
+   NEXT: Verify `/api/feature-agent/*` endpoints in-browser (create/stream/approve/credentials/start/stop) and optionally add UI to call them if desired.
+   CONTEXT: `/api/feature-agent/*` is an alias route module that maps onto the same Feature Agent flow used by `/api/developer-mode/feature-agent/*`.
+

@@ -127,23 +127,38 @@ export function sanitizeRedirectUrl(url: string | undefined | null): string {
 // ============================================================================
 
 // Build social providers conditionally - only include if credentials are set
-const backendUrl = process.env.BETTER_AUTH_URL || 'https://kriptik-ai-opus-build-backend.vercel.app';
-const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
+const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+const vercelDetectedBaseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+const backendUrl =
+    process.env.BETTER_AUTH_URL ||
+    process.env.BACKEND_URL ||
+    vercelDetectedBaseUrl ||
+    (isProd ? 'https://kriptik-ai-opus-build-backend.vercel.app' : 'http://localhost:3001');
+const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.PUBLIC_FRONTEND_URL ||
+    (isProd ? 'https://kriptik-ai-opus-build.vercel.app' : 'http://localhost:5173');
 
 const socialProviders: Record<string, { clientId: string; clientSecret: string; redirectURI?: string }> = {};
 
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+const githubClientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID;
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET || process.env.AUTH_GITHUB_SECRET;
+
+if (githubClientId && githubClientSecret) {
     socialProviders.github = {
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        clientId: githubClientId,
+        clientSecret: githubClientSecret,
         redirectURI: `${backendUrl}/api/auth/callback/github`,
     };
 }
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET;
+
+if (googleClientId && googleClientSecret) {
     socialProviders.google = {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
         redirectURI: `${backendUrl}/api/auth/callback/google`,
     };
 }
@@ -180,7 +195,7 @@ export const auth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
 
     // Base URL for callbacks
-    baseURL: process.env.BETTER_AUTH_URL || "https://kriptik-ai-opus-build-backend.vercel.app",
+    baseURL: backendUrl,
 
     // Email/Password authentication
     emailAndPassword: {
@@ -226,23 +241,43 @@ export const auth = betterAuth({
         },
     },
 
-    // Trust proxy for Vercel - list all allowed origins
-    // Note: Better Auth v1.4+ uses array of strings, not callback function
-    trustedOrigins: [
-        // Production frontend
-        'https://kriptik-ai-opus-build.vercel.app',
-        'https://kriptik-ai.vercel.app',
-        // Backend URL
-        'https://kriptik-ai-opus-build-backend.vercel.app',
-        // Development
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:3000',
-        // Custom URL from env
-        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-    ].filter(Boolean) as string[],
+    // Trusted origins can be dynamic (Better Auth supports a callback).
+    // This fixes local dev when Vite auto-increments ports and supports Vercel previews safely.
+    trustedOrigins: (request: Request) => {
+        const origin = request.headers.get('origin') || '';
+
+        const allowedExact = new Set<string>([
+            // Production frontend
+            'https://kriptik-ai-opus-build.vercel.app',
+            'https://kriptik-ai.vercel.app',
+            // Backend URL(s)
+            'https://kriptik-ai-opus-build-backend.vercel.app',
+            backendUrl,
+            // Frontend URL(s)
+            frontendUrl,
+            // Common local dev origins
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:5173',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:5173',
+        ].filter(Boolean));
+
+        // Always include exacts; if request origin is a safe localhost port, include it too.
+        if (/^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) {
+            allowedExact.add(origin);
+        }
+
+        // Allow Vercel previews (frontend + backend variations)
+        if (
+            /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+            /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app$/.test(origin)
+        ) {
+            allowedExact.add(origin);
+        }
+
+        return Array.from(allowedExact);
+    },
 
     // Rate limiting (optional but recommended)
     rateLimit: {
@@ -254,33 +289,27 @@ export const auth = betterAuth({
     callbacks: {
         // Validate redirect URLs after OAuth - redirect to frontend
         async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-            // Always redirect to frontend dashboard after OAuth
-            const dashboardUrl = `${frontendUrl}/dashboard`;
-
             console.log(`[Auth] Redirect callback called - url: ${url}, baseUrl: ${baseUrl}`);
 
-            // If URL is relative path, prepend frontend URL
-            if (url.startsWith('/')) {
-                const finalUrl = `${frontendUrl}${url}`;
-                console.log(`[Auth] Relative path, redirecting to: ${finalUrl}`);
+            // Respect the callbackURL provided by the client *if it matches our allowlist*.
+            // This is critical for Vercel previews and local dev where ports change.
+            const safe = sanitizeRedirectUrl(url);
+
+            if (safe.startsWith('/')) {
+                const finalUrl = `${frontendUrl}${safe}`;
+                console.log(`[Auth] Relative safe redirect, redirecting to: ${finalUrl}`);
                 return finalUrl;
             }
 
-            // If URL is already our frontend, allow it
-            if (url.startsWith(frontendUrl)) {
-                console.log(`[Auth] Frontend URL, allowing: ${url}`);
-                return url;
-            }
-
-            // If URL is the backend (which happens after OAuth), redirect to frontend
-            if (url.startsWith(backendUrl) || url === baseUrl || url === '/') {
-                console.log(`[Auth] Backend URL detected, redirecting to dashboard: ${dashboardUrl}`);
+            // If safe is the backend (or root), fall back to frontend dashboard.
+            if (safe.startsWith(backendUrl) || safe === baseUrl || safe === '/' || safe === backendUrl) {
+                const dashboardUrl = `${frontendUrl}/dashboard`;
+                console.log(`[Auth] Backend/root safe redirect detected, redirecting to dashboard: ${dashboardUrl}`);
                 return dashboardUrl;
             }
 
-            // For any other case, go to dashboard
-            console.log(`[Auth] Unknown URL pattern, redirecting to dashboard: ${dashboardUrl}`);
-            return dashboardUrl;
+            console.log(`[Auth] Redirecting to safe URL: ${safe}`);
+            return safe;
         },
     },
 });

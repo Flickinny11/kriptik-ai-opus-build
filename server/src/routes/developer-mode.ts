@@ -39,6 +39,7 @@ import {
     createVisualVerificationService,
     type VisualVerificationService,
 } from '../services/automation/visual-verifier.js';
+import { getFeatureAgentService } from '../services/feature-agent/index.js';
 
 // Helper to ensure user is authenticated
 const requireAuth = authMiddleware;
@@ -46,6 +47,7 @@ const requireAuth = authMiddleware;
 const router = Router();
 const orchestrator = getDeveloperModeOrchestrator();
 const verificationScaler = getVerificationModeScaler();
+const featureAgentService = getFeatureAgentService();
 
 // Initialize shared services
 let sandboxService: SandboxService | null = null;
@@ -1437,6 +1439,373 @@ router.get('/agents/:agentId/events', requireAuth, async (req: Request, res: Res
         });
     } catch (error) {
         console.error('[Developer Mode] Agent SSE error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'SSE failed' });
+    }
+});
+
+// =============================================================================
+// FEATURE AGENT (ACC-V2)
+// =============================================================================
+
+/**
+ * POST /api/developer-mode/feature-agent
+ * Create a Feature Agent (Intent Lock -> Plan Generation -> Approval gate)
+ */
+router.post('/feature-agent', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { projectId, taskPrompt, model, name } = req.body || {};
+
+        if (!projectId || typeof projectId !== 'string') {
+            return res.status(400).json({ error: 'projectId is required' });
+        }
+        if (!taskPrompt || typeof taskPrompt !== 'string') {
+            return res.status(400).json({ error: 'taskPrompt is required' });
+        }
+        if (!model || typeof model !== 'string') {
+            return res.status(400).json({ error: 'model is required' });
+        }
+
+        const agent = await featureAgentService.createFeatureAgent({
+            projectId,
+            userId,
+            taskPrompt,
+            model,
+            name: typeof name === 'string' ? name : undefined,
+        });
+
+        res.json({ success: true, agent });
+    } catch (error) {
+        console.error('[Developer Mode] Create Feature Agent error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create Feature Agent' });
+    }
+});
+
+/**
+ * GET /api/developer-mode/feature-agent/:id
+ * Get Feature Agent config/status (does not include secrets)
+ */
+router.get('/feature-agent/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+        res.json({ success: true, agent: cfg });
+    } catch (error) {
+        console.error('[Developer Mode] Get Feature Agent error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get Feature Agent' });
+    }
+});
+
+router.post('/feature-agent/:id/plan/approve-phase', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+
+        const { phaseId } = req.body || {};
+        if (!phaseId || typeof phaseId !== 'string') return res.status(400).json({ error: 'phaseId is required' });
+
+        await featureAgentService.approvePhase(agentId, phaseId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Developer Mode] Approve phase error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to approve phase' });
+    }
+});
+
+router.post('/feature-agent/:id/plan/modify-phase', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+
+        const { phaseId, modifications } = req.body || {};
+        if (!phaseId || typeof phaseId !== 'string') return res.status(400).json({ error: 'phaseId is required' });
+        if (!Array.isArray(modifications)) return res.status(400).json({ error: 'modifications must be an array' });
+
+        const plan = await featureAgentService.modifyPhase(agentId, phaseId, modifications);
+        res.json({ success: true, plan });
+    } catch (error) {
+        console.error('[Developer Mode] Modify phase error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to modify phase' });
+    }
+});
+
+router.post('/feature-agent/:id/plan/approve-all', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+
+        await featureAgentService.approveAllPhases(agentId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Developer Mode] Approve all phases error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to approve all phases' });
+    }
+});
+
+router.post('/feature-agent/:id/credentials', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+
+        const { credentials } = req.body || {};
+        if (!credentials || typeof credentials !== 'object') return res.status(400).json({ error: 'credentials object is required' });
+
+        await featureAgentService.storeCredentials(agentId, credentials);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Developer Mode] Store credentials error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to store credentials' });
+    }
+});
+
+router.post('/feature-agent/:id/stop', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+        await featureAgentService.stopFeatureAgent(agentId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Developer Mode] Stop Feature Agent error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to stop Feature Agent' });
+    }
+});
+
+router.post('/feature-agent/:id/merge', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+        const result = await featureAgentService.acceptAndMerge(agentId);
+        res.json({ success: true, result });
+    } catch (error) {
+        console.error('[Developer Mode] Merge Feature Agent error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to merge Feature Agent result' });
+    }
+});
+
+router.post('/feature-agent/:id/ghost-mode', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const cfg = featureAgentService.getAgentConfig(agentId);
+        if (!cfg) return res.status(404).json({ error: 'Feature Agent not found' });
+        if (cfg.userId !== req.user!.id) return res.status(403).json({ error: 'Not authorized' });
+
+        const { config } = req.body || {};
+        if (!config || typeof config !== 'object') return res.status(400).json({ error: 'config is required' });
+
+        await featureAgentService.enableGhostMode(agentId, config);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Developer Mode] Enable Ghost Mode error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to enable Ghost Mode' });
+    }
+});
+
+/**
+ * GET /api/developer-mode/feature-agent/:id/stream
+ * Alias SSE stream for the Feature Agent Tile UI.
+ *
+ * This is intentionally backed by the existing Developer Mode agent event stream
+ * (no mock data, no parallel implementation), while converting events into the
+ * StreamMessage shape expected by the tile.
+ */
+router.get('/feature-agent/:id/stream', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const agentId = req.params.id;
+        const featureAgent = featureAgentService.getAgentConfig(agentId);
+
+        if (featureAgent) {
+            if (featureAgent.userId !== req.user!.id) {
+                return res.status(403).json({ error: 'Not authorized' });
+            }
+
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('X-Accel-Buffering', 'no');
+
+            const write = (payload: { type: string; content: string; timestamp: number; metadata?: object }) => {
+                res.write(`data: ${JSON.stringify(payload)}\n\n`);
+            };
+
+            write({ type: 'status', content: 'connected', timestamp: Date.now(), metadata: { agentId } });
+
+            let closed = false;
+            const heartbeat = setInterval(() => {
+                if (!closed) res.write(`: heartbeat\n\n`);
+            }, 30000);
+
+            req.on('close', () => {
+                closed = true;
+                clearInterval(heartbeat);
+            });
+
+            (async () => {
+                try {
+                    for await (const msg of featureAgentService.streamFeatureAgent(agentId)) {
+                        if (closed) break;
+                        write(msg as any);
+                    }
+                } catch (e) {
+                    if (!closed) {
+                        write({ type: 'result', content: `SSE stream failed: ${e instanceof Error ? e.message : 'Unknown error'}`, timestamp: Date.now() });
+                    }
+                }
+            })();
+
+            return;
+        }
+
+        const agent = await orchestrator.getAgent(agentId);
+
+        if (!agent) {
+            return res.status(404).json({ error: 'Agent not found' });
+        }
+
+        if (agent.userId !== req.user!.id) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        const write = (payload: { type: string; content: string; timestamp: number; metadata?: object }) => {
+            res.write(`data: ${JSON.stringify(payload)}\n\n`);
+        };
+
+        write({ type: 'status', content: 'connected', timestamp: Date.now(), metadata: { agentId } });
+
+        const mapLogToType = (logType?: string) => {
+            if (logType === 'action') return 'action';
+            if (logType === 'thought') return 'thinking';
+            if (logType === 'verification') return 'verification';
+            if (logType === 'error' || logType === 'warning') return 'result';
+            if (logType === 'code' || logType === 'info' || logType === 'debug') return 'result';
+            return 'result';
+        };
+
+        const handlers = new Map<string, (data: any) => void>();
+        const bind = (eventType: string, handler: (data: any) => void) => {
+            handlers.set(eventType, handler);
+            orchestrator.on(eventType, handler);
+        };
+
+        bind('agent:task-started', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'status',
+                content: 'Task started',
+                timestamp: Date.now(),
+                metadata: { agentId, sessionId: data.sessionId, task: data.task, status: 'running' }
+            });
+        });
+
+        bind('agent:progress', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'status',
+                content: data.currentStep || 'Progress update',
+                timestamp: Date.now(),
+                metadata: {
+                    agentId,
+                    progress: data.progress,
+                    currentStep: data.currentStep,
+                    stepsCompleted: data.stepsCompleted,
+                    stepsTotal: data.stepsTotal,
+                    status: 'running'
+                }
+            });
+        });
+
+        bind('agent:token', (data) => {
+            if (data?.agentId !== agentId) return;
+            if (!data.text) return;
+            write({
+                type: 'thinking',
+                content: data.text,
+                timestamp: Date.now(),
+                metadata: { agentId, phase: data.phase }
+            });
+        });
+
+        bind('agent:ttft', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'status',
+                content: 'TTFT',
+                timestamp: Date.now(),
+                metadata: { agentId, ttftMs: data.ttftMs, phase: data.phase }
+            });
+        });
+
+        bind('agent:log', (data) => {
+            if (data?.agentId !== agentId) return;
+            const log = data.log;
+            write({
+                type: mapLogToType(log?.logType),
+                content: log?.message || '',
+                timestamp: Date.now(),
+                metadata: { agentId, logType: log?.logType, phase: log?.phase, stepNumber: log?.stepNumber, level: log?.level }
+            });
+        });
+
+        bind('agent:error', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'result',
+                content: `Error: ${data.error || 'Unknown error'}`,
+                timestamp: Date.now(),
+                metadata: { agentId, status: 'failed' }
+            });
+        });
+
+        bind('agent:stopped', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'status',
+                content: 'Stopped',
+                timestamp: Date.now(),
+                metadata: { agentId, status: 'paused' }
+            });
+        });
+
+        bind('agent:task-completed', (data) => {
+            if (data?.agentId !== agentId) return;
+            write({
+                type: 'status',
+                content: 'Complete',
+                timestamp: Date.now(),
+                metadata: { agentId, sessionId: data.sessionId, success: data.success, verificationScore: data.verificationScore, status: 'completed' }
+            });
+        });
+
+        const heartbeat = setInterval(() => {
+            res.write(`: heartbeat\n\n`);
+        }, 30000);
+
+        req.on('close', () => {
+            clearInterval(heartbeat);
+            for (const [eventType, handler] of handlers) {
+                orchestrator.off(eventType, handler);
+            }
+        });
+    } catch (error) {
+        console.error('[Developer Mode] Feature Agent SSE error:', error);
         res.status(500).json({ error: error instanceof Error ? error.message : 'SSE failed' });
     }
 });

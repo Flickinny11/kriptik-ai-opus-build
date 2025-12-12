@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, lazy, useState, useCallback, Component, ReactNode } from 'react';
+import { Suspense, lazy, useState, useCallback, Component, type ReactNode, type ReactEventHandler } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './spline-dropdown.css';
 
@@ -31,7 +31,18 @@ class SplineErrorBoundary extends Component<{ children: ReactNode }, ErrorBounda
     if (this.state.hasError) {
       return (
         <div className="spline-dropdown-error">
-          <div className="spline-dropdown-error-icon">⚠️</div>
+          <div className="spline-dropdown-error-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 3L22 20H2L12 3Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <path d="M12 9V13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M12 17.2h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </div>
           <span>3D Scene unavailable</span>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
@@ -68,7 +79,7 @@ export function Spline3DDropdown({
     console.log('Spline 3D Dropdown loaded successfully');
   }, []);
 
-  const handleError = useCallback((e: Error) => {
+  const handleError = useCallback<ReactEventHandler<HTMLDivElement>>((e) => {
     console.error('Spline load error:', e);
     setHasError(true);
     setIsLoaded(true);
@@ -122,7 +133,18 @@ export function Spline3DDropdown({
           {/* Error state */}
           {hasError && (
             <div className="spline-dropdown-error">
-              <div className="spline-dropdown-error-icon">⚠️</div>
+              <div className="spline-dropdown-error-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 3L22 20H2L12 3Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M12 9V13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M12 17.2h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </div>
               <span>Failed to load 3D scene</span>
               <button
                 onClick={() => {
