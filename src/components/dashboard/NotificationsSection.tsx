@@ -163,6 +163,10 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
   const fetchList = async () => {
+    // Ensure API client sends x-user-id for server user-context middleware.
+    // This prevents intermittent 401s on first dashboard load in production.
+    apiClient.setUserId(userId);
+
     setLoading(true);
     try {
       const { data } = await apiClient.get<{ success: boolean; notifications: DashboardNotification[] }>('/api/notifications');
@@ -174,6 +178,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
 
   useEffect(() => {
     if (!userId) return;
+    apiClient.setUserId(userId);
     fetchList();
     const t = setInterval(fetchList, 15000);
     return () => clearInterval(t);

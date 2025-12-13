@@ -19,9 +19,9 @@ export async function testDatabaseConnection(): Promise<{
         // Test basic connectivity
         const result = await client.execute("SELECT name FROM sqlite_master WHERE type='table'");
         const tables = result.rows.map((row: any) => row.name as string);
-        
+
         console.log('[Auth] Database tables found:', tables);
-        
+
         return {
             connected: true,
             tables,
@@ -42,9 +42,9 @@ export async function testDatabaseConnection(): Promise<{
 export async function ensureAuthTables(): Promise<void> {
     const requiredTables = ['users', 'session', 'account', 'verification'];
     const { tables } = await testDatabaseConnection();
-    
+
     const missingTables = requiredTables.filter(t => !tables.includes(t));
-    
+
     if (missingTables.length > 0) {
         console.warn('[Auth] Missing tables:', missingTables);
         console.warn('[Auth] Run: npx drizzle-kit push to create tables');

@@ -1,6 +1,6 @@
 /**
  * Database Migration Script
- * 
+ *
  * Creates all necessary tables in Turso database.
  * Run with: npx tsx src/run-migration.ts
  */
@@ -37,7 +37,7 @@ async function runMigration() {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Sessions table (Better Auth)
             `CREATE TABLE IF NOT EXISTS session (
                 id TEXT PRIMARY KEY,
@@ -49,7 +49,7 @@ async function runMigration() {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Accounts table (Better Auth - for OAuth and credentials)
             `CREATE TABLE IF NOT EXISTS account (
                 id TEXT PRIMARY KEY,
@@ -66,7 +66,7 @@ async function runMigration() {
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
-            
+
             // Verification table (Better Auth)
             `CREATE TABLE IF NOT EXISTS verification (
                 id TEXT PRIMARY KEY,
@@ -203,7 +203,7 @@ async function runMigration() {
         // Check for auth tables
         const requiredAuthTables = ['users', 'session', 'account', 'verification'];
         const missingTables = requiredAuthTables.filter(t => !finalTables.includes(t));
-        
+
         if (missingTables.length === 0) {
             console.log('\n✅ All auth tables exist!');
         } else {
@@ -211,7 +211,7 @@ async function runMigration() {
         }
 
         console.log('\n🎉 Migration complete!');
-        
+
     } catch (error) {
         console.error('❌ Migration failed:', error);
         process.exit(1);
