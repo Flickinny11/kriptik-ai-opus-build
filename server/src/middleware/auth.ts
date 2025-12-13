@@ -7,6 +7,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '../auth.js';
 
+function getCookieValue(cookieHeader: string | undefined, name: string): string | undefined {
+    if (!cookieHeader) return undefined;
+    // cookie header format: "a=b; c=d; ..."
+    const parts = cookieHeader.split(';');
+    for (const part of parts) {
+        const [k, ...rest] = part.trim().split('=');
+        if (!k) continue;
+        if (k === name) return rest.join('='); // value may contain '='
+    }
+    return undefined;
+}
+
 // Extend Express Request type to include user
 declare global {
     namespace Express {
@@ -43,7 +55,11 @@ export async function authMiddleware(
     try {
         // Get token from Authorization header or cookie
         const authHeader = req.headers.authorization;
-        const cookieToken = req.cookies?.['better-auth.session_token'];
+        const cookieHeader = req.headers.cookie;
+        // Support both Better Auth default and our configured cookiePrefix (see server/src/auth.ts)
+        const cookieToken =
+            getCookieValue(cookieHeader, 'kriptik_auth.session_token') ||
+            getCookieValue(cookieHeader, 'better-auth.session_token');
 
         const token = authHeader?.startsWith('Bearer ')
             ? authHeader.slice(7)
@@ -95,7 +111,10 @@ export async function optionalAuthMiddleware(
 ): Promise<void> {
     try {
         const authHeader = req.headers.authorization;
-        const cookieToken = req.cookies?.['better-auth.session_token'];
+        const cookieHeader = req.headers.cookie;
+        const cookieToken =
+            getCookieValue(cookieHeader, 'kriptik_auth.session_token') ||
+            getCookieValue(cookieHeader, 'better-auth.session_token');
 
         const token = authHeader?.startsWith('Bearer ')
             ? authHeader.slice(7)
