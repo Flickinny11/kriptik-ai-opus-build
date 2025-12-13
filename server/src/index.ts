@@ -537,8 +537,8 @@ app.use("/api/developer-mode", promptSanitizer, requireCredits(100), developerMo
 // Requires 100 credits for agent operations
 app.use("/api/feature-agent", promptSanitizer, requireCredits(100), featureAgentRouter);
 
-// Notifications - in-app + external channels
-app.use("/api/notifications", promptSanitizer, requireCredits(10), notificationsRouter);
+// Notifications - in-app + external channels (non-expensive; do not credit-gate)
+app.use("/api/notifications", promptSanitizer, notificationsRouter);
 
 // Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
 app.use("/api/speed-dial", speedDialRouter);
