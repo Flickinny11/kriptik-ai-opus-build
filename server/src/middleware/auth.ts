@@ -61,11 +61,9 @@ export async function authMiddleware(
             getCookieValue(cookieHeader, 'kriptik_auth.session_token') ||
             getCookieValue(cookieHeader, 'better-auth.session_token');
 
-        const token = authHeader?.startsWith('Bearer ')
-            ? authHeader.slice(7)
-            : cookieToken;
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : cookieToken;
 
-        if (!token) {
+        if (!token && !cookieHeader) {
             res.status(401).json({
                 error: 'Unauthorized',
                 message: 'No authentication token provided'
@@ -76,7 +74,7 @@ export async function authMiddleware(
         // Validate session with better-auth
         // Note: better-auth handles session validation internally
         // For now, we'll decode the session from the database
-        const session = await validateSession(token);
+        const session = await validateSession({ token, cookieHeader, origin: req.headers.origin as string | undefined });
 
         if (!session) {
             res.status(401).json({
@@ -116,12 +114,10 @@ export async function optionalAuthMiddleware(
             getCookieValue(cookieHeader, 'kriptik_auth.session_token') ||
             getCookieValue(cookieHeader, 'better-auth.session_token');
 
-        const token = authHeader?.startsWith('Bearer ')
-            ? authHeader.slice(7)
-            : cookieToken;
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : cookieToken;
 
-        if (token) {
-            const session = await validateSession(token);
+        if (token || cookieHeader) {
+            const session = await validateSession({ token, cookieHeader, origin: req.headers.origin as string | undefined });
             if (session) {
                 req.user = session.user;
                 req.session = session.session;
@@ -136,20 +132,21 @@ export async function optionalAuthMiddleware(
     }
 }
 
-/**
- * Validate session token and return user data
- */
-async function validateSession(token: string): Promise<{
+type SessionValidationParams = { token?: string; cookieHeader?: string; origin?: string };
+
+async function validateSession(params: SessionValidationParams): Promise<{
     user: Express.Request['user'];
     session: Express.Request['session'];
 } | null> {
     try {
-        // Use better-auth's API to get session
-        const response = await auth.api.getSession({
-            headers: new Headers({
-                'Authorization': `Bearer ${token}`,
-            }),
-        });
+        // Use better-auth's API to get session.
+        // Prefer passing the Cookie header through so Better Auth can validate the session exactly as it does in HTTP flows.
+        const headers: Record<string, string> = {};
+        if (params.token) headers['Authorization'] = `Bearer ${params.token}`;
+        if (params.cookieHeader) headers['Cookie'] = params.cookieHeader;
+        if (params.origin) headers['Origin'] = params.origin;
+
+        const response = await auth.api.getSession({ headers: new Headers(headers) });
 
         if (!response?.session || !response?.user) {
             return null;
