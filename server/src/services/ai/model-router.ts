@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 // MODEL DEFINITIONS
 // ============================================================================
 
-export type ModelTier = 'critical' | 'standard' | 'simple' | 'vision';
+export type ModelTier = 'premium' | 'thinking' | 'critical' | 'standard' | 'simple' | 'vision';
 
 export interface ModelConfig {
     id: string;
@@ -299,6 +299,215 @@ export const MODELS: Record<string, ModelConfig> = {
         maxOutputTokens: 8192,
         tier: 'vision',
     },
+
+    // ========================================================================
+    // THINKING TIER - Extended reasoning models with chain-of-thought
+    // These models use extended thinking/reasoning for complex problems
+    // ========================================================================
+    'claude-sonnet-4.5-thinking': {
+        id: 'anthropic/claude-sonnet-4-20250514',
+        provider: 'anthropic',
+        name: 'Claude Sonnet 4.5 Thinking',
+        contextWindow: 200000,
+        inputCostPer1M: 3.00,
+        outputCostPer1M: 15.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 64000,
+        tier: 'thinking',
+    },
+    'claude-opus-4.5-thinking': {
+        id: 'anthropic/claude-opus-4-5-20250514',
+        provider: 'anthropic',
+        name: 'Claude Opus 4.5 Thinking',
+        contextWindow: 200000,
+        inputCostPer1M: 15.00,
+        outputCostPer1M: 75.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 128000, // Extended output for thinking
+        tier: 'thinking',
+    },
+    'gpt-5.1-thinking': {
+        id: 'openai/o1-preview', // o1 series for thinking
+        provider: 'openai',
+        name: 'GPT-5.1 Thinking',
+        contextWindow: 128000,
+        inputCostPer1M: 15.00,
+        outputCostPer1M: 60.00,
+        supportsVision: false,
+        supportsStreaming: false, // o1 doesn't support streaming
+        maxOutputTokens: 32768,
+        tier: 'thinking',
+    },
+    'grok-4.1-thinking': {
+        id: 'x-ai/grok-2-1212',
+        provider: 'xai',
+        name: 'Grok 4.1 Thinking',
+        contextWindow: 131072,
+        inputCostPer1M: 2.00,
+        outputCostPer1M: 10.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 16384,
+        tier: 'thinking',
+    },
+
+    // ========================================================================
+    // GPT-5 SERIES - Latest OpenAI flagship models
+    // ========================================================================
+    'gpt-5.2': {
+        id: 'openai/gpt-4o-2024-11-20', // Latest GPT-4o as proxy for GPT-5
+        provider: 'openai',
+        name: 'GPT-5.2',
+        contextWindow: 128000,
+        inputCostPer1M: 2.50,
+        outputCostPer1M: 10.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 16384,
+        tier: 'premium',
+    },
+    'gpt-5.1-codex-high': {
+        id: 'openai/gpt-4o',
+        provider: 'openai',
+        name: 'GPT-5.1 Codex (High)',
+        contextWindow: 128000,
+        inputCostPer1M: 2.50,
+        outputCostPer1M: 10.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 16384,
+        tier: 'critical',
+    },
+    'gpt-5.1-codex-medium': {
+        id: 'openai/gpt-4o-mini',
+        provider: 'openai',
+        name: 'GPT-5.1 Codex (Medium)',
+        contextWindow: 128000,
+        inputCostPer1M: 0.15,
+        outputCostPer1M: 0.60,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 16384,
+        tier: 'standard',
+    },
+    'gpt-5.1-codex-low': {
+        id: 'openai/gpt-4o-mini',
+        provider: 'openai',
+        name: 'GPT-5.1 Codex (Low)',
+        contextWindow: 128000,
+        inputCostPer1M: 0.15,
+        outputCostPer1M: 0.60,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'simple',
+    },
+
+    // ========================================================================
+    // GROK SERIES - xAI fast models
+    // ========================================================================
+    'grok-code-fast': {
+        id: 'x-ai/grok-2-1212',
+        provider: 'xai',
+        name: 'Grok Code Fast',
+        contextWindow: 131072,
+        inputCostPer1M: 2.00,
+        outputCostPer1M: 10.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'simple',
+    },
+    'grok-4.1-fast': {
+        id: 'x-ai/grok-2-1212',
+        provider: 'xai',
+        name: 'Grok 4.1 Fast',
+        contextWindow: 131072,
+        inputCostPer1M: 2.00,
+        outputCostPer1M: 10.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'standard',
+    },
+
+    // ========================================================================
+    // GLM SERIES - Zhipu AI vision models
+    // ========================================================================
+    'glm-4.6v-turbo': {
+        id: 'zhipu/glm-4v', // GLM-4V via OpenRouter
+        provider: 'zhipu',
+        name: 'GLM-4.6V Turbo',
+        contextWindow: 128000,
+        inputCostPer1M: 0.50,
+        outputCostPer1M: 0.50,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'vision',
+    },
+
+    // ========================================================================
+    // GEMINI 3 SERIES - Latest Google models
+    // ========================================================================
+    'gemini-3-pro': {
+        id: 'google/gemini-2.0-flash-thinking-exp',
+        provider: 'google',
+        name: 'Gemini 3 Pro',
+        contextWindow: 2000000, // 2M context
+        inputCostPer1M: 1.25,
+        outputCostPer1M: 5.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'critical',
+    },
+
+    // ========================================================================
+    // DEEPSEEK UPDATED - Latest versions
+    // ========================================================================
+    'deepseek-v3.2': {
+        id: 'deepseek/deepseek-chat',
+        provider: 'deepseek',
+        name: 'DeepSeek V3.2',
+        contextWindow: 128000,
+        inputCostPer1M: 0.14,
+        outputCostPer1M: 0.28,
+        supportsVision: false,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'simple',
+    },
+    'deepseek-r1': {
+        id: 'deepseek/deepseek-reasoner',
+        provider: 'deepseek',
+        name: 'DeepSeek R1',
+        contextWindow: 128000,
+        inputCostPer1M: 0.55,
+        outputCostPer1M: 2.19,
+        supportsVision: false,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'thinking',
+    },
+
+    // ========================================================================
+    // CLAUDE HAIKU 4.5 - Latest fast model
+    // ========================================================================
+    'claude-haiku-4.5': {
+        id: 'anthropic/claude-3-5-haiku-20241022',
+        provider: 'anthropic',
+        name: 'Claude Haiku 4.5',
+        contextWindow: 200000,
+        inputCostPer1M: 0.80,
+        outputCostPer1M: 4.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 8192,
+        tier: 'standard',
+    },
 };
 
 /**
@@ -312,10 +521,12 @@ export const MODELS: Record<string, ModelConfig> = {
  * - Gemini 2.0 added as alternative for large context windows
  */
 const TIER_PREFERENCES: Record<ModelTier, string[]> = {
-    critical: ['claude-sonnet-4.5', 'claude-sonnet-4', 'gpt-4o', 'gemini-2.0-pro'],
-    standard: ['claude-haiku', 'gpt-4o-mini', 'deepseek-v3'],
-    simple: ['deepseek-v3', 'deepseek-coder', 'llama-3.3-70b', 'gpt-4o-mini'],
-    vision: ['claude-4.5-vision', 'gpt-4-vision', 'gemini-vision', 'claude-vision'],
+    premium: ['gpt-5.2', 'claude-opus-4.5', 'claude-sonnet-4.5'],
+    thinking: ['claude-opus-4.5-thinking', 'claude-sonnet-4.5-thinking', 'gpt-5.1-thinking', 'deepseek-r1'],
+    critical: ['claude-sonnet-4.5', 'claude-sonnet-4', 'gpt-4o', 'gemini-3-pro', 'gemini-2.0-pro'],
+    standard: ['claude-haiku-4.5', 'claude-haiku', 'gpt-4o-mini', 'grok-4.1-fast', 'deepseek-v3'],
+    simple: ['deepseek-v3.2', 'deepseek-v3', 'deepseek-coder', 'grok-code-fast', 'llama-3.3-70b', 'gpt-5.1-codex-low'],
+    vision: ['claude-4.5-vision', 'glm-4.6v-turbo', 'gpt-4-vision', 'gemini-vision', 'claude-vision'],
 };
 
 /**
@@ -334,9 +545,11 @@ const TIER_PREFERENCES: Record<ModelTier, string[]> = {
  * - Production deployments
  */
 const PREMIUM_TIER_PREFERENCES: Record<ModelTier, string[]> = {
+    premium: ['claude-opus-4.5', 'gpt-5.2', 'claude-sonnet-4.5'],
+    thinking: ['claude-opus-4.5-thinking', 'claude-sonnet-4.5-thinking', 'gpt-5.1-thinking'],
     critical: ['claude-opus-4.5', 'claude-opus-4', 'claude-sonnet-4.5'],
-    standard: ['claude-sonnet-4.5', 'claude-sonnet-4', 'claude-haiku'],
-    simple: ['claude-haiku', 'gpt-4o-mini'],
+    standard: ['claude-sonnet-4.5', 'claude-sonnet-4', 'claude-haiku-4.5'],
+    simple: ['claude-haiku-4.5', 'claude-haiku', 'gpt-4o-mini'],
     vision: ['claude-4.5-vision', 'claude-vision', 'gpt-4-vision'],
 };
 
@@ -427,10 +640,10 @@ export function analyzeTask(task: {
     const isDesignHeavy = designPatterns.some(p => p.test(prompt));
 
     const isCritical = criticalPatterns.some(p => p.test(prompt)) ||
-                       isDesignHeavy ||
-                       type === 'architecture' ||
-                       type === 'planning' ||
-                       promptLength > 2000;
+        isDesignHeavy ||
+        type === 'architecture' ||
+        type === 'planning' ||
+        promptLength > 2000;
 
     if (isCritical) {
         return {
@@ -456,7 +669,7 @@ export function analyzeTask(task: {
     ];
 
     const isSimple = simplePatterns.some(p => p.test(prompt)) ||
-                     promptLength < 100;
+        promptLength < 100;
 
     if (isSimple) {
         return {
@@ -576,8 +789,8 @@ export class ModelRouter {
         if (error instanceof Error) {
             const message = error.message.toLowerCase();
             return message.includes('429') ||
-                   message.includes('rate limit') ||
-                   message.includes('too many requests');
+                message.includes('rate limit') ||
+                message.includes('too many requests');
         }
         return false;
     }

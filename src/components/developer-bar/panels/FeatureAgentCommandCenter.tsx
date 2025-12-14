@@ -10,87 +10,188 @@
  * - Liquid glass UI elements
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import { useFeatureAgentTileStore } from '@/store/useFeatureAgentTileStore';
+import { useFeatureAgentStore, type RunningAgent } from '@/store/feature-agent-store';
 import './AgentsCommandCenter.css';
 
-// Real OpenRouter Models with variations
+// Production AI Models - Comprehensive list with thinking/codex variants
 const AI_MODELS = [
-  // Anthropic Claude
+  // ========================================================================
+  // ANTHROPIC CLAUDE - Thinking Models (Extended reasoning with budget_tokens)
+  // ========================================================================
   {
-    id: 'anthropic/claude-opus-4.5',
+    id: 'anthropic/claude-sonnet-4.5-thinking',
+    name: 'Claude Sonnet 4.5',
+    variant: 'Thinking',
+    provider: 'anthropic',
+    color: '#F5A86C',
+    desc: 'Extended thinking with 64K reasoning budget',
+    icon: 'https://cdn.simpleicons.org/anthropic/F5A86C',
+    thinkingEnabled: true,
+    thinkingBudget: 64000
+  },
+  {
+    id: 'anthropic/claude-opus-4.5-thinking',
     name: 'Claude Opus 4.5',
-    variant: 'Maximum',
+    variant: 'Thinking',
     provider: 'anthropic',
     color: '#D4A574',
-    desc: 'Highest reasoning capability',
-    icon: 'https://cdn.simpleicons.org/anthropic/D4A574'
+    desc: 'Maximum reasoning with extended thinking',
+    icon: 'https://cdn.simpleicons.org/anthropic/D4A574',
+    thinkingEnabled: true,
+    thinkingBudget: 128000
+  },
+  {
+    id: 'anthropic/claude-haiku-4.5',
+    name: 'Claude Haiku 4.5',
+    variant: 'Fast',
+    provider: 'anthropic',
+    color: '#CC7A50',
+    desc: 'Lightning fast, cost-effective',
+    icon: 'https://cdn.simpleicons.org/anthropic/CC7A50',
+    thinkingEnabled: false
   },
   {
     id: 'anthropic/claude-sonnet-4.5',
     name: 'Claude Sonnet 4.5',
     variant: 'Balanced',
     provider: 'anthropic',
-    color: '#F5A86C',
-    desc: 'Best balance of speed & quality',
-    icon: 'https://cdn.simpleicons.org/anthropic/F5A86C'
-  },
-  {
-    id: 'anthropic/claude-sonnet-4',
-    name: 'Claude Sonnet 4',
-    variant: 'Fast',
-    provider: 'anthropic',
     color: '#E8845B',
-    desc: 'Quick responses, good quality',
-    icon: 'https://cdn.simpleicons.org/anthropic/E8845B'
+    desc: 'Best balance of speed & quality',
+    icon: 'https://cdn.simpleicons.org/anthropic/E8845B',
+    thinkingEnabled: false
   },
   {
-    id: 'anthropic/claude-3.5-haiku',
-    name: 'Claude Haiku 3.5',
-    variant: 'Speed',
+    id: 'anthropic/claude-opus-4.5',
+    name: 'Claude Opus 4.5',
+    variant: 'Maximum',
     provider: 'anthropic',
-    color: '#CC7A50',
-    desc: 'Fastest, cost-effective',
-    icon: 'https://cdn.simpleicons.org/anthropic/CC7A50'
+    color: '#B8956A',
+    desc: 'Highest reasoning capability',
+    icon: 'https://cdn.simpleicons.org/anthropic/B8956A',
+    thinkingEnabled: false
   },
-  // OpenAI
+  // ========================================================================
+  // OPENAI GPT-5 SERIES - Latest generation models
+  // ========================================================================
   {
-    id: 'openai/gpt-4o',
-    name: 'GPT-4o',
-    variant: 'Multimodal',
+    id: 'openai/gpt-5.2',
+    name: 'GPT-5.2',
+    variant: 'Flagship',
     provider: 'openai',
     color: '#00A67E',
-    desc: 'Vision + code specialist',
+    desc: 'Latest flagship model, multimodal',
     icon: 'https://cdn.simpleicons.org/openai/00A67E'
   },
   {
-    id: 'openai/o1-preview',
-    name: 'o1 Preview',
-    variant: 'Reasoning',
+    id: 'openai/gpt-5.1-codex-high',
+    name: 'GPT-5.1 Codex',
+    variant: 'High',
     provider: 'openai',
     color: '#10A37F',
-    desc: 'Chain-of-thought reasoning',
-    icon: 'https://cdn.simpleicons.org/openai/10A37F'
+    desc: 'Maximum code generation quality',
+    icon: 'https://cdn.simpleicons.org/openai/10A37F',
+    codexTier: 'high'
   },
   {
-    id: 'openai/o1-mini',
-    name: 'o1 Mini',
-    variant: 'Fast Reasoning',
+    id: 'openai/gpt-5.1-codex-medium',
+    name: 'GPT-5.1 Codex',
+    variant: 'Medium',
     provider: 'openai',
-    color: '#0D8C6D',
-    desc: 'Quick reasoning tasks',
-    icon: 'https://cdn.simpleicons.org/openai/0D8C6D'
+    color: '#0D9668',
+    desc: 'Balanced code quality & speed',
+    icon: 'https://cdn.simpleicons.org/openai/0D9668',
+    codexTier: 'medium'
   },
-  // DeepSeek
   {
-    id: 'deepseek/deepseek-chat-v3-0324',
-    name: 'DeepSeek V3',
-    variant: 'Performance',
+    id: 'openai/gpt-5.1-codex-low',
+    name: 'GPT-5.1 Codex',
+    variant: 'Low',
+    provider: 'openai',
+    color: '#0B8751',
+    desc: 'Fast code generation, cost-effective',
+    icon: 'https://cdn.simpleicons.org/openai/0B8751',
+    codexTier: 'low'
+  },
+  {
+    id: 'openai/gpt-5.1-thinking',
+    name: 'GPT-5.1',
+    variant: 'Thinking',
+    provider: 'openai',
+    color: '#00C78C',
+    desc: 'Extended reasoning with chain-of-thought',
+    icon: 'https://cdn.simpleicons.org/openai/00C78C',
+    thinkingEnabled: true
+  },
+  // ========================================================================
+  // GOOGLE GEMINI - Latest Pro model
+  // ========================================================================
+  {
+    id: 'google/gemini-3-pro',
+    name: 'Gemini 3 Pro',
+    variant: 'Pro',
+    provider: 'google',
+    color: '#4285F4',
+    desc: '2M context, multimodal reasoning',
+    icon: 'https://cdn.simpleicons.org/google/4285F4'
+  },
+  // ========================================================================
+  // XAI GROK - Fast & Thinking variants
+  // ========================================================================
+  {
+    id: 'x-ai/grok-code-fast-1',
+    name: 'Grok Code Fast',
+    variant: 'Speed',
+    provider: 'xai',
+    color: '#1DA1F2',
+    desc: 'Ultra-fast code generation',
+    icon: null
+  },
+  {
+    id: 'x-ai/grok-4.1-fast',
+    name: 'Grok 4.1',
+    variant: 'Fast',
+    provider: 'xai',
+    color: '#14B8A6',
+    desc: 'Rapid responses, great quality',
+    icon: null
+  },
+  {
+    id: 'x-ai/grok-4.1-thinking',
+    name: 'Grok 4.1',
+    variant: 'Thinking',
+    provider: 'xai',
+    color: '#0D9488',
+    desc: 'Extended reasoning mode',
+    icon: null,
+    thinkingEnabled: true
+  },
+  // ========================================================================
+  // GLM (ZHIPU) - Vision turbo model
+  // ========================================================================
+  {
+    id: 'zhipu/glm-4.6v-turbo',
+    name: 'GLM-4.6V',
+    variant: 'Turbo',
+    provider: 'zhipu',
+    color: '#FF6B35',
+    desc: 'Vision-first, blazing fast',
+    icon: null,
+    supportsVision: true
+  },
+  // ========================================================================
+  // DEEPSEEK - Latest V3.2 & R1
+  // ========================================================================
+  {
+    id: 'deepseek/deepseek-v3.2',
+    name: 'DeepSeek V3.2',
+    variant: 'Latest',
     provider: 'deepseek',
     color: '#06B6D4',
-    desc: 'Speed optimized, cost-effective',
+    desc: 'Latest release, ultra cost-effective',
     icon: null
   },
   {
@@ -102,14 +203,16 @@ const AI_MODELS = [
     desc: 'Deep reasoning capabilities',
     icon: null
   },
-  // Krip-Toe-Nite (Custom)
+  // ========================================================================
+  // KRIP-TOE-NITE - Intelligent Auto-Router
+  // ========================================================================
   {
     id: 'krip-toe-nite',
     name: 'Krip-Toe-Nite',
     variant: 'Auto-Select',
     provider: 'kriptik',
     color: '#C8FF64',
-    desc: 'Intelligent model routing',
+    desc: 'Intelligent model routing for optimal cost/quality',
     icon: null
   },
 ];
@@ -170,16 +273,130 @@ function mapUiModelToDeveloperModeModel(uiModelId: string): DeveloperModeAgentMo
   return 'claude-sonnet-4-5';
 }
 
+// Running Agent Tile Mini-View
+interface RunningAgentTileProps {
+  agent: RunningAgent;
+  index: number;
+  onClick: () => void;
+  onStop: () => void;
+}
+
+function RunningAgentTile({ agent, index, onClick, onStop }: RunningAgentTileProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const modelData = AI_MODELS.find((m) => m.id === agent.model);
+  const isActive = !['complete', 'failed', 'paused'].includes(agent.status);
+
+  const handleStopClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showConfirm) {
+      onStop();
+      setShowConfirm(false);
+    } else {
+      setShowConfirm(true);
+      setTimeout(() => setShowConfirm(false), 3000);
+    }
+  };
+
+  return (
+    <motion.div
+      className={`acc-v2__running-tile ${isActive ? 'acc-v2__running-tile--active' : ''}`}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+      transition={{ duration: 0.2, delay: index * 0.03 }}
+      onClick={onClick}
+      style={{ '--tile-color': modelData?.color || '#F5A86C' } as React.CSSProperties}
+    >
+      {isActive && (
+        <motion.div
+          className="acc-v2__running-tile-pulse"
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+
+      <div className="acc-v2__running-tile-header">
+        <div className="acc-v2__running-tile-model">
+          {modelData?.icon ? (
+            <img src={modelData.icon} alt="" className="acc-v2__running-tile-icon" />
+          ) : (
+            <div
+              className="acc-v2__running-tile-icon-placeholder"
+              style={{ background: modelData?.color }}
+            >
+              {modelData?.provider === 'kriptik' ? 'K' : 'DS'}
+            </div>
+          )}
+          <span className="acc-v2__running-tile-name">{agent.name}</span>
+        </div>
+        <div className="acc-v2__running-tile-right">
+          {agent.ghostModeEnabled && (
+            <span className="acc-v2__running-tile-ghost-badge">GHOST</span>
+          )}
+          <div className={`acc-v2__running-tile-status acc-v2__running-tile-status--${agent.status}`}>
+            {isActive && <span className="acc-v2__running-tile-status-dot" />}
+            <span>{agent.status.toUpperCase()}</span>
+          </div>
+        </div>
+      </div>
+
+      <p className="acc-v2__running-tile-task">{agent.taskPrompt}</p>
+
+      <div className="acc-v2__running-tile-footer">
+        <div className="acc-v2__running-tile-progress">
+          <div className="acc-v2__running-tile-progress-bar">
+            <motion.div
+              className="acc-v2__running-tile-progress-fill"
+              initial={{ width: 0 }}
+              animate={{ width: `${agent.progress}%` }}
+            />
+          </div>
+          <span className="acc-v2__running-tile-progress-pct">{agent.progress}%</span>
+        </div>
+        <button
+          className={`acc-v2__running-tile-stop ${showConfirm ? 'acc-v2__running-tile-stop--confirm' : ''}`}
+          onClick={handleStopClick}
+          title={showConfirm ? 'Click again to confirm' : 'Stop agent'}
+        >
+          {showConfirm ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span>Confirm</span>
+            </>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <rect x="2.5" y="2.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCenterProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[1].id);
   const [taskPrompt, setTaskPrompt] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'running' | 'history'>('active');
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const openTile = useFeatureAgentTileStore((s) => s.openTile);
+
+  // Running agents from persisted store
+  const runningAgents = useFeatureAgentStore((s) => s.runningAgents);
+  const addRunningAgent = useFeatureAgentStore((s) => s.addRunningAgent);
+  const updateAgentInStore = useFeatureAgentStore((s) => s.updateAgentStatus);
+
+  // Sorted running agents (most recent first)
+  const sortedRunningAgents = useMemo(
+    () => [...runningAgents].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
+    [runningAgents]
+  );
 
   const selectedModelData = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[1];
 
@@ -247,15 +464,15 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
       setAgents(prev => prev.map(a =>
         a.id === optimisticId
           ? {
-              ...a,
-              id: realAgentId || optimisticId,
-              status: 'thinking' as const,
-              progress: 5,
-              thoughts: [
-                ...a.thoughts,
-                { timestamp: Date.now(), type: 'action' as const, content: 'Feature Agent created. Intent Lock and plan generation starting...' }
-              ]
-            }
+            ...a,
+            id: realAgentId || optimisticId,
+            status: 'thinking' as const,
+            progress: 5,
+            thoughts: [
+              ...a.thoughts,
+              { timestamp: Date.now(), type: 'action' as const, content: 'Feature Agent created. Intent Lock and plan generation starting...' }
+            ]
+          }
           : a
       ));
 
@@ -265,6 +482,21 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           agentName,
           modelName: selectedModelData.name,
           position: { x: 90 + (agents.length * 22), y: 130 + (agents.length * 18) },
+        });
+      }
+
+      // Add to running agents store for persistence
+      if (realAgentId) {
+        addRunningAgent({
+          id: realAgentId,
+          name: agentName,
+          model: selectedModel,
+          modelName: selectedModelData.name,
+          status: 'implementing',
+          progress: 5,
+          taskPrompt: taskPrompt.trim(),
+          startedAt: new Date().toISOString(),
+          ghostModeEnabled: false,
         });
       }
 
@@ -281,7 +513,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
     } finally {
       setIsDeploying(false);
     }
-  }, [taskPrompt, selectedModel, selectedModelData, projectId, agents.length, isDeploying, openTile]);
+  }, [taskPrompt, selectedModel, selectedModelData, projectId, agents.length, isDeploying, openTile, addRunningAgent]);
 
   // Poll for agent status updates
   const pollAgentStatus = useCallback(async (agentId: string) => {
@@ -316,6 +548,15 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           };
         }));
 
+        // Sync to persisted store
+        const newStatus = status?.status === 'complete' ? 'complete' : status?.status === 'failed' ? 'failed' : undefined;
+        if (newStatus || typeof status?.progress?.progress === 'number') {
+          updateAgentInStore(agentId, {
+            status: newStatus || 'implementing',
+            progress: typeof status?.progress?.progress === 'number' ? status.progress.progress : undefined,
+          });
+        }
+
         // Continue polling if not complete
         const agent = agents.find(a => a.id === agentId);
         if (agent && !['complete', 'error'].includes(agent.status)) {
@@ -327,7 +568,26 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
     };
 
     poll();
-  }, [agents]);
+  }, [agents, updateAgentInStore]);
+
+  // Stop running agent
+  const stopRunningAgent = useCallback(async (agentId: string) => {
+    try {
+      await apiClient.post(`/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/stop`, {});
+      updateAgentInStore(agentId, { status: 'paused' });
+    } catch (error) {
+      console.error('Failed to stop agent:', error);
+    }
+  }, [updateAgentInStore]);
+
+  // Open running agent tile
+  const openRunningAgentTile = useCallback((agent: RunningAgent) => {
+    openTile(agent.id, {
+      agentName: agent.name,
+      modelName: agent.modelName,
+      position: { x: 100, y: 140 },
+    });
+  }, [openTile]);
 
   // Create GitHub PR
   const createPR = useCallback(async (agent: Agent) => {
@@ -339,12 +599,12 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
       setAgents(prev => prev.map(a =>
         a.id === agent.id
           ? {
-              ...a,
-              thoughts: [
-                ...a.thoughts,
-                { timestamp: Date.now(), type: 'result' as const, content: 'PR creation endpoint is not configured yet for Developer Mode.' }
-              ]
-            }
+            ...a,
+            thoughts: [
+              ...a.thoughts,
+              { timestamp: Date.now(), type: 'result' as const, content: 'PR creation endpoint is not configured yet for Developer Mode.' }
+            ]
+          }
           : a
       ));
     } catch (error) {
@@ -398,13 +658,18 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
 
           {/* Liquid Glass Tabs */}
           <div className="acc-v2__tabs">
-            {(['active', 'history'] as const).map(tab => (
+            {(['active', 'running', 'history'] as const).map(tab => (
               <button
                 key={tab}
                 className={`acc-v2__tab ${activeTab === tab ? 'acc-v2__tab--active' : ''}`}
                 onClick={() => setActiveTab(tab)}
               >
-                <span className="acc-v2__tab-text">{tab.toUpperCase()}</span>
+                <span className="acc-v2__tab-text">
+                  {tab === 'active' ? 'DEPLOY' : tab === 'running' ? 'RUNNING' : 'HISTORY'}
+                </span>
+                {tab === 'running' && sortedRunningAgents.length > 0 && (
+                  <span className="acc-v2__tab-badge">{sortedRunningAgents.length}</span>
+                )}
                 {activeTab === tab && <div className="acc-v2__tab-glow" />}
               </button>
             ))}
@@ -452,7 +717,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                         </div>
                       </div>
                       <svg className={`acc-v2__model-chevron ${isDropdownOpen ? 'open' : ''}`} width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                     </button>
 
@@ -538,7 +803,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                       ) : (
                         <>
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
                           </svg>
                           Deploy Feature Agent
                         </>
@@ -640,8 +905,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                                 <div className="acc-v2__tile-thoughts">
                                   <div className="acc-v2__tile-thoughts-header">
                                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
-                                      <path d="M7 4v3l2 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5" />
+                                      <path d="M7 4v3l2 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                                     </svg>
                                     AGENT REASONING
                                   </div>
@@ -704,8 +969,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                            <path d="M6 3H3v10h10v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                            <path d="M7 9L13 3M13 3H9M13 3v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M6 3H3v10h10v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                            <path d="M7 9L13 3M13 3H9M13 3v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                           </svg>
                                           View PR
                                         </a>
@@ -718,10 +983,10 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                                           }}
                                         >
                                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                            <circle cx="5" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                                            <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                                            <circle cx="11" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                                            <path d="M5 6v4M7 12h2c1 0 2-1 2-2V8" stroke="currentColor" strokeWidth="1.5"/>
+                                            <circle cx="5" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" />
+                                            <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+                                            <circle cx="11" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+                                            <path d="M5 6v4M7 12h2c1 0 2-1 2-2V8" stroke="currentColor" strokeWidth="1.5" />
                                           </svg>
                                           Create PR
                                         </button>
@@ -748,8 +1013,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                     <div className="acc-v2__empty">
                       <div className="acc-v2__empty-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                          <rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.3"/>
-                          <path d="M24 18v12M18 24h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+                          <rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.3" />
+                          <path d="M24 18v12M18 24h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
                         </svg>
                       </div>
                       <span>No agents deployed</span>
@@ -757,6 +1022,43 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                     </div>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'running' && (
+              <motion.div
+                key="running"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="acc-v2__running"
+              >
+                {sortedRunningAgents.length === 0 ? (
+                  <div className="acc-v2__empty">
+                    <div className="acc-v2__empty-icon">
+                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <rect x="10" y="10" width="28" height="28" rx="6" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.3" />
+                        <circle cx="24" cy="24" r="4" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                      </svg>
+                    </div>
+                    <span>No agents running</span>
+                    <p>Deploy a feature agent to see it here</p>
+                  </div>
+                ) : (
+                  <div className="acc-v2__running-list">
+                    <AnimatePresence mode="popLayout">
+                      {sortedRunningAgents.map((agent, index) => (
+                        <RunningAgentTile
+                          key={agent.id}
+                          agent={agent}
+                          index={index}
+                          onClick={() => openRunningAgentTile(agent)}
+                          onStop={() => stopRunningAgent(agent.id)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -770,8 +1072,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
               >
                 <div className="acc-v2__history-empty">
                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
-                    <path d="M24 14v10l6 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+                    <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.2" />
+                    <path d="M24 14v10l6 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
                   </svg>
                   <span>No agent history yet</span>
                   <p>Completed agent runs will appear here</p>

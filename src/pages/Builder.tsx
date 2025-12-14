@@ -52,18 +52,17 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useDeploymentStore } from '../store/useDeploymentStore';
 import { useIntegrationStore } from '../store/useIntegrationStore';
 import { useParams } from 'react-router-dom';
-import { BuilderAgentsToggle, type BuilderMode } from '../components/builder/BuilderAgentsToggle';
-import { DeveloperModeView } from '../components/builder/DeveloperModeView';
-import { AgentModeSidebar } from '../components/builder/AgentModeSidebar';
+// Mode toggle removed - Builder is now the only view
+// BuilderAgentsToggle, DeveloperModeView, and AgentModeSidebar imports removed
 import { GhostModePanel } from '../components/builder/GhostModePanel';
-import { SoftInterruptInput } from '../components/builder/SoftInterruptInput';
+// SoftInterruptInput was only used in Developer mode - now removed
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
 import { DeveloperBar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
-import { FeatureAgentTileHost } from '../components/feature-agent/FeatureAgentTileHost';
+import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -341,8 +340,7 @@ export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
 
-    // Mode state - Builder (default), Agents, or Developer
-    const [builderMode, setBuilderMode] = useState<BuilderMode>('builder');
+    // Builder mode is now the only mode - no mode switching
     const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
     const [showMemory, setShowMemory] = useState(false);
     const [projectName, _setProjectName] = useState('Untitled Project');
@@ -538,8 +536,8 @@ export default function Builder() {
                     onFeatureToggle={handleDevBarFeatureToggle}
                 />
 
-                {/* Feature Agent Tiles - draggable popout windows */}
-                <FeatureAgentTileHost />
+                {/* Feature Agent Manager - draggable popout windows with edge case handling */}
+                <FeatureAgentManager />
 
                 {/* Spline 3D Dropdown - Premium 3D UI Overlay */}
                 <Spline3DDropdown
@@ -592,12 +590,6 @@ export default function Builder() {
                         </div>
 
                         <div className="h-6 w-px bg-white/10 mx-2" />
-
-                        {/* Builder/Agents/Developer Mode Toggle */}
-                        <BuilderAgentsToggle
-                            mode={builderMode}
-                            onModeChange={setBuilderMode}
-                        />
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -626,111 +618,41 @@ export default function Builder() {
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
-                    {/* Quick Actions Sidebar - Only in Builder mode */}
-                    {builderMode === 'builder' && (
-                        <div
-                            className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
-                            style={{
-                                ...liquidGlassPanel,
-                                borderRight: '1px solid rgba(255,255,255,0.3)',
-                                borderRadius: 0,
-                            }}
-                        >
-                            {quickActions.map((action) => (
-                                <div key={action.panel} className="relative group">
-                                    <GlassIconButton
-                                        icon={action.icon}
-                                        onClick={() => handleQuickAction(action.panel)}
-                                        isActive={activeQuickAction === action.panel}
-                                        title={action.label}
-                                    />
-
-                                    {/* Tooltip */}
-                                    <div className="absolute left-full ml-3 px-3 py-2 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50"
-                                        style={{
-                                            ...liquidGlassPanel,
-                                            boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.5)',
-                                        }}
-                                    >
-                                        <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{action.label}</div>
-                                        <div className="text-xs" style={{ color: '#666' }}>{action.description}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* ====================================================== */}
-                    {/* DEVELOPER MODE - Import & Enhance Existing Projects */}
-                    {/* ====================================================== */}
-                    {builderMode === 'developer' && (
-                        <div className="flex-1 flex min-h-0">
-                            {/* Developer Mode View */}
-                            <div className="flex-1 m-2 rounded-2xl overflow-hidden">
-                                <DeveloperModeView />
-                            </div>
-
-                            {/* Soft Interrupt Input - Floating */}
-                            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-96">
-                                <SoftInterruptInput
-                                    sessionId={projectId || 'default-session'}
-                                    agentId={projectId || 'default'}
+                    {/* Quick Actions Sidebar */}
+                    <div
+                        className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
+                        style={{
+                            ...liquidGlassPanel,
+                            borderRight: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 0,
+                        }}
+                    >
+                        {quickActions.map((action) => (
+                            <div key={action.panel} className="relative group">
+                                <GlassIconButton
+                                    icon={action.icon}
+                                    onClick={() => handleQuickAction(action.panel)}
+                                    isActive={activeQuickAction === action.panel}
+                                    title={action.label}
                                 />
-                            </div>
-                        </div>
-                    )}
 
-                    {/* ====================================================== */}
-                    {/* AGENTS MODE - Multi-Agent Orchestration */}
-                    {/* ====================================================== */}
-                    {builderMode === 'agents' && (
-                        <div className="flex-1 flex min-h-0">
-                            {/* Preview on LEFT in Agents mode */}
-                            <div className="flex-1 m-2 rounded-2xl overflow-hidden" style={liquidGlassPanel}>
-                                <div className="h-full flex flex-col">
-                                    {/* Tab bar */}
-                                    <div
-                                        className="px-4 py-3 flex justify-between items-center shrink-0"
-                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                    >
-                                        <div className="flex gap-2">
-                                            <TabButton
-                                                active={activeTab === 'preview'}
-                                                onClick={() => setActiveTab('preview')}
-                                                icon={Eye}
-                                            >
-                                                Preview
-                                            </TabButton>
-                                            <TabButton
-                                                active={activeTab === 'code'}
-                                                onClick={() => setActiveTab('code')}
-                                                icon={Code2}
-                                            >
-                                                Code
-                                            </TabButton>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        {activeTab === 'preview' ? (
-                                            <SandpackPreviewWindow />
-                                        ) : (
-                                            <SandpackEditor />
-                                        )}
-                                    </div>
+                                {/* Tooltip */}
+                                <div className="absolute left-full ml-3 px-3 py-2 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50"
+                                    style={{
+                                        ...liquidGlassPanel,
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.5)',
+                                    }}
+                                >
+                                    <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{action.label}</div>
+                                    <div className="text-xs" style={{ color: '#666' }}>{action.description}</div>
                                 </div>
                             </div>
-
-                            {/* Agent Mode Sidebar on RIGHT */}
-                            <div className="w-[420px] shrink-0 m-2 rounded-2xl overflow-hidden">
-                                <AgentModeSidebar />
-                            </div>
-                        </div>
-                    )}
+                        ))}
+                    </div>
 
                     {/* ====================================================== */}
-                    {/* BUILDER MODE - Original Autonomous Building */}
+                    {/* BUILDER MODE - Main Autonomous Building Interface */}
                     {/* ====================================================== */}
-                    {builderMode === 'builder' && (
                     <div className="flex-1 min-w-0">
                         <PanelGroup direction="horizontal">
                             {/* Left Panel: Chat */}
@@ -823,18 +745,16 @@ export default function Builder() {
 
                                     {/* Content area */}
                                     <div className="flex-1 overflow-hidden relative min-h-0">
-                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                            activeTab === 'preview'
-                                                ? 'opacity-100 z-10'
-                                                : 'opacity-0 z-0 pointer-events-none'
-                                        }`}>
+                                        <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'preview'
+                                            ? 'opacity-100 z-10'
+                                            : 'opacity-0 z-0 pointer-events-none'
+                                            }`}>
                                             <SandpackPreviewWindow />
                                         </div>
-                                        <div className={`absolute inset-0 transition-opacity duration-300 ${
-                                            activeTab === 'code'
-                                                ? 'opacity-100 z-10'
-                                                : 'opacity-0 z-0 pointer-events-none'
-                                        }`}>
+                                        <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'code'
+                                            ? 'opacity-100 z-10'
+                                            : 'opacity-0 z-0 pointer-events-none'
+                                            }`}>
                                             <SandpackEditor />
                                         </div>
                                     </div>
@@ -842,11 +762,9 @@ export default function Builder() {
                             </Panel>
                         </PanelGroup>
                     </div>
-                    )}
                     {/* End of Builder Mode */}
 
-                    {/* Quick Action Panel - Only in Builder mode */}
-                    {builderMode === 'builder' && (
+                    {/* Quick Action Panel */}
                     <AnimatePresence>
                         {activeQuickAction && (
                             <motion.div
@@ -886,7 +804,6 @@ export default function Builder() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    )}
 
                     {/* Autonomous Agents - Now accessed via Developer Bar toolbar */}
 
@@ -1379,8 +1296,8 @@ function DatabasePanel() {
 
             <div className="flex gap-2">
                 <GlassButton icon={Layers} onClick={() => setShowSchemaModal(true)}>
-                Generate Schema
-            </GlassButton>
+                    Generate Schema
+                </GlassButton>
                 <GlassButton icon={Database} onClick={handleInitDatabase}>
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Init DB'}
                 </GlassButton>
@@ -1648,7 +1565,7 @@ function WorkflowsPanel() {
 function VercelIcon() {
     return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 22h20L12 2z"/>
+            <path d="M12 2L2 22h20L12 2z" />
         </svg>
     );
 }
@@ -1656,7 +1573,7 @@ function VercelIcon() {
 function NetlifyIcon() {
     return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5l6.5 3.25L12 11 5.5 7.75 12 4.5z"/>
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5l6.5 3.25L12 11 5.5 7.75 12 4.5z" />
         </svg>
     );
 }

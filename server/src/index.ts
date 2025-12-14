@@ -274,7 +274,7 @@ app.use("/api/auth/callback", (req, res, next) => {
     const originalRedirect = res.redirect.bind(res);
 
     // Override redirect to ensure we go to frontend
-    res.redirect = function(statusOrUrl: number | string, url?: string) {
+    res.redirect = function (statusOrUrl: number | string, url?: string) {
         let targetUrl = typeof statusOrUrl === 'string' ? statusOrUrl : url;
         let status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
 
@@ -413,6 +413,7 @@ import intelligenceDialRouter from './routes/intelligence-dial.js';
 import speedDialRouter from './routes/speed-dial.js';
 import tournamentRouter from './routes/tournament.js';
 import reflectionRouter from './routes/reflection.js';
+import previewRouter from './routes/preview.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -558,6 +559,14 @@ app.use("/api/reflection", reflectionRouter);
 
 // Autonomy Controls - Autonomous building settings
 app.use("/api/autonomy", autonomyRouter);
+
+// Headless Browser Preview - Feature demonstration and acceptance
+import('playwright').then(() => {
+    console.log('[Preview] Playwright available - live preview enabled');
+}).catch(() => {
+    console.log('[Preview] Playwright not installed - running in mock mode');
+});
+app.use("/api/preview", previewRouter);
 
 // Clone Mode - Video to Code (analyze screen recordings)
 import cloneModeRouter from './routes/clone-mode.js';

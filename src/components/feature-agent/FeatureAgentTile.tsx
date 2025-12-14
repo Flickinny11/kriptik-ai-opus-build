@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, type PanInfo } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import {
@@ -8,8 +8,11 @@ import {
   type ImplementationPlan,
   type RequiredCredential,
 } from '@/store/useFeatureAgentTileStore';
+import { useFeatureAgentStore, type GhostModeAgentConfig } from '@/store/feature-agent-store';
 import { ImplementationPlanView, type PhaseModification } from './ImplementationPlanView';
 import { CredentialsCollectionView } from './CredentialsCollectionView';
+import { GhostModeConfig } from './GhostModeConfig';
+import { FeaturePreviewWindow } from './FeaturePreviewWindow';
 import './feature-agent-tile.css';
 
 interface FeatureAgentTileProps {
@@ -79,6 +82,25 @@ function svgStop() {
   );
 }
 
+function svgGhost() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M7 1.5C4.51 1.5 2.5 3.51 2.5 6v5c0 .28.22.5.5.5.14 0 .27-.05.35-.15L4.5 10.2l.65.65c.09.1.22.15.35.15s.27-.05.35-.15L7 9.7l1.15 1.15c.09.1.22.15.35.15s.27-.05.35-.15l.65-.65 1.15 1.15c.09.1.21.15.35.15.28 0 .5-.22.5-.5V6c0-2.49-2.01-4.5-4.5-4.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="5.25" cy="6" r="0.75" fill="currentColor" />
+      <circle cx="8.75" cy="6" r="0.75" fill="currentColor" />
+    </svg>
+  );
+}
+
+function svgEye() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1 7s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
 export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition }: FeatureAgentTileProps) {
   const tile = useFeatureAgentTileStore((s) => s.tiles[agentId]);
   const setTilePosition = useFeatureAgentTileStore((s) => s.setTilePosition);
@@ -87,6 +109,13 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
   const updateProgress = useFeatureAgentTileStore((s) => s.updateProgress);
   const setImplementationPlan = useFeatureAgentTileStore((s) => s.setImplementationPlan);
   const setRequiredCredentials = useFeatureAgentTileStore((s) => s.setRequiredCredentials);
+
+  // Ghost Mode state from persisted store
+  const runningAgent = useFeatureAgentStore((s) => s.runningAgents.find((a) => a.id === agentId));
+  const setGhostMode = useFeatureAgentStore((s) => s.setGhostMode);
+
+  const [showGhostModeConfig, setShowGhostModeConfig] = useState(false);
+  const [showPreviewWindow, setShowPreviewWindow] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -253,6 +282,32 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
     addMessage(agentId, { type: 'status', content: 'Credentials submitted.', timestamp: Date.now() });
   };
 
+  const handleGhostModeSave = async (config: GhostModeAgentConfig) => {
+    try {
+      // Save to API
+      await apiClient.post(`/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/ghost-mode`, config);
+
+      // Update persisted store
+      setGhostMode(agentId, config);
+
+      // Update tile status
+      setTileStatus(agentId, 'ghost_mode');
+      addMessage(agentId, {
+        type: 'status',
+        content: 'Ghost Mode enabled. You can safely close this tile - the agent will continue running in the background.',
+        timestamp: Date.now()
+      });
+
+      setShowGhostModeConfig(false);
+    } catch (error) {
+      addMessage(agentId, {
+        type: 'result',
+        content: `Failed to enable Ghost Mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: Date.now(),
+      });
+    }
+  };
+
   if (!tile || tile.minimized) return null;
 
   return (
@@ -283,6 +338,13 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
         </div>
 
         <div className="fa-tile__actions">
+          <button
+            className={`fa-tile__iconbtn fa-tile__iconbtn--ghost ${runningAgent?.ghostModeEnabled ? 'fa-tile__iconbtn--ghost-active' : ''}`}
+            onClick={() => setShowGhostModeConfig(true)}
+            title={runningAgent?.ghostModeEnabled ? 'Ghost Mode Active' : 'Enable Ghost Mode'}
+          >
+            {svgGhost()}
+          </button>
           <button className="fa-tile__iconbtn fa-tile__iconbtn--danger" onClick={stopAgent} title="Stop">
             {svgStop()}
           </button>
@@ -333,8 +395,54 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           <div className="fa-tile__phase">
             {tile.currentPhase ? tile.currentPhase : 'Stream connected'}
           </div>
+
+          {/* See Feature In Browser button when complete */}
+          {tile.status === 'complete' && (
+            <button
+              className="fa-tile__preview-btn"
+              onClick={() => setShowPreviewWindow(true)}
+            >
+              {svgEye()}
+              <span>See Feature In Browser</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Ghost Mode Config Popout */}
+      {showGhostModeConfig && (
+        <GhostModeConfig
+          agentId={agentId}
+          currentConfig={runningAgent?.ghostModeConfig || null}
+          onSave={handleGhostModeSave}
+          onClose={() => setShowGhostModeConfig(false)}
+        />
+      )}
+
+      {/* Ghost Mode Active Badge */}
+      {runningAgent?.ghostModeEnabled && (
+        <div className="fa-tile__ghost-badge">
+          {svgGhost()}
+          <span>Ghost Mode Active</span>
+        </div>
+      )}
+
+      {/* Feature Preview Window */}
+      {showPreviewWindow && (
+        <FeaturePreviewWindow
+          agentId={agentId}
+          featureName={headerMeta.name}
+          sandboxUrl={`/sandbox/${agentId}`}
+          onAccept={() => {
+            addMessage(agentId, {
+              type: 'status',
+              content: 'Feature accepted and merged successfully!',
+              timestamp: Date.now(),
+            });
+          }}
+          onClose={() => setShowPreviewWindow(false)}
+        />
+      )}
     </motion.div>
   );
 }

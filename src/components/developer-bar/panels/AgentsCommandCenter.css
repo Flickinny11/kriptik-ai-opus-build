@@ -1032,3 +1032,256 @@
   color: rgba(255, 255, 255, 0.25);
   margin: 0;
 }
+
+/* ============================================================================
+   RUNNING TAB
+   ============================================================================ */
+.acc-v2__tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  background: linear-gradient(135deg, var(--amber) 0%, #D46A4A 100%);
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(245, 168, 108, 0.3);
+}
+
+.acc-v2__running {
+  padding: 8px 0;
+}
+
+.acc-v2__running-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Running Agent Tile Mini-View */
+.acc-v2__running-tile {
+  position: relative;
+  padding: 14px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Matte slate texture */
+  background: linear-gradient(
+    165deg,
+    #252d3a 0%,
+    #1c222d 40%,
+    #181e28 100%
+  );
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"),
+    linear-gradient(165deg, #252d3a 0%, #1c222d 40%, #181e28 100%);
+
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  /* Layered shadow */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.acc-v2__running-tile:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 0, 0, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.acc-v2__running-tile--active {
+  border-color: rgba(245, 168, 108, 0.15);
+}
+
+.acc-v2__running-tile-pulse {
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(ellipse at center, var(--tile-color), transparent 70%);
+  border-radius: 12px;
+  z-index: -1;
+  filter: blur(12px);
+}
+
+.acc-v2__running-tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.acc-v2__running-tile-model {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-v2__running-tile-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.acc-v2__running-tile-icon-placeholder {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #fff;
+}
+
+.acc-v2__running-tile-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.acc-v2__running-tile-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-v2__running-tile-ghost-badge {
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  padding: 3px 6px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 4px;
+  color: #C084FC;
+}
+
+.acc-v2__running-tile-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.acc-v2__running-tile-status--implementing,
+.acc-v2__running-tile-status--intent_lock { color: var(--amber); }
+.acc-v2__running-tile-status--verifying { color: #60A5FA; }
+.acc-v2__running-tile-status--awaiting_plan_approval,
+.acc-v2__running-tile-status--awaiting_credentials { color: #FBBF24; }
+.acc-v2__running-tile-status--complete { color: #22C55E; }
+.acc-v2__running-tile-status--failed { color: #EF4444; }
+.acc-v2__running-tile-status--paused { color: #94A3B8; }
+.acc-v2__running-tile-status--ghost_mode { color: #C084FC; }
+
+.acc-v2__running-tile-status-dot {
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  animation: statusBlink 1.5s ease-in-out infinite;
+}
+
+.acc-v2__running-tile-task {
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.acc-v2__running-tile-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acc-v2__running-tile-progress {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-v2__running-tile-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.acc-v2__running-tile-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--tile-color), var(--amber));
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+
+.acc-v2__running-tile-progress-pct {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 28px;
+  text-align: right;
+}
+
+.acc-v2__running-tile-stop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.acc-v2__running-tile-stop:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #F87171;
+}
+
+.acc-v2__running-tile-stop--confirm {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+  animation: confirmPulse 0.6s ease-in-out infinite;
+}
+
+@keyframes confirmPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+

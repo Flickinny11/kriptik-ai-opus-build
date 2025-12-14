@@ -4731,3 +4731,10 @@ NEXT STEPS:
    NEXT: Run `server/src/run-migration.ts` (or Drizzle migration) against production Turso so `notifications` tables exist in Vercel environment, then validate notifications render on dashboard and Feature Agent Ghost Mode notifications deliver via configured channels.
    CONTEXT: Notifications UI requires authenticated session and reads `/api/notifications`. External channels require provider env vars (Resend/SendGrid, Twilio, Slack webhook, VAPID keys) and user preferences saved via `/api/notifications/preferences`.
 
+   ═══ [2025-12-13T00:36:00.000Z] ═══
+   COMPLETED: Ran production Turso migration to create `notifications` + `notification_preferences` tables (and indexes) using existing Turso creds; fixed production `/api/notifications` access by removing credit-gate on notifications routes and hardening `authMiddleware` to validate Better Auth sessions using the request Cookie header (compatible with `kriptik_auth.*` prefix). Verified Vercel backend deployment is READY and the dashboard now receives `GET /api/notifications` with 200.
+   FILES MODIFIED: src/components/dashboard/NotificationsSection.tsx, server/src/index.ts, server/src/middleware/auth.ts
+   CURRENT STATE: ✅ `npm run build` passing. ✅ `server/npm run build` passing. ✅ Vercel frontend+backend deployments READY. ✅ Dashboard network shows `GET /api/notifications` → 200.
+   NEXT: Confirm notifications list renders end-to-end for your account (and test one Feature Agent event to generate a notification), then proceed to the next prompt set you want to tackle.
+   CONTEXT: Notifications are not credit-gated (they’re not an expensive operation). Auth validation for protected routes now correctly supports Better Auth cookies in cross-origin deployments by passing `Cookie` through to `auth.api.getSession`.
+
