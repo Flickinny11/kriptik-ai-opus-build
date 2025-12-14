@@ -94,6 +94,208 @@ export interface CombinedVerificationResult {
 }
 
 // =============================================================================
+// SWARM MODE SYSTEM - 5 Intelligent Modes
+// =============================================================================
+
+export type SwarmMode = 'lightning' | 'standard' | 'thorough' | 'production' | 'paranoid';
+
+export interface SwarmModeConfig {
+    name: string;
+    description: string;
+    maxFilesPerAgent: number;
+    maxElementsToTest: number;
+    maxSuggestionsPerError: number;
+    maxIssuesReported: number;
+    agentsEnabled: VerificationAgentType[];
+    estimatedDurationSec: number;
+    creditCost: number;
+    recommended: boolean;
+}
+
+export const SWARM_MODES: Record<SwarmMode, SwarmModeConfig> = {
+    lightning: {
+        name: 'Lightning',
+        description: 'Quick scan for critical issues only. Best for rapid iterations.',
+        maxFilesPerAgent: 10,
+        maxElementsToTest: 5,
+        maxSuggestionsPerError: 3,
+        maxIssuesReported: 20,
+        agentsEnabled: ['error_checker', 'placeholder_eliminator'],
+        estimatedDurationSec: 15,
+        creditCost: 2,
+        recommended: false,
+    },
+    standard: {
+        name: 'Standard',
+        description: 'Balanced verification for everyday development.',
+        maxFilesPerAgent: 25,
+        maxElementsToTest: 15,
+        maxSuggestionsPerError: 5,
+        maxIssuesReported: 50,
+        agentsEnabled: ['error_checker', 'placeholder_eliminator', 'code_quality', 'security_scanner'],
+        estimatedDurationSec: 45,
+        creditCost: 8,
+        recommended: false,
+    },
+    thorough: {
+        name: 'Thorough',
+        description: 'Comprehensive analysis including visual verification.',
+        maxFilesPerAgent: 50,
+        maxElementsToTest: 30,
+        maxSuggestionsPerError: 10,
+        maxIssuesReported: 100,
+        agentsEnabled: ['error_checker', 'placeholder_eliminator', 'code_quality', 'security_scanner', 'visual_verifier', 'design_style'],
+        estimatedDurationSec: 120,
+        creditCost: 25,
+        recommended: true,
+    },
+    production: {
+        name: 'Production',
+        description: 'Full enterprise-grade verification before deployment.',
+        maxFilesPerAgent: 100,
+        maxElementsToTest: 50,
+        maxSuggestionsPerError: 15,
+        maxIssuesReported: 200,
+        agentsEnabled: ['error_checker', 'placeholder_eliminator', 'code_quality', 'security_scanner', 'visual_verifier', 'design_style'],
+        estimatedDurationSec: 300,
+        creditCost: 50,
+        recommended: false,
+    },
+    paranoid: {
+        name: 'Paranoid',
+        description: 'Maximum depth analysis. Checks EVERYTHING. No limits.',
+        maxFilesPerAgent: Infinity,
+        maxElementsToTest: Infinity,
+        maxSuggestionsPerError: Infinity,
+        maxIssuesReported: Infinity,
+        agentsEnabled: ['error_checker', 'placeholder_eliminator', 'code_quality', 'security_scanner', 'visual_verifier', 'design_style'],
+        estimatedDurationSec: 600,
+        creditCost: 100,
+        recommended: false,
+    },
+};
+
+// =============================================================================
+// FINE-GRAIN AGENT CONFIGURATION
+// =============================================================================
+
+export interface AgentFineGrainConfig {
+    agentType: VerificationAgentType;
+    enabled: boolean;
+    maxFiles: number;
+    maxIssues: number;
+    priority: 'critical' | 'high' | 'normal' | 'low';
+    autoFix: boolean;
+}
+
+export const DEFAULT_AGENT_CONFIGS: AgentFineGrainConfig[] = [
+    { agentType: 'error_checker', enabled: true, maxFiles: 50, maxIssues: 100, priority: 'critical', autoFix: false },
+    { agentType: 'placeholder_eliminator', enabled: true, maxFiles: 50, maxIssues: 100, priority: 'critical', autoFix: false },
+    { agentType: 'code_quality', enabled: true, maxFiles: 50, maxIssues: 50, priority: 'high', autoFix: true },
+    { agentType: 'security_scanner', enabled: true, maxFiles: 50, maxIssues: 50, priority: 'critical', autoFix: false },
+    { agentType: 'visual_verifier', enabled: true, maxFiles: 30, maxIssues: 30, priority: 'high', autoFix: false },
+    { agentType: 'design_style', enabled: true, maxFiles: 30, maxIssues: 30, priority: 'normal', autoFix: false },
+];
+
+// =============================================================================
+// BUG HUNT SYSTEM
+// =============================================================================
+
+export interface IntentLockCheck {
+    checkId: string;
+    bugId: string;
+    intentSection: string;
+    approved: boolean;
+    reason: string;
+    timestamp: Date;
+}
+
+export interface BugReport {
+    id: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    category: 'logic' | 'type' | 'security' | 'performance' | 'accessibility' | 'ux';
+    description: string;
+    file: string;
+    line: number;
+    code: string;
+    suggestedFix: string;
+    fixApplied: boolean;
+    intentLockApproved: boolean;
+    reasoning: string;
+}
+
+export interface BugHuntResult {
+    id: string;
+    projectId: string;
+    startedAt: Date;
+    completedAt: Date | null;
+    bugsFound: BugReport[];
+    bugsFixed: BugReport[];
+    bugsNeedingHumanReview: BugReport[];
+    intentLockChecks: IntentLockCheck[];
+    summary: string;
+    status: 'running' | 'completed' | 'failed';
+    filesScanned: number;
+    totalLinesAnalyzed: number;
+}
+
+export interface SwarmRunContext {
+    buildPhase: 'planning' | 'implementing' | 'verifying' | 'deploying';
+    changeSize: 'small' | 'medium' | 'large';
+    lastVerificationMinutesAgo: number;
+    previousFailureRate: number;
+}
+
+/**
+ * Intelligent Mode Recommendation System
+ * Recommends swarm mode based on build context
+ */
+export function recommendSwarmMode(context: SwarmRunContext): SwarmMode {
+    const { buildPhase, changeSize, lastVerificationMinutesAgo, previousFailureRate } = context;
+
+    // High failure rate? Go paranoid
+    if (previousFailureRate > 0.5) {
+        return 'paranoid';
+    }
+
+    // Deploying? Production mode mandatory
+    if (buildPhase === 'deploying') {
+        return 'production';
+    }
+
+    // Planning phase - just quick checks
+    if (buildPhase === 'planning') {
+        return 'lightning';
+    }
+
+    // Large changes or long time since last verification
+    if (changeSize === 'large' || lastVerificationMinutesAgo > 60) {
+        return 'thorough';
+    }
+
+    // Medium changes during implementation
+    if (changeSize === 'medium' && buildPhase === 'implementing') {
+        return 'standard';
+    }
+
+    // Verifying phase
+    if (buildPhase === 'verifying') {
+        return previousFailureRate > 0.2 ? 'thorough' : 'standard';
+    }
+
+    // Default
+    return 'standard';
+}
+
+/**
+ * Get readable description of swarm mode
+ */
+export function getSwarmModeDescription(mode: SwarmMode): string {
+    const config = SWARM_MODES[mode];
+    return `${config.name}: ${config.description} (~${config.estimatedDurationSec}s, ${config.creditCost} credits)`;
+}
+
+// =============================================================================
 // DEFAULT CONFIG
 // =============================================================================
 
@@ -874,5 +1076,239 @@ export function createVerificationSwarm(
     config?: Partial<SwarmConfig>
 ): VerificationSwarm {
     return new VerificationSwarm(orchestrationRunId, projectId, userId, config);
+}
+
+// =============================================================================
+// BUG HUNT IMPLEMENTATION
+// =============================================================================
+
+/**
+ * Run comprehensive Bug Hunt with Intent Lock verification
+ * Uses Claude Opus 4.5 with 64K thinking budget
+ * Checks ALL fixes against intent to prevent removing intended features
+ */
+export async function runBugHunt(
+    projectId: string,
+    userId: string,
+    intent: IntentContract,
+    files: Map<string, string>
+): Promise<BugHuntResult> {
+    const huntId = uuidv4();
+    const startedAt = new Date();
+
+    const claudeService = createClaudeService({
+        projectId,
+        userId,
+        agentType: 'verification',
+    });
+
+    const result: BugHuntResult = {
+        id: huntId,
+        projectId,
+        startedAt,
+        completedAt: null,
+        bugsFound: [],
+        bugsFixed: [],
+        bugsNeedingHumanReview: [],
+        intentLockChecks: [],
+        summary: '',
+        status: 'running',
+        filesScanned: 0,
+        totalLinesAnalyzed: 0,
+    };
+
+    try {
+        // Count total lines
+        let totalLines = 0;
+        for (const content of files.values()) {
+            totalLines += content.split('\n').length;
+        }
+        result.totalLinesAnalyzed = totalLines;
+        result.filesScanned = files.size;
+
+        // Analyze files in batches
+        const fileEntries = Array.from(files.entries());
+        const batchSize = 10;
+
+        for (let i = 0; i < fileEntries.length; i += batchSize) {
+            const batch = fileEntries.slice(i, i + batchSize);
+
+            const batchPrompt = `You are a SENIOR BUG HUNTER analyzing code for bugs.
+
+INTENT CONTRACT (DO NOT REMOVE INTENDED FEATURES):
+- App Type: ${intent.appType}
+- Core Value: ${intent.coreValueProp}
+- App Soul: ${intent.appSoul}
+- Visual Identity: ${JSON.stringify(intent.visualIdentity)}
+
+FILES TO ANALYZE:
+${batch.map(([path, content]) => `
+### ${path}
+\`\`\`
+${content.substring(0, 3000)}
+\`\`\`
+`).join('\n')}
+
+Find ALL bugs in these files. For each bug:
+1. Identify the issue
+2. Categorize it (logic, type, security, performance, accessibility, ux)
+3. Propose a fix
+4. Check if the fix might remove an INTENDED feature (be very careful here)
+
+Respond with JSON: {
+    "bugs": [
+        {
+            "severity": "critical|high|medium|low",
+            "category": "logic|type|security|performance|accessibility|ux",
+            "description": "what is wrong",
+            "file": "file path",
+            "line": line_number,
+            "code": "the problematic code snippet",
+            "suggestedFix": "the fixed code",
+            "mightAffectIntent": boolean,
+            "reasoning": "why this is a bug and why the fix is safe"
+        }
+    ]
+}`;
+
+            try {
+                const phaseConfig = getPhaseConfig('intent_satisfaction');
+
+                const response = await claudeService.generateStructured<{
+                    bugs: Array<{
+                        severity: 'critical' | 'high' | 'medium' | 'low';
+                        category: 'logic' | 'type' | 'security' | 'performance' | 'accessibility' | 'ux';
+                        description: string;
+                        file: string;
+                        line: number;
+                        code: string;
+                        suggestedFix: string;
+                        mightAffectIntent: boolean;
+                        reasoning: string;
+                    }>;
+                }>(
+                    batchPrompt,
+                    'Analyze the code comprehensively. Find every bug. Be thorough but careful not to flag intended features as bugs.',
+                    {
+                        model: phaseConfig.model,
+                        effort: 'high',
+                        thinkingBudgetTokens: 64000,
+                    }
+                );
+
+                for (const bug of response.bugs) {
+                    const bugReport: BugReport = {
+                        id: uuidv4(),
+                        severity: bug.severity,
+                        category: bug.category,
+                        description: bug.description,
+                        file: bug.file,
+                        line: bug.line,
+                        code: bug.code,
+                        suggestedFix: bug.suggestedFix,
+                        fixApplied: false,
+                        intentLockApproved: !bug.mightAffectIntent,
+                        reasoning: bug.reasoning,
+                    };
+
+                    result.bugsFound.push(bugReport);
+
+                    // Intent lock check
+                    const intentCheck: IntentLockCheck = {
+                        checkId: uuidv4(),
+                        bugId: bugReport.id,
+                        intentSection: bug.mightAffectIntent ? 'visual_identity' : 'none',
+                        approved: !bug.mightAffectIntent,
+                        reason: bug.mightAffectIntent
+                            ? 'Fix might affect intended design or feature'
+                            : 'Fix is safe and does not affect intended features',
+                        timestamp: new Date(),
+                    };
+
+                    result.intentLockChecks.push(intentCheck);
+
+                    if (bug.mightAffectIntent) {
+                        result.bugsNeedingHumanReview.push(bugReport);
+                    }
+                }
+
+            } catch (error) {
+                console.error('[BugHunt] Batch analysis failed:', error);
+            }
+        }
+
+        // Generate summary
+        const criticalCount = result.bugsFound.filter(b => b.severity === 'critical').length;
+        const highCount = result.bugsFound.filter(b => b.severity === 'high').length;
+        const safeToFixCount = result.bugsFound.filter(b => b.intentLockApproved).length;
+
+        result.summary = `Bug Hunt Complete: Found ${result.bugsFound.length} bugs (${criticalCount} critical, ${highCount} high). ` +
+            `${safeToFixCount} safe to auto-fix, ${result.bugsNeedingHumanReview.length} need human review. ` +
+            `Scanned ${result.filesScanned} files (${result.totalLinesAnalyzed} lines).`;
+
+        result.status = 'completed';
+        result.completedAt = new Date();
+
+    } catch (error) {
+        result.status = 'failed';
+        result.summary = `Bug Hunt failed: ${(error as Error).message}`;
+        result.completedAt = new Date();
+    }
+
+    return result;
+}
+
+/**
+ * Apply a single bug fix
+ */
+export async function applyBugFix(
+    bugReport: BugReport,
+    files: Map<string, string>
+): Promise<{ success: boolean; newContent: string | null }> {
+    if (!bugReport.intentLockApproved) {
+        return { success: false, newContent: null };
+    }
+
+    const fileContent = files.get(bugReport.file);
+    if (!fileContent) {
+        return { success: false, newContent: null };
+    }
+
+    // Simple line-based replacement
+    const lines = fileContent.split('\n');
+    if (bugReport.line > 0 && bugReport.line <= lines.length) {
+        lines[bugReport.line - 1] = bugReport.suggestedFix;
+        return { success: true, newContent: lines.join('\n') };
+    }
+
+    return { success: false, newContent: null };
+}
+
+/**
+ * Apply all safe fixes (intent-lock approved)
+ */
+export async function applyAllSafeFixes(
+    bugHuntResult: BugHuntResult,
+    files: Map<string, string>
+): Promise<{ fixedCount: number; failedCount: number; updatedFiles: Map<string, string> }> {
+    const updatedFiles = new Map(files);
+    let fixedCount = 0;
+    let failedCount = 0;
+
+    const safeBugs = bugHuntResult.bugsFound.filter(b => b.intentLockApproved && !b.fixApplied);
+
+    for (const bug of safeBugs) {
+        const result = await applyBugFix(bug, updatedFiles);
+        if (result.success && result.newContent) {
+            updatedFiles.set(bug.file, result.newContent);
+            bug.fixApplied = true;
+            bugHuntResult.bugsFixed.push(bug);
+            fixedCount++;
+        } else {
+            failedCount++;
+        }
+    }
+
+    return { fixedCount, failedCount, updatedFiles };
 }
 
