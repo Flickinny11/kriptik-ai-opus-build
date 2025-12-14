@@ -131,9 +131,9 @@ const QUALITY_PATTERNS = {
     // Depth indicators
     depth: [
         'backdrop-blur',
-        'shadow-.*\/[0-9]+',       // Shadow with opacity
-        'bg-.*\/[0-9]+',           // Background with opacity
-        'border-.*\/[0-9]+',       // Border with opacity
+        'shadow-.*\\/[0-9]+',       // Shadow with opacity
+        'bg-.*\\/[0-9]+',           // Background with opacity
+        'border-.*\\/[0-9]+',       // Border with opacity
     ],
 
     // Motion indicators
@@ -162,6 +162,27 @@ const QUALITY_PATTERNS = {
         'flex-',
         'p-[4-9]',
         'm-[4-9]',
+    ],
+
+    // Premium fallback patterns - CSS alternatives to 3D/JS effects
+    // These should NEVER be flagged as violations
+    premiumFallbacks: [
+        'premium-glass-fallback',
+        'premium-background-fallback',
+        'premium-spline-fallback',
+        'scroll-animate',
+        'stagger-container',
+        'transition-card',
+        'lottie-fallback-',
+        'webgpu-fallback-',
+        'view-transition-name',
+        '@keyframes slide-up-fade',
+        '@keyframes scale-in',
+        '@keyframes stagger-fade-in',
+        'animation-timeline: view()',
+        'backdrop-filter: blur',
+        'inset 0 1px 1px rgba',
+        'inset 0 0 32px rgba',
     ],
 };
 
@@ -714,14 +735,14 @@ Respond with ONLY a number 0-100. No explanation.`;
 
     private isUIFile(path: string): boolean {
         return /\.(tsx|jsx|vue|svelte|html|css)$/i.test(path) &&
-               !path.includes('.test.') &&
-               !path.includes('.spec.') &&
-               !path.includes('node_modules');
+            !path.includes('.test.') &&
+            !path.includes('.spec.') &&
+            !path.includes('node_modules');
     }
 
     private hasTextContent(content: string): boolean {
         return /<[^>]+>[^<]{10,}<\//.test(content) || // Has text in tags
-               /className="[^"]*text-/.test(content);  // Has text styling
+            /className="[^"]*text-/.test(content);  // Has text styling
     }
 
     private hasLayoutContent(content: string): boolean {

@@ -38,6 +38,7 @@ import { getPhaseConfig, OPENROUTER_MODELS } from '../ai/openrouter-client.js';
 import { ArtifactManager, createArtifactManager } from '../ai/artifacts.js';
 import type { IntentContract } from '../ai/intent-lock.js';
 import type { Feature } from '../ai/feature-list.js';
+import { selectFallback, type FallbackCategory, type DeviceCapabilities } from '../ai/premium-fallback.js';
 
 // =============================================================================
 // TYPES
@@ -57,7 +58,13 @@ export type ErrorCategory =
     | 'targeted_rewrite'
     | 'dependency_update'
     | 'approach_change'
-    | 'full_feature_rebuild';
+    | 'full_feature_rebuild'
+    // Styling error categories
+    | 'styling_webgl_unavailable'
+    | 'styling_dependency_load_failure'
+    | 'styling_animation_performance'
+    | 'styling_font_not_loaded'
+    | 'styling_3d_render_failure';
 
 export interface BuildError {
     id: string;
@@ -146,6 +153,12 @@ const LEVEL_1_CATEGORIES: ErrorCategory[] = [
     'import_missing',
     'type_mismatch',
     'undefined_variable',
+    // Styling errors are Level 1 - use premium CSS fallbacks first
+    'styling_webgl_unavailable',
+    'styling_dependency_load_failure',
+    'styling_animation_performance',
+    'styling_font_not_loaded',
+    'styling_3d_render_failure',
 ];
 
 const LEVEL_2_CATEGORIES: ErrorCategory[] = [

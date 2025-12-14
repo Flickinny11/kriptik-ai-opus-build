@@ -154,6 +154,30 @@ const QUALITY_PATTERNS: RegExp[] = [
     /dark:/,
     /slate-[89]00/,
     /#0a0a/,
+
+    // Premium fallback patterns - CSS alternatives to 3D/JS effects
+    // These indicate premium quality even without JS libraries
+    /premium-glass-fallback/,
+    /premium-background-fallback/,
+    /premium-spline-fallback/,
+    /scroll-animate/,
+    /stagger-container/,
+    /transition-card/,
+    /lottie-fallback/,
+    /webgpu-fallback/,
+    /view-transition-name/,
+    /animation-timeline:\s*view\(\)/,
+    /backdrop-filter:\s*blur/,
+    /inset\s+0\s+1px\s+1px\s+rgba/,
+    /cubic-bezier\(0\.16,\s*1,\s*0\.3,\s*1\)/,
+
+    // Framer Motion / GSAP indicators
+    /motion\./,
+    /gsap\./,
+    /ScrollTrigger/,
+    /whileHover/,
+    /initial=/,
+    /animate=/,
 ];
 
 /**

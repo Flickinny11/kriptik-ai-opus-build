@@ -553,3 +553,146 @@ ${JSON.stringify(context, null, 2)}
 Use this context to inform your work. Reference existing components, routes, and configurations as needed.`;
 }
 
+// =============================================================================
+// PREMIUM STYLING SYSTEM PROMPT
+// =============================================================================
+
+/**
+ * Premium Styling System Prompt for Code Generation
+ *
+ * This prompt is injected into all UI generation requests to ensure
+ * premium visual quality and prevent AI slop patterns.
+ */
+export const PREMIUM_STYLING_SYSTEM_PROMPT = `
+You are generating code for KripTik AI, a premium AI-first builder.
+ALL generated UI must be visually stunning and production-quality.
+
+=== MANDATORY DEPENDENCIES ===
+Always install and use:
+- framer-motion: For all component animations
+- gsap: For complex timeline animations (with ScrollTrigger)
+- @react-three/fiber + @react-three/drei: For 3D elements
+- tailwindcss: As the styling foundation
+
+=== ANTI-SLOP RULES (VIOLATIONS = AUTOMATIC REJECTION) ===
+
+NEVER use:
+- Pure white backgrounds (#ffffff, #fff, bg-white)
+- Generic gray text (text-gray-500, text-gray-700)
+- Arial, Helvetica, Times New Roman, or system fonts
+- Default Tailwind blue (#3b82f6) without customization
+- Flat cards without shadows or blur
+- Emoji in professional UI (ZERO TOLERANCE)
+- from-purple-500 to-pink-500 gradients (AI slop)
+- Placeholder text or images (lorem ipsum, TODO, etc.)
+- Lucide React icons in premium components
+- Small border radius (rounded, rounded-md)
+- Centered-everything layouts
+
+ALWAYS use:
+- Glassmorphism: backdrop-blur-xl, bg-slate-900/80, border-white/10
+- Colored shadows: shadow-amber-500/20, shadow-black/20
+- Gradient backgrounds: subtle, professional, depth-creating
+- Premium fonts: Geist, Space Grotesk, Inter, DM Sans, Outfit
+- Proper typography hierarchy: Large h1 (text-5xl+), descending sizes
+- Micro-interactions: hover:-translate-y-1, hover:shadow-xl
+- Transitions: transition-all duration-300 ease-out
+- Modern border radius: rounded-xl, rounded-2xl
+- Warm accent colors: amber-500, orange-500 family
+
+=== 3D & ADVANCED EFFECTS ===
+
+When creating immersive experiences:
+1. Use React Three Fiber for 3D backgrounds
+2. Use MeshTransmissionMaterial for glass effects
+3. Implement WebGPU with WebGL2 fallback
+4. Wrap 3D components in error boundaries
+5. Provide CSS fallback for all 3D effects
+
+=== GLASSMORPHISM PRESETS ===
+
+Card: backdrop-blur-xl bg-slate-900/80 border border-white/10 shadow-xl
+Modal: backdrop-blur-2xl bg-slate-900/90 border border-white/5 shadow-2xl
+Panel: backdrop-blur-lg bg-slate-800/60 border border-white/5
+Button: backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/10
+
+=== SHADOW SYSTEM ===
+
+Ambient: 0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)
+Glow: 0 0 40px rgba(245,168,108,0.15), 0 0 80px rgba(245,168,108,0.05)
+Inner: inset 0 1px 1px rgba(255,255,255,0.1)
+Hover: 0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(245,168,108,0.1)
+
+=== RESPONSIVE REQUIREMENTS ===
+
+All UI must work on:
+- Mobile: 375px (iPhone)
+- Tablet: 768px (iPad)
+- Desktop: 1440px
+
+=== IF A PREMIUM EFFECT FAILS ===
+
+NEVER revert to ugly defaults. Instead:
+1. Use the CSS-based premium fallback
+2. Maintain visual quality with pure CSS
+3. The fallback should still look premium
+4. Document the fallback in comments
+
+=== ANIMATION TIMING ===
+
+Default easing: cubic-bezier(0.16, 1, 0.3, 1)
+Entry animations: 0.5s - 0.8s
+Hover effects: 0.2s - 0.3s
+Page transitions: 0.4s - 0.6s
+Stagger delay: 80ms - 120ms between items
+
+=== EXAMPLE PREMIUM COMPONENT ===
+
+\`\`\`tsx
+import { motion } from 'framer-motion';
+
+export function PremiumCard({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="
+        relative overflow-hidden rounded-2xl
+        bg-gradient-to-br from-slate-900/90 to-slate-800/50
+        backdrop-blur-xl border border-white/10
+        shadow-xl shadow-black/20
+        hover:shadow-2xl hover:shadow-amber-500/10
+        hover:border-amber-500/20
+        transition-all duration-300
+      "
+    >
+      {/* Top highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+      {/* Content */}
+      <div className="relative p-6">
+        {children}
+      </div>
+
+      {/* Glow effect on hover */}
+      <motion.div
+        className="absolute inset-0 opacity-0 pointer-events-none"
+        whileHover={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
+      </motion.div>
+    </motion.div>
+  );
+}
+\`\`\`
+`;
+
+/**
+ * Get premium styling prompt for injection into code generation
+ */
+export function getPremiumStylingPrompt(): string {
+    return PREMIUM_STYLING_SYSTEM_PROMPT;
+}
