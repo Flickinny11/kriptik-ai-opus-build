@@ -10,10 +10,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    GitPullRequest, X, Check, Loader2, Camera,
-    User, Tag, GitMerge, FileCode, AlertCircle,
-    CheckCircle2, ChevronDown
-} from 'lucide-react';
+    GitBranchIcon,
+    CloseIcon,
+    CheckIcon,
+    Loader2Icon,
+    ImagePlusIcon,
+    UserIcon,
+    AlertCircleIcon,
+    CheckCircle2Icon,
+    ChevronDownIcon,
+    FileCodeIcon,
+    TagIcon
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // Dark glass styling
@@ -246,7 +254,7 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                 className="p-2 rounded-xl"
                                 style={{ background: `${accentColor}20` }}
                             >
-                                <GitPullRequest className="w-5 h-5" style={{ color: accentColor }} />
+                                <GitBranchIcon size={20} style={{ color: accentColor }} />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Create Pull Request</h2>
@@ -259,7 +267,7 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                             onClick={onClose}
                             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                         >
-                            <X className="w-5 h-5 text-white/40" />
+                            <CloseIcon size={20} className="text-white/40" />
                         </button>
                     </div>
 
@@ -285,7 +293,7 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                     )}
                                     {agent.filesChanged !== undefined && (
                                         <span className="text-xs text-white/40 flex items-center gap-1">
-                                            <FileCode className="w-3 h-3" />
+                                            <FileCodeIcon size={12} />
                                             {agent.filesChanged} files
                                         </span>
                                     )}
@@ -303,9 +311,9 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                             )}>
                                 <div className="flex items-center gap-2 mb-2">
                                     {verificationResults.passed ? (
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                        <CheckCircle2Icon size={16} className="text-emerald-400" />
                                     ) : (
-                                        <AlertCircle className="w-4 h-4 text-amber-400" />
+                                        <AlertCircleIcon size={16} className="text-amber-400" />
                                     )}
                                     <span className={cn(
                                         'text-sm font-medium',
@@ -335,7 +343,7 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                         {/* Error */}
                         {error && (
                             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                                <AlertCircle className="w-4 h-4 text-red-400" />
+                                <AlertCircleIcon size={16} className="text-red-400" />
                                 <span className="text-sm text-red-400">{error}</span>
                             </div>
                         )}
@@ -377,10 +385,10 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                     )}
                                     style={addScreenshots ? { background: accentColor } : {}}
                                 >
-                                    {addScreenshots && <Check className="w-3 h-3 text-black" />}
+                                    {addScreenshots && <CheckIcon size={12} className="text-black" />}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Camera className="w-4 h-4 text-white/40" />
+                                    <ImagePlusIcon size={16} className="text-white/40" />
                                     <span className="text-sm text-white/80">Add screenshots (before/after)</span>
                                 </div>
                             </label>
@@ -398,10 +406,10 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                         style={requestReview ? { background: accentColor } : {}}
                                         onClick={() => setRequestReview(!requestReview)}
                                     >
-                                        {requestReview && <Check className="w-3 h-3 text-black" />}
+                                        {requestReview && <CheckIcon size={12} className="text-black" />}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4 text-white/40" />
+                                        <UserIcon size={16} className="text-white/40" />
                                         <span className="text-sm text-white/80">Request review from</span>
                                     </div>
                                 </label>
@@ -417,7 +425,7 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                                     ? selectedReviewers.join(', ')
                                                     : 'Select reviewers...'}
                                             </span>
-                                            <ChevronDown className="w-4 h-4 text-white/40" />
+                                            <ChevronDownIcon size={16} className="text-white/40" />
                                         </button>
                                         {showReviewerDropdown && (
                                             <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-lg bg-slate-800 border border-white/10 z-10">
@@ -434,13 +442,13 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:bg-white/5"
                                                     >
                                                         <div className={cn(
-                                                            'w-4 h-4 rounded border',
+                                                            'w-4 h-4 rounded border flex items-center justify-center',
                                                             selectedReviewers.includes(reviewer)
                                                                 ? 'bg-cyan-500 border-cyan-500'
                                                                 : 'border-white/30'
                                                         )}>
                                                             {selectedReviewers.includes(reviewer) && (
-                                                                <Check className="w-4 h-4 text-black" />
+                                                                <CheckIcon size={12} className="text-black" />
                                                             )}
                                                         </div>
                                                         {reviewer}
@@ -465,10 +473,10 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                         style={addLabels ? { background: accentColor } : {}}
                                         onClick={() => setAddLabels(!addLabels)}
                                     >
-                                        {addLabels && <Check className="w-3 h-3 text-black" />}
+                                        {addLabels && <CheckIcon size={12} className="text-black" />}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Tag className="w-4 h-4 text-white/40" />
+                                        <TagIcon size={16} className="text-white/40" />
                                         <span className="text-sm text-white/80">Add labels</span>
                                     </div>
                                 </label>
@@ -514,10 +522,10 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                     style={autoMerge ? { background: accentColor } : {}}
                                     onClick={() => setAutoMerge(!autoMerge)}
                                 >
-                                    {autoMerge && <Check className="w-3 h-3 text-black" />}
+                                    {autoMerge && <CheckIcon size={12} className="text-black" />}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <GitMerge className="w-4 h-4 text-white/40" />
+                                    <GitBranchIcon size={16} className="text-white/40" />
                                     <span className="text-sm text-white/80">Auto-merge when checks pass</span>
                                 </div>
                             </label>
@@ -550,9 +558,9 @@ ${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'}
                                 }}
                             >
                                 {creating ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <Loader2Icon size={16} className="animate-spin" />
                                 ) : (
-                                    <GitPullRequest className="w-4 h-4" />
+                                    <GitBranchIcon size={16} />
                                 )}
                                 Create PR
                             </button>

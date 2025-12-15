@@ -6,7 +6,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, ChevronDown, ChevronUp, Code, Palette, Database, Box, FileCode } from 'lucide-react';
+import {
+    LayersIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    CodeIcon,
+    PaletteIcon,
+    DatabaseIcon,
+    SquareIcon,
+    FileCodeIcon,
+} from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -30,13 +39,13 @@ interface PatternViewerProps {
     className?: string;
 }
 
-const PATTERN_ICONS: Record<string, typeof Layers> = {
-    architecture: Layers,
-    naming: FileCode,
-    component: Box,
-    'state-management': Database,
-    styling: Palette,
-    api: Code,
+const PATTERN_ICONS: Record<string, React.FC<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+    architecture: LayersIcon,
+    naming: FileCodeIcon,
+    component: SquareIcon,
+    'state-management': DatabaseIcon,
+    styling: PaletteIcon,
+    api: CodeIcon,
 };
 
 const PATTERN_COLORS: Record<string, string> = {
@@ -63,7 +72,7 @@ export function PatternViewer({
     if (patterns.length === 0) {
         return (
             <div className={`rounded-xl border border-white/10 bg-black/30 p-8 text-center ${className}`}>
-                <Layers className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                <LayersIcon size={48} className="text-white/20 mx-auto mb-3" />
                 <p className="text-white/60">No patterns detected yet</p>
                 <p className="text-sm text-white/40 mt-1">Import a codebase to detect patterns</p>
             </div>
@@ -75,7 +84,7 @@ export function PatternViewer({
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/10 bg-white/[0.02]">
                 <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <Layers className="w-4 h-4" style={{ color: accentColor }} />
+                    <LayersIcon size={16} style={{ color: accentColor }} />
                     Detected Patterns ({patterns.length})
                 </h3>
             </div>
@@ -83,7 +92,7 @@ export function PatternViewer({
             {/* Patterns list */}
             <div className="divide-y divide-white/5">
                 {patterns.map((pattern, index) => {
-                    const Icon = PATTERN_ICONS[pattern.type] || Layers;
+                    const Icon = PATTERN_ICONS[pattern.type] || LayersIcon;
                     const color = PATTERN_COLORS[pattern.type] || '#6b7280';
                     const confidence = getConfidenceLabel(pattern.confidence);
                     const isExpanded = expandedPattern === pattern.name;
@@ -104,7 +113,7 @@ export function PatternViewer({
                                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                                         style={{ background: `${color}20` }}
                                     >
-                                        <Icon className="w-4 h-4" style={{ color }} />
+                                        <Icon size={16} style={{ color }} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
@@ -128,9 +137,9 @@ export function PatternViewer({
                                             {Math.round(pattern.confidence * 100)}%
                                         </span>
                                         {isExpanded ? (
-                                            <ChevronUp className="w-4 h-4 text-white/40" />
+                                            <ChevronUpIcon size={16} className="text-white/40" />
                                         ) : (
-                                            <ChevronDown className="w-4 h-4 text-white/40" />
+                                            <ChevronDownIcon size={16} className="text-white/40" />
                                         )}
                                     </div>
                                 </div>

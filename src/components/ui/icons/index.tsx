@@ -160,6 +160,9 @@ export {
     UnlinkIcon,
     Link2Icon,
     Loader2Icon,
+    TagIcon,
+    GitMergeIcon,
+    GitPullRequestIcon,
     StatusIcons,
 } from './StatusIcons';
 

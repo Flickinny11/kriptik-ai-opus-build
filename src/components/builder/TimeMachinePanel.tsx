@@ -10,10 +10,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Clock, RotateCcw, Download, Eye, ChevronRight,
-    GitCommit, FileCode, Database, CheckCircle,
-    AlertTriangle, Loader2, Calendar, HardDrive
-} from 'lucide-react';
+    ClockIcon,
+    RefreshCwIcon,
+    DownloadIcon,
+    EyeIcon,
+    ChevronRightIcon,
+    WorkflowIcon,
+    FileCodeIcon,
+    DatabaseIcon,
+    CheckCircleIcon,
+    AlertTriangleIcon,
+    Loader2Icon
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 const accentColor = '#c8ff64';
@@ -195,10 +203,10 @@ export function TimeMachinePanel({
 
     const getTriggerIcon = (trigger: Checkpoint['trigger']) => {
         switch (trigger) {
-            case 'manual': return <Clock className="w-4 h-4 text-blue-400" />;
-            case 'auto': return <Database className="w-4 h-4 text-gray-400" />;
-            case 'phase_complete': return <CheckCircle className="w-4 h-4 text-emerald-400" />;
-            case 'error_recovery': return <AlertTriangle className="w-4 h-4 text-amber-400" />;
+            case 'manual': return <ClockIcon size={16} className="text-blue-400" />;
+            case 'auto': return <DatabaseIcon size={16} className="text-gray-400" />;
+            case 'phase_complete': return <CheckCircleIcon size={16} className="text-emerald-400" />;
+            case 'error_recovery': return <AlertTriangleIcon size={16} className="text-amber-400" />;
         }
     };
 
@@ -208,7 +216,7 @@ export function TimeMachinePanel({
             <div className="mb-6 p-4 bg-white/[0.02] rounded-xl border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                        <HardDrive className="w-4 h-4 text-gray-400" />
+                        <DatabaseIcon size={16} className="text-gray-400" />
                         <span className="text-sm text-gray-400">Storage Used</span>
                     </div>
                     <span className="text-sm font-medium" style={{ color: accentColor }}>
@@ -235,11 +243,11 @@ export function TimeMachinePanel({
             {/* Checkpoints List */}
             {loading ? (
                 <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                    <Loader2Icon size={24} className="text-gray-400 animate-spin" />
                 </div>
             ) : checkpoints.length === 0 ? (
                 <div className="text-center py-12">
-                    <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <ClockIcon size={48} className="text-gray-600 mx-auto mb-3" />
                     <p className="text-gray-400">No checkpoints yet</p>
                     <p className="text-sm text-gray-500 mt-1">Checkpoints will be created automatically as you work</p>
                 </div>
@@ -282,17 +290,17 @@ export function TimeMachinePanel({
                                         </div>
                                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                                             <span className="flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
+                                                <ClockIcon size={12} />
                                                 {formatTimestamp(checkpoint.timestamp)}
                                             </span>
                                             <span className="flex items-center gap-1">
-                                                <FileCode className="w-3 h-3" />
+                                                <FileCodeIcon size={12} />
                                                 {checkpoint.filesCount} files
                                             </span>
                                             <span>{formatSize(checkpoint.size)}</span>
                                             {checkpoint.gitCommit && (
                                                 <span className="flex items-center gap-1 font-mono">
-                                                    <GitCommit className="w-3 h-3" />
+                                                    <WorkflowIcon size={12} />
                                                     {checkpoint.gitCommit.substring(0, 7)}
                                                 </span>
                                             )}
@@ -304,8 +312,8 @@ export function TimeMachinePanel({
                                         )}
                                     </div>
                                 </div>
-                                <ChevronRight className={cn(
-                                    'w-4 h-4 text-gray-500 transition-transform',
+                                <ChevronRightIcon size={16} className={cn(
+                                    'text-gray-500 transition-transform',
                                     selectedCheckpoint === checkpoint.id && 'rotate-90'
                                 )} />
                             </div>
@@ -333,9 +341,9 @@ export function TimeMachinePanel({
                                                 }}
                                             >
                                                 {restoring === checkpoint.id ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <Loader2Icon size={16} className="animate-spin" />
                                                 ) : (
-                                                    <RotateCcw className="w-4 h-4" />
+                                                    <RefreshCwIcon size={16} />
                                                 )}
                                                 Restore
                                             </button>
@@ -346,7 +354,7 @@ export function TimeMachinePanel({
                                                 }}
                                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                                             >
-                                                <Download className="w-4 h-4" />
+                                                <DownloadIcon size={16} />
                                                 Download
                                             </button>
                                             <button
@@ -356,7 +364,7 @@ export function TimeMachinePanel({
                                                 }}
                                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                                             >
-                                                <Eye className="w-4 h-4" />
+                                                <EyeIcon size={16} />
                                                 Preview Diff
                                             </button>
                                         </div>

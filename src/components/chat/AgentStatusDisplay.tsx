@@ -13,20 +13,14 @@ import {
     PlugIcon,
     EyeIcon,
     LoadingIcon,
+    TestTubeIcon,
+    RocketIcon,
+    AlertCircleIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
-import { TestTube, Rocket, Bug } from 'lucide-react';
 
-// Wrapper components to make Lucide icons compatible with our icon type
-const TestTubeIcon = ({ size, className }: { size?: number; className?: string }) => (
-    <TestTube size={size} className={className} />
-);
-const RocketIcon = ({ size, className }: { size?: number; className?: string }) => (
-    <Rocket size={size} className={className} />
-);
-const BugIcon = ({ size, className }: { size?: number; className?: string }) => (
-    <Bug size={size} className={className} />
-);
+// BugIcon is not available in our icons, use AlertCircleIcon as fallback for debug agent
+const BugIcon = AlertCircleIcon;
 
 interface Agent {
     id: string;

@@ -14,11 +14,11 @@ import {
     AlertCircleIcon,
     LoadingIcon,
     ShieldIcon,
+    ExternalLinkIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
-import { ExternalLink } from 'lucide-react';
 interface SecureCredentialInputProps {
     provider: string;
     providerId: string;
@@ -204,7 +204,7 @@ export function SecureCredentialInput({
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors"
                     >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLinkIcon size={14} />
                         Get API key
                     </a>
                 )}

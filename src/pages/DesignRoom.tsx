@@ -12,10 +12,10 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    Send, Image, Wand2, Download, Trash2, Heart,
-    FolderPlus, Code2, ZoomIn, ZoomOut,
-    Palette, Sliders, Check, Sparkles
-} from 'lucide-react';
+    SendIcon, ImagePlusIcon, WandIcon, DownloadIcon, TrashIcon, HeartIcon,
+    LayersIcon, Code2Icon, MaximizeIcon, MinimizeIcon,
+    PaletteIcon, SettingsIcon, CheckIcon, SparklesIcon
+} from '../components/ui/icons';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -160,7 +160,7 @@ export default function DesignRoom() {
                             )}
                             style={{ color: '#1a1a1a' }}
                         >
-                            <Wand2 className="h-4 w-4" />
+                            <WandIcon size={16} />
                             Generate
                         </button>
                         <button
@@ -173,7 +173,7 @@ export default function DesignRoom() {
                             )}
                             style={{ color: '#1a1a1a' }}
                         >
-                            <Palette className="h-4 w-4" />
+                            <PaletteIcon size={16} />
                             Themes
                         </button>
                     </div>
@@ -207,7 +207,7 @@ export default function DesignRoom() {
                                         className="w-16 h-16 rounded-xl mx-auto mb-4 flex items-center justify-center"
                                         style={{ background: 'rgba(255,180,140,0.2)' }}
                                     >
-                                        <Sparkles className="h-8 w-8" style={{ color: '#c25a00' }} />
+                                        <SparklesIcon size={32} style={{ color: '#c25a00' }} />
                                     </div>
                                     <p className="text-sm" style={{ color: '#666' }}>
                                         Start by describing a UI element, page, or component
@@ -282,7 +282,7 @@ export default function DesignRoom() {
                                         boxShadow: '0 4px 12px rgba(194, 90, 0, 0.3)',
                                     }}
                                 >
-                                    <Send className="h-4 w-4" style={{ color: '#fff' }} />
+                                    <SendIcon size={16} style={{ color: '#fff' }} />
                                 </button>
                             </div>
                         </div>
@@ -316,14 +316,14 @@ export default function DesignRoom() {
                                             onClick={handleGetCode}
                                             className="glass-button glass-button--small"
                                         >
-                                            <Code2 className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
+                                            <Code2Icon size={16} className="mr-1" style={{ color: '#1a1a1a' }} />
                                             Get Code
                                         </button>
                                         <button
                                             onClick={handleAddToProject}
                                             className="glass-button glass-button--glow"
                                         >
-                                            <FolderPlus className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
+                                            <LayersIcon size={16} className="mr-1" style={{ color: '#1a1a1a' }} />
                                             Add to Project
                                         </button>
                                     </>
@@ -334,14 +334,14 @@ export default function DesignRoom() {
                                         onClick={() => setZoom(z => Math.max(50, z - 10))}
                                         className="p-1.5 rounded hover:bg-black/5 transition-colors"
                                     >
-                                        <ZoomOut className="h-4 w-4" style={{ color: '#666' }} />
+                                        <MinimizeIcon size={16} style={{ color: '#666' }} />
                                     </button>
                                     <span className="text-xs w-12 text-center" style={{ color: '#666' }}>{zoom}%</span>
                                     <button
                                         onClick={() => setZoom(z => Math.min(200, z + 10))}
                                         className="p-1.5 rounded hover:bg-black/5 transition-colors"
                                     >
-                                        <ZoomIn className="h-4 w-4" style={{ color: '#666' }} />
+                                        <MaximizeIcon size={16} style={{ color: '#666' }} />
                                     </button>
                                 </div>
                             </div>
@@ -361,7 +361,7 @@ export default function DesignRoom() {
                                             className="w-20 h-20 rounded-xl mx-auto mb-4 flex items-center justify-center"
                                             style={{ background: 'rgba(255,180,140,0.2)' }}
                                         >
-                                            <Image className="h-10 w-10" style={{ color: '#c25a00' }} />
+                                            <ImagePlusIcon size={40} style={{ color: '#c25a00' }} />
                                         </div>
                                         <p style={{ color: '#666' }}>
                                             Generated designs will appear here
@@ -406,7 +406,7 @@ export default function DesignRoom() {
                                                     className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
                                                     style={{ background: '#c25a00' }}
                                                 >
-                                                    <Check className="h-4 w-4" style={{ color: '#fff' }} />
+                                                    <CheckIcon size={16} style={{ color: '#fff' }} />
                                                 </div>
                                             )}
 
@@ -422,19 +422,19 @@ export default function DesignRoom() {
                                                         className="p-1.5 rounded transition-colors"
                                                         style={{ background: 'rgba(255,255,255,0.2)' }}
                                                     >
-                                                        <Heart className="h-3.5 w-3.5" style={{ color: '#fff' }} />
+                                                        <HeartIcon size={14} style={{ color: '#fff' }} />
                                                     </button>
                                                     <button
                                                         className="p-1.5 rounded transition-colors"
                                                         style={{ background: 'rgba(255,255,255,0.2)' }}
                                                     >
-                                                        <Download className="h-3.5 w-3.5" style={{ color: '#fff' }} />
+                                                        <DownloadIcon size={14} style={{ color: '#fff' }} />
                                                     </button>
                                                     <button
                                                         className="p-1.5 rounded transition-colors"
                                                         style={{ background: 'rgba(255,255,255,0.2)' }}
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" style={{ color: '#fff' }} />
+                                                        <TrashIcon size={14} style={{ color: '#fff' }} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -489,7 +489,7 @@ export default function DesignRoom() {
                                             className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
                                             style={{ background: '#c25a00' }}
                                         >
-                                            <Check className="h-3 w-3" style={{ color: '#fff' }} />
+                                            <CheckIcon size={12} style={{ color: '#fff' }} />
                                         </div>
                                     )}
                                 </button>
@@ -503,7 +503,7 @@ export default function DesignRoom() {
                                 Customize colors, typography, and effects to match your brand
                             </p>
                             <button className="glass-button glass-button--glow">
-                                <Sliders className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
+                                <SettingsIcon size={16} className="mr-2" style={{ color: '#1a1a1a' }} />
                                 Open Theme Editor
                             </button>
                         </div>

@@ -12,9 +12,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    User, CreditCard, Coins, Cloud, Shield, Bell,
-    Plus, Check, Settings, Key, Smartphone, Globe
-} from 'lucide-react';
+    UserIcon, CreditCardIcon, CoinsIcon, CloudIcon, ShieldIcon, BellIcon,
+    PlusIcon, CheckIcon, SettingsIcon, KeyIcon, SmartphoneIcon, GlobeIcon
+} from '../components/ui/icons';
 import { useUserStore } from '../store/useUserStore';
 import { useCostStore } from '../store/useCostStore';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
@@ -26,12 +26,12 @@ import '../styles/realistic-glass.css';
 
 // Account sections
 const SECTIONS = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'subscription', label: 'Subscription', icon: CreditCard },
-    { id: 'credits', label: 'Credits & Usage', icon: Coins },
-    { id: 'deployment', label: 'Deployment', icon: Cloud },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'profile', label: 'Profile', icon: UserIcon },
+    { id: 'subscription', label: 'Subscription', icon: CreditCardIcon },
+    { id: 'credits', label: 'Credits & Usage', icon: CoinsIcon },
+    { id: 'deployment', label: 'Deployment', icon: CloudIcon },
+    { id: 'security', label: 'Security', icon: ShieldIcon },
+    { id: 'notifications', label: 'Notifications', icon: BellIcon },
 ];
 
 // Subscription plans
@@ -86,7 +86,7 @@ function ProfileSection() {
                             border: '1px solid rgba(255,200,170,0.5)',
                         }}
                     >
-                        <Settings className="h-3.5 w-3.5" style={{ color: '#c25a00' }} />
+                        <SettingsIcon size={14} style={{ color: '#c25a00' }} />
                     </button>
                 </div>
 
@@ -145,7 +145,7 @@ function SubscriptionSection() {
                         <ul className="mt-4 space-y-2">
                             {plan.features.map((feature) => (
                                 <li key={feature} className="flex items-center gap-2 text-sm" style={{ color: '#666' }}>
-                                    <Check className="h-4 w-4" style={{ color: '#16a34a' }} />
+                                    <CheckIcon size={16} style={{ color: '#16a34a' }} />
                                     {feature}
                                 </li>
                             ))}
@@ -176,7 +176,7 @@ function CreditsSection() {
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Credits & Usage</h3>
                 <button className="glass-button glass-button--glow">
-                    <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
+                    <PlusIcon size={16} className="mr-2" style={{ color: '#1a1a1a' }} />
                     Top Up
                 </button>
             </div>
@@ -275,7 +275,7 @@ function DeploymentSection() {
                         <p className="text-xs mt-0.5" style={{ color: '#666' }}>{option.description}</p>
                         {defaultDeploy === option.id && (
                             <div className="mt-2 flex items-center gap-1" style={{ color: '#c25a00' }}>
-                                <Check className="h-3.5 w-3.5" />
+                                <CheckIcon size={14} />
                                 <span className="text-xs">Default</span>
                             </div>
                         )}
@@ -297,7 +297,7 @@ function SecuritySection() {
                     style={{ background: 'rgba(0,0,0,0.03)' }}
                 >
                     <div className="flex items-center gap-3">
-                        <Key className="h-5 w-5" style={{ color: '#666' }} />
+                        <KeyIcon size={20} style={{ color: '#666' }} />
                         <div>
                             <p className="font-medium" style={{ color: '#1a1a1a' }}>Password</p>
                             <p className="text-sm" style={{ color: '#666' }}>Last changed 30 days ago</p>
@@ -313,7 +313,7 @@ function SecuritySection() {
                     style={{ background: 'rgba(0,0,0,0.03)' }}
                 >
                     <div className="flex items-center gap-3">
-                        <Smartphone className="h-5 w-5" style={{ color: '#666' }} />
+                        <SmartphoneIcon size={20} style={{ color: '#666' }} />
                         <div>
                             <p className="font-medium" style={{ color: '#1a1a1a' }}>Two-Factor Authentication</p>
                             <p className="text-sm" style={{ color: '#666' }}>Not enabled</p>
@@ -329,7 +329,7 @@ function SecuritySection() {
                     style={{ background: 'rgba(0,0,0,0.03)' }}
                 >
                     <div className="flex items-center gap-3">
-                        <Globe className="h-5 w-5" style={{ color: '#666' }} />
+                        <GlobeIcon size={20} style={{ color: '#666' }} />
                         <div>
                             <p className="font-medium" style={{ color: '#1a1a1a' }}>Active Sessions</p>
                             <p className="text-sm" style={{ color: '#666' }}>1 active session</p>
@@ -400,7 +400,7 @@ export default function MyAccount() {
                                             : '1px solid transparent',
                                     }}
                                 >
-                                    <section.icon className="h-5 w-5" />
+                                    <section.icon size={20} />
                                     {section.label}
                                 </button>
                             ))}

@@ -9,11 +9,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Upload, Github, Code, FileArchive, Sparkles, AlertCircle,
-    CheckCircle2, ArrowRight, ArrowLeft, Loader2, Bug,
-    Target, Wrench, Eye, Rocket, Brain, MessageSquare, PartyPopper,
-    Download, Monitor
-} from 'lucide-react';
+    UploadIcon, GitHubIcon, CodeIcon, PackageIcon, SparklesIcon, AlertCircleIcon,
+    CheckCircle2Icon, ArrowRightIcon, ArrowLeftIcon, Loader2Icon,
+    TargetIcon, SettingsIcon, EyeIcon, RocketIcon, BrainIcon, MessageSquareIcon,
+    DownloadIcon, MonitorIcon
+} from '../components/ui/icons';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -531,7 +531,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'github',
         name: 'GitHub',
-        icon: <Github className="w-6 h-6" />,
+        icon: <GitHubIcon size={24} />,
         description: 'GitHub repository',
         category: 'repository',
         contextAvailable: false,
@@ -565,7 +565,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'zip',
         name: 'ZIP Upload',
-        icon: <FileArchive className="w-6 h-6" />,
+        icon: <PackageIcon size={24} />,
         description: 'Upload project as ZIP',
         category: 'file_upload',
         contextAvailable: false,
@@ -625,17 +625,22 @@ const getSourcesByCategory = (): Record<SourceCategory, SourceConfig[]> => {
     return result;
 };
 
-// Step configuration
+// Step configuration - using custom icons with size prop
+// Wrapper to convert size prop icons to className prop compatibility
+const createStepIcon = (IconComponent: React.FC<{ size?: number; className?: string }>) => {
+    return ({ className }: { className?: string }) => <IconComponent size={16} className={className} />;
+};
+
 const steps: { id: Step; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'source', label: 'Source', icon: Upload },
-    { id: 'consent', label: 'Access', icon: Eye },
-    { id: 'upload', label: 'Import', icon: Code },
-    { id: 'context', label: 'Context', icon: MessageSquare },
-    { id: 'analysis', label: 'Analysis', icon: Brain },
-    { id: 'preferences', label: 'UI Pref', icon: Eye },
-    { id: 'strategy', label: 'Strategy', icon: Target },
-    { id: 'fix', label: 'Fix', icon: Wrench },
-    { id: 'complete', label: 'Done', icon: PartyPopper },
+    { id: 'source', label: 'Source', icon: createStepIcon(UploadIcon) },
+    { id: 'consent', label: 'Access', icon: createStepIcon(EyeIcon) },
+    { id: 'upload', label: 'Import', icon: createStepIcon(CodeIcon) },
+    { id: 'context', label: 'Context', icon: createStepIcon(MessageSquareIcon) },
+    { id: 'analysis', label: 'Analysis', icon: createStepIcon(BrainIcon) },
+    { id: 'preferences', label: 'UI Pref', icon: createStepIcon(EyeIcon) },
+    { id: 'strategy', label: 'Strategy', icon: createStepIcon(TargetIcon) },
+    { id: 'fix', label: 'Fix', icon: createStepIcon(SettingsIcon) },
+    { id: 'complete', label: 'Done', icon: createStepIcon(SparklesIcon) },
 ];
 
 export default function FixMyApp() {
@@ -1038,7 +1043,7 @@ export default function FixMyApp() {
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                            <Wrench className="w-5 h-5 text-black" />
+                            <SettingsIcon size={20} className="text-black" />
                         </div>
                         <div>
                             <h1 className="text-xl font-bold">Fix My App</h1>
@@ -1220,9 +1225,9 @@ export default function FixMyApp() {
                                     className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] active:shadow-[0_0px_0_rgba(0,0,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     {isLoading ? (
-                                        <><Loader2 className="h-4 w-4 animate-spin" /> Initializing...</>
+                                        <><Loader2Icon size={16} className="animate-spin" /> Initializing...</>
                                     ) : (
-                                        <>Continue <ArrowRight className="h-4 w-4" /></>
+                                        <>Continue <ArrowRightIcon size={16} /></>
                                     )}
                                 </button>
                             </Card>
@@ -1270,7 +1275,7 @@ export default function FixMyApp() {
                                         style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
                                         className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
-                                        <ArrowLeft className="h-4 w-4" /> Back
+                                        <ArrowLeftIcon size={16} /> Back
                                     </button>
                                     <button
                                         onClick={submitConsent}
@@ -1279,9 +1284,9 @@ export default function FixMyApp() {
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                                            <><Loader2Icon size={16} className="animate-spin" /> Saving...</>
                                         ) : (
-                                            <>Grant Access & Continue <ArrowRight className="h-4 w-4" /></>
+                                            <>Grant Access & Continue <ArrowRightIcon size={16} /></>
                                         )}
                                     </button>
                                 </div>
@@ -1301,7 +1306,7 @@ export default function FixMyApp() {
                                 {/* GitHub - Direct URL */}
                                 {source === 'github' && (
                                     <div className="text-center py-8 mb-6">
-                                        <Github className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+                                        <GitHubIcon size={64} className="mx-auto mb-4 text-slate-400" />
                                         <p className="text-slate-300 mb-2">Repository: <code className="text-amber-400">{githubUrl}</code></p>
                                         <p className="text-sm text-slate-500">Click continue to clone this repository</p>
                                     </div>
@@ -1314,7 +1319,7 @@ export default function FixMyApp() {
                                         <div className="p-6 border-2 border-dashed border-slate-700 rounded-xl mb-4">
                                             <div className="flex items-start gap-4 mb-6">
                                                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
-                                                    <Download className="w-6 h-6 text-amber-400" />
+                                                    <DownloadIcon size={24} className="text-amber-400" />
                                                 </div>
                                                 <div>
                                                     <h3 className="text-lg font-semibold text-white mb-2">Export Your Project</h3>
@@ -1349,13 +1354,13 @@ export default function FixMyApp() {
                                                 style={{...secondaryButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
                                                 className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                             >
-                                                <Monitor className="h-4 w-4" /> Open {sourceOptions.find(s => s.id === source)?.name} Again
+                                                <MonitorIcon size={16} /> Open {sourceOptions.find(s => s.id === source)?.name} Again
                                             </button>
                                         </div>
 
                                         {/* Upload Section */}
                                         <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center">
-                                            <Upload className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                                            <UploadIcon size={48} className="mx-auto mb-4 text-slate-500" />
                                             <p className="text-slate-300 mb-4">Upload your exported project ZIP or folder</p>
                                             <input
                                                 type="file"
@@ -1383,7 +1388,7 @@ export default function FixMyApp() {
                                 {/* ZIP Upload - Manual file upload */}
                                 {source === 'zip' && (
                                     <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center mb-6">
-                                        <FileArchive className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                                        <PackageIcon size={48} className="mx-auto mb-4 text-slate-500" />
                                         <p className="text-slate-300 mb-4">Drag & drop your project ZIP or folder</p>
                                         <input
                                             type="file"
@@ -1421,7 +1426,7 @@ export default function FixMyApp() {
                                             style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
                                             className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                         >
-                                            <ArrowLeft className="h-4 w-4" /> Back
+                                            <ArrowLeftIcon size={16} /> Back
                                         </button>
                                         <button
                                             onClick={uploadFiles}
@@ -1430,9 +1435,9 @@ export default function FixMyApp() {
                                             className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isLoading ? (
-                                                <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
+                                                <><Loader2Icon size={16} className="animate-spin" /> {currentPhase}</>
                                             ) : (
-                                                <>Import Files <ArrowRight className="h-4 w-4" /></>
+                                                <>Import Files <ArrowRightIcon size={16} /></>
                                             )}
                                         </button>
                                     </div>
@@ -1465,7 +1470,7 @@ export default function FixMyApp() {
                                     {/* Source-specific instructions */}
                                     <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 mb-4">
                                         <h3 className="font-medium text-white mb-2 flex items-center gap-2">
-                                            <MessageSquare className="w-4 h-4 text-amber-500" />
+                                            <MessageSquareIcon size={16} className="text-amber-500" />
                                             How to get your chat history from {sourceOptions.find(s => s.id === source)?.name}:
                                         </h3>
                                         <ol className="text-sm text-slate-400 list-decimal list-inside space-y-1">
@@ -1509,7 +1514,7 @@ export default function FixMyApp() {
                                         style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
                                         className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
-                                        <ArrowLeft className="h-4 w-4" /> Back
+                                        <ArrowLeftIcon size={16} /> Back
                                     </button>
                                     <button
                                         onClick={runAnalysis}
@@ -1526,9 +1531,9 @@ export default function FixMyApp() {
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin" /> {currentPhase}</>
+                                            <><Loader2Icon size={16} className="animate-spin" /> {currentPhase}</>
                                         ) : (
-                                            <>Analyze Context <ArrowRight className="h-4 w-4" /></>
+                                            <>Analyze Context <ArrowRightIcon size={16} /></>
                                         )}
                                     </button>
                                 </div>
@@ -1539,7 +1544,7 @@ export default function FixMyApp() {
                         {step === 'analysis' && (
                             <Card className="p-8 bg-slate-900/50 border-slate-800">
                                 <div className="flex flex-col items-center justify-center py-12">
-                                    <Brain className="w-16 h-16 text-amber-500 animate-pulse mb-6" />
+                                    <BrainIcon size={64} className="text-amber-500 animate-pulse mb-6" />
                                     <h2 className="text-2xl font-bold mb-2">Analyzing Your Project</h2>
                                     <p className="text-slate-400 mb-8">{currentPhase || 'Extracting intent and building error timeline...'}</p>
                                     <Progress value={progress} className="w-full max-w-md" />
@@ -1663,7 +1668,7 @@ export default function FixMyApp() {
                                         style={{...secondaryButtonStyles, display: 'flex', alignItems: 'center', gap: '8px'}}
                                         className="hover:bg-slate-600/60 hover:translate-y-[1px] active:translate-y-[3px]"
                                     >
-                                        <ArrowLeft className="h-4 w-4" /> Back
+                                        <ArrowLeftIcon size={16} /> Back
                                     </button>
                                     <button
                                         onClick={submitPreferences}
@@ -1672,9 +1677,9 @@ export default function FixMyApp() {
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                                            <><Loader2Icon size={16} className="animate-spin" /> Saving...</>
                                         ) : (
-                                            <>Continue to Strategy <ArrowRight className="h-4 w-4" /></>
+                                            <>Continue to Strategy <ArrowRightIcon size={16} /></>
                                         )}
                                     </button>
                                 </div>
@@ -1687,7 +1692,7 @@ export default function FixMyApp() {
                                 {/* Intent Summary */}
                                 <Card className="p-6 bg-slate-900/50 border-slate-800">
                                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                        <Target className="w-5 h-5 text-amber-500" />
+                                        <TargetIcon size={20} className="text-amber-500" />
                                         What You Wanted to Build
                                     </h3>
                                     <p className="text-slate-300 mb-4">{intentSummary.corePurpose}</p>
@@ -1698,10 +1703,10 @@ export default function FixMyApp() {
                                             <div className="space-y-2">
                                                 {intentSummary.primaryFeatures.map(f => (
                                                     <div key={f.id} className="flex items-center gap-2">
-                                                        {f.status === 'implemented' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                                                        {f.status === 'partial' && <AlertCircle className="w-4 h-4 text-amber-500" />}
-                                                        {f.status === 'missing' && <AlertCircle className="w-4 h-4 text-red-500" />}
-                                                        {f.status === 'broken' && <Bug className="w-4 h-4 text-red-500" />}
+                                                        {f.status === 'implemented' && <CheckCircle2Icon size={16} className="text-emerald-500" />}
+                                                        {f.status === 'partial' && <AlertCircleIcon size={16} className="text-amber-500" />}
+                                                        {f.status === 'missing' && <AlertCircleIcon size={16} className="text-red-500" />}
+                                                        {f.status === 'broken' && <AlertCircleIcon size={16} className="text-red-500" />}
                                                         <span className="text-sm text-white">{f.name}</span>
                                                     </div>
                                                 ))}
@@ -1712,10 +1717,10 @@ export default function FixMyApp() {
                                             <div className="space-y-2">
                                                 {intentSummary.secondaryFeatures.map(f => (
                                                     <div key={f.id} className="flex items-center gap-2">
-                                                        {f.status === 'implemented' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                                                        {f.status === 'partial' && <AlertCircle className="w-4 h-4 text-amber-500" />}
-                                                        {f.status === 'missing' && <AlertCircle className="w-4 h-4 text-red-500" />}
-                                                        {f.status === 'broken' && <Bug className="w-4 h-4 text-red-500" />}
+                                                        {f.status === 'implemented' && <CheckCircle2Icon size={16} className="text-emerald-500" />}
+                                                        {f.status === 'partial' && <AlertCircleIcon size={16} className="text-amber-500" />}
+                                                        {f.status === 'missing' && <AlertCircleIcon size={16} className="text-red-500" />}
+                                                        {f.status === 'broken' && <AlertCircleIcon size={16} className="text-red-500" />}
                                                         <span className="text-sm text-white">{f.name}</span>
                                                     </div>
                                                 ))}
@@ -1728,7 +1733,7 @@ export default function FixMyApp() {
                                 {errorTimeline && errorTimeline.errorCount > 0 && (
                                     <Card className="p-6 bg-slate-900/50 border-slate-800">
                                         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                            <Bug className="w-5 h-5 text-red-500" />
+                                            <AlertCircleIcon size={20} className="text-red-500" />
                                             Error Archaeology
                                         </h3>
                                         <div className="space-y-3">
@@ -1753,7 +1758,7 @@ export default function FixMyApp() {
                                 {/* Strategy Selection */}
                                 <Card className="p-6 bg-slate-900/50 border-slate-800">
                                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                        <Sparkles className="w-5 h-5 text-amber-500" />
+                                        <SparklesIcon size={20} className="text-amber-500" />
                                         Recommended Fix Strategy
                                     </h3>
 
@@ -1834,7 +1839,7 @@ export default function FixMyApp() {
                                         style={{...ctaButtonStyles, width: '100%', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'}}
                                         className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
-                                        <Rocket className="h-5 w-5" />
+                                        <RocketIcon size={20} />
                                         Start Fixing ({fixMode === 'lightning' ? '⚡ Fast' : fixMode === 'tournament' ? '🏆 Best' : '🔧 Standard'})
                                     </button>
                                 </Card>
@@ -1847,7 +1852,7 @@ export default function FixMyApp() {
                                 <Card className="p-6 bg-slate-900/50 border-slate-800">
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                                            <Wrench className="w-5 h-5 text-amber-500 animate-pulse" />
+                                            <SettingsIcon size={20} className="text-amber-500 animate-pulse" />
                                         </div>
                                         <div>
                                             <h2 className="text-lg font-bold">Fixing Your App</h2>
@@ -1952,7 +1957,7 @@ export default function FixMyApp() {
                                 {verificationReport && (
                                     <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-8 text-left">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                            <CheckCircle2Icon size={20} className="text-emerald-400" />
                                             <span className="font-medium text-emerald-400">Verification Passed</span>
                                         </div>
                                         <p className="text-sm text-slate-400">
@@ -1967,7 +1972,7 @@ export default function FixMyApp() {
                                     style={{...ctaButtonStyles, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'}}
                                     className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px]"
                                 >
-                                    <Rocket className="h-5 w-5" />
+                                    <RocketIcon size={20} />
                                     Open in Builder
                                 </button>
                             </Card>

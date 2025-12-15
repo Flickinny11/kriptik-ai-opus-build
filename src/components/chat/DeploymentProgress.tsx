@@ -11,14 +11,19 @@ import {
     CheckCircleIcon,
     LoadingIcon,
     ChevronDownIcon,
+    ChevronUpIcon,
     RefreshIcon,
     ClockIcon,
     ServerIcon,
+    CircleIcon,
+    TerminalIcon,
+    ExternalLinkIcon,
+    XCircleIcon,
+    DatabaseIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
-import { Circle, ChevronUp, Terminal, ExternalLink, XCircle, HardDrive } from 'lucide-react';
 
 interface DeploymentStep {
     id: string;
@@ -91,9 +96,9 @@ export function DeploymentProgress({
             case 'in_progress':
                 return <LoadingIcon size={16} className="text-amber-400 animate-spin" />;
             case 'failed':
-                return <XCircle className="w-4 h-4 text-red-400" />;
+                return <XCircleIcon size={16} className="text-red-400" />;
             default:
-                return <Circle className="w-4 h-4 text-slate-500" />;
+                return <CircleIcon size={16} className="text-slate-500" />;
         }
     };
     
@@ -249,7 +254,7 @@ export function DeploymentProgress({
                         )}
                         {metrics.imageSize && (
                             <div className="flex items-center gap-1.5">
-                                <HardDrive className="w-3.5 h-3.5" />
+                                <DatabaseIcon size={14} />
                                 <span>{metrics.imageSize}</span>
                             </div>
                         )}
@@ -271,14 +276,14 @@ export function DeploymentProgress({
                         className="w-full px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors"
                     >
                         <div className="flex items-center gap-2 text-sm text-slate-400">
-                            <Terminal className="w-4 h-4" />
+                            <TerminalIcon size={16} />
                             <span>Build Logs</span>
                             <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded">
                                 {logs.length} lines
                             </span>
                         </div>
                         {showLogs ? (
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                            <ChevronUpIcon size={16} className="text-slate-400" />
                         ) : (
                             <ChevronDownIcon size={16} className="text-slate-400" />
                         )}
@@ -333,7 +338,7 @@ export function DeploymentProgress({
                             'text-sm font-medium'
                         )}
                     >
-                        <ExternalLink className="w-4 h-4" />
+                        <ExternalLinkIcon size={16} />
                         Open Deployment: {endpoint}
                     </a>
                 </div>
@@ -371,7 +376,7 @@ export function DeploymentProgress({
                         onClick={onViewLogs}
                         className="text-slate-400 hover:text-white"
                     >
-                        <Terminal className="w-4 h-4 mr-1.5" />
+                        <TerminalIcon size={16} className="mr-1.5" />
                         Full Logs
                     </Button>
                 )}

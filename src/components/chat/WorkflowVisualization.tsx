@@ -13,13 +13,16 @@ import {
     ArrowRightIcon,
     ZapIcon,
     ChevronDownIcon,
+    ChevronUpIcon,
     InfoIcon,
     ServerIcon,
+    EditIcon,
+    DollarSignIcon,
+    SparklesIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
-import { Edit2, DollarSign, Sparkles, ChevronUp } from 'lucide-react';
 
 interface WorkflowModel {
     id: string;
@@ -102,7 +105,7 @@ export function WorkflowVisualization({
             case 'input':
                 return <ArrowRightIcon size={16} />;
             case 'output':
-                return <Sparkles className="w-4 h-4" />;
+                return <SparklesIcon size={16} />;
             default:
                 return <InfoIcon size={16} />;
         }
@@ -143,7 +146,7 @@ export function WorkflowVisualization({
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-amber-400" />
+                            <SparklesIcon size={20} className="text-amber-400" />
                             <h4 className="text-sm font-semibold text-white">{name}</h4>
                         </div>
                         <p className="text-xs text-slate-400 mt-1 max-w-sm">
@@ -288,11 +291,11 @@ export function WorkflowVisualization({
                 className="w-full px-4 py-2 flex items-center justify-between hover:bg-white/5 transition-colors border-t border-white/5"
             >
                 <div className="flex items-center gap-2 text-sm text-slate-400">
-                    <DollarSign className="w-4 h-4" />
+                    <DollarSignIcon size={16} />
                     <span>Cost Breakdown & Requirements</span>
                 </div>
                 {showDetails ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                    <ChevronUpIcon size={16} className="text-slate-400" />
                 ) : (
                     <ChevronDownIcon size={16} className="text-slate-400" />
                 )}
@@ -369,7 +372,7 @@ export function WorkflowVisualization({
                         onClick={onModify}
                         className="border-slate-600 text-slate-300 hover:bg-slate-700/50"
                     >
-                        <Edit2 className="w-4 h-4 mr-1.5" />
+                        <EditIcon size={16} className="mr-1.5" />
                         Modify
                     </Button>
                 )}

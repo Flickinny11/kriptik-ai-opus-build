@@ -15,11 +15,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Bot, Plus, Pause, Play,
-    CheckCircle2, XCircle, Loader2, Clock, Send,
-    ChevronDown, Pencil, FileEdit, Zap, Trash2, AlertCircle,
-    Settings
-} from 'lucide-react';
+    BotIcon, PlusIcon, PauseIcon, PlayIcon,
+    CheckCircle2Icon, XCircleIcon, Loader2Icon, ClockIcon, SendIcon,
+    ChevronDownIcon, EditIcon, ZapIcon, TrashIcon, AlertCircleIcon,
+    SettingsIcon
+} from '../ui/icons';
 import {
     useDeveloperModeStore,
     selectAgents,
@@ -246,12 +246,12 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 
     const getStatusIcon = (status: Agent['status']) => {
         switch (status) {
-            case 'running': return <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />;
-            case 'completed': return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
-            case 'failed': return <XCircle className="w-4 h-4 text-red-400" />;
-            case 'paused': return <Pause className="w-4 h-4 text-amber-400" />;
-            case 'waiting': return <Clock className="w-4 h-4 text-blue-400" />;
-            default: return <Bot className="w-4 h-4 text-zinc-500" />;
+            case 'running': return <Loader2Icon size={16} className="animate-spin" style={{ color: accentColor }} />;
+            case 'completed': return <CheckCircle2Icon size={16} className="text-emerald-400" />;
+            case 'failed': return <XCircleIcon size={16} className="text-red-400" />;
+            case 'paused': return <PauseIcon size={16} className="text-amber-400" />;
+            case 'waiting': return <ClockIcon size={16} className="text-blue-400" />;
+            default: return <BotIcon size={16} className="text-zinc-500" />;
         }
     };
 
@@ -268,13 +268,13 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
 
     const getLogIcon = (logType: AgentLog['logType']) => {
         switch (logType) {
-            case 'action': return <Zap className="w-3 h-3" style={{ color: accentColor }} />;
-            case 'verification': return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
-            case 'error': return <XCircle className="w-3 h-3 text-red-400" />;
-            case 'warning': return <AlertCircle className="w-3 h-3 text-amber-400" />;
-            case 'thought': return <Bot className="w-3 h-3 text-purple-400" />;
-            case 'code': return <FileEdit className="w-3 h-3" style={{ color: accentColor }} />;
-            default: return <Bot className="w-3 h-3 text-blue-400" />;
+            case 'action': return <ZapIcon size={12} style={{ color: accentColor }} />;
+            case 'verification': return <CheckCircle2Icon size={12} className="text-emerald-400" />;
+            case 'error': return <XCircleIcon size={12} className="text-red-400" />;
+            case 'warning': return <AlertCircleIcon size={12} className="text-amber-400" />;
+            case 'thought': return <BotIcon size={12} className="text-purple-400" />;
+            case 'code': return <EditIcon size={12} style={{ color: accentColor }} />;
+            default: return <BotIcon size={12} className="text-blue-400" />;
         }
     };
 
@@ -288,7 +288,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             className="w-8 h-8 rounded-lg flex items-center justify-center"
                             style={{ background: `linear-gradient(145deg, ${accentGlow} 0%, rgba(200,255,100,0.05) 100%)` }}
                         >
-                            <Bot className="w-4 h-4" style={{ color: accentColor }} />
+                            <BotIcon size={16} style={{ color: accentColor }} />
                         </div>
                         {editingAgentId === selectedAgent?.id ? (
                             <input
@@ -315,7 +315,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                 className="text-white font-semibold hover:text-white/80 flex items-center gap-1 group"
                             >
                                 {selectedAgent?.name || 'Developer Mode'}
-                                {selectedAgent && <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
+                                {selectedAgent && <EditIcon size={12} className="opacity-0 group-hover:opacity-50 transition-opacity" />}
                             </button>
                         )}
                     </div>
@@ -346,7 +346,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             }}
                             title={agents.length >= 6 ? 'Maximum 6 agents' : 'Add idle agent'}
                         >
-                            <Plus className="w-4 h-4 text-white/70" />
+                            <PlusIcon size={16} className="text-white/70" />
                         </button>
                         <button
                             onClick={() => setShowSettings(true)}
@@ -357,7 +357,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             }}
                             title="Developer Mode Settings"
                         >
-                            <Settings className="w-4 h-4 text-white/70" />
+                            <SettingsIcon size={16} className="text-white/70" />
                         </button>
                     </div>
                 </div>
@@ -390,7 +390,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                         }}
                                         className="ml-1 opacity-0 group-hover:opacity-70 hover:opacity-100 transition-opacity"
                                     >
-                                        <Trash2 className="w-3 h-3" />
+                                        <TrashIcon size={12} />
                                     </button>
                                 )}
                             </button>
@@ -402,7 +402,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                 {error && (
                     <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
                         <div className="flex items-center gap-2 text-xs text-red-400">
-                            <XCircle className="w-3 h-3" />
+                            <XCircleIcon size={12} />
                             <span>{error}</span>
                             <button onClick={() => setError(null)} className="ml-auto hover:text-white">×</button>
                         </div>
@@ -431,7 +431,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                             className="p-1 rounded hover:bg-white/10 transition-colors"
                                             title="Stop agent"
                                         >
-                                            <Pause className="w-3 h-3 text-white/60" />
+                                            <PauseIcon size={12} className="text-white/60" />
                                         </button>
                                     )}
                                     {selectedAgent.status === 'paused' && (
@@ -440,7 +440,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                                             className="p-1 rounded hover:bg-white/10 transition-colors"
                                             title="Resume agent"
                                         >
-                                            <Play className="w-3 h-3 text-white/60" />
+                                            <PlayIcon size={12} className="text-white/60" />
                                         </button>
                                     )}
                                 </div>
@@ -476,9 +476,9 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                             <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Verification</h4>
                             <div className="flex items-center gap-2">
                                 {selectedAgent.verificationPassed ? (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                    <CheckCircle2Icon size={16} className="text-emerald-400" />
                                 ) : (
-                                    <XCircle className="w-4 h-4 text-red-400" />
+                                    <XCircleIcon size={16} className="text-red-400" />
                                 )}
                                 <span className="text-sm" style={{
                                     color: selectedAgent.verificationPassed ? '#34d399' : '#f87171'
@@ -546,7 +546,7 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
             ) : (
                 <div className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center">
-                        <Bot className="w-12 h-12 mx-auto mb-3 text-white/20" />
+                        <BotIcon size={48} className="mx-auto mb-3 text-white/20" />
                         <p className="text-sm text-white/40">No agent selected</p>
                         <p className="text-xs text-white/30 mt-1">Deploy an agent to get started</p>
                     </div>
@@ -594,10 +594,10 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                         }}
                     >
                         <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4" style={{ color: accentColor }} />
+                            <ZapIcon size={16} style={{ color: accentColor }} />
                             <span>{AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name || 'Select Model'}</span>
                         </div>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                        <ChevronDownIcon size={16} className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                     </button>
 
                     <AnimatePresence>
@@ -680,9 +680,9 @@ export function AgentModeSidebar({ onClose: _onClose }: AgentModeSidebarProps) {
                         }}
                     >
                         {isLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                            <Loader2Icon size={16} className="animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
                         ) : (
-                            <Send className="w-4 h-4" style={{ color: inputValue.trim() ? '#000' : 'rgba(255,255,255,0.3)' }} />
+                            <SendIcon size={16} style={{ color: inputValue.trim() ? '#000' : 'rgba(255,255,255,0.3)' }} />
                         )}
                     </button>
                 </div>

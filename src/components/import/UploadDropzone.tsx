@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, File, FolderArchive, X, Loader2, Check } from 'lucide-react';
+import { UploadIcon, FileIcon, FolderIcon, CloseIcon, LoadingIcon, CheckIcon } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -165,7 +165,7 @@ export function UploadDropzone({
 
                 {isProcessing ? (
                     <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="w-12 h-12 animate-spin" style={{ color: accentColor }} />
+                        <LoadingIcon size={48} style={{ color: accentColor }} className="animate-spin" />
                         <p className="text-white/60">Processing files...</p>
                     </div>
                 ) : fileCount > 0 ? (
@@ -174,7 +174,7 @@ export function UploadDropzone({
                             className="w-16 h-16 rounded-full flex items-center justify-center"
                             style={{ background: `${accentColor}20` }}
                         >
-                            <Check className="w-8 h-8" style={{ color: accentColor }} />
+                            <CheckIcon size={32} style={{ color: accentColor }} />
                         </div>
                         <div>
                             <p className="font-medium text-white">{fileCount} files loaded</p>
@@ -187,7 +187,7 @@ export function UploadDropzone({
                             }}
                             className="text-sm text-white/50 hover:text-white transition-colors flex items-center gap-1"
                         >
-                            <X className="w-3 h-3" />
+                            <CloseIcon size={12} />
                             Clear
                         </button>
                     </div>
@@ -197,7 +197,7 @@ export function UploadDropzone({
                             className="w-16 h-16 rounded-full flex items-center justify-center"
                             style={{ background: 'rgba(255,255,255,0.1)' }}
                         >
-                            <Upload className="w-8 h-8 text-white/50" />
+                            <UploadIcon size={32} className="text-white/50" />
                         </div>
                         <div>
                             <p className="font-medium text-white">
@@ -222,7 +222,7 @@ export function UploadDropzone({
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                         {relevantFiles.map(file => (
                             <div key={file} className="flex items-center gap-2 text-sm">
-                                <File className="w-3 h-3 text-white/40" />
+                                <FileIcon size={12} className="text-white/40" />
                                 <span className="text-white/70 font-mono truncate">{file}</span>
                             </div>
                         ))}
@@ -267,12 +267,12 @@ export function UploadDropzone({
                 >
                     {isUploading ? (
                         <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <LoadingIcon size={16} className="animate-spin" />
                             Analyzing...
                         </>
                     ) : (
                         <>
-                            <FolderArchive className="w-4 h-4" />
+                            <FolderIcon size={16} />
                             Import Files
                         </>
                     )}

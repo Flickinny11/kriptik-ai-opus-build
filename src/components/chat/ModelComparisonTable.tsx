@@ -12,10 +12,15 @@ import {
     DownloadIcon,
     ClockIcon,
     ServerIcon,
+    TrendingUpIcon,
+    HeartIcon,
+    ExternalLinkIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
+    StarIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { BrandIcon } from '@/components/icons';
-import { TrendingUp, Heart, ExternalLink, ChevronUp, ChevronDown, Star } from 'lucide-react';
 
 interface ModelRecommendation {
     modelId: string;
@@ -123,7 +128,7 @@ export function ModelComparisonTable({
             <div className="p-4 border-b border-white/5">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-amber-400" />
+                        <StarIcon size={20} className="text-amber-400" />
                         <h4 className="text-sm font-semibold text-white">
                             Recommended Models
                         </h4>
@@ -147,7 +152,7 @@ export function ModelComparisonTable({
                 >
                     Downloads
                     {sortBy === 'downloads' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                        sortOrder === 'desc' ? <ChevronDownIcon size={12} /> : <ChevronUpIcon size={12} />
                     )}
                 </button>
                 <button
@@ -156,7 +161,7 @@ export function ModelComparisonTable({
                 >
                     VRAM
                     {sortBy === 'vram' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                        sortOrder === 'desc' ? <ChevronDownIcon size={12} /> : <ChevronUpIcon size={12} />
                     )}
                 </button>
                 <button
@@ -165,7 +170,7 @@ export function ModelComparisonTable({
                 >
                     Latency
                     {sortBy === 'latency' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                        sortOrder === 'desc' ? <ChevronDownIcon size={12} /> : <ChevronUpIcon size={12} />
                     )}
                 </button>
                 <div className="col-span-1"></div>
@@ -220,7 +225,7 @@ export function ModelComparisonTable({
                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                 <span>{model.task}</span>
                                                 {model.popularity.trending && (
-                                                    <TrendingUp className="w-3 h-3 text-emerald-400" />
+                                                    <TrendingUpIcon size={12} className="text-emerald-400" />
                                                 )}
                                             </div>
                                         </div>
@@ -254,7 +259,7 @@ export function ModelComparisonTable({
                                             rel="noopener noreferrer"
                                             className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
                                         >
-                                            <ExternalLink className="w-4 h-4 text-slate-400 hover:text-amber-400" />
+                                            <ExternalLinkIcon size={16} className="text-slate-400 hover:text-amber-400" />
                                         </a>
                                     )}
                                 </div>
@@ -277,7 +282,7 @@ export function ModelComparisonTable({
                                                 GPU: {model.requirements.gpu}
                                             </span>
                                             <span className="flex items-center gap-1 text-slate-500">
-                                                <Heart className="w-3 h-3" />
+                                                <HeartIcon size={12} />
                                                 {formatNumber(model.popularity.likes)}
                                             </span>
                                             {model.pricing?.costPerSecond && (

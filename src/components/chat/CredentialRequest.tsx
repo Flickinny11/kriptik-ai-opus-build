@@ -9,8 +9,7 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons/BrandIcons';
-import { EyeIcon, EyeOffIcon, LockIcon, CheckCircleIcon, AlertCircleIcon, LoadingIcon } from '../ui/icons';
-import { ExternalLink } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, LockIcon, CheckCircleIcon, AlertCircleIcon, LoadingIcon, ExternalLinkIcon } from '../ui/icons';
 
 interface CredentialField {
     key: string;
@@ -139,7 +138,7 @@ export function CredentialRequest({
                         onClick={openDocumentation}
                         className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 mb-4 transition-colors"
                     >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLinkIcon size={16} />
                         <span>Get your {integrationName} credentials</span>
                     </button>
                 )}

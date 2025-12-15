@@ -13,10 +13,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    MoreVertical, Pencil, Trash2, Copy, Share2, Download,
-    Plus, Search, Grid3X3, List, Calendar,
-    ExternalLink, Wrench, Loader2
-} from 'lucide-react';
+    MoreHorizontalIcon, EditIcon, TrashIcon, CopyIcon, ShareIcon, DownloadIcon,
+    PlusIcon, SearchIcon, LayoutDashboardIcon, MenuIcon, ClockIcon,
+    ExternalLinkIcon, SettingsIcon, Loader2Icon, LayersIcon
+} from '../components/ui/icons';
 import { useProjectStore } from '../store/useProjectStore';
 import type { Project } from '../store/useProjectStore';
 import { Button } from '../components/ui/button';
@@ -49,11 +49,11 @@ function ProjectCard({
     const [isHovered, setIsHovered] = useState(false);
 
     const menuItems = [
-        { id: 'edit', icon: Pencil, label: 'Edit', action: onEdit },
-        { id: 'clone', icon: Copy, label: 'Clone', action: onClone },
-        { id: 'share', icon: Share2, label: 'Share', action: onShare },
-        { id: 'import', icon: Download, label: 'Import to...', action: onImport },
-        { id: 'delete', icon: Trash2, label: 'Delete', action: onDelete, danger: true },
+        { id: 'edit', icon: EditIcon, label: 'Edit', action: onEdit },
+        { id: 'clone', icon: CopyIcon, label: 'Clone', action: onClone },
+        { id: 'share', icon: ShareIcon, label: 'Share', action: onShare },
+        { id: 'import', icon: DownloadIcon, label: 'Import to...', action: onImport },
+        { id: 'delete', icon: TrashIcon, label: 'Delete', action: onDelete, danger: true },
     ];
 
     return (
@@ -128,7 +128,7 @@ function ProjectCard({
                             size="sm"
                             className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
                         >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLinkIcon size={16} />
                             Open Project
                         </Button>
                     </motion.div>
@@ -142,7 +142,7 @@ function ProjectCard({
                                 {project.name}
                             </h3>
                             <div className="flex items-center gap-2 mt-1.5">
-                                <Calendar className="h-3 w-3 text-slate-500" />
+                                <ClockIcon size={12} className="text-slate-500" />
                                 <span className="text-xs text-slate-500 font-mono">
                                     {new Date(project.createdAt).toLocaleDateString('en-US', {
                                         month: 'short',
@@ -166,7 +166,7 @@ function ProjectCard({
                                     menuOpen && "bg-slate-700/50 text-white"
                                 )}
                             >
-                                <MoreVertical className="h-5 w-5" />
+                                <MoreHorizontalIcon size={20} />
                             </button>
 
                             {/* Dropdown menu */}
@@ -198,7 +198,7 @@ function ProjectCard({
                                                         : "text-slate-300 hover:bg-slate-700/50 hover:text-white"
                                                 )}
                                             >
-                                                <item.icon className="h-4 w-4" />
+                                                <item.icon size={16} />
                                                 {item.label}
                                             </button>
                                         ))}
@@ -421,7 +421,7 @@ export default function MyStuff() {
                             }}
                         >
                             <span className="flex items-center gap-2">
-                                <Wrench className="h-4 w-4" />
+                                <SettingsIcon size={16} />
                                 Fix My App
                             </span>
                         </motion.button>
@@ -451,7 +451,7 @@ export default function MyStuff() {
                             }}
                         >
                             <span className="flex items-center gap-2">
-                                <Plus className="h-4 w-4" />
+                                <PlusIcon size={16} />
                                 New Project
                             </span>
                         </motion.button>
@@ -461,7 +461,7 @@ export default function MyStuff() {
                 {/* Search and filters */}
                 <div className="flex items-center gap-4 mb-6">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                         <input
                             type="text"
                             value={searchQuery}
@@ -486,7 +486,7 @@ export default function MyStuff() {
                                     : "text-slate-400 hover:text-white"
                             )}
                         >
-                            <Grid3X3 className="h-4 w-4" />
+                            <LayoutDashboardIcon size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
@@ -497,7 +497,7 @@ export default function MyStuff() {
                                     : "text-slate-400 hover:text-white"
                             )}
                         >
-                            <List className="h-4 w-4" />
+                            <MenuIcon size={16} />
                         </button>
                     </div>
                 </div>
@@ -505,7 +505,7 @@ export default function MyStuff() {
                 {/* Projects grid */}
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
-                        <Loader2 className="h-12 w-12 animate-spin text-amber-400 mb-4" />
+                        <Loader2Icon size={48} className="animate-spin text-amber-400 mb-4" />
                         <p className="text-slate-400">Loading your projects...</p>
                     </div>
                 ) : filteredProjects.length > 0 ? (
@@ -558,7 +558,7 @@ export default function MyStuff() {
                                     `,
                                 }}
                             >
-                                <Layers className="h-10 w-10 text-slate-400" />
+                                <LayersIcon size={40} className="text-slate-400" />
                             </div>
                             {/* 3D depth */}
                             <div className="absolute -bottom-1 left-2 right-2 h-1 bg-slate-900 rounded-b-lg" />
@@ -601,7 +601,7 @@ export default function MyStuff() {
                                     }}
                                 >
                                     <span className="flex items-center gap-3">
-                                        <Wrench className="h-5 w-5" />
+                                        <SettingsIcon size={20} />
                                         Fix Broken App
                                     </span>
                                 </motion.button>
@@ -631,7 +631,7 @@ export default function MyStuff() {
                                     }}
                                 >
                                     <span className="flex items-center gap-3">
-                                        <Plus className="h-5 w-5" />
+                                        <PlusIcon size={20} />
                                         Create New
                                     </span>
                                 </motion.button>
@@ -656,6 +656,5 @@ export default function MyStuff() {
     );
 }
 
-// Need to import Layers
-import { Layers } from 'lucide-react';
+// LayersIcon already imported from custom icons
 

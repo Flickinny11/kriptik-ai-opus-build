@@ -7,15 +7,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Github,
-    Lock,
-    Unlock,
-    GitBranch,
-    Loader2,
-    Check,
-    ChevronDown,
-    Clock,
-} from 'lucide-react';
+    GitHubIcon,
+    LockIcon,
+    GitBranchIcon,
+    Loader2Icon,
+    CheckIcon,
+    ChevronDownIcon,
+    ClockIcon,
+} from '../ui/icons';
+
+// Inline SVG for Unlock icon (open lock)
+const UnlockIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </svg>
+);
 
 const accentColor = '#c8ff64';
 
@@ -180,9 +187,9 @@ export function GitHubConnector({
                         style={{ background: accentColor, color: 'black' }}
                     >
                         {isLoadingRepos ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2Icon size={16} className="animate-spin" />
                         ) : (
-                            <Github className="w-4 h-4" />
+                            <GitHubIcon size={16} />
                         )}
                         Connect
                     </motion.button>
@@ -243,9 +250,9 @@ export function GitHubConnector({
                                                 {repo.name}
                                             </span>
                                             {repo.private ? (
-                                                <Lock className="w-3 h-3 text-white/40" />
+                                                <LockIcon size={12} className="text-white/40" />
                                             ) : (
-                                                <Unlock className="w-3 h-3 text-white/40" />
+                                                <UnlockIcon size={12} className="text-white/40" />
                                             )}
                                         </div>
                                         {repo.description && (
@@ -255,7 +262,7 @@ export function GitHubConnector({
                                         )}
                                     </div>
                                     {selectedRepo?.id === repo.id && (
-                                        <Check className="w-5 h-5 flex-shrink-0" style={{ color: accentColor }} />
+                                        <CheckIcon size={20} className="flex-shrink-0" style={{ color: accentColor }} />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3 mt-2 text-xs text-white/40">
@@ -269,7 +276,7 @@ export function GitHubConnector({
                                         </span>
                                     )}
                                     <span className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
+                                        <ClockIcon size={12} />
                                         {formatDate(repo.updatedAt)}
                                     </span>
                                 </div>
@@ -296,10 +303,10 @@ export function GitHubConnector({
                             className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white flex items-center justify-between hover:border-white/20 transition-all"
                         >
                             <span className="flex items-center gap-2">
-                                <GitBranch className="w-4 h-4 text-white/50" />
+                                <GitBranchIcon size={16} className="text-white/50" />
                                 {isLoadingBranches ? 'Loading...' : selectedBranch}
                             </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showBranchDropdown ? 'rotate-180' : ''}`} />
+                            <ChevronDownIcon size={16} className={`transition-transform ${showBranchDropdown ? 'rotate-180' : ''}`} />
                         </button>
 
                         <AnimatePresence>
@@ -322,11 +329,11 @@ export function GitHubConnector({
                                             }`}
                                         >
                                             <span className="flex items-center gap-2">
-                                                <GitBranch className="w-3 h-3" />
+                                                <GitBranchIcon size={12} />
                                                 {branch}
                                             </span>
                                             {branch === selectedBranch && (
-                                                <Check className="w-4 h-4" style={{ color: accentColor }} />
+                                                <CheckIcon size={16} style={{ color: accentColor }} />
                                             )}
                                         </button>
                                     ))}
@@ -357,7 +364,7 @@ export function GitHubConnector({
                     className="flex-1 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     style={{ background: accentColor, color: 'black' }}
                 >
-                    <Github className="w-4 h-4" />
+                    <GitHubIcon size={16} />
                     Import Repository
                 </motion.button>
             </div>

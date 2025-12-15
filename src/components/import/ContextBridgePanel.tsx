@@ -7,15 +7,15 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X,
-    Download,
-    Github,
-    Upload,
-    Loader2,
-    RefreshCw,
-    Check,
-    Code,
-} from 'lucide-react';
+    CloseIcon,
+    DownloadIcon,
+    GitHubIcon,
+    UploadIcon,
+    Loader2Icon,
+    RefreshCwIcon,
+    CheckIcon,
+    CodeIcon,
+} from '../ui/icons';
 import { GitHubConnector } from './GitHubConnector';
 import { UploadDropzone } from './UploadDropzone';
 import { CodebaseExplorer } from './CodebaseExplorer';
@@ -214,7 +214,7 @@ export function ContextBridgePanel({
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{ background: `${accentColor}20` }}
                                 >
-                                    <Download className="w-5 h-5" style={{ color: accentColor }} />
+                                    <DownloadIcon size={20} style={{ color: accentColor }} />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-white">Context Bridge</h2>
@@ -232,14 +232,14 @@ export function ContextBridgePanel({
                                         onClick={handleNewImport}
                                         className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                     >
-                                        <RefreshCw className="w-5 h-5" />
+                                        <RefreshCwIcon size={20} />
                                     </button>
                                 )}
                                 <button
                                     onClick={onClose}
                                     className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
                         </div>
@@ -255,7 +255,7 @@ export function ContextBridgePanel({
                                 >
                                     <span className="flex-1">{error}</span>
                                     <button onClick={() => setError(null)}>
-                                        <X className="w-4 h-4" />
+                                        <CloseIcon size={16} />
                                     </button>
                                 </motion.div>
                             )}
@@ -289,7 +289,7 @@ export function ContextBridgePanel({
                                                 className="w-12 h-12 rounded-lg flex items-center justify-center"
                                                 style={{ background: 'rgba(255,255,255,0.1)' }}
                                             >
-                                                <Github className="w-6 h-6 text-white" />
+                                                <GitHubIcon size={24} className="text-white" />
                                             </div>
                                             <div className="flex-1">
                                                 <h3 className="font-medium text-white">Import from GitHub</h3>
@@ -309,7 +309,7 @@ export function ContextBridgePanel({
                                                 className="w-12 h-12 rounded-lg flex items-center justify-center"
                                                 style={{ background: 'rgba(255,255,255,0.1)' }}
                                             >
-                                                <Upload className="w-6 h-6 text-white" />
+                                                <UploadIcon size={24} className="text-white" />
                                             </div>
                                             <div className="flex-1">
                                                 <h3 className="font-medium text-white">Upload Files</h3>
@@ -366,7 +366,7 @@ export function ContextBridgePanel({
                                             className="flex items-center gap-3 p-4 rounded-xl"
                                             style={{ background: `${accentColor}10`, border: `1px solid ${accentColor}30` }}
                                         >
-                                            <Check className="w-5 h-5" style={{ color: accentColor }} />
+                                            <CheckIcon size={20} style={{ color: accentColor }} />
                                             <div>
                                                 <p className="font-medium text-white">Codebase imported successfully!</p>
                                                 <p className="text-sm text-white/60">
@@ -378,7 +378,7 @@ export function ContextBridgePanel({
                                         {/* Technology stack */}
                                         <div className="p-4 rounded-xl border border-white/10 bg-black/30">
                                             <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                                                <Code className="w-4 h-4" style={{ color: accentColor }} />
+                                                <CodeIcon size={16} style={{ color: accentColor }} />
                                                 Technology Stack
                                             </h3>
                                             <div className="flex flex-wrap gap-2">
@@ -427,7 +427,7 @@ export function ContextBridgePanel({
                                         animate={{ rotate: 360 }}
                                         transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                                     >
-                                        <Loader2 className="w-12 h-12" style={{ color: accentColor }} />
+                                        <Loader2Icon size={48} style={{ color: accentColor }} />
                                     </motion.div>
                                     <p className="text-white/80 mt-4 font-medium">Analyzing codebase...</p>
                                     <p className="text-white/50 text-sm mt-1">

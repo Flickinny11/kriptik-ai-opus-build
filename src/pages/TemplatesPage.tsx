@@ -12,9 +12,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Search, Layers, Component, Box, Layout,
-    Sparkles, Grid3X3, Download, Play, X, Loader2
-} from 'lucide-react';
+    SearchIcon, LayersIcon, LayoutTemplateIcon, LayoutDashboardIcon,
+    SparklesIcon, DownloadIcon, PlayIcon, XIcon, LoadingIcon
+} from '../components/ui/icons';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -24,12 +24,12 @@ import '../styles/realistic-glass.css';
 
 // Template categories
 const CATEGORIES = [
-    { id: 'all', label: 'All Templates', icon: Grid3X3 },
-    { id: 'apps', label: 'Full Apps', icon: Layers },
-    { id: 'pages', label: 'Pages', icon: Layout },
-    { id: 'components', label: 'Components', icon: Component },
-    { id: 'elements', label: 'Elements', icon: Box },
-    { id: 'animations', label: 'Animations', icon: Sparkles },
+    { id: 'all', label: 'All Templates', icon: LayoutDashboardIcon },
+    { id: 'apps', label: 'Full Apps', icon: LayersIcon },
+    { id: 'pages', label: 'Pages', icon: LayoutTemplateIcon },
+    { id: 'components', label: 'Components', icon: LayoutTemplateIcon },
+    { id: 'elements', label: 'Elements', icon: LayoutDashboardIcon },
+    { id: 'animations', label: 'Animations', icon: SparklesIcon },
 ];
 
 // Premium animated templates (v0.app style)
@@ -367,14 +367,14 @@ function TemplateCard({
                             className="glass-button glass-button--small"
                             style={{ background: 'rgba(255,255,255,0.9)' }}
                         >
-                            <Play className="h-4 w-4" />
+                            <PlayIcon size={16} />
                             Preview
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); onUse(); }}
                             className="glass-button glass-button--small glass-button--glow"
                         >
-                            <Download className="h-4 w-4" />
+                            <DownloadIcon size={16} />
                             Use
                         </button>
                     </motion.div>
@@ -491,7 +491,7 @@ export default function TemplatesPage() {
                 {/* Search and categories - Glass Style */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
                     <div className="glass-input relative flex-1 max-w-md">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#666' }} />
+                        <SearchIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#666' }} />
                         <input
                             type="text"
                             value={searchQuery}
@@ -516,7 +516,7 @@ export default function TemplatesPage() {
                                     fontSize: '13px',
                                 }}
                             >
-                                <cat.icon className="h-4 w-4" />
+                                <cat.icon size={16} />
                                 {cat.label}
                             </button>
                         ))}
@@ -527,7 +527,7 @@ export default function TemplatesPage() {
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="text-center">
-                            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#c25a00' }} />
+                            <LoadingIcon size={40} className="mx-auto mb-4" style={{ color: '#c25a00' }} />
                             <p style={{ color: '#666' }}>Loading templates...</p>
                         </div>
                     </div>
@@ -606,7 +606,7 @@ export default function TemplatesPage() {
                                     className="glass-button p-2 rounded-lg"
                                     style={{ padding: '8px' }}
                                 >
-                                    <X className="w-5 h-5" style={{ color: '#666' }} />
+                                    <XIcon size={20} style={{ color: '#666' }} />
                                 </button>
                             </div>
 
@@ -660,7 +660,7 @@ export default function TemplatesPage() {
                                     onClick={() => handleUseTemplate(previewTemplate)}
                                     className="glass-button glass-button--glow"
                                 >
-                                    <Download className="w-4 h-4 mr-2" style={{ color: '#1a1a1a' }} />
+                                    <DownloadIcon size={16} className="mr-2" style={{ color: '#1a1a1a' }} />
                                     Use This Template
                                 </button>
                             </div>

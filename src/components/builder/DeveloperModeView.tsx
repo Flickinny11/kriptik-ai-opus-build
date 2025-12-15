@@ -14,11 +14,30 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Upload, Github, ExternalLink, Folder, FileCode2,
-    Zap, Play, X, Check, AlertCircle, ChevronRight,
-    RefreshCw, Cloud, StopCircle, Loader2, Eye, Hand,
-    ShieldAlert, Sparkles, Monitor, Settings, Ghost, Clock
-} from 'lucide-react';
+    UploadIcon,
+    GitHubIcon,
+    ExternalLinkIcon,
+    FolderIcon,
+    FileCodeIcon,
+    ZapIcon,
+    PlayIcon,
+    CloseIcon,
+    CheckIcon,
+    AlertCircleIcon,
+    ChevronRightIcon,
+    RefreshCwIcon,
+    CloudIcon,
+    StopIcon,
+    Loader2Icon,
+    EyeIcon,
+    MousePointer2Icon,
+    ShieldIcon,
+    SparklesIcon,
+    MonitorIcon,
+    SettingsIcon,
+    GhostIcon,
+    ClockIcon
+} from '../ui/icons';
 import { ModelSelector } from './ModelSelector';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { DeveloperModeSettings } from '../settings/DeveloperModeSettings';
@@ -433,7 +452,7 @@ export function DeveloperModeView() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-cyan-500/20">
-                        <FileCode2 className="w-5 h-5 text-cyan-400" />
+                        <FileCodeIcon size={20} className="text-cyan-400" />
                     </div>
                     <div>
                         <h2 className="text-white font-semibold">Developer Mode</h2>
@@ -452,7 +471,7 @@ export function DeveloperModeView() {
                                     : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
                             }`}
                         >
-                            <Monitor className="w-4 h-4" />
+                            <MonitorIcon size={16} />
                             Preview
                             {sandbox.status === 'running' && (
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -467,7 +486,7 @@ export function DeveloperModeView() {
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/10"
                             title="Time Machine - Restore checkpoints"
                         >
-                            <Clock className="w-4 h-4" />
+                            <ClockIcon size={16} />
                         </button>
                     )}
 
@@ -478,7 +497,7 @@ export function DeveloperModeView() {
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30"
                             title="Ghost Mode - AI works while you're away"
                         >
-                            <Ghost className="w-4 h-4" />
+                            <GhostIcon size={16} />
                         </button>
                     )}
 
@@ -494,7 +513,7 @@ export function DeveloperModeView() {
                         className="p-2 rounded-lg transition-all bg-white/5 text-gray-400 hover:text-[#c8ff64] hover:bg-white/10 border border-white/10"
                         title="Developer Mode Settings"
                     >
-                        <Settings className="w-5 h-5" />
+                        <SettingsIcon size={20} />
                     </button>
                 </div>
             </div>
@@ -534,7 +553,7 @@ export function DeveloperModeView() {
                                     `}
                                 >
                                     <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                                        <Upload className="w-6 h-6 text-cyan-400" />
+                                        <UploadIcon size={24} className="text-cyan-400" />
                                     </div>
                                     <span className="text-white font-medium">ZIP Upload</span>
                                     <p className="text-gray-400 text-xs mt-1">Upload a .zip file</p>
@@ -552,7 +571,7 @@ export function DeveloperModeView() {
                                     `}
                                 >
                                     <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                        <Github className="w-6 h-6 text-purple-400" />
+                                        <GitHubIcon size={24} className="text-purple-400" />
                                     </div>
                                     <span className="text-white font-medium">GitHub</span>
                                     <p className="text-gray-400 text-xs mt-1">Clone from repo</p>
@@ -570,7 +589,7 @@ export function DeveloperModeView() {
                                     `}
                                 >
                                     <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                                        <ExternalLink className="w-6 h-6 text-amber-400" />
+                                        <ExternalLinkIcon size={24} className="text-amber-400" />
                                     </div>
                                     <span className="text-white font-medium">External</span>
                                     <p className="text-gray-400 text-xs mt-1">Lovable, v0, etc.</p>
@@ -602,13 +621,13 @@ export function DeveloperModeView() {
                                             >
                                                 {isImporting ? (
                                                     <div className="space-y-4">
-                                                        <RefreshCw className="w-12 h-12 mx-auto text-cyan-400 animate-spin" />
+                                                        <RefreshCwIcon size={48} className="mx-auto text-cyan-400 animate-spin" />
                                                         <p className="text-white font-medium">Importing project...</p>
                                                         <p className="text-gray-400 text-sm">Analyzing files and dependencies</p>
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                                                        <UploadIcon size={48} className="mx-auto text-gray-400 mb-4" />
                                                         <p className="text-white font-medium">Drop your ZIP file here</p>
                                                         <p className="text-gray-400 text-sm mt-1">or click to browse</p>
                                                     </>
@@ -634,7 +653,7 @@ export function DeveloperModeView() {
                                                                  hover:bg-cyan-400 transition-colors disabled:opacity-50"
                                                     >
                                                         {isImporting ? (
-                                                            <RefreshCw className="w-5 h-5 animate-spin" />
+                                                            <RefreshCwIcon size={20} className="animate-spin" />
                                                         ) : (
                                                             'Import'
                                                         )}
@@ -655,9 +674,9 @@ export function DeveloperModeView() {
                                                                  hover:bg-white/10 hover:border-white/20 transition-all
                                                                  flex items-center gap-3"
                                                     >
-                                                        <Cloud className="w-5 h-5 text-cyan-400" />
+                                                        <CloudIcon size={20} className="text-cyan-400" />
                                                         <span className="text-white">Import from {builder}</span>
-                                                        <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
+                                                        <ChevronRightIcon size={16} className="text-gray-400 ml-auto" />
                                                     </button>
                                                 ))}
                                             </div>
@@ -687,7 +706,7 @@ export function DeveloperModeView() {
                             <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-lg bg-cyan-500/20">
-                                        <Folder className="w-6 h-6 text-cyan-400" />
+                                        <FolderIcon size={24} className="text-cyan-400" />
                                     </div>
                                     <div>
                                         <h3 className="text-white font-semibold">{importedProject.name}</h3>
@@ -707,13 +726,13 @@ export function DeveloperModeView() {
                                     onClick={() => setImportedProject(null)}
                                     className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
 
                             {/* Success Message */}
                             <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                                <Check className="w-5 h-5 text-emerald-400" />
+                                <CheckIcon size={20} className="text-emerald-400" />
                                 <span className="text-emerald-400">
                                     Project imported successfully! Describe what you want to add or change.
                                 </span>
@@ -771,7 +790,7 @@ export function DeveloperModeView() {
                                 {/* Model Indicator */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-400">
-                                        <Zap className="w-4 h-4 text-cyan-400" />
+                                        <ZapIcon size={16} className="text-cyan-400" />
                                         <span>
                                             Using{' '}
                                             <span className="text-cyan-400 font-medium">
@@ -806,7 +825,7 @@ export function DeveloperModeView() {
                                                              hover:bg-amber-500/30 transition-colors
                                                              disabled:opacity-50"
                                                 >
-                                                    <Hand className="w-4 h-4" />
+                                                    <MousePointer2Icon size={16} />
                                                     {isSendingInterrupt ? '...' : 'Interrupt'}
                                                 </button>
                                             </div>
@@ -821,7 +840,7 @@ export function DeveloperModeView() {
                                                          hover:from-red-400 hover:to-red-300
                                                          transition-all duration-200"
                                             >
-                                                <StopCircle className="w-5 h-5" />
+                                                <StopIcon size={20} />
                                                 Stop
                                             </button>
                                         ) : (
@@ -835,7 +854,7 @@ export function DeveloperModeView() {
                                                          disabled:opacity-50 disabled:cursor-not-allowed
                                                          transition-all duration-200"
                                             >
-                                                <Play className="w-5 h-5" />
+                                                <PlayIcon size={20} />
                                                 Generate
                                             </button>
                                         )}
@@ -849,7 +868,7 @@ export function DeveloperModeView() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30"
                                     >
-                                        <Hand className="w-4 h-4 text-amber-400" />
+                                        <MousePointer2Icon size={16} className="text-amber-400" />
                                         <span className="text-sm text-amber-400">
                                             Interrupt {lastInterrupt.status}: {lastInterrupt.type}
                                         </span>
@@ -867,9 +886,9 @@ export function DeveloperModeView() {
                                             animate={{ opacity: 1, y: 0 }}
                                             className="flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30"
                                         >
-                                            <Zap className="w-4 h-4 text-yellow-400" />
+                                            <ZapIcon size={16} className="text-yellow-400" />
                                             <span className="text-yellow-400 text-sm">
-                                                ⚡ {ktnStats.ttftMs ? `First token in ${ktnStats.ttftMs}ms` : 'Completed'}
+                                                {ktnStats.ttftMs ? `First token in ${ktnStats.ttftMs}ms` : 'Completed'}
                                                 {ktnStats.model && ` via ${ktnStats.model.split('/').pop()}`}
                                                 {ktnStats.strategy && ` (${ktnStats.strategy})`}
                                             </span>
@@ -883,7 +902,7 @@ export function DeveloperModeView() {
                                             animate={{ opacity: 1, y: 0 }}
                                             className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30"
                                         >
-                                            <ShieldAlert className="w-5 h-5 text-red-400" />
+                                            <ShieldIcon size={20} className="text-red-400" />
                                             <div>
                                                 <span className="text-red-400 font-medium text-sm">AI Slop Detected</span>
                                                 <p className="text-red-300/80 text-xs mt-0.5">
@@ -901,7 +920,7 @@ export function DeveloperModeView() {
                                             className="rounded-xl overflow-hidden border border-amber-500/30 bg-amber-500/5"
                                         >
                                             <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/30">
-                                                <Eye className="w-4 h-4 text-amber-400" />
+                                                <EyeIcon size={16} className="text-amber-400" />
                                                 <span className="text-amber-400 font-medium text-sm">
                                                     Visual Verification ({designIssues.length} issues)
                                                 </span>
@@ -916,7 +935,7 @@ export function DeveloperModeView() {
                                                             'bg-white/5 text-gray-300'
                                                         }`}
                                                     >
-                                                        <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                                                        <AlertCircleIcon size={16} className={`mt-0.5 flex-shrink-0 ${
                                                             issue.severity === 'critical' ? 'text-red-400' :
                                                             issue.severity === 'warning' ? 'text-amber-400' :
                                                             'text-gray-400'
@@ -938,7 +957,7 @@ export function DeveloperModeView() {
                                     {/* Loading indicator */}
                                     {isGenerating && !generatedCode && (
                                         <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
-                                            <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+                                            <Loader2Icon size={16} className="text-cyan-400 animate-spin" />
                                             <span className="text-cyan-400 text-sm">
                                                 Generating with {selectedModel === 'krip-toe-nite' ? 'Krip-Toe-Nite' : selectedModel}...
                                             </span>
@@ -951,12 +970,12 @@ export function DeveloperModeView() {
                                             <span className="text-xs text-gray-400 font-mono">Generated Code</span>
                                             <div className="flex items-center gap-3">
                                                 {verificationScore !== null && (
-                                                    <span className={`text-xs ${
+                                                    <span className={`text-xs flex items-center gap-1 ${
                                                         verificationScore >= 80 ? 'text-emerald-400' :
                                                         verificationScore >= 60 ? 'text-amber-400' :
                                                         'text-red-400'
                                                     }`}>
-                                                        <Sparkles className="w-3 h-3 inline mr-1" />
+                                                        <SparklesIcon size={12} />
                                                         Quality: {verificationScore}%
                                                     </span>
                                                 )}
@@ -984,22 +1003,22 @@ export function DeveloperModeView() {
                             {/* Quick Actions */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { icon: FileCode2, label: 'Add Component', action: 'Add a new React component' },
-                                    { icon: Cloud, label: 'Add API Route', action: 'Create a new API endpoint' },
-                                    { icon: AlertCircle, label: 'Fix Errors', action: 'Analyze and fix any errors' },
+                                    { icon: FileCodeIcon, label: 'Add Component', action: 'Add a new React component' },
+                                    { icon: CloudIcon, label: 'Add API Route', action: 'Create a new API endpoint' },
+                                    { icon: AlertCircleIcon, label: 'Fix Errors', action: 'Analyze and fix any errors' },
                                 ].map((item) => (
                                     <button
                                         key={item.label}
                                         onClick={() => setPrompt(item.action)}
                                         className="p-4 rounded-xl bg-white/5 border border-white/10
                                                  hover:bg-white/10 hover:border-white/20
-                                                 transition-all text-left group"
+                                                 transition-all text-left group relative"
                                     >
-                                        <item.icon className="w-5 h-5 text-cyan-400 mb-2" />
+                                        <item.icon size={20} className="text-cyan-400 mb-2" />
                                         <span className="text-white text-sm font-medium block">
                                             {item.label}
                                         </span>
-                                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-cyan-400
+                                        <ChevronRightIcon size={16} className="text-gray-500 group-hover:text-cyan-400
                                                                   absolute right-4 top-1/2 -translate-y-1/2
                                                                   opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </button>
@@ -1056,14 +1075,14 @@ export function DeveloperModeView() {
                         >
                             <div className="flex items-center justify-between p-4 border-b border-white/10">
                                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                    <Ghost className="w-5 h-5 text-purple-400" />
+                                    <GhostIcon size={20} className="text-purple-400" />
                                     Ghost Mode
                                 </h2>
                                 <button
                                     onClick={() => setShowGhostMode(false)}
                                     className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
                             <div className="p-6 max-h-[70vh] overflow-auto">
@@ -1100,14 +1119,14 @@ export function DeveloperModeView() {
                         >
                             <div className="flex items-center justify-between p-4 border-b border-white/10">
                                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-cyan-400" />
+                                    <ClockIcon size={20} className="text-cyan-400" />
                                     Time Machine
                                 </h2>
                                 <button
                                     onClick={() => setShowTimeMachine(false)}
                                     className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
                             <div className="p-6 max-h-[70vh] overflow-auto">

@@ -5,7 +5,31 @@
  */
 
 import { motion } from 'framer-motion';
-import { Code, AlignLeft, Quote, Circle, Braces } from 'lucide-react';
+import { CodeIcon, CircleIcon } from '../ui/icons';
+
+// Inline SVG icons for AlignLeft, Quote, and Braces
+const AlignLeftIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="17" y1="10" x2="3" y2="10" />
+        <line x1="21" y1="6" x2="3" y2="6" />
+        <line x1="21" y1="14" x2="3" y2="14" />
+        <line x1="17" y1="18" x2="3" y2="18" />
+    </svg>
+);
+
+const QuoteIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z" />
+        <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z" />
+    </svg>
+);
+
+const BracesIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" />
+        <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
+    </svg>
+);
 
 const accentColor = '#c8ff64';
 
@@ -34,27 +58,27 @@ export function ConventionSummary({
 }: ConventionSummaryProps) {
     const items = [
         {
-            icon: AlignLeft,
+            icon: AlignLeftIcon,
             label: 'Indentation',
             value: `${conventions.indentSize} ${conventions.indentation}`,
         },
         {
-            icon: Quote,
+            icon: QuoteIcon,
             label: 'Quotes',
             value: conventions.quoteStyle === 'single' ? "Single (')" : 'Double (")',
         },
         {
-            icon: Circle,
+            icon: CircleIcon,
             label: 'Semicolons',
             value: conventions.semicolons ? 'Required' : 'Optional',
         },
         {
-            icon: Braces,
+            icon: BracesIcon,
             label: 'Components',
             value: conventions.componentStyle.charAt(0).toUpperCase() + conventions.componentStyle.slice(1),
         },
         {
-            icon: Code,
+            icon: CodeIcon,
             label: 'Trailing Commas',
             value: conventions.trailingCommas ? 'Yes' : 'No',
         },
@@ -65,7 +89,7 @@ export function ConventionSummary({
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/10 bg-white/[0.02]">
                 <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <Code className="w-4 h-4" style={{ color: accentColor }} />
+                    <CodeIcon size={16} style={{ color: accentColor }} />
                     Coding Conventions
                 </h3>
             </div>
@@ -83,7 +107,7 @@ export function ConventionSummary({
                             className="flex items-center justify-between"
                         >
                             <div className="flex items-center gap-2">
-                                <Icon className="w-4 h-4 text-white/40" />
+                                <Icon size={16} className="text-white/40" />
                                 <span className="text-sm text-white/60">{item.label}</span>
                             </div>
                             <span className="text-sm font-medium text-white">{item.value}</span>

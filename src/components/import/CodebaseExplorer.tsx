@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Folder, FolderOpen } from 'lucide-react';
+import { ChevronRightIcon, FolderIcon, FolderOpenIcon } from '../ui/icons';
 
 interface TreeNode {
     name: string;
@@ -61,13 +61,14 @@ function TreeItem({
             >
                 {isDir ? (
                     <>
-                        <ChevronRight
-                            className={`w-3 h-3 text-white/40 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                        <ChevronRightIcon
+                            size={12}
+                            className={`text-white/40 transition-transform ${isOpen ? 'rotate-90' : ''}`}
                         />
                         {isOpen ? (
-                            <FolderOpen className="w-4 h-4 text-amber-400" />
+                            <FolderOpenIcon size={16} className="text-amber-400" />
                         ) : (
-                            <Folder className="w-4 h-4 text-amber-400" />
+                            <FolderIcon size={16} className="text-amber-400" />
                         )}
                     </>
                 ) : (
@@ -124,7 +125,7 @@ export function CodebaseExplorer({
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/10 bg-white/[0.02]">
                 <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <Folder className="w-4 h-4 text-amber-400" />
+                    <FolderIcon size={16} className="text-amber-400" />
                     Project Structure
                 </h3>
             </div>
