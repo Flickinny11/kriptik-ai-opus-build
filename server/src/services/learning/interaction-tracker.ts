@@ -249,12 +249,11 @@ export class InteractionTracker {
      * Check if a similar prompt has good cached results
      */
     async getCachedGoodResult(prompt: string, taskType: string): Promise<string | null> {
-        const promptHash = this.hashText(prompt);
         const cache = getAIResponseCache();
 
         // Check if we have a cached result with positive feedback
         const cacheKey = cache.aiKey(taskType, prompt);
-        const cached = cache.get<{ content: string; rating: string }>(cacheKey);
+        const cached = await cache.get<{ content: string; rating: string }>(cacheKey);
 
         if (cached && cached.rating === 'positive') {
             return cached.content;

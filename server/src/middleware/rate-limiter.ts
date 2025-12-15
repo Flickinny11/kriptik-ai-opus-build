@@ -1,11 +1,13 @@
 /**
  * Rate Limiter Middleware
  *
- * Implements sliding window rate limiting for API endpoints.
+ * Implements sliding window rate limiting for API endpoints using Upstash Redis.
  * Supports tiered limits based on user subscription level.
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { Ratelimit } from '@upstash/ratelimit';
+import { getRedis } from '../services/infrastructure/redis.js';
 
 // ============================================================================
 // TYPES
@@ -72,7 +74,46 @@ const ROUTE_LIMITS: Record<string, RateLimitConfig> = {
 };
 
 // ============================================================================
-// IN-MEMORY STORE (Production should use Redis)
+// UPSTASH RATE LIMITERS
+// ============================================================================
+
+// Create rate limiters for each tier using Upstash
+const rateLimiters: Map<string, Ratelimit> = new Map();
+
+function getUpstashRateLimiter(tier: UserTier, route?: string): Ratelimit | null {
+    const key = route ? `${tier}:${route}` : tier;
+
+    if (!rateLimiters.has(key)) {
+        try {
+            const redis = getRedis();
+            const config = route ? ROUTE_LIMITS[route] : TIER_LIMITS[tier];
+
+            if (!config || config.maxRequests === Infinity) {
+                return null;
+            }
+
+            // Convert to Upstash format (requests per window)
+            const windowSeconds = Math.ceil(config.windowMs / 1000);
+
+            const limiter = new Ratelimit({
+                redis,
+                limiter: Ratelimit.slidingWindow(config.maxRequests, `${windowSeconds} s`),
+                analytics: true,
+                prefix: `kriptik:ratelimit:${key}`,
+            });
+
+            rateLimiters.set(key, limiter);
+        } catch (error) {
+            console.warn('[RateLimiter] Failed to create Upstash rate limiter, falling back to in-memory:', error);
+            return null;
+        }
+    }
+
+    return rateLimiters.get(key) || null;
+}
+
+// ============================================================================
+// FALLBACK IN-MEMORY STORE
 // ============================================================================
 
 class RateLimitStore {
@@ -110,8 +151,8 @@ class RateLimitStore {
     }
 }
 
-// Singleton store instance
-const store = new RateLimitStore();
+// Singleton store instance for fallback
+const fallbackStore = new RateLimitStore();
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -180,18 +221,50 @@ function getRouteLimit(path: string): RateLimitConfig | null {
     return null;
 }
 
+/**
+ * Get tier multiplier for route-specific limits
+ */
+function getTierMultiplier(tier: UserTier): number {
+    switch (tier) {
+        case 'enterprise': return 5;
+        case 'pro': return 2;
+        case 'free': return 1;
+        case 'unlimited': return Infinity;
+        default: return 1;
+    }
+}
+
+/**
+ * Set standard rate limit headers
+ */
+function setRateLimitHeaders(
+    res: Response,
+    limit: number,
+    remaining: number,
+    resetTime: number
+): void {
+    res.setHeader('X-RateLimit-Limit', limit.toString());
+    res.setHeader('X-RateLimit-Remaining', remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000).toString());
+}
+
 // ============================================================================
 // MIDDLEWARE FACTORY
 // ============================================================================
 
 /**
- * Create a rate limiter middleware
+ * Create a rate limiter middleware with Upstash Redis
  */
 export function createRateLimiter(options?: Partial<RateLimitConfig>) {
-    return (req: Request, res: Response, next: NextFunction): void => {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const identifier = getUserIdentifier(req);
         const tier = getUserTier(req);
         const path = req.path;
+
+        // Unlimited tier bypasses rate limiting
+        if (tier === 'unlimited') {
+            return next();
+        }
 
         // Get applicable rate limit config
         const routeLimit = getRouteLimit(path);
@@ -205,14 +278,44 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
             message: routeLimit?.message || tierLimit.message,
         };
 
-        // Unlimited tier bypasses rate limiting
-        if (tier === 'unlimited' || effectiveConfig.maxRequests === Infinity) {
+        if (effectiveConfig.maxRequests === Infinity) {
             return next();
         }
 
+        // Try Upstash rate limiter first
+        const upstashLimiter = getUpstashRateLimiter(tier, routeLimit ? path : undefined);
+
+        if (upstashLimiter) {
+            try {
+                const result = await upstashLimiter.limit(identifier);
+
+                setRateLimitHeaders(res, result.limit, result.remaining, result.reset);
+
+                if (!result.success) {
+                    const retryAfter = Math.ceil((result.reset - Date.now()) / 1000);
+                    res.setHeader('Retry-After', retryAfter.toString());
+                    res.status(429).json({
+                        error: 'Too Many Requests',
+                        message: effectiveConfig.message,
+                        retryAfter,
+                        limit: result.limit,
+                        remaining: 0,
+                        resetAt: new Date(result.reset).toISOString(),
+                    });
+                    return;
+                }
+
+                return next();
+            } catch (error) {
+                console.warn('[RateLimiter] Upstash rate limit check failed, falling back to in-memory:', error);
+                // Fall through to in-memory fallback
+            }
+        }
+
+        // Fallback to in-memory rate limiting
         const now = Date.now();
         const key = `${identifier}:${path}`;
-        let entry = store.get(key);
+        let entry = fallbackStore.get(key);
 
         // Initialize or reset if window expired
         if (!entry || now > entry.resetTime) {
@@ -221,19 +324,23 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
                 resetTime: now + effectiveConfig.windowMs,
                 firstRequest: now,
             };
-            store.set(key, entry);
+            fallbackStore.set(key, entry);
 
-            // Set rate limit headers
-            setRateLimitHeaders(res, effectiveConfig, entry);
+            setRateLimitHeaders(
+                res,
+                effectiveConfig.maxRequests,
+                effectiveConfig.maxRequests - 1,
+                entry.resetTime
+            );
             return next();
         }
 
         // Increment count
         entry.count++;
-        store.set(key, entry);
+        fallbackStore.set(key, entry);
 
-        // Set rate limit headers
-        setRateLimitHeaders(res, effectiveConfig, entry);
+        const remaining = Math.max(0, effectiveConfig.maxRequests - entry.count);
+        setRateLimitHeaders(res, effectiveConfig.maxRequests, remaining, entry.resetTime);
 
         // Check if over limit
         if (entry.count > effectiveConfig.maxRequests) {
@@ -253,34 +360,6 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
 
         next();
     };
-}
-
-/**
- * Get tier multiplier for route-specific limits
- */
-function getTierMultiplier(tier: UserTier): number {
-    switch (tier) {
-        case 'enterprise': return 5;
-        case 'pro': return 2;
-        case 'free': return 1;
-        case 'unlimited': return Infinity;
-        default: return 1;
-    }
-}
-
-/**
- * Set standard rate limit headers
- */
-function setRateLimitHeaders(
-    res: Response,
-    config: RateLimitConfig,
-    entry: RateLimitEntry
-): void {
-    const remaining = Math.max(0, config.maxRequests - entry.count);
-
-    res.setHeader('X-RateLimit-Limit', config.maxRequests.toString());
-    res.setHeader('X-RateLimit-Remaining', remaining.toString());
-    res.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000).toString());
 }
 
 // ============================================================================
@@ -340,7 +419,7 @@ const costStore = new Map<string, CostEntry>();
  * Limits based on estimated token costs
  */
 export function createCostBasedLimiter(maxCostPerWindow: number, windowMs: number = 3600000) {
-    return (req: Request, res: Response, next: NextFunction): void => {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const identifier = getUserIdentifier(req);
         const tier = getUserTier(req);
 
@@ -351,39 +430,84 @@ export function createCostBasedLimiter(maxCostPerWindow: number, windowMs: numbe
             return next();
         }
 
-        const now = Date.now();
-        let entry = costStore.get(identifier);
+        // Try to get cost from Redis first
+        try {
+            const redis = getRedis();
+            const key = `cost:${identifier}`;
+            const now = Date.now();
 
-        if (!entry || now > entry.resetTime) {
-            entry = {
-                totalCost: 0,
-                resetTime: now + windowMs,
+            const stored = await redis.get<CostEntry>(key);
+            let entry = stored;
+
+            if (!entry || now > entry.resetTime) {
+                entry = {
+                    totalCost: 0,
+                    resetTime: now + windowMs,
+                };
+            }
+
+            // Check if over cost limit
+            if (entry.totalCost >= adjustedMaxCost) {
+                const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+
+                res.status(429).json({
+                    error: 'Cost Limit Exceeded',
+                    message: 'You have exceeded your usage limit for this period.',
+                    retryAfter,
+                    currentCost: entry.totalCost.toFixed(4),
+                    maxCost: adjustedMaxCost.toFixed(4),
+                    resetAt: new Date(entry.resetTime).toISOString(),
+                });
+                return;
+            }
+
+            // Attach cost tracking to response
+            (res as Response & { trackCost?: (cost: number) => void }).trackCost = async (cost: number) => {
+                entry!.totalCost += cost;
+                const ttl = Math.ceil((entry!.resetTime - Date.now()) / 1000);
+                await redis.set(key, entry!, { ex: ttl > 0 ? ttl : windowMs / 1000 });
             };
+
+            const ttl = Math.ceil((entry.resetTime - now) / 1000);
+            await redis.set(key, entry, { ex: ttl > 0 ? ttl : windowMs / 1000 });
+
+            next();
+        } catch (error) {
+            // Fallback to in-memory
+            const now = Date.now();
+            let entry = costStore.get(identifier);
+
+            if (!entry || now > entry.resetTime) {
+                entry = {
+                    totalCost: 0,
+                    resetTime: now + windowMs,
+                };
+            }
+
+            // Check if over cost limit
+            if (entry.totalCost >= adjustedMaxCost) {
+                const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+
+                res.status(429).json({
+                    error: 'Cost Limit Exceeded',
+                    message: 'You have exceeded your usage limit for this period.',
+                    retryAfter,
+                    currentCost: entry.totalCost.toFixed(4),
+                    maxCost: adjustedMaxCost.toFixed(4),
+                    resetAt: new Date(entry.resetTime).toISOString(),
+                });
+                return;
+            }
+
+            // Attach cost tracking to response
+            (res as Response & { trackCost?: (cost: number) => void }).trackCost = (cost: number) => {
+                entry!.totalCost += cost;
+                costStore.set(identifier, entry!);
+            };
+
+            costStore.set(identifier, entry);
+            next();
         }
-
-        // Check if over cost limit
-        if (entry.totalCost >= adjustedMaxCost) {
-            const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-
-            res.status(429).json({
-                error: 'Cost Limit Exceeded',
-                message: 'You have exceeded your usage limit for this period.',
-                retryAfter,
-                currentCost: entry.totalCost.toFixed(4),
-                maxCost: adjustedMaxCost.toFixed(4),
-                resetAt: new Date(entry.resetTime).toISOString(),
-            });
-            return;
-        }
-
-        // Attach cost tracking to response
-        (res as Response & { trackCost?: (cost: number) => void }).trackCost = (cost: number) => {
-            entry!.totalCost += cost;
-            costStore.set(identifier, entry!);
-        };
-
-        costStore.set(identifier, entry);
-        next();
     };
 }
 
@@ -403,4 +527,3 @@ export {
     getUserTier,
     getUserIdentifier,
 };
-

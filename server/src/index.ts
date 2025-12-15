@@ -3,19 +3,70 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { getModelRouter } from './services/ai/model-router.js';
 
+// Infrastructure imports
+import { checkRedisHealth, closeRedis } from './services/infrastructure/redis.js';
+import { closeJobQueues } from './services/infrastructure/job-queue.js';
+import { initializeWorkers } from './workers/index.js';
+import { healthRouter } from './routes/health.js';
+
 dotenv.config();
 
 // Build timestamp for cache busting and deployment verification
-const BUILD_TIMESTAMP = '2025-12-08T18:12:00Z'; // Fixed /dashboard/* route pattern
+const BUILD_TIMESTAMP = '2025-12-14T19:00:00Z'; // Production scaling infrastructure
 console.log(`[Server] Build timestamp: ${BUILD_TIMESTAMP}`);
 
 // Pre-warm model router for faster first request (2-3s improvement)
 const warmupRouter = () => {
     try {
         getModelRouter(); // Initialize singleton
-        console.log('✓ Model router pre-warmed');
+        console.log('[Server] Model router pre-warmed');
     } catch (error) {
-        console.error('Failed to pre-warm model router:', error);
+        console.error('[Server] Failed to pre-warm model router:', error);
+    }
+};
+
+// Initialize production infrastructure
+const initializeInfrastructure = async () => {
+    console.log('[Infrastructure] Initializing production services...');
+
+    try {
+        // Check Redis connection
+        const redisHealth = await checkRedisHealth();
+        if (redisHealth.connected) {
+            console.log(`[Infrastructure] Redis connected (latency: ${redisHealth.latency}ms)`);
+        } else {
+            console.warn('[Infrastructure] Redis unavailable, using fallback mode:', redisHealth.error);
+        }
+
+        // Initialize job queue workers
+        await initializeWorkers();
+        console.log('[Infrastructure] Background workers initialized');
+
+        console.log('[Infrastructure] Production services ready');
+    } catch (error) {
+        console.error('[Infrastructure] Failed to initialize:', error);
+        console.warn('[Infrastructure] Running in degraded mode');
+    }
+};
+
+// Graceful shutdown handler
+const gracefulShutdown = async (signal: string) => {
+    console.log(`[Server] Received ${signal}, starting graceful shutdown...`);
+
+    try {
+        // Close job queues
+        await closeJobQueues();
+        console.log('[Server] Job queues closed');
+
+        // Close Redis
+        await closeRedis();
+        console.log('[Server] Redis connection closed');
+
+        console.log('[Server] Graceful shutdown complete');
+        process.exit(0);
+    } catch (error) {
+        console.error('[Server] Error during shutdown:', error);
+        process.exit(1);
     }
 };
 
@@ -604,6 +655,9 @@ app.use("/api/import", importRouter);
 import { extensionRouter } from './routes/extension.js';
 app.use("/api/extension", extensionRouter);
 
+// Health Check Routes - Comprehensive infrastructure monitoring
+app.use("/api/health", healthRouter);
+
 // =============================================================================
 // SELF-HEALING SYSTEM
 // =============================================================================
@@ -622,15 +676,6 @@ const initializeSelfHealing = async () => {
         // Start self-healing coordinator
         const coordinator = getSelfHealingCoordinator();
         await coordinator.start();
-
-        // Graceful shutdown handler
-        const shutdown = () => {
-            coordinator.stop();
-            process.exit(0);
-        };
-
-        process.on('SIGTERM', shutdown);
-        process.on('SIGINT', shutdown);
     } catch (error) {
         console.error('[SelfHealing] Failed to initialize:', error);
     }
@@ -638,6 +683,10 @@ const initializeSelfHealing = async () => {
 
 // Initialize on startup (but not blocking)
 initializeSelfHealing();
+
+// Register graceful shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // =============================================================================
 // HEALTH & STATUS
@@ -752,28 +801,35 @@ export default app;
 // Pre-warm for serverless cold starts
 if (process.env.VERCEL) {
     warmupRouter();
+    // Initialize infrastructure in serverless mode (non-blocking)
+    initializeInfrastructure().catch(console.error);
 }
 
 // Only listen when running directly (not on Vercel)
 if (!process.env.VERCEL) {
-    app.listen(port, () => {
-        console.log(`\n🚀 KripTik AI Server starting on http://localhost:${port}`);
-        console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+    app.listen(port, async () => {
+        console.log(`\n[Server] KripTik AI starting on http://localhost:${port}`);
+        console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
 
         // Pre-warm services
         warmupRouter();
+
+        // Initialize production infrastructure
+        await initializeInfrastructure();
 
         const services = validateCredentials();
         printStartupStatus(services);
 
         if (!process.env.OPENROUTER_API_KEY) {
-            console.log('═══════════════════════════════════════════════════════════════');
-            console.log('  ❌ OPENROUTER_API_KEY is not set!');
-            console.log('  ❌ AI code generation WILL NOT WORK.');
-            console.log('  ❌ Get your API key from: https://openrouter.ai/keys');
-            console.log('═══════════════════════════════════════════════════════════════\n');
+            console.log('================================================================');
+            console.log('  OPENROUTER_API_KEY is not set!');
+            console.log('  AI code generation WILL NOT WORK.');
+            console.log('  Get your API key from: https://openrouter.ai/keys');
+            console.log('================================================================\n');
         }
+
+        console.log('[Server] Ready to accept requests');
     });
 }
-// Trigger deploy after fixing Vercel settings
+// Production scaling infrastructure deployment
 

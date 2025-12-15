@@ -1,11 +1,12 @@
 /**
  * Cache Service
- * 
- * High-performance caching layer for AI responses, templates, and frequently
- * accessed data to improve speed and reduce API costs.
+ *
+ * High-performance caching layer backed by Redis for AI responses, templates,
+ * and frequently accessed data to improve speed and reduce API costs.
  */
 
 import { createHash } from 'crypto';
+import { getRedis, CacheTTL } from '../infrastructure/redis.js';
 
 // ============================================================================
 // TYPES
@@ -28,6 +29,7 @@ interface CacheStats {
     memoryUsed: number;
     oldestEntry: number;
     newestEntry: number;
+    backend: 'redis' | 'memory';
 }
 
 interface CacheOptions {
@@ -35,6 +37,7 @@ interface CacheOptions {
     maxMemoryMB?: number;
     defaultTTL?: number;  // seconds
     cleanupInterval?: number;  // seconds
+    keyPrefix?: string;
 }
 
 // ============================================================================
@@ -42,13 +45,14 @@ interface CacheOptions {
 // ============================================================================
 
 export class CacheService {
-    private cache: Map<string, CacheEntry<unknown>> = new Map();
+    private memoryCache: Map<string, CacheEntry<unknown>> = new Map();
     private stats = {
         hits: 0,
         misses: 0,
     };
     private options: Required<CacheOptions>;
     private cleanupTimer?: NodeJS.Timeout;
+    private useRedis: boolean = true;
 
     constructor(options: CacheOptions = {}) {
         this.options = {
@@ -56,16 +60,60 @@ export class CacheService {
             maxMemoryMB: options.maxMemoryMB ?? 256,
             defaultTTL: options.defaultTTL ?? 3600,  // 1 hour
             cleanupInterval: options.cleanupInterval ?? 300,  // 5 minutes
+            keyPrefix: options.keyPrefix ?? 'cache',
         };
 
         this.startCleanupTimer();
     }
 
     /**
+     * Get full Redis key with prefix
+     */
+    private getKey(key: string): string {
+        return `${this.options.keyPrefix}:${key}`;
+    }
+
+    /**
      * Get a value from the cache
      */
-    get<T>(key: string): T | undefined {
-        const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+    async get<T>(key: string): Promise<T | undefined> {
+        const fullKey = this.getKey(key);
+
+        // Try Redis first
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const entry = await redis.get<CacheEntry<T>>(fullKey);
+
+                if (!entry) {
+                    this.stats.misses++;
+                    return undefined;
+                }
+
+                if (Date.now() > entry.expiresAt) {
+                    await redis.del(fullKey);
+                    this.stats.misses++;
+                    return undefined;
+                }
+
+                // Update hit stats in Redis
+                entry.hits++;
+                entry.lastAccessedAt = Date.now();
+                const ttl = Math.ceil((entry.expiresAt - Date.now()) / 1000);
+                if (ttl > 0) {
+                    await redis.set(fullKey, entry, { ex: ttl });
+                }
+
+                this.stats.hits++;
+                return entry.value;
+            } catch (error) {
+                console.warn('[CacheService] Redis get failed, falling back to memory:', error);
+                this.useRedis = false;
+            }
+        }
+
+        // Fallback to memory cache
+        const entry = this.memoryCache.get(key) as CacheEntry<T> | undefined;
 
         if (!entry) {
             this.stats.misses++;
@@ -73,7 +121,7 @@ export class CacheService {
         }
 
         if (Date.now() > entry.expiresAt) {
-            this.cache.delete(key);
+            this.memoryCache.delete(key);
             this.stats.misses++;
             return undefined;
         }
@@ -86,15 +134,34 @@ export class CacheService {
     }
 
     /**
+     * Get sync (memory only) - for backwards compatibility
+     */
+    getSync<T>(key: string): T | undefined {
+        const entry = this.memoryCache.get(key) as CacheEntry<T> | undefined;
+
+        if (!entry) {
+            return undefined;
+        }
+
+        if (Date.now() > entry.expiresAt) {
+            this.memoryCache.delete(key);
+            return undefined;
+        }
+
+        entry.hits++;
+        entry.lastAccessedAt = Date.now();
+
+        return entry.value;
+    }
+
+    /**
      * Set a value in the cache
      */
-    set<T>(key: string, value: T, ttlSeconds?: number): void {
+    async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
         const ttl = ttlSeconds ?? this.options.defaultTTL;
         const now = Date.now();
         const size = this.estimateSize(value);
-
-        // Evict if necessary
-        this.ensureSpace(size);
+        const fullKey = this.getKey(key);
 
         const entry: CacheEntry<T> = {
             value,
@@ -105,17 +172,64 @@ export class CacheService {
             size,
         };
 
-        this.cache.set(key, entry);
+        // Try Redis first
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                await redis.set(fullKey, entry, { ex: ttl });
+                return;
+            } catch (error) {
+                console.warn('[CacheService] Redis set failed, falling back to memory:', error);
+                this.useRedis = false;
+            }
+        }
+
+        // Fallback to memory cache
+        this.ensureSpace(size);
+        this.memoryCache.set(key, entry);
+    }
+
+    /**
+     * Set sync (memory only) - for backwards compatibility
+     */
+    setSync<T>(key: string, value: T, ttlSeconds?: number): void {
+        const ttl = ttlSeconds ?? this.options.defaultTTL;
+        const now = Date.now();
+        const size = this.estimateSize(value);
+
+        const entry: CacheEntry<T> = {
+            value,
+            createdAt: now,
+            expiresAt: now + ttl * 1000,
+            hits: 0,
+            lastAccessedAt: now,
+            size,
+        };
+
+        this.ensureSpace(size);
+        this.memoryCache.set(key, entry);
     }
 
     /**
      * Check if a key exists and is not expired
      */
-    has(key: string): boolean {
-        const entry = this.cache.get(key);
+    async has(key: string): Promise<boolean> {
+        const fullKey = this.getKey(key);
+
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const exists = await redis.exists(fullKey);
+                return exists > 0;
+            } catch {
+                this.useRedis = false;
+            }
+        }
+
+        const entry = this.memoryCache.get(key);
         if (!entry) return false;
         if (Date.now() > entry.expiresAt) {
-            this.cache.delete(key);
+            this.memoryCache.delete(key);
             return false;
         }
         return true;
@@ -124,15 +238,39 @@ export class CacheService {
     /**
      * Delete a key from the cache
      */
-    delete(key: string): boolean {
-        return this.cache.delete(key);
+    async delete(key: string): Promise<boolean> {
+        const fullKey = this.getKey(key);
+
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const deleted = await redis.del(fullKey);
+                return deleted > 0;
+            } catch {
+                this.useRedis = false;
+            }
+        }
+
+        return this.memoryCache.delete(key);
     }
 
     /**
      * Clear all entries
      */
-    clear(): void {
-        this.cache.clear();
+    async clear(): Promise<void> {
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const keys = await redis.keys(`${this.options.keyPrefix}:*`);
+                if (keys.length > 0) {
+                    await redis.del(...keys);
+                }
+            } catch {
+                this.useRedis = false;
+            }
+        }
+
+        this.memoryCache.clear();
     }
 
     /**
@@ -143,13 +281,13 @@ export class CacheService {
         computeFn: () => Promise<T>,
         ttlSeconds?: number
     ): Promise<T> {
-        const cached = this.get<T>(key);
+        const cached = await this.get<T>(key);
         if (cached !== undefined) {
             return cached;
         }
 
         const value = await computeFn();
-        this.set(key, value, ttlSeconds);
+        await this.set(key, value, ttlSeconds);
         return value;
     }
 
@@ -165,41 +303,88 @@ export class CacheService {
     /**
      * Get cache statistics
      */
-    getStats(): CacheStats {
+    async getStats(): Promise<CacheStats> {
         let memoryUsed = 0;
         let oldestEntry = Date.now();
         let newestEntry = 0;
+        let totalEntries = 0;
 
-        for (const entry of this.cache.values()) {
+        // Get Redis stats if available
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const keys = await redis.keys(`${this.options.keyPrefix}:*`);
+                totalEntries = keys.length;
+
+                // Sample a few entries for stats
+                const sampleKeys = keys.slice(0, 100);
+                for (const key of sampleKeys) {
+                    const entry = await redis.get<CacheEntry<unknown>>(key);
+                    if (entry) {
+                        memoryUsed += entry.size;
+                        if (entry.createdAt < oldestEntry) oldestEntry = entry.createdAt;
+                        if (entry.createdAt > newestEntry) newestEntry = entry.createdAt;
+                    }
+                }
+
+                // Extrapolate memory usage
+                if (sampleKeys.length > 0) {
+                    memoryUsed = (memoryUsed / sampleKeys.length) * totalEntries;
+                }
+            } catch {
+                this.useRedis = false;
+            }
+        }
+
+        // Include memory cache stats
+        for (const entry of this.memoryCache.values()) {
             memoryUsed += entry.size;
             if (entry.createdAt < oldestEntry) oldestEntry = entry.createdAt;
             if (entry.createdAt > newestEntry) newestEntry = entry.createdAt;
         }
+        totalEntries += this.memoryCache.size;
 
         const totalRequests = this.stats.hits + this.stats.misses;
         const hitRate = totalRequests > 0 ? this.stats.hits / totalRequests : 0;
 
         return {
-            totalEntries: this.cache.size,
+            totalEntries,
             totalHits: this.stats.hits,
             totalMisses: this.stats.misses,
             hitRate,
             memoryUsed,
             oldestEntry,
             newestEntry,
+            backend: this.useRedis ? 'redis' : 'memory',
         };
     }
 
     /**
      * Invalidate entries matching a pattern
      */
-    invalidatePattern(pattern: string): number {
-        const regex = new RegExp(pattern);
+    async invalidatePattern(pattern: string): Promise<number> {
         let deleted = 0;
 
-        for (const key of this.cache.keys()) {
+        if (this.useRedis) {
+            try {
+                const redis = getRedis();
+                const fullPattern = `${this.options.keyPrefix}:*${pattern}*`;
+                const keys = await redis.keys(fullPattern);
+
+                for (const key of keys) {
+                    await redis.del(key);
+                    deleted++;
+                }
+            } catch {
+                this.useRedis = false;
+            }
+        }
+
+        // Also check memory cache
+        const regex = new RegExp(pattern);
+        for (const key of this.memoryCache.keys()) {
             if (regex.test(key)) {
-                this.cache.delete(key);
+                this.memoryCache.delete(key);
                 deleted++;
             }
         }
@@ -216,22 +401,22 @@ export class CacheService {
     }
 
     /**
-     * Ensure there's enough space for a new entry
+     * Ensure there's enough space for a new entry (memory only)
      */
     private ensureSpace(neededSize: number): void {
         // Check entry count
-        while (this.cache.size >= this.options.maxEntries) {
+        while (this.memoryCache.size >= this.options.maxEntries) {
             this.evictLRU();
         }
 
         // Check memory
         const maxBytes = this.options.maxMemoryMB * 1024 * 1024;
         let currentSize = 0;
-        for (const entry of this.cache.values()) {
+        for (const entry of this.memoryCache.values()) {
             currentSize += entry.size;
         }
 
-        while (currentSize + neededSize > maxBytes && this.cache.size > 0) {
+        while (currentSize + neededSize > maxBytes && this.memoryCache.size > 0) {
             const evicted = this.evictLRU();
             if (evicted) {
                 currentSize -= evicted.size;
@@ -246,7 +431,7 @@ export class CacheService {
         let lruKey: string | null = null;
         let lruTime = Infinity;
 
-        for (const [key, entry] of this.cache.entries()) {
+        for (const [key, entry] of this.memoryCache.entries()) {
             if (entry.lastAccessedAt < lruTime) {
                 lruTime = entry.lastAccessedAt;
                 lruKey = key;
@@ -254,8 +439,8 @@ export class CacheService {
         }
 
         if (lruKey) {
-            const entry = this.cache.get(lruKey)!;
-            this.cache.delete(lruKey);
+            const entry = this.memoryCache.get(lruKey)!;
+            this.memoryCache.delete(lruKey);
             return entry;
         }
 
@@ -276,9 +461,9 @@ export class CacheService {
      */
     private cleanup(): void {
         const now = Date.now();
-        for (const [key, entry] of this.cache.entries()) {
+        for (const [key, entry] of this.memoryCache.entries()) {
             if (now > entry.expiresAt) {
-                this.cache.delete(key);
+                this.memoryCache.delete(key);
             }
         }
     }
@@ -290,6 +475,13 @@ export class CacheService {
         if (this.cleanupTimer) {
             clearInterval(this.cleanupTimer);
         }
+    }
+
+    /**
+     * Check if Redis is being used
+     */
+    isUsingRedis(): boolean {
+        return this.useRedis;
     }
 }
 
@@ -305,7 +497,8 @@ export class AIResponseCache extends CacheService {
         super({
             maxEntries: 5000,
             maxMemoryMB: 128,
-            defaultTTL: 1800,  // 30 minutes
+            defaultTTL: CacheTTL.MEDIUM,  // 5 minutes
+            keyPrefix: 'ai-response',
         });
     }
 
@@ -325,7 +518,8 @@ export class TemplateCache extends CacheService {
         super({
             maxEntries: 1000,
             maxMemoryMB: 32,
-            defaultTTL: 7200,  // 2 hours
+            defaultTTL: CacheTTL.LONG,  // 1 hour
+            keyPrefix: 'template',
         });
     }
 
@@ -345,7 +539,8 @@ export class ModelDiscoveryCache extends CacheService {
         super({
             maxEntries: 500,
             maxMemoryMB: 64,
-            defaultTTL: 3600,  // 1 hour
+            defaultTTL: CacheTTL.LONG,  // 1 hour
+            keyPrefix: 'model-discovery',
         });
     }
 
@@ -386,3 +581,37 @@ export function getModelDiscoveryCache(): ModelDiscoveryCache {
     return modelCache;
 }
 
+/**
+ * Check cache service health
+ */
+export async function checkCacheHealth(): Promise<{
+    healthy: boolean;
+    backend: 'redis' | 'memory';
+    stats: {
+        entries: number;
+        hitRate: number;
+    };
+}> {
+    try {
+        const cache = getAIResponseCache();
+        const stats = await cache.getStats();
+
+        return {
+            healthy: true,
+            backend: stats.backend,
+            stats: {
+                entries: stats.totalEntries,
+                hitRate: stats.hitRate,
+            },
+        };
+    } catch (error) {
+        return {
+            healthy: false,
+            backend: 'memory',
+            stats: {
+                entries: 0,
+                hitRate: 0,
+            },
+        };
+    }
+}
