@@ -1,0 +1,64 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(tsx:*)",
+      "Bash(node:*)",
+      "Bash(pnpm:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(which:*)",
+      "Bash(cat:*)",
+      "Bash(xargs:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.env.local)",
+      "Read(.env.production)",
+      "Read(secrets/*)",
+      "Read(**/credentials.json)",
+      "Read(**/userCredentials*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(.env.local)",
+      "Write(.env.production)",
+      "Write(secrets/*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf .git)"
+    ]
+  },
+  "context": {
+    "include": [
+      "CLAUDE.md",
+      "feature_list.json",
+      "intent.json",
+      ".cursor/memory/*.json",
+      ".claude/memory/*.md",
+      "package.json",
+      "server/package.json"
+    ],
+    "exclude": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "*.log",
+      ".env*",
+      "secrets/**"
+    ]
+  },
+  "model": {
+    "default": "claude-sonnet-4-5-20250929",
+    "preferExtendedThinking": true
+  },
+  "behavior": {
+    "autoFormat": true,
+    "verifyBeforeComplete": true,
+    "updateMemoryOnChange": true
+  }
+}
