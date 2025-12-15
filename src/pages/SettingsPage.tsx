@@ -21,6 +21,7 @@ import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { LearningSettingsSection } from '../components/settings/LearningSettingsSection';
 import { DeveloperSettingsSection } from '../components/settings/DeveloperSettingsSection';
+import { useUserStore } from '../store/useUserStore';
 
 type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'developer' | 'privacy' | 'usage' | 'learning';
 
@@ -62,6 +63,27 @@ interface PaymentMethod {
     isDefault: boolean;
 }
 
+// Default settings for graceful fallback when API fails
+const defaultSettings: UserSettings = {
+    spendingLimit: null,
+    alertThreshold: 80,
+    autoTopUp: false,
+    autoTopUpAmount: null,
+    autoTopUpThreshold: null,
+    theme: 'system',
+    editorTheme: 'vs-dark',
+    fontSize: 14,
+    preferredModel: 'claude-sonnet-4-5',
+    autoSave: true,
+    streamingEnabled: true,
+    emailNotifications: true,
+    deploymentAlerts: true,
+    billingAlerts: true,
+    weeklyDigest: false,
+    analyticsOptIn: true,
+    crashReports: true,
+};
+
 const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; badge?: string }> = [
     { id: 'profile', label: 'Profile', icon: StatusIcons.UserIcon },
     { id: 'billing', label: 'Billing & Credits', icon: StatusIcons.WalletIcon },
@@ -84,6 +106,9 @@ export default function SettingsPage() {
     const [creditBalance, setCreditBalance] = useState(0);
     const [topUpAmount, setTopUpAmount] = useState(1000);
 
+    // Get user from store for fallback when API fails
+    const storeUser = useUserStore(state => state.user);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -102,18 +127,62 @@ export default function SettingsPage() {
                 paymentMethods: PaymentMethod[];
             }
 
-            const [settingsRes, creditsRes, paymentRes] = await Promise.all([
+            // Use Promise.allSettled to handle individual failures gracefully
+            const results = await Promise.allSettled([
                 apiClient.get<SettingsResponse>('/api/settings'),
                 apiClient.get<CreditsResponse>('/api/settings/credits'),
                 apiClient.get<PaymentMethodsResponse>('/api/settings/payment-methods'),
             ]);
 
-            setUser(settingsRes.data.user);
-            setSettings(settingsRes.data.settings);
-            setCreditBalance(creditsRes.data.balance);
-            setPaymentMethods(paymentRes.data.paymentMethods || []);
+            // Handle settings response
+            if (results[0].status === 'fulfilled') {
+                setUser(results[0].value.data.user);
+                setSettings(results[0].value.data.settings);
+            } else {
+                console.warn('Failed to load user settings from API, using fallback');
+                // Use store user as fallback (store User type has limited properties)
+                if (storeUser) {
+                    setUser({
+                        id: storeUser.id,
+                        email: storeUser.email || '',
+                        name: storeUser.name || 'User',
+                        image: storeUser.avatar || null,
+                        credits: 0,
+                        tier: 'free',
+                    });
+                }
+                setSettings(defaultSettings);
+            }
+
+            // Handle credits response
+            if (results[1].status === 'fulfilled') {
+                setCreditBalance(results[1].value.data.balance);
+            } else {
+                console.warn('Failed to load credits from API');
+                setCreditBalance(0);
+            }
+
+            // Handle payment methods response
+            if (results[2].status === 'fulfilled') {
+                setPaymentMethods(results[2].value.data.paymentMethods || []);
+            } else {
+                console.warn('Failed to load payment methods from API');
+                setPaymentMethods([]);
+            }
         } catch (error) {
             console.error('Failed to load settings:', error);
+            // Set defaults on complete failure
+            if (storeUser) {
+                setUser({
+                    id: storeUser.id,
+                    email: storeUser.email || '',
+                    name: storeUser.name || 'User',
+                    image: storeUser.avatar || null,
+                    credits: 0,
+                    tier: 'free',
+                });
+            }
+            setSettings(defaultSettings);
         } finally {
             setLoading(false);
         }
@@ -210,24 +279,21 @@ export default function SettingsPage() {
                     </select>
                 </div>
 
-                {/* Desktop Layout: Sidebar + Content side by side */}
+                {/* Main Layout Container - responsive flex */}
                 <div
+                    className="flex flex-col lg:flex-row gap-6 lg:gap-8"
                     style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        gap: '32px',
                         alignItems: 'flex-start',
                     }}
                 >
-                    {/* Desktop Sidebar Tabs - hidden on mobile */}
-                    <div
+                    {/* Desktop Sidebar Tabs - hidden on mobile/tablet */}
+                    <aside
                         className="hidden lg:block"
                         style={{
                             width: '256px',
                             flexShrink: 0,
                             position: 'sticky',
-                            top: '32px',
-                            alignSelf: 'flex-start',
+                            top: '100px',
                         }}
                     >
                         <nav
@@ -263,14 +329,17 @@ export default function SettingsPage() {
                                 </button>
                             ))}
                         </nav>
-                    </div>
+                    </aside>
 
-                    {/* Content - takes remaining width */}
-                    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+                    {/* Content Area - full width on mobile, flex-1 on desktop */}
+                    <main
+                        className="w-full lg:flex-1"
+                        style={{ minWidth: 0 }}
+                    >
                         <motion.div
                             key={activeTab}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2 }}
                         >
                                 {/* Profile Tab */}
@@ -677,8 +746,8 @@ export default function SettingsPage() {
                                         <LearningSettingsSection />
                                     </div>
                                 )}
-                            </motion.div>
-                    </div>
+                        </motion.div>
+                    </main>
                 </div>
             </main>
         </div>
