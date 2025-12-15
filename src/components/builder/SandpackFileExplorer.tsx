@@ -7,17 +7,17 @@
 import { useState, useMemo } from 'react';
 import { useSandpack } from '@codesandbox/sandpack-react';
 import {
-    Folder,
-    FolderOpen,
-    FileCode,
-    FileJson,
-    FileText,
-    File,
-    ChevronRight,
-    ChevronDown,
-    Plus,
-    Trash2,
-} from 'lucide-react';
+    ChevronRightIcon,
+    ChevronDownIcon,
+    PlusIcon,
+    TrashIcon,
+    CodeIcon
+} from '../ui/icons';
+import {
+    FolderIcon,
+    FolderOpenIcon,
+    getFileIcon
+} from '../ui/icons/FileTypeIcons';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -37,34 +37,8 @@ interface FileNode {
     children?: FileNode[];
 }
 
-function getFileIcon(filename: string) {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    switch (ext) {
-        case 'tsx':
-        case 'ts':
-        case 'jsx':
-        case 'js':
-            return <FileCode className="h-4 w-4 text-blue-400" />;
-        case 'json':
-            return <FileJson className="h-4 w-4 text-yellow-400" />;
-        case 'css':
-        case 'scss':
-        case 'sass':
-            return <File className="h-4 w-4 text-pink-400" />;
-        case 'html':
-            return <FileCode className="h-4 w-4 text-orange-400" />;
-        case 'md':
-            return <FileText className="h-4 w-4 text-gray-400" />;
-        case 'png':
-        case 'jpg':
-        case 'jpeg':
-        case 'gif':
-        case 'svg':
-            return <File className="h-4 w-4 text-green-400" />;
-        default:
-            return <FileText className="h-4 w-4 text-gray-400" />;
-    }
-}
+// Use the icon helper from the icons package
+// Removed local getFileIcon - using imported one from '../ui/icons'
 
 function buildFileTree(files: Record<string, any>): FileNode[] {
     const root: FileNode[] = [];
@@ -163,15 +137,15 @@ function FileTreeNode({
                     >
                         {node.type === 'folder' && (
                             isOpen
-                                ? <ChevronDown className="h-3 w-3 shrink-0" />
-                                : <ChevronRight className="h-3 w-3 shrink-0" />
+                                ? <ChevronDownIcon size={12} className="shrink-0" />
+                                : <ChevronRightIcon size={12} className="shrink-0" />
                         )}
                         {node.type === 'folder' ? (
                             isOpen
-                                ? <FolderOpen className="h-4 w-4 text-blue-400 shrink-0" />
-                                : <Folder className="h-4 w-4 text-blue-400 shrink-0" />
+                                ? <FolderOpenIcon size={16} className="shrink-0" />
+                                : <FolderIcon size={16} className="shrink-0" />
                         ) : (
-                            getFileIcon(node.name)
+                            getFileIcon(node.name, 16)
                         )}
                         <span className={cn(
                             "truncate",
@@ -185,14 +159,14 @@ function FileTreeNode({
                     {node.type === 'file' && (
                         <>
                             <ContextMenuItem onClick={() => onSelectFile(node.path)}>
-                                <FileCode className="mr-2 h-4 w-4" />
+                                <CodeIcon size={16} className="mr-2" />
                                 Open
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                         </>
                     )}
                     <ContextMenuItem onClick={() => onDeleteFile(node.path)}>
-                        <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                        <TrashIcon size={16} className="mr-2" />
                         Delete
                     </ContextMenuItem>
                 </ContextMenuContent>
@@ -272,7 +246,7 @@ export default function SandpackFileExplorer() {
                     onClick={() => setIsCreatingFile(true)}
                     title="New File"
                 >
-                    <Plus className="h-3.5 w-3.5" />
+                    <PlusIcon size={14} />
                 </Button>
             </div>
 

@@ -8,15 +8,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X,
-    Mic,
-    Wand2,
-    Loader2,
-    ArrowRight,
-    RefreshCw,
-    Volume2,
-    Keyboard,
-} from 'lucide-react';
+    CloseIcon as X,
+    MicIcon as Mic,
+    WandIcon as Wand2,
+    LoadingIcon as Loader2,
+    ArrowRightIcon as ArrowRight,
+    RefreshIcon as RefreshCw,
+    VolumeIcon as Volume2,
+    KeyboardIcon as Keyboard,
+} from '../ui/icons';
 import { VoiceRecordButton } from './VoiceRecordButton';
 import { TranscriptionPanel } from './TranscriptionPanel';
 import { IntentPreview } from './IntentPreview';
@@ -375,7 +375,7 @@ export function VoiceArchitectPanel({
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{ background: `${accentColor}20` }}
                                 >
-                                    <Mic className="w-5 h-5" style={{ color: accentColor }} />
+                                    <Mic size={20} style={{ color: accentColor }} />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-white">Voice Architect</h2>
@@ -390,14 +390,14 @@ export function VoiceArchitectPanel({
                                         className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                         title="Start over"
                                     >
-                                        <RefreshCw className="w-5 h-5" />
+                                        <RefreshCw size={20} />
                                     </button>
                                 )}
                                 <button
                                     onClick={handleClose}
                                     className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X size={20} />
                                 </button>
                             </div>
                         </div>
@@ -446,7 +446,7 @@ export function VoiceArchitectPanel({
                                 >
                                     <span className="flex-1">{error}</span>
                                     <button onClick={() => setError(null)}>
-                                        <X className="w-4 h-4" />
+                                        <X size={16} />
                                     </button>
                                 </motion.div>
                             )}
@@ -477,7 +477,7 @@ export function VoiceArchitectPanel({
                                                     background: inputMode === 'voice' ? accentColor : 'transparent',
                                                 }}
                                             >
-                                                <Volume2 className="w-4 h-4" />
+                                                <Volume2 size={16} />
                                                 Voice
                                             </button>
                                             <button
@@ -491,7 +491,7 @@ export function VoiceArchitectPanel({
                                                     background: inputMode === 'text' ? accentColor : 'transparent',
                                                 }}
                                             >
-                                                <Keyboard className="w-4 h-4" />
+                                                <Keyboard size={16} />
                                                 Type
                                             </button>
                                         </div>
@@ -542,9 +542,9 @@ export function VoiceArchitectPanel({
                                                     style={{ background: accentColor, color: 'black' }}
                                                 >
                                                     {isTranscribing ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        <Loader2 size={16} className="animate-spin" />
                                                     ) : (
-                                                        <ArrowRight className="w-4 h-4" />
+                                                        <ArrowRight size={16} />
                                                     )}
                                                     Continue
                                                 </button>
@@ -591,9 +591,9 @@ export function VoiceArchitectPanel({
                                                 style={{ background: accentColor, color: 'black' }}
                                             >
                                                 {isProcessing ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <Loader2 size={16} className="animate-spin" />
                                                 ) : (
-                                                    <Wand2 className="w-4 h-4" />
+                                                    <Wand2 size={16} />
                                                 )}
                                                 Extract Intent
                                             </button>

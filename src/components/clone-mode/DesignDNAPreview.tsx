@@ -5,7 +5,15 @@
  */
 
 import { motion } from 'framer-motion';
-import { X, Palette, Type, Box, Layers, Sparkles, Copy, Check } from 'lucide-react';
+import {
+    XIcon,
+    GlobeIcon as PaletteIcon,
+    CodeIcon as TypeIcon,
+    LayersIcon,
+    ZapIcon as SparklesIcon,
+    CopyIcon,
+    CheckIcon,
+} from '../ui/icons';
 import { useState } from 'react';
 
 // Dark glass styling
@@ -138,14 +146,14 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                        <Palette className="w-5 h-5" style={{ color: accentColor }} />
+                        <PaletteIcon size={20} className="text-[#c8ff64]" />
                         Design DNA
                     </h3>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-white/5 rounded-lg transition-colors"
                     >
-                        <X className="w-4 h-4 text-white/40" />
+                        <XIcon size={16} className="text-white/40" />
                     </button>
                 </div>
 
@@ -154,7 +162,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                     {/* Colors Section */}
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <Palette className="w-4 h-4 text-white/60" />
+                            <PaletteIcon size={16} className="text-white/60" />
                             <h4 className="text-sm font-medium text-white">Colors</h4>
                         </div>
 
@@ -180,7 +188,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                                     <div className="text-[10px] text-white/40 font-mono">{color}</div>
                                     {copied === name && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
-                                            <Check className="w-4 h-4 text-emerald-400" />
+                                            <CheckIcon size={16} className="text-emerald-400" />
                                         </div>
                                     )}
                                 </button>
@@ -200,7 +208,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                                     >
                                         {copied === `palette-${idx}` && (
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
-                                                <Check className="w-3 h-3 text-emerald-400" />
+                                                <CheckIcon size={12} className="text-emerald-400" />
                                             </div>
                                         )}
                                     </button>
@@ -212,7 +220,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                     {/* Typography Section */}
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <Type className="w-4 h-4 text-white/60" />
+                            <TypeIcon size={16} className="text-white/60" />
                             <h4 className="text-sm font-medium text-white">Typography</h4>
                         </div>
 
@@ -267,7 +275,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                     {/* Spacing Section */}
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <Box className="w-4 h-4 text-white/60" />
+                            <LayersIcon size={16} className="text-white/60" />
                             <h4 className="text-sm font-medium text-white">Spacing</h4>
                         </div>
 
@@ -298,7 +306,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                         {/* Border Radius */}
                         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
                             <div className="flex items-center gap-2 mb-3">
-                                <Layers className="w-4 h-4 text-white/60" />
+                                <LayersIcon size={16} className="text-white/60" />
                                 <h4 className="text-sm font-medium text-white">Border Radius</h4>
                             </div>
                             <div className="flex gap-3 flex-wrap">
@@ -317,7 +325,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                         {/* Shadows */}
                         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
                             <div className="flex items-center gap-2 mb-3">
-                                <Layers className="w-4 h-4 text-white/60" />
+                                <LayersIcon size={16} className="text-white/60" />
                                 <h4 className="text-sm font-medium text-white">Shadows</h4>
                             </div>
                             <div className="flex gap-3 flex-wrap">
@@ -337,7 +345,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                     {/* Animations */}
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <Sparkles className="w-4 h-4 text-white/60" />
+                            <SparklesIcon size={16} className="text-white/60" />
                             <h4 className="text-sm font-medium text-white">Animations</h4>
                         </div>
 
@@ -371,7 +379,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                     {/* Export Options */}
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <Copy className="w-4 h-4 text-white/60" />
+                            <CopyIcon size={16} className="text-white/60" />
                             <h4 className="text-sm font-medium text-white">Export</h4>
                         </div>
 
@@ -384,7 +392,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                                 <div className="text-xs text-white/40">Copy as :root variables</div>
                                 {copied === 'css' && (
                                     <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
-                                        <Check className="w-3 h-3" /> Copied!
+                                        <CheckIcon size={12} /> Copied!
                                     </div>
                                 )}
                             </button>
@@ -397,7 +405,7 @@ ${designDNA.shadows.map((s, i) => `        '${i + 1}': '${s}',`).join('\n')}
                                 <div className="text-xs text-white/40">Copy as tailwind.config.js</div>
                                 {copied === 'tailwind' && (
                                     <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
-                                        <Check className="w-3 h-3" /> Copied!
+                                        <CheckIcon size={12} /> Copied!
                                     </div>
                                 )}
                             </button>

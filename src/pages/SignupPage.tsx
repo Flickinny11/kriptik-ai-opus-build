@@ -17,7 +17,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '../components/ui/form';
 import { toast } from 'sonner';
-import { Loader2, Mail, User, Github } from 'lucide-react';
+import { LoadingIcon, GitHubIcon, UserIcon } from '../components/ui/icons';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
@@ -57,7 +57,7 @@ function SocialButton({ provider, onClick, isLoading }: SocialButtonProps) {
             className: 'bg-white hover:bg-zinc-100 text-zinc-900 border-zinc-300',
         },
         github: {
-            icon: <Github className="w-5 h-5" />,
+            icon: <GitHubIcon size={20} />,
             label: 'Sign up with GitHub',
             className: 'bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-700',
         },
@@ -78,7 +78,7 @@ function SocialButton({ provider, onClick, isLoading }: SocialButtonProps) {
             )}
         >
             {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <LoadingIcon size={20} className="animate-spin" />
             ) : (
                 <>
                     {icon}
@@ -200,7 +200,7 @@ export default function SignupPage() {
                                 <FormItem>
                                     <FormControl>
                                         <div className="relative">
-                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                                            <UserIcon size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                                             <Input
                                                 placeholder="Full name"
                                                 className={cn(
@@ -224,7 +224,7 @@ export default function SignupPage() {
                                 <FormItem>
                                     <FormControl>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                                            <UserIcon size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                                             <Input
                                                 placeholder="Email address"
                                                 type="email"
@@ -276,7 +276,7 @@ export default function SignupPage() {
                         >
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <LoadingIcon size={16} className="mr-2 animate-spin" />
                                     Creating account...
                                 </>
                             ) : (

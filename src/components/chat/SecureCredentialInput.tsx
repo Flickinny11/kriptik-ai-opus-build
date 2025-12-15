@@ -7,10 +7,18 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, CheckCircle2, AlertCircle, ExternalLink, Loader2, Shield } from 'lucide-react';
+import {
+    EyeIcon,
+    EyeOffIcon,
+    CheckCircleIcon,
+    AlertCircleIcon,
+    LoadingIcon,
+    ShieldIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
+import { ExternalLink } from 'lucide-react';
 interface SecureCredentialInputProps {
     provider: string;
     providerId: string;
@@ -105,7 +113,7 @@ export function SecureCredentialInput({
                     <h4 className="text-sm font-semibold text-white">{label}</h4>
                     <p className="text-xs text-slate-400">{provider}</p>
                 </div>
-                <Shield className="w-4 h-4 text-emerald-400" />
+                <ShieldIcon size={16} className="text-emerald-400" />
             </div>
             
             {/* Help text */}
@@ -149,9 +157,9 @@ export function SecureCredentialInput({
                         disabled={status === 'validating'}
                     >
                         {showValue ? (
-                            <EyeOff className="w-4 h-4 text-slate-400" />
+                            <EyeOffIcon size={16} className="text-slate-400" />
                         ) : (
-                            <Eye className="w-4 h-4 text-slate-400" />
+                            <EyeIcon size={16} className="text-slate-400" />
                         )}
                     </button>
                 </div>
@@ -166,12 +174,12 @@ export function SecureCredentialInput({
                         exit={{ opacity: 0, height: 0 }}
                         className="flex items-center gap-2 text-red-400 text-xs mb-3"
                     >
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <AlertCircleIcon size={14} className="flex-shrink-0" />
                         <span>{errorMessage}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
-            
+
             {/* Success message */}
             <AnimatePresence>
                 {status === 'success' && (
@@ -181,7 +189,7 @@ export function SecureCredentialInput({
                         exit={{ opacity: 0, height: 0 }}
                         className="flex items-center gap-2 text-emerald-400 text-xs mb-3"
                     >
-                        <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                        <CheckCircleIcon size={14} className="flex-shrink-0" />
                         <span>Credential saved and verified successfully!</span>
                     </motion.div>
                 )}
@@ -226,12 +234,12 @@ export function SecureCredentialInput({
                     >
                         {status === 'validating' ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                                <LoadingIcon size={16} className="mr-1.5 animate-spin" />
                                 Validating...
                             </>
                         ) : status === 'success' ? (
                             <>
-                                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                <CheckCircleIcon size={16} className="mr-1.5" />
                                 Connected
                             </>
                         ) : (
@@ -243,7 +251,7 @@ export function SecureCredentialInput({
             
             {/* Security notice */}
             <p className="text-[10px] text-slate-500 mt-3 flex items-center gap-1">
-                <Shield className="w-3 h-3" />
+                <ShieldIcon size={12} />
                 Your credentials are encrypted and stored securely
             </p>
         </motion.div>

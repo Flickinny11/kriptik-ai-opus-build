@@ -10,22 +10,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquarePlus,
-  Send,
-  AlertCircle,
-  Info,
-  CheckCircle,
-  Clock,
-  Pause,
-  Undo2,
-  GitBranch,
-  MessageCircleQuestion,
-  Zap,
-  ThumbsUp,
-  X,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+  MessageSquareIcon,
+  AlertCircleIcon,
+  InfoIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  WorkflowIcon,
+  ZapIcon,
+  CloseIcon,
+  ChevronDownIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -75,27 +69,25 @@ const InterruptTypeIcon: React.FC<{ type: InterruptType; className?: string }> =
   type,
   className
 }) => {
-  const iconProps = { className: cn('w-4 h-4', className) };
-
   switch (type) {
     case 'HALT':
-      return <Pause {...iconProps} />;
+      return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={cn('w-4 h-4', className)}><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>;
     case 'CONTEXT_ADD':
-      return <Info {...iconProps} />;
+      return <InfoIcon size={16} className={className} />;
     case 'COURSE_CORRECT':
-      return <GitBranch {...iconProps} />;
+      return <WorkflowIcon size={16} className={className} />;
     case 'BACKTRACK':
-      return <Undo2 {...iconProps} />;
+      return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={cn('w-4 h-4', className)}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
     case 'QUEUE':
-      return <Clock {...iconProps} />;
+      return <ClockIcon size={16} className={className} />;
     case 'CLARIFICATION':
-      return <MessageCircleQuestion {...iconProps} />;
+      return <MessageSquareIcon size={16} className={className} />;
     case 'URGENT_FIX':
-      return <Zap {...iconProps} />;
+      return <ZapIcon size={16} className={className} />;
     case 'APPRECIATION':
-      return <ThumbsUp {...iconProps} />;
+      return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={cn('w-4 h-4', className)}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
     default:
-      return <MessageSquarePlus {...iconProps} />;
+      return <MessageSquareIcon size={16} className={className} />;
   }
 };
 
@@ -137,11 +129,11 @@ const InterruptTypeBadge: React.FC<{ type: InterruptType; priority: InterruptPri
 
 const StatusIndicator: React.FC<{ status: ClassifiedInterrupt['status'] }> = ({ status }) => {
   const statusConfig = {
-    pending: { color: 'text-yellow-400', icon: Clock, label: 'Pending' },
-    processing: { color: 'text-blue-400', icon: Zap, label: 'Processing' },
-    applied: { color: 'text-green-400', icon: CheckCircle, label: 'Applied' },
-    rejected: { color: 'text-red-400', icon: X, label: 'Rejected' },
-    expired: { color: 'text-gray-400', icon: Clock, label: 'Expired' }
+    pending: { color: 'text-yellow-400', icon: ClockIcon, label: 'Pending' },
+    processing: { color: 'text-blue-400', icon: ZapIcon, label: 'Processing' },
+    applied: { color: 'text-green-400', icon: CheckCircleIcon, label: 'Applied' },
+    rejected: { color: 'text-red-400', icon: CloseIcon, label: 'Rejected' },
+    expired: { color: 'text-gray-400', icon: ClockIcon, label: 'Expired' }
   };
 
   const config = statusConfig[status];
@@ -149,7 +141,7 @@ const StatusIndicator: React.FC<{ status: ClassifiedInterrupt['status'] }> = ({ 
 
   return (
     <span className={cn('inline-flex items-center gap-1 text-xs', config.color)}>
-      <Icon className="w-3 h-3" />
+      <Icon size={12} />
       {config.label}
     </span>
   );
@@ -280,7 +272,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
       {/* Input Area */}
       <div className="relative">
         <div className="flex items-start gap-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50 focus-within:border-cyan-500/50 transition-colors">
-          <MessageSquarePlus className="w-5 h-5 text-cyan-400 mt-1.5 flex-shrink-0" />
+          <MessageSquareIcon size={20} className="text-cyan-400 mt-1.5 flex-shrink-0" />
           <textarea
             ref={inputRef}
             value={message}
@@ -306,10 +298,13 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               >
-                <Zap className="w-4 h-4" />
+                <ZapIcon size={16} />
               </motion.div>
             ) : (
-              <Send className="w-4 h-4" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"/>
+              </svg>
             )}
           </button>
         </div>
@@ -355,9 +350,9 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
             )}>
               <div className="flex items-start gap-2">
                 {lastResult.success ? (
-                  <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircleIcon size={16} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <AlertCircleIcon size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className={cn(
@@ -376,7 +371,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
                   onClick={() => setShowFeedback(false)}
                   className="text-slate-500 hover:text-slate-300"
                 >
-                  <X className="w-4 h-4" />
+                  <CloseIcon size={16} />
                 </button>
               </div>
             </div>
@@ -391,7 +386,13 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
             onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
             className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors"
           >
-            {isHistoryExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isHistoryExpanded ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <ChevronDownIcon size={16} />
+            )}
             <span>
               Interrupt History ({interruptHistory.length})
               {pendingCount > 0 && (

@@ -1,4 +1,10 @@
-import { RefreshCw, Smartphone, Tablet, Monitor, MousePointer2 } from 'lucide-react';
+import {
+    RefreshIcon,
+    SmartphoneIcon,
+    TabletIcon,
+    MonitorIcon,
+    MousePointer2Icon
+} from '../../components/ui/icons';
 import { Button } from '../ui/button';
 import { useEditorStore } from '../../store/useEditorStore';
 import { cn } from '../../lib/utils';
@@ -31,13 +37,13 @@ export default function PreviewWindow() {
                 <div className="flex items-center gap-2">
                     <div className="flex gap-1 bg-muted p-1 rounded-md">
                         <Button variant="ghost" size="icon" className="h-6 w-6 rounded-sm">
-                            <Smartphone className="h-3 w-3" />
+                            <SmartphoneIcon size={12} />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6 rounded-sm">
-                            <Tablet className="h-3 w-3" />
+                            <TabletIcon size={12} />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6 rounded-sm bg-background shadow-sm">
-                            <Monitor className="h-3 w-3" />
+                            <MonitorIcon size={12} />
                         </Button>
                     </div>
                     <span className="text-xs text-muted-foreground">1280 x 800</span>
@@ -50,10 +56,10 @@ export default function PreviewWindow() {
                         onClick={toggleSelectionMode}
                         title="Select Element"
                     >
-                        <MousePointer2 className="h-4 w-4" />
+                        <MousePointer2Icon size={16} />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <RefreshCw className="h-4 w-4" />
+                        <RefreshIcon size={16} />
                     </Button>
                 </div>
             </div>

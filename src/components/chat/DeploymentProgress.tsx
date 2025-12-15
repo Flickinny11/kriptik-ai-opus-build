@@ -7,23 +7,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    CheckCircle2, 
-    Circle, 
-    Loader2, 
-    ChevronDown, 
-    ChevronUp,
-    Terminal,
-    ExternalLink,
-    RefreshCw,
-    XCircle,
-    Clock,
-    Cpu,
-    HardDrive,
-} from 'lucide-react';
+import {
+    CheckCircleIcon,
+    LoadingIcon,
+    ChevronDownIcon,
+    RefreshIcon,
+    ClockIcon,
+    ServerIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
+import { Circle, ChevronUp, Terminal, ExternalLink, XCircle, HardDrive } from 'lucide-react';
 
 interface DeploymentStep {
     id: string;
@@ -92,9 +87,9 @@ export function DeploymentProgress({
     const getStatusIcon = (status: DeploymentStep['status']) => {
         switch (status) {
             case 'completed':
-                return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
+                return <CheckCircleIcon size={16} className="text-emerald-400" />;
             case 'in_progress':
-                return <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />;
+                return <LoadingIcon size={16} className="text-amber-400 animate-spin" />;
             case 'failed':
                 return <XCircle className="w-4 h-4 text-red-400" />;
             default:
@@ -248,7 +243,7 @@ export function DeploymentProgress({
                     <div className="flex items-center gap-4 text-xs text-slate-400">
                         {metrics.buildTime && (
                             <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
+                                <ClockIcon size={14} />
                                 <span>{Math.round(metrics.buildTime / 60)}m build</span>
                             </div>
                         )}
@@ -260,7 +255,7 @@ export function DeploymentProgress({
                         )}
                         {metrics.gpuAllocated && (
                             <div className="flex items-center gap-1.5">
-                                <Cpu className="w-3.5 h-3.5" />
+                                <ServerIcon size={14} />
                                 <span>{metrics.gpuAllocated}</span>
                             </div>
                         )}
@@ -285,7 +280,7 @@ export function DeploymentProgress({
                         {showLogs ? (
                             <ChevronUp className="w-4 h-4 text-slate-400" />
                         ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                            <ChevronDownIcon size={16} className="text-slate-400" />
                         )}
                     </button>
                     
@@ -353,7 +348,7 @@ export function DeploymentProgress({
                         onClick={onRetry}
                         className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
                     >
-                        <RefreshCw className="w-4 h-4 mr-1.5" />
+                        <RefreshIcon size={16} className="mr-1.5" />
                         Retry Deployment
                     </Button>
                 )}

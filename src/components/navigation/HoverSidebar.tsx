@@ -8,16 +8,16 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Blocks, Paintbrush, ShieldCheck,
-    SlidersHorizontal, Cable, CircleUser
-} from 'lucide-react';
+    LayoutDashboardIcon, LayersIcon, SparklesIcon, ShieldIcon,
+    SettingsIcon, PlugIcon, UserIcon
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import '../../styles/realistic-glass.css';
 
 interface NavItem {
     id: string;
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     path: string;
     description: string;
 }
@@ -26,49 +26,49 @@ const NAV_ITEMS: NavItem[] = [
     {
         id: 'dashboard',
         label: 'Dashboard',
-        icon: LayoutDashboard,
+        icon: LayoutDashboardIcon,
         path: '/dashboard',
         description: 'Your projects & builds',
     },
     {
         id: 'templates',
         label: 'Templates',
-        icon: Blocks,
+        icon: LayersIcon,
         path: '/templates',
         description: 'Ready-to-use starters',
     },
     {
         id: 'design-room',
         label: 'Design Room',
-        icon: Paintbrush,
+        icon: SparklesIcon,
         path: '/design-room',
         description: 'UI/UX workspace',
     },
     {
         id: 'vault',
         label: 'Credential Vault',
-        icon: ShieldCheck,
+        icon: ShieldIcon,
         path: '/vault',
         description: 'Secure key storage',
     },
     {
         id: 'settings',
         label: 'Settings',
-        icon: SlidersHorizontal,
+        icon: SettingsIcon,
         path: '/settings',
         description: 'App preferences',
     },
     {
         id: 'integrations',
         label: 'Integrations',
-        icon: Cable,
+        icon: PlugIcon,
         path: '/integrations',
         description: 'Connected services',
     },
     {
         id: 'account',
         label: 'My Account',
-        icon: CircleUser,
+        icon: UserIcon,
         path: '/account',
         description: 'Profile & billing',
     },
@@ -273,7 +273,7 @@ export function HoverSidebar() {
                                                         justifyContent: 'center',
                                                     }}
                                                 >
-                                                    <item.icon className="w-5 h-5" />
+                                                    <item.icon size={20} />
                                                 </span>
                                             </div>
 

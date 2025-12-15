@@ -8,21 +8,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-    Brain,
-    TrendingUp,
-    Lightbulb,
-    Layers,
-    GitBranch,
-    Sparkles,
-    RefreshCw,
-    ChevronDown,
-    ChevronRight,
-    Check,
-    AlertCircle,
-    Zap,
-    Target,
-    LucideIcon,
-} from 'lucide-react';
+    BrainIcon,
+    ActivityIcon,
+    RefreshIcon,
+    ChevronDownIcon,
+    ChevronRightIcon,
+    CheckIcon,
+    AlertCircleIcon,
+    ZapIcon,
+    LayersIcon,
+    type IconProps,
+} from '../ui/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // =============================================================================
@@ -154,7 +150,7 @@ function StatCard({
     subtext,
     color = 'blue',
 }: {
-    icon: LucideIcon;
+    icon: React.FC<IconProps>;
     label: string;
     value: string | number;
     subtext?: string;
@@ -172,7 +168,7 @@ function StatCard({
         <div className="rounded-lg bg-[#1a1a2e]/60 border border-white/5 p-4">
             <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-                    <Icon className="w-4 h-4" />
+                    <Icon size={16} />
                 </div>
                 <div>
                     <p className="text-xs text-gray-400">{label}</p>
@@ -257,7 +253,7 @@ function CollapsibleSection({
     children,
 }: {
     title: string;
-    icon: LucideIcon;
+    icon: React.FC<IconProps>;
     defaultOpen?: boolean;
     children: React.ReactNode;
 }) {
@@ -270,13 +266,13 @@ function CollapsibleSection({
                 className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
             >
                 <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-purple-400" />
+                    <Icon size={16} className="text-purple-400" />
                     <span className="text-sm font-medium text-white">{title}</span>
                 </div>
                 {isOpen ? (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDownIcon size={16} className="text-gray-400" />
                 ) : (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRightIcon size={16} className="text-gray-400" />
                 )}
             </button>
             <AnimatePresence>
@@ -361,7 +357,7 @@ export function LearningInsightsPanel({
     if (loading) {
         return (
             <div className={`flex items-center justify-center p-8 ${className}`}>
-                <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+                <RefreshIcon size={24} className="text-purple-400 animate-spin" />
             </div>
         );
     }
@@ -370,7 +366,7 @@ export function LearningInsightsPanel({
         return (
             <div className={`rounded-lg bg-red-500/10 border border-red-500/20 p-4 ${className}`}>
                 <div className="flex items-center gap-2 text-red-400">
-                    <AlertCircle className="w-4 h-4" />
+                    <AlertCircleIcon size={16} />
                     <span className="text-sm">{error}</span>
                 </div>
             </div>
@@ -385,7 +381,7 @@ export function LearningInsightsPanel({
             <div className={`space-y-3 ${className}`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Brain className="w-4 h-4 text-purple-400" />
+                        <BrainIcon size={16} className="text-purple-400" />
                         <span className="text-sm font-medium text-white">Learning Engine</span>
                     </div>
                     {status.isRunning ? (
@@ -432,7 +428,7 @@ export function LearningInsightsPanel({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-purple-500/10">
-                        <Brain className="w-5 h-5 text-purple-400" />
+                        <BrainIcon size={20} className="text-purple-400" />
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold text-white">
@@ -452,7 +448,7 @@ export function LearningInsightsPanel({
                             : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
                     }`}
                 >
-                    <RefreshCw className={`w-4 h-4 ${runningCycle ? 'animate-spin' : ''}`} />
+                    <RefreshIcon size={16} className={runningCycle ? 'animate-spin' : ''} />
                     {runningCycle ? 'Running...' : 'Run Evolution Cycle'}
                 </button>
             </div>
@@ -460,28 +456,28 @@ export function LearningInsightsPanel({
             {/* Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
-                    icon={Layers}
+                    icon={LayersIcon}
                     label="Learned Patterns"
                     value={status.patternStats.total}
                     subtext={`${status.patternStats.avgSuccessRate.toFixed(0)}% success rate`}
                     color="purple"
                 />
                 <StatCard
-                    icon={Target}
+                    icon={ActivityIcon}
                     label="Active Strategies"
                     value={status.strategyStats.active}
                     subtext={`${status.strategyStats.experimental} experimental`}
                     color="blue"
                 />
                 <StatCard
-                    icon={Zap}
+                    icon={ZapIcon}
                     label="Training Pairs"
                     value={status.pairStats.total}
                     subtext={`${status.pairStats.unused} ready for training`}
                     color="amber"
                 />
                 <StatCard
-                    icon={TrendingUp}
+                    icon={ActivityIcon}
                     label="Total Improvement"
                     value={`${status.overallImprovement > 0 ? '+' : ''}${status.overallImprovement}%`}
                     subtext={`${status.totalCycles} cycles completed`}
@@ -500,7 +496,7 @@ export function LearningInsightsPanel({
             )}
 
             {/* Patterns Section */}
-            <CollapsibleSection title="Learned Patterns" icon={Layers} defaultOpen>
+            <CollapsibleSection title="Learned Patterns" icon={LayersIcon} defaultOpen>
                 <div className="space-y-2">
                     {patterns.length === 0 ? (
                         <p className="text-sm text-gray-400">
@@ -533,7 +529,7 @@ export function LearningInsightsPanel({
             </CollapsibleSection>
 
             {/* Strategies Section */}
-            <CollapsibleSection title="Build Strategies" icon={GitBranch}>
+            <CollapsibleSection title="Build Strategies" icon={ActivityIcon}>
                 <div className="space-y-2">
                     {strategies.length === 0 ? (
                         <p className="text-sm text-gray-400">
@@ -547,7 +543,7 @@ export function LearningInsightsPanel({
                             >
                                 <div className="flex items-center gap-2">
                                     {strategy.isExperimental && (
-                                        <Sparkles className="w-3 h-3 text-amber-400" />
+                                        <ZapIcon size={12} className="text-amber-400" />
                                     )}
                                     <div>
                                         <p className="text-sm text-white">{strategy.name}</p>
@@ -574,7 +570,7 @@ export function LearningInsightsPanel({
             </CollapsibleSection>
 
             {/* Recent Insights */}
-            <CollapsibleSection title="Recent Insights" icon={Lightbulb}>
+            <CollapsibleSection title="Recent Insights" icon={BrainIcon}>
                 <div className="space-y-2">
                     {status.recentInsights.length === 0 ? (
                         <p className="text-sm text-gray-400">
@@ -587,7 +583,7 @@ export function LearningInsightsPanel({
                                 className="flex items-start gap-2 p-2 rounded bg-white/5"
                             >
                                 {insight.implemented ? (
-                                    <Check className="w-4 h-4 text-emerald-400 mt-0.5" />
+                                    <CheckIcon size={16} className="text-emerald-400 mt-0.5" />
                                 ) : (
                                     <div className="w-4 h-4 rounded-full border border-gray-500 mt-0.5" />
                                 )}

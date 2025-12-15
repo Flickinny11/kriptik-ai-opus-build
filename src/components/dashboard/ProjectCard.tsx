@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MoreVertical, GitBranch, Clock } from 'lucide-react';
+import { MoreHorizontalIcon, GitIcon, ClockIcon } from '../ui/icons';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import {
@@ -32,7 +32,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreHorizontalIcon size={16} />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -58,11 +58,11 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             </CardContent>
             <CardFooter className="text-xs text-muted-foreground border-t border-border pt-4 flex justify-between">
                 <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                    <ClockIcon size={12} />
                     {project.lastEdited}
                 </div>
                 <div className="flex items-center gap-1">
-                    <GitBranch className="h-3 w-3" />
+                    <GitIcon size={12} />
                     main
                 </div>
             </CardFooter>

@@ -6,7 +6,18 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, AlertCircle, Lightbulb, Filter, TrendingUp } from 'lucide-react';
+import {
+    CheckCircleIcon,
+    XCircleIcon,
+    AlertCircleIcon,
+    LightbulbIcon,
+    TrendingUpIcon,
+    ActivityIcon
+} from '../ui/icons';
+
+// Temporary icon alias for icon not yet in custom library
+const FilterIcon = ActivityIcon; // Using ActivityIcon as Filter substitute
+const CheckCircle2Icon = CheckCircleIcon;
 
 const accentColor = '#c8ff64';
 
@@ -37,10 +48,10 @@ interface GapMatrixProps {
 }
 
 const COVERAGE_COLORS = {
-    full: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: CheckCircle2 },
-    partial: { bg: 'rgba(251,191,36,0.2)', color: '#fbbf24', icon: AlertCircle },
-    none: { bg: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: XCircle },
-    opportunity: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', icon: Lightbulb },
+    full: { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: CheckCircle2Icon },
+    partial: { bg: 'rgba(251,191,36,0.2)', color: '#fbbf24', icon: AlertCircleIcon },
+    none: { bg: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: XCircleIcon },
+    opportunity: { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', icon: LightbulbIcon },
 };
 
 const EFFORT_COLORS = {
@@ -88,7 +99,7 @@ export function GapMatrix({ gaps, competitors }: GapMatrixProps) {
     if (gaps.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-                <AlertCircle className="w-12 h-12 text-white/20 mb-4" />
+                <AlertCircleIcon size={48} className="text-white/20 mb-4" />
                 <p className="text-white/50">No market gaps identified yet</p>
             </div>
         );
@@ -99,7 +110,7 @@ export function GapMatrix({ gaps, competitors }: GapMatrixProps) {
             {/* Filters */}
             <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-white/40" />
+                    <FilterIcon size={16} className="text-white/40" />
                     <span className="text-sm text-white/60">Category:</span>
                     <div className="flex gap-2">
                         <button
@@ -192,9 +203,9 @@ export function GapMatrix({ gaps, competitors }: GapMatrixProps) {
                                     <div className="flex items-start gap-3">
                                         <div
                                             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                            style={{ background: COVERAGE_COLORS.opportunity.bg }}
+                                            style={{ background: COVERAGE_COLORS.opportunity.bg, color: COVERAGE_COLORS.opportunity.color }}
                                         >
-                                            <Lightbulb className="w-4 h-4" style={{ color: COVERAGE_COLORS.opportunity.color }} />
+                                            <LightbulbIcon size={16} />
                                         </div>
                                         <div>
                                             <div className="font-medium text-white">{gap.title}</div>
@@ -214,9 +225,9 @@ export function GapMatrix({ gaps, competitors }: GapMatrixProps) {
                                             <motion.div
                                                 whileHover={{ scale: 1.1 }}
                                                 className="inline-flex items-center justify-center w-10 h-10 rounded-lg mx-auto"
-                                                style={{ background: config.bg }}
+                                                style={{ background: config.bg, color: config.color }}
                                             >
-                                                <Icon className="w-5 h-5" style={{ color: config.color }} />
+                                                <Icon size={20} />
                                             </motion.div>
                                         </td>
                                     );
@@ -228,7 +239,7 @@ export function GapMatrix({ gaps, competitors }: GapMatrixProps) {
                                             background: `linear-gradient(90deg, ${accentColor}20 0%, transparent ${gap.opportunityScore}%)`,
                                         }}
                                     >
-                                        <TrendingUp className="w-4 h-4" style={{ color: accentColor }} />
+                                        <TrendingUpIcon size={16} className="text-[#c8ff64]" />
                                         <span className="font-bold text-white">{gap.opportunityScore}</span>
                                     </div>
                                 </td>

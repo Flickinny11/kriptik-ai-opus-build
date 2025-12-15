@@ -7,17 +7,26 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Brain,
-    Code,
-    TestTube,
-    Rocket,
-    Search,
-    Plug,
-    Eye,
-    Bug,
-    Loader2,
-} from 'lucide-react';
+    BrainIcon,
+    CodeIcon,
+    SearchIcon,
+    PlugIcon,
+    EyeIcon,
+    LoadingIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
+import { TestTube, Rocket, Bug } from 'lucide-react';
+
+// Wrapper components to make Lucide icons compatible with our icon type
+const TestTubeIcon = ({ size, className }: { size?: number; className?: string }) => (
+    <TestTube size={size} className={className} />
+);
+const RocketIcon = ({ size, className }: { size?: number; className?: string }) => (
+    <Rocket size={size} className={className} />
+);
+const BugIcon = ({ size, className }: { size?: number; className?: string }) => (
+    <Bug size={size} className={className} />
+);
 
 interface Agent {
     id: string;
@@ -37,15 +46,15 @@ interface AgentStatusDisplayProps {
     className?: string;
 }
 
-const AGENT_ICONS: Record<Agent['type'], React.ComponentType<{ className?: string }>> = {
-    planning: Brain,
-    coding: Code,
-    testing: TestTube,
-    deployment: Rocket,
-    research: Search,
-    integration: Plug,
-    review: Eye,
-    debug: Bug,
+const AGENT_ICONS: Record<Agent['type'], React.ComponentType<{ size?: number; className?: string }>> = {
+    planning: BrainIcon,
+    coding: CodeIcon,
+    testing: TestTubeIcon,
+    deployment: RocketIcon,
+    research: SearchIcon,
+    integration: PlugIcon,
+    review: EyeIcon,
+    debug: BugIcon,
 };
 
 const AGENT_COLORS: Record<Agent['type'], string> = {
@@ -86,7 +95,7 @@ export function AgentStatusDisplay({
             <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <div className="relative">
-                        <Brain className="w-5 h-5 text-amber-400" />
+                        <BrainIcon size={20} className="text-amber-400" />
                         {workingAgents.length > 0 && (
                             <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                         )}
@@ -117,7 +126,7 @@ export function AgentStatusDisplay({
                         >
                             <div className="p-3 flex items-center gap-3">
                                 <div className={cn('p-2 rounded-lg', colors as string)}>
-                                    <Icon className="w-4 h-4" />
+                                    <Icon size={16} className="w-4 h-4" />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -125,7 +134,7 @@ export function AgentStatusDisplay({
                                         <span className="text-sm font-medium text-white">
                                             {agent.name}
                                         </span>
-                                        <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                                        <LoadingIcon size={14} className="text-amber-400 animate-spin" />
                                     </div>
 
                                     {agent.currentTask && (
@@ -173,7 +182,7 @@ export function AgentStatusDisplay({
                                     )}
                                     title={agent.name}
                                 >
-                                    <Icon className="w-3 h-3" />
+                                    <Icon size={12} className="w-3 h-3" />
                                 </div>
                             );
                         })}

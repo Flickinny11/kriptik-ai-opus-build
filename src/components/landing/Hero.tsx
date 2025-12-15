@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Zap, Code2, Cloud, Brain, Layers } from 'lucide-react';
+import { ChevronRightIcon, ZapIcon, CodeIcon, CloudIcon, BrainIcon, LayersIcon } from '../../components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { useRef } from 'react';
 
@@ -16,10 +16,10 @@ import { useRef } from 'react';
  */
 
 const floatingBadges = [
-    { icon: Brain, label: 'AI-Powered', delay: 0.6, x: -200, y: -80 },
-    { icon: Cloud, label: 'Cloud Deploy', delay: 0.7, x: 220, y: -60 },
-    { icon: Code2, label: 'Production Ready', delay: 0.8, x: -180, y: 120 },
-    { icon: Layers, label: 'Full-Stack', delay: 0.9, x: 200, y: 100 },
+    { icon: BrainIcon, label: 'AI-Powered', delay: 0.6, x: -200, y: -80 },
+    { icon: CloudIcon, label: 'Cloud Deploy', delay: 0.7, x: 220, y: -60 },
+    { icon: CodeIcon, label: 'Production Ready', delay: 0.8, x: -180, y: 120 },
+    { icon: LayersIcon, label: 'Full-Stack', delay: 0.9, x: 200, y: 100 },
 ];
 
 export default function Hero() {
@@ -101,9 +101,9 @@ export default function Hero() {
                         transition={{ duration: 0.5 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8"
                     >
-                        <Sparkles className="w-4 h-4" />
+                        <ZapIcon size={16} />
                         <span>Introducing KripTik AI v2.0</span>
-                        <Zap className="w-4 h-4" />
+                        <ZapIcon size={16} />
                     </motion.div>
 
                     {/* Main headline */}
@@ -140,7 +140,7 @@ export default function Hero() {
                         <Link to="/signup">
                             <Button variant="premium" size="xl" className="min-w-[200px]">
                                 Start Building Free
-                                <ArrowRight className="w-5 h-5 ml-2" />
+                                <ChevronRightIcon size={20} className="ml-2" />
                             </Button>
                         </Link>
                         <Link to="/demo">
@@ -203,7 +203,7 @@ export default function Hero() {
                                 }}
                                 className="glass-card px-4 py-2 flex items-center gap-2 shadow-lg"
                             >
-                                <badge.icon className="w-4 h-4 text-primary" />
+                                <badge.icon size={16} className="text-primary" />
                                 <span className="text-sm font-medium whitespace-nowrap">{badge.label}</span>
                             </motion.div>
                         </motion.div>
@@ -282,7 +282,7 @@ export default function Hero() {
                                     <div className="w-full h-full rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 flex items-center justify-center">
                                         <div className="text-center">
                                             <div className="w-12 h-12 rounded-xl bg-primary/20 mx-auto mb-2 flex items-center justify-center">
-                                                <Zap className="w-6 h-6 text-primary" />
+                                                <ZapIcon size={24} className="text-primary" />
                                             </div>
                                             <div className="h-3 w-20 bg-muted/60 rounded mx-auto" />
                                         </div>

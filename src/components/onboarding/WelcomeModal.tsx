@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { Sparkles, Rocket, Code, Zap } from 'lucide-react';
+import { SparklesIcon, RocketIcon, CodeIcon, ZapIcon } from '../ui/icons';
 
 export default function WelcomeModal() {
     const { isWelcomeModalOpen, setWelcomeModalOpen, setTutorialActive, completeOnboarding } = useOnboardingStore();
@@ -34,7 +34,7 @@ export default function WelcomeModal() {
 
                     <div className="grid grid-cols-1 gap-4">
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <SparklesIcon size={20} className="text-primary shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-sm">AI-Powered Generation</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -44,7 +44,7 @@ export default function WelcomeModal() {
                         </div>
 
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                            <Code className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <CodeIcon size={20} className="text-primary shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-sm">Full Code Control</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -54,7 +54,7 @@ export default function WelcomeModal() {
                         </div>
 
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                            <Rocket className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <RocketIcon size={20} className="text-primary shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-sm">One-Click Deploy</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -64,7 +64,7 @@ export default function WelcomeModal() {
                         </div>
 
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                            <Zap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <ZapIcon size={20} className="text-primary shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-sm">15+ Free Templates</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -86,7 +86,7 @@ export default function WelcomeModal() {
                         Skip to Dashboard
                     </Button>
                     <Button onClick={handleStartTutorial} className="gap-2">
-                        <Sparkles className="h-4 w-4" />
+                        <SparklesIcon size={16} />
                         Start Tutorial
                     </Button>
                 </DialogFooter>

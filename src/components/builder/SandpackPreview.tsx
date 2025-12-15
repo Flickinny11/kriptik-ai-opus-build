@@ -11,8 +11,61 @@ import {
     SandpackConsole,
     useSandpack,
 } from '@codesandbox/sandpack-react';
-import { RefreshCw, Smartphone, Tablet, Monitor, Terminal, ExternalLink, MousePointer2, Maximize2, LucideIcon } from 'lucide-react';
+import { RefreshIcon, type IconProps } from '../ui/icons';
 import { useEditorStore } from '../../store/useEditorStore';
+
+// Temporary icon components for icons not in custom icon set
+const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+        <line x1="12" y1="18" x2="12.01" y2="18"/>
+    </svg>
+);
+
+const TabletIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+        <line x1="12" y1="18" x2="12.01" y2="18"/>
+    </svg>
+);
+
+const MonitorIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+);
+
+const TerminalIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
+    </svg>
+);
+
+const ExternalLinkIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+);
+
+const MousePointer2Icon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m4 4 7.07 17 2.51-7.39L21 11.07z"/>
+    </svg>
+);
+
+const Maximize2Icon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <polyline points="15 3 21 3 21 9"/>
+        <polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/>
+        <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+);
 
 type ViewportSize = 'mobile' | 'tablet' | 'desktop';
 
@@ -29,7 +82,7 @@ function DeviceButton({
     onClick,
     title
 }: {
-    icon: LucideIcon;
+    icon: React.FC<IconProps>;
     isActive: boolean;
     onClick: () => void;
     title: string;
@@ -58,8 +111,8 @@ function DeviceButton({
             }}
         >
             <Icon
-                className="w-4 h-4"
-                style={{ color: isActive ? '#92400e' : isHovered ? '#1a1a1a' : '#666' }}
+                size={16}
+                className={isActive ? 'text-[#92400e]' : isHovered ? 'text-[#1a1a1a]' : 'text-[#666]'}
             />
 
             {/* Shine effect */}
@@ -89,7 +142,7 @@ function GlassIconButton({
     isActive = false,
     title
 }: {
-    icon: LucideIcon;
+    icon: React.FC<IconProps>;
     onClick?: () => void;
     isActive?: boolean;
     title?: string;
@@ -119,8 +172,8 @@ function GlassIconButton({
             }}
         >
             <Icon
-                className="w-4 h-4"
-                style={{ color: isActive ? '#c25a00' : '#1a1a1a' }}
+                size={16}
+                className={isActive ? 'text-[#c25a00]' : 'text-[#1a1a1a]'}
             />
 
             {/* Shine effect */}
@@ -184,19 +237,19 @@ export default function SandpackPreviewWindow() {
                         }}
                     >
                         <DeviceButton
-                            icon={Smartphone}
+                            icon={SmartphoneIcon}
                             isActive={viewport === 'mobile'}
                             onClick={() => setViewport('mobile')}
                             title="Mobile (375px)"
                         />
                         <DeviceButton
-                            icon={Tablet}
+                            icon={TabletIcon}
                             isActive={viewport === 'tablet'}
                             onClick={() => setViewport('tablet')}
                             title="Tablet (768px)"
                         />
                         <DeviceButton
-                            icon={Monitor}
+                            icon={MonitorIcon}
                             isActive={viewport === 'desktop'}
                             onClick={() => setViewport('desktop')}
                             title="Desktop (100%)"
@@ -252,30 +305,30 @@ export default function SandpackPreviewWindow() {
 
                 <div className="flex items-center gap-2">
                     <GlassIconButton
-                        icon={MousePointer2}
+                        icon={MousePointer2Icon}
                         isActive={isSelectionMode}
                         onClick={toggleSelectionMode}
                         title="Select Element"
                     />
                     <GlassIconButton
-                        icon={Terminal}
+                        icon={TerminalIcon}
                         isActive={showConsole}
                         onClick={() => setShowConsole(!showConsole)}
                         title="Toggle Console"
                     />
                     <GlassIconButton
-                        icon={RefreshCw}
+                        icon={RefreshIcon}
                         onClick={handleRefresh}
                         title="Refresh Preview"
                     />
                     <GlassIconButton
-                        icon={Maximize2}
+                        icon={Maximize2Icon}
                         isActive={isFullscreen}
                         onClick={() => setIsFullscreen(!isFullscreen)}
                         title="Toggle Fullscreen"
                     />
                     <GlassIconButton
-                        icon={ExternalLink}
+                        icon={ExternalLinkIcon}
                         onClick={handleOpenExternal}
                         title="Open in New Tab"
                     />
@@ -342,7 +395,7 @@ export default function SandpackPreviewWindow() {
                             background: 'rgba(255,255,255,0.03)',
                         }}
                     >
-                        <Terminal className="h-3.5 w-3.5 mr-2" style={{ color: '#666' }} />
+                        <TerminalIcon size={14} className="mr-2 text-[#666]" />
                         <span className="text-xs font-medium" style={{ color: '#888' }}>Console</span>
                     </div>
                     <div className="h-[calc(100%-2.25rem)] overflow-auto">

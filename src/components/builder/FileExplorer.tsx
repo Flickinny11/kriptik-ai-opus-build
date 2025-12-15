@@ -1,5 +1,9 @@
-
-import { Folder, FileCode, ChevronRight, ChevronDown } from 'lucide-react';
+import {
+    FolderIcon,
+    FileCodeIcon,
+    ChevronRightIcon,
+    ChevronDownIcon
+} from '../../components/ui/icons';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface FileNode {
@@ -44,12 +48,12 @@ export default function FileExplorer() {
                     style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 >
                     {node.type === 'folder' && (
-                        node.isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
+                        node.isOpen ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />
                     )}
                     {node.type === 'folder' ? (
-                        <Folder className="h-4 w-4 text-blue-500" />
+                        <FolderIcon size={16} className="text-blue-500" />
                     ) : (
-                        <FileCode className="h-4 w-4 text-yellow-500" />
+                        <FileCodeIcon size={16} className="text-yellow-500" />
                     )}
                     <span>{node.name}</span>
                 </div>

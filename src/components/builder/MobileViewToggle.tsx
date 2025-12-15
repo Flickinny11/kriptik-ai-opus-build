@@ -15,7 +15,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Eye, LucideIcon } from 'lucide-react';
+import { MessageSquareIcon, EyeIcon, type IconProps } from '../ui/icons';
+
+type LucideIcon = React.FC<IconProps>;
 
 export type MobileView = 'chat' | 'preview';
 
@@ -115,13 +117,13 @@ export default function MobileViewToggle({ activeView, onViewChange }: MobileVie
                 <ToggleButton
                     isActive={activeView === 'chat'}
                     onClick={() => onViewChange('chat')}
-                    icon={MessageSquare}
+                    icon={MessageSquareIcon as any}
                     label="Chat"
                 />
                 <ToggleButton
                     isActive={activeView === 'preview'}
                     onClick={() => onViewChange('preview')}
-                    icon={Eye}
+                    icon={EyeIcon as any}
                     label="Preview"
                 />
             </div>
@@ -192,7 +194,8 @@ function ToggleButton({ isActive, onClick, icon: Icon, label }: ToggleButtonProp
             />
 
             <Icon
-                className="w-4 h-4 relative z-10 transition-colors duration-250"
+                size={16}
+                className="relative z-10 transition-colors duration-250"
                 style={{ color: isActive ? '#b45309' : '#666' }}
             />
             <span

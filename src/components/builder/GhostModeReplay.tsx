@@ -10,18 +10,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Clock,
-  FileCode,
-  GitBranch,
-  AlertCircle,
-  CheckCircle,
-  Zap,
-  Eye
-} from 'lucide-react';
+  ClockIcon,
+  WorkflowIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  ZapIcon,
+  EyeIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -179,12 +174,12 @@ const Timeline: React.FC<{
 
 const EventCard: React.FC<{ event: GhostEvent }> = ({ event }) => {
   const getEventIcon = (type: string) => {
-    if (type.includes('task')) return <CheckCircle className="w-4 h-4" />;
-    if (type.includes('file')) return <FileCode className="w-4 h-4" />;
-    if (type.includes('agent')) return <Zap className="w-4 h-4" />;
-    if (type.includes('error')) return <AlertCircle className="w-4 h-4" />;
-    if (type.includes('checkpoint')) return <GitBranch className="w-4 h-4" />;
-    return <Clock className="w-4 h-4" />;
+    if (type.includes('task')) return <CheckCircleIcon size={16} />;
+    if (type.includes('file')) return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+    if (type.includes('agent')) return <ZapIcon size={16} />;
+    if (type.includes('error')) return <AlertCircleIcon size={16} />;
+    if (type.includes('checkpoint')) return <WorkflowIcon size={16} />;
+    return <ClockIcon size={16} />;
   };
 
   const getEventColor = (type: string) => {
@@ -222,7 +217,7 @@ const FileChangesPanel: React.FC<{ files: FileSnapshot[] }> = ({ files }) => {
   if (changedFiles.length === 0) {
     return (
       <div className="text-center text-slate-500 py-4">
-        <FileCode className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2 opacity-50"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <p className="text-sm">No file changes in this frame</p>
       </div>
     );
@@ -297,7 +292,7 @@ const AgentStatesPanel: React.FC<{ agents: AgentStateSnapshot[] }> = ({ agents }
   if (agents.length === 0) {
     return (
       <div className="text-center text-slate-500 py-4">
-        <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <ZapIcon size={32} className="mx-auto mb-2 opacity-50" />
         <p className="text-sm">No active agents</p>
       </div>
     );
@@ -552,7 +547,7 @@ export const GhostModeReplay: React.FC<GhostModeReplayProps> = ({
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <Zap className="w-8 h-8 text-cyan-400" />
+          <ZapIcon size={32} className="text-cyan-400" />
         </motion.div>
       </div>
     );
@@ -571,7 +566,7 @@ export const GhostModeReplay: React.FC<GhostModeReplayProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Eye className="w-5 h-5 text-cyan-400" />
+          <EyeIcon size={20} className="text-cyan-400" />
           Session Replay
         </h3>
         <div className="flex items-center gap-2">
@@ -596,7 +591,9 @@ export const GhostModeReplay: React.FC<GhostModeReplayProps> = ({
           onClick={handlePrevious}
           className="p-2 text-slate-400 hover:text-white transition-colors"
         >
-          <SkipBack className="w-5 h-5" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+            <path d="M19 20L9 12l10-8v16zM5 19V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
 
         <button
@@ -608,14 +605,24 @@ export const GhostModeReplay: React.FC<GhostModeReplayProps> = ({
               : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
           )}
         >
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+          {isPlaying ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+              <path d="M6 4h4v16H6V4zM14 4h4v16h-4V4z" fill="currentColor"/>
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+              <path d="M5 3l14 9-14 9V3z" fill="currentColor"/>
+            </svg>
+          )}
         </button>
 
         <button
           onClick={handleNext}
           className="p-2 text-slate-400 hover:text-white transition-colors"
         >
-          <SkipForward className="w-5 h-5" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+            <path d="M5 4l10 8-10 8V4zM19 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
 
         {/* Speed Controls */}
@@ -666,9 +673,9 @@ export const GhostModeReplay: React.FC<GhostModeReplayProps> = ({
                 : 'text-slate-400 hover:text-slate-300'
             )}
           >
-            {tab === 'events' && <Clock className="w-4 h-4 inline mr-1" />}
-            {tab === 'files' && <FileCode className="w-4 h-4 inline mr-1" />}
-            {tab === 'agents' && <Zap className="w-4 h-4 inline mr-1" />}
+            {tab === 'events' && <ClockIcon size={16} className="inline mr-1" />}
+            {tab === 'files' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="inline mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            {tab === 'agents' && <ZapIcon size={16} className="inline mr-1" />}
             {tab}
           </button>
         ))}

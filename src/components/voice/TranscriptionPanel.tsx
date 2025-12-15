@@ -6,7 +6,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit3, Check, X, MessageSquare, Loader2 } from 'lucide-react';
+import { EditIcon as Edit3, CheckIcon as Check, CloseIcon as X, MessageSquareIcon as MessageSquare, LoadingIcon as Loader2 } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -78,7 +78,7 @@ export function TranscriptionPanel({
                     className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                     style={{ background: `${accentColor}20`, border: `1px solid ${accentColor}40` }}
                 >
-                    <MessageSquare className="w-8 h-8" style={{ color: accentColor }} />
+                    <MessageSquare size={32} style={{ color: accentColor }} />
                 </div>
                 <p className="text-white/60 text-center">
                     Your voice transcription will appear here.
@@ -138,14 +138,14 @@ export function TranscriptionPanel({
                                                 onClick={handleCancelEdit}
                                                 className="p-1.5 rounded hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                             >
-                                                <X className="w-4 h-4" />
+                                                <X size={16} />
                                             </button>
                                             <button
                                                 onClick={handleSaveEdit}
                                                 className="p-1.5 rounded transition-colors"
                                                 style={{ background: accentColor, color: 'black' }}
                                             >
-                                                <Check className="w-4 h-4" />
+                                                <Check size={16} />
                                             </button>
                                         </div>
                                     </div>
@@ -177,7 +177,7 @@ export function TranscriptionPanel({
                                                 onClick={() => handleStartEdit(transcription)}
                                                 className="absolute top-3 right-3 p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 text-white/40 hover:text-white transition-all"
                                             >
-                                                <Edit3 className="w-4 h-4" />
+                                                <Edit3 size={16} />
                                             </button>
                                         )}
                                     </>
@@ -195,7 +195,7 @@ export function TranscriptionPanel({
                         className="flex items-center gap-2 p-3 rounded-lg"
                         style={{ background: `${accentColor}10`, border: `1px dashed ${accentColor}40` }}
                     >
-                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />
+                        <Loader2 size={16} className="animate-spin" style={{ color: accentColor }} />
                         <span className="text-sm text-white/60">Processing audio...</span>
                     </motion.div>
                 )}

@@ -6,7 +6,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Grid, List } from 'lucide-react';
+import { SearchIcon, LayoutDashboardIcon } from '../ui/icons';
 import { APIProfileCard } from './APIProfileCard';
 
 const accentColor = '#c8ff64';
@@ -77,7 +77,7 @@ export function APICatalog({
             <div className="p-4 border-b border-white/10 space-y-3">
                 {/* Search input */}
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                    <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -136,7 +136,7 @@ export function APICatalog({
                                     : 'text-white/40 hover:text-white'
                             }`}
                         >
-                            <Grid className="w-4 h-4" />
+                            <LayoutDashboardIcon size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
@@ -146,7 +146,7 @@ export function APICatalog({
                                     : 'text-white/40 hover:text-white'
                             }`}
                         >
-                            <List className="w-4 h-4" />
+                            <LayoutDashboardIcon size={16} />
                         </button>
                     </div>
                 </div>
@@ -169,7 +169,7 @@ export function APICatalog({
                 ) : filteredCatalog.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center">
-                            <Search className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                            <SearchIcon size={48} className="text-white/20 mx-auto mb-3" />
                             <p className="text-white/60">No APIs found matching your search</p>
                             <p className="text-sm text-white/40 mt-1">Try a different search term or category</p>
                         </div>

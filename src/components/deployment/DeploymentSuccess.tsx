@@ -1,8 +1,20 @@
 import { useDeploymentStore } from '../../store/useDeploymentStore';
 import { Button } from '../ui/button';
-import { ExternalLink, Copy, RefreshCw, Settings, CheckCircle } from 'lucide-react';
+import { CopyIcon, RefreshIcon, SettingsIcon, CheckCircleIcon } from '../ui/icons';
 import { Card } from '../ui/card';
 import { useToast } from '../ui/use-toast';
+
+// Custom icon component
+interface IconProps {
+    size?: number;
+    className?: string;
+}
+
+const ExternalLinkIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
 
 export default function DeploymentSuccess() {
     const { currentUrl, reset } = useDeploymentStore();
@@ -22,7 +34,7 @@ export default function DeploymentSuccess() {
         <div className="space-y-6 text-center">
             <div className="flex flex-col items-center gap-4 py-6">
                 <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <CheckCircleIcon size={32} className="text-green-600" />
                 </div>
                 <div className="space-y-1">
                     <h2 className="text-2xl font-bold">Deployment Successful!</h2>
@@ -36,11 +48,11 @@ export default function DeploymentSuccess() {
                 </code>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="icon" onClick={copyUrl}>
-                        <Copy className="h-4 w-4" />
+                        <CopyIcon size={16} />
                     </Button>
                     <Button size="icon" asChild>
                         <a href={currentUrl || '#'} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLinkIcon size={16} />
                         </a>
                     </Button>
                 </div>
@@ -63,11 +75,11 @@ export default function DeploymentSuccess() {
 
             <div className="flex gap-3 justify-center pt-4">
                 <Button variant="outline" onClick={reset}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshIcon size={16} className="mr-2" />
                     Redeploy
                 </Button>
                 <Button variant="outline">
-                    <Settings className="mr-2 h-4 w-4" />
+                    <SettingsIcon size={16} className="mr-2" />
                     Settings
                 </Button>
             </div>

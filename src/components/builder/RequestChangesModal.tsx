@@ -15,9 +15,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, MessageSquare, AlertTriangle,
-    Loader2, Tag, Flag, RefreshCw
-} from 'lucide-react';
+    CloseIcon,
+    MessageSquareIcon,
+    WarningIcon,
+    LoadingIcon,
+    RefreshIcon,
+} from '../ui/icons';
 import { apiClient } from '../../lib/api-client';
 import '../../styles/realistic-glass.css';
 
@@ -161,7 +164,7 @@ export function RequestChangesModal({
                                 className="p-2 rounded-xl"
                                 style={{ background: 'rgba(249,115,22,0.15)' }}
                             >
-                                <MessageSquare className="w-5 h-5 text-orange-400" />
+                                <MessageSquareIcon size={20} className="text-orange-400" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Request Changes</h2>
@@ -174,7 +177,7 @@ export function RequestChangesModal({
                             onClick={onClose}
                             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                         >
-                            <X className="w-5 h-5 text-white/40" />
+                            <CloseIcon size={20} className="text-white/40" />
                         </button>
                     </div>
 
@@ -211,7 +214,7 @@ export function RequestChangesModal({
                         {/* Error */}
                         {error && (
                             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                                <AlertTriangle className="w-4 h-4 text-red-400" />
+                                <WarningIcon size={16} className="text-red-400" />
                                 <span className="text-sm text-red-400">{error}</span>
                             </div>
                         )}
@@ -232,7 +235,10 @@ export function RequestChangesModal({
                         {/* Quick Tags */}
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Tag className="w-4 h-4 text-white/40" />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white/40">
+                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                                </svg>
                                 <label className="text-sm font-medium text-white/80">
                                     Quick Feedback Tags
                                 </label>
@@ -260,7 +266,10 @@ export function RequestChangesModal({
                         {/* Priority */}
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Flag className="w-4 h-4 text-white/40" />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white/40">
+                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
                                 <label className="text-sm font-medium text-white/80">
                                     Priority
                                 </label>
@@ -371,9 +380,9 @@ export function RequestChangesModal({
                             }}
                         >
                             {submitting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <LoadingIcon size={16} className="animate-spin" />
                             ) : (
-                                <RefreshCw className="w-4 h-4" />
+                                <RefreshIcon size={16} />
                             )}
                             Submit Feedback & Iterate
                         </button>

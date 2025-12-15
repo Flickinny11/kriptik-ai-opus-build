@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { Shield, CheckCircle2, Zap, Accessibility, Bug, Code2, Loader2 } from 'lucide-react';
+import { ShieldIcon, CheckCircleIcon, ZapIcon, Code2Icon, LoadingIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
 import { ScanCategory } from '../../lib/quality-types';
 
@@ -27,11 +27,11 @@ export default function QualityReportModal({ open, onOpenChange }: QualityReport
 
     const getCategoryIcon = (category: ScanCategory) => {
         switch (category) {
-            case 'security': return <Shield className="h-4 w-4" />;
-            case 'quality': return <Code2 className="h-4 w-4" />;
-            case 'testing': return <Bug className="h-4 w-4" />;
-            case 'accessibility': return <Accessibility className="h-4 w-4" />;
-            case 'performance': return <Zap className="h-4 w-4" />;
+            case 'security': return <ShieldIcon size={16} />;
+            case 'quality': return <Code2Icon size={16} />;
+            case 'testing': return <span>🐛</span>;
+            case 'accessibility': return <span>♿</span>;
+            case 'performance': return <ZapIcon size={16} />;
         }
     };
 
@@ -48,12 +48,12 @@ export default function QualityReportModal({ open, onOpenChange }: QualityReport
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         {isScanning ? (
                             <>
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <LoadingIcon size={24} className="animate-spin" />
                                 Scanning Project...
                             </>
                         ) : (
                             <>
-                                <CheckCircle2 className="h-6 w-6 text-green-500" />
+                                <CheckCircleIcon size={24} />
                                 Production Readiness Report
                             </>
                         )}
@@ -141,9 +141,9 @@ export default function QualityReportModal({ open, onOpenChange }: QualityReport
                                                         disabled={isFixing === issue.id}
                                                     >
                                                         {isFixing === issue.id ? (
-                                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                                            <LoadingIcon size={12} className="animate-spin mr-2" />
                                                         ) : (
-                                                            <Zap className="h-3 w-3 mr-2 text-yellow-500" />
+                                                            <ZapIcon size={12} className="mr-2" />
                                                         )}
                                                         {isFixing === issue.id ? 'Fixing...' : 'Auto-Fix'}
                                                     </Button>
@@ -153,7 +153,7 @@ export default function QualityReportModal({ open, onOpenChange }: QualityReport
                                     ))}
                                     {Object.values(report.categories).every(c => c.issues.length === 0) && (
                                         <div className="p-8 text-center text-muted-foreground">
-                                            <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                                            <CheckCircleIcon size={32} className="mx-auto mb-2" />
                                             <p>No issues found! Great job.</p>
                                         </div>
                                     )}

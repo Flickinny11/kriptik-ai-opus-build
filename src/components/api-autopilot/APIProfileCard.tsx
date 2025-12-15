@@ -5,7 +5,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { Key, Shield, Zap, ChevronRight } from 'lucide-react';
+import { KeyIcon, ShieldIcon, ZapIcon, ChevronRightIcon } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -34,12 +34,12 @@ export function APIProfileCard({
     const getAuthIcon = (authType: string) => {
         switch (authType) {
             case 'oauth2':
-                return <Shield className="w-3 h-3" />;
+                return <ShieldIcon size={12} />;
             case 'api-key':
             case 'bearer':
-                return <Key className="w-3 h-3" />;
+                return <KeyIcon size={12} />;
             default:
-                return <Zap className="w-3 h-3" />;
+                return <ZapIcon size={12} />;
         }
     };
 
@@ -132,7 +132,7 @@ export function APIProfileCard({
                 </div>
 
                 {/* Arrow */}
-                <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
+                <ChevronRightIcon size={20} className="text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
             </motion.button>
         );
     }

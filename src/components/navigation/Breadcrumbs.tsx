@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ChevronRightIcon } from '../ui/icons';
 
 interface BreadcrumbItem {
   label: string;
@@ -24,17 +25,10 @@ interface BreadcrumbsProps {
 // Default chevron separator
 function ChevronSeparator() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
+    <ChevronRightIcon
+      size={16}
       style={{ color: 'rgba(255,255,255,0.25)' }}
-    >
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
+    />
   );
 }
 

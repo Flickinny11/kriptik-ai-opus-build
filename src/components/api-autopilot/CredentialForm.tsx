@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Key, Lock, User, Shield, AlertCircle, Check, ExternalLink } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, KeyIcon, LockIcon, UserIcon, ShieldIcon, AlertCircleIcon, CheckIcon, GlobeIcon } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -36,7 +36,7 @@ export function CredentialForm({
                         name: 'apiKey',
                         label: 'API Key',
                         placeholder: 'sk-...',
-                        icon: Key,
+                        icon: KeyIcon,
                         required: true,
                         secret: true,
                     },
@@ -47,7 +47,7 @@ export function CredentialForm({
                         name: 'username',
                         label: 'Username / Account SID',
                         placeholder: 'Enter username or account ID',
-                        icon: User,
+                        icon: UserIcon,
                         required: true,
                         secret: false,
                     },
@@ -55,7 +55,7 @@ export function CredentialForm({
                         name: 'password',
                         label: 'Password / Auth Token',
                         placeholder: 'Enter password or auth token',
-                        icon: Lock,
+                        icon: LockIcon,
                         required: true,
                         secret: true,
                     },
@@ -66,7 +66,7 @@ export function CredentialForm({
                         name: 'clientId',
                         label: 'Client ID',
                         placeholder: 'Your OAuth client ID',
-                        icon: User,
+                        icon: UserIcon,
                         required: true,
                         secret: false,
                     },
@@ -74,7 +74,7 @@ export function CredentialForm({
                         name: 'clientSecret',
                         label: 'Client Secret',
                         placeholder: 'Your OAuth client secret',
-                        icon: Lock,
+                        icon: LockIcon,
                         required: true,
                         secret: true,
                     },
@@ -143,7 +143,7 @@ export function CredentialForm({
                     className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                     style={{ background: `${accentColor}20` }}
                 >
-                    <Check className="w-8 h-8" style={{ color: accentColor }} />
+                    <CheckIcon size={32} className="text-[#c8ff64]" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">No Authentication Required</h3>
                 <p className="text-sm text-white/50 max-w-md">
@@ -161,7 +161,7 @@ export function CredentialForm({
                 className="flex items-start gap-3 p-3 rounded-lg"
                 style={{ background: `${accentColor}10`, border: `1px solid ${accentColor}30` }}
             >
-                <Shield className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: accentColor }} />
+                <ShieldIcon size={20} className="flex-shrink-0 mt-0.5 text-[#c8ff64]" />
                 <div className="text-sm">
                     <p className="font-medium text-white">Your credentials are encrypted</p>
                     <p className="text-white/60 mt-0.5">
@@ -184,7 +184,7 @@ export function CredentialForm({
                                 {field.required && <span className="text-red-400 ml-1">*</span>}
                             </label>
                             <div className="relative">
-                                <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                                <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                                 <input
                                     type={field.secret && !showSecrets[field.name] ? 'password' : 'text'}
                                     value={credentials[field.name] || ''}
@@ -203,9 +203,9 @@ export function CredentialForm({
                                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white transition-colors"
                                     >
                                         {showSecrets[field.name] ? (
-                                            <EyeOff className="w-4 h-4" />
+                                            <EyeOffIcon size={16} />
                                         ) : (
-                                            <Eye className="w-4 h-4" />
+                                            <EyeIcon size={16} />
                                         )}
                                     </button>
                                 )}
@@ -216,7 +216,7 @@ export function CredentialForm({
                                     animate={{ opacity: 1, y: 0 }}
                                     className="flex items-center gap-1 mt-1 text-xs text-red-400"
                                 >
-                                    <AlertCircle className="w-3 h-3" />
+                                    <AlertCircleIcon size={12} />
                                     {errors[field.name]}
                                 </motion.p>
                             )}
@@ -233,7 +233,7 @@ export function CredentialForm({
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
                 >
-                    <ExternalLink className="w-4 h-4" />
+                    <GlobeIcon size={16} />
                     Get your {provider.charAt(0).toUpperCase() + provider.slice(1)} API credentials
                 </a>
             )}
@@ -258,7 +258,7 @@ export function CredentialForm({
                     </>
                 ) : (
                     <>
-                        <Lock className="w-4 h-4" />
+                        <LockIcon size={16} />
                         Save Credentials
                     </>
                 )}

@@ -12,18 +12,18 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Bot,
-    Play,
-    Pause,
-    Square,
-    Loader2,
-    CheckCircle,
-    XCircle,
-    Clock,
-    DollarSign,
-    Gift,
-    Sparkles,
-} from 'lucide-react';
+    BrainIcon,
+    PlayIcon,
+    PauseIcon,
+    StopIcon,
+    LoadingIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    ClockIcon,
+    DollarSignIcon,
+    GiftIcon,
+    SparklesIcon,
+} from '@/components/ui/icons';
 import {
     useAgentStore,
     AgentType,
@@ -82,7 +82,7 @@ export default function AutonomousAgentsPanel() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-purple-500/10">
-                                <Bot className="w-5 h-5 text-purple-400" />
+                                <BrainIcon size={20} className="text-purple-400" />
                             </div>
                             <div>
                                 <h2 className="font-semibold text-white">Autonomous Agents</h2>
@@ -97,7 +97,7 @@ export default function AutonomousAgentsPanel() {
                             <Tooltip>
                                 <TooltipTrigger>
                                     <div className="flex items-center gap-1 text-sm">
-                                        <DollarSign className="w-4 h-4 text-gray-400" />
+                                        <DollarSignIcon size={16} className="text-gray-400" />
                                         <span className="text-gray-300">${totalCost.toFixed(2)}</span>
                                     </div>
                                 </TooltipTrigger>
@@ -108,7 +108,7 @@ export default function AutonomousAgentsPanel() {
                                 <Tooltip>
                                     <TooltipTrigger>
                                         <div className="flex items-center gap-1 text-sm bg-green-500/10 px-2 py-1 rounded">
-                                            <Gift className="w-4 h-4 text-green-400" />
+                                            <GiftIcon size={16} className="text-green-400" />
                                             <span className="text-green-400">${totalSaved.toFixed(2)} saved</span>
                                         </div>
                                     </TooltipTrigger>
@@ -121,7 +121,7 @@ export default function AutonomousAgentsPanel() {
                     {/* Fix it Free Banner */}
                     <div className="mt-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
                         <div className="flex items-center gap-2">
-                            <Gift className="w-5 h-5 text-green-400" />
+                            <GiftIcon size={20} className="text-green-400" />
                             <div>
                                 <p className="text-sm font-medium text-green-300">Fix It For Free™</p>
                                 <p className="text-xs text-green-400/60">
@@ -151,7 +151,7 @@ export default function AutonomousAgentsPanel() {
                     {recentLogs.length > 0 && (
                         <div className="mt-6">
                             <h3 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
-                                <Clock className="w-4 h-4" />
+                                <ClockIcon size={16} />
                                 Recent Activity
                             </h3>
                             <div className="space-y-2">
@@ -173,7 +173,7 @@ export default function AutonomousAgentsPanel() {
                             className="text-xs"
                             onClick={() => handleQuickDeploy('fixer', 'Auto-fix all errors')}
                         >
-                            <Gift className="w-3 h-3 mr-1 text-green-400" />
+                            <GiftIcon size={12} className="mr-1 text-green-400" />
                             Fix Errors (Free)
                         </Button>
                         <Button
@@ -270,7 +270,7 @@ function AgentCard({
                         className="flex-1 h-7 text-xs"
                         onClick={onDeploy}
                     >
-                        <Play className="w-3 h-3 mr-1" />
+                        <PlayIcon size={12} className="mr-1" />
                         Deploy
                     </Button>
                 )}
@@ -283,7 +283,7 @@ function AgentCard({
                             className="flex-1 h-7 text-xs"
                             onClick={onPause}
                         >
-                            <Pause className="w-3 h-3 mr-1" />
+                            <PauseIcon size={12} className="mr-1" />
                             Pause
                         </Button>
                         <Button
@@ -292,7 +292,7 @@ function AgentCard({
                             className="h-7 text-xs text-red-400 hover:text-red-300"
                             onClick={onCancel}
                         >
-                            <Square className="w-3 h-3" />
+                            <StopIcon size={12} />
                         </Button>
                     </>
                 )}
@@ -305,7 +305,7 @@ function AgentCard({
                             className="flex-1 h-7 text-xs"
                             onClick={onResume}
                         >
-                            <Play className="w-3 h-3 mr-1" />
+                            <PlayIcon size={12} className="mr-1" />
                             Resume
                         </Button>
                         <Button
@@ -314,7 +314,7 @@ function AgentCard({
                             className="h-7 text-xs text-red-400 hover:text-red-300"
                             onClick={onCancel}
                         >
-                            <Square className="w-3 h-3" />
+                            <StopIcon size={12} />
                         </Button>
                     </>
                 )}
@@ -326,7 +326,7 @@ function AgentCard({
                         className="flex-1 h-7 text-xs"
                         onClick={onDeploy}
                     >
-                        <Play className="w-3 h-3 mr-1" />
+                        <PlayIcon size={12} className="mr-1" />
                         Run Again
                     </Button>
                 )}
@@ -344,32 +344,32 @@ function StatusBadge({ status }: { status: AgentStatus }) {
         },
         thinking: {
             color: 'text-blue-400',
-            icon: <Sparkles className="w-3 h-3 animate-pulse" />,
+            icon: <SparklesIcon size={12} className="animate-pulse" />,
             label: 'Thinking...'
         },
         working: {
             color: 'text-purple-400',
-            icon: <Loader2 className="w-3 h-3 animate-spin" />,
+            icon: <LoadingIcon size={12} className="animate-spin" />,
             label: 'Working'
         },
         waiting: {
             color: 'text-yellow-400',
-            icon: <Clock className="w-3 h-3" />,
+            icon: <ClockIcon size={12} />,
             label: 'Waiting'
         },
         success: {
             color: 'text-green-400',
-            icon: <CheckCircle className="w-3 h-3" />,
+            icon: <CheckCircleIcon size={12} />,
             label: 'Done'
         },
         error: {
             color: 'text-red-400',
-            icon: <XCircle className="w-3 h-3" />,
+            icon: <XCircleIcon size={12} />,
             label: 'Error'
         },
         paused: {
             color: 'text-orange-400',
-            icon: <Pause className="w-3 h-3" />,
+            icon: <PauseIcon size={12} />,
             label: 'Paused'
         },
     };

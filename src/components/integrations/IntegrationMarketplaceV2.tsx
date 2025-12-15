@@ -14,26 +14,26 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Search,
-    Check,
-    ExternalLink,
-    Zap,
-    Star,
-    Lock,
-    Sparkles,
-    ChevronRight,
-    Eye,
-    EyeOff,
-    Copy,
-    CheckCircle2,
-    Package,
-    AlertCircle,
-    RefreshCw,
-    Unlink,
-    Link2,
-    Shield,
-    Loader2,
-} from 'lucide-react';
+    SearchIcon as Search,
+    CheckIcon as Check,
+    ExternalLinkIcon as ExternalLink,
+    ZapIcon as Zap,
+    StarIcon as Star,
+    LockIcon as Lock,
+    SparklesIcon as Sparkles,
+    ChevronRightIcon as ChevronRight,
+    EyeIcon as Eye,
+    EyeOffIcon as EyeOff,
+    CopyIcon as Copy,
+    CheckCircle2Icon as CheckCircle2,
+    PackageIcon as Package,
+    AlertCircleIcon as AlertCircle,
+    RefreshCwIcon as RefreshCw,
+    UnlinkIcon as Unlink,
+    Link2Icon as Link2,
+    ShieldIcon as Shield,
+    Loader2Icon as Loader2,
+} from '../ui/icons';
 import {
     INTEGRATION_CATALOG,
     INTEGRATION_CATEGORIES,
@@ -282,7 +282,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <Sparkles className="w-6 h-6 text-amber-400" />
+                            <Sparkles size={24} className="text-amber-400" />
                             Integration Marketplace
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">
@@ -296,7 +296,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
 
                 {/* Search */}
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                     <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -386,7 +386,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                             {setupModal.name}
                                             {isConnected(setupModal.id) && (
                                                 <Badge className="bg-green-500/10 text-green-400 border-green-500/20">
-                                                    <Check className="w-3 h-3 mr-1" />
+                                                    <Check size={12} className="mr-1" />
                                                     Connected
                                                 </Badge>
                                             )}
@@ -409,11 +409,11 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 {getConnectionStatus(setupModal.id) === 'connected' ? (
-                                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                    <CheckCircle2 size={16} className="text-green-400" />
                                                 ) : getConnectionStatus(setupModal.id) === 'expired' ? (
-                                                    <AlertCircle className="w-4 h-4 text-yellow-400" />
+                                                    <AlertCircle size={16} className="text-yellow-400" />
                                                 ) : (
-                                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                                    <AlertCircle size={16} className="text-red-400" />
                                                 )}
                                                 <span className={`text-sm ${
                                                     getConnectionStatus(setupModal.id) === 'connected'
@@ -437,7 +437,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                                         onClick={() => handleRefreshTokens(setupModal.id)}
                                                         className="text-xs"
                                                     >
-                                                        <RefreshCw className="w-3 h-3 mr-1" />
+                                                        <RefreshCw size={12} className="mr-1" />
                                                         Refresh
                                                     </Button>
                                                 )}
@@ -447,7 +447,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                                     onClick={() => handleDisconnect(setupModal.id)}
                                                     className="text-xs text-red-400 hover:text-red-300"
                                                 >
-                                                    <Unlink className="w-3 h-3 mr-1" />
+                                                    <Unlink size={12} className="mr-1" />
                                                     Disconnect
                                                 </Button>
                                             </div>
@@ -472,7 +472,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                     <div className="space-y-3">
                                         <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-4">
                                             <div className="flex items-center gap-3 mb-3">
-                                                <Shield className="w-5 h-5 text-amber-400" />
+                                                <Shield size={20} className="text-amber-400" />
                                                 <div>
                                                     <p className="text-sm font-medium text-white">One-Click Connect</p>
                                                     <p className="text-xs text-gray-400">Securely connect via OAuth - no API keys needed</p>
@@ -485,12 +485,12 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                             >
                                                 {isInstalling ? (
                                                     <>
-                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        <Loader2 size={16} className="mr-2 animate-spin" />
                                                         Connecting...
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Link2 className="w-4 h-4 mr-2" />
+                                                        <Link2 size={16} className="mr-2" />
                                                         Connect {setupModal.name}
                                                     </>
                                                 )}
@@ -526,7 +526,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                                             rel="noopener noreferrer"
                                                             className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1"
                                                         >
-                                                            Get key <ExternalLink className="w-3 h-3" />
+                                                            Get key <ExternalLink size={12} />
                                                         </a>
                                                     )}
                                                 </div>
@@ -546,9 +546,9 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                                                 className="p-1 hover:bg-gray-700 rounded"
                                                             >
                                                                 {showSecrets[cred.key] ? (
-                                                                    <EyeOff className="w-4 h-4 text-gray-400" />
+                                                                    <EyeOff size={16} className="text-gray-400" />
                                                                 ) : (
-                                                                    <Eye className="w-4 h-4 text-gray-400" />
+                                                                    <Eye size={16} className="text-gray-400" />
                                                                 )}
                                                             </button>
                                                         )}
@@ -558,7 +558,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                                                 onClick={() => copyToClipboard(credentials[cred.key])}
                                                                 className="p-1 hover:bg-gray-700 rounded"
                                                             >
-                                                                <Copy className="w-4 h-4 text-gray-400" />
+                                                                <Copy size={16} className="text-gray-400" />
                                                             </button>
                                                         )}
                                                     </div>
@@ -567,7 +567,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                         ))}
 
                                         <p className="text-xs text-gray-500 mt-2">
-                                            <Lock className="w-3 h-3 inline mr-1" />
+                                            <Lock size={12} className="inline mr-1" />
                                             Credentials are encrypted with AES-256-GCM
                                         </p>
                                     </div>
@@ -577,7 +577,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                 {setupModal.credentials.length === 0 && !supportsOAuth(setupModal.id) && !isConnected(setupModal.id) && (
                                     <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
                                         <p className="text-green-400 text-sm flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4" />
+                                            <CheckCircle2 size={16} />
                                             No configuration needed - just install!
                                         </p>
                                     </div>
@@ -601,12 +601,12 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                             >
                                                 {isInstalling ? (
                                                     <>
-                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        <Loader2 size={16} className="mr-2 animate-spin" />
                                                         Connecting...
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Zap className="w-4 h-4 mr-2" />
+                                                        <Zap size={16} className="mr-2" />
                                                         {supportsOAuth(setupModal.id) ? 'Connect with API Key' : 'Connect Integration'}
                                                     </>
                                                 )}
@@ -632,12 +632,12 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                         >
                                             {isTesting ? (
                                                 <>
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    <Loader2 size={16} className="mr-2 animate-spin" />
                                                     Testing...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                                    <RefreshCw size={16} className="mr-2" />
                                                     Test Connection
                                                 </>
                                             )}
@@ -652,7 +652,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
                                     rel="noopener noreferrer"
                                     className="block text-center text-sm text-gray-400 hover:text-white"
                                 >
-                                    View documentation <ExternalLink className="w-3 h-3 inline ml-1" />
+                                    View documentation <ExternalLink size={12} className="inline ml-1" />
                                 </a>
                             </div>
                         </>
@@ -692,7 +692,7 @@ function CategoryButton({
             {iconId ? (
                 <BrandIcon name={iconId} size={16} className={active ? 'text-amber-400' : 'text-gray-400'} />
             ) : (
-                <Package className="w-4 h-4" />
+                <Package size={16} />
             )}
             <span className="flex-1 text-left">{label}</span>
             <span className={`text-xs ${active ? 'text-amber-400/60' : 'text-gray-600'}`}>
@@ -733,13 +733,13 @@ function IntegrationCard({
                         'bg-gray-500/10 text-gray-400 border-gray-500/20'
                     }`}>
                         {connectionStatus === 'connected' ? (
-                            <><Check className="w-3 h-3 mr-1" />Connected</>
+                            <><Check size={12} className="mr-1" />Connected</>
                         ) : connectionStatus === 'expired' ? (
-                            <><AlertCircle className="w-3 h-3 mr-1" />Expired</>
+                            <><AlertCircle size={12} className="mr-1" />Expired</>
                         ) : connectionStatus === 'invalid' ? (
-                            <><AlertCircle className="w-3 h-3 mr-1" />Invalid</>
+                            <><AlertCircle size={12} className="mr-1" />Invalid</>
                         ) : (
-                            <><Check className="w-3 h-3 mr-1" />Installed</>
+                            <><Check size={12} className="mr-1" />Installed</>
                         )}
                     </Badge>
                 </div>
@@ -749,7 +749,7 @@ function IntegrationCard({
             {hasOAuth && !installed && (
                 <div className="absolute top-2 right-2">
                     <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/5">
-                        <Shield className="w-3 h-3 mr-1" />
+                        <Shield size={12} className="mr-1" />
                         One-Click
                     </Badge>
                 </div>
@@ -764,7 +764,7 @@ function IntegrationCard({
                     <h3 className="font-medium text-white flex items-center gap-2">
                         {integration.name}
                         {integration.popular && (
-                            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                            <Star size={12} className="text-amber-400 fill-amber-400" />
                         )}
                     </h3>
                     <p className="text-sm text-gray-400 truncate">{integration.description}</p>
@@ -823,11 +823,11 @@ function IntegrationCard({
                     }
                 >
                     {installed ? (
-                        <>Manage<ChevronRight className="w-3 h-3 ml-1" /></>
+                        <>Manage<ChevronRight size={12} className="ml-1" /></>
                     ) : hasOAuth ? (
-                        <>Connect<Link2 className="w-3 h-3 ml-1" /></>
+                        <>Connect<Link2 size={12} className="ml-1" /></>
                     ) : (
-                        <>Add<ChevronRight className="w-3 h-3 ml-1" /></>
+                        <>Add<ChevronRight size={12} className="ml-1" /></>
                     )}
                 </Button>
             </div>

@@ -7,9 +7,19 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Globe, DollarSign, Star, Shield, AlertTriangle,
-    ExternalLink, ChevronDown, ChevronUp, Layers
-} from 'lucide-react';
+    GlobeIcon,
+    DollarSignIcon,
+    ShieldIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    LayersIcon,
+    ActivityIcon // Using as substitutes
+} from '../ui/icons';
+
+// Temporary icon aliases for icons not yet in custom library
+const StarIcon = ActivityIcon; // Using ActivityIcon as Star substitute
+const AlertTriangleIcon = ActivityIcon; // Using ActivityIcon as AlertTriangle substitute
+const ExternalLinkIcon = ActivityIcon; // Using ActivityIcon as ExternalLink substitute
 
 const accentColor = '#c8ff64';
 
@@ -55,7 +65,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
     if (competitors.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-                <Globe className="w-12 h-12 text-white/20 mb-4" />
+                <GlobeIcon size={48} className="text-white/20 mb-4" />
                 <p className="text-white/50">No competitors analyzed yet</p>
             </div>
         );
@@ -101,7 +111,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                     />
                                 ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center">
-                                        <Globe className="w-16 h-16 text-white/20" />
+                                        <GlobeIcon size={64} className="text-white/20" />
                                     </div>
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#14141a] via-transparent to-transparent" />
@@ -121,7 +131,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                     rel="noopener noreferrer"
                                     className="absolute top-3 right-3 p-2 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
                                 >
-                                    <ExternalLink className="w-4 h-4 text-white/70" />
+                                    <ExternalLinkIcon size={16} className="text-white/70" />
                                 </a>
                             </div>
 
@@ -137,7 +147,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                             className="px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1"
                                             style={{ background: `${priceColor}20`, color: priceColor }}
                                         >
-                                            <DollarSign className="w-3 h-3" />
+                                            <DollarSignIcon size={12} />
                                             {competitor.marketPosition?.pricePoint || 'mid-tier'}
                                         </div>
                                     )}
@@ -152,21 +162,21 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                 {/* Quick Stats */}
                                 <div className="grid grid-cols-3 gap-2 mb-3">
                                     <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <Layers className="w-4 h-4 mx-auto mb-1 text-blue-400" />
+                                        <LayersIcon size={16} className="mx-auto mb-1 text-blue-400" />
                                         <div className="text-lg font-bold text-white">
                                             {competitor.features?.length || 0}
                                         </div>
                                         <div className="text-[10px] text-white/40">Features</div>
                                     </div>
                                     <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <DollarSign className="w-4 h-4 mx-auto mb-1 text-emerald-400" />
+                                        <DollarSignIcon size={16} className="mx-auto mb-1 text-emerald-400" />
                                         <div className="text-lg font-bold text-white">
                                             {competitor.pricing?.length || 0}
                                         </div>
                                         <div className="text-[10px] text-white/40">Plans</div>
                                     </div>
                                     <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <Star className="w-4 h-4 mx-auto mb-1 text-amber-400" />
+                                        <StarIcon size={16} className="mx-auto mb-1 text-amber-400" />
                                         <div className="text-lg font-bold text-white">
                                             {competitor.strengths?.length || 0}
                                         </div>
@@ -191,12 +201,12 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                 >
                                     {isExpanded ? (
                                         <>
-                                            <ChevronUp className="w-4 h-4" />
+                                            <ChevronUpIcon size={16} />
                                             Show Less
                                         </>
                                     ) : (
                                         <>
-                                            <ChevronDown className="w-4 h-4" />
+                                            <ChevronDownIcon size={16} />
                                             Show Details
                                         </>
                                     )}
@@ -216,7 +226,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                                 {competitor.strengths && competitor.strengths.length > 0 && (
                                                     <div>
                                                         <div className="flex items-center gap-2 text-sm text-emerald-400 mb-2">
-                                                            <Shield className="w-4 h-4" />
+                                                            <ShieldIcon size={16} />
                                                             Strengths
                                                         </div>
                                                         <ul className="space-y-1">
@@ -234,7 +244,7 @@ export function CompetitorGrid({ competitors }: CompetitorGridProps) {
                                                 {competitor.weaknesses && competitor.weaknesses.length > 0 && (
                                                     <div>
                                                         <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
-                                                            <AlertTriangle className="w-4 h-4" />
+                                                            <AlertTriangleIcon size={16} />
                                                             Weaknesses
                                                         </div>
                                                         <ul className="space-y-1">

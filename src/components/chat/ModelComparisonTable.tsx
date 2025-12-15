@@ -7,20 +7,15 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-    Check, 
-    TrendingUp, 
-    Download, 
-    Heart, 
-    Cpu, 
-    Clock,
-    ExternalLink,
-    ChevronDown,
-    ChevronUp,
-    Star,
-} from 'lucide-react';
+import {
+    CheckIcon,
+    DownloadIcon,
+    ClockIcon,
+    ServerIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { BrandIcon } from '@/components/icons';
+import { TrendingUp, Heart, ExternalLink, ChevronUp, ChevronDown, Star } from 'lucide-react';
 
 interface ModelRecommendation {
     modelId: string;
@@ -207,7 +202,7 @@ export function ModelComparisonTable({
                                                 : 'border-slate-600 hover:border-amber-500/50'
                                         )}
                                     >
-                                        {isSelected && <Check className="w-3 h-3" />}
+                                        {isSelected && <CheckIcon size={12} className="w-3 h-3" />}
                                     </button>
                                     
                                     <div className="flex items-center gap-2 min-w-0">
@@ -234,19 +229,19 @@ export function ModelComparisonTable({
                                 
                                 {/* Downloads */}
                                 <div className="col-span-2 flex items-center gap-1 text-sm text-slate-300">
-                                    <Download className="w-3.5 h-3.5 text-slate-500" />
+                                    <DownloadIcon size={14} className="text-slate-500" />
                                     {formatNumber(model.popularity.downloads)}
                                 </div>
-                                
+
                                 {/* VRAM */}
                                 <div className="col-span-2 flex items-center gap-1 text-sm text-slate-300">
-                                    <Cpu className="w-3.5 h-3.5 text-slate-500" />
+                                    <ServerIcon size={14} className="text-slate-500" />
                                     {model.requirements.vram}GB
                                 </div>
-                                
+
                                 {/* Latency */}
                                 <div className="col-span-2 flex items-center gap-1 text-sm text-slate-300">
-                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                    <ClockIcon size={14} className="text-slate-500" />
                                     ~{model.requirements.estimatedLatency}s
                                 </div>
                                 

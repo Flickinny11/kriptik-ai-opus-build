@@ -1,5 +1,5 @@
 import { useCollaborationStore } from '../../store/useCollaborationStore';
-import { MessageSquare, Check } from 'lucide-react';
+import { MessageSquareIcon, CheckIcon } from '../ui/icons';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 
@@ -26,7 +26,7 @@ export default function CommentsOverlay() {
                             className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform"
                             onClick={() => setActiveComment(activeComment === comment.id ? null : comment.id)}
                         >
-                            <MessageSquare className="h-4 w-4" />
+                            <MessageSquareIcon size={16} className="" />
                         </div>
 
                         {/* Comment Popover */}
@@ -39,7 +39,7 @@ export default function CommentsOverlay() {
                                 <p className="text-sm mb-3">{comment.content}</p>
                                 <div className="flex justify-end gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => resolveComment(comment.id)}>
-                                        <Check className="h-3 w-3 mr-1" /> Resolve
+                                        <CheckIcon size={12} className="mr-1" /> Resolve
                                     </Button>
                                 </div>
                             </div>

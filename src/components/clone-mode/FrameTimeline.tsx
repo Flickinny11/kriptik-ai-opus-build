@@ -6,7 +6,14 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Pause, Pointer, Navigation } from 'lucide-react';
+import {
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ActivityIcon as PlayIcon,
+    XIcon as PauseIcon,
+    GlobeIcon as PointerIcon,
+    ArrowRightIcon as NavigationIcon,
+} from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -145,9 +152,9 @@ export function FrameTimeline({
                         className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                     >
                         {isPlaying ? (
-                            <Pause className="w-4 h-4 text-white" />
+                            <PauseIcon size={16} className="text-white" />
                         ) : (
-                            <Play className="w-4 h-4 text-white" />
+                            <PlayIcon size={16} className="text-white" />
                         )}
                     </button>
                     <span className="text-sm text-white/60">
@@ -161,7 +168,7 @@ export function FrameTimeline({
                         disabled={currentIndex === 0}
                         className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                        <ChevronLeft className="w-4 h-4 text-white" />
+                        <ChevronLeftIcon size={16} className="text-white" />
                     </button>
                     <span className="text-xs text-white/40 min-w-[60px] text-center">
                         {currentIndex + 1} / {frames.length}
@@ -171,7 +178,7 @@ export function FrameTimeline({
                         disabled={currentIndex === frames.length - 1}
                         className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                        <ChevronRight className="w-4 h-4 text-white" />
+                        <ChevronRightIcon size={16} className="text-white" />
                     </button>
                 </div>
             </div>
@@ -250,8 +257,8 @@ export function FrameTimeline({
                                     {/* Journey step indicator */}
                                     {journeyStep && (
                                         <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 bg-black/60 text-[8px] text-white/80 truncate">
-                                            {journeyStep.action === 'click' && <Pointer className="w-2 h-2 inline mr-1" />}
-                                            {journeyStep.action === 'navigate' && <Navigation className="w-2 h-2 inline mr-1" />}
+                                            {journeyStep.action === 'click' && <PointerIcon size={8} className="inline mr-1" />}
+                                            {journeyStep.action === 'navigate' && <NavigationIcon size={8} className="inline mr-1" />}
                                             {journeyStep.description.substring(0, 15)}...
                                         </div>
                                     )}

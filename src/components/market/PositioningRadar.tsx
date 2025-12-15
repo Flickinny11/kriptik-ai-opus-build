@@ -6,7 +6,18 @@
 
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Target, MessageSquare, Users, Trophy, DollarSign, Quote, Star } from 'lucide-react';
+import {
+    MessageSquareIcon,
+    UsersIcon,
+    DollarSignIcon,
+    ActivityIcon // Using as Target substitute
+} from '../ui/icons';
+
+// Temporary icon aliases for icons not yet in custom library
+const TargetIcon = ActivityIcon;
+const TrophyIcon = ActivityIcon; // Using ActivityIcon as Trophy substitute
+const QuoteIcon = MessageSquareIcon; // Using MessageSquareIcon as Quote substitute
+const StarIcon = ActivityIcon; // Using ActivityIcon as Star substitute
 
 const accentColor = '#c8ff64';
 
@@ -86,7 +97,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
             {/* Left: Radar Visualization */}
             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
                 <h3 className="text-sm font-medium text-white/60 mb-4 flex items-center gap-2">
-                    <Target className="w-4 h-4" style={{ color: accentColor }} />
+                    <TargetIcon size={16} className="text-[#c8ff64]" />
                     Market Position Map
                 </h3>
 
@@ -159,7 +170,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                             boxShadow: `0 0 20px ${accentColor}40`,
                         }}
                     >
-                        <Star className="w-5 h-5" style={{ color: accentColor }} />
+                        <StarIcon size={20} className="text-[#c8ff64]" />
                     </motion.div>
                 </div>
 
@@ -187,7 +198,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                     className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10"
                 >
                     <div className="flex items-center gap-2 mb-3">
-                        <Quote className="w-5 h-5" style={{ color: accentColor }} />
+                        <QuoteIcon size={20} className="text-[#c8ff64]" />
                         <h3 className="font-medium text-white">Value Proposition</h3>
                     </div>
                     <p className="text-lg text-white/80 italic">"{positioning.valueProposition}"</p>
@@ -224,7 +235,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                     className="p-4 rounded-xl bg-white/[0.03] border border-white/10"
                 >
                     <div className="flex items-center gap-2 mb-2">
-                        <Users className="w-4 h-4 text-blue-400" />
+                        <UsersIcon size={16} className="text-blue-400" />
                         <span className="text-xs text-white/40">Target Audience</span>
                     </div>
                     <p className="text-sm text-white/80">{positioning.targetAudience}</p>
@@ -239,7 +250,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                         className="p-4 rounded-xl bg-white/[0.03] border border-white/10"
                     >
                         <div className="flex items-center gap-2 mb-3">
-                            <MessageSquare className="w-4 h-4 text-purple-400" />
+                            <MessageSquareIcon size={16} className="text-purple-400" />
                             <span className="text-xs text-white/40">Key Messages</span>
                         </div>
                         <ul className="space-y-2">
@@ -262,7 +273,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                         className="p-4 rounded-xl bg-white/[0.03] border border-white/10"
                     >
                         <div className="flex items-center gap-2 mb-3">
-                            <Trophy className="w-4 h-4 text-amber-400" />
+                            <TrophyIcon size={16} className="text-amber-400" />
                             <span className="text-xs text-white/40">Competitive Advantages</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -286,7 +297,7 @@ export function PositioningRadar({ positioning, competitors }: PositioningRadarP
                     className="p-4 rounded-xl bg-white/[0.03] border border-white/10"
                 >
                     <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-4 h-4 text-emerald-400" />
+                        <DollarSignIcon size={16} className="text-emerald-400" />
                         <span className="text-xs text-white/40">Pricing Strategy</span>
                     </div>
                     <p className="text-sm text-white/80">{positioning.pricingStrategy}</p>

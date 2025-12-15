@@ -12,12 +12,81 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Bot, Zap, GitBranch, Shield, Clock, DollarSign,
-    ChevronDown, AlertTriangle, CheckCircle2, Loader2,
-    Sparkles, Target, Cpu, Brain,
-    LucideIcon
-} from 'lucide-react';
+    CloseIcon,
+    ZapIcon,
+    ShieldIcon,
+    ClockIcon,
+    ChevronDownIcon,
+    WarningIcon,
+    CheckCircleIcon,
+    LoadingIcon,
+    BrainIcon,
+} from '../ui/icons';
 import { useDeveloperModeStore, selectAvailableModels, type ModelInfo } from '../../store/useDeveloperModeStore';
+
+// Custom icons for Deploy Modal
+type IconProps = { className?: string; size?: number; style?: React.CSSProperties };
+
+const BotIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <rect x="3" y="11" width="18" height="10" rx="2"/>
+        <circle cx="12" cy="5" r="2"/>
+        <path d="M12 7v4"/>
+        <line x1="8" y1="16" x2="8" y2="16"/>
+        <line x1="16" y1="16" x2="16" y2="16"/>
+    </svg>
+);
+
+const GitBranchIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <line x1="6" y1="3" x2="6" y2="15"/>
+        <circle cx="18" cy="6" r="3"/>
+        <circle cx="6" cy="18" r="3"/>
+        <path d="M18 9a9 9 0 0 1-9 9"/>
+    </svg>
+);
+
+const DollarSignIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+);
+
+const SparklesIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/>
+        <path d="M19 17v4"/>
+        <path d="M3 5h4"/>
+        <path d="M17 19h4"/>
+    </svg>
+);
+
+const TargetIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6"/>
+        <circle cx="12" cy="12" r="2"/>
+    </svg>
+);
+
+const CpuIcon = ({ className, size = 24, style }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+        <rect x="9" y="9" width="6" height="6"/>
+        <line x1="9" y1="1" x2="9" y2="4"/>
+        <line x1="15" y1="1" x2="15" y2="4"/>
+        <line x1="9" y1="20" x2="9" y2="23"/>
+        <line x1="15" y1="20" x2="15" y2="23"/>
+        <line x1="20" y1="9" x2="23" y2="9"/>
+        <line x1="20" y1="14" x2="23" y2="14"/>
+        <line x1="1" y1="9" x2="4" y2="9"/>
+        <line x1="1" y1="14" x2="4" y2="14"/>
+    </svg>
+);
+
+type LucideIcon = React.FC<IconProps>;
 
 // Dark glass styling
 const darkGlassPanel = {
@@ -46,10 +115,10 @@ interface CostEstimate {
 }
 
 const VERIFICATION_MODES: Record<VerificationMode, { name: string; description: string; icon: LucideIcon; color: string }> = {
-    quick: { name: 'Quick', description: 'Fast checks, critical only', icon: Zap, color: '#fbbf24' },
-    standard: { name: 'Standard', description: 'Balanced verification', icon: Shield, color: '#60a5fa' },
-    strict: { name: 'Strict', description: 'Thorough pre-production', icon: Target, color: '#a78bfa' },
-    production: { name: 'Production', description: 'Maximum verification', icon: CheckCircle2, color: '#34d399' },
+    quick: { name: 'Quick', description: 'Fast checks, critical only', icon: ZapIcon as any, color: '#fbbf24' },
+    standard: { name: 'Standard', description: 'Balanced verification', icon: ShieldIcon as any, color: '#60a5fa' },
+    strict: { name: 'Strict', description: 'Thorough pre-production', icon: TargetIcon as any, color: '#a78bfa' },
+    production: { name: 'Production', description: 'Maximum verification', icon: CheckCircleIcon as any, color: '#34d399' },
 };
 
 const COMPLEXITY_ESTIMATES: Record<ComplexityLevel, CostEstimate> = {
@@ -218,7 +287,7 @@ export function DeployAgentModal({
                                     border: `1px solid ${accentColor}30`,
                                 }}
                             >
-                                <Bot className="w-5 h-5" style={{ color: accentColor }} />
+                                <BotIcon size={20} style={{ color: accentColor }} />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">
@@ -231,7 +300,7 @@ export function DeployAgentModal({
                             onClick={onClose}
                             className="p-2 rounded-lg transition-colors hover:bg-white/5"
                         >
-                            <X className="w-5 h-5 text-white/50" />
+                            <CloseIcon size={20} className="text-white/50" />
                         </button>
                     </div>
 
@@ -269,13 +338,13 @@ export function DeployAgentModal({
                                 }}
                             >
                                 <div className="flex items-center gap-3">
-                                    <Brain className="w-4 h-4" style={{ color: accentColor }} />
+                                    <BrainIcon size={16} style={{ color: accentColor }} />
                                     <div className="text-left">
                                         <div className="text-white">{selectedModelInfo?.name || 'Select model'}</div>
                                         <div className="text-xs text-white/40">{selectedModelInfo?.description}</div>
                                     </div>
                                 </div>
-                                <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                                <ChevronDownIcon size={16} className={`text-white/50 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                             </button>
 
                             <AnimatePresence>
@@ -349,7 +418,7 @@ export function DeployAgentModal({
                                         );
                                     })()}
                                 </div>
-                                <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${showVerificationDropdown ? 'rotate-180' : ''}`} />
+                                <ChevronDownIcon size={16} className={`text-white/50 transition-transform ${showVerificationDropdown ? 'rotate-180' : ''}`} />
                             </button>
 
                             <AnimatePresence>
@@ -380,7 +449,7 @@ export function DeployAgentModal({
                                                         background: verificationMode === mode ? accentGlow : 'transparent',
                                                     }}
                                                 >
-                                                    <Icon className="w-4 h-4" style={{ color: modeInfo.color }} />
+                                                    <Icon size={16} style={{ color: modeInfo.color }} />
                                                     <div className="flex-1">
                                                         <div className="text-sm text-white">{modeInfo.name}</div>
                                                         <div className="text-xs text-white/40">{modeInfo.description}</div>
@@ -411,7 +480,7 @@ export function DeployAgentModal({
                             </div>
                             {createNewBranch && (
                                 <div className="relative">
-                                    <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                                    <GitBranchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" size={16} />
                                     <input
                                         type="text"
                                         value={branchName}
@@ -443,16 +512,16 @@ export function DeployAgentModal({
                                     className="px-4 py-2 flex items-center gap-2"
                                     style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                                 >
-                                    <Sparkles className="w-4 h-4" style={{ color: accentColor }} />
+                                    <SparklesIcon size={16} style={{ color: accentColor }} />
                                     <span className="text-sm text-white/70">Cost Estimate</span>
                                     {isEstimating && (
-                                        <Loader2 className="w-3 h-3 animate-spin text-white/40 ml-auto" />
+                                        <LoadingIcon size={12} className="animate-spin text-white/40 ml-auto" />
                                     )}
                                 </div>
                                 <div className="p-4 grid grid-cols-3 gap-4">
                                     <div className="text-center">
                                         <div className="flex items-center justify-center gap-1 text-white/40 text-xs mb-1">
-                                            <Cpu className="w-3 h-3" />
+                                            <CpuIcon size={12} />
                                             Tokens
                                         </div>
                                         <div className="text-sm text-white font-medium">
@@ -461,7 +530,7 @@ export function DeployAgentModal({
                                     </div>
                                     <div className="text-center">
                                         <div className="flex items-center justify-center gap-1 text-white/40 text-xs mb-1">
-                                            <DollarSign className="w-3 h-3" />
+                                            <DollarSignIcon size={12} />
                                             Cost
                                         </div>
                                         <div className="text-sm font-medium" style={{ color: accentColor }}>
@@ -470,7 +539,7 @@ export function DeployAgentModal({
                                     </div>
                                     <div className="text-center">
                                         <div className="flex items-center justify-center gap-1 text-white/40 text-xs mb-1">
-                                            <Clock className="w-3 h-3" />
+                                            <ClockIcon size={12} />
                                             Time
                                         </div>
                                         <div className="text-sm text-white font-medium">
@@ -515,7 +584,7 @@ export function DeployAgentModal({
                                     border: '1px solid rgba(251, 191, 36, 0.2)',
                                 }}
                             >
-                                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5" />
+                                <WarningIcon size={16} className="text-amber-400 mt-0.5" />
                                 <div>
                                     <div className="text-sm text-amber-400 font-medium">Complex Task Detected</div>
                                     <div className="text-xs text-amber-400/70 mt-0.5">
@@ -549,7 +618,7 @@ export function DeployAgentModal({
                                 boxShadow: taskDescription.trim() ? `0 4px 20px ${accentColor}40` : 'none',
                             }}
                         >
-                            <Zap className="w-4 h-4" />
+                            <ZapIcon size={16} />
                             Deploy Agent
                         </button>
                     </div>

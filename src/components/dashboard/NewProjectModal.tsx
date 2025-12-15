@@ -16,7 +16,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { Plus, Loader2 } from 'lucide-react';
+import { PlusIcon, LoadingIcon } from '../ui/icons';
 import { useProjectStore } from '../../store/useProjectStore';
 import { apiClient } from '../../lib/api-client';
 import { toast } from 'sonner';
@@ -83,7 +83,7 @@ export default function NewProjectModal() {
                     className="glass-button"
                     style={{ color: '#1a1a1a' }}
                 >
-                    <Plus className="h-4 w-4" />
+                    <PlusIcon size={16} />
                     <span>New Project</span>
                 </button>
             </DialogTrigger>
@@ -114,7 +114,7 @@ export default function NewProjectModal() {
                         <Button type="submit" disabled={isLoading}>
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <LoadingIcon size={16} className="mr-2" />
                                     Creating...
                                 </>
                             ) : (

@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useTemplateStore } from '../../store/useTemplateStore';
 import { useState } from 'react';
-import { Sparkles, ArrowRight, LayoutTemplate, MessageSquare, Rocket } from 'lucide-react';
+import { SparklesIcon, ArrowRightIcon, LayoutTemplateIcon, MessageSquareIcon, RocketIcon } from '../ui/icons';
 
 const TUTORIAL_STEPS = [
     {
@@ -87,7 +87,7 @@ export default function InteractiveTutorial() {
                         <div className="w-full h-full rounded-lg border-4 border-primary shadow-lg shadow-primary/50" />
                         {/* Animated cursor pointer */}
                         <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-                            <ArrowRight className="h-8 w-8 text-primary rotate-90" />
+                            <ArrowRightIcon size={32} className="text-primary rotate-90" />
                         </div>
                     </div>
                 )}
@@ -99,10 +99,10 @@ export default function InteractiveTutorial() {
                     <div className="space-y-6 py-4">
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                {currentStep === 0 && <Sparkles className="h-6 w-6 text-primary" />}
-                                {currentStep === 1 && <LayoutTemplate className="h-6 w-6 text-primary" />}
-                                {currentStep === 2 && <MessageSquare className="h-6 w-6 text-primary" />}
-                                {currentStep === 3 && <Rocket className="h-6 w-6 text-primary" />}
+                                {currentStep === 0 && <SparklesIcon size={24} className="text-primary" />}
+                                {currentStep === 1 && <LayoutTemplateIcon size={24} className="text-primary" />}
+                                {currentStep === 2 && <MessageSquareIcon size={24} className="text-primary" />}
+                                {currentStep === 3 && <RocketIcon size={24} className="text-primary" />}
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-xl font-semibold mb-2">{currentStepData.title}</h3>
@@ -128,7 +128,7 @@ export default function InteractiveTutorial() {
                             </Button>
                             <Button onClick={handleNext} className="gap-2">
                                 {currentStepData.action}
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRightIcon size={16} />
                             </Button>
                         </div>
                     </div>

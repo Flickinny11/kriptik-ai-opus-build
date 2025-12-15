@@ -1,10 +1,17 @@
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import {
-    Brain, Code2, Cloud, Layers, Shield,
-    GitBranch, Workflow, Server, Database,
-    Globe, Sparkles, Bot, Terminal
-} from 'lucide-react';
+    BrainIcon,
+    CodeIcon,
+    CloudIcon,
+    LayersIcon,
+    ShieldIcon,
+    WorkflowIcon,
+    ServerIcon,
+    DatabaseIcon,
+    GlobeIcon,
+    ZapIcon
+} from '../../components/ui/icons';
 import { Card } from '@/components/ui/card';
 
 /**
@@ -19,28 +26,28 @@ import { Card } from '@/components/ui/card';
 
 const coreCapabilities = [
     {
-        icon: Brain,
+        icon: BrainIcon,
         title: "Multi-Agent Orchestration",
         description: "Swarm of specialized AI agents work in parallel—planning, coding, testing, and deploying simultaneously.",
         color: "from-violet-500 to-purple-600",
         glow: "shadow-violet-500/20",
     },
     {
-        icon: Terminal,
+        icon: CodeIcon,
         title: "Natural Language Development",
         description: "Describe what you want in plain English. Our orchestrator decomposes requirements into production code.",
         color: "from-blue-500 to-cyan-500",
         glow: "shadow-blue-500/20",
     },
     {
-        icon: Cloud,
+        icon: CloudIcon,
         title: "Cloud Provisioning",
         description: "Deploy to AWS, GCP, or RunPod with GPU support. Real-time pricing confirmation before any deployment.",
         color: "from-cyan-500 to-teal-500",
         glow: "shadow-cyan-500/20",
     },
     {
-        icon: Workflow,
+        icon: WorkflowIcon,
         title: "ComfyUI Workflows",
         description: "Deploy Stable Diffusion workflows with automatic model management and GPU optimization.",
         color: "from-pink-500 to-rose-500",
@@ -50,49 +57,49 @@ const coreCapabilities = [
 
 const features = [
     {
-        icon: Bot,
+        icon: BrainIcon,
         title: "Specialized Agent Types",
         description: "Infrastructure architects, frontend engineers, security specialists—each agent excels at their domain.",
         gradient: "from-primary/20 to-accent/20",
     },
     {
-        icon: Code2,
+        icon: CodeIcon,
         title: "Production-Ready Code",
         description: "No placeholders, no mock data. Every line of code is tested, typed, and ready to ship.",
         gradient: "from-green-500/20 to-emerald-500/20",
     },
     {
-        icon: Database,
+        icon: DatabaseIcon,
         title: "Database & Auth Built-in",
         description: "Postgres schemas, migrations, and authentication flows generated and deployed automatically.",
         gradient: "from-blue-500/20 to-indigo-500/20",
     },
     {
-        icon: GitBranch,
+        icon: WorkflowIcon,
         title: "Version Control",
         description: "Every generation creates proper commits. Branch, merge, and rollback with confidence.",
         gradient: "from-orange-500/20 to-amber-500/20",
     },
     {
-        icon: Server,
+        icon: ServerIcon,
         title: "HuggingFace Integration",
         description: "Deploy any HuggingFace model with auto-generated Dockerfiles and inference endpoints.",
         gradient: "from-yellow-500/20 to-orange-500/20",
     },
     {
-        icon: Shield,
+        icon: ShieldIcon,
         title: "Security by Default",
         description: "IAM policies, secrets management, SSL/TLS, and vulnerability scanning built into every deployment.",
         gradient: "from-red-500/20 to-pink-500/20",
     },
     {
-        icon: Globe,
+        icon: GlobeIcon,
         title: "Edge Deployment",
         description: "Deploy to Cloudflare Workers, Vercel Edge, or any CDN for global low-latency access.",
         gradient: "from-violet-500/20 to-purple-500/20",
     },
     {
-        icon: Layers,
+        icon: LayersIcon,
         title: "Full-Stack Generation",
         description: "Frontend, backend, database, and infrastructure—complete stack from a single prompt.",
         gradient: "from-cyan-500/20 to-blue-500/20",
@@ -144,7 +151,7 @@ export default function Features() {
                         animate={isInView ? { opacity: 1, scale: 1 } : {}}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-medium mb-6"
                     >
-                        <Sparkles className="w-4 h-4" />
+                        <ZapIcon size={16} />
                         Capabilities
                     </motion.span>
                     <h2
@@ -180,7 +187,7 @@ export default function Features() {
 
                                 <div className="relative z-10">
                                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${capability.color} flex items-center justify-center mb-6 shadow-lg ${capability.glow}`}>
-                                        <capability.icon className="w-7 h-7 text-white" />
+                                        <capability.icon size={28} className="text-white" />
                                     </div>
 
                                     <h3
@@ -215,7 +222,7 @@ export default function Features() {
                                 className="p-6 h-full group"
                             >
                                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                                    <feature.icon className="w-6 h-6 text-foreground" />
+                                    <feature.icon size={24} className="text-foreground" />
                                 </div>
                                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                                 <p className="text-sm text-muted-foreground leading-relaxed">

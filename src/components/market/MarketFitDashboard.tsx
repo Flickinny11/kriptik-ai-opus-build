@@ -7,9 +7,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    TrendingUp, Search, Plus, RefreshCw, X, Globe,
-    Loader2, AlertCircle, Target, Lightbulb, BarChart3
-} from 'lucide-react';
+    TrendingUpIcon,
+    SearchIcon,
+    PlusIcon,
+    RefreshIcon,
+    XIcon,
+    GlobeIcon,
+    LoadingIcon,
+    AlertCircleIcon,
+    LightbulbIcon,
+    ActivityIcon, // Using as Target substitute
+    LayersIcon // Using as BarChart3 substitute
+} from '../ui/icons';
+
+// Temporary icon aliases until custom icons are added
+const TargetIcon = ActivityIcon;
+const BarChart3Icon = LayersIcon;
 import { apiClient } from '../../lib/api-client';
 import { CompetitorGrid } from './CompetitorGrid';
 import { GapMatrix } from './GapMatrix';
@@ -326,11 +339,11 @@ export function MarketFitDashboard({
 
     if (!isOpen) return null;
 
-    const tabs: Array<{ id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-        { id: 'competitors', label: 'Competitors', icon: Globe },
-        { id: 'gaps', label: 'Gap Matrix', icon: BarChart3 },
-        { id: 'opportunities', label: 'Opportunities', icon: Lightbulb },
-        { id: 'positioning', label: 'Positioning', icon: Target },
+    const tabs: Array<{ id: TabType; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+        { id: 'competitors', label: 'Competitors', icon: GlobeIcon },
+        { id: 'gaps', label: 'Gap Matrix', icon: BarChart3Icon },
+        { id: 'opportunities', label: 'Opportunities', icon: LightbulbIcon },
+        { id: 'positioning', label: 'Positioning', icon: TargetIcon },
     ];
 
     return (
@@ -358,7 +371,7 @@ export function MarketFitDashboard({
                                 className="p-2 rounded-xl"
                                 style={{ background: 'rgba(200,255,100,0.15)' }}
                             >
-                                <TrendingUp className="w-5 h-5" style={{ color: accentColor }} />
+                                <TrendingUpIcon size={20} className="text-[#c8ff64]" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Market Fit Oracle</h2>
@@ -376,14 +389,14 @@ export function MarketFitDashboard({
                                         onClick={() => setShowAddCompetitor(true)}
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all"
                                     >
-                                        <Plus className="w-4 h-4" />
+                                        <PlusIcon size={16} />
                                         Add Competitor
                                     </button>
                                     <button
                                         onClick={refreshAnalysis}
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all"
                                     >
-                                        <RefreshCw className="w-4 h-4" />
+                                        <RefreshIcon size={16} />
                                         Refresh
                                     </button>
                                 </>
@@ -392,7 +405,7 @@ export function MarketFitDashboard({
                                 onClick={onClose}
                                 className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                             >
-                                <X className="w-5 h-5 text-white/40" />
+                                <XIcon size={20} className="text-white/40" />
                             </button>
                         </div>
                     </div>
@@ -400,10 +413,10 @@ export function MarketFitDashboard({
                     {/* Error Display */}
                     {error && (
                         <div className="mx-6 mt-4 flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                            <AlertCircle className="w-5 h-5 text-red-400" />
+                            <AlertCircleIcon size={20} className="text-red-400" />
                             <p className="text-sm text-red-400 flex-1">{error}</p>
                             <button onClick={() => setError(null)}>
-                                <X className="w-4 h-4 text-red-400" />
+                                <XIcon size={16} className="text-red-400" />
                             </button>
                         </div>
                     )}
@@ -411,7 +424,7 @@ export function MarketFitDashboard({
                     {/* Loading State */}
                     {loading && !analysis && !showNewAnalysis && (
                         <div className="flex-1 flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+                            <LoadingIcon size={32} className="animate-spin text-white/50" />
                         </div>
                     )}
 
@@ -420,7 +433,7 @@ export function MarketFitDashboard({
                         <div className="flex-1 flex flex-col items-center justify-center p-6">
                             <div className="w-full max-w-md space-y-4">
                                 <div className="text-center">
-                                    <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: accentColor }} />
+                                    <LoadingIcon size={48} className="animate-spin mx-auto mb-4 text-[#c8ff64]" />
                                     <h3 className="text-lg font-medium text-white mb-2">
                                         {progress.phase === 'discovering' && 'Discovering Competitors...'}
                                         {progress.phase === 'analyzing' && 'Analyzing Competitors...'}
@@ -446,7 +459,7 @@ export function MarketFitDashboard({
                         <div className="flex-1 flex flex-col items-center justify-center p-6">
                             <div className="w-full max-w-lg space-y-6">
                                 <div className="text-center">
-                                    <Search className="w-12 h-12 mx-auto mb-4" style={{ color: accentColor }} />
+                                    <SearchIcon size={48} className="mx-auto mb-4 text-[#c8ff64]" />
                                     <h3 className="text-xl font-semibold text-white mb-2">Start Market Analysis</h3>
                                     <p className="text-sm text-white/60">
                                         Discover competitors and find your market position
@@ -497,7 +510,7 @@ export function MarketFitDashboard({
                                         color: '#000'
                                     }}
                                 >
-                                    <Search className="w-5 h-5" />
+                                    <SearchIcon size={20} />
                                     Analyze Market
                                 </button>
                             </div>
@@ -534,7 +547,7 @@ export function MarketFitDashboard({
                                         className="flex-1 px-4 py-2 rounded-lg font-medium disabled:opacity-50"
                                         style={{ background: accentColor, color: '#000' }}
                                     >
-                                        {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Add'}
+                                        {loading ? <LoadingIcon size={16} className="animate-spin mx-auto" /> : 'Add'}
                                     </button>
                                 </div>
                             </motion.div>
@@ -556,7 +569,7 @@ export function MarketFitDashboard({
                                                 : 'text-white/50 hover:text-white hover:bg-white/5'
                                         }`}
                                     >
-                                        <tab.icon className="w-4 h-4" />
+                                        <tab.icon size={16} />
                                         {tab.label}
                                         {tab.id === 'competitors' && (
                                             <span className="ml-1 px-1.5 py-0.5 rounded text-xs bg-white/10">

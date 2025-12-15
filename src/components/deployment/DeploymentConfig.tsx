@@ -2,8 +2,28 @@ import { useDeploymentStore, DeploymentProvider } from '../../store/useDeploymen
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Cloud, Zap, Globe, Plus, Trash2 } from 'lucide-react';
+import { CloudIcon, ZapIcon, GlobeIcon } from '../ui/icons';
 import { Card } from '../ui/card';
+
+// Custom icon components
+interface IconProps {
+    size?: number;
+    className?: string;
+}
+
+const PlusIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const TrashIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+);
 
 export default function DeploymentConfig() {
     const { config, setConfig, startDeployment } = useDeploymentStore();
@@ -39,7 +59,7 @@ export default function DeploymentConfig() {
                         onClick={() => handleProviderSelect('cloud-run')}
                     >
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <Cloud className="h-8 w-8 text-blue-500" />
+                            <CloudIcon size={32} className="text-blue-500" />
                             <div className="font-semibold">Cloud Run</div>
                             <div className="text-xs text-muted-foreground">Recommended</div>
                         </div>
@@ -63,7 +83,7 @@ export default function DeploymentConfig() {
                         onClick={() => handleProviderSelect('netlify')}
                     >
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <Globe className="h-8 w-8 text-teal-500" />
+                            <GlobeIcon size={32} className="text-teal-500" />
                             <div className="font-semibold">Netlify</div>
                             <div className="text-xs text-muted-foreground">Jamstack</div>
                         </div>
@@ -94,7 +114,7 @@ export default function DeploymentConfig() {
                 <div className="flex items-center justify-between">
                     <Label>Environment Variables</Label>
                     <Button variant="ghost" size="sm" onClick={addEnvVar} className="h-8">
-                        <Plus className="h-4 w-4 mr-1" /> Add
+                        <PlusIcon size={16} className="mr-1" /> Add
                     </Button>
                 </div>
                 <div className="space-y-2">
@@ -119,7 +139,7 @@ export default function DeploymentConfig() {
                                 onClick={() => removeEnvVar(index)}
                                 className="text-destructive hover:text-destructive"
                             >
-                                <Trash2 className="h-4 w-4" />
+                                <TrashIcon size={16} />
                             </Button>
                         </div>
                     ))}
@@ -131,7 +151,7 @@ export default function DeploymentConfig() {
                     Estimated Cost: <span className="font-medium text-foreground">$5-10/month</span>
                 </div>
                 <Button onClick={startDeployment} className="gap-2">
-                    <Zap className="h-4 w-4" />
+                    <ZapIcon size={16} />
                     Deploy Now (2 credits)
                 </Button>
             </div>

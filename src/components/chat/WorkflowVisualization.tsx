@@ -7,22 +7,19 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Check, 
-    X, 
-    Edit2, 
-    DollarSign, 
-    Cpu,
-    ArrowRight,
-    Sparkles,
-    Zap,
-    ChevronDown,
-    ChevronUp,
-    Info,
-} from 'lucide-react';
+import {
+    CheckIcon,
+    XIcon,
+    ArrowRightIcon,
+    ZapIcon,
+    ChevronDownIcon,
+    InfoIcon,
+    ServerIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons';
+import { Edit2, DollarSign, Sparkles, ChevronUp } from 'lucide-react';
 
 interface WorkflowModel {
     id: string;
@@ -99,15 +96,15 @@ export function WorkflowVisualization({
     const getStepIcon = (type: WorkflowStep['type']) => {
         switch (type) {
             case 'model':
-                return <Cpu className="w-4 h-4" />;
+                return <ServerIcon size={16} />;
             case 'transform':
-                return <Zap className="w-4 h-4" />;
+                return <ZapIcon size={16} />;
             case 'input':
-                return <ArrowRight className="w-4 h-4" />;
+                return <ArrowRightIcon size={16} />;
             case 'output':
                 return <Sparkles className="w-4 h-4" />;
             default:
-                return <Info className="w-4 h-4" />;
+                return <InfoIcon size={16} />;
         }
     };
     
@@ -218,9 +215,10 @@ export function WorkflowVisualization({
                                     </span>
                                 )}
                             </motion.button>
-                            
+
+
                             {index < steps.length - 1 && (
-                                <ArrowRight className="w-4 h-4 text-slate-600 mx-1 flex-shrink-0" />
+                                <ArrowRightIcon size={16} className="text-slate-600 mx-1 flex-shrink-0" />
                             )}
                         </div>
                     ))}
@@ -296,7 +294,7 @@ export function WorkflowVisualization({
                 {showDetails ? (
                     <ChevronUp className="w-4 h-4 text-slate-400" />
                 ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                    <ChevronDownIcon size={16} className="text-slate-400" />
                 )}
             </button>
             
@@ -359,11 +357,11 @@ export function WorkflowVisualization({
                         onClick={onReject}
                         className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                     >
-                        <X className="w-4 h-4 mr-1.5" />
+                        <XIcon size={16} className="mr-1.5" />
                         Reject
                     </Button>
                 )}
-                
+
                 {onModify && (
                     <Button
                         size="sm"
@@ -375,14 +373,14 @@ export function WorkflowVisualization({
                         Modify
                     </Button>
                 )}
-                
+
                 {onAccept && (
                     <Button
                         size="sm"
                         onClick={onAccept}
                         className="ml-auto bg-amber-500 hover:bg-amber-600 text-slate-900"
                     >
-                        <Check className="w-4 h-4 mr-1.5" />
+                        <CheckIcon size={16} className="mr-1.5" />
                         Accept & Deploy
                     </Button>
                 )}

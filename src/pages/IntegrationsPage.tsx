@@ -12,12 +12,34 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plug, Check, Settings, RefreshCw, Search, X,
-    Cpu, Brain, Cloud, Database, CreditCard, Github,
-    Server, HardDrive, Workflow, Key, Globe, Layers,
-    Loader2, AlertCircle, Eye, EyeOff,
-    type LucideIcon
-} from 'lucide-react';
+    OpenRouterIcon,
+    OpenAIIcon,
+    AnthropicIcon,
+    VercelIcon,
+    NetlifyIcon,
+    CloudflareIcon,
+    TursoIcon,
+    SupabaseIcon,
+    PlanetScaleIcon,
+    StripeIcon,
+    GitHubIcon,
+    GoogleIcon,
+    S3Icon,
+    CloudinaryIcon,
+    RunPodIcon,
+    ReplicateIcon,
+    HuggingFaceIcon,
+    ModalIcon,
+    PlugIcon,
+    CheckIcon,
+    SettingsIcon,
+    RefreshIcon,
+    CloseIcon,
+    LoadingIcon,
+    ErrorIcon,
+    EyeIcon,
+    EyeOffIcon,
+} from '../components/ui/icons';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -36,26 +58,26 @@ const CATEGORIES = [
     { id: 'storage', label: 'Storage' },
 ];
 
-// Icon mapping for integrations
-const INTEGRATION_ICONS: Record<string, LucideIcon> = {
-    'openrouter': Workflow,
-    'openai': Brain,
-    'anthropic': Cpu,
-    'vercel': Layers,
-    'netlify': Globe,
-    'cloudflare': Cloud,
-    'turso': Database,
-    'supabase': Server,
-    'planetscale': Database,
-    'stripe': CreditCard,
-    'github': Github,
-    'google': Key,
-    'aws-s3': HardDrive,
-    'cloudinary': HardDrive,
-    'runpod': Cpu,
-    'replicate': Workflow,
-    'huggingface': Brain,
-    'modal': Server,
+// Icon mapping for integrations using custom icons
+const INTEGRATION_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
+    'openrouter': OpenRouterIcon,
+    'openai': OpenAIIcon,
+    'anthropic': AnthropicIcon,
+    'vercel': VercelIcon,
+    'netlify': NetlifyIcon,
+    'cloudflare': CloudflareIcon,
+    'turso': TursoIcon,
+    'supabase': SupabaseIcon,
+    'planetscale': PlanetScaleIcon,
+    'stripe': StripeIcon,
+    'github': GitHubIcon,
+    'google': GoogleIcon,
+    'aws-s3': S3Icon,
+    'cloudinary': CloudinaryIcon,
+    'runpod': RunPodIcon,
+    'replicate': ReplicateIcon,
+    'huggingface': HuggingFaceIcon,
+    'modal': ModalIcon,
 };
 
 // Liquid Glass Button for Integrations
@@ -175,6 +197,13 @@ function CategoryButton({
     );
 }
 
+// Custom Check Badge Icon for connected state
+const ConnectedBadgeIcon = ({ size = 12 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
 // Integration Card Component
 function IntegrationCard({ integration, onConnect, onSettings, isConnecting }: {
     integration: Integration;
@@ -183,7 +212,7 @@ function IntegrationCard({ integration, onConnect, onSettings, isConnecting }: {
     isConnecting: boolean;
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    const IconComponent = INTEGRATION_ICONS[integration.id] || Plug;
+    const IconComponent = INTEGRATION_ICONS[integration.id] || PlugIcon;
 
     return (
         <motion.div
@@ -229,7 +258,7 @@ function IntegrationCard({ integration, onConnect, onSettings, isConnecting }: {
                         border: '1px solid rgba(16, 185, 129, 0.3)',
                     }}
                 >
-                    <Check className="h-3 w-3" style={{ color: '#10b981' }} />
+                    <ConnectedBadgeIcon size={12} />
                     <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Connected</span>
                 </div>
             )}
@@ -247,7 +276,7 @@ function IntegrationCard({ integration, onConnect, onSettings, isConnecting }: {
                         `,
                     }}
                 >
-                    <IconComponent className="w-6 h-6" style={{ color: integration.connected ? '#c25a00' : '#1a1a1a' }} />
+                    <IconComponent size={24} />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -269,24 +298,24 @@ function IntegrationCard({ integration, onConnect, onSettings, isConnecting }: {
                 {integration.connected ? (
                     <>
                         <GlassButton onClick={onSettings} className="flex-1">
-                            <Settings className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
-                            Settings
+                            <SettingsIcon size={16} />
+                            <span className="ml-1">Settings</span>
                         </GlassButton>
                         <GlassButton>
-                            <RefreshCw className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                            <RefreshIcon size={16} />
                         </GlassButton>
                     </>
                 ) : (
                     <GlassButton onClick={onConnect} variant="primary" className="flex-1" disabled={isConnecting}>
                         {isConnecting ? (
                             <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" style={{ color: '#92400e' }} />
-                                Connecting...
+                                <LoadingIcon size={16} />
+                                <span className="ml-1">Connecting...</span>
                             </>
                         ) : (
                             <>
-                                <Plug className="h-4 w-4 mr-1" style={{ color: '#92400e' }} />
-                                Connect
+                                <PlugIcon size={16} />
+                                <span className="ml-1">Connect</span>
                             </>
                         )}
                     </GlassButton>
@@ -346,7 +375,7 @@ function ApiKeyModal({
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-black/5 transition-colors"
                     >
-                        <X className="h-5 w-5" style={{ color: '#666' }} />
+                        <CloseIcon size={20} />
                     </button>
                 </div>
 
@@ -375,9 +404,9 @@ function ApiKeyModal({
                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-black/5"
                             >
                                 {showKey ? (
-                                    <EyeOff className="h-5 w-5" style={{ color: '#666' }} />
+                                    <EyeOffIcon size={20} />
                                 ) : (
-                                    <Eye className="h-5 w-5" style={{ color: '#666' }} />
+                                    <EyeIcon size={20} />
                                 )}
                             </button>
                         </div>
@@ -397,8 +426,8 @@ function ApiKeyModal({
                         >
                             {isConnecting ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" style={{ color: '#92400e' }} />
-                                    Connecting...
+                                    <LoadingIcon size={16} />
+                                    <span className="ml-1">Connecting...</span>
                                 </>
                             ) : (
                                 'Connect'
@@ -460,7 +489,7 @@ function SettingsModal({
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-black/5 transition-colors"
                     >
-                        <X className="h-5 w-5" style={{ color: '#666' }} />
+                        <CloseIcon size={20} />
                     </button>
                 </div>
 
@@ -473,7 +502,7 @@ function SettingsModal({
                     }}
                 >
                     <div className="flex items-center gap-2 mb-2">
-                        <Check className="h-4 w-4" style={{ color: '#10b981' }} />
+                        <CheckIcon size={16} />
                         <span className="font-medium" style={{ color: '#10b981' }}>Connected</span>
                     </div>
                     {integration.lastSync && (
@@ -505,7 +534,7 @@ function SettingsModal({
                     }}
                 >
                     <div className="flex items-center gap-2 mb-2">
-                        <AlertCircle className="h-4 w-4" style={{ color: '#dc2626' }} />
+                        <ErrorIcon size={16} />
                         <span className="font-medium" style={{ color: '#dc2626' }}>Danger Zone</span>
                     </div>
                     <p className="text-sm mb-3" style={{ color: '#666' }}>
@@ -519,13 +548,13 @@ function SettingsModal({
                     >
                         {isDisconnecting ? (
                             <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" style={{ color: '#dc2626' }} />
-                                Disconnecting...
+                                <LoadingIcon size={16} />
+                                <span className="ml-1">Disconnecting...</span>
                             </>
                         ) : (
                             <>
-                                <X className="h-4 w-4 mr-1" style={{ color: '#dc2626' }} />
-                                Disconnect {integration.name}
+                                <CloseIcon size={16} />
+                                <span className="ml-1">Disconnect {integration.name}</span>
                             </>
                         )}
                     </GlassButton>
@@ -534,6 +563,14 @@ function SettingsModal({
         </motion.div>
     );
 }
+
+// Search Icon for input
+const SearchInputIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="absolute left-3 top-1/2 -translate-y-1/2">
+        <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="1.5" fill="none" />
+        <path d="M21 21l-4.35-4.35" stroke="#999" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+);
 
 export default function IntegrationsPage() {
     const navigate = useNavigate();
@@ -640,7 +677,7 @@ export default function IntegrationsPage() {
                 {/* Search and filters */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#999' }} />
+                        <SearchInputIcon />
                         <input
                             type="text"
                             value={searchQuery}
@@ -677,7 +714,7 @@ export default function IntegrationsPage() {
                 {/* Loading state */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#c25a00' }} />
+                        <LoadingIcon size={32} />
                     </div>
                 ) : (
                     /* Integrations grid */

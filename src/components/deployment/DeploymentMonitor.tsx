@@ -7,29 +7,71 @@
 
 import { useState, useEffect } from 'react';
 import {
-    Activity,
-    Cloud,
-    DollarSign,
-    ExternalLink,
-    Loader2,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Zap,
-    Server,
-    RefreshCw,
-    Pause,
-    Play,
-    Trash2,
-    Copy,
-    Terminal,
-} from 'lucide-react';
+    ActivityIcon,
+    CloudIcon,
+    LoadingIcon,
+    CheckCircleIcon,
+    ErrorIcon,
+    ClockIcon,
+    ZapIcon,
+    ServerIcon,
+    RefreshIcon,
+    CopyIcon,
+} from '../ui/icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BrandIcon } from '@/components/icons';
 import { useToast } from '@/components/ui/use-toast';
+
+// ============================================================================
+// CUSTOM ICON COMPONENTS
+// ============================================================================
+
+interface IconProps {
+    size?: number;
+    className?: string;
+}
+
+const PauseIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" />
+        <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" />
+    </svg>
+);
+
+const PlayIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M5 3l14 9-14 9V3z" fill="currentColor" />
+    </svg>
+);
+
+const TrashIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+);
+
+const TerminalIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M4 17l6-6-6-6M12 19h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const ExternalLinkIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const DollarSignIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
 
 // ============================================================================
 // TYPES
@@ -84,42 +126,42 @@ const STATUS_CONFIG = {
         color: 'text-gray-400',
         bg: 'bg-gray-500/10',
         border: 'border-gray-500/20',
-        icon: Clock,
+        icon: ClockIcon,
         label: 'Pending',
     },
     building: {
         color: 'text-blue-400',
         bg: 'bg-blue-500/10',
         border: 'border-blue-500/20',
-        icon: Loader2,
+        icon: LoadingIcon,
         label: 'Building',
     },
     deploying: {
         color: 'text-amber-400',
         bg: 'bg-amber-500/10',
         border: 'border-amber-500/20',
-        icon: Loader2,
+        icon: LoadingIcon,
         label: 'Deploying',
     },
     running: {
         color: 'text-green-400',
         bg: 'bg-green-500/10',
         border: 'border-green-500/20',
-        icon: CheckCircle2,
+        icon: CheckCircleIcon,
         label: 'Running',
     },
     stopped: {
         color: 'text-gray-400',
         bg: 'bg-gray-500/10',
         border: 'border-gray-500/20',
-        icon: Pause,
+        icon: PauseIcon,
         label: 'Stopped',
     },
     failed: {
         color: 'text-red-400',
         bg: 'bg-red-500/10',
         border: 'border-red-500/20',
-        icon: XCircle,
+        icon: ErrorIcon,
         label: 'Failed',
     },
 };
@@ -180,7 +222,7 @@ export default function DeploymentMonitor({
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <Activity className="w-6 h-6 text-amber-400" />
+                            <ActivityIcon size={24} className="text-amber-400" />
                             Deployments
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">
@@ -193,7 +235,7 @@ export default function DeploymentMonitor({
                         onClick={onRefresh}
                         className="border-gray-700"
                     >
-                        <RefreshCw className="w-4 h-4 mr-2" />
+                        <RefreshIcon size={16} className="mr-2" />
                         Refresh
                     </Button>
                 </div>
@@ -201,25 +243,25 @@ export default function DeploymentMonitor({
                 {/* Quick Stats */}
                 <div className="grid grid-cols-4 gap-4">
                     <StatCard
-                        icon={Server}
+                        icon={ServerIcon}
                         label="Active Deployments"
                         value={runningCount.toString()}
                         color="green"
                     />
                     <StatCard
-                        icon={Cloud}
+                        icon={CloudIcon}
                         label="Total Deployments"
                         value={deployments.length.toString()}
                         color="blue"
                     />
                     <StatCard
-                        icon={DollarSign}
+                        icon={DollarSignIcon}
                         label="Total Cost"
                         value={`$${totalCost.toFixed(2)}`}
                         color="amber"
                     />
                     <StatCard
-                        icon={Zap}
+                        icon={ZapIcon}
                         label="Avg. Latency"
                         value={selectedDeployment?.metrics?.avgLatency
                             ? `${selectedDeployment.metrics.avgLatency}ms`
@@ -248,7 +290,7 @@ export default function DeploymentMonitor({
 
                             {deployments.length === 0 && (
                                 <div className="text-center py-8">
-                                    <Cloud className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                                    <CloudIcon size={48} className="text-gray-600 mx-auto mb-3" />
                                     <p className="text-gray-500 text-sm">No deployments yet</p>
                                 </div>
                             )}
@@ -272,7 +314,7 @@ export default function DeploymentMonitor({
                     ) : (
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
-                                <Server className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                                <ServerIcon size={64} className="text-gray-600 mx-auto mb-4" />
                                 <p className="text-gray-400">Select a deployment to view details</p>
                             </div>
                         </div>
@@ -293,7 +335,7 @@ function StatCard({
     value,
     color,
 }: {
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     label: string;
     value: string;
     color: 'green' | 'blue' | 'amber' | 'purple';
@@ -308,7 +350,7 @@ function StatCard({
     return (
         <div className={`rounded-xl border p-4 ${colorClasses[color] as string}`}>
             <div className="flex items-center gap-3">
-                <Icon className={`w-5 h-5 ${(colorClasses[color] as string).split(' ')[0]}`} />
+                <Icon size={20} className={(colorClasses[color] as string).split(' ')[0]} />
                 <div>
                     <p className="text-xs text-gray-400">{label}</p>
                     <p className="text-lg font-bold text-white">{value}</p>
@@ -353,7 +395,7 @@ function DeploymentListItem({
                             {deployment.name}
                         </span>
                         <Badge className={`${status.bg} ${status.color} ${status.border} text-[10px]`}>
-                            <StatusIcon className={`w-3 h-3 mr-1 ${
+                            <StatusIcon size={12} className={`mr-1 ${
                                 deployment.status === 'building' || deployment.status === 'deploying'
                                     ? 'animate-spin'
                                     : ''
@@ -414,7 +456,7 @@ function DeploymentDetails({
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                 {deployment.name}
                                 <Badge className={`${status.bg} ${status.color} ${status.border}`}>
-                                    <StatusIcon className={`w-3 h-3 mr-1 ${
+                                    <StatusIcon size={12} className={`mr-1 ${
                                         deployment.status === 'building' || deployment.status === 'deploying'
                                             ? 'animate-spin'
                                             : ''
@@ -437,7 +479,7 @@ function DeploymentDetails({
                                 onClick={() => onStop(deployment.id)}
                                 className="border-gray-700"
                             >
-                                <Pause className="w-4 h-4 mr-1" />
+                                <PauseIcon size={16} className="mr-1" />
                                 Stop
                             </Button>
                         )}
@@ -448,7 +490,7 @@ function DeploymentDetails({
                                 onClick={() => onStart(deployment.id)}
                                 className="border-gray-700"
                             >
-                                <Play className="w-4 h-4 mr-1" />
+                                <PlayIcon size={16} className="mr-1" />
                                 Start
                             </Button>
                         )}
@@ -459,7 +501,7 @@ function DeploymentDetails({
                                 onClick={() => onDelete(deployment.id)}
                                 className="border-red-500/30 text-red-400 hover:bg-red-500/10"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <TrashIcon size={16} />
                             </Button>
                         )}
                     </div>
@@ -479,7 +521,7 @@ function DeploymentDetails({
                                 onClick={() => onCopyEndpoint(deployment.endpoint!)}
                                 className="border-gray-600"
                             >
-                                <Copy className="w-4 h-4" />
+                                <CopyIcon size={16} />
                             </Button>
                             <Button
                                 variant="outline"
@@ -487,7 +529,7 @@ function DeploymentDetails({
                                 onClick={() => window.open(deployment.endpoint, '_blank')}
                                 className="border-gray-600"
                             >
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLinkIcon size={16} />
                             </Button>
                         </div>
                     </div>
@@ -573,7 +615,7 @@ function DeploymentDetails({
                     <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium text-amber-400 flex items-center gap-2">
-                                <DollarSign className="w-4 h-4" />
+                                <DollarSignIcon size={16} />
                                 Cost Tracking
                             </CardTitle>
                         </CardHeader>
@@ -600,7 +642,7 @@ function DeploymentDetails({
                     onClick={onToggleLogs}
                     className="w-full border-gray-700"
                 >
-                    <Terminal className="w-4 h-4 mr-2" />
+                    <TerminalIcon size={16} className="mr-2" />
                     {showLogs ? 'Hide Logs' : 'Show Logs'}
                 </Button>
 
@@ -631,11 +673,11 @@ function DeploymentStepItem({
     const getStepIcon = () => {
         switch (step.status) {
             case 'completed':
-                return <CheckCircle2 className="w-5 h-5 text-green-400" />;
+                return <CheckCircleIcon size={20} className="text-green-400" />;
             case 'in_progress':
-                return <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />;
+                return <LoadingIcon size={20} className="text-amber-400 animate-spin" />;
             case 'failed':
-                return <XCircle className="w-5 h-5 text-red-400" />;
+                return <ErrorIcon size={20} className="text-red-400" />;
             default:
                 return <div className="w-5 h-5 rounded-full border-2 border-gray-600" />;
         }

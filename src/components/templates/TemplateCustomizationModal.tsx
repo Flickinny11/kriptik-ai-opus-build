@@ -6,7 +6,7 @@ import { Checkbox } from '../ui/checkbox';
 import { useTemplateStore } from '../../store/useTemplateStore';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { SparklesIcon } from '../ui/icons';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -128,7 +128,7 @@ export default function TemplateCustomizationModal() {
                     {/* Info Box */}
                     <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                         <div className="flex items-center gap-2 text-sm">
-                            <Sparkles className="h-4 w-4 text-primary" />
+                            <SparklesIcon size={16} className="text-primary" />
                             <div>
                                 <span className="font-semibold">Templates are free!</span>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -144,7 +144,7 @@ export default function TemplateCustomizationModal() {
                         Cancel
                     </Button>
                     <Button onClick={handleCreate} className="gap-2">
-                        <Sparkles className="h-4 w-4" />
+                        <SparklesIcon size={16} />
                         Create Project
                     </Button>
                 </DialogFooter>

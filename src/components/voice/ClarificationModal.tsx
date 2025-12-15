@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, HelpCircle, Check, Mic } from 'lucide-react';
+import { CloseIcon as X, HelpCircleIcon as HelpCircle, CheckIcon as Check, MicIcon as Mic } from '../ui/icons';
 import { VoiceRecordButton } from './VoiceRecordButton';
 
 const accentColor = '#c8ff64';
@@ -93,7 +93,7 @@ export function ClarificationModal({
                                         className="w-10 h-10 rounded-full flex items-center justify-center"
                                         style={{ background: `${accentColor}20` }}
                                     >
-                                        <HelpCircle className="w-5 h-5" style={{ color: accentColor }} />
+                                        <HelpCircle size={20} style={{ color: accentColor }} />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-white">
@@ -118,7 +118,7 @@ export function ClarificationModal({
                                     onClick={onClose}
                                     className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X size={20} />
                                 </button>
                             </div>
 
@@ -161,7 +161,7 @@ export function ClarificationModal({
                                                     : 'text-white/50 hover:text-white'
                                             }`}
                                         >
-                                            <Mic className="w-3.5 h-3.5" />
+                                            <Mic size={14} />
                                             Voice
                                         </button>
                                     )}
@@ -190,7 +190,7 @@ export function ClarificationModal({
                                                         className="w-6 h-6 rounded-full border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                                         style={{ borderColor: accentColor, color: accentColor }}
                                                     >
-                                                        <Check className="w-4 h-4" />
+                                                        <Check size={16} />
                                                     </div>
                                                 </div>
                                             </motion.button>
@@ -221,7 +221,7 @@ export function ClarificationModal({
                                                 color: 'black',
                                             }}
                                         >
-                                            <Check className="w-4 h-4" />
+                                            <Check size={16} />
                                             Submit Response
                                         </button>
                                     </div>

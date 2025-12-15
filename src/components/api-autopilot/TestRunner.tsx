@@ -6,14 +6,14 @@
 
 import { motion } from 'framer-motion';
 import {
-    Play,
-    CheckCircle2,
-    XCircle,
-    RefreshCw,
-    Loader2,
-    Clock,
-    Wifi,
-} from 'lucide-react';
+    PlayIcon,
+    CheckCircle2Icon,
+    XCircleIcon,
+    RefreshIcon,
+    LoadingIcon,
+    ClockIcon,
+    ActivityIcon,
+} from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -55,22 +55,22 @@ export function TestRunner({
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         >
-                            <Loader2
-                                className="w-12 h-12"
-                                style={{ color: accentColor }}
+                            <LoadingIcon
+                                size={48}
+                                className="text-[#c8ff64]"
                             />
                         </motion.div>
                     ) : testResult ? (
                         testResult.success ? (
-                            <CheckCircle2
-                                className="w-12 h-12"
-                                style={{ color: accentColor }}
+                            <CheckCircle2Icon
+                                size={48}
+                                className="text-[#c8ff64]"
                             />
                         ) : (
-                            <XCircle className="w-12 h-12 text-red-400" />
+                            <XCircleIcon size={48} className="text-red-400" />
                         )
                     ) : (
-                        <Wifi className="w-12 h-12 text-white/30" />
+                        <ActivityIcon size={48} className="text-white/30" />
                     )}
                 </motion.div>
 
@@ -122,7 +122,7 @@ export function TestRunner({
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-2 text-sm text-white/60"
                 >
-                    <Clock className="w-4 h-4" />
+                    <ClockIcon size={16} />
                     Response time: {testResult.responseTime}ms
                 </motion.div>
             )}
@@ -137,7 +137,7 @@ export function TestRunner({
                         disabled={isLoading}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-50"
                     >
-                        <RefreshCw className="w-4 h-4" />
+                        <RefreshIcon size={16} />
                         Retry
                     </motion.button>
                 )}
@@ -152,9 +152,9 @@ export function TestRunner({
                         style={{ background: accentColor, color: 'black' }}
                     >
                         {isLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <LoadingIcon size={16} className="animate-spin" />
                         ) : (
-                            <Play className="w-4 h-4" />
+                            <PlayIcon size={16} />
                         )}
                         Run Test
                     </motion.button>

@@ -8,7 +8,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { MessageSquare, Bot, Code2 } from 'lucide-react';
+import { MessageSquareIcon, BrainIcon, Code2Icon } from '../ui/icons';
 
 export type BuilderMode = 'builder' | 'agents' | 'developer';
 
@@ -97,7 +97,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 }}
                 title="Builder Mode - Autonomous app building from prompts"
             >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquareIcon size={16} />
                 <span>Builder</span>
             </button>
 
@@ -112,7 +112,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 }}
                 title="Agents Mode - Multi-agent orchestration with model selector"
             >
-                <Bot className="w-4 h-4" />
+                <BrainIcon size={16} />
                 <span>Agents</span>
             </button>
 
@@ -127,7 +127,7 @@ export function BuilderAgentsToggle({ mode, onModeChange }: BuilderAgentsToggleP
                 }}
                 title="Developer Mode - Import & enhance existing projects"
             >
-                <Code2 className="w-4 h-4" />
+                <Code2Icon size={16} />
                 <span>Developer</span>
             </button>
         </div>

@@ -6,15 +6,15 @@
 
 import { motion } from 'framer-motion';
 import {
-    Layers,
-    Palette,
-    Settings,
-    HelpCircle,
-    ChevronRight,
-    Sparkles,
-    Code,
-    AlertTriangle,
-} from 'lucide-react';
+    LayersIcon as Layers,
+    PaletteIcon as Palette,
+    SettingsIcon as Settings,
+    HelpCircleIcon as HelpCircle,
+    ChevronRightIcon as ChevronRight,
+    SparklesIcon as Sparkles,
+    CodeIcon as Code,
+    AlertTriangleIcon as AlertTriangle,
+} from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -108,7 +108,7 @@ export function IntentPreview({
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <Sparkles className="w-5 h-5" style={{ color: accentColor }} />
+                            <Sparkles size={20} style={{ color: accentColor }} />
                             <span className="text-xs text-white/50 uppercase tracking-wide">
                                 Extracted Intent
                             </span>
@@ -156,7 +156,7 @@ export function IntentPreview({
                     className="p-4 rounded-lg border border-orange-500/30 bg-orange-500/10"
                 >
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <AlertTriangle size={20} className="text-orange-400 flex-shrink-0 mt-0.5" />
                         <div>
                             <h4 className="text-sm font-medium text-orange-400">
                                 Clarification needed
@@ -172,7 +172,7 @@ export function IntentPreview({
             {/* Features */}
             <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                 <div className="flex items-center gap-2 mb-3">
-                    <Layers className="w-4 h-4 text-white/60" />
+                    <Layers size={16} className="text-white/60" />
                     <h3 className="text-sm font-medium text-white">Features</h3>
                     <span className="text-xs text-white/40">({intent.features.length})</span>
                 </div>
@@ -212,7 +212,7 @@ export function IntentPreview({
             {intent.designPreferences.length > 0 && (
                 <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                     <div className="flex items-center gap-2 mb-3">
-                        <Palette className="w-4 h-4 text-white/60" />
+                        <Palette size={16} className="text-white/60" />
                         <h3 className="text-sm font-medium text-white">Design Preferences</h3>
                     </div>
 
@@ -245,7 +245,7 @@ export function IntentPreview({
             {intent.technicalRequirements.length > 0 && (
                 <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                     <div className="flex items-center gap-2 mb-3">
-                        <Settings className="w-4 h-4 text-white/60" />
+                        <Settings size={16} className="text-white/60" />
                         <h3 className="text-sm font-medium text-white">Technical Requirements</h3>
                     </div>
 
@@ -266,7 +266,7 @@ export function IntentPreview({
             {intent.ambiguities.length > 0 && (
                 <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                     <div className="flex items-center gap-2 mb-3">
-                        <HelpCircle className="w-4 h-4 text-white/60" />
+                        <HelpCircle size={16} className="text-white/60" />
                         <h3 className="text-sm font-medium text-white">Questions</h3>
                     </div>
 
@@ -301,7 +301,7 @@ export function IntentPreview({
                                         {ambiguity.question}
                                     </p>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+                                <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors" />
                             </motion.button>
                         ))}
                     </div>
@@ -327,7 +327,7 @@ export function IntentPreview({
                     boxShadow: canBuild ? `0 10px 30px ${accentColor}40` : 'none',
                 }}
             >
-                <Code className="w-5 h-5" />
+                <Code size={20} />
                 {canBuild ? 'Start Building' : 'Resolve questions to continue'}
             </motion.button>
         </div>

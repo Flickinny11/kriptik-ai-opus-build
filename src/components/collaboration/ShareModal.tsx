@@ -4,7 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useCollaborationStore, UserRole } from '../../store/useCollaborationStore';
-import { Copy, X } from 'lucide-react';
+import { CopyIcon, XIcon } from '../ui/icons';
 import { useState } from 'react';
 import { useToast } from '../ui/use-toast';
 
@@ -82,7 +82,7 @@ export default function ShareModal() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeCollaborator(user.id)}>
-                                            <X className="h-3 w-3" />
+                                            <XIcon size={12} className="" />
                                         </Button>
                                     </div>
                                 </div>
@@ -95,7 +95,7 @@ export default function ShareModal() {
                         <div className="flex gap-2 mt-2">
                             <Input readOnly value="https://kriptik.ai/p/abc123" className="bg-muted" />
                             <Button variant="outline" onClick={copyLink}>
-                                <Copy className="h-4 w-4 mr-2" /> Copy
+                                <CopyIcon size={16} className="mr-2" /> Copy
                             </Button>
                         </div>
                     </div>

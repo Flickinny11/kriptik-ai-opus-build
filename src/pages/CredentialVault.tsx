@@ -11,28 +11,46 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plus, Eye, EyeOff, Trash2, RefreshCw,
-    Shield, Lock, Copy, Key, Database, Cloud,
-    CreditCard, Cpu, Server, Globe, Zap, X
-} from 'lucide-react';
+    OpenAIIcon,
+    AnthropicIcon,
+    VercelIcon,
+    GitHubIcon,
+    StripeIcon,
+    SupabaseIcon,
+    TursoIcon,
+    AWSIcon,
+    GoogleIcon,
+    RunPodIcon,
+    PlusIcon,
+    EyeIcon,
+    EyeOffIcon,
+    TrashIcon,
+    RefreshIcon,
+    ShieldIcon,
+    LockIcon,
+    CopyIcon,
+    KeyIcon,
+    CloseIcon,
+    LoadingIcon,
+} from '../components/ui/icons';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import '../styles/realistic-glass.css';
 
-// Credential types with Lucide icons instead of emojis
+// Credential types with custom icons
 const CREDENTIAL_TYPES = [
-    { id: 'openai', name: 'OpenAI', icon: Cpu, color: '#10a37f' },
-    { id: 'anthropic', name: 'Anthropic', icon: Cpu, color: '#c25a00' },
-    { id: 'vercel', name: 'Vercel', icon: Cloud, color: '#1a1a1a' },
-    { id: 'github', name: 'GitHub', icon: Globe, color: '#333' },
-    { id: 'stripe', name: 'Stripe', icon: CreditCard, color: '#635bff' },
-    { id: 'supabase', name: 'Supabase', icon: Database, color: '#3ecf8e' },
-    { id: 'turso', name: 'Turso', icon: Database, color: '#00c4b4' },
-    { id: 'aws', name: 'AWS', icon: Server, color: '#ff9900' },
-    { id: 'gcp', name: 'Google Cloud', icon: Cloud, color: '#4285f4' },
-    { id: 'runpod', name: 'RunPod', icon: Zap, color: '#673ab7' },
+    { id: 'openai', name: 'OpenAI', Icon: OpenAIIcon, color: '#10a37f' },
+    { id: 'anthropic', name: 'Anthropic', Icon: AnthropicIcon, color: '#c25a00' },
+    { id: 'vercel', name: 'Vercel', Icon: VercelIcon, color: '#1a1a1a' },
+    { id: 'github', name: 'GitHub', Icon: GitHubIcon, color: '#333' },
+    { id: 'stripe', name: 'Stripe', Icon: StripeIcon, color: '#635bff' },
+    { id: 'supabase', name: 'Supabase', Icon: SupabaseIcon, color: '#3ecf8e' },
+    { id: 'turso', name: 'Turso', Icon: TursoIcon, color: '#00c4b4' },
+    { id: 'aws', name: 'AWS', Icon: AWSIcon, color: '#ff9900' },
+    { id: 'gcp', name: 'Google Cloud', Icon: GoogleIcon, color: '#4285f4' },
+    { id: 'runpod', name: 'RunPod', Icon: RunPodIcon, color: '#673ab7' },
 ];
 
 interface StoredCredential {
@@ -58,7 +76,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
     const [showKey, setShowKey] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const typeInfo = CREDENTIAL_TYPES.find(t => t.id === credential.type);
-    const IconComponent = typeInfo?.icon || Key;
+    const IconComponent = typeInfo?.Icon || KeyIcon;
 
     return (
         <motion.div
@@ -132,7 +150,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                         border: '1px solid rgba(255,200,170,0.4)',
                     }}
                 >
-                    <IconComponent className="w-6 h-6" style={{ color: typeInfo?.color || '#c25a00' }} />
+                    <IconComponent size={24} />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -148,20 +166,20 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                                 color: '#666',
                             }}
                         >
-                            {showKey ? 'sk-xxxx...xxxx' : '••••••••••••••••'}
+                            {showKey ? 'sk-xxxx...xxxx' : String.fromCharCode(0x2022).repeat(16)}
                         </code>
                         <button
                             onClick={() => setShowKey(!showKey)}
                             className="glass-button p-2 rounded-lg"
                             style={{ padding: '6px' }}
                         >
-                            {showKey ? <EyeOff className="h-3.5 w-3.5" style={{ color: '#666' }} /> : <Eye className="h-3.5 w-3.5" style={{ color: '#666' }} />}
+                            {showKey ? <EyeOffIcon size={14} /> : <EyeIcon size={14} />}
                         </button>
                         <button
                             className="glass-button p-2 rounded-lg"
                             style={{ padding: '6px' }}
                         >
-                            <Copy className="h-3.5 w-3.5" style={{ color: '#666' }} />
+                            <CopyIcon size={14} />
                         </button>
                     </div>
 
@@ -178,18 +196,18 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             <div className="flex gap-2 mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
                 <button
                     onClick={onRefresh}
-                    className="glass-button glass-button--small flex-1"
+                    className="glass-button glass-button--small flex-1 flex items-center justify-center"
                 >
-                    <RefreshCw className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
-                    Validate
+                    <RefreshIcon size={16} />
+                    <span className="ml-1">Validate</span>
                 </button>
                 <button
                     onClick={onDelete}
-                    className="glass-button glass-button--small flex-1"
+                    className="glass-button glass-button--small flex-1 flex items-center justify-center"
                     style={{ color: '#dc2626' }}
                 >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Remove
+                    <TrashIcon size={16} />
+                    <span className="ml-1">Remove</span>
                 </button>
             </div>
         </motion.div>
@@ -281,7 +299,7 @@ export default function CredentialVault() {
                             boxShadow: '0 4px 12px rgba(34,197,94,0.2)',
                         }}
                     >
-                        <Shield className="h-6 w-6" style={{ color: '#16a34a' }} />
+                        <ShieldIcon size={24} />
                     </div>
                     <div>
                         <h3 className="font-semibold" style={{ color: '#16a34a' }}>Enterprise-Grade Security</h3>
@@ -304,10 +322,10 @@ export default function CredentialVault() {
 
                     <button
                         onClick={() => setAddingNew(true)}
-                        className="glass-button glass-button--glow"
+                        className="glass-button glass-button--glow flex items-center"
                     >
-                        <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
-                        Add Credential
+                        <PlusIcon size={16} />
+                        <span className="ml-2">Add Credential</span>
                     </button>
                 </div>
 
@@ -329,16 +347,16 @@ export default function CredentialVault() {
                             className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
                             style={{ background: 'rgba(255,180,140,0.2)' }}
                         >
-                            <Lock className="h-10 w-10" style={{ color: '#c25a00' }} />
+                            <LockIcon size={40} />
                         </div>
                         <h3 className="text-xl font-semibold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>No credentials stored</h3>
                         <p className="mb-6" style={{ color: '#666' }}>Add your first API key to get started</p>
                         <button
                             onClick={() => setAddingNew(true)}
-                            className="glass-button glass-button--glow"
+                            className="glass-button glass-button--glow flex items-center mx-auto"
                         >
-                            <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
-                            Add Credential
+                            <PlusIcon size={16} />
+                            <span className="ml-2">Add Credential</span>
                         </button>
                     </div>
                 )}
@@ -348,7 +366,7 @@ export default function CredentialVault() {
                     <h2 className="text-xl font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Available Integrations</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         {CREDENTIAL_TYPES.map((type) => {
-                            const IconComp = type.icon;
+                            const IconComp = type.Icon;
                             return (
                                 <button
                                     key={type.id}
@@ -362,7 +380,7 @@ export default function CredentialVault() {
                                         className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center"
                                         style={{ background: 'rgba(255,180,140,0.2)' }}
                                     >
-                                        <IconComp className="w-5 h-5" style={{ color: type.color }} />
+                                        <IconComp size={20} />
                                     </div>
                                     <span className="text-sm" style={{ color: '#1a1a1a' }}>{type.name}</span>
                                 </button>
@@ -413,7 +431,7 @@ export default function CredentialVault() {
                                             boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.9)',
                                         }}
                                     >
-                                        <Key className="w-5 h-5" style={{ color: '#c25a00' }} />
+                                        <KeyIcon size={20} />
                                     </div>
                                     <h2 className="text-xl font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
                                         Add Credential
@@ -424,7 +442,7 @@ export default function CredentialVault() {
                                     className="glass-button p-2 rounded-lg"
                                     style={{ padding: '8px' }}
                                 >
-                                    <X className="w-5 h-5" style={{ color: '#666' }} />
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
 
@@ -437,7 +455,7 @@ export default function CredentialVault() {
                                     </label>
                                     <div className="grid grid-cols-5 gap-2">
                                         {CREDENTIAL_TYPES.map((type) => {
-                                            const IconComp = type.icon;
+                                            const IconComp = type.Icon;
                                             const isSelected = selectedType === type.id;
                                             return (
                                                 <button
@@ -454,10 +472,9 @@ export default function CredentialVault() {
                                                         transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                                                     }}
                                                 >
-                                                    <IconComp
-                                                        className="w-5 h-5 mx-auto mb-1"
-                                                        style={{ color: isSelected ? type.color : '#999' }}
-                                                    />
+                                                    <div className="mx-auto mb-1 flex justify-center">
+                                                        <IconComp size={20} />
+                                                    </div>
                                                     <span
                                                         className="text-xs block truncate"
                                                         style={{ color: isSelected ? '#1a1a1a' : '#666' }}
@@ -537,12 +554,12 @@ export default function CredentialVault() {
                                 >
                                     {isSaving ? (
                                         <span className="flex items-center justify-center gap-2">
-                                            <RefreshCw className="w-4 h-4 animate-spin" style={{ color: '#1a1a1a' }} />
+                                            <LoadingIcon size={16} />
                                             Saving...
                                         </span>
                                     ) : (
                                         <span className="flex items-center justify-center gap-2">
-                                            <Shield className="w-4 h-4" style={{ color: '#1a1a1a' }} />
+                                            <ShieldIcon size={16} />
                                             Save Credential
                                         </span>
                                     )}

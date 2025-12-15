@@ -10,7 +10,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Users, Gavel, Clock, Loader2, X, Check, AlertTriangle } from 'lucide-react';
+import {
+    TrophyIcon,
+    UsersIcon,
+    GavelIcon,
+    ClockIcon,
+    LoadingIcon,
+    XIcon,
+    CheckIcon,
+    WarningIcon
+} from '../../components/ui/icons';
 import { apiClient } from '../../lib/api-client';
 
 interface Competitor {
@@ -141,7 +150,7 @@ function StatusBadge({ status }: { status: Competitor['status'] }) {
             style={{ background: styles.bg, color: styles.color, border: `1px solid ${styles.border}` }}
         >
             {(status === 'building' || status === 'verifying') && (
-                <Loader2 className="w-3 h-3 animate-spin" />
+                <LoadingIcon size={12} className="animate-spin" />
             )}
             {status}
         </span>
@@ -249,7 +258,7 @@ export default function TournamentPanel({
                                 className="p-2 rounded-xl"
                                 style={{ background: 'rgba(251, 191, 36, 0.2)' }}
                             >
-                                <Trophy className="w-6 h-6" style={{ color: '#f59e0b' }} />
+                                <TrophyIcon size={24} style={{ color: '#f59e0b' }} />
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold" style={{ color: '#1a1a1a' }}>
@@ -276,7 +285,7 @@ export default function TournamentPanel({
                                 onClick={onClose}
                                 className="p-2 rounded-lg hover:bg-black/5 transition-colors"
                             >
-                                <X className="w-5 h-5" style={{ color: '#666' }} />
+                                <XIcon size={20} style={{ color: '#666' }} />
                             </button>
                         </div>
                     </div>
@@ -312,7 +321,7 @@ export default function TournamentPanel({
                     {/* Competitors Grid */}
                     <div className="p-6">
                         <div className="flex items-center gap-2 mb-4">
-                            <Users className="w-5 h-5" style={{ color: '#666' }} />
+                            <UsersIcon size={20} style={{ color: '#666' }} />
                             <h3 className="font-semibold" style={{ color: '#1a1a1a' }}>
                                 Competitors ({status?.competitors?.length || 0})
                             </h3>
@@ -371,7 +380,7 @@ export default function TournamentPanel({
                                             className="flex items-center gap-1 mt-3 text-xs"
                                             style={{ color: '#999' }}
                                         >
-                                            <Clock className="w-3 h-3" />
+                                            <ClockIcon size={12} />
                                             {(competitor.buildTimeMs / 1000).toFixed(1)}s
                                         </div>
                                     )}
@@ -381,7 +390,7 @@ export default function TournamentPanel({
                                             className="flex items-center gap-2 mt-3"
                                             style={{ color: '#f59e0b' }}
                                         >
-                                            <Trophy className="w-4 h-4" />
+                                            <TrophyIcon size={16} />
                                             <span className="text-sm font-medium">Winner!</span>
                                         </div>
                                     )}
@@ -394,7 +403,7 @@ export default function TournamentPanel({
                     {verdicts.length > 0 && (
                         <div className="p-6" style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
                             <div className="flex items-center gap-2 mb-4">
-                                <Gavel className="w-5 h-5" style={{ color: '#666' }} />
+                                <GavelIcon size={20} style={{ color: '#666' }} />
                                 <h3 className="font-semibold" style={{ color: '#1a1a1a' }}>
                                     Judge Verdicts ({verdicts.length})
                                 </h3>
@@ -491,7 +500,7 @@ export default function TournamentPanel({
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <Trophy className="w-8 h-8" style={{ color: '#f59e0b' }} />
+                                    <TrophyIcon size={32} style={{ color: '#f59e0b' }} />
                                     <div>
                                         <h3 className="font-bold text-lg" style={{ color: '#1a1a1a' }}>
                                             {status.winner.name} Wins!
@@ -511,9 +520,9 @@ export default function TournamentPanel({
                                         disabled={isLoading}
                                     >
                                         {isLoading ? (
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            <LoadingIcon size={16} className="mr-2 animate-spin" />
                                         ) : (
-                                            <Check className="w-4 h-4 mr-2" />
+                                            <CheckIcon size={16} className="mr-2" />
                                         )}
                                         Merge Winner
                                     </GlassButton>
@@ -531,7 +540,7 @@ export default function TournamentPanel({
                             }}
                         >
                             <div className="flex items-center gap-2" style={{ color: '#ef4444' }}>
-                                <AlertTriangle className="w-4 h-4" />
+                                <WarningIcon size={16} />
                                 <span>{error}</span>
                             </div>
                         </div>

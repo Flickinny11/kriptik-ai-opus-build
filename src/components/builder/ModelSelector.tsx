@@ -13,7 +13,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, DollarSign, Check } from 'lucide-react';
+import {
+    ChevronDownIcon,
+    DollarSignIcon,
+    CheckIcon
+} from '../../components/ui/icons';
 import { getModelLogo } from '../ui/AIBrandLogos';
 
 export interface ModelOption {
@@ -187,10 +191,10 @@ export function ModelSelector({
 
     const getCostBadge = (costTier: string) => {
         switch (costTier) {
-            case 'economy': return { icon: DollarSign, label: '$', color: 'text-emerald-400' };
-            case 'standard': return { icon: DollarSign, label: '$$', color: 'text-amber-400' };
-            case 'premium': return { icon: DollarSign, label: '$$$', color: 'text-rose-400' };
-            default: return { icon: DollarSign, label: '$$', color: 'text-gray-400' };
+            case 'economy': return { icon: DollarSignIcon, label: '$', color: 'text-emerald-400' };
+            case 'standard': return { icon: DollarSignIcon, label: '$$', color: 'text-amber-400' };
+            case 'premium': return { icon: DollarSignIcon, label: '$$$', color: 'text-rose-400' };
+            default: return { icon: DollarSignIcon, label: '$$', color: 'text-gray-400' };
         }
     };
 
@@ -239,7 +243,7 @@ export function ModelSelector({
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDownIcon size={16} className="text-gray-400" />
                 </motion.div>
             </button>
 
@@ -297,7 +301,7 @@ export function ModelSelector({
                                                 : 'bg-white/10 border border-white/20'
                                             }
                                         `}>
-                                            {isSelected && <Check className="w-3 h-3 text-black" />}
+                                            {isSelected && <CheckIcon size={12} className="text-black" />}
                                         </div>
 
                                         {/* Model Logo */}

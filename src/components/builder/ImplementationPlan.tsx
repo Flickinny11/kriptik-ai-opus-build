@@ -9,21 +9,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
-    Sparkles,
-    Check,
-    ChevronDown,
-    Code,
-    Database,
-    Shield,
-    Palette,
-    Server,
-    Package,
-    Zap,
-    Loader2,
-    Edit3,
-    ArrowRight,
-    AlertCircle
-} from 'lucide-react';
+    CheckIcon,
+    ChevronDownIcon,
+    CodeIcon,
+    DatabaseIcon,
+    ShieldIcon,
+    ServerIcon,
+    ZapIcon,
+    LoadingIcon,
+    ArrowRightIcon,
+    AlertCircleIcon
+} from '@/components/ui/icons';
 import { apiClient } from '@/lib/api-client';
 
 // Types
@@ -66,7 +62,7 @@ function ThinkingAnimation({ stage }: { stage: string }) {
         <div className="flex items-center gap-3 text-amber-400">
             <div className="relative">
                 <div className="absolute inset-0 bg-amber-400/20 rounded-full animate-ping" />
-                <Sparkles className="h-5 w-5 relative" />
+                <span className="text-xl">✨</span>
             </div>
             <span className="font-medium">
                 {stage}{dots}
@@ -100,7 +96,7 @@ function PhaseOption({
                 "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
                 isSelected ? "border-amber-500 bg-amber-500" : "border-slate-600"
             )}>
-                {isSelected && <Check className="h-3 w-3 text-black" />}
+                {isSelected && <CheckIcon size={12} />}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -158,7 +154,7 @@ function PhaseCard({
                             ? "bg-cyan-500/20 text-cyan-400"
                             : "bg-purple-500/20 text-purple-400"
                     )}>
-                        <Icon className="h-5 w-5" />
+                        <Icon size={20} />
                     </div>
                     <div>
                         <h3 className="font-semibold text-white">{phase.title}</h3>
@@ -168,12 +164,12 @@ function PhaseCard({
                 <div className="flex items-center gap-3">
                     {phase.selectedOption && (
                         <span className="text-sm text-emerald-400 flex items-center gap-1">
-                            <Check className="h-4 w-4" />
+                            <CheckIcon size={16} />
                             Selected
                         </span>
                     )}
-                    <ChevronDown className={cn(
-                        "h-5 w-5 text-slate-400 transition-transform",
+                    <ChevronDownIcon size={20} className={cn(
+                        "text-slate-400 transition-transform",
                         isExpanded && "rotate-180"
                     )} />
                 </div>
@@ -205,7 +201,7 @@ function PhaseCard({
                             "text-slate-400 hover:text-slate-300 transition-colors"
                         )}
                     >
-                        <Edit3 className="h-4 w-4" />
+                        <span>✏️</span>
                         <span className="text-sm">Modify with something else</span>
                     </button>
 
@@ -233,13 +229,13 @@ function PhaseCard({
 
 // Icon mapping for phases received from API
 const ICON_MAP: Record<string, React.ElementType> = {
-    Code,
-    Database,
-    Shield,
-    Palette,
-    Server,
-    Package,
-    Zap,
+    'Code': CodeIcon,
+    'Database': DatabaseIcon,
+    'Shield': ShieldIcon,
+    'Palette': CodeIcon,
+    'Server': ServerIcon,
+    'Package': CodeIcon,
+    'Zap': ZapIcon,
 };
 
 // Main implementation plan component
@@ -307,7 +303,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                                 const apiPlan = parsedData.plan;
                                 const transformedPhases: PlanPhase[] = apiPlan.phases.map((phase: { id: string; title: string; description: string; icon: string; type: 'frontend' | 'backend'; options: PlanOption[]; selectedOption: string }) => ({
                                     ...phase,
-                                    icon: ICON_MAP[phase.icon] || Code,
+                                    icon: ICON_MAP[phase.icon] || CodeIcon,
                                 }));
                                 setPhases(transformedPhases);
                                 setIsLoading(false);
@@ -317,7 +313,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                                 if (parsedData.plan?.phases) {
                                     const transformedPhases: PlanPhase[] = parsedData.plan.phases.map((phase: { id: string; title: string; description: string; icon: string; type: 'frontend' | 'backend'; options: PlanOption[]; selectedOption: string }) => ({
                                         ...phase,
-                                        icon: ICON_MAP[phase.icon] || Code,
+                                        icon: ICON_MAP[phase.icon] || CodeIcon,
                                     }));
                                     setPhases(transformedPhases);
                                 }
@@ -347,7 +343,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 id: 'framework',
                 title: 'Frontend Framework',
                 description: 'Choose your UI framework',
-                icon: Code,
+                icon: CodeIcon,
                 type: 'frontend',
                 options: [
                     { id: 'react-vite', label: 'React + Vite', description: 'Modern React with fast builds', recommended: true },
@@ -361,7 +357,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 id: 'styling',
                 title: 'Styling & UI',
                 description: 'Design system and components',
-                icon: Palette,
+                icon: CodeIcon,
                 type: 'frontend',
                 options: [
                     { id: 'tailwind-shadcn', label: 'Tailwind + shadcn/ui', description: 'Utility-first CSS with premium components', recommended: true },
@@ -375,7 +371,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 id: 'database',
                 title: 'Database',
                 description: 'Data persistence layer',
-                icon: Database,
+                icon: DatabaseIcon,
                 type: 'backend',
                 options: [
                     { id: 'turso', label: 'Turso (SQLite)', description: 'Edge database with libSQL', recommended: true },
@@ -388,7 +384,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                 id: 'deployment',
                 title: 'Deployment',
                 description: 'Hosting and deployment target',
-                icon: Package,
+                icon: CodeIcon,
                 type: 'backend',
                 options: [
                     { id: 'vercel', label: 'Vercel', description: 'Zero-config deployments', recommended: true },
@@ -431,7 +427,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
             <div className="flex flex-col items-center justify-center py-16">
                 <div className="relative mb-8">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                        <Loader2 className="h-10 w-10 text-black animate-spin" />
+                        <LoadingIcon size={40} className="text-black animate-spin" />
                     </div>
                     <div className="absolute -inset-2 bg-gradient-to-br from-amber-400/30 to-orange-500/30 rounded-2xl blur-xl animate-pulse" />
                 </div>
@@ -448,7 +444,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-black" />
+                    <ZapIcon size={20} />
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-white">Implementation Plan</h2>
@@ -459,7 +455,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
             {/* Plan summary */}
             <div className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
                 <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <AlertCircleIcon size={20} className="flex-shrink-0 mt-0.5" />
                     <div>
                         <p className="text-sm text-slate-300">
                             Based on your prompt: <span className="text-white font-medium">"{prompt.slice(0, 100)}..."</span>
@@ -536,7 +532,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                     )}
                 >
                     Approve & Continue
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRightIcon size={16} className="ml-2" />
                 </Button>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRightIcon } from './icons';
 
 interface ProjectCard3DProps {
     onClick: () => void;
@@ -217,7 +217,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                                 transition: 'transform 0.3s ease',
                             }}
                         >
-                            Open Project <ArrowRight className="w-4 h-4" />
+                            Open Project <ArrowRightIcon size={16} />
                         </span>
                     </div>
                 </div>

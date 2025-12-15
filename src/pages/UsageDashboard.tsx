@@ -3,7 +3,7 @@ import { useCostStore } from '../store/useCostStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { Coins, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
+import { CoinsIcon, TrendingUpIcon, AlertTriangleIcon, ZapIcon } from '../components/ui/icons';
 import { cn } from '../lib/utils';
 
 export default function UsageDashboard() {
@@ -24,7 +24,7 @@ export default function UsageDashboard() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-                        <Coins className="h-4 w-4 text-muted-foreground" />
+                        <CoinsIcon size={16} className="text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{balance.available} Credits</div>
@@ -36,7 +36,7 @@ export default function UsageDashboard() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Monthly Usage</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <TrendingUpIcon size={16} className="text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{Math.round(percentUsed)}%</div>
@@ -46,7 +46,7 @@ export default function UsageDashboard() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Projected Cost</CardTitle>
-                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <ZapIcon size={16} className="text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">~{Math.round(balance.totalUsedThisMonth * 1.2)} Credits</div>
@@ -97,7 +97,7 @@ export default function UsageDashboard() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                        <AlertTriangleIcon size={20} className="text-yellow-500" />
                         Usage Alerts
                     </CardTitle>
                 </CardHeader>

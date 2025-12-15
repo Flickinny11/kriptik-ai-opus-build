@@ -16,13 +16,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Code2, Eye, Settings,
-    Cloud, X, Activity,
-    Database, Server, Workflow, LayoutDashboard,
-    Layers,
-    Upload, Search, Loader2, AlertCircle, CheckCircle
-} from 'lucide-react';
+import { StatusIcons } from '../components/ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { SandpackProvider } from '../lib/sandpack-provider';
 import ChatInterface from '../components/builder/ChatInterface';
@@ -192,10 +186,10 @@ body {
 
 // Quick action items for the sidebar
 const quickActions = [
-    { icon: Activity, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
-    { icon: Cloud, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
-    { icon: Database, label: 'Database', description: 'Manage schemas', panel: 'database' },
-    { icon: Workflow, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
+    { icon: StatusIcons.ActivityIcon, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
+    { icon: StatusIcons.CloudIcon, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
+    { icon: StatusIcons.DatabaseIcon, label: 'Database', description: 'Manage schemas', panel: 'database' },
+    { icon: StatusIcons.WorkflowIcon, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
 ];
 
 // Liquid Glass Icon Button Component
@@ -206,7 +200,7 @@ function GlassIconButton({
     title,
     size = 'md'
 }: {
-    icon: React.ComponentType<{ className?: string; color?: string }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     onClick?: () => void;
     isActive?: boolean;
     title?: string;
@@ -214,7 +208,7 @@ function GlassIconButton({
 }) {
     const [isHovered, setIsHovered] = useState(false);
     const sizeClasses = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
-    const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+    const iconSizeNum = size === 'sm' ? 16 : 20;
 
     return (
         <button
@@ -238,7 +232,7 @@ function GlassIconButton({
                 transform: isHovered ? 'translateY(-1px) scale(1.02)' : 'translateY(0)',
             }}
         >
-            <Icon className={iconSize} color={isActive ? '#c25a00' : '#1a1a1a'} />
+            <Icon size={iconSizeNum} />
 
             {/* Shine effect */}
             <div
@@ -270,7 +264,7 @@ function GlassButton({
     onClick?: () => void;
     isActive?: boolean;
     variant?: 'default' | 'primary' | 'deploy';
-    icon?: React.ComponentType<{ className?: string; color?: string }>;
+    icon?: React.ComponentType<{ size?: number; className?: string }>;
 }) {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -316,7 +310,7 @@ function GlassButton({
                 transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
             }}
         >
-            {Icon && <Icon className="w-4 h-4" color={variant === 'deploy' ? '#b45309' : '#1a1a1a'} />}
+            {Icon && <Icon size={16} />}
             <span className="hidden sm:inline">{children}</span>
 
             {/* Shine animation */}
@@ -572,7 +566,7 @@ export default function Builder() {
                     <div className="flex items-center gap-4">
                         {/* Dashboard Button */}
                         <GlassIconButton
-                            icon={LayoutDashboard}
+                            icon={StatusIcons.LayoutDashboardIcon}
                             onClick={() => navigate('/dashboard')}
                             title="Dashboard"
                             size="sm"
@@ -612,13 +606,13 @@ export default function Builder() {
                         <div className="h-4 w-px bg-white/10 mx-2" />
 
                         <GlassIconButton
-                            icon={Settings}
+                            icon={StatusIcons.SettingsIcon}
                             title="Settings"
                             size="sm"
                         />
 
                         <GlassButton
-                            icon={Cloud}
+                            icon={StatusIcons.CloudIcon}
                             onClick={() => setDeploymentOpen(true)}
                             variant="deploy"
                         >
@@ -720,14 +714,14 @@ export default function Builder() {
                                             <TabButton
                                                 active={activeTab === 'preview'}
                                                 onClick={() => setActiveTab('preview')}
-                                                icon={Eye}
+                                                icon={StatusIcons.EyeIcon}
                                             >
                                                 Preview
                                             </TabButton>
                                             <TabButton
                                                 active={activeTab === 'code'}
                                                 onClick={() => setActiveTab('code')}
-                                                icon={Code2}
+                                                icon={StatusIcons.Code2Icon}
                                             >
                                                 Code
                                             </TabButton>
@@ -794,13 +788,13 @@ export default function Builder() {
                                         style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
                                     >
                                         <h3 className="font-semibold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
-                                            {activeQuickAction === 'agents' && <><Activity className="w-4 h-4" /> AI Agents</>}
-                                            {activeQuickAction === 'cloud' && <><Cloud className="w-4 h-4" /> Cloud Deploy</>}
-                                            {activeQuickAction === 'database' && <><Database className="w-4 h-4" /> Database</>}
-                                            {activeQuickAction === 'workflows' && <><Workflow className="w-4 h-4" /> Workflows</>}
+                                            {activeQuickAction === 'agents' && <><StatusIcons.ActivityIcon size={16} /> AI Agents</>}
+                                            {activeQuickAction === 'cloud' && <><StatusIcons.CloudIcon size={16} /> Cloud Deploy</>}
+                                            {activeQuickAction === 'database' && <><StatusIcons.DatabaseIcon size={16} /> Database</>}
+                                            {activeQuickAction === 'workflows' && <><StatusIcons.WorkflowIcon size={16} /> Workflows</>}
                                         </h3>
                                         <GlassIconButton
-                                            icon={X}
+                                            icon={StatusIcons.XIcon}
                                             onClick={() => setActiveQuickAction(null)}
                                             size="sm"
                                         />
@@ -869,7 +863,7 @@ function TabButton({
 }: {
     active: boolean;
     onClick: () => void;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     children: React.ReactNode;
 }) {
     const [isHovered, setIsHovered] = useState(false);
@@ -892,7 +886,7 @@ function TabButton({
                 color: active ? '#c25a00' : '#666',
             }}
         >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon size={14} />
             {children}
         </button>
     );
@@ -939,9 +933,9 @@ function CloudDeployPanel() {
     const providers = [
         { id: 'vercel', name: 'Vercel', icon: <VercelIcon />, available: true, description: 'Edge-first deployment', type: 'serverless' },
         { id: 'netlify', name: 'Netlify', icon: <NetlifyIcon />, available: true, description: 'JAMstack hosting', type: 'serverless' },
-        { id: 'runpod', name: 'RunPod GPU', icon: <Layers className="w-5 h-5" />, available: true, description: 'GPU inference', type: 'gpu' },
-        { id: 'aws', name: 'AWS', icon: <Cloud className="w-5 h-5" />, available: true, description: 'Lambda, ECS, EC2', type: 'serverless' },
-        { id: 'gcp', name: 'Google Cloud', icon: <Server className="w-5 h-5" />, available: true, description: 'Cloud Run, GCE', type: 'serverless' },
+        { id: 'runpod', name: 'RunPod GPU', icon: <StatusIcons.LayersIcon size={20} />, available: true, description: 'GPU inference', type: 'gpu' },
+        { id: 'aws', name: 'AWS', icon: <StatusIcons.CloudIcon size={20} />, available: true, description: 'Lambda, ECS, EC2', type: 'serverless' },
+        { id: 'gcp', name: 'Google Cloud', icon: <StatusIcons.ServerIcon size={20} />, available: true, description: 'Cloud Run, GCE', type: 'serverless' },
     ];
 
     // Estimate cost for a provider
@@ -1041,9 +1035,9 @@ function CloudDeployPanel() {
                     }}
                 >
                     {deployStatus.type === 'success' ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <StatusIcons.CheckCircleIcon size={16} />
                     ) : (
-                        <AlertCircle className="w-4 h-4" />
+                        <StatusIcons.AlertCircleIcon size={16} />
                     )}
                     {deployStatus.message}
                 </div>
@@ -1088,12 +1082,12 @@ function CloudDeployPanel() {
                         >
                             {isDeploying === provider.id ? (
                                 <>
-                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <StatusIcons.LoadingIcon size={12} className="animate-spin" />
                                     Deploying...
                                 </>
                             ) : (
                                 <>
-                                    <Cloud className="w-3 h-3" />
+                                    <StatusIcons.CloudIcon size={12} />
                                     Deploy
                                 </>
                             )}
@@ -1210,9 +1204,9 @@ function DatabasePanel() {
                     }}
                 >
                     {schemaStatus.type === 'success' ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <StatusIcons.CheckCircleIcon size={16} />
                     ) : (
-                        <AlertCircle className="w-4 h-4" />
+                        <StatusIcons.AlertCircleIcon size={16} />
                     )}
                     {schemaStatus.message}
                 </div>
@@ -1220,7 +1214,7 @@ function DatabasePanel() {
 
             <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                    <Database className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <StatusIcons.DatabaseIcon size={16} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>Database Status</span>
                 </div>
                 <div className="space-y-2 text-sm">
@@ -1243,7 +1237,7 @@ function DatabasePanel() {
             {/* Schema Generation */}
             <GlassCard onClick={() => setShowSchemaModal(true)}>
                 <div className="flex items-center gap-2 mb-3">
-                    <Layers className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <StatusIcons.LayersIcon size={16} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>Schema Generator</span>
                 </div>
                 <p className="text-sm" style={{ color: '#666' }}>
@@ -1264,7 +1258,7 @@ function DatabasePanel() {
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg" style={{ color: '#1a1a1a' }}>Generate Database Schema</h3>
                             <button onClick={() => setShowSchemaModal(false)}>
-                                <X className="w-5 h-5" style={{ color: '#666' }} />
+                                <StatusIcons.XIcon size={20} />
                             </button>
                         </div>
                         <textarea
@@ -1297,7 +1291,7 @@ function DatabasePanel() {
                                     opacity: isGenerating || !schemaDescription.trim() ? 0.5 : 1
                                 }}
                             >
-                                {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {isGenerating && <StatusIcons.LoadingIcon size={16} className="animate-spin" />}
                                 Generate Schema
                             </button>
                         </div>
@@ -1306,11 +1300,11 @@ function DatabasePanel() {
             )}
 
             <div className="flex gap-2">
-                <GlassButton icon={Layers} onClick={() => setShowSchemaModal(true)}>
+                <GlassButton icon={StatusIcons.LayersIcon} onClick={() => setShowSchemaModal(true)}>
                     Generate Schema
                 </GlassButton>
-                <GlassButton icon={Database} onClick={handleInitDatabase}>
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Init DB'}
+                <GlassButton icon={StatusIcons.DatabaseIcon} onClick={handleInitDatabase}>
+                    {isGenerating ? <StatusIcons.LoadingIcon size={16} className="animate-spin" /> : 'Init DB'}
                 </GlassButton>
             </div>
         </div>
@@ -1428,9 +1422,9 @@ function WorkflowsPanel() {
                     }}
                 >
                     {deployStatus.type === 'success' ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <StatusIcons.CheckCircleIcon size={16} />
                     ) : (
-                        <AlertCircle className="w-4 h-4" />
+                        <StatusIcons.AlertCircleIcon size={16} />
                     )}
                     {deployStatus.message}
                 </div>
@@ -1439,7 +1433,7 @@ function WorkflowsPanel() {
             {/* ComfyUI Section */}
             <GlassCard onClick={() => setShowImportModal(true)}>
                 <div className="flex items-center gap-2 mb-3">
-                    <Workflow className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <StatusIcons.WorkflowIcon size={16} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>ComfyUI</span>
                 </div>
                 <p className="text-sm" style={{ color: '#666' }}>
@@ -1465,7 +1459,7 @@ function WorkflowsPanel() {
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg" style={{ color: '#1a1a1a' }}>Import ComfyUI Workflow</h3>
                             <button onClick={() => setShowImportModal(false)}>
-                                <X className="w-5 h-5" style={{ color: '#666' }} />
+                                <StatusIcons.XIcon size={20} />
                             </button>
                         </div>
                         <div
@@ -1480,14 +1474,16 @@ function WorkflowsPanel() {
                                 id="workflow-upload"
                             />
                             <label htmlFor="workflow-upload" className="cursor-pointer">
-                                <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: '#c25a00' }} />
+                                <div className="flex justify-center mb-3">
+                                    <StatusIcons.UploadIcon size={40} />
+                                </div>
                                 <p className="font-medium" style={{ color: '#1a1a1a' }}>Drop workflow JSON here</p>
                                 <p className="text-sm mt-1" style={{ color: '#666' }}>or click to browse</p>
                             </label>
                         </div>
                         {isImporting && (
                             <div className="flex items-center justify-center gap-2 mt-4">
-                                <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#c25a00' }} />
+                                <StatusIcons.LoadingIcon size={16} className="animate-spin" />
                                 <span className="text-sm" style={{ color: '#666' }}>Validating workflow...</span>
                             </div>
                         )}
@@ -1498,7 +1494,7 @@ function WorkflowsPanel() {
             {/* HuggingFace Section */}
             <GlassCard onClick={() => setShowHFSearch(!showHFSearch)}>
                 <div className="flex items-center gap-2 mb-3">
-                    <Server className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <StatusIcons.ServerIcon size={16} />
                     <span className="font-medium" style={{ color: '#1a1a1a' }}>HuggingFace</span>
                 </div>
                 <p className="text-sm" style={{ color: '#666' }}>
@@ -1529,7 +1525,7 @@ function WorkflowsPanel() {
                             className="px-3 py-2 rounded-lg"
                             style={{ background: '#c25a00', color: 'white' }}
                         >
-                            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                            {isSearching ? <StatusIcons.LoadingIcon size={16} className="animate-spin" /> : <StatusIcons.SearchIcon size={16} />}
                         </button>
                     </div>
 
@@ -1565,7 +1561,7 @@ function WorkflowsPanel() {
                 </div>
             )}
 
-            <GlassButton icon={Workflow} onClick={() => setShowImportModal(true)}>
+            <GlassButton icon={StatusIcons.WorkflowIcon} onClick={() => setShowImportModal(true)}>
                 Import Workflow
             </GlassButton>
         </div>

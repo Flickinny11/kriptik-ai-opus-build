@@ -9,7 +9,8 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BrandIcon } from '@/components/icons/BrandIcons';
-import { ExternalLink, Eye, EyeOff, Lock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, LockIcon, CheckCircleIcon, AlertCircleIcon, LoadingIcon } from '../ui/icons';
+import { ExternalLink } from 'lucide-react';
 
 interface CredentialField {
     key: string;
@@ -93,7 +94,7 @@ export function CredentialRequest({
                 className
             )}>
                 <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircleIcon size={20} className="text-green-500" />
                     <span className="text-green-400 font-medium">
                         {integrationName} credentials saved successfully!
                     </span>
@@ -123,7 +124,7 @@ export function CredentialRequest({
                         Credentials required to continue
                     </p>
                 </div>
-                <Lock className="h-4 w-4 text-amber-500" />
+                <LockIcon size={16} className="text-amber-500" />
             </div>
 
             {/* Content */}
@@ -173,9 +174,9 @@ export function CredentialRequest({
                                         className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
                                     >
                                         {showPasswords[field.key] ? (
-                                            <EyeOff className="h-4 w-4" />
+                                            <EyeOffIcon size={16} className="h-4 w-4" />
                                         ) : (
-                                            <Eye className="h-4 w-4" />
+                                            <EyeIcon size={16} className="h-4 w-4" />
                                         )}
                                     </button>
                                 )}
@@ -189,7 +190,7 @@ export function CredentialRequest({
                     {/* Error */}
                     {error && (
                         <div className="flex items-center gap-2 text-red-400 text-sm">
-                            <AlertCircle className="h-4 w-4" />
+                            <AlertCircleIcon size={16} className="h-4 w-4" />
                             <span>{error}</span>
                         </div>
                     )}
@@ -203,12 +204,12 @@ export function CredentialRequest({
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <LoadingIcon size={16} className="h-4 w-4 mr-2 animate-spin" />
                                     Saving...
                                 </>
                             ) : (
                                 <>
-                                    <Lock className="h-4 w-4 mr-2" />
+                                    <LockIcon size={16} className="h-4 w-4 mr-2" />
                                     Save & Continue
                                 </>
                             )}
@@ -229,7 +230,7 @@ export function CredentialRequest({
 
                 {/* Security Note */}
                 <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
-                    <Lock className="h-3 w-3" />
+                    <LockIcon size={12} className="h-3 w-3" />
                     Your credentials are encrypted with AES-256-GCM and never leave your vault
                 </p>
             </div>

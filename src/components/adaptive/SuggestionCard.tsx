@@ -7,16 +7,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Zap,
-    Check,
-    X,
-    Code,
-    ChevronDown,
-    ChevronUp,
-    Sparkles,
-    AlertTriangle,
-    TrendingUp,
-} from 'lucide-react';
+    ZapIcon,
+    CheckIcon,
+    XIcon,
+    CodeIcon,
+    ChevronDownIcon,
+    ChevronRightIcon as ChevronUpIcon,
+    WarningIcon,
+    ActivityIcon,
+} from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -120,7 +119,7 @@ export function SuggestionCard({
                                     className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1"
                                     style={{ background: `${accentColor}20`, color: accentColor }}
                                 >
-                                    <Zap className="w-2.5 h-2.5" />
+                                    <ZapIcon size={10} />
                                     Auto
                                 </span>
                             )}
@@ -133,8 +132,9 @@ export function SuggestionCard({
                     {/* Impact score */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         <div className="flex items-center gap-1">
-                            <TrendingUp
-                                className="w-4 h-4"
+                            <ActivityIcon
+                                size={16}
+                                className="opacity-80"
                                 style={{ color: getImpactColor(suggestion.predictedImpact) }}
                             />
                             <span
@@ -152,9 +152,9 @@ export function SuggestionCard({
                     {/* Expand chevron */}
                     <button className="p-1 text-white/40 hover:text-white transition-colors">
                         {expanded ? (
-                            <ChevronUp className="w-5 h-5" />
+                            <ChevronUpIcon size={20} />
                         ) : (
-                            <ChevronDown className="w-5 h-5" />
+                            <ChevronDownIcon size={20} />
                         )}
                     </button>
                 </div>
@@ -166,12 +166,12 @@ export function SuggestionCard({
                     }`}>
                         {isApplied ? (
                             <>
-                                <Check className="w-4 h-4" />
+                                <CheckIcon size={16} />
                                 Applied
                             </>
                         ) : (
                             <>
-                                <X className="w-4 h-4" />
+                                <XIcon size={16} />
                                 Dismissed
                             </>
                         )}
@@ -205,7 +205,7 @@ export function SuggestionCard({
                                 }}
                                 className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
                             >
-                                <Code className="w-4 h-4" />
+                                <CodeIcon size={16} />
                                 {showCode ? 'Hide' : 'Show'} Code Changes
                             </button>
 
@@ -281,7 +281,7 @@ export function SuggestionCard({
                                             />
                                         ) : (
                                             <>
-                                                <Sparkles className="w-4 h-4" />
+                                                <ZapIcon size={16} />
                                                 Apply Change
                                             </>
                                         )}
@@ -302,7 +302,7 @@ export function SuggestionCard({
                             {/* Auto-apply warning */}
                             {suggestion.autoApply && suggestion.status === 'pending' && (
                                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                                    <WarningIcon size={16} className="flex-shrink-0 mt-0.5" />
                                     <p className="text-xs text-amber-400/80">
                                         This is a low-risk change that can be auto-applied.
                                         Review the changes above before applying.

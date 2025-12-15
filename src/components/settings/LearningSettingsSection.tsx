@@ -8,17 +8,15 @@
 
 import { motion } from 'framer-motion';
 import {
-    Brain,
-    Layers,
-    GitBranch,
-    Eye,
-    Sparkles,
-    Zap,
-    Code,
-    Palette,
-    AlertCircle,
-    Beaker,
-} from 'lucide-react';
+    BrainIcon,
+    LayersIcon,
+    WorkflowIcon,
+    EyeIcon,
+    ZapIcon,
+    CodeIcon,
+    AlertCircleIcon,
+    ActivityIcon,
+} from '../ui/icons';
 import { useLearningStore, type LearningPreferences } from '../../store/useLearningStore';
 
 // =============================================================================
@@ -30,7 +28,7 @@ interface ToggleProps {
     onChange: (enabled: boolean) => void;
     label: string;
     description?: string;
-    icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    icon?: React.ComponentType<{ size?: number; className?: string }>;
     disabled?: boolean;
 }
 
@@ -51,7 +49,7 @@ function Toggle({
                     className="p-2 rounded-lg"
                     style={{ background: 'rgba(255,180,140,0.2)' }}
                 >
-                    <Icon className="w-4 h-4" style={{ color: '#c25a00' }} />
+                    <Icon size={16} />
                 </div>
             )}
             <div className="flex-1 min-w-0">
@@ -127,7 +125,7 @@ export function LearningSettingsSection() {
                     className="p-2 rounded-lg"
                     style={{ background: 'rgba(255,180,140,0.2)' }}
                 >
-                    <Brain className="w-5 h-5" style={{ color: '#c25a00' }} />
+                    <BrainIcon size={20} />
                 </div>
                 <div>
                     <h2 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
@@ -175,7 +173,7 @@ export function LearningSettingsSection() {
                         border: '1px solid rgba(220, 38, 38, 0.2)'
                     }}
                 >
-                    <AlertCircle className="w-4 h-4" style={{ color: '#dc2626' }} />
+                    <AlertCircleIcon size={16} />
                     <span className="text-sm" style={{ color: '#dc2626' }}>{statusError}</span>
                 </div>
             )}
@@ -190,14 +188,14 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('autoCapture')}
                     label="Auto-capture builds"
                     description="Automatically collect learning data from every build"
-                    icon={Zap}
+                    icon={ZapIcon}
                 />
                 <Toggle
                     enabled={preferences.captureDecisions}
                     onChange={handleToggle('captureDecisions')}
                     label="Capture decisions"
                     description="Record AI decision-making processes"
-                    icon={GitBranch}
+                    icon={WorkflowIcon}
                     disabled={!preferences.autoCapture}
                 />
                 <Toggle
@@ -205,7 +203,7 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('captureCode')}
                     label="Capture code evolution"
                     description="Track how code changes across iterations"
-                    icon={Code}
+                    icon={CodeIcon}
                     disabled={!preferences.autoCapture}
                 />
                 <Toggle
@@ -213,7 +211,7 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('captureDesign')}
                     label="Capture design choices"
                     description="Record typography, color, and layout decisions"
-                    icon={Palette}
+                    icon={ActivityIcon}
                     disabled={!preferences.autoCapture}
                 />
                 <Toggle
@@ -221,7 +219,7 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('captureErrors')}
                     label="Capture error recoveries"
                     description="Learn from how errors are fixed"
-                    icon={AlertCircle}
+                    icon={AlertCircleIcon}
                     disabled={!preferences.autoCapture}
                 />
             </Section>
@@ -236,14 +234,14 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('useLearnedPatterns')}
                     label="Use learned patterns"
                     description="Apply patterns from successful past builds"
-                    icon={Layers}
+                    icon={LayersIcon}
                 />
                 <Toggle
                     enabled={preferences.patternSuggestions}
                     onChange={handleToggle('patternSuggestions')}
                     label="Show pattern suggestions"
                     description="Display relevant patterns while building"
-                    icon={Sparkles}
+                    icon={ZapIcon}
                     disabled={!preferences.useLearnedPatterns}
                 />
             </Section>
@@ -258,14 +256,14 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('useLearnedStrategies')}
                     label="Use learned strategies"
                     description="Select build approaches based on past success"
-                    icon={GitBranch}
+                    icon={WorkflowIcon}
                 />
                 <Toggle
                     enabled={preferences.allowExperimentalStrategies}
                     onChange={handleToggle('allowExperimentalStrategies')}
                     label="Allow experimental strategies"
                     description="Include new, unproven strategies in selection"
-                    icon={Beaker}
+                    icon={ActivityIcon}
                     disabled={!preferences.useLearnedStrategies}
                 />
             </Section>
@@ -280,21 +278,21 @@ export function LearningSettingsSection() {
                     onChange={handleToggle('showLearningStatus')}
                     label="Show learning status"
                     description="Display learning system status in dashboard"
-                    icon={Eye}
+                    icon={EyeIcon}
                 />
                 <Toggle
                     enabled={preferences.showInsightsInBuilder}
                     onChange={handleToggle('showInsightsInBuilder')}
                     label="Show insights in builder"
                     description="Display learning insights while building"
-                    icon={Brain}
+                    icon={BrainIcon}
                 />
                 <Toggle
                     enabled={preferences.compactLearningView}
                     onChange={handleToggle('compactLearningView')}
                     label="Compact view"
                     description="Use condensed layout for learning panels"
-                    icon={Layers}
+                    icon={LayersIcon}
                 />
             </Section>
 
@@ -303,7 +301,7 @@ export function LearningSettingsSection() {
                 className="glass-panel p-4 flex items-start gap-3"
                 style={{ background: 'rgba(255,180,140,0.1)' }}
             >
-                <Brain className="w-5 h-5 mt-0.5" style={{ color: '#c25a00' }} />
+                <BrainIcon size={20} className="mt-0.5" />
                 <div>
                     <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
                         Learning improves over time

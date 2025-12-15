@@ -11,16 +11,13 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Github,
-    GitBranch,
-    Loader2,
-    CheckCircle,
-    AlertCircle,
-    Star,
-    GitFork,
-    FileCode,
-    ExternalLink,
-} from 'lucide-react';
+    GitHubIcon,
+    LoadingIcon,
+    CheckCircleIcon,
+    AlertCircleIcon,
+    CodeIcon,
+    GlobeIcon
+} from '../ui/icons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
@@ -167,7 +164,7 @@ export default function GitHubImportModal({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-3 text-xl">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
-                            <Github className="h-5 w-5 text-white" />
+                            <GitHubIcon size={20} />
                         </div>
                         <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
                             Clone from GitHub
@@ -179,7 +176,7 @@ export default function GitHubImportModal({
                 {result ? (
                     <div className="space-y-4">
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                            <CheckCircle className="h-5 w-5 text-emerald-400" />
+                            <CheckCircleIcon size={20} />
                             <div>
                                 <p className="font-medium text-emerald-400">Import Complete!</p>
                                 <p className="text-sm text-slate-400">
@@ -214,7 +211,7 @@ export default function GitHubImportModal({
                                     handleClose();
                                 }}
                             >
-                                <FileCode className="h-4 w-4 mr-2" />
+                                <CodeIcon size={16} className="mr-2" />
                                 Open Project
                             </Button>
                         </div>
@@ -248,7 +245,7 @@ export default function GitHubImportModal({
                                         variant="secondary"
                                     >
                                         {isLoading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <LoadingIcon size={16} className="animate-spin" />
                                         ) : (
                                             'Fetch'
                                         )}
@@ -288,7 +285,7 @@ export default function GitHubImportModal({
                                             rel="noopener noreferrer"
                                             className="text-slate-400 hover:text-white transition-colors"
                                         >
-                                            <ExternalLink className="h-4 w-4" />
+                                            <GlobeIcon size={16} />
                                         </a>
                                     </div>
 
@@ -300,11 +297,11 @@ export default function GitHubImportModal({
                                             </span>
                                         )}
                                         <span className="flex items-center gap-1.5 text-slate-400">
-                                            <Star className="h-3.5 w-3.5" />
+                                            <span className="h-3.5 w-3.5">⭐</span>
                                             {repoInfo.stars.toLocaleString()}
                                         </span>
                                         <span className="flex items-center gap-1.5 text-slate-400">
-                                            <GitFork className="h-3.5 w-3.5" />
+                                            <span className="h-3.5 w-3.5">🔱</span>
                                             {repoInfo.forks.toLocaleString()}
                                         </span>
                                     </div>
@@ -316,7 +313,7 @@ export default function GitHubImportModal({
                                                 Branch
                                             </label>
                                             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700">
-                                                <GitBranch className="h-4 w-4 text-slate-500" />
+                                                <span className="text-slate-500">🌿</span>
                                                 <input
                                                     type="text"
                                                     value={branch}
@@ -352,7 +349,7 @@ export default function GitHubImportModal({
                                     exit={{ opacity: 0 }}
                                     className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400"
                                 >
-                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertCircleIcon size={16} />
                                     {error}
                                 </motion.div>
                             )}
@@ -374,12 +371,12 @@ export default function GitHubImportModal({
                             >
                                 {isImporting ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        <LoadingIcon size={16} className="mr-2 animate-spin" />
                                         Importing...
                                     </>
                                 ) : (
                                     <>
-                                        <Github className="h-4 w-4 mr-2" />
+                                        <GitHubIcon size={16} className="mr-2" />
                                         Import Repository
                                     </>
                                 )}

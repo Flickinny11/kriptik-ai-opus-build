@@ -6,11 +6,67 @@
  */
 
 import {
-    FileText, Settings, Hammer, Link2, TestTube,
-    Sparkles, Monitor, Check, Loader2, AlertCircle,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+    CheckIcon,
+    LoadingIcon,
+    SettingsIcon,
+    AlertCircleIcon,
+} from '../ui/icons';
 import { motion } from 'framer-motion';
+
+// Custom icons for build phases (using inline SVG)
+const FileTextIcon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+    </svg>
+);
+
+const HammerIcon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/>
+        <path d="M17.64 15 22 10.64"/>
+        <path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/>
+    </svg>
+);
+
+const Link2Icon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+        <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+);
+
+const TestTubeIcon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/>
+        <path d="M8.5 2h7"/>
+        <path d="M14.5 16h-5"/>
+    </svg>
+);
+
+const SparklesIcon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/>
+        <path d="M19 17v4"/>
+        <path d="M3 5h4"/>
+        <path d="M17 19h4"/>
+    </svg>
+);
+
+const MonitorIcon = ({ className, ...props }: { className?: string; size?: number }) => (
+    <svg className={className} width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+);
+
+type LucideIcon = React.FC<{ className?: string; size?: number }>;
 
 // ============================================================================
 // TYPES
@@ -58,49 +114,49 @@ const PHASE_CONFIG: Record<BuildPhase, {
     intent_lock: {
         name: 'Intent Lock',
         shortName: 'Intent',
-        icon: FileText,
+        icon: FileTextIcon,
         description: 'Creating the sacred contract',
         color: 'violet',
     },
     initialization: {
         name: 'Initialization',
         shortName: 'Init',
-        icon: Settings,
+        icon: SettingsIcon as any,
         description: 'Setting up artifacts & features',
         color: 'blue',
     },
     parallel_build: {
         name: 'Parallel Build',
         shortName: 'Build',
-        icon: Hammer,
+        icon: HammerIcon,
         description: 'Building features with AI agents',
         color: 'amber',
     },
     integration: {
         name: 'Integration',
         shortName: 'Integrate',
-        icon: Link2,
+        icon: Link2Icon,
         description: 'Checking connections & wiring',
         color: 'cyan',
     },
     testing: {
         name: 'Testing',
         shortName: 'Test',
-        icon: TestTube,
+        icon: TestTubeIcon,
         description: 'Running functional tests',
         color: 'emerald',
     },
     intent_satisfaction: {
         name: 'Intent Check',
         shortName: 'Verify',
-        icon: Sparkles,
+        icon: SparklesIcon,
         description: 'Final intent satisfaction gate',
         color: 'purple',
     },
     demo: {
         name: 'Browser Demo',
         shortName: 'Demo',
-        icon: Monitor,
+        icon: MonitorIcon,
         description: 'Showing the working app',
         color: 'rose',
     },
@@ -210,13 +266,13 @@ function PhaseStep({
                 whileTap={onClick ? { scale: 0.95 } : undefined}
             >
                 {info.status === 'complete' ? (
-                    <Check className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white`} />
+                    <CheckIcon size={compact ? 16 : 20} className="text-white" />
                 ) : info.status === 'active' ? (
-                    <Loader2 className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${styles.text} animate-spin`} />
+                    <LoadingIcon size={compact ? 16 : 20} className={`${styles.text} animate-spin`} />
                 ) : info.status === 'failed' ? (
-                    <AlertCircle className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${styles.text}`} />
+                    <AlertCircleIcon size={compact ? 16 : 20} className={styles.text} />
                 ) : (
-                    <Icon className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${styles.text}`} />
+                    <Icon className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${styles.text}`} size={compact ? 16 : 20} />
                 )}
 
                 {/* Progress Ring for Active Phase */}

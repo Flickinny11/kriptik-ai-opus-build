@@ -1,6 +1,6 @@
 import { useCollaborationStore } from '../../store/useCollaborationStore';
 import { ScrollArea } from '../ui/scroll-area';
-import { Activity } from 'lucide-react';
+import { ActivityIcon } from '../ui/icons';
 
 export default function ActivityFeed() {
     const { activityFeed } = useCollaborationStore();
@@ -8,7 +8,7 @@ export default function ActivityFeed() {
     return (
         <div className="p-4 border-t border-border">
             <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
-                <Activity className="h-4 w-4" />
+                <ActivityIcon size={16} className="" />
                 Activity
             </div>
             <ScrollArea className="h-[150px]">

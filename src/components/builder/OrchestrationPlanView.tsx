@@ -10,10 +10,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Zap, Play, Clock, ChevronDown, GitBranch,
-    Bot, Loader2, AlertCircle, Edit3, Trash2, Plus,
-    ArrowRight, DollarSign
-} from 'lucide-react';
+    CloseIcon,
+    ZapIcon,
+    LoadingIcon,
+    ClockIcon,
+    ChevronDownIcon,
+    WorkflowIcon,
+    BrainIcon,
+    AlertCircleIcon,
+    TrashIcon,
+    PlusIcon,
+    ArrowRightIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // Dark glass styling
@@ -197,7 +205,7 @@ export function OrchestrationPlanView({
                                 className="p-2 rounded-xl"
                                 style={{ background: `${accentColor}20` }}
                             >
-                                <GitBranch className="w-5 h-5" style={{ color: accentColor }} />
+                                <WorkflowIcon size={20} className="text-[#c8ff64]" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Orchestration Plan</h2>
@@ -210,7 +218,7 @@ export function OrchestrationPlanView({
                             onClick={onClose}
                             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                         >
-                            <X className="w-5 h-5 text-white/40" />
+                            <CloseIcon size={20} className="text-white/40" />
                         </button>
                     </div>
 
@@ -224,7 +232,7 @@ export function OrchestrationPlanView({
                     {error && (
                         <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
                             <div className="flex items-center gap-2 text-sm text-red-400">
-                                <AlertCircle className="w-4 h-4" />
+                                <AlertCircleIcon size={16} />
                                 {error}
                             </div>
                         </div>
@@ -251,7 +259,7 @@ export function OrchestrationPlanView({
                                         onClick={() => addTask(wave.wave)}
                                         className="flex items-center gap-1 px-2 py-1 text-xs text-white/60 hover:text-white/80 hover:bg-white/5 rounded transition-colors"
                                     >
-                                        <Plus className="w-3 h-3" />
+                                        <PlusIcon size={12} />
                                         Add Task
                                     </button>
                                 </div>
@@ -268,7 +276,7 @@ export function OrchestrationPlanView({
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <Bot className="w-4 h-4 text-cyan-400" />
+                                                        <BrainIcon size={16} className="text-cyan-400" />
                                                         {editingTask === task.id ? (
                                                             <input
                                                                 type="text"
@@ -291,7 +299,10 @@ export function OrchestrationPlanView({
                                                             onClick={() => setEditingTask(task.id)}
                                                             className="p-1 text-white/30 hover:text-white/60"
                                                         >
-                                                            <Edit3 className="w-3 h-3" />
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            </svg>
                                                         </button>
                                                     </div>
 
@@ -304,9 +315,9 @@ export function OrchestrationPlanView({
                                                                 )}
                                                                 className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
                                                             >
-                                                                <Zap className="w-3 h-3 text-cyan-400" />
+                                                                <ZapIcon size={12} className="text-cyan-400" />
                                                                 {AVAILABLE_MODELS.find(m => m.id === task.model)?.name || task.model}
-                                                                <ChevronDown className="w-3 h-3" />
+                                                                <ChevronDownIcon size={12} />
                                                             </button>
 
                                                             {showModelDropdown === task.id && (
@@ -329,18 +340,21 @@ export function OrchestrationPlanView({
                                                         </div>
 
                                                         <span className="flex items-center gap-1">
-                                                            <Clock className="w-3 h-3" />
+                                                            <ClockIcon size={12} />
                                                             {formatTime(task.estimatedTime)}
                                                         </span>
 
                                                         <span className="flex items-center gap-1">
-                                                            <DollarSign className="w-3 h-3" />
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+                                                                <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            </svg>
                                                             ~${(task.estimatedCredits * 0.01).toFixed(2)}
                                                         </span>
 
                                                         {task.dependencies.length > 0 && (
                                                             <span className="flex items-center gap-1">
-                                                                <ArrowRight className="w-3 h-3" />
+                                                                <ArrowRightIcon size={12} />
                                                                 Depends: {task.dependencies.join(', ')}
                                                             </span>
                                                         )}
@@ -351,7 +365,7 @@ export function OrchestrationPlanView({
                                                     onClick={() => removeTask(task.id)}
                                                     className="p-2 text-white/30 hover:text-red-400 transition-colors"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <TrashIcon size={16} />
                                                 </button>
                                             </div>
                                         </motion.div>
@@ -397,7 +411,7 @@ export function OrchestrationPlanView({
                                 disabled={executing}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-white/5 text-white/80 hover:bg-white/10 border border-white/10 transition-all disabled:opacity-50"
                             >
-                                <Zap className="w-4 h-4" />
+                                <ZapIcon size={16} />
                                 Run All Parallel ⚡
                             </button>
                             <button
@@ -410,9 +424,11 @@ export function OrchestrationPlanView({
                                 }}
                             >
                                 {executing ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <LoadingIcon size={16} className="animate-spin" />
                                 ) : (
-                                    <Play className="w-4 h-4" />
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                                        <path d="M5 3l14 9-14 9V3z" fill="currentColor"/>
+                                    </svg>
                                 )}
                                 Execute Plan
                             </button>

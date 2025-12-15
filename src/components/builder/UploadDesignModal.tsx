@@ -1,6 +1,13 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Camera, Image, Link, Loader2, FileImage, Check, AlertCircle } from 'lucide-react';
+import {
+  CloseIcon,
+  UploadIcon,
+  ImageIcon,
+  LoadingIcon,
+  CheckIcon,
+  AlertCircleIcon
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 import { UploadDesignIcon } from '../ui/AbstractIcons';
 import { apiClient, ImageToCodeResult } from '@/lib/api-client';
@@ -115,19 +122,19 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
   const methodOptions = [
     {
       id: 'file' as const,
-      icon: FileImage,
+      icon: ImageIcon,
       label: 'Upload File',
       description: 'Upload an image from your device'
     },
     {
       id: 'camera' as const,
-      icon: Camera,
+      icon: ImageIcon,
       label: 'Capture Photo',
       description: 'Take a photo with your camera'
     },
     {
       id: 'url' as const,
-      icon: Link,
+      icon: ImageIcon,
       label: 'Image URL',
       description: 'Paste a URL to an image'
     }
@@ -160,7 +167,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                 onClick={handleClose}
                 className="absolute right-4 top-4 p-2 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
               >
-                <X className="h-5 w-5" />
+                <CloseIcon size={20} />
               </button>
 
               <div className="flex items-center gap-4">
@@ -239,7 +246,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                           border: '1px solid rgba(251, 191, 36, 0.2)'
                         }}
                       >
-                        <option.icon className="h-5 w-5 text-amber-400" />
+                        <option.icon size={20} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-white group-hover:text-amber-400 transition-colors">
@@ -283,7 +290,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
 
                   {error && (
                     <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
+                      <AlertCircleIcon size={16} />
                       <span className="text-sm text-red-300">{error}</span>
                     </div>
                   )}
@@ -310,7 +317,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <LoadingIcon size={20} className="animate-spin" />
                         Converting...
                       </>
                     ) : (
@@ -341,7 +348,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                     ← Back
                   </button>
 
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-slate-500" />
+                  <UploadIcon size={48} className="mx-auto mb-4" />
                   <p className="text-slate-300 mb-2">
                     Drag and drop your image here
                   </p>
@@ -378,14 +385,14 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                       className="w-full max-h-64 object-contain"
                     />
                     <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                      <Check className="h-3 w-3 text-emerald-400" />
+                      <CheckIcon size={12} />
                       <span className="text-xs text-emerald-300">Ready</span>
                     </div>
                   </div>
 
                   {file && (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/30">
-                      <Image className="h-5 w-5 text-slate-400" />
+                      <ImageIcon size={20} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">{file.name}</p>
                         <p className="text-xs text-slate-500">
@@ -397,7 +404,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
 
                   {error && (
                     <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
+                      <AlertCircleIcon size={16} />
                       <span className="text-sm text-red-300">{error}</span>
                     </div>
                   )}
@@ -424,7 +431,7 @@ export default function UploadDesignModal({ open, onOpenChange, onComplete }: Up
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <LoadingIcon size={20} className="animate-spin" />
                         Converting to Code...
                       </>
                     ) : (

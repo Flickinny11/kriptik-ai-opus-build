@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
 import { useTemplateStore } from '../../store/useTemplateStore';
-import { Search, Users, Clock, Zap } from 'lucide-react';
+import { SearchIcon, UsersIcon, ClockIcon, ZapIcon } from '../ui/icons';
 
 const CATEGORIES = [
     { id: 'all', label: 'All Templates' },
@@ -45,7 +45,7 @@ export default function TemplateGallery() {
                 <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Search templates..."
                             value={searchQuery}
@@ -105,16 +105,16 @@ export default function TemplateGallery() {
                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                                             <div className="flex items-center gap-3">
                                                 <span className="flex items-center gap-1">
-                                                    <Users className="h-3 w-3" />
+                                                    <UsersIcon size={12} />
                                                     {template.useCount.toLocaleString()}
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
+                                                    <ClockIcon size={12} />
                                                     {template.estimatedTime}
                                                 </span>
                                             </div>
                                             <span className="flex items-center gap-1 text-primary">
-                                                <Zap className="h-3 w-3" />
+                                                <ZapIcon size={12} />
                                                 Free
                                             </span>
                                         </div>

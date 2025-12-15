@@ -10,26 +10,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Ghost,
-  Play,
-  Pause,
-  Square,
-  Clock,
-  Zap,
-  Bell,
-  CheckCircle,
-  AlertCircle,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Trash2,
-  Mail,
-  MessageSquare,
-  Smartphone,
-  Settings,
-  Shield,
-  LucideIcon
-} from 'lucide-react';
+  ClockIcon,
+  ZapIcon,
+  BellIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  TrashIcon,
+  CloseIcon,
+  SettingsIcon,
+  ShieldIcon,
+  MessageSquareIcon,
+  UserIcon,
+  type IconProps
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -98,14 +94,14 @@ interface GhostSessionSummary {
 // =============================================================================
 
 const StateIndicator: React.FC<{ state: GhostSessionState }> = ({ state }) => {
-  const stateConfig: Record<GhostSessionState, { color: string; icon: LucideIcon; label: string }> = {
-    idle: { color: 'text-slate-400', icon: Ghost, label: 'Idle' },
-    active: { color: 'text-emerald-400', icon: Play, label: 'Running' },
-    paused: { color: 'text-amber-400', icon: Pause, label: 'Paused' },
-    waiting_approval: { color: 'text-blue-400', icon: Clock, label: 'Waiting' },
-    error_recovery: { color: 'text-red-400', icon: AlertCircle, label: 'Error' },
-    completed: { color: 'text-emerald-400', icon: CheckCircle, label: 'Completed' },
-    wake_triggered: { color: 'text-purple-400', icon: Bell, label: 'Wake Triggered' }
+  const stateConfig: Record<GhostSessionState, { color: string; icon: React.FC<IconProps>; label: string }> = {
+    idle: { color: 'text-slate-400', icon: CloseIcon, label: 'Idle' },
+    active: { color: 'text-emerald-400', icon: ZapIcon, label: 'Running' },
+    paused: { color: 'text-amber-400', icon: ClockIcon, label: 'Paused' },
+    waiting_approval: { color: 'text-blue-400', icon: ClockIcon, label: 'Waiting' },
+    error_recovery: { color: 'text-red-400', icon: AlertCircleIcon, label: 'Error' },
+    completed: { color: 'text-emerald-400', icon: CheckCircleIcon, label: 'Completed' },
+    wake_triggered: { color: 'text-purple-400', icon: BellIcon, label: 'Wake Triggered' }
   };
 
   const config = stateConfig[state];
@@ -113,7 +109,7 @@ const StateIndicator: React.FC<{ state: GhostSessionState }> = ({ state }) => {
 
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-sm', config.color)}>
-      <Icon className="w-4 h-4" />
+      <Icon size={16} />
       {config.label}
     </span>
   );
@@ -139,7 +135,7 @@ const TaskEditor: React.FC<{
           onClick={onRemove}
           className="p-2 text-slate-500 hover:text-red-400 transition-colors"
         >
-          <Trash2 className="w-4 h-4" />
+          <TrashIcon size={16} />
         </button>
       </div>
 
@@ -207,11 +203,11 @@ const WakeConditionEditor: React.FC<{
     { value: 'time_elapsed', label: '⏰ After time elapsed' }
   ];
 
-  const channels: { value: NotificationChannel; label: string; icon: LucideIcon }[] = [
-    { value: 'email', label: 'Email', icon: Mail },
-    { value: 'sms', label: 'SMS', icon: Smartphone },
-    { value: 'slack', label: 'Slack', icon: MessageSquare },
-    { value: 'push', label: 'Push', icon: Bell }
+  const channels: { value: NotificationChannel; label: string; icon: React.FC<IconProps> }[] = [
+    { value: 'email', label: 'Email', icon: MessageSquareIcon },
+    { value: 'sms', label: 'SMS', icon: UserIcon },
+    { value: 'slack', label: 'Slack', icon: MessageSquareIcon },
+    { value: 'push', label: 'Push', icon: BellIcon }
   ];
 
   return (
@@ -230,7 +226,7 @@ const WakeConditionEditor: React.FC<{
           onClick={onRemove}
           className="p-2 text-slate-500 hover:text-red-400 transition-colors"
         >
-          <Trash2 className="w-4 h-4" />
+          <TrashIcon size={16} />
         </button>
       </div>
 
@@ -272,7 +268,7 @@ const WakeConditionEditor: React.FC<{
                     : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:border-slate-600/50'
                 )}
               >
-                <Icon className="w-3 h-3" />
+                <Icon size={12} />
                 {ch.label}
               </button>
             );
@@ -453,7 +449,7 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg">
-          <Ghost className="w-5 h-5 text-purple-400" />
+          <CloseIcon size={20} className="text-purple-400" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-white">Ghost Mode</h3>
@@ -476,7 +472,7 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
                   onClick={handlePause}
                   className="p-1.5 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30 transition-colors"
                 >
-                  <Pause className="w-4 h-4" />
+                  <ClockIcon size={16} />
                 </button>
               )}
               {activeSession.state === 'paused' && (
@@ -484,14 +480,14 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
                   onClick={handleResume}
                   className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
                 >
-                  <Play className="w-4 h-4" />
+                  <ZapIcon size={16} />
                 </button>
               )}
               <button
                 onClick={handleStop}
                 className="p-1.5 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
               >
-                <Square className="w-4 h-4" />
+                <CloseIcon size={16} />
               </button>
             </div>
           </div>
@@ -553,7 +549,7 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
                 onClick={addTask}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
               >
-                <Plus className="w-3 h-3" />
+                <PlusIcon size={12} />
                 Add Task
               </button>
             </div>
@@ -586,7 +582,7 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
                 onClick={addWakeCondition}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
               >
-                <Plus className="w-3 h-3" />
+                <PlusIcon size={12} />
                 Add Condition
               </button>
             </div>
@@ -615,8 +611,8 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
             onClick={() => setIsConfigExpanded(!isConfigExpanded)}
             className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 mb-2"
           >
-            {isConfigExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <Settings className="w-4 h-4" />
+            {isConfigExpanded ? <ChevronDownIcon size={16} /> : <ChevronRightIcon size={16} />}
+            <SettingsIcon size={16} />
             Advanced Settings
           </button>
 
@@ -667,9 +663,9 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
                               : 'bg-slate-800/50 text-slate-400 border border-slate-700/50'
                           )}
                         >
-                          {level === 'conservative' && <Shield className="w-3 h-3 inline mr-1" />}
-                          {level === 'moderate' && <Zap className="w-3 h-3 inline mr-1" />}
-                          {level === 'aggressive' && <Zap className="w-3 h-3 inline mr-1" />}
+                          {level === 'conservative' && <ShieldIcon size={12} className="inline mr-1" />}
+                          {level === 'moderate' && <ZapIcon size={12} className="inline mr-1" />}
+                          {level === 'aggressive' && <ZapIcon size={12} className="inline mr-1" />}
                           {level}
                         </button>
                       ))}
@@ -714,13 +710,13 @@ export const GhostModePanel: React.FC<GhostModePanelProps> = ({
             {isStarting ? (
               <>
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                  <Ghost className="w-5 h-5" />
+                  <CloseIcon size={20} />
                 </motion.div>
                 Starting Ghost Mode...
               </>
             ) : (
               <>
-                <Ghost className="w-5 h-5" />
+                <CloseIcon size={20} />
                 Enter Ghost Mode
               </>
             )}

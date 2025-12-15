@@ -14,11 +14,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Settings, Code2, User, Shield, Zap, Save,
-    X, Check, Loader2, Upload,
-    FileCode, Brain, GitBranch, Bell, Info,
-    AlertTriangle
-} from 'lucide-react';
+    SettingsIcon,
+    Code2Icon,
+    UserIcon,
+    ShieldIcon,
+    ZapIcon,
+    CheckIcon,
+    XIcon,
+    LoadingIcon,
+    UploadIcon,
+    CodeIcon,
+    BrainIcon,
+    WorkflowIcon,
+    BellIcon,
+    InfoIcon,
+    AlertCircleIcon
+} from '../ui/icons';
 import { apiClient } from '../../lib/api-client';
 import { useProjectStore } from '../../store/useProjectStore';
 import '../../styles/realistic-glass.css';
@@ -64,12 +75,12 @@ interface ProjectRules {
     priority: number;
 }
 
-const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'defaults', label: 'Defaults', icon: Settings },
-    { id: 'project-rules', label: 'Project Rules', icon: Code2 },
-    { id: 'my-rules', label: 'My Rules', icon: User },
-    { id: 'verification', label: 'Verification', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+const TABS: { id: TabId; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+    { id: 'defaults', label: 'Defaults', icon: SettingsIcon },
+    { id: 'project-rules', label: 'Project Rules', icon: Code2Icon },
+    { id: 'my-rules', label: 'My Rules', icon: UserIcon },
+    { id: 'verification', label: 'Verification', icon: ShieldIcon },
+    { id: 'notifications', label: 'Notifications', icon: BellIcon },
 ];
 
 const MODELS = [
@@ -234,7 +245,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 className="p-2 rounded-xl"
                                 style={{ background: `${accentColor}15` }}
                             >
-                                <Settings className="w-5 h-5" style={{ color: accentColor }} />
+                                <SettingsIcon size={20} />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Developer Mode Settings</h2>
@@ -247,7 +258,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                             onClick={onClose}
                             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                         >
-                            <X className="w-5 h-5 text-white/40" />
+                            <XIcon size={20} />
                         </button>
                     </div>
 
@@ -260,7 +271,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 exit={{ opacity: 0, y: -10 }}
                                 className="mx-6 mt-4 p-3 rounded-lg flex items-center gap-2 bg-red-500/10 border border-red-500/20"
                             >
-                                <AlertTriangle className="w-4 h-4 text-red-400" />
+                                <AlertCircleIcon size={16} />
                                 <span className="text-sm text-red-400">{error}</span>
                             </motion.div>
                         )}
@@ -271,7 +282,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 exit={{ opacity: 0, y: -10 }}
                                 className="mx-6 mt-4 p-3 rounded-lg flex items-center gap-2 bg-green-500/10 border border-green-500/20"
                             >
-                                <Check className="w-4 h-4 text-green-400" />
+                                <CheckIcon size={16} />
                                 <span className="text-sm text-green-400">{successMessage}</span>
                             </motion.div>
                         )}
@@ -295,7 +306,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                         background: `linear-gradient(145deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
                                     } : {}}
                                 >
-                                    <Icon className="w-4 h-4" />
+                                    <Icon size={16} />
                                     {tab.label}
                                 </button>
                             );
@@ -306,7 +317,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                     <div className="p-6 overflow-y-auto max-h-[calc(85vh-200px)]">
                         {loading ? (
                             <div className="flex items-center justify-center py-12">
-                                <Loader2 className="w-8 h-8 animate-spin text-white/30" />
+                                <LoadingIcon size={32} className="animate-spin" />
                             </div>
                         ) : (
                             <>
@@ -314,7 +325,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 {activeTab === 'defaults' && (
                                     <div className="space-y-6">
                                         <div className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <InfoIcon size={20} className="flex-shrink-0 mt-0.5" />
                                             <div className="text-sm text-white/60">
                                                 These settings control the default behavior for all agents you deploy.
                                                 Individual agents can override these settings during deployment.
@@ -376,12 +387,12 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                             <label className="text-sm font-medium text-white/80">Default Agent Behavior</label>
                                             <div className="space-y-2">
                                                 {[
-                                                    { key: 'autoCreateBranches', label: 'Auto-create branches for each agent', icon: GitBranch },
-                                                    { key: 'autoRunVerification', label: 'Auto-run verification after completion', icon: Shield },
-                                                    { key: 'extendedThinkingDefault', label: 'Extended thinking by default (more reasoning, slower)', icon: Brain },
-                                                    { key: 'autoFixOnFailure', label: 'Auto-fix on failure', icon: Zap },
-                                                    { key: 'includeTestsInContext', label: 'Include existing tests in agent context', icon: Code2 },
-                                                    { key: 'requireScreenshotProof', label: 'Require screenshot proof of functionality', icon: FileCode },
+                                                    { key: 'autoCreateBranches', label: 'Auto-create branches for each agent', icon: WorkflowIcon },
+                                                    { key: 'autoRunVerification', label: 'Auto-run verification after completion', icon: ShieldIcon },
+                                                    { key: 'extendedThinkingDefault', label: 'Extended thinking by default (more reasoning, slower)', icon: BrainIcon },
+                                                    { key: 'autoFixOnFailure', label: 'Auto-fix on failure', icon: ZapIcon },
+                                                    { key: 'includeTestsInContext', label: 'Include existing tests in agent context', icon: Code2Icon },
+                                                    { key: 'requireScreenshotProof', label: 'Require screenshot proof of functionality', icon: CodeIcon },
                                                 ].map((option) => {
                                                     const Icon = option.icon;
                                                     const key = option.key as keyof UserRules;
@@ -402,9 +413,9 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                                                 }`}
                                                                 style={userRules[key] ? { background: accentColor } : {}}
                                                             >
-                                                                {userRules[key] && <Check className="w-3 h-3 text-black" />}
+                                                                {userRules[key] && <CheckIcon size={12} />}
                                                             </div>
-                                                            <Icon className="w-4 h-4 text-white/50" />
+                                                            <Icon size={16} />
                                                             <span className="text-sm text-white/80">{option.label}</span>
                                                         </button>
                                                     );
@@ -439,7 +450,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                     <div className="space-y-6">
                                         {!currentProject ? (
                                             <div className="flex items-center gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                                                <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                                                <AlertCircleIcon size={20} />
                                                 <span className="text-sm text-yellow-400">
                                                     Select a project to configure project-specific rules
                                                 </span>
@@ -447,7 +458,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                         ) : (
                                             <>
                                                 <div className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                                    <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                                    <InfoIcon size={20} className="flex-shrink-0 mt-0.5" />
                                                     <div className="text-sm text-white/60">
                                                         <strong className="text-white/80">Project Rules</strong> are injected into every agent's
                                                         context when working on <span style={{ color: accentColor }}>{currentProject.name}</span>.
@@ -461,14 +472,14 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                                         onClick={() => importRulesFile('cursorrules')}
                                                         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20 text-sm text-white/60 hover:text-white/80 transition-all"
                                                     >
-                                                        <Upload className="w-4 h-4" />
+                                                        <UploadIcon size={16} />
                                                         Load from .cursorrules
                                                     </button>
                                                     <button
                                                         onClick={() => importRulesFile('clinerules')}
                                                         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20 text-sm text-white/60 hover:text-white/80 transition-all"
                                                     >
-                                                        <Upload className="w-4 h-4" />
+                                                        <UploadIcon size={16} />
                                                         Load from .clinerules
                                                     </button>
                                                 </div>
@@ -510,9 +521,9 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                                     }}
                                                 >
                                                     {saving ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        <LoadingIcon size={16} className="animate-spin" />
                                                     ) : (
-                                                        <Save className="w-4 h-4" />
+                                                        <CheckIcon size={16} />
                                                     )}
                                                     Save Project Rules
                                                 </button>
@@ -525,7 +536,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 {activeTab === 'my-rules' && (
                                     <div className="space-y-6">
                                         <div className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <InfoIcon size={20} className="flex-shrink-0 mt-0.5" />
                                             <div className="text-sm text-white/60">
                                                 <strong className="text-white/80">My Rules</strong> are your personal coding preferences
                                                 that apply to all agents across all projects. They have lower priority than project-specific rules.
@@ -559,7 +570,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                 {activeTab === 'verification' && (
                                     <div className="space-y-6">
                                         <div className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <InfoIcon size={20} className="flex-shrink-0 mt-0.5" />
                                             <div className="text-sm text-white/60">
                                                 Configure how strictly agents verify their work. Higher verification levels
                                                 catch more issues but take longer and cost more credits.
@@ -574,7 +585,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                                 >
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-3">
-                                                            <Shield className="w-5 h-5 text-white/50" />
+                                                            <ShieldIcon size={20} />
                                                             <span className="font-medium text-white/90">{mode.name}</span>
                                                         </div>
                                                         <span className="text-xs text-white/40">{mode.description}</span>
@@ -618,7 +629,7 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                                                             }`}
                                                             style={userRules[key] ? { background: accentColor } : {}}
                                                         >
-                                                            {userRules[key] && <Check className="w-3 h-3 text-black" />}
+                                                            {userRules[key] && <CheckIcon size={12} />}
                                                         </div>
                                                         <div>
                                                             <div className="text-sm text-white/80">{option.label}</div>
@@ -652,9 +663,9 @@ export function DeveloperModeSettings({ isOpen, onClose }: DeveloperModeSettings
                             }}
                         >
                             {saving ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <LoadingIcon size={16} className="animate-spin" />
                             ) : (
-                                <Save className="w-4 h-4" />
+                                <CheckIcon size={16} />
                             )}
                             Save Settings
                         </button>

@@ -14,12 +14,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import '../styles/realistic-glass.css';
-import {
-    User, CreditCard, Bell, Brain, Shield, Activity,
-    ChevronRight, Plus, Trash2, Check, Loader2,
-    Wallet, Settings2, Moon, Sun,
-    Globe, Zap
-} from 'lucide-react';
+import { StatusIcons } from '../components/ui/icons';
 import { cn } from '../lib/utils';
 import { apiClient } from '../lib/api-client';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -67,16 +62,16 @@ interface PaymentMethod {
     isDefault: boolean;
 }
 
-const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }> = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'billing', label: 'Billing & Credits', icon: Wallet },
-    { id: 'payment', label: 'Payment Methods', icon: CreditCard },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'ai', label: 'AI Preferences', icon: Brain },
-    { id: 'developer', label: 'Developer Options', icon: Settings2, badge: 'Advanced' },
-    { id: 'learning', label: 'Learning Engine', icon: Brain },
-    { id: 'privacy', label: 'Privacy', icon: Shield },
-    { id: 'usage', label: 'Usage History', icon: Activity },
+const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; badge?: string }> = [
+    { id: 'profile', label: 'Profile', icon: StatusIcons.UserIcon },
+    { id: 'billing', label: 'Billing & Credits', icon: StatusIcons.WalletIcon },
+    { id: 'payment', label: 'Payment Methods', icon: StatusIcons.CreditCardIcon },
+    { id: 'notifications', label: 'Notifications', icon: StatusIcons.BellIcon },
+    { id: 'ai', label: 'AI Preferences', icon: StatusIcons.BrainIcon },
+    { id: 'developer', label: 'Developer Options', icon: StatusIcons.SettingsIcon, badge: 'Advanced' },
+    { id: 'learning', label: 'Learning Engine', icon: StatusIcons.BrainIcon },
+    { id: 'privacy', label: 'Privacy', icon: StatusIcons.ShieldIcon },
+    { id: 'usage', label: 'Usage History', icon: StatusIcons.ActivityIcon },
 ];
 
 export default function SettingsPage() {
@@ -173,7 +168,7 @@ export default function SettingsPage() {
                 className="flex items-center justify-center min-h-screen"
                 style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
             >
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#c25a00' }} />
+                <StatusIcons.LoadingIcon size={32} className="animate-spin" />
             </div>
         );
     }
@@ -211,7 +206,7 @@ export default function SettingsPage() {
                                         )}
                                         style={{ justifyContent: 'flex-start' }}
                                     >
-                                        <tab.icon className={"w-5 h-5"} />
+                                        <tab.icon size={20} />
                                         <span className="font-medium">{tab.label}</span>
                                         {tab.badge && (
                                             <span
@@ -222,7 +217,7 @@ export default function SettingsPage() {
                                             </span>
                                         )}
                                         {activeTab === tab.id && (
-                                            <ChevronRight className="w-4 h-4 ml-auto" />
+                                            <StatusIcons.ChevronRightIcon size={16} className="ml-auto" />
                                         )}
                                     </button>
                                 ))}
@@ -297,7 +292,7 @@ export default function SettingsPage() {
                                                     className="w-16 h-16 rounded-2xl flex items-center justify-center"
                                                     style={{ background: 'rgba(255,180,140,0.2)' }}
                                                 >
-                                                    <Zap className="w-8 h-8" style={{ color: '#c25a00' }} />
+                                                    <StatusIcons.ZapIcon size={32} />
                                                 </div>
                                             </div>
                                             <p className="text-xs" style={{ color: '#666' }}>100 credits = $1.00</p>
@@ -325,7 +320,7 @@ export default function SettingsPage() {
                                                 onClick={handleTopUp}
                                                 className="glass-button glass-button--glow w-full flex items-center justify-center"
                                             >
-                                                <CreditCard className="w-4 h-4 mr-2" />
+                                                <StatusIcons.CreditCardIcon size={16} className="mr-2" />
                                                 Add {topUpAmount.toLocaleString()} Credits - ${(topUpAmount / 100).toFixed(2)}
                                             </button>
                                         </div>
@@ -381,17 +376,17 @@ export default function SettingsPage() {
                                         <div className="flex items-center justify-between mb-6">
                                             <h2 className="text-xl font-semibold" style={{ color: '#1a1a1a' }}>Payment Methods</h2>
                                             <button className="glass-button">
-                                                <Plus className="w-4 h-4 mr-2" />
+                                                <StatusIcons.PlusIcon size={16} className="mr-2" />
                                                 Add Card
                                             </button>
                                         </div>
 
                                         {paymentMethods.length === 0 ? (
                                             <div className="text-center py-12">
-                                                <CreditCard className="w-12 h-12 mx-auto mb-4" style={{ color: '#999' }} />
+                                                <StatusIcons.CreditCardIcon size={48} className="mx-auto mb-4" />
                                                 <p style={{ color: '#666' }}>No payment methods added</p>
                                                 <button className="glass-button glass-button--glow mt-4">
-                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    <StatusIcons.PlusIcon size={16} className="mr-2" />
                                                     Add Payment Method
                                                 </button>
                                             </div>
@@ -433,7 +428,7 @@ export default function SettingsPage() {
                                                                     className="glass-button glass-button--small"
                                                                     onClick={() => setDefaultPaymentMethod(method.id)}
                                                                 >
-                                                                    <Check className="w-4 h-4 mr-1" />
+                                                                    <StatusIcons.CheckIcon size={16} className="mr-1" />
                                                                     Set Default
                                                                 </button>
                                                             )}
@@ -442,7 +437,7 @@ export default function SettingsPage() {
                                                                 style={{ color: '#dc2626' }}
                                                                 onClick={() => removePaymentMethod(method.id)}
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <StatusIcons.TrashIcon size={16} />
                                                             </button>
                                                         </div>
                                                     </div>
@@ -550,9 +545,9 @@ export default function SettingsPage() {
                                                                 settings?.theme === theme && "glass-button--glow"
                                                             )}
                                                         >
-                                                            {theme === 'dark' && <Moon className="w-4 h-4" />}
-                                                            {theme === 'light' && <Sun className="w-4 h-4" />}
-                                                            {theme === 'system' && <Settings2 className="w-4 h-4" />}
+                                                            {theme === 'dark' && <StatusIcons.MoonIcon size={16} />}
+                                                            {theme === 'light' && <StatusIcons.SunIcon size={16} />}
+                                                            {theme === 'system' && <StatusIcons.SettingsIcon size={16} />}
                                                             <span className="capitalize">{theme}</span>
                                                         </button>
                                                     ))}
@@ -602,14 +597,14 @@ export default function SettingsPage() {
                                             <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a' }}>Data Management</h3>
                                             <div className="space-y-3">
                                                 <button className="glass-button w-full justify-start">
-                                                    <Globe className="w-4 h-4 mr-2" />
+                                                    <StatusIcons.GlobeIcon size={16} className="mr-2" />
                                                     Export My Data
                                                 </button>
                                                 <button
                                                     className="glass-button w-full justify-start"
                                                     style={{ color: '#dc2626' }}
                                                 >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                    <StatusIcons.TrashIcon size={16} className="mr-2" />
                                                     Delete Account
                                                 </button>
                                             </div>
@@ -622,7 +617,7 @@ export default function SettingsPage() {
                                     <div className="glass-panel p-6">
                                         <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Usage History</h2>
                                         <div className="text-center py-12">
-                                            <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: '#999' }} />
+                                            <StatusIcons.ActivityIcon size={48} className="mx-auto mb-4" />
                                             <p style={{ color: '#666' }}>Usage history will appear here</p>
                                             <p className="text-sm mt-2" style={{ color: '#999' }}>View your AI generations, token usage, and costs</p>
                                         </div>

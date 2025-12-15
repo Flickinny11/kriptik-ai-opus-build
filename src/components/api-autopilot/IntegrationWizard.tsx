@@ -7,16 +7,16 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ArrowLeft,
-    ArrowRight,
-    Check,
-    Loader2,
-    Key,
-    Code,
-    Play,
-    Copy,
-    CheckCircle2,
-} from 'lucide-react';
+    ArrowLeftIcon,
+    ArrowRightIcon,
+    CheckIcon,
+    LoadingIcon,
+    KeyIcon,
+    CodeIcon,
+    PlayIcon,
+    CopyIcon,
+    CheckCircle2Icon,
+} from '../ui/icons';
 import { CredentialForm } from './CredentialForm';
 import { CodePreview } from './CodePreview';
 import { TestRunner } from './TestRunner';
@@ -60,11 +60,11 @@ interface IntegrationWizardProps {
 
 type Step = 'credentials' | 'generate' | 'test' | 'complete';
 
-const STEPS: { id: Step; title: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'credentials', title: 'API Credentials', icon: Key },
-    { id: 'generate', title: 'Generate Code', icon: Code },
-    { id: 'test', title: 'Test Connection', icon: Play },
-    { id: 'complete', title: 'Complete', icon: Check },
+const STEPS: { id: Step; title: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+    { id: 'credentials', title: 'API Credentials', icon: KeyIcon },
+    { id: 'generate', title: 'Generate Code', icon: CodeIcon },
+    { id: 'test', title: 'Test Connection', icon: PlayIcon },
+    { id: 'complete', title: 'Complete', icon: CheckIcon },
 ];
 
 export function IntegrationWizard({
@@ -276,9 +276,9 @@ export function IntegrationWizard({
                                     }}
                                 >
                                     {isCompleted ? (
-                                        <Check className="w-5 h-5" />
+                                        <CheckIcon size={20} />
                                     ) : (
-                                        <Icon className="w-5 h-5" />
+                                        <Icon size={20} />
                                     )}
                                 </div>
                                 <span className={`text-xs mt-2 ${isActive ? 'text-white' : 'text-white/40'}`}>
@@ -355,7 +355,7 @@ export function IntegrationWizard({
                                         className="w-20 h-20 rounded-2xl flex items-center justify-center"
                                         style={{ background: `${accentColor}20` }}
                                     >
-                                        <Code className="w-10 h-10" style={{ color: accentColor }} />
+                                        <CodeIcon size={40} className="text-[#c8ff64]" />
                                     </div>
                                     <div className="text-center">
                                         <h3 className="text-lg font-semibold text-white mb-2">
@@ -373,9 +373,9 @@ export function IntegrationWizard({
                                         style={{ background: accentColor, color: 'black' }}
                                     >
                                         {isLoading ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <LoadingIcon size={16} className="animate-spin" />
                                         ) : (
-                                            <Code className="w-4 h-4" />
+                                            <CodeIcon size={16} />
                                         )}
                                         Generate Code
                                     </button>
@@ -418,7 +418,7 @@ export function IntegrationWizard({
                                 className="w-20 h-20 rounded-full flex items-center justify-center"
                                 style={{ background: accentColor }}
                             >
-                                <CheckCircle2 className="w-10 h-10 text-black" />
+                                <CheckCircle2Icon size={40} className="text-black" />
                             </motion.div>
                             <div>
                                 <h3 className="text-xl font-semibold text-white mb-2">
@@ -435,7 +435,7 @@ export function IntegrationWizard({
                                         onClick={() => navigator.clipboard.writeText(generatedCode.serviceContent)}
                                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
                                     >
-                                        <Copy className="w-4 h-4" />
+                                        <CopyIcon size={16} />
                                         Copy Code
                                     </button>
                                     <button
@@ -443,7 +443,7 @@ export function IntegrationWizard({
                                         className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all"
                                         style={{ background: accentColor, color: 'black' }}
                                     >
-                                        <Check className="w-4 h-4" />
+                                        <CheckIcon size={16} />
                                         Done
                                     </button>
                                 </div>
@@ -460,7 +460,7 @@ export function IntegrationWizard({
                         onClick={currentStepIndex === 0 ? onCancel : () => setCurrentStep(STEPS[currentStepIndex - 1].id)}
                         className="flex items-center gap-2 px-4 py-2 text-white/60 hover:text-white transition-colors"
                     >
-                        <ArrowLeft className="w-4 h-4" />
+                        <ArrowLeftIcon size={16} />
                         {currentStepIndex === 0 ? 'Cancel' : 'Back'}
                     </button>
 
@@ -471,7 +471,7 @@ export function IntegrationWizard({
                             style={{ background: accentColor, color: 'black' }}
                         >
                             Continue
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRightIcon size={16} />
                         </button>
                     )}
 

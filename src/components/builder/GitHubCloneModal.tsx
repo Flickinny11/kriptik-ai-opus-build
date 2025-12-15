@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Link, GitBranch, RefreshCw, AlertCircle, Check, Loader2, Lock, ExternalLink, FolderGit2 } from 'lucide-react';
+import { CloseIcon, WorkflowIcon, RefreshIcon, AlertCircleIcon, CheckIcon, LoadingIcon, LockIcon } from '../ui/icons';
 import { cn } from '@/lib/utils';
 // GitHub clone/sync modal
 
@@ -108,7 +108,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                 onClick={handleClose}
                 className="absolute right-4 top-4 p-2 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
               >
-                <X className="h-5 w-5" />
+                <CloseIcon size={20} />
               </button>
 
               <div className="flex items-center gap-4">
@@ -143,7 +143,10 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                 )}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <FolderGit2 className="h-4 w-4" />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                   Clone Repo
                 </div>
                 {tab === 'clone' && (
@@ -161,7 +164,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                 )}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshIcon size={16} />
                   Sync with GitHub
                 </div>
                 {tab === 'sync' && (
@@ -180,7 +183,10 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                   {/* Repo URL input */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Link className="h-4 w-4" />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       Repository URL
                     </label>
                     <input
@@ -205,7 +211,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                   {/* Branch input */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <GitBranch className="h-4 w-4" />
+                      <WorkflowIcon size={16} />
                       Branch
                     </label>
                     <input
@@ -225,7 +231,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
 
                   {error && (
                     <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
+                      <AlertCircleIcon size={16} className="text-red-400" />
                       <span className="text-sm text-red-300">{error}</span>
                     </div>
                   )}
@@ -253,12 +259,15 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <LoadingIcon size={20} className="animate-spin" />
                         Cloning Repository...
                       </>
                     ) : (
                       <>
-                        <FolderGit2 className="h-5 w-5" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
                         Clone Repository
                       </>
                     )}
@@ -273,7 +282,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                     <>
                       <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
                         <div className="flex gap-3">
-                          <Lock className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <LockIcon size={20} className="text-amber-400 flex-shrink-0 mt-0.5" />
                           <div>
                             <h3 className="font-semibold text-amber-300 text-sm">GitHub OAuth Required</h3>
                             <p className="text-sm text-amber-200/70 mt-1">
@@ -304,11 +313,11 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                       {/* Setup instructions */}
                       <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30 space-y-3">
                         <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-blue-400" />
+                          <AlertCircleIcon size={16} className="text-blue-400" />
                           Setup Required (For App Owner)
                         </h4>
                         <ol className="text-sm text-slate-400 space-y-2 list-decimal list-inside">
-                          <li>Create a GitHub OAuth App at <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">github.com/settings/developers <ExternalLink className="h-3 w-3" /></a></li>
+                          <li>Create a GitHub OAuth App at <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">github.com/settings/developers <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="h-3 w-3"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></a></li>
                           <li>Set callback URL to <code className="px-1.5 py-0.5 rounded bg-slate-700 text-xs">{window.location.origin}/api/auth/callback/github</code></li>
                           <li>Add <code className="px-1.5 py-0.5 rounded bg-slate-700 text-xs">GITHUB_CLIENT_ID</code> and <code className="px-1.5 py-0.5 rounded bg-slate-700 text-xs">GITHUB_CLIENT_SECRET</code> to environment variables</li>
                           <li>Enable GitHub provider in auth configuration</li>
@@ -318,7 +327,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                   ) : (
                     <>
                       <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                        <Check className="h-5 w-5 text-emerald-400" />
+                        <CheckIcon size={20} className="text-emerald-400" />
                         <div>
                           <p className="text-sm font-medium text-emerald-300">Connected to GitHub</p>
                           <p className="text-xs text-emerald-400/70">username@github.com</p>
@@ -353,7 +362,7 @@ export default function GitHubCloneModal({ open, onOpenChange, onComplete }: Git
                           "hover:translate-y-[1px]"
                         )}
                       >
-                        <RefreshCw className="h-5 w-5" />
+                        <RefreshIcon size={20} />
                         Enable Sync
                       </button>
                     </>

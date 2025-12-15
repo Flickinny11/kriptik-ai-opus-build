@@ -8,10 +8,21 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Video, Upload, Code2, Palette, Layers,
-    Loader2, CheckCircle2, AlertCircle, X, Zap,
-    Download, RefreshCw, Clock, FileCode2, Sparkles
-} from 'lucide-react';
+    ActivityIcon as VideoIcon,
+    UploadIcon,
+    Code2Icon,
+    GlobeIcon as PaletteIcon,
+    LayersIcon,
+    LoadingIcon,
+    CheckCircleIcon,
+    AlertCircleIcon,
+    XIcon,
+    ZapIcon,
+    DownloadIcon,
+    RefreshIcon,
+    ClockIcon,
+    CodeIcon as FileCode2Icon,
+} from '../ui/icons';
 import { apiClient } from '../../lib/api-client';
 import { FrameTimeline } from './FrameTimeline';
 import { DesignDNAPreview } from './DesignDNAPreview';
@@ -357,7 +368,7 @@ export function CloneModePanel({
                                 className="p-2 rounded-xl"
                                 style={{ background: accentGlow }}
                             >
-                                <Video className="w-5 h-5" style={{ color: accentColor }} />
+                                <VideoIcon size={20} className="text-[#c8ff64]" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Clone Mode</h2>
@@ -370,7 +381,7 @@ export function CloneModePanel({
                                     onClick={handleReset}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all"
                                 >
-                                    <RefreshCw className="w-4 h-4" />
+                                    <RefreshIcon size={16} />
                                     Start Over
                                 </button>
                             )}
@@ -378,7 +389,7 @@ export function CloneModePanel({
                                 onClick={onClose}
                                 className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                             >
-                                <X className="w-5 h-5 text-white/40" />
+                                <XIcon size={20} className="text-white/40" />
                             </button>
                         </div>
                     </div>
@@ -390,13 +401,13 @@ export function CloneModePanel({
                             {/* Error Display */}
                             {error && (
                                 <div className="mb-6 flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                                    <AlertCircleIcon size={20} className="text-red-400 flex-shrink-0" />
                                     <p className="text-sm text-red-400">{error}</p>
                                     <button
                                         onClick={() => setError(null)}
                                         className="ml-auto p-1 hover:bg-red-500/20 rounded"
                                     >
-                                        <X className="w-4 h-4 text-red-400" />
+                                        <XIcon size={16} className="text-red-400" />
                                     </button>
                                 </div>
                             )}
@@ -454,7 +465,7 @@ export function CloneModePanel({
                                             className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center"
                                             style={{ background: accentGlow }}
                                         >
-                                            <Upload className="w-10 h-10" style={{ color: accentColor }} />
+                                            <UploadIcon size={40} className="text-[#c8ff64]" />
                                         </div>
                                         <h3 className="text-lg font-medium text-white mb-2">
                                             Drop your screen recording here
@@ -464,11 +475,11 @@ export function CloneModePanel({
                                         </p>
                                         <div className="flex items-center justify-center gap-6 text-xs text-white/30">
                                             <span className="flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
+                                                <ClockIcon size={12} />
                                                 Max 5 minutes
                                             </span>
                                             <span className="flex items-center gap-1">
-                                                <Layers className="w-3 h-3" />
+                                                <LayersIcon size={12} />
                                                 Up to 30 keyframes
                                             </span>
                                         </div>
@@ -477,7 +488,7 @@ export function CloneModePanel({
                                     {/* Tips */}
                                     <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
                                         <h4 className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4" style={{ color: accentColor }} />
+                                            <ZapIcon size={16} className="text-[#c8ff64]" />
                                             Tips for best results
                                         </h4>
                                         <ul className="text-xs text-white/50 space-y-2">
@@ -497,7 +508,7 @@ export function CloneModePanel({
                                         className="w-24 h-24 rounded-2xl flex items-center justify-center mb-6"
                                         style={{ background: accentGlow }}
                                     >
-                                        <Loader2 className="w-12 h-12 animate-spin" style={{ color: accentColor }} />
+                                        <LoadingIcon size={48} className="text-[#c8ff64] animate-spin" />
                                     </div>
                                     <h3 className="text-lg font-medium text-white mb-2">Analyzing Video</h3>
                                     <p className="text-sm text-white/50 mb-6">{message}</p>
@@ -611,14 +622,14 @@ export function CloneModePanel({
                                             onClick={() => setShowDesignDNA(true)}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
                                         >
-                                            <Palette className="w-4 h-4" />
+                                            <PaletteIcon size={16} />
                                             View Design DNA
                                         </button>
                                         <button
                                             onClick={() => setShowComponents(true)}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
                                         >
-                                            <Layers className="w-4 h-4" />
+                                            <LayersIcon size={16} />
                                             View Components
                                         </button>
                                         <button
@@ -629,7 +640,7 @@ export function CloneModePanel({
                                                 color: '#000'
                                             }}
                                         >
-                                            <Zap className="w-4 h-4" />
+                                            <ZapIcon size={16} />
                                             Generate Code
                                         </button>
                                     </div>
@@ -643,11 +654,11 @@ export function CloneModePanel({
                                         className="w-24 h-24 rounded-2xl flex items-center justify-center mb-6"
                                         style={{ background: accentGlow }}
                                     >
-                                        <Code2 className="w-12 h-12 animate-pulse" style={{ color: accentColor }} />
+                                        <Code2Icon size={48} className="text-[#c8ff64] animate-pulse" />
                                     </div>
                                     <h3 className="text-lg font-medium text-white mb-2">Generating Code</h3>
                                     <p className="text-sm text-white/50 mb-6">{message}</p>
-                                    <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+                                    <LoadingIcon size={24} className="animate-spin text-white/30" />
                                 </div>
                             )}
 
@@ -656,7 +667,7 @@ export function CloneModePanel({
                                 <div className="space-y-6">
                                     {/* Success Header */}
                                     <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                                        <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                                        <CheckCircleIcon size={32} className="text-emerald-400" />
                                         <div>
                                             <h3 className="text-lg font-medium text-white">Code Generated Successfully</h3>
                                             <p className="text-sm text-white/50">
@@ -674,7 +685,7 @@ export function CloneModePanel({
                                             >
                                                 <div className="flex items-center justify-between px-4 py-3 bg-white/[0.03]">
                                                     <div className="flex items-center gap-2">
-                                                        <FileCode2 className="w-4 h-4" style={{ color: accentColor }} />
+                                                        <FileCode2Icon size={16} className="text-[#c8ff64]" />
                                                         <span className="text-sm font-medium text-white">{component.name}</span>
                                                         <span className="text-xs text-white/40">{component.path}</span>
                                                     </div>
@@ -703,7 +714,7 @@ export function CloneModePanel({
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
                                         >
-                                            <Download className="w-4 h-4" />
+                                            <DownloadIcon size={16} />
                                             Copy All Code
                                         </button>
                                         <button
@@ -714,7 +725,7 @@ export function CloneModePanel({
                                                 color: '#000'
                                             }}
                                         >
-                                            <RefreshCw className="w-4 h-4" />
+                                            <RefreshIcon size={16} />
                                             Clone Another
                                         </button>
                                     </div>
@@ -750,14 +761,14 @@ export function CloneModePanel({
                         >
                             <div className="flex items-center justify-between p-4 border-b border-white/5">
                                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                                    <Layers className="w-5 h-5" style={{ color: accentColor }} />
+                                    <LayersIcon size={20} className="text-[#c8ff64]" />
                                     Suggested Components
                                 </h3>
                                 <button
                                     onClick={() => setShowComponents(false)}
                                     className="p-2 hover:bg-white/5 rounded-lg"
                                 >
-                                    <X className="w-4 h-4 text-white/40" />
+                                    <XIcon size={16} className="text-white/40" />
                                 </button>
                             </div>
                             <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">

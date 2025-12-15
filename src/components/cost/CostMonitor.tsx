@@ -1,7 +1,7 @@
 
 import { useCostStore } from '../../store/useCostStore';
 import { Progress } from '../ui/progress';
-import { Coins, Zap } from 'lucide-react';
+import { CoinsIcon, ZapIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
 
 export default function CostMonitor() {
@@ -16,7 +16,7 @@ export default function CostMonitor() {
         <div className="bg-card border border-border rounded-lg p-3 w-full max-w-[300px] shadow-sm">
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                    <Zap className="h-4 w-4 text-yellow-500" />
+                    <ZapIcon size={16} className="text-yellow-500" />
                     Generation Cost
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -32,7 +32,7 @@ export default function CostMonitor() {
             <div className="flex justify-between items-center text-xs">
                 <span className="text-muted-foreground">Rate: 0.5/min</span>
                 <div className="flex items-center gap-1">
-                    <Coins className="h-3 w-3 text-muted-foreground" />
+                    <CoinsIcon size={12} className="text-muted-foreground" />
                     <span>{balance.available} remaining</span>
                 </div>
             </div>

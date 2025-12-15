@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDeploymentStore } from '../../store/useDeploymentStore';
 import { ScrollArea } from '../ui/scroll-area';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { LoadingIcon, CheckCircleIcon, AlertCircleIcon } from '../ui/icons';
 import { Progress } from '../ui/progress';
 
 export default function DeploymentStatus() {
@@ -41,9 +41,9 @@ export default function DeploymentStatus() {
                                     {new Date(log.timestamp).toLocaleTimeString()}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                    {log.type === 'info' && <Loader2 className="h-3 w-3 animate-spin" />}
-                                    {log.type === 'success' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                                    {log.type === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
+                                    {log.type === 'info' && <LoadingIcon size={12} className="animate-spin" />}
+                                    {log.type === 'success' && <CheckCircleIcon size={12} className="text-green-500" />}
+                                    {log.type === 'error' && <AlertCircleIcon size={12} className="text-red-500" />}
                                     <span className={log.type === 'error' ? 'text-red-400' : ''}>
                                         {log.message}
                                     </span>

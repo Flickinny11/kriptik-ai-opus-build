@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { Keyboard } from 'lucide-react';
+import { KeyboardIcon } from '../ui/icons';
 import { useEffect } from 'react';
 
 export default function KeyboardShortcutsPanel() {
@@ -38,7 +38,7 @@ export default function KeyboardShortcutsPanel() {
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Keyboard className="h-5 w-5" />
+                        <KeyboardIcon size={20} />
                         Keyboard Shortcuts
                     </DialogTitle>
                 </DialogHeader>

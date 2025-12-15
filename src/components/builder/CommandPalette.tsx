@@ -9,13 +9,13 @@ import {
     CommandSeparator
 } from '../ui/command';
 import {
-    Settings,
-    FileCode,
-    Rocket,
-    Sparkles,
-    Search,
-    LayoutTemplate
-} from 'lucide-react';
+    SettingsIcon,
+    FileCodeIcon,
+    RocketIcon,
+    SparklesIcon,
+    SearchIcon,
+    LayoutTemplateIcon
+} from '../../components/ui/icons';
 import { useEditorStore } from '../../store/useEditorStore';
 import { useAgentStore } from '../../store/useAgentStore';
 
@@ -49,11 +49,11 @@ export default function CommandPalette() {
 
                 <CommandGroup heading="AI Actions">
                     <CommandItem onSelect={() => runCommand(() => setGlobalStatus('running'))}>
-                        <Sparkles className="mr-2 h-4 w-4" />
+                        <SparklesIcon size={16} className="mr-2" />
                         <span>Generate Component</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand(() => setGlobalStatus('running'))}>
-                        <Sparkles className="mr-2 h-4 w-4" />
+                        <SparklesIcon size={16} className="mr-2" />
                         <span>Refactor Current File</span>
                     </CommandItem>
                 </CommandGroup>
@@ -62,15 +62,15 @@ export default function CommandPalette() {
 
                 <CommandGroup heading="Navigation">
                     <CommandItem onSelect={() => runCommand(() => setActiveFile('src/App.tsx'))}>
-                        <FileCode className="mr-2 h-4 w-4" />
+                        <FileCodeIcon size={16} className="mr-2" />
                         <span>Go to App.tsx</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand(() => setActiveFile('src/components/Hero.tsx'))}>
-                        <FileCode className="mr-2 h-4 w-4" />
+                        <FileCodeIcon size={16} className="mr-2" />
                         <span>Go to Hero.tsx</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand(() => toggleSelectionMode())}>
-                        <Search className="mr-2 h-4 w-4" />
+                        <SearchIcon size={16} className="mr-2" />
                         <span>Toggle Element Selector</span>
                     </CommandItem>
                 </CommandGroup>
@@ -79,11 +79,11 @@ export default function CommandPalette() {
 
                 <CommandGroup heading="Editor">
                     <CommandItem onSelect={() => runCommand(() => toggleSplitView())}>
-                        <LayoutTemplate className="mr-2 h-4 w-4" />
+                        <LayoutTemplateIcon size={16} className="mr-2" />
                         <span>Toggle Split View</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand(() => console.log('Format'))}>
-                        <Settings className="mr-2 h-4 w-4" />
+                        <SettingsIcon size={16} className="mr-2" />
                         <span>Format Document</span>
                     </CommandItem>
                 </CommandGroup>
@@ -92,7 +92,7 @@ export default function CommandPalette() {
 
                 <CommandGroup heading="Project">
                     <CommandItem onSelect={() => runCommand(() => console.log('Deploy'))}>
-                        <Rocket className="mr-2 h-4 w-4" />
+                        <RocketIcon size={16} className="mr-2" />
                         <span>Deploy to Production</span>
                     </CommandItem>
                 </CommandGroup>

@@ -6,7 +6,7 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug, ChevronDown, ChevronUp } from 'lucide-react';
+import { WarningIcon, RefreshIcon, ErrorIcon, ChevronDownIcon } from './icons';
 import { Button } from './button';
 
 // ============================================================================
@@ -154,7 +154,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                             : 'bg-amber-500/20 text-amber-400'
                                         }
                                     `}>
-                                        <AlertTriangle className="w-6 h-6" />
+                                        <WarningIcon size={24} />
                                     </div>
                                     <div className="flex-1">
                                         <h2 className="text-xl font-semibold text-white">
@@ -173,12 +173,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                             onClick={this.toggleDetails}
                                             className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
                                         >
-                                            <Bug className="w-4 h-4" />
+                                            <ErrorIcon size={16} />
                                             <span>Technical Details</span>
                                             {this.state.showDetails ? (
-                                                <ChevronUp className="w-4 h-4" />
+                                                <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                                    <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
                                             ) : (
-                                                <ChevronDown className="w-4 h-4" />
+                                                <ChevronDownIcon size={16} />
                                             )}
                                         </button>
 
@@ -207,7 +209,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                         variant="default"
                                         className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black"
                                     >
-                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        <RefreshIcon size={16} className="mr-2" />
                                         Try Again
                                     </Button>
 
@@ -216,7 +218,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                         variant="outline"
                                         className="border-white/10 hover:border-white/20"
                                     >
-                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        <RefreshIcon size={16} className="mr-2" />
                                         Reload Page
                                     </Button>
 
@@ -226,7 +228,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                             variant="ghost"
                                             className="text-slate-400 hover:text-white"
                                         >
-                                            <Home className="w-4 h-4 mr-2" />
+                                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" className="mr-2">
+                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
                                             Go Home
                                         </Button>
                                     )}
@@ -325,12 +330,12 @@ export function ErrorFallback({
     return (
         <div className="flex flex-col items-center justify-center p-6 text-center">
             <div className="p-3 rounded-xl bg-amber-500/20 text-amber-400 mb-4">
-                <AlertTriangle className="w-6 h-6" />
+                <WarningIcon size={24} />
             </div>
             <p className="text-slate-400 mb-4">{message}</p>
             {onRetry && (
                 <Button onClick={onRetry} variant="outline" size="sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <RefreshIcon size={16} className="mr-2" />
                     Retry
                 </Button>
             )}

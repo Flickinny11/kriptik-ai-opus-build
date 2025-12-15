@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { useIntegrationStore } from '../../store/useIntegrationStore';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { LoadingIcon as Loader2, CheckCircleIcon as CheckCircle } from '../ui/icons';
 
 export default function IntegrationSetupModal() {
     const { activeIntegration, setActiveIntegration, integrations, installIntegration } = useIntegrationStore();
@@ -86,14 +86,14 @@ export default function IntegrationSetupModal() {
 
                     {step === 'installing' && (
                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <Loader2 size={32} className="animate-spin text-primary" />
                             <p className="text-sm text-muted-foreground">Generating code and configuring services...</p>
                         </div>
                     )}
 
                     {step === 'success' && (
                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                            <CheckCircle className="h-8 w-8 text-green-500" />
+                            <CheckCircle size={32} className="text-green-500" />
                             <p className="text-sm font-medium">Integration installed successfully!</p>
                         </div>
                     )}

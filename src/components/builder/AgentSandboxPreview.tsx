@@ -15,15 +15,86 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    RefreshCw, Smartphone, Tablet, Monitor, Terminal,
-    ExternalLink, GitBranch, CheckCircle2, XCircle,
-    Maximize2, Minimize2, Code2, Eye, Split, Play, Pause,
-    MessageSquare, GitPullRequest,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+    RefreshIcon,
+    ArrowRightIcon,
+    CheckCircleIcon,
+    EyeIcon,
+    MessageSquareIcon,
+    Code2Icon,
+    SmartphoneIcon,
+    TabletIcon,
+    MonitorIcon,
+    TerminalIcon,
+} from '../ui/icons';
 import { useDeveloperModeStore, selectAgents, selectSelectedAgent } from '../../store/useDeveloperModeStore';
 import { RequestChangesModal } from './RequestChangesModal';
 import { CreatePRModal } from './CreatePRModal';
+
+const GitBranchIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="6" y1="3" x2="6" y2="15"/>
+        <circle cx="18" cy="6" r="3"/>
+        <circle cx="6" cy="18" r="3"/>
+        <path d="M18 9a9 9 0 0 1-9 9"/>
+    </svg>
+);
+
+const Maximize2Icon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 3 21 3 21 9"/>
+        <polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/>
+        <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+);
+
+const Minimize2Icon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 14 10 14 10 20"/>
+        <polyline points="20 10 14 10 14 4"/>
+        <line x1="14" y1="10" x2="21" y2="3"/>
+        <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+);
+
+const SplitIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="12" y1="3" x2="12" y2="21"/>
+    </svg>
+);
+
+const PlayIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+);
+
+const PauseIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="6" y="4" width="4" height="16"/>
+        <rect x="14" y="4" width="4" height="16"/>
+    </svg>
+);
+
+const GitPullRequestIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="18" r="3"/>
+        <circle cx="6" cy="6" r="3"/>
+        <path d="M13 6h3a2 2 0 0 1 2 2v7"/>
+        <line x1="6" y1="9" x2="6" y2="21"/>
+    </svg>
+);
+
+const XCircleIcon = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+    <svg className={className} {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>
+);
+
+type LucideIcon = React.FC<{ className?: string; [key: string]: any }>;
 
 // Dark glass styling to match AgentModeSidebar
 const darkGlassPanel = {
@@ -46,9 +117,9 @@ type ViewportSize = 'mobile' | 'tablet' | 'desktop';
 type ViewMode = 'preview' | 'code' | 'split';
 
 const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string; icon: LucideIcon }> = {
-    mobile: { width: 375, label: '375px', icon: Smartphone },
-    tablet: { width: 768, label: '768px', icon: Tablet },
-    desktop: { width: 1280, label: '100%', icon: Monitor },
+    mobile: { width: 375, label: '375px', icon: SmartphoneIcon },
+    tablet: { width: 768, label: '768px', icon: TabletIcon },
+    desktop: { width: 1280, label: '100%', icon: MonitorIcon },
 };
 
 interface GlassButtonProps {
@@ -175,21 +246,21 @@ export function AgentSandboxPreview({
                         }}
                     >
                         <GlassButton
-                            icon={Eye}
+                            icon={EyeIcon as any}
                             isActive={viewMode === 'preview'}
                             onClick={() => setViewMode('preview')}
                             title="Preview"
                             size="sm"
                         />
                         <GlassButton
-                            icon={Code2}
+                            icon={Code2Icon as any}
                             isActive={viewMode === 'code'}
                             onClick={() => setViewMode('code')}
                             title="Code"
                             size="sm"
                         />
                         <GlassButton
-                            icon={Split}
+                            icon={SplitIcon as any}
                             isActive={viewMode === 'split'}
                             onClick={() => setViewMode('split')}
                             title="Split View"
@@ -233,7 +304,7 @@ export function AgentSandboxPreview({
                                 color: '#60a5fa',
                             }}
                         >
-                            <GitBranch className="w-3 h-3" />
+                            <GitBranchIcon className="w-3 h-3" />
                             <span className="font-mono">{activeAgent.branch}</span>
                         </div>
                     )}
@@ -263,9 +334,9 @@ export function AgentSandboxPreview({
                             {activeAgent.status === 'running' ? (
                                 <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor }} />
                             ) : activeAgent.status === 'completed' ? (
-                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <CheckCircleIcon size={12} className="text-emerald-400" />
                             ) : activeAgent.status === 'failed' ? (
-                                <XCircle className="w-3 h-3 text-red-400" />
+                                <XCircleIcon className="w-3 h-3 text-red-400" />
                             ) : (
                                 <div className="w-2 h-2 rounded-full bg-zinc-500" />
                             )}
@@ -290,29 +361,29 @@ export function AgentSandboxPreview({
                 {/* Right: Actions */}
                 <div className="flex items-center gap-1.5">
                     <GlassButton
-                        icon={isAutoRefresh ? Pause : Play}
+                        icon={(isAutoRefresh ? PauseIcon : PlayIcon) as any}
                         isActive={isAutoRefresh}
                         onClick={() => setIsAutoRefresh(!isAutoRefresh)}
                         title={isAutoRefresh ? 'Pause Auto-refresh' : 'Enable Auto-refresh'}
                     />
                     <GlassButton
-                        icon={Terminal}
+                        icon={TerminalIcon as any}
                         isActive={showConsole}
                         onClick={() => setShowConsole(!showConsole)}
                         title="Toggle Console"
                     />
                     <GlassButton
-                        icon={RefreshCw}
+                        icon={RefreshIcon as any}
                         onClick={handleRefresh}
                         title="Refresh Preview"
                     />
                     <GlassButton
-                        icon={isFullscreen ? Minimize2 : Maximize2}
+                        icon={(isFullscreen ? Minimize2Icon : Maximize2Icon) as any}
                         onClick={onToggleFullscreen}
                         title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
                     />
                     <GlassButton
-                        icon={ExternalLink}
+                        icon={ArrowRightIcon as any}
                         onClick={handleOpenExternal}
                         title="Open in New Tab"
                     />
@@ -390,7 +461,7 @@ export function AgentSandboxPreview({
                                                         border: `1px solid ${accentColor}20`,
                                                     }}
                                                 >
-                                                    <Eye className="w-8 h-8" style={{ color: accentColor }} />
+                                                    <EyeIcon size={32} className="text-white" style={{ color: accentColor }} />
                                                 </div>
                                                 <p className="text-white/50 text-sm">
                                                     Select an agent to see live preview
@@ -439,7 +510,7 @@ export function AgentSandboxPreview({
                                                             color: accentColor,
                                                         }}
                                                     >
-                                                        <Code2 className="w-3 h-3" />
+                                                        <Code2Icon size={12} className="inline" />
                                                         {file}
                                                     </div>
                                                     <div
@@ -458,7 +529,7 @@ export function AgentSandboxPreview({
                                         </div>
                                     ) : (
                                         <div className="text-center py-12 text-white/30">
-                                            <Code2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                            <Code2Icon size={48} className="mx-auto mb-3 opacity-50" />
                                             <p>No code changes yet</p>
                                             <p className="text-xs mt-1">Start an agent task to see changes</p>
                                         </div>
@@ -493,7 +564,7 @@ export function AgentSandboxPreview({
                             }}
                         >
                             <div className="flex items-center gap-2">
-                                <Terminal className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                                <TerminalIcon className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
                                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Console</span>
                             </div>
                             <button
@@ -550,12 +621,12 @@ export function AgentSandboxPreview({
                     <div className="flex items-center gap-2">
                         {activeAgent.verificationPassed ? (
                             <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
-                                <CheckCircle2 className="w-3 h-3" />
+                                <CheckCircleIcon size={12} />
                                 Verified ({activeAgent.verificationScore}/100)
                             </span>
                         ) : (
                             <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-                                <XCircle className="w-3 h-3" />
+                                <XCircleIcon className="w-3 h-3" />
                                 Pending Verification
                             </span>
                         )}
@@ -566,7 +637,7 @@ export function AgentSandboxPreview({
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all hover:bg-white/5 border border-white/10"
                             style={{ color: 'rgba(255,255,255,0.6)' }}
                         >
-                            <MessageSquare className="w-4 h-4" />
+                            <MessageSquareIcon size={16} />
                             Request Changes
                         </button>
                         <button
@@ -577,7 +648,7 @@ export function AgentSandboxPreview({
                                 color: '#000',
                             }}
                         >
-                            <GitPullRequest className="w-4 h-4" />
+                            <GitPullRequestIcon className="w-4 h-4" />
                             Approve & Create PR
                         </button>
                     </div>

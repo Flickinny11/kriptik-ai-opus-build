@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAgentStore } from '../../store/useAgentStore';
 import { ScrollArea } from '../ui/scroll-area';
-import { Terminal, BrainCircuit, Check, Info, AlertTriangle, XCircle } from 'lucide-react';
+import { CodeIcon, BrainIcon, CheckIcon, InfoIcon, WarningIcon, XCircleIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
 
 export default function AgentTerminal() {
@@ -16,18 +16,18 @@ export default function AgentTerminal() {
 
     const getLogIcon = (type: string) => {
         switch (type) {
-            case 'thought': return <BrainCircuit className="h-3 w-3 text-purple-400" />;
-            case 'success': return <Check className="h-3 w-3 text-green-400" />;
-            case 'error': return <XCircle className="h-3 w-3 text-red-400" />;
-            case 'warning': return <AlertTriangle className="h-3 w-3 text-yellow-400" />;
-            default: return <Info className="h-3 w-3 text-blue-400" />;
+            case 'thought': return <BrainIcon size={12} className="text-purple-400" />;
+            case 'success': return <CheckIcon size={12} className="text-green-400" />;
+            case 'error': return <XCircleIcon size={12} className="text-red-400" />;
+            case 'warning': return <WarningIcon size={12} className="text-yellow-400" />;
+            default: return <InfoIcon size={12} className="text-blue-400" />;
         }
     };
 
     return (
         <div className="flex flex-col h-full bg-black text-green-400 font-mono text-xs rounded-lg border border-border overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-                <Terminal className="h-3 w-3" />
+                <CodeIcon size={12} />
                 <span className="font-semibold">Agent Logs</span>
             </div>
 

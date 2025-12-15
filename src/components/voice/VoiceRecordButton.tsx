@@ -6,7 +6,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square } from 'lucide-react';
+import { MicIcon as Mic, SquareIcon as Square } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -264,9 +264,9 @@ export function VoiceRecordButton({
 
                 {/* Icon */}
                 {isRecording ? (
-                    <Square className="w-8 h-8 text-white fill-white" />
+                    <Square size={32} className="text-white fill-white" />
                 ) : (
-                    <Mic className="w-8 h-8 text-black" />
+                    <Mic size={32} className="text-black" />
                 )}
             </motion.button>
 

@@ -3,7 +3,7 @@ import { useMemoryStore } from '../../store/useMemoryStore';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Brain, GitCommit, Layers, ShieldCheck, Lightbulb } from 'lucide-react';
+import { BrainIcon, WorkflowIcon, LayersIcon, ShieldIcon, InfoIcon } from '../ui/icons';
 
 export default function ProjectMemoryPanel() {
     const { memory } = useMemoryStore();
@@ -12,7 +12,7 @@ export default function ProjectMemoryPanel() {
     return (
         <div className="h-full flex flex-col bg-background border-l border-border w-[300px]">
             <div className="p-4 border-b border-border flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
+                <BrainIcon size={20} className="text-primary" />
                 <h2 className="font-semibold">Project Memory</h2>
             </div>
 
@@ -21,7 +21,7 @@ export default function ProjectMemoryPanel() {
                     {/* Architecture Section */}
                     <section className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <GitCommit className="h-4 w-4" />
+                            <WorkflowIcon size={16} />
                             Architecture
                         </div>
                         <Card>
@@ -39,7 +39,7 @@ export default function ProjectMemoryPanel() {
                     {/* Patterns Section */}
                     <section className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <Layers className="h-4 w-4" />
+                            <LayersIcon size={16} />
                             Active Patterns
                         </div>
                         <div className="grid gap-2">
@@ -55,7 +55,7 @@ export default function ProjectMemoryPanel() {
                     {/* Business Rules Section */}
                     <section className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <ShieldCheck className="h-4 w-4" />
+                            <ShieldIcon size={16} />
                             Business Rules
                         </div>
                         <div className="space-y-2">
@@ -71,7 +71,7 @@ export default function ProjectMemoryPanel() {
                     {/* Learnings Section */}
                     <section className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <Lightbulb className="h-4 w-4" />
+                            <InfoIcon size={16} />
                             Learned Preferences
                         </div>
                         <div className="flex flex-wrap gap-2">

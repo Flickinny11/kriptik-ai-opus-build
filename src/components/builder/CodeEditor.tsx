@@ -3,14 +3,14 @@ import Editor, { Monaco, OnMount } from '@monaco-editor/react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { useAgentStore } from '../../store/useAgentStore';
 import {
-    Sparkles,
-    Zap,
-    TestTube,
-    Shield,
-    Accessibility,
-    FileJson,
-    Palette
-} from 'lucide-react';
+    SparklesIcon,
+    ZapIcon,
+    TestTubeIcon,
+    ShieldIcon,
+    AccessibilityIcon,
+    FileJsonIcon,
+    PaletteIcon
+} from '../../components/ui/icons';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -154,7 +154,7 @@ export default function Hero() {
                         {/* Floating AI Badge */}
                         <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Badge variant="secondary" className="gap-1">
-                                <Sparkles className="h-3 w-3 text-primary" />
+                                <SparklesIcon size={12} className="text-primary" />
                                 AI Copilot Active
                             </Badge>
                         </div>
@@ -185,30 +185,30 @@ export default function Hero() {
 
             <ContextMenuContent className="w-64">
                 <ContextMenuItem onClick={() => handleAIAction('explain')}>
-                    <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                    <SparklesIcon size={16} className="mr-2 text-primary" />
                     Explain this code
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleAIAction('refactor')}>
-                    <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                    <ZapIcon size={16} className="mr-2 text-yellow-500" />
                     Refactor for performance
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={() => handleAIAction('test')}>
-                    <TestTube className="mr-2 h-4 w-4 text-green-500" />
+                    <TestTubeIcon size={16} className="mr-2 text-green-500" />
                     Generate tests
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleAIAction('error-handling')}>
-                    <Shield className="mr-2 h-4 w-4 text-blue-500" />
+                    <ShieldIcon size={16} className="mr-2 text-blue-500" />
                     Add error handling
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleAIAction('a11y')}>
-                    <Accessibility className="mr-2 h-4 w-4 text-purple-500" />
+                    <AccessibilityIcon size={16} className="mr-2 text-purple-500" />
                     Make accessible
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuSub>
                     <ContextMenuSubTrigger>
-                        <FileJson className="mr-2 h-4 w-4" />
+                        <FileJsonIcon size={16} className="mr-2" />
                         Convert to...
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent>
@@ -218,7 +218,7 @@ export default function Hero() {
                     </ContextMenuSubContent>
                 </ContextMenuSub>
                 <ContextMenuItem onClick={() => handleAIAction('design')}>
-                    <Palette className="mr-2 h-4 w-4 text-pink-500" />
+                    <PaletteIcon size={16} className="mr-2 text-pink-500" />
                     Apply design system
                 </ContextMenuItem>
             </ContextMenuContent>

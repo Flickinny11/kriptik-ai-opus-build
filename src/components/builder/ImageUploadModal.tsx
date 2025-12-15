@@ -11,17 +11,16 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Upload,
-    Link,
-    Figma,
-    Image as ImageIcon,
-    Loader2,
-    CheckCircle,
-    AlertCircle,
-    Sparkles,
-    Code2,
-    Trash2,
-} from 'lucide-react';
+    UploadIcon,
+    ImageIcon,
+    FigmaIcon,
+    LoadingIcon,
+    CheckCircleIcon,
+    AlertCircleIcon,
+    Code2Icon,
+    TrashIcon,
+    GlobeIcon
+} from '../ui/icons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
@@ -177,10 +176,10 @@ export default function ImageUploadModal({
         onOpenChange(false);
     }, [isConverting, onOpenChange]);
 
-    const modeButtons: Array<{ id: InputMode; icon: typeof Upload; label: string }> = [
-        { id: 'upload', icon: Upload, label: 'Upload' },
-        { id: 'url', icon: Link, label: 'URL' },
-        { id: 'figma', icon: Figma, label: 'Figma' },
+    const modeButtons: Array<{ id: InputMode; icon: typeof UploadIcon; label: string }> = [
+        { id: 'upload', icon: UploadIcon, label: 'Upload' },
+        { id: 'url', icon: GlobeIcon, label: 'URL' },
+        { id: 'figma', icon: FigmaIcon, label: 'Figma' },
     ];
 
     return (
@@ -201,7 +200,7 @@ export default function ImageUploadModal({
                 {result ? (
                     <div className="space-y-4">
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                            <CheckCircle className="h-5 w-5 text-emerald-400" />
+                            <CheckCircleIcon size={20} />
                             <div>
                                 <p className="font-medium text-emerald-400">
                                     Conversion Complete!
@@ -222,7 +221,7 @@ export default function ImageUploadModal({
                                     className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <Code2 className="h-4 w-4 text-amber-400" />
+                                        <Code2Icon size={16} />
                                         <span className="font-mono text-sm text-white">
                                             {comp.path}
                                         </span>
@@ -242,7 +241,7 @@ export default function ImageUploadModal({
                                     handleClose();
                                 }}
                             >
-                                <Sparkles className="h-4 w-4 mr-2" />
+                                <span className="mr-2">✨</span>
                                 Use Components
                             </Button>
                         </div>
@@ -262,7 +261,7 @@ export default function ImageUploadModal({
                                             : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                                     )}
                                 >
-                                    <btn.icon className="h-4 w-4" />
+                                    <btn.icon size={16} />
                                     {btn.label}
                                 </button>
                             ))}
@@ -289,7 +288,7 @@ export default function ImageUploadModal({
                                         onChange={(e) => handleFileSelect(e.target.files)}
                                         className="hidden"
                                     />
-                                    <Upload className="h-10 w-10 text-slate-500" />
+                                    <UploadIcon size={40} />
                                     <div className="text-center">
                                         <p className="text-slate-300 font-medium">
                                             Drop images here or click to upload
@@ -374,7 +373,7 @@ export default function ImageUploadModal({
                                                         'hover:bg-red-500 transition-all duration-200'
                                                     )}
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    <TrashIcon size={14} />
                                                 </button>
                                                 <div className="absolute bottom-0 inset-x-0 p-1.5 bg-gradient-to-t from-black/80 to-transparent">
                                                     <p className="text-xs text-white truncate">
@@ -397,7 +396,7 @@ export default function ImageUploadModal({
                                     exit={{ opacity: 0 }}
                                     className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400"
                                 >
-                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertCircleIcon size={16} />
                                     {error}
                                 </motion.div>
                             )}
@@ -412,7 +411,7 @@ export default function ImageUploadModal({
                                     className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50"
                                 >
                                     <div className="flex items-center gap-3 mb-3">
-                                        <Loader2 className="h-5 w-5 text-amber-400 animate-spin" />
+                                        <LoadingIcon size={20} className="animate-spin" />
                                         <span className="font-medium text-white capitalize">
                                             {progress.stage}...
                                         </span>
@@ -442,12 +441,12 @@ export default function ImageUploadModal({
                             >
                                 {isConverting ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        <LoadingIcon size={16} className="mr-2 animate-spin" />
                                         Converting...
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        <span className="mr-2">✨</span>
                                         Generate Code
                                     </>
                                 )}

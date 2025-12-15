@@ -1,6 +1,6 @@
 import { useCollaborationStore } from '../../store/useCollaborationStore';
 import { Button } from '../ui/button';
-import { UserPlus } from 'lucide-react';
+import { UserPlusIcon } from '../ui/icons';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 export default function CollaborationHeader() {
@@ -27,7 +27,7 @@ export default function CollaborationHeader() {
             </div>
 
             <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={() => setShareModalOpen(true)}>
-                <UserPlus className="h-4 w-4" />
+                <UserPlusIcon size={16} className="" />
                 Share
             </Button>
         </div>

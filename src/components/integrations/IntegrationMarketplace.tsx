@@ -11,19 +11,19 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Search,
-    Check,
-    ExternalLink,
-    Zap,
-    Star,
-    Lock,
-    Sparkles,
-    ChevronRight,
-    Eye,
-    EyeOff,
-    Copy,
-    CheckCircle2,
-} from 'lucide-react';
+    SearchIcon as Search,
+    CheckIcon as Check,
+    ExternalLinkIcon as ExternalLink,
+    ZapIcon as Zap,
+    StarIcon as Star,
+    LockIcon as Lock,
+    SparklesIcon as Sparkles,
+    ChevronRightIcon as ChevronRight,
+    EyeIcon as Eye,
+    EyeOffIcon as EyeOff,
+    CopyIcon as Copy,
+    CheckCircle2Icon as CheckCircle2,
+} from '../ui/icons';
 import {
     INTEGRATION_CATALOG,
     INTEGRATION_CATEGORIES,
@@ -162,7 +162,7 @@ export default function IntegrationMarketplace() {
                             <div>
                                 <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3" style={{ fontFamily: 'var(--font-display)' }}>
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                                        <Sparkles className="w-5 h-5 text-neutral-950" />
+                                        <Sparkles size={20} className="text-neutral-950" />
                                     </div>
                                     Integration Marketplace
                                 </DialogTitle>
@@ -177,7 +177,7 @@ export default function IntegrationMarketplace() {
 
                         {/* Search */}
                         <div className="relative ml-[52px]">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
                             <Input
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -248,7 +248,7 @@ export default function IntegrationMarketplace() {
                             {filteredIntegrations.length === 0 && (
                                 <div className="text-center py-16">
                                     <div className="w-16 h-16 rounded-full bg-neutral-800/50 mx-auto mb-4 flex items-center justify-center">
-                                        <Search className="w-8 h-8 text-neutral-600" />
+                                        <Search size={32} className="text-neutral-600" />
                                     </div>
                                     <p className="text-neutral-500 text-lg">No integrations found</p>
                                     <p className="text-neutral-600 text-sm mt-1">Try a different search term</p>
@@ -318,7 +318,7 @@ export default function IntegrationMarketplace() {
                                                             rel="noopener noreferrer"
                                                             className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
                                                         >
-                                                            Get key <ExternalLink className="w-3 h-3" />
+                                                            Get key <ExternalLink size={12} />
                                                         </a>
                                                     )}
                                                 </div>
@@ -338,9 +338,9 @@ export default function IntegrationMarketplace() {
                                                                 className="p-1.5 hover:bg-neutral-800 rounded-md transition-colors"
                                                             >
                                                                 {showSecrets[cred.key] ? (
-                                                                    <EyeOff className="w-4 h-4 text-neutral-400" />
+                                                                    <EyeOff size={16} className="text-neutral-400" />
                                                                 ) : (
-                                                                    <Eye className="w-4 h-4 text-neutral-400" />
+                                                                    <Eye size={16} className="text-neutral-400" />
                                                                 )}
                                                             </button>
                                                         )}
@@ -350,7 +350,7 @@ export default function IntegrationMarketplace() {
                                                                 onClick={() => copyToClipboard(credentials[cred.key])}
                                                                 className="p-1.5 hover:bg-neutral-800 rounded-md transition-colors"
                                                             >
-                                                                <Copy className="w-4 h-4 text-neutral-400" />
+                                                                <Copy size={16} className="text-neutral-400" />
                                                             </button>
                                                         )}
                                                     </div>
@@ -359,7 +359,7 @@ export default function IntegrationMarketplace() {
                                         ))}
 
                                         <p className="text-xs text-neutral-500 flex items-center gap-2 mt-3">
-                                            <Lock className="w-3.5 h-3.5" />
+                                            <Lock size={14} />
                                             Your credentials are encrypted and stored securely
                                         </p>
                                     </div>
@@ -369,7 +369,7 @@ export default function IntegrationMarketplace() {
                                 {setupModal.credentials.length === 0 && (
                                     <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-4">
                                         <p className="text-teal-400 text-sm flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4" />
+                                            <CheckCircle2 size={16} />
                                             No configuration needed - just install!
                                         </p>
                                     </div>
@@ -393,7 +393,7 @@ export default function IntegrationMarketplace() {
                                             <>Installing...</>
                                         ) : (
                                             <>
-                                                <Zap className="w-4 h-4 mr-2" />
+                                                <Zap size={16} className="mr-2" />
                                                 Install Integration
                                             </>
                                         )}
@@ -407,7 +407,7 @@ export default function IntegrationMarketplace() {
                                     rel="noopener noreferrer"
                                     className="block text-center text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
                                 >
-                                    View documentation <ExternalLink className="w-3 h-3 inline ml-1" />
+                                    View documentation <ExternalLink size={12} className="inline ml-1" />
                                 </a>
                             </div>
                         </>
@@ -487,7 +487,7 @@ function IntegrationCard({
             {installed && (
                 <div className="absolute top-3 right-3">
                     <Badge className="bg-teal-500/15 text-teal-400 border border-teal-500/30 text-xs">
-                        <Check className="w-3 h-3 mr-1" />
+                        <Check size={12} className="mr-1" />
                         Installed
                     </Badge>
                 </div>
@@ -509,7 +509,7 @@ function IntegrationCard({
                     <h3 className="font-semibold text-neutral-100 flex items-center gap-2 text-base" style={{ fontFamily: 'var(--font-heading)' }}>
                         {integration.name}
                         {integration.popular && (
-                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                            <Star size={14} className="text-amber-400 fill-amber-400" />
                         )}
                     </h3>
                     <p className="text-sm text-neutral-400 mt-1 line-clamp-1">{integration.description}</p>
@@ -568,7 +568,7 @@ function IntegrationCard({
                     `}
                 >
                     {installed ? 'Configure' : 'Add'}
-                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    <ChevronRight size={14} className="ml-1" />
                 </Button>
             </div>
         </div>

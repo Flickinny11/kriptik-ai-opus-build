@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plug, ArrowLeft, Loader2 } from 'lucide-react';
+import { XIcon, PlugIcon, ArrowLeftIcon, LoadingIcon } from '../ui/icons';
 import { APICatalog } from './APICatalog';
 import { IntegrationWizard } from './IntegrationWizard';
 
@@ -169,14 +169,14 @@ export function APIAutopilotPanel({
                                         onClick={handleWizardCancel}
                                         className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                     >
-                                        <ArrowLeft className="w-5 h-5" />
+                                        <ArrowLeftIcon size={20} />
                                     </button>
                                 )}
                                 <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{ background: `${accentColor}20` }}
                                 >
-                                    <Plug className="w-5 h-5" style={{ color: accentColor }} />
+                                    <PlugIcon size={20} className="text-[#c8ff64]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-white">API Autopilot</h2>
@@ -192,7 +192,7 @@ export function APIAutopilotPanel({
                                 onClick={handleClose}
                                 className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <XIcon size={20} />
                             </button>
                         </div>
 
@@ -207,7 +207,7 @@ export function APIAutopilotPanel({
                                 >
                                     <span className="flex-1">{error}</span>
                                     <button onClick={() => setError(null)}>
-                                        <X className="w-4 h-4" />
+                                        <XIcon size={16} />
                                     </button>
                                 </motion.div>
                             )}
@@ -266,7 +266,7 @@ export function APIAutopilotPanel({
                                             animate={{ rotate: 360 }}
                                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                         >
-                                            <Loader2 className="w-8 h-8" style={{ color: accentColor }} />
+                                            <LoadingIcon size={32} className="text-[#c8ff64]" />
                                         </motion.div>
                                         <span className="text-sm text-white/60">Loading API profile...</span>
                                     </div>

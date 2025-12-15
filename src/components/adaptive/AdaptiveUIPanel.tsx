@@ -7,17 +7,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X,
-    Brain,
-    Activity,
-    Map,
-    Sparkles,
-    RefreshCw,
-    Loader2,
-    AlertTriangle,
-    CheckCircle,
-    BarChart3,
-} from 'lucide-react';
+    XIcon,
+    BrainIcon,
+    ActivityIcon,
+    GlobeIcon as MapIcon,
+    ZapIcon as SparklesIcon,
+    RefreshIcon,
+    LoadingIcon,
+    WarningIcon,
+    CheckCircleIcon,
+    LayoutDashboardIcon,
+} from '../ui/icons';
 import { BehaviorHeatmap } from './BehaviorHeatmap';
 import { SuggestionCard } from './SuggestionCard';
 import { PatternTimeline } from './PatternTimeline';
@@ -195,10 +195,10 @@ export function AdaptiveUIPanel({
     };
 
     const tabs = [
-        { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
-        { id: 'patterns' as const, label: 'Patterns', icon: Activity },
-        { id: 'suggestions' as const, label: 'Suggestions', icon: Sparkles },
-        { id: 'heatmap' as const, label: 'Heatmap', icon: Map },
+        { id: 'overview' as const, label: 'Overview', icon: LayoutDashboardIcon },
+        { id: 'patterns' as const, label: 'Patterns', icon: ActivityIcon },
+        { id: 'suggestions' as const, label: 'Suggestions', icon: SparklesIcon },
+        { id: 'heatmap' as const, label: 'Heatmap', icon: MapIcon },
     ];
 
     const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
@@ -235,7 +235,7 @@ export function AdaptiveUIPanel({
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{ background: `${accentColor}20` }}
                                 >
-                                    <Brain className="w-5 h-5" style={{ color: accentColor }} />
+                                    <BrainIcon size={20} className="text-[#c8ff64]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-white">Adaptive UI</h2>
@@ -251,13 +251,13 @@ export function AdaptiveUIPanel({
                                     disabled={isLoading}
                                     className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors disabled:opacity-50"
                                 >
-                                    <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                                    <RefreshIcon size={20} className={isLoading ? 'animate-spin' : ''} />
                                 </button>
                                 <button
                                     onClick={onClose}
                                     className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <XIcon size={20} />
                                 </button>
                             </div>
                         </div>
@@ -282,7 +282,7 @@ export function AdaptiveUIPanel({
                                             borderColor: isActive ? accentColor : 'transparent',
                                         }}
                                     >
-                                        <Icon className="w-4 h-4" />
+                                        <Icon size={16} />
                                         {tab.label}
                                         {hasBadge && (
                                             <span
@@ -316,7 +316,7 @@ export function AdaptiveUIPanel({
                             {isLoading ? (
                                 <div className="flex items-center justify-center h-full">
                                     <div className="flex flex-col items-center gap-3">
-                                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: accentColor }} />
+                                        <LoadingIcon size={32} className="text-[#c8ff64] animate-spin" />
                                         <span className="text-sm text-white/50">Loading analytics...</span>
                                     </div>
                                 </div>
@@ -336,24 +336,24 @@ export function AdaptiveUIPanel({
                                                 <StatCard
                                                     label="Total Signals"
                                                     value={stats.totalSignals}
-                                                    icon={Activity}
+                                                    icon={ActivityIcon}
                                                 />
                                                 <StatCard
                                                     label="Patterns Found"
                                                     value={stats.totalPatterns}
-                                                    icon={AlertTriangle}
+                                                    icon={WarningIcon}
                                                     color="#f59e0b"
                                                 />
                                                 <StatCard
                                                     label="Pending Fixes"
                                                     value={stats.pendingSuggestions}
-                                                    icon={Sparkles}
+                                                    icon={SparklesIcon}
                                                     color={accentColor}
                                                 />
                                                 <StatCard
                                                     label="Applied"
                                                     value={stats.appliedSuggestions}
-                                                    icon={CheckCircle}
+                                                    icon={CheckCircleIcon}
                                                     color="#22c55e"
                                                 />
                                             </div>
@@ -414,7 +414,7 @@ export function AdaptiveUIPanel({
                                                         className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                                                         style={{ background: `${accentColor}20` }}
                                                     >
-                                                        <Sparkles className="w-8 h-8" style={{ color: accentColor }} />
+                                                        <SparklesIcon size={32} className="text-[#c8ff64]" />
                                                     </div>
                                                     <p className="text-white/60">No suggestions yet</p>
                                                     <p className="text-sm text-white/40 mt-1">
@@ -470,13 +470,13 @@ function StatCard({
 }: {
     label: string;
     value: number;
-    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     color?: string;
 }) {
     return (
         <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-2 mb-2">
-                <span style={{ color }}><Icon className="w-4 h-4" /></span>
+                <span style={{ color }}><Icon size={16} /></span>
                 <span className="text-xs text-white/50">{label}</span>
             </div>
             <span className="text-2xl font-bold text-white">{value}</span>

@@ -1,7 +1,7 @@
 
 import { useAgentStore } from '../../store/useAgentStore';
 import { AGENTS, AgentType } from '../../lib/agent-types';
-import { CheckCircle2, Circle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckIcon, LoadingIcon, ErrorIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
 import { Progress } from '../ui/progress';
 
@@ -12,10 +12,14 @@ export default function AgentProgress() {
     const getIcon = (type: AgentType) => {
         const status = agents[type].status;
 
-        if (status === 'completed') return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-        if (status === 'working') return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
-        if (status === 'failed') return <AlertCircle className="h-5 w-5 text-destructive" />;
-        return <Circle className="h-5 w-5 text-muted-foreground" />;
+        if (status === 'completed') return <CheckIcon size={20} className="text-green-500" />;
+        if (status === 'working') return <LoadingIcon size={20} className="text-primary" />;
+        if (status === 'failed') return <ErrorIcon size={20} className="text-destructive" />;
+        return (
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" className="text-muted-foreground">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+            </svg>
+        );
     };
 
     return (

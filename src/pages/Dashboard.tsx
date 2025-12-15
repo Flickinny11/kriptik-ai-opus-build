@@ -17,14 +17,14 @@ import ImportProjectModal, { type ImportType } from '../components/dashboard/Imp
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
-    Clock,
-    MoreHorizontal,
-    Settings,
-    CreditCard,
-    LogOut,
-    ChevronDown,
-    Loader2
-} from 'lucide-react';
+    ClockIcon,
+    SettingsIcon,
+    ChevronDownIcon,
+    LoadingIcon,
+    MoreHorizontalIcon,
+    CreditCardIcon,
+    LogOutIcon,
+} from '../components/ui/icons';
 import { cn } from '@/lib/utils';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
@@ -259,12 +259,9 @@ function UserMenu() {
                     <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{user?.name || 'User'}</p>
                     <p className="text-xs" style={{ color: '#666' }}>Builder Plan</p>
                 </div>
-                <ChevronDown
-                    className="h-4 w-4 transition-transform"
-                    style={{
-                        color: '#666',
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
+                <ChevronDownIcon
+                    size={16}
+                    className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -350,10 +347,10 @@ function UserMenu() {
 
                     {/* Menu items - Liquid Glass Buttons */}
                     <div className="p-2">
-                        <MenuButton icon={Settings} label="Settings" />
-                        <MenuButton icon={CreditCard} label="Billing & Credits" />
+                        <MenuButton icon={SettingsIcon} label="Settings" />
+                        <MenuButton icon={CreditCardIcon} label="Billing & Credits" />
                         <div className="my-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }} />
-                        <MenuButton icon={LogOut} label="Sign Out" danger />
+                        <MenuButton icon={LogOutIcon} label="Sign Out" danger />
                     </div>
                 </div>
             )}
@@ -375,7 +372,7 @@ function UserMenu() {
 }
 
 // Liquid Glass Menu Button Component
-function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ComponentType<{ className?: string }>; label: string; danger?: boolean }) {
+function MenuButton({ icon: Icon, label, danger = false }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; danger?: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
 
     return (
@@ -395,7 +392,7 @@ function MenuButton({ icon: Icon, label, danger = false }: { icon: React.Compone
                 color: danger ? '#dc2626' : '#1a1a1a',
             }}
         >
-            <Icon className="h-4 w-4" />
+            <Icon size={16} />
             <span className="text-sm font-medium">{label}</span>
         </button>
     );
@@ -423,7 +420,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     <div className="min-w-0">
                         <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                            <Clock className="h-3 w-3" style={{ color: '#666' }} />
+                            <ClockIcon size={12} />
                             <span className="text-xs" style={{ color: '#666' }}>Modified {lastModified}</span>
                         </div>
                     </div>
@@ -432,7 +429,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                         className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
                         style={{ color: '#666' }}
                     >
-                        <MoreHorizontal className="h-4 w-4" />
+                        <MoreHorizontalIcon size={16} />
                     </button>
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -894,7 +891,7 @@ export default function Dashboard() {
                     {/* Loading State */}
                     {(projectsLoading || authLoading) && isAuthenticated && (
                         <div className="flex flex-col items-center justify-center py-16">
-                            <Loader2 className="h-10 w-10 animate-spin mb-4" style={{ color: '#404040' }} />
+                            <LoadingIcon size={40} className="animate-spin mb-4" />
                             <p style={{ color: '#404040' }}>Loading your projects...</p>
                         </div>
                     )}

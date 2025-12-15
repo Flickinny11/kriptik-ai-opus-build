@@ -11,20 +11,15 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
-    Sparkles,
-    Check,
-    Palette,
-    Image,
-    ArrowRight,
-    Loader2,
-    RefreshCw,
-    ThumbsUp,
-    ThumbsDown,
-    Wand2,
-    Sun,
-    Moon,
-    Zap
-} from 'lucide-react';
+    CheckIcon,
+    ImageIcon,
+    ArrowRightIcon,
+    LoadingIcon,
+    RefreshIcon,
+    SunIcon,
+    MoonIcon,
+    ZapIcon
+} from '@/components/ui/icons';
 
 // Pre-built themes
 const THEMES = [
@@ -209,9 +204,9 @@ function ThemeCard({
                         <p className="text-xs text-slate-500">{theme.description}</p>
                     </div>
                     {theme.isLight ? (
-                        <Sun className="h-4 w-4 text-slate-500" />
+                        <SunIcon size={16} />
                     ) : (
-                        <Moon className="h-4 w-4 text-slate-500" />
+                        <MoonIcon size={16} />
                     )}
                 </div>
             </div>
@@ -219,7 +214,7 @@ function ThemeCard({
             {/* Selected indicator */}
             {isSelected && (
                 <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-                    <Check className="h-4 w-4 text-black" />
+                    <CheckIcon size={16} />
                 </div>
             )}
         </button>
@@ -268,7 +263,7 @@ function ImageToCodeGenerator({
                 <>
                     <div className="text-center mb-6">
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-pink-500/20 text-pink-400 mb-3">
-                            <Wand2 className="h-6 w-6" />
+                            <span className="text-2xl">🪄</span>
                         </div>
                         <h3 className="text-lg font-semibold text-white">Generate UI with AI</h3>
                         <p className="text-sm text-slate-400 mt-1">
@@ -309,12 +304,12 @@ function ImageToCodeGenerator({
                         >
                             {isGenerating ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <LoadingIcon size={16} className="mr-2 animate-spin" />
                                     Generating...
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    <span className="mr-2">✨</span>
                                     Generate Design
                                 </>
                             )}
@@ -327,7 +322,7 @@ function ImageToCodeGenerator({
                     <div className="relative rounded-xl overflow-hidden border border-slate-700/50">
                         <div className="aspect-video bg-slate-800 flex items-center justify-center">
                             <div className="text-center p-8">
-                                <Image className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                                <ImageIcon size={64} className="mx-auto mb-4" />
                                 <p className="text-slate-400">AI Generated UI Mockup</p>
                                 <p className="text-sm text-slate-500 mt-1">
                                     Based on: "{prompt.slice(0, 50)}..."
@@ -343,7 +338,7 @@ function ImageToCodeGenerator({
                                 onClick={handleRegenerate}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
                             >
-                                <RefreshCw className="h-4 w-4" />
+                                <RefreshIcon size={16} />
                                 Regenerate
                             </button>
                         </div>
@@ -353,7 +348,7 @@ function ImageToCodeGenerator({
                                 onClick={onCancel}
                                 className="text-slate-400"
                             >
-                                <ThumbsDown className="h-4 w-4 mr-2" />
+                                <span className="mr-2">👎</span>
                                 Not what I want
                             </Button>
                             <Button
@@ -365,7 +360,7 @@ function ImageToCodeGenerator({
                                     "text-black"
                                 )}
                             >
-                                <ThumbsUp className="h-4 w-4 mr-2" />
+                                <span className="mr-2">👍</span>
                                 Use This Design
                             </Button>
                         </div>
@@ -420,7 +415,7 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
             {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Palette className="h-5 w-5 text-white" />
+                    <span className="text-xl">🎨</span>
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-white">Choose Your Style</h2>
@@ -440,7 +435,7 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
             >
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center">
-                        <Wand2 className="h-6 w-6 text-pink-400" />
+                        <span className="text-2xl">🪄</span>
                     </div>
                     <div className="flex-1">
                         <h3 className="font-semibold text-white">Generate with AI</h3>
@@ -448,7 +443,7 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
                             Describe your ideal design and let AI create it
                         </p>
                     </div>
-                    <ArrowRight className="h-5 w-5 text-pink-400" />
+                    <ArrowRightIcon size={20} />
                 </div>
             </button>
 
@@ -512,7 +507,7 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
                     )}
                 >
                     Apply Theme & Build
-                    <Zap className="ml-2 h-4 w-4" />
+                    <ZapIcon size={16} className="ml-2" />
                 </Button>
             </div>
         </div>

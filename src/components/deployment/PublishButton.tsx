@@ -13,13 +13,51 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Globe, Rocket, ExternalLink, Settings2,
-    AlertCircle, CheckCircle2, Loader2, ChevronDown,
-    Terminal, Zap, Link2, RefreshCw
-} from 'lucide-react';
+    GlobeIcon,
+    AlertCircleIcon,
+    CheckCircleIcon,
+    LoadingIcon,
+    ChevronDownIcon,
+    ZapIcon,
+    RefreshIcon,
+    SettingsIcon,
+} from '../ui/icons';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { apiClient } from '../../lib/api-client';
+
+// Custom icon components
+interface IconProps {
+    size?: number;
+    className?: string;
+}
+
+const RocketIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M4.5 16.5c-1.5 1.5-1.5 2-1.5 2s.5 0 2-1.5c1.5-1.5 3.5-3.5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 15l-3-3a22 22 0 0 1 2-3.5A12.9 12.9 0 0 1 22 2c0 6-2 12-10.5 13.5l-3.5-3.5z" fill="currentColor" />
+        <path d="M9 12H4l7-7c3.5-2 6.5-2.5 6.5-2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const ExternalLinkIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const Link2Icon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const TerminalIcon = ({ size = 24, className = '' }: IconProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M4 17l6-6-6-6M12 19h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
 
 interface PublishButtonProps {
     projectId: string;
@@ -192,11 +230,11 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
     };
 
     const getStatusIcon = () => {
-        if (isDeploying) return <Loader2 className="w-3 h-3 animate-spin" />;
+        if (isDeploying) return <LoadingIcon size={12} className="animate-spin" />;
         if (!deployment) return null;
         switch (deployment.status) {
-            case 'live': return <CheckCircle2 className="w-3 h-3" />;
-            case 'failed': return <AlertCircle className="w-3 h-3" />;
+            case 'live': return <CheckCircleIcon size={12} />;
+            case 'failed': return <AlertCircleIcon size={12} />;
             default: return null;
         }
     };
@@ -234,9 +272,9 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                     }}
                 >
                     {deployment?.status === 'live' ? (
-                        <Globe className="w-6 h-6 text-amber-400" />
+                        <GlobeIcon size={24} className="text-amber-400" />
                     ) : (
-                        <Rocket className="w-6 h-6 text-amber-400" />
+                        <RocketIcon size={24} className="text-amber-400" />
                     )}
 
                     {/* Glow effect */}
@@ -262,8 +300,8 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                     {getStatusIcon()}
                 </span>
 
-                <ChevronDown className={cn(
-                    "w-4 h-4 text-slate-400 transition-transform duration-200",
+                <ChevronDownIcon size={16} className={cn(
+                    "text-slate-400 transition-transform duration-200",
                     isOpen && "rotate-180"
                 )} />
             </motion.button>
@@ -301,9 +339,9 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-sm"
                                     >
-                                        <Link2 className="w-4 h-4" />
+                                        <Link2Icon size={16} />
                                         {deployment.customDomain || deployment.url?.replace('https://', '')}
-                                        <ExternalLink className="w-3 h-3" />
+                                        <ExternalLinkIcon size={12} />
                                     </a>
                                 </div>
                             ) : (
@@ -331,7 +369,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                     </div>
                                     {subdomainAvailable === true && (
                                         <p className="text-xs text-emerald-400 flex items-center gap-1">
-                                            <CheckCircle2 className="w-3 h-3" /> Available!
+                                            <CheckCircleIcon size={12} /> Available!
                                         </p>
                                     )}
                                     {subdomainAvailable === false && (
@@ -351,9 +389,9 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 transition-colors"
                                     >
                                         {isDeploying ? (
-                                            <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+                                            <LoadingIcon size={20} className="text-amber-400 animate-spin" />
                                         ) : (
-                                            <RefreshCw className="w-5 h-5 text-amber-400" />
+                                            <RefreshIcon size={20} className="text-amber-400" />
                                         )}
                                         <div className="text-left">
                                             <p className="text-sm font-medium text-white">Redeploy</p>
@@ -364,7 +402,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                         onClick={() => setShowLogs(!showLogs)}
                                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 transition-colors"
                                     >
-                                        <Terminal className="w-5 h-5 text-slate-400" />
+                                        <TerminalIcon size={20} className="text-slate-400" />
                                         <div className="text-left">
                                             <p className="text-sm font-medium text-white">View Logs</p>
                                             <p className="text-xs text-slate-400">See build output & errors</p>
@@ -374,7 +412,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                         onClick={() => setShowCustomDomain(!showCustomDomain)}
                                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 transition-colors"
                                     >
-                                        <Settings2 className="w-5 h-5 text-slate-400" />
+                                        <SettingsIcon size={20} className="text-slate-400" />
                                         <div className="text-left">
                                             <p className="text-sm font-medium text-white">Custom Domain</p>
                                             <p className="text-xs text-slate-400">Connect your own domain</p>
@@ -394,12 +432,12 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                 >
                                     {isDeploying ? (
                                         <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            <LoadingIcon size={16} className="mr-2 animate-spin" />
                                             Publishing...
                                         </>
                                     ) : (
                                         <>
-                                            <Zap className="w-4 h-4 mr-2" />
+                                            <ZapIcon size={16} className="mr-2" />
                                             Publish Now - Free
                                         </>
                                     )}
@@ -449,7 +487,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                             className="w-full justify-start border-slate-700 opacity-50 cursor-not-allowed"
                                             disabled
                                         >
-                                            <Globe className="w-4 h-4 mr-2" />
+                                            <GlobeIcon size={16} className="mr-2" />
                                             Search & Buy Domain (Coming Soon)
                                         </Button>
                                     </div>

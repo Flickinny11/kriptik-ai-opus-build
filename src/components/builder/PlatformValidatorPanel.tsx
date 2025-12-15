@@ -10,25 +10,25 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Shield,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  CheckCircle,
-  RefreshCw,
-  ExternalLink,
-  ChevronDown,
-  ChevronRight,
-  Zap,
-  FileCode,
-  Settings,
-  Server,
-  Lock,
-  Gauge,
-  Globe,
-  Database,
-  FileCheck,
-} from 'lucide-react';
+  ShieldIcon,
+  WarningIcon,
+  AlertCircleIcon,
+  InfoIcon,
+  CheckCircleIcon,
+  RefreshIcon,
+  ArrowRightIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ZapIcon,
+  CodeIcon,
+  SettingsIcon,
+  ServerIcon,
+  LockIcon,
+  ActivityIcon,
+  GlobeIcon,
+  DatabaseIcon,
+  CheckIcon,
+} from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -178,17 +178,17 @@ const PLATFORM_CONFIGS: Record<DeploymentPlatform, {
   }
 };
 
-const CATEGORY_ICONS: Record<ConstraintCategory, React.ComponentType<{ className?: string }>> = {
-  file_system: FileCode,
-  runtime: Server,
-  dependencies: Database,
-  environment: Settings,
-  build: Zap,
-  security: Lock,
-  performance: Gauge,
-  networking: Globe,
-  storage: Database,
-  compliance: FileCheck
+const CATEGORY_ICONS: Record<ConstraintCategory, React.ComponentType<{ size?: number; className?: string }>> = {
+  file_system: CodeIcon,
+  runtime: ServerIcon,
+  dependencies: DatabaseIcon,
+  environment: SettingsIcon,
+  build: ZapIcon,
+  security: LockIcon,
+  performance: ActivityIcon,
+  networking: GlobeIcon,
+  storage: DatabaseIcon,
+  compliance: CheckIcon
 };
 
 // =============================================================================
@@ -199,15 +199,15 @@ const SeverityIcon: React.FC<{ severity: ValidationSeverity; className?: string 
   severity,
   className
 }) => {
-  const props = { className: cn('w-4 h-4', className) };
+  const props = { size: 16, className };
 
   switch (severity) {
     case 'error':
-      return <AlertCircle {...props} className={cn(props.className, 'text-red-400')} />;
+      return <AlertCircleIcon {...props} className={cn(props.className, 'text-red-400')} />;
     case 'warning':
-      return <AlertTriangle {...props} className={cn(props.className, 'text-amber-400')} />;
+      return <WarningIcon {...props} className={cn(props.className, 'text-amber-400')} />;
     case 'info':
-      return <Info {...props} className={cn(props.className, 'text-blue-400')} />;
+      return <InfoIcon {...props} className={cn(props.className, 'text-blue-400')} />;
   }
 };
 
@@ -259,9 +259,9 @@ const IssueCard: React.FC<{
             </span>
           )}
           {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+            <ChevronDownIcon size={16} className="text-slate-500" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <ChevronRightIcon size={16} className="text-slate-500" />
           )}
         </div>
       </button>
@@ -286,7 +286,7 @@ const IssueCard: React.FC<{
 
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/50 rounded text-xs text-slate-400">
-                  <CategoryIcon className="w-3 h-3" />
+                  <CategoryIcon size={12} />
                   {issue.category.replace('_', ' ')}
                 </span>
 
@@ -297,7 +297,7 @@ const IssueCard: React.FC<{
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/50 rounded text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
-                    <ExternalLink className="w-3 h-3" />
+                    <ArrowRightIcon size={12} />
                     Docs
                   </a>
                 )}
@@ -342,8 +342,8 @@ const PlatformSelector: React.FC<{
           {PLATFORM_CONFIGS[selected].icon}
         </span>
         <span className="text-sm text-white">{PLATFORM_CONFIGS[selected].name}</span>
-        <ChevronDown className={cn(
-          'w-4 h-4 text-slate-500 transition-transform',
+        <ChevronDownIcon size={16} className={cn(
+          'text-slate-500 transition-transform',
           isOpen && 'rotate-180'
         )} />
       </button>
@@ -464,7 +464,7 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-cyan-400" />
+          <ShieldIcon size={20} className="text-cyan-400" />
           <h3 className="text-lg font-semibold text-white">Pre-Deploy Validation</h3>
         </div>
 
@@ -487,12 +487,12 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
       >
         {isValidating ? (
           <>
-            <RefreshCw className="w-4 h-4 animate-spin" />
+            <RefreshIcon size={16} className="animate-spin" />
             Validating...
           </>
         ) : (
           <>
-            <Shield className="w-4 h-4" />
+            <ShieldIcon size={16} />
             Validate for {PLATFORM_CONFIGS[selectedPlatform].name}
           </>
         )}
@@ -521,13 +521,13 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
           )}>
             <div className="flex items-center gap-3">
               {report.status === 'passed' && (
-                <CheckCircle className="w-6 h-6 text-emerald-400" />
+                <CheckCircleIcon size={24} className="text-emerald-400" />
               )}
               {report.status === 'warnings' && (
-                <AlertTriangle className="w-6 h-6 text-amber-400" />
+                <WarningIcon size={24} className="text-amber-400" />
               )}
               {report.status === 'failed' && (
-                <AlertCircle className="w-6 h-6 text-red-400" />
+                <AlertCircleIcon size={24} className="text-red-400" />
               )}
 
               <div>
@@ -585,7 +585,7 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
                       onClick={() => toggleCategory(category)}
                       className="w-full flex items-center gap-3 p-3 bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
                     >
-                      <CategoryIcon className="w-4 h-4 text-slate-400" />
+                      <CategoryIcon size={16} className="text-slate-400" />
                       <span className="text-sm text-white capitalize flex-1 text-left">
                         {category.replace('_', ' ')}
                       </span>
@@ -601,9 +601,9 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
                           </span>
                         )}
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                          <ChevronDownIcon size={16} className="text-slate-500" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                          <ChevronRightIcon size={16} className="text-slate-500" />
                         )}
                       </div>
                     </button>

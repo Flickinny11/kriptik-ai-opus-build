@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Key, AlertCircle, Check, Loader2, FileCode } from 'lucide-react';
+import { CloseIcon, KeyIcon, AlertCircleIcon, CheckIcon, LoadingIcon } from '../ui/icons';
 import { cn } from '@/lib/utils';
 
 // Figma Logo SVG
@@ -114,7 +114,7 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                 onClick={handleClose}
                 className="absolute right-4 top-4 p-2 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
               >
-                <X className="h-5 w-5" />
+                <CloseIcon size={20} />
               </button>
 
               <div className="flex items-center gap-4">
@@ -146,7 +146,7 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                   {/* Info box */}
                   <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
                     <div className="flex gap-3">
-                      <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <AlertCircleIcon size={20} className="text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <h3 className="font-semibold text-amber-300 text-sm">Personal Access Token Required</h3>
                         <p className="text-sm text-amber-200/70 mt-1">
@@ -160,7 +160,7 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                   {/* Token input */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <Key className="h-4 w-4" />
+                      <KeyIcon size={16} />
                       Figma Personal Access Token
                     </label>
                     <input
@@ -183,7 +183,9 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                       className="inline-flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
                     >
                       How to get your access token
-                      <ExternalLink className="h-3 w-3" />
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="h-3 w-3">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </a>
                   </div>
 
@@ -217,14 +219,17 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                 <div className="space-y-6">
                   {/* Token saved indicator */}
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <Check className="h-4 w-4 text-emerald-400" />
+                    <CheckIcon size={16} className="text-emerald-400" />
                     <span className="text-sm text-emerald-300">Access token saved</span>
                   </div>
 
                   {/* Figma URL input */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                      <FileCode className="h-4 w-4" />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       Figma File URL
                     </label>
                     <input
@@ -289,7 +294,7 @@ export default function FigmaImportModal({ open, onOpenChange, onComplete }: Fig
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <LoadingIcon size={20} className="animate-spin" />
                         Importing...
                       </>
                     ) : (

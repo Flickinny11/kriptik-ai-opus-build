@@ -10,7 +10,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Paperclip, Loader2, ArrowRight, Image, ChevronDown } from 'lucide-react';
+import {
+    PaperclipIcon,
+    LoadingIcon,
+    ArrowRightIcon,
+    ImageIcon,
+    ChevronDownIcon
+} from '../../components/ui/icons';
 import {
     OrchestratorIcon,
     UserAvatarIcon,
@@ -243,8 +249,9 @@ function SuggestionCard({
         >
             <div className="flex items-center justify-between">
                 <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{text}</span>
-                <ArrowRight
-                    className="w-4 h-4 transition-all duration-300"
+                <ArrowRightIcon
+                    size={16}
+                    className="transition-all duration-300"
                     style={{
                         color: isHovered ? '#c25a00' : '#999',
                         transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
@@ -651,7 +658,7 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
                                         {selectedModel === 'krip-toe-nite' ? (
                                             <KripTikNiteLogo size={18} animated />
                                         ) : (
-                                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#92400e' }} />
+                                            <LoadingIcon size={16} className="animate-spin" style={{ color: '#92400e' }} />
                                         )}
                                     </div>
                                     <MessageCard>
@@ -754,7 +761,7 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
                         <span className="font-medium" style={{ color: '#1a1a1a' }}>
                             {CHAT_MODELS.find(m => m.id === selectedModel)?.name}
                         </span>
-                        <ChevronDown className="w-3 h-3 text-gray-500" />
+                        <ChevronDownIcon size={12} className="text-gray-500" />
                     </button>
 
                     <AnimatePresence>
@@ -817,12 +824,12 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
                     <div className="flex gap-2 items-end">
                         {/* Attach Image Button */}
                         <GlassButton size="sm">
-                            <Paperclip className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                            <PaperclipIcon size={16} style={{ color: '#1a1a1a' }} />
                         </GlassButton>
 
                         {/* Image to Code Button */}
                         <GlassButton size="sm">
-                            <Image className="h-4 w-4" style={{ color: '#1a1a1a' }} />
+                            <ImageIcon size={16} style={{ color: '#1a1a1a' }} />
                         </GlassButton>
 
                         {/* Text Input */}

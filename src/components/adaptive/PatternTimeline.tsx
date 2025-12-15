@@ -5,7 +5,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, Zap, HelpCircle, CheckCircle, TrendingDown } from 'lucide-react';
+import { WarningIcon, ZapIcon, InfoIcon, CheckCircleIcon, ActivityIcon } from '../ui/icons';
 
 const accentColor = '#c8ff64';
 
@@ -44,17 +44,17 @@ export function PatternTimeline({
     const getPatternIcon = (type: string) => {
         switch (type) {
             case 'friction':
-                return <AlertTriangle className="w-4 h-4" />;
+                return <WarningIcon size={16} />;
             case 'engagement':
-                return <Zap className="w-4 h-4" />;
+                return <ZapIcon size={16} />;
             case 'confusion':
-                return <HelpCircle className="w-4 h-4" />;
+                return <InfoIcon size={16} />;
             case 'success':
-                return <CheckCircle className="w-4 h-4" />;
+                return <CheckCircleIcon size={16} />;
             case 'drop-off':
-                return <TrendingDown className="w-4 h-4" />;
+                return <ActivityIcon size={16} />;
             default:
-                return <AlertTriangle className="w-4 h-4" />;
+                return <WarningIcon size={16} />;
         }
     };
 
@@ -111,7 +111,7 @@ export function PatternTimeline({
                     className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                     style={{ background: `${accentColor}20` }}
                 >
-                    <Zap className="w-8 h-8" style={{ color: accentColor }} />
+                    <ZapIcon size={32} className="text-[#c8ff64]" />
                 </div>
                 <p className="text-white/60">No patterns detected yet</p>
                 <p className="text-sm text-white/40 mt-1">

@@ -3,7 +3,7 @@ import { useCostStore } from '../../store/useCostStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
-import { Coins, AlertTriangle, ArrowRight } from 'lucide-react';
+import { CoinsIcon, AlertTriangleIcon, ArrowRightIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
 
 interface CostEstimatorModalProps {
@@ -25,7 +25,7 @@ export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: Co
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Coins className="h-5 w-5 text-yellow-500" />
+                        <CoinsIcon size={20} className="text-yellow-500" />
                         Estimated Cost
                     </DialogTitle>
                     <DialogDescription>
@@ -86,7 +86,7 @@ export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: Co
                         <Progress value={(projectedBalance / balance.limit) * 100} className="h-2" />
                         {isLowBalance && (
                             <div className="flex items-center gap-2 text-xs text-red-500 bg-red-500/10 p-2 rounded">
-                                <AlertTriangle className="h-3 w-3" />
+                                <AlertTriangleIcon size={12} />
                                 Low balance warning. Consider upgrading or simplifying scope.
                             </div>
                         )}
@@ -98,7 +98,7 @@ export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: Co
                         Adjust Scope
                     </Button>
                     <Button onClick={onConfirm} className="gap-2">
-                        Proceed <ArrowRight className="h-4 w-4" />
+                        Proceed <ArrowRightIcon size={16} />
                     </Button>
                 </DialogFooter>
             </DialogContent>

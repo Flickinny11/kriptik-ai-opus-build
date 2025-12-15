@@ -14,10 +14,21 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    MessageSquare, Shield, Ghost, Code2, Zap, CheckCircle2,
-    Clock, ChevronRight, Loader2, RotateCcw,
-    AlertTriangle, Brain, Save, Info
-} from 'lucide-react';
+    BellIcon,
+    ShieldIcon,
+    WorkflowIcon,
+    Code2Icon,
+    ZapIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    ChevronRightIcon,
+    LoadingIcon,
+    RefreshIcon,
+    AlertCircleIcon,
+    BrainIcon,
+    CheckIcon,
+    InfoIcon
+} from '../ui/icons';
 import { cn } from '../../lib/utils';
 import { apiClient } from '../../lib/api-client';
 
@@ -78,7 +89,7 @@ function SettingsSection({
 }: {
     title: string;
     description: string;
-    icon: React.ComponentType<{ className?: string; color?: string }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     children: React.ReactNode;
     defaultOpen?: boolean;
     badge?: string;
@@ -96,7 +107,7 @@ function SettingsSection({
                         className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{ background: 'rgba(255,180,140,0.2)' }}
                     >
-                        <Icon className="w-5 h-5" color="#c25a00" />
+                        <Icon size={20} />
                     </div>
                     <div className="text-left">
                         <div className="flex items-center gap-2">
@@ -117,7 +128,7 @@ function SettingsSection({
                     animate={{ rotate: isOpen ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <ChevronRight className="w-5 h-5" style={{ color: '#666' }} />
+                    <ChevronRightIcon size={20} />
                 </motion.div>
             </button>
 
@@ -424,7 +435,7 @@ export function DeveloperSettingsSection() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#c25a00' }} />
+                <LoadingIcon size={32} className="animate-spin" />
             </div>
         );
     }
@@ -432,7 +443,7 @@ export function DeveloperSettingsSection() {
     if (!settings) {
         return (
             <div className="text-center py-12">
-                <AlertTriangle className="w-12 h-12 mx-auto mb-4" style={{ color: '#dc2626' }} />
+                <AlertCircleIcon size={48} className="mx-auto mb-4" />
                 <p style={{ color: '#666' }}>Failed to load settings</p>
                 <button
                     onClick={loadSettings}
@@ -462,7 +473,7 @@ export function DeveloperSettingsSection() {
                         disabled={saving}
                         className="glass-button glass-button--small"
                     >
-                        <RotateCcw className="w-4 h-4 mr-1" style={{ color: '#1a1a1a' }} />
+                        <RefreshIcon size={16} className="mr-1" />
                         Reset
                     </button>
                     <button
@@ -474,9 +485,9 @@ export function DeveloperSettingsSection() {
                         )}
                     >
                         {saving ? (
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" style={{ color: '#c25a00' }} />
+                            <LoadingIcon size={16} className="mr-1 animate-spin" />
                         ) : (
-                            <Save className="w-4 h-4 mr-1" style={{ color: '#1a1a1a' }} />
+                            <CheckIcon size={16} className="mr-1" />
                         )}
                         Save Changes
                     </button>
@@ -488,7 +499,7 @@ export function DeveloperSettingsSection() {
                 className="glass-panel p-4 flex items-start gap-3 mb-2"
                 style={{ background: 'rgba(59,130,246,0.08)' }}
             >
-                <Info className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
+                <InfoIcon size={20} className="mt-0.5 flex-shrink-0" />
                 <div>
                     <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
                         These are your default preferences
@@ -504,7 +515,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Soft Interrupt System"
                 description="Non-blocking communication with running agents"
-                icon={MessageSquare}
+                icon={BellIcon}
                 badge="New"
             >
                 <Toggle
@@ -536,7 +547,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Pre-Deployment Validation"
                 description="Platform-specific checks before deployment"
-                icon={Shield}
+                icon={ShieldIcon}
             >
                 <Toggle
                     enabled={settings.preDeployValidation.enabled}
@@ -577,7 +588,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Ghost Mode"
                 description="Autonomous background building"
-                icon={Ghost}
+                icon={WorkflowIcon}
                 badge="Advanced"
             >
                 <Toggle
@@ -642,7 +653,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Model & Auto-Fix Preferences"
                 description="Fallback model and automatic error handling"
-                icon={Code2}
+                icon={Code2Icon}
                 defaultOpen
             >
                 <Select
@@ -670,7 +681,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Default Build Mode"
                 description="Default mode when starting new builds. Override in Builder for specific sessions."
-                icon={Zap}
+                icon={ZapIcon}
             >
                 <Select
                     value={settings.buildMode.defaultMode}
@@ -702,7 +713,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Quality Minimums"
                 description="Minimum thresholds applied to all builds. Builder can set higher per-session."
-                icon={CheckCircle2}
+                icon={CheckCircleIcon}
             >
                 <Slider
                     value={settings.quality.designScoreThreshold}
@@ -740,7 +751,7 @@ export function DeveloperSettingsSection() {
             <SettingsSection
                 title="Time Machine"
                 description="Project history and checkpoints"
-                icon={Clock}
+                icon={ClockIcon}
             >
                 <Toggle
                     enabled={settings.timeMachine.enabled}
@@ -770,7 +781,7 @@ export function DeveloperSettingsSection() {
                 className="glass-panel p-4 flex items-start gap-3"
                 style={{ background: 'rgba(255,180,140,0.1)' }}
             >
-                <Brain className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: '#c25a00' }} />
+                <BrainIcon size={20} className="mt-0.5 flex-shrink-0" />
                 <div>
                     <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
                         Save session settings as defaults
