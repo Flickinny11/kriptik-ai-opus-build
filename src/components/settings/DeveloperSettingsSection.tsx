@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     MessageSquare, Shield, Ghost, Code2, Zap, CheckCircle2,
     Clock, ChevronRight, Loader2, RotateCcw,
-    AlertTriangle, Brain, Save
+    AlertTriangle, Brain, Save, Info
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { apiClient } from '../../lib/api-client';
@@ -46,11 +46,8 @@ interface DeveloperSettings {
         slackWebhook: string | null;
     };
     developerMode: {
-        defaultModel: string;
-        defaultVerification: 'quick' | 'standard' | 'thorough' | 'full';
-        maxConcurrentAgents: number;
+        fallbackModel: string;
         autoFix: boolean;
-        autoFixRetries: number;
     };
     buildMode: {
         defaultMode: 'lightning' | 'standard' | 'tournament' | 'production';
@@ -365,11 +362,8 @@ export function DeveloperSettingsSection() {
             slackWebhook: null,
         },
         developerMode: {
-            defaultModel: 'claude-sonnet-4-5',
-            defaultVerification: 'standard',
-            maxConcurrentAgents: 3,
+            fallbackModel: 'claude-sonnet-4-5',
             autoFix: true,
-            autoFixRetries: 3,
         },
         buildMode: {
             defaultMode: 'standard',
@@ -459,7 +453,7 @@ export function DeveloperSettingsSection() {
                         Developer Options
                     </h2>
                     <p className="text-sm" style={{ color: '#666' }}>
-                        Advanced configuration for AI-powered development
+                        Default preferences for AI-powered development
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -468,7 +462,7 @@ export function DeveloperSettingsSection() {
                         disabled={saving}
                         className="glass-button glass-button--small"
                     >
-                        <RotateCcw className="w-4 h-4 mr-1" />
+                        <RotateCcw className="w-4 h-4 mr-1" style={{ color: '#1a1a1a' }} />
                         Reset
                     </button>
                     <button
@@ -480,12 +474,29 @@ export function DeveloperSettingsSection() {
                         )}
                     >
                         {saving ? (
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" style={{ color: '#c25a00' }} />
                         ) : (
-                            <Save className="w-4 h-4 mr-1" />
+                            <Save className="w-4 h-4 mr-1" style={{ color: '#1a1a1a' }} />
                         )}
                         Save Changes
                     </button>
+                </div>
+            </div>
+
+            {/* Info banner explaining relationship */}
+            <div
+                className="glass-panel p-4 flex items-start gap-3 mb-2"
+                style={{ background: 'rgba(59,130,246,0.08)' }}
+            >
+                <Info className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
+                <div>
+                    <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
+                        These are your default preferences
+                    </p>
+                    <p className="text-xs" style={{ color: '#666' }}>
+                        Settings here apply as defaults when starting new builds or deploying agents.
+                        You can always override these in the Builder view for specific sessions.
+                    </p>
                 </div>
             </div>
 
@@ -627,18 +638,18 @@ export function DeveloperSettingsSection() {
                 />
             </SettingsSection>
 
-            {/* Developer Mode Defaults */}
+            {/* Model & Auto-Fix Preferences */}
             <SettingsSection
-                title="Developer Mode Defaults"
-                description="Default settings for multi-agent development"
+                title="Model & Auto-Fix Preferences"
+                description="Fallback model and automatic error handling"
                 icon={Code2}
                 defaultOpen
             >
                 <Select
-                    value={settings.developerMode.defaultModel}
-                    onChange={(v) => updateSettings('developerMode', { defaultModel: v })}
-                    label="Default Model"
-                    description="AI model for new agent deployments"
+                    value={settings.developerMode.fallbackModel}
+                    onChange={(v) => updateSettings('developerMode', { fallbackModel: v })}
+                    label="Fallback Model"
+                    description="Used when model selection is unavailable or skipped. You can always choose a specific model when deploying agents in the Builder."
                     options={[
                         { value: 'claude-opus-4-5', label: 'Claude Opus 4.5 (Most Capable)' },
                         { value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (Recommended)' },
@@ -647,48 +658,18 @@ export function DeveloperSettingsSection() {
                         { value: 'deepseek-v3', label: 'DeepSeek V3 (Cost Effective)' },
                     ]}
                 />
-                <Select
-                    value={settings.developerMode.defaultVerification}
-                    onChange={(v) => updateSettings('developerMode', { defaultVerification: v as DeveloperSettings['developerMode']['defaultVerification'] })}
-                    label="Default Verification Mode"
-                    description="Verification level for agent work"
-                    options={[
-                        { value: 'quick', label: 'Quick (~10s) - Build + Lint' },
-                        { value: 'standard', label: 'Standard (~30s) - + Functional Test' },
-                        { value: 'thorough', label: 'Thorough (~60s) - + Security + Visual' },
-                        { value: 'full', label: 'Full Swarm (~2-3m) - All 6 Agents' },
-                    ]}
-                />
-                <Slider
-                    value={settings.developerMode.maxConcurrentAgents}
-                    onChange={(v) => updateSettings('developerMode', { maxConcurrentAgents: v })}
-                    label="Max Concurrent Agents"
-                    description="Maximum agents running simultaneously"
-                    min={1}
-                    max={6}
-                />
                 <Toggle
                     enabled={settings.developerMode.autoFix}
                     onChange={(v) => updateSettings('developerMode', { autoFix: v })}
                     label="Auto-Fix Errors"
-                    description="Automatically attempt to fix errors"
+                    description="Automatically attempt to fix build and lint errors"
                 />
-                {settings.developerMode.autoFix && (
-                    <Slider
-                        value={settings.developerMode.autoFixRetries}
-                        onChange={(v) => updateSettings('developerMode', { autoFixRetries: v })}
-                        label="Auto-Fix Retries"
-                        description="Maximum auto-fix attempts per error"
-                        min={1}
-                        max={5}
-                    />
-                )}
             </SettingsSection>
 
             {/* Build Mode */}
             <SettingsSection
-                title="Build Mode Preferences"
-                description="Default build behavior"
+                title="Default Build Mode"
+                description="Default mode when starting new builds. Override in Builder for specific sessions."
                 icon={Zap}
             >
                 <Select
@@ -719,15 +700,15 @@ export function DeveloperSettingsSection() {
 
             {/* Quality & Verification */}
             <SettingsSection
-                title="Quality & Verification"
-                description="Quality thresholds and checks"
+                title="Quality Minimums"
+                description="Minimum thresholds applied to all builds. Builder can set higher per-session."
                 icon={CheckCircle2}
             >
                 <Slider
                     value={settings.quality.designScoreThreshold}
                     onChange={(v) => updateSettings('quality', { designScoreThreshold: v })}
-                    label="Design Score Threshold"
-                    description="Minimum acceptable design quality score"
+                    label="Minimum Design Score"
+                    description="Builds below this score will require review"
                     min={50}
                     max={95}
                     suffix="%"
@@ -735,8 +716,8 @@ export function DeveloperSettingsSection() {
                 <Slider
                     value={settings.quality.codeQualityThreshold}
                     onChange={(v) => updateSettings('quality', { codeQualityThreshold: v })}
-                    label="Code Quality Threshold"
-                    description="Minimum acceptable code quality score"
+                    label="Minimum Code Quality"
+                    description="Builds below this score will require review"
                     min={50}
                     max={95}
                     suffix="%"
@@ -789,13 +770,13 @@ export function DeveloperSettingsSection() {
                 className="glass-panel p-4 flex items-start gap-3"
                 style={{ background: 'rgba(255,180,140,0.1)' }}
             >
-                <Brain className="w-5 h-5 mt-0.5" style={{ color: '#c25a00' }} />
+                <Brain className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: '#c25a00' }} />
                 <div>
                     <p className="font-medium text-sm" style={{ color: '#1a1a1a' }}>
-                        Pro Tip: Start with defaults
+                        Save session settings as defaults
                     </p>
                     <p className="text-xs" style={{ color: '#666' }}>
-                        These settings are optimized for most workflows. Adjust as needed based on your experience.
+                        When working in the Builder, you can save your current session settings as new defaults using the "Save as Defaults" button in each panel.
                     </p>
                 </div>
             </div>
