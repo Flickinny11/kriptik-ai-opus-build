@@ -8,12 +8,12 @@
  * - Drag-drop or assign to projects
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, Layers, Component, Box, Layout,
-    Sparkles, Grid3X3, Download, Play
+    Sparkles, Grid3X3, Download, Play, X, Loader2
 } from 'lucide-react';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
@@ -144,6 +144,162 @@ const TEMPLATES = [
     },
 ];
 
+// Visual preview component that generates layout representations based on category
+function TemplatePreview({ template, size = 'small' }: { template: typeof TEMPLATES[0]; size?: 'small' | 'large' }) {
+    const isLarge = size === 'large';
+
+    const previewContent: Record<string, React.ReactNode> = {
+        apps: (
+            <div className="w-full h-full flex flex-col p-3 gap-2">
+                {/* Header bar */}
+                <div
+                    className="rounded"
+                    style={{
+                        height: isLarge ? '32px' : '16px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                />
+                {/* Main content grid */}
+                <div className="flex-1 grid grid-cols-4 gap-2">
+                    {/* Sidebar */}
+                    <div
+                        className="rounded row-span-2"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}
+                    />
+                    {/* Main content */}
+                    <div
+                        className="rounded col-span-2 row-span-2"
+                        style={{ background: 'rgba(255,255,255,0.12)' }}
+                    />
+                    {/* Right panel */}
+                    <div
+                        className="rounded"
+                        style={{ background: 'rgba(255,255,255,0.08)' }}
+                    />
+                    <div
+                        className="rounded"
+                        style={{ background: 'rgba(255,255,255,0.08)' }}
+                    />
+                </div>
+                {/* Footer */}
+                <div
+                    className="rounded"
+                    style={{
+                        height: isLarge ? '24px' : '12px',
+                        background: 'rgba(255,255,255,0.08)',
+                    }}
+                />
+            </div>
+        ),
+        pages: (
+            <div className="w-full h-full flex flex-col p-3 gap-3">
+                {/* Hero section */}
+                <div
+                    className="rounded"
+                    style={{
+                        height: isLarge ? '80px' : '40px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                />
+                {/* Navigation dots */}
+                <div className="flex gap-2 justify-center">
+                    {[1, 2, 3].map(i => (
+                        <div
+                            key={i}
+                            className="rounded"
+                            style={{
+                                height: isLarge ? '20px' : '10px',
+                                width: isLarge ? '60px' : '30px',
+                                background: 'rgba(255,255,255,0.12)',
+                            }}
+                        />
+                    ))}
+                </div>
+                {/* Feature cards */}
+                <div className="flex-1 grid grid-cols-3 gap-2">
+                    {[1, 2, 3].map(i => (
+                        <div
+                            key={i}
+                            className="rounded"
+                            style={{ background: 'rgba(255,255,255,0.1)' }}
+                        />
+                    ))}
+                </div>
+                {/* CTA */}
+                <div
+                    className="rounded mx-auto"
+                    style={{
+                        height: isLarge ? '28px' : '14px',
+                        width: '60%',
+                        background: 'rgba(255,180,140,0.25)',
+                    }}
+                />
+            </div>
+        ),
+        components: (
+            <div className="w-full h-full flex items-center justify-center p-4">
+                <div
+                    className="rounded-xl"
+                    style={{
+                        width: isLarge ? '160px' : '80px',
+                        height: isLarge ? '100px' : '50px',
+                        background: 'rgba(255,255,255,0.15)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                    }}
+                />
+            </div>
+        ),
+        elements: (
+            <div className="w-full h-full flex items-center justify-center gap-4 p-4">
+                <div
+                    className="rounded-full"
+                    style={{
+                        width: isLarge ? '40px' : '20px',
+                        height: isLarge ? '40px' : '20px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                />
+                <div
+                    className="rounded"
+                    style={{
+                        width: isLarge ? '80px' : '40px',
+                        height: isLarge ? '32px' : '16px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                />
+                <div
+                    className="rounded"
+                    style={{
+                        width: isLarge ? '40px' : '20px',
+                        height: isLarge ? '40px' : '20px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                />
+            </div>
+        ),
+        animations: (
+            <div className="w-full h-full flex items-center justify-center p-4">
+                <motion.div
+                    className="rounded-xl"
+                    style={{
+                        width: isLarge ? '80px' : '40px',
+                        height: isLarge ? '80px' : '40px',
+                        background: 'rgba(255,255,255,0.15)',
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                />
+            </div>
+        ),
+    };
+
+    return (
+        <div className="absolute inset-0">
+            {previewContent[template.category] || previewContent.components}
+        </div>
+    );
+}
+
 // Template card component
 function TemplateCard({
     template,
@@ -196,24 +352,8 @@ function TemplateCard({
                         </div>
                     )}
 
-                    {/* Simulated content */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center p-6">
-                            <div
-                                className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                                style={{
-                                    background: 'rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(8px)',
-                                }}
-                            >
-                                {template.category === 'apps' && <Layers className="w-8 h-8 text-amber-400" />}
-                                {template.category === 'pages' && <Layout className="w-8 h-8 text-cyan-400" />}
-                                {template.category === 'components' && <Component className="w-8 h-8 text-emerald-400" />}
-                                {template.category === 'elements' && <Box className="w-8 h-8 text-pink-400" />}
-                                {template.category === 'animations' && <Sparkles className="w-8 h-8 text-amber-400" />}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Visual layout preview */}
+                    <TemplatePreview template={template} size="small" />
 
                     {/* Hover overlay */}
                     <motion.div
@@ -268,8 +408,36 @@ export default function TemplatesPage() {
     const navigate = useNavigate();
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [previewTemplate, setPreviewTemplate] = useState<typeof TEMPLATES[0] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [templates, setTemplates] = useState<typeof TEMPLATES>([]);
 
-    const filteredTemplates = TEMPLATES.filter((t) => {
+    // Load templates (simulate backend fetch, ready for real API)
+    useEffect(() => {
+        const loadTemplates = async () => {
+            setLoading(true);
+            try {
+                // Backend integration point: GET /api/templates
+                // For now, use static templates with simulated delay
+                await new Promise(resolve => setTimeout(resolve, 400));
+                setTemplates(TEMPLATES);
+            } catch (error) {
+                console.error('Failed to load templates:', error);
+                setTemplates(TEMPLATES); // Fallback to static templates
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadTemplates();
+    }, []);
+
+    // Navigate to builder with template parameter
+    const handleUseTemplate = (template: typeof TEMPLATES[0]) => {
+        setPreviewTemplate(null);
+        navigate(`/builder?template=${template.id}`);
+    };
+
+    const filteredTemplates = templates.filter((t) => {
         const matchesCategory = activeCategory === 'all' || t.category === activeCategory;
         const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -356,29 +524,150 @@ export default function TemplatesPage() {
                 </div>
 
                 {/* Templates grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredTemplates.map((template, index) => (
-                        <motion.div
-                            key={template.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
-                            <TemplateCard
-                                template={template}
-                                onUse={() => {/* TODO: Use template */}}
-                                onPreview={() => {/* TODO: Preview modal */}}
-                            />
-                        </motion.div>
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="text-center">
+                            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#c25a00' }} />
+                            <p style={{ color: '#666' }}>Loading templates...</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredTemplates.map((template, index) => (
+                            <motion.div
+                                key={template.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <TemplateCard
+                                    template={template}
+                                    onUse={() => handleUseTemplate(template)}
+                                    onPreview={() => setPreviewTemplate(template)}
+                                />
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
 
-                {filteredTemplates.length === 0 && (
+                {!loading && filteredTemplates.length === 0 && (
                     <div className="glass-panel text-center py-16">
                         <p style={{ color: '#666' }}>No templates found matching your criteria</p>
                     </div>
                 )}
             </main>
+
+            {/* Preview Modal */}
+            <AnimatePresence>
+                {previewTemplate && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+                        onClick={() => setPreviewTemplate(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="glass-panel max-w-4xl w-full max-h-[90vh] overflow-hidden rounded-2xl"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 50%, rgba(248,248,250,0.85) 100%)',
+                                boxShadow: `
+                                    0 25px 80px rgba(0,0,0,0.2),
+                                    0 10px 30px rgba(0,0,0,0.15),
+                                    inset 0 1px 1px rgba(255,255,255,1),
+                                    0 0 0 1px rgba(255,255,255,0.6)
+                                `,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div
+                                className="p-5 flex items-center justify-between"
+                                style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+                            >
+                                <div>
+                                    <h2
+                                        className="text-xl font-semibold"
+                                        style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
+                                    >
+                                        {previewTemplate.name}
+                                    </h2>
+                                    <p className="text-sm mt-1" style={{ color: '#666' }}>
+                                        {previewTemplate.description}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setPreviewTemplate(null)}
+                                    className="glass-button p-2 rounded-lg"
+                                    style={{ padding: '8px' }}
+                                >
+                                    <X className="w-5 h-5" style={{ color: '#666' }} />
+                                </button>
+                            </div>
+
+                            {/* Large Preview Area */}
+                            <div
+                                className="aspect-video relative"
+                                style={{ background: previewTemplate.preview }}
+                            >
+                                <TemplatePreview template={previewTemplate} size="large" />
+
+                                {/* Animated badge in preview */}
+                                {previewTemplate.animated && (
+                                    <div
+                                        className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.2)',
+                                            backdropFilter: 'blur(8px)',
+                                        }}
+                                    >
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                            className="w-2.5 h-2.5 rounded-full"
+                                            style={{ background: '#f59e0b' }}
+                                        />
+                                        <span className="text-xs text-white/90 font-mono">ANIMATED</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div
+                                className="p-5 flex items-center justify-between"
+                                style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}
+                            >
+                                <div className="flex flex-wrap gap-2">
+                                    {previewTemplate.tags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            className="px-3 py-1 text-xs rounded-full font-mono uppercase"
+                                            style={{
+                                                background: 'rgba(0,0,0,0.06)',
+                                                color: '#666',
+                                            }}
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => handleUseTemplate(previewTemplate)}
+                                    className="glass-button glass-button--glow"
+                                >
+                                    <Download className="w-4 h-4 mr-2" style={{ color: '#1a1a1a' }} />
+                                    Use This Template
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
