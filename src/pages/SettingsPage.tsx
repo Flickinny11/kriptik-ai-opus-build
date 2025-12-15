@@ -186,91 +186,93 @@ export default function SettingsPage() {
             </div>
 
             <main className="relative z-0 max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-20">
-                    {/* Header */}
-                    <div className="mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
-                        <p style={{ color: '#666' }}>Manage your account, billing, and preferences</p>
-                    </div>
+                {/* Header */}
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
+                    <p style={{ color: '#666' }}>Manage your account, billing, and preferences</p>
+                </div>
 
-                    {/* Mobile Tab Selector */}
-                    <div className="lg:hidden mb-6">
-                        <select
-                            value={activeTab}
-                            onChange={(e) => setActiveTab(e.target.value as TabId)}
-                            className="glass-button w-full px-4 py-3 rounded-xl"
+                {/* Mobile Tab Selector */}
+                <div className="lg:hidden mb-6">
+                    <select
+                        value={activeTab}
+                        onChange={(e) => setActiveTab(e.target.value as TabId)}
+                        className="glass-button w-full px-4 py-3 rounded-xl"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
+                            border: 'none',
+                            color: '#1a1a1a',
+                        }}
+                    >
+                        {tabs.map(tab => (
+                            <option key={tab.id} value={tab.id}>{tab.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Desktop Layout: Sidebar + Content side by side */}
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '32px',
+                        alignItems: 'flex-start',
+                    }}
+                >
+                    {/* Desktop Sidebar Tabs - hidden on mobile */}
+                    <div
+                        className="hidden lg:block"
+                        style={{
+                            width: '256px',
+                            flexShrink: 0,
+                            position: 'sticky',
+                            top: '32px',
+                            alignSelf: 'flex-start',
+                        }}
+                    >
+                        <nav
                             style={{
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
-                                border: 'none',
-                                color: '#1a1a1a',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
                             }}
                         >
                             {tabs.map(tab => (
-                                <option key={tab.id} value={tab.id}>{tab.label}</option>
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        "glass-button w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all",
+                                        activeTab === tab.id && "glass-button--glow"
+                                    )}
+                                    style={{ justifyContent: 'flex-start' }}
+                                >
+                                    <tab.icon size={20} />
+                                    <span className="font-medium">{tab.label}</span>
+                                    {tab.badge && (
+                                        <span
+                                            className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
+                                            style={{ background: 'rgba(255,180,140,0.3)', color: '#c25a00' }}
+                                        >
+                                            {tab.badge}
+                                        </span>
+                                    )}
+                                    {activeTab === tab.id && (
+                                        <StatusIcons.ChevronRightIcon size={16} className="ml-auto" />
+                                    )}
+                                </button>
                             ))}
-                        </select>
+                        </nav>
                     </div>
 
-                    <div
-                        className="gap-6 lg:gap-8"
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                        }}
-                    >
-                        {/* Desktop Sidebar Tabs - hidden on mobile */}
-                        <div
-                            className="hidden lg:block shrink-0"
-                            style={{
-                                width: '256px',
-                                position: 'sticky',
-                                top: '32px',
-                                float: 'left',
-                                marginRight: '32px',
-                            }}
+                    {/* Content - takes remaining width */}
+                    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.2 }}
                         >
-                            <nav
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '8px',
-                                }}
-                            >
-                                {tabs.map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={cn(
-                                            "glass-button w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all",
-                                            activeTab === tab.id && "glass-button--glow"
-                                        )}
-                                        style={{ justifyContent: 'flex-start' }}
-                                    >
-                                        <tab.icon size={20} />
-                                        <span className="font-medium">{tab.label}</span>
-                                        {tab.badge && (
-                                            <span
-                                                className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
-                                                style={{ background: 'rgba(255,180,140,0.3)', color: '#c25a00' }}
-                                            >
-                                                {tab.badge}
-                                            </span>
-                                        )}
-                                        {activeTab === tab.id && (
-                                            <StatusIcons.ChevronRightIcon size={16} className="ml-auto" />
-                                        )}
-                                    </button>
-                                ))}
-                            </nav>
-                        </div>
-
-                        {/* Content */}
-                        <div className="lg:ml-72" style={{ flex: 1, minWidth: 0 }}>
-                            <motion.div
-                                key={activeTab}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2 }}
-                            >
                                 {/* Profile Tab */}
                                 {activeTab === 'profile' && (
                                     <div className="glass-panel p-6">
@@ -676,8 +678,8 @@ export default function SettingsPage() {
                                     </div>
                                 )}
                             </motion.div>
-                        </div>
                     </div>
+                </div>
             </main>
         </div>
     );
