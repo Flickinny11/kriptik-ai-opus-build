@@ -599,3 +599,341 @@
   overflow-x: hidden;
 }
 
+/* =============================================================================
+   RESPONSIVE GLASS UTILITIES
+   Container query-based responsive glass components
+   ============================================================================= */
+
+/* Container query wrapper */
+.glass-container {
+  container-type: inline-size;
+  container-name: glass-panel;
+}
+
+/* Responsive panel that adapts to container size */
+.glass-panel-responsive {
+  position: relative;
+  border-radius: 24px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(248, 248, 250, 0.4) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.1),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+
+  /* Default padding */
+  padding: 24px;
+}
+
+/* Small container - reduced padding and border-radius */
+@container glass-panel (max-width: 384px) {
+  .glass-panel-responsive {
+    border-radius: 16px;
+    padding: 16px;
+  }
+}
+
+/* Medium container */
+@container glass-panel (min-width: 385px) and (max-width: 768px) {
+  .glass-panel-responsive {
+    border-radius: 20px;
+    padding: 20px;
+  }
+}
+
+/* =============================================================================
+   TOUCH-OPTIMIZED GLASS BUTTON
+   Minimum 44x44px touch target for accessibility
+   ============================================================================= */
+
+.glass-button-touch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 22px;
+  cursor: pointer;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--glass-text);
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.4) 40%,
+    rgba(248, 248, 250, 0.45) 100%
+  );
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+
+  box-shadow:
+    0 4px 0 rgba(200, 195, 190, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    inset 0 2px 2px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Ensure touch target even with visual padding */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.glass-button-touch:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 2px 0 rgba(200, 195, 190, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.06),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Larger touch button variant */
+.glass-button-touch--large {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 14px 24px;
+  border-radius: 24px;
+  font-size: 16px;
+}
+
+/* Icon-only touch button */
+.glass-button-touch--icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* =============================================================================
+   GLASS BOTTOM SHEET - Mobile Drawer Pattern
+   ============================================================================= */
+
+.glass-bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+
+  /* Rounded top corners */
+  border-radius: 24px 24px 0 0;
+
+  /* Frosted glass effect */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(248, 248, 250, 0.6) 100%
+  );
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+
+  /* Shadow for depth */
+  box-shadow:
+    0 -20px 60px rgba(0, 0, 0, 0.15),
+    0 -8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+
+  /* Safe area padding for notched devices */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+
+  /* Animation */
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.glass-bottom-sheet.open {
+  transform: translateY(0);
+}
+
+/* Drag handle indicator */
+.glass-bottom-sheet__handle {
+  width: 36px;
+  height: 5px;
+  margin: 12px auto 8px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Bottom sheet content area */
+.glass-bottom-sheet__content {
+  padding: 8px 20px 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Backdrop overlay for bottom sheet */
+.glass-bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.glass-bottom-sheet-backdrop.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* =============================================================================
+   GLASS FAB (Floating Action Button)
+   ============================================================================= */
+
+.glass-fab {
+  position: fixed;
+  right: 20px;
+  /* Safe area for notched devices */
+  bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  z-index: 150;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 210, 180, 0.8) 0%,
+    rgba(255, 190, 160, 0.65) 40%,
+    rgba(255, 170, 140, 0.55) 100%
+  );
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+
+  box-shadow:
+    0 8px 32px rgba(255, 150, 100, 0.3),
+    0 4px 16px rgba(255, 130, 80, 0.2),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(255, 160, 120, 0.25);
+
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.glass-fab:active {
+  transform: scale(0.92);
+  box-shadow:
+    0 4px 16px rgba(255, 150, 100, 0.25),
+    0 2px 8px rgba(255, 130, 80, 0.15),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9);
+}
+
+.glass-fab svg {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* =============================================================================
+   MOBILE NAVIGATION GLASS
+   ============================================================================= */
+
+.glass-mobile-nav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(300px, 85vw);
+  z-index: 200;
+
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(248, 248, 250, 0.55) 100%
+  );
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+
+  box-shadow:
+    4px 0 40px rgba(0, 0, 0, 0.1),
+    inset -1px 0 0 rgba(255, 255, 255, 0.8);
+
+  transform: translateX(-100%);
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Safe area padding */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-left: env(safe-area-inset-left, 0);
+}
+
+.glass-mobile-nav.open {
+  transform: translateX(0);
+}
+
+/* =============================================================================
+   REDUCED MOTION - Accessibility
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-button,
+  .glass-button-touch,
+  .glass-panel,
+  .glass-panel-responsive,
+  .glass-bottom-sheet,
+  .glass-fab,
+  .glass-mobile-nav,
+  .glass-input,
+  .glass-sidebar {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .glass-bottom-sheet.open {
+    transform: translateY(0);
+  }
+
+  .glass-mobile-nav.open {
+    transform: translateX(0);
+  }
+}
+
+/* =============================================================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ============================================================================= */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Disable hover effects on touch devices */
+  .glass-button:hover {
+    transform: none;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.4) 40%,
+      rgba(248, 248, 250, 0.45) 100%
+    );
+  }
+
+  /* Ensure active states work well */
+  .glass-button:active,
+  .glass-button-touch:active {
+    transform: scale(0.96);
+  }
+}
+

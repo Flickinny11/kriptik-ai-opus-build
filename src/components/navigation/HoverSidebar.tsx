@@ -2,16 +2,19 @@
  * Hover Sidebar Component
  *
  * Realistic frosted glass sidebar with 3D glass button items.
+ * Responsive: Desktop uses hover reveal, Mobile/Tablet uses drawer pattern.
  */
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboardIcon, LayersIcon, SparklesIcon, ShieldIcon,
-    SettingsIcon, PlugIcon, UserIcon
+    SettingsIcon, PlugIcon, UserIcon, MenuIcon, CloseIcon
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import '../../styles/realistic-glass.css';
 
 interface NavItem {
@@ -80,8 +83,22 @@ export function HoverSidebar() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Detect mouse near left edge
+    // Responsive detection
+    const { isMobile, isTablet, hasCoarsePointer, isTouchDevice } = useResponsiveLayout();
+    const { prefersReducedMotion } = useReducedMotion();
+    const isMobileMode = isMobile || (isTablet && hasCoarsePointer) || isTouchDevice;
+
+    // Handle drag to close on mobile
+    const handleDrag = useCallback((_event: any, info: PanInfo) => {
+        if (info.offset.x < -50 || info.velocity.x < -300) {
+            setIsOpen(false);
+        }
+    }, []);
+
+    // Detect mouse near left edge (desktop only)
     useEffect(() => {
+        if (isMobileMode) return;
+
         const handleMouseMove = (e: MouseEvent) => {
             if (e.clientX <= 20) {
                 setIsOpen(true);
@@ -92,19 +109,57 @@ export function HoverSidebar() {
 
         window.addEventListener('mousemove', handleMouseMove);
         return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    }, [isMobileMode]);
+
+    // Prevent body scroll when drawer is open on mobile
+    useEffect(() => {
+        if (isMobileMode && isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMobileMode, isOpen]);
+
+    // Mobile hamburger button
+    const MobileMenuButton = () => (
+        <button
+            onClick={() => setIsOpen(true)}
+            className="fixed top-4 left-4 z-[99] w-12 h-12 rounded-xl flex items-center justify-center"
+            style={{
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                boxShadow: `
+                    0 4px 20px rgba(0,0,0,0.08),
+                    inset 0 1px 2px rgba(255,255,255,0.9),
+                    0 0 0 1px rgba(255,255,255,0.5)
+                `,
+            }}
+            aria-label="Open navigation menu"
+        >
+            <MenuIcon size={22} className="text-stone-700" />
+        </button>
+    );
 
     return (
         <>
-            {/* Visible trigger zone with subtle indicator */}
-            <div
-                className="fixed left-0 top-0 w-2 h-full z-[100] group cursor-pointer"
-                onMouseEnter={() => setIsOpen(true)}
-            >
-                {/* Subtle line that hints at the sidebar */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-16 bg-gradient-to-b from-transparent via-black/20 to-transparent rounded-full" />
-            </div>
+            {/* Mobile: Show hamburger button when closed */}
+            {isMobileMode && !isOpen && <MobileMenuButton />}
+
+            {/* Desktop: Visible trigger zone with subtle indicator */}
+            {!isMobileMode && (
+                <div
+                    className="fixed left-0 top-0 w-2 h-full z-[100] group cursor-pointer"
+                    onMouseEnter={() => setIsOpen(true)}
+                >
+                    {/* Subtle line that hints at the sidebar */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-16 bg-gradient-to-b from-transparent via-black/20 to-transparent rounded-full" />
+                </div>
+            )}
 
             <AnimatePresence>
                 {isOpen && (
@@ -124,15 +179,22 @@ export function HoverSidebar() {
                             initial={{ x: -280, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -280, opacity: 0 }}
-                            transition={{
+                            transition={prefersReducedMotion ? { duration: 0 } : {
                                 type: 'spring',
                                 stiffness: 300,
                                 damping: 30,
                             }}
-                            onMouseLeave={() => setIsOpen(false)}
+                            {...(isMobileMode && {
+                                drag: 'x',
+                                dragConstraints: { left: -280, right: 0 },
+                                dragElastic: 0.1,
+                                onDragEnd: handleDrag,
+                            })}
+                            onMouseLeave={!isMobileMode ? () => setIsOpen(false) : undefined}
                             className={cn(
-                                "fixed left-0 top-0 h-full w-72 z-[110]",
-                                "flex flex-col"
+                                "fixed left-0 top-0 h-full z-[110]",
+                                "flex flex-col",
+                                isMobileMode ? "w-[min(300px,85vw)]" : "w-72"
                             )}
                             style={{
                                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(248, 248, 250, 0.45) 100%)',
@@ -157,7 +219,7 @@ export function HoverSidebar() {
                             />
 
                             {/* Header */}
-                            <div className="p-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                            <div className="p-6 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                                 <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -167,6 +229,17 @@ export function HoverSidebar() {
                                 >
                                     Navigation
                                 </motion.div>
+                                {/* Close button for mobile */}
+                                {isMobileMode && (
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        className="w-10 h-10 rounded-xl flex items-center justify-center -mr-2"
+                                        style={{ background: 'rgba(0,0,0,0.05)' }}
+                                        aria-label="Close navigation"
+                                    >
+                                        <CloseIcon size={18} className="text-stone-500" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Navigation Items - Photorealistic 3D Glass Buttons */}

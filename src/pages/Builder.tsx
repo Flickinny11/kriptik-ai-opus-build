@@ -9,11 +9,12 @@
  * - Integrated file explorer
  * - Monaco code editor
  * - Collaboration tools
+ * - Responsive layouts for Mobile/Tablet/Desktop
  *
  * Design: Liquid Glass 3D aesthetic with warm internal glow
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StatusIcons } from '../components/ui/icons';
@@ -58,6 +59,29 @@ import { FloatingVerificationSwarm } from '../components/builder/FloatingVerific
 import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import ExtensionAlternative from '../components/builder/ExtensionAlternative';
+
+// Lazy load device-specific layouts for code splitting
+const BuilderMobile = lazy(() => import('../components/builder/BuilderMobile'));
+const BuilderTablet = lazy(() => import('../components/builder/BuilderTablet'));
+// BuilderDesktop not used yet - keeping desktop layout inline for now
+// const BuilderDesktop = lazy(() => import('../components/builder/BuilderDesktop'));
+
+// Loading fallback for lazy-loaded components
+function BuilderLoading() {
+    return (
+        <div
+            className="h-screen flex items-center justify-center"
+            style={{ background: 'linear-gradient(180deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
+        >
+            <div className="flex flex-col items-center gap-4">
+                <StatusIcons.LoadingIcon size={32} className="animate-spin text-amber-600" />
+                <span className="text-sm text-stone-600">Loading Builder...</span>
+            </div>
+        </div>
+    );
+}
 
 // CSS-in-JS for liquid glass styling
 const liquidGlassPanel = {
@@ -335,6 +359,9 @@ export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
 
+    // Responsive layout detection
+    const { isMobile, isTablet, isTouchDevice } = useResponsiveLayout();
+
     // Builder mode is now the only mode - no mode switching
     const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
     const [showMemory, setShowMemory] = useState(false);
@@ -349,6 +376,7 @@ export default function Builder() {
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const [showContextBridge, setShowContextBridge] = useState(false);
     const [showIntelligencePanel] = useState(false);
+    const [showExtensionAlt, setShowExtensionAlt] = useState(false);
     const [intelligenceSettings, setIntelligenceSettings] = useState<IntelligenceSettings>({
         thinkingDepth: 'normal',
         powerLevel: 'balanced',
@@ -366,6 +394,15 @@ export default function Builder() {
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
+
+    // Show extension alternative on mobile after initial load
+    useEffect(() => {
+        if (isMobile && isTouchDevice) {
+            // Show after 2 seconds on mobile
+            const timer = setTimeout(() => setShowExtensionAlt(true), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isMobile, isTouchDevice]);
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
@@ -446,8 +483,52 @@ export default function Builder() {
         }
     }, [setIntegrationsOpen, setDeploymentOpen, handleProductionCheck]);
 
+    // Shared props for responsive layouts
+    const responsiveProps = {
+        projectId,
+        projectName,
+        intelligenceSettings,
+        onNavigateDashboard: () => navigate('/dashboard'),
+        onDeploy: () => setDeploymentOpen(true),
+        onShowQualityReport: handleProductionCheck,
+        onShowMemory: () => setShowMemory(prev => !prev),
+        onShowIntegrations: () => setIntegrationsOpen(true),
+        onShowGhostMode: () => setShowGhostMode(prev => !prev),
+        onShowAgentPanel: () => setShowAgentPanel(prev => !prev),
+    };
+
     return (
         <SandpackProvider initialFiles={INITIAL_FILES}>
+            {/* Responsive Layout Rendering */}
+            {(isMobile || isTablet) ? (
+                <Suspense fallback={<BuilderLoading />}>
+                    {/* Shared Modals */}
+                    <QualityReportModal open={showQualityReport} onOpenChange={setShowQualityReport} />
+                    <DeploymentModal />
+                    <IntegrationMarketplace />
+                    <ShareModal />
+                    <CommandPalette />
+
+                    {/* Mobile Layout */}
+                    {isMobile && (
+                        <>
+                            <BuilderMobile {...responsiveProps} />
+                            <ExtensionAlternative
+                                previewUrl={`/preview/${projectId || 'new'}`}
+                                projectId={projectId}
+                                isVisible={showExtensionAlt}
+                                onDismiss={() => setShowExtensionAlt(false)}
+                            />
+                        </>
+                    )}
+
+                    {/* Tablet Layout */}
+                    {isTablet && !isMobile && (
+                        <BuilderTablet {...responsiveProps} />
+                    )}
+                </Suspense>
+            ) : (
+            /* Desktop Layout - Original Implementation */
             <div
                 className="h-screen flex flex-col relative overflow-hidden"
                 style={{ background: 'linear-gradient(180deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
@@ -850,6 +931,7 @@ export default function Builder() {
                     </AnimatePresence>
                 </div>
             </div>
+            )}
         </SandpackProvider>
     );
 }

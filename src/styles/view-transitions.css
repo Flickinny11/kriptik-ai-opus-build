@@ -1,0 +1,182 @@
+/**
+ * View Transitions CSS
+ *
+ * Styles for View Transitions API with cross-browser support
+ * and reduced motion respect.
+ */
+
+/* =============================================================================
+   VIEW TRANSITION BASE STYLES
+   ============================================================================= */
+
+/* Root transition animation */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 250ms;
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Panel-specific transitions */
+::view-transition-old(panel) {
+    animation: vt-slide-out-left 200ms ease-out forwards;
+}
+
+::view-transition-new(panel) {
+    animation: vt-slide-in-right 200ms ease-out forwards;
+}
+
+/* Chat panel transitions */
+::view-transition-old(chat-panel) {
+    animation: vt-fade-scale-out 200ms ease-out forwards;
+}
+
+::view-transition-new(chat-panel) {
+    animation: vt-fade-scale-in 200ms ease-out forwards;
+}
+
+/* Preview panel transitions */
+::view-transition-old(preview-panel) {
+    animation: vt-slide-out-right 200ms ease-out forwards;
+}
+
+::view-transition-new(preview-panel) {
+    animation: vt-slide-in-left 200ms ease-out forwards;
+}
+
+/* =============================================================================
+   KEYFRAME ANIMATIONS
+   ============================================================================= */
+
+@keyframes vt-slide-out-left {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-30%);
+        opacity: 0;
+    }
+}
+
+@keyframes vt-slide-in-right {
+    from {
+        transform: translateX(30%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes vt-slide-out-right {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(30%);
+        opacity: 0;
+    }
+}
+
+@keyframes vt-slide-in-left {
+    from {
+        transform: translateX(-30%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes vt-fade-scale-out {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+}
+
+@keyframes vt-fade-scale-in {
+    from {
+        transform: scale(1.05);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* =============================================================================
+   REDUCED MOTION - Accessibility
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root),
+    ::view-transition-old(panel),
+    ::view-transition-new(panel),
+    ::view-transition-old(chat-panel),
+    ::view-transition-new(chat-panel),
+    ::view-transition-old(preview-panel),
+    ::view-transition-new(preview-panel) {
+        animation: none !important;
+        animation-duration: 0ms !important;
+    }
+
+    /* Instant transitions for reduced motion */
+    ::view-transition-old(*) {
+        display: none;
+    }
+
+    ::view-transition-new(*) {
+        animation: none;
+    }
+}
+
+/* =============================================================================
+   MOBILE-SPECIFIC TRANSITIONS
+   ============================================================================= */
+
+/* Faster transitions on mobile for better perceived performance */
+@media (max-width: 768px) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 180ms;
+    }
+
+    ::view-transition-old(panel),
+    ::view-transition-new(panel) {
+        animation-duration: 150ms;
+    }
+}
+
+/* =============================================================================
+   UTILITY CLASSES FOR VIEW TRANSITION NAMES
+   ============================================================================= */
+
+.vt-panel {
+    view-transition-name: panel;
+}
+
+.vt-chat {
+    view-transition-name: chat-panel;
+}
+
+.vt-preview {
+    view-transition-name: preview-panel;
+}
+
+.vt-sidebar {
+    view-transition-name: sidebar;
+}
+
+.vt-header {
+    view-transition-name: header;
+}

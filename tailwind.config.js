@@ -6,7 +6,36 @@ export default {
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
+        // Container query breakpoints
+        containers: {
+            'xs': '320px',
+            'sm': '384px',
+            'md': '448px',
+            'lg': '512px',
+            'xl': '576px',
+            '2xl': '672px',
+            '3xl': '768px',
+            '4xl': '896px',
+            '5xl': '1024px',
+        },
         extend: {
+            // Responsive screen breakpoints with touch detection
+            screens: {
+                'xs': '375px',
+                // sm, md, lg, xl, 2xl use Tailwind defaults
+                // Touch-specific media queries
+                'touch': { 'raw': '(hover: none)' },
+                'pointer-coarse': { 'raw': '(pointer: coarse)' },
+                'pointer-fine': { 'raw': '(pointer: fine)' },
+                'reduced-motion': { 'raw': '(prefers-reduced-motion: reduce)' },
+            },
+            // Touch-friendly spacing
+            spacing: {
+                'touch': '44px',
+                'touch-lg': '48px',
+                'safe-bottom': 'env(safe-area-inset-bottom)',
+                'safe-top': 'env(safe-area-inset-top)',
+            },
             colors: {
                 // KripTik Premium Color System
                 kriptik: {
@@ -176,5 +205,8 @@ export default {
             },
         }
     },
-    plugins: [require("tailwindcss-animate")],
+    plugins: [
+        require("tailwindcss-animate"),
+        require("@tailwindcss/container-queries"),
+    ],
 }
