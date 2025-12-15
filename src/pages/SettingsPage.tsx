@@ -292,6 +292,30 @@ export default function SettingsPage() {
                                 grid-template-columns: 256px 1fr;
                             }
                         }
+                        /* CRITICAL: Override developer-bar-panel.css which sets .glass-panel to position:fixed */
+                        .settings-layout .glass-panel {
+                            position: relative !important;
+                            z-index: auto !important;
+                            cursor: auto !important;
+                            user-select: auto !important;
+                            -webkit-user-select: auto !important;
+                            isolation: isolate;
+                            background: linear-gradient(
+                                145deg,
+                                rgba(255, 255, 255, 0.95) 0%,
+                                rgba(255, 255, 255, 0.9) 50%,
+                                rgba(248, 248, 250, 0.92) 100%
+                            );
+                        }
+                        /* Ensure proper z-index stacking for nested panels */
+                        .settings-layout .glass-panel .glass-panel {
+                            position: relative !important;
+                            background: linear-gradient(
+                                145deg,
+                                rgba(255, 255, 255, 0.85) 0%,
+                                rgba(248, 248, 250, 0.8) 100%
+                            );
+                        }
                     `}</style>
                     {/* Desktop Sidebar Tabs - hidden on mobile/tablet */}
                     <aside
