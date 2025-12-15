@@ -180,17 +180,17 @@ export default function SettingsPage() {
 
     return (
         <div
-            className="min-h-screen"
+            className="min-h-screen overflow-y-auto"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
             <HoverSidebar />
 
             {/* Visual trigger for sidebar */}
-            <div className="fixed top-4 left-4 z-50">
+            <div className="fixed top-4 left-4 z-30">
                 <HandDrawnArrow />
             </div>
 
-            <div className="max-w-6xl mx-auto p-8">
+            <main className="relative z-0 max-w-6xl mx-auto p-8 pb-20">
                     {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                             </motion.div>
                         </div>
                     </div>
-                </div>
+            </main>
         </div>
     );
 }

@@ -254,7 +254,7 @@ export default function IntegrationsPage() {
 
     return (
         <div
-            className="min-h-screen"
+            className="min-h-screen overflow-y-auto"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
             <HoverSidebar />
@@ -278,7 +278,7 @@ export default function IntegrationsPage() {
                 </div>
             </header>
 
-            <main className="container mx-auto px-4 py-8">
+            <main className="relative z-0 container mx-auto px-4 py-8 pb-20">
                 {/* Page header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
