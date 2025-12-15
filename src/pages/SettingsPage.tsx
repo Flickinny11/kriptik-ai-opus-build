@@ -280,14 +280,19 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Main Layout - CSS Grid for reliable side-by-side layout */}
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(0, 1fr)',
-                        gap: '24px',
-                    }}
-                    className="lg:!grid-cols-[256px_1fr]"
-                >
+                <div className="settings-layout">
+                    <style>{`
+                        .settings-layout {
+                            display: grid;
+                            grid-template-columns: 1fr;
+                            gap: 24px;
+                        }
+                        @media (min-width: 1024px) {
+                            .settings-layout {
+                                grid-template-columns: 256px 1fr;
+                            }
+                        }
+                    `}</style>
                     {/* Desktop Sidebar Tabs - hidden on mobile/tablet */}
                     <aside
                         className="hidden lg:block"
