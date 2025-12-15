@@ -185,17 +185,56 @@ export default function SettingsPage() {
                 <HandDrawnArrow />
             </div>
 
-            <main className="relative z-0 max-w-6xl mx-auto p-8 pb-20">
+            <main className="relative z-0 max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-20">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Settings</h1>
                         <p style={{ color: '#666' }}>Manage your account, billing, and preferences</p>
                     </div>
 
-                    <div className="flex gap-8">
-                        {/* Sidebar Tabs */}
-                        <div className="w-64 shrink-0">
-                            <nav className="space-y-2">
+                    {/* Mobile Tab Selector */}
+                    <div className="lg:hidden mb-6">
+                        <select
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value as TabId)}
+                            className="glass-button w-full px-4 py-3 rounded-xl"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)',
+                                border: 'none',
+                                color: '#1a1a1a',
+                            }}
+                        >
+                            {tabs.map(tab => (
+                                <option key={tab.id} value={tab.id}>{tab.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div
+                        className="gap-6 lg:gap-8"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        {/* Desktop Sidebar Tabs - hidden on mobile */}
+                        <div
+                            className="hidden lg:block shrink-0"
+                            style={{
+                                width: '256px',
+                                position: 'sticky',
+                                top: '32px',
+                                float: 'left',
+                                marginRight: '32px',
+                            }}
+                        >
+                            <nav
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px',
+                                }}
+                            >
                                 {tabs.map(tab => (
                                     <button
                                         key={tab.id}
@@ -225,7 +264,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1">
+                        <div className="lg:ml-72" style={{ flex: 1, minWidth: 0 }}>
                             <motion.div
                                 key={activeTab}
                                 initial={{ opacity: 0, x: 20 }}
@@ -301,7 +340,13 @@ export default function SettingsPage() {
                                         {/* Top Up */}
                                         <div className="glass-panel p-6">
                                             <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a' }}>Top Up Credits</h3>
-                                            <div className="grid grid-cols-4 gap-3 mb-4">
+                                            <div
+                                                className="gap-3 mb-4"
+                                                style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                                }}
+                                            >
                                                 {[500, 1000, 2500, 5000].map(amount => (
                                                     <button
                                                         key={amount}

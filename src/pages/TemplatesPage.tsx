@@ -314,12 +314,11 @@ function TemplateCard({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -8 }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="group relative"
+            className="group"
+            style={{ position: 'relative', height: '100%' }}
         >
             <div
                 className="glass-panel relative rounded-2xl overflow-hidden transition-all duration-500"
@@ -532,13 +531,20 @@ export default function TemplatesPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div
+                        className="grid gap-6"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        }}
+                    >
                         {filteredTemplates.map((template, index) => (
                             <motion.div
                                 key={template.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
+                                transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                                style={{ position: 'relative' }}
                             >
                                 <TemplateCard
                                     template={template}

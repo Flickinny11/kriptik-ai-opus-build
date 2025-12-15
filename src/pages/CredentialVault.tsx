@@ -85,8 +85,10 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             whileHover={{ y: -4 }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="glass-panel relative p-5 rounded-2xl transition-all duration-500"
+            className="glass-panel p-5 rounded-2xl transition-all duration-500"
             style={{
+                position: 'relative',
+                height: '100%',
                 background: isHovered
                     ? 'linear-gradient(145deg, rgba(255,230,215,0.7) 0%, rgba(255,220,200,0.55) 40%, rgba(255,210,185,0.5) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.4) 50%, rgba(248,248,250,0.45) 100%)',
@@ -330,7 +332,13 @@ export default function CredentialVault() {
                 </div>
 
                 {/* Credentials grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div
+                    className="gap-4"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    }}
+                >
                     {credentials.map((cred) => (
                         <CredentialCard
                             key={cred.id}
@@ -364,7 +372,13 @@ export default function CredentialVault() {
                 {/* Available integrations */}
                 <div className="mt-12">
                     <h2 className="text-xl font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Available Integrations</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div
+                        className="gap-3"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                        }}
+                    >
                         {CREDENTIAL_TYPES.map((type) => {
                             const IconComp = type.Icon;
                             return (
