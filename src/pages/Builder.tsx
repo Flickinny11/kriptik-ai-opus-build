@@ -61,6 +61,7 @@ import TournamentPanel from '../components/builder/TournamentPanel';
 import { DeveloperBar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
+import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
 
@@ -544,6 +545,16 @@ export default function Builder() {
                     isVisible={showSpline3D}
                     onClose={() => setShowSpline3D(false)}
                     position={{ x: 50, y: 45 }}
+                />
+
+                {/* Floating Soft Interrupt - Communication with running agents */}
+                <FloatingSoftInterrupt
+                    sessionId={projectId || 'new'}
+                    agentId={undefined}
+                    isAgentRunning={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
+                    onInterruptSubmitted={(interrupt) => {
+                        console.log('Interrupt submitted:', interrupt);
+                    }}
                 />
 
                 {/* Floating Verification Swarm - Real-time 6-agent quality checks */}
