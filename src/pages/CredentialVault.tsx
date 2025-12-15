@@ -9,11 +9,11 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Eye, EyeOff, Trash2, RefreshCw,
     Shield, Lock, Copy, Key, Database, Cloud,
-    CreditCard, Cpu, Server, Globe, Zap
+    CreditCard, Cpu, Server, Globe, Zap, X
 } from 'lucide-react';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
@@ -200,9 +200,44 @@ export default function CredentialVault() {
     const navigate = useNavigate();
     const [credentials, setCredentials] = useState(DEMO_CREDENTIALS);
     const [addingNew, setAddingNew] = useState(false);
+    const [selectedType, setSelectedType] = useState<string | null>(null);
+    const [apiKey, setApiKey] = useState('');
+    const [credentialName, setCredentialName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Use addingNew to prevent unused variable warning
-    void addingNew;
+    const handleSaveCredential = async () => {
+        if (!selectedType || !apiKey.trim()) return;
+
+        setIsSaving(true);
+
+        // Simulate API call - replace with actual backend integration
+        // Backend integration point: POST /api/credentials
+        // Payload: { type: selectedType, name: credentialName || typeInfo.name, apiKey: encrypted }
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const typeInfo = CREDENTIAL_TYPES.find(t => t.id === selectedType);
+        const newCredential: StoredCredential = {
+            id: Date.now().toString(),
+            type: selectedType,
+            name: credentialName || `${typeInfo?.name || 'API'} Key`,
+            status: 'active',
+            createdAt: new Date(),
+        };
+
+        setCredentials(prev => [...prev, newCredential]);
+        setAddingNew(false);
+        setSelectedType(null);
+        setApiKey('');
+        setCredentialName('');
+        setIsSaving(false);
+    };
+
+    const handleCloseModal = () => {
+        setAddingNew(false);
+        setSelectedType(null);
+        setApiKey('');
+        setCredentialName('');
+    };
 
     return (
         <div
@@ -336,6 +371,187 @@ export default function CredentialVault() {
                     </div>
                 </div>
             </main>
+
+            {/* Add Credential Modal */}
+            <AnimatePresence>
+                {addingNew && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                        style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(8px)' }}
+                        onClick={handleCloseModal}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="glass-panel w-full max-w-lg rounded-2xl overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.75) 50%, rgba(248,248,250,0.8) 100%)',
+                                boxShadow: `
+                                    0 25px 80px rgba(0,0,0,0.15),
+                                    0 10px 30px rgba(0,0,0,0.1),
+                                    inset 0 1px 1px rgba(255,255,255,1),
+                                    0 0 0 1px rgba(255,255,255,0.6)
+                                `,
+                            }}
+                        >
+                            {/* Modal Header */}
+                            <div
+                                className="flex items-center justify-between p-5"
+                                style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                        style={{
+                                            background: 'linear-gradient(145deg, rgba(255,180,140,0.3) 0%, rgba(255,160,120,0.2) 100%)',
+                                            boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.9)',
+                                        }}
+                                    >
+                                        <Key className="w-5 h-5" style={{ color: '#c25a00' }} />
+                                    </div>
+                                    <h2 className="text-xl font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                        Add Credential
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="glass-button p-2 rounded-lg"
+                                    style={{ padding: '8px' }}
+                                >
+                                    <X className="w-5 h-5" style={{ color: '#666' }} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-5 space-y-5">
+                                {/* Credential Type Selector */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-3" style={{ color: '#1a1a1a' }}>
+                                        Select Service
+                                    </label>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {CREDENTIAL_TYPES.map((type) => {
+                                            const IconComp = type.icon;
+                                            const isSelected = selectedType === type.id;
+                                            return (
+                                                <button
+                                                    key={type.id}
+                                                    onClick={() => setSelectedType(type.id)}
+                                                    className="p-3 rounded-xl text-center transition-all"
+                                                    style={{
+                                                        background: isSelected
+                                                            ? 'linear-gradient(145deg, rgba(255,180,140,0.4) 0%, rgba(255,160,120,0.3) 100%)'
+                                                            : 'rgba(0,0,0,0.04)',
+                                                        boxShadow: isSelected
+                                                            ? '0 4px 12px rgba(255,150,100,0.2), inset 0 1px 1px rgba(255,255,255,0.9), 0 0 0 2px rgba(194,90,0,0.3)'
+                                                            : 'inset 0 1px 1px rgba(255,255,255,0.5)',
+                                                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                                                    }}
+                                                >
+                                                    <IconComp
+                                                        className="w-5 h-5 mx-auto mb-1"
+                                                        style={{ color: isSelected ? type.color : '#999' }}
+                                                    />
+                                                    <span
+                                                        className="text-xs block truncate"
+                                                        style={{ color: isSelected ? '#1a1a1a' : '#666' }}
+                                                    >
+                                                        {type.name}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Credential Name */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2" style={{ color: '#1a1a1a' }}>
+                                        Name (optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={credentialName}
+                                        onChange={(e) => setCredentialName(e.target.value)}
+                                        placeholder={selectedType ? `${CREDENTIAL_TYPES.find(t => t.id === selectedType)?.name || ''} Key` : 'My API Key'}
+                                        className="glass-input w-full px-4 py-3 rounded-xl"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.6)',
+                                            border: '1px solid rgba(0,0,0,0.1)',
+                                            color: '#1a1a1a',
+                                            outline: 'none',
+                                        }}
+                                    />
+                                </div>
+
+                                {/* API Key Input */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2" style={{ color: '#1a1a1a' }}>
+                                        API Key
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder="sk-xxxx..."
+                                        className="glass-input w-full px-4 py-3 rounded-xl font-mono text-sm"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.6)',
+                                            border: '1px solid rgba(0,0,0,0.1)',
+                                            color: '#1a1a1a',
+                                            outline: 'none',
+                                        }}
+                                    />
+                                    <p className="text-xs mt-2" style={{ color: '#999' }}>
+                                        Your key will be encrypted with AES-256-GCM before storage
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div
+                                className="flex gap-3 p-5"
+                                style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}
+                            >
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="glass-button flex-1 py-3"
+                                    style={{ color: '#666' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveCredential}
+                                    disabled={!selectedType || !apiKey.trim() || isSaving}
+                                    className="glass-button glass-button--glow flex-1 py-3"
+                                    style={{
+                                        opacity: (!selectedType || !apiKey.trim() || isSaving) ? 0.5 : 1,
+                                        cursor: (!selectedType || !apiKey.trim() || isSaving) ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {isSaving ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <RefreshCw className="w-4 h-4 animate-spin" style={{ color: '#1a1a1a' }} />
+                                            Saving...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <Shield className="w-4 h-4" style={{ color: '#1a1a1a' }} />
+                                            Save Credential
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
