@@ -16,7 +16,6 @@ import {
     FolderPlus, Code2, ZoomIn, ZoomOut,
     Palette, Sliders, Check, Sparkles
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -127,7 +126,7 @@ export default function DesignRoom() {
 
     return (
         <div
-            className="min-h-screen flex flex-col"
+            className="min-h-screen flex flex-col overflow-hidden"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
             <HoverSidebar />
@@ -182,14 +181,20 @@ export default function DesignRoom() {
             </header>
 
             {activeTab === 'generate' ? (
-                <div className="flex-1 flex">
+                <div className="flex-1 flex overflow-hidden">
                     {/* Chat panel */}
-                    <div className="w-96 border-r border-slate-800 flex flex-col bg-slate-900/30">
-                        <div className="p-4 border-b border-slate-800">
-                            <h2 className="font-semibold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    <div
+                        className="w-96 flex flex-col"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                            borderRight: '1px solid rgba(0,0,0,0.08)',
+                        }}
+                    >
+                        <div className="p-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                            <h2 className="font-semibold" style={{ fontFamily: 'Syne, sans-serif', color: '#1a1a1a' }}>
                                 Design Generator
                             </h2>
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-sm mt-1" style={{ color: '#666' }}>
                                 Describe your UI and watch it come to life
                             </p>
                         </div>
@@ -198,8 +203,13 @@ export default function DesignRoom() {
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.length === 0 && (
                                 <div className="text-center py-8">
-                                    <Sparkles className="h-12 w-12 mx-auto text-slate-700 mb-4" />
-                                    <p className="text-slate-500 text-sm">
+                                    <div
+                                        className="w-16 h-16 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                                        style={{ background: 'rgba(255,180,140,0.2)' }}
+                                    >
+                                        <Sparkles className="h-8 w-8" style={{ color: '#c25a00' }} />
+                                    </div>
+                                    <p className="text-sm" style={{ color: '#666' }}>
                                         Start by describing a UI element, page, or component
                                     </p>
                                 </div>
@@ -210,12 +220,18 @@ export default function DesignRoom() {
                                     key={message.id}
                                     className={cn(
                                         "rounded-xl p-3",
-                                        message.role === 'user'
-                                            ? "bg-amber-500/10 border border-amber-500/20 ml-8"
-                                            : "bg-slate-800/50 mr-8"
+                                        message.role === 'user' ? "ml-8" : "mr-8"
                                     )}
+                                    style={{
+                                        background: message.role === 'user'
+                                            ? 'rgba(255,180,140,0.2)'
+                                            : 'rgba(0,0,0,0.03)',
+                                        border: message.role === 'user'
+                                            ? '1px solid rgba(255,180,140,0.4)'
+                                            : '1px solid rgba(0,0,0,0.06)',
+                                    }}
                                 >
-                                    <p className="text-sm text-slate-200">{message.content}</p>
+                                    <p className="text-sm" style={{ color: '#1a1a1a' }}>{message.content}</p>
                                     {message.images?.map((img) => (
                                         <div key={img.id} className="mt-3 rounded-lg overflow-hidden">
                                             <img
@@ -229,8 +245,11 @@ export default function DesignRoom() {
                             ))}
 
                             {isGenerating && (
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                <div className="flex items-center gap-2" style={{ color: '#666' }}>
+                                    <div
+                                        className="w-2 h-2 rounded-full animate-pulse"
+                                        style={{ background: '#c25a00' }}
+                                    />
                                     <span className="text-sm">Generating...</span>
                                 </div>
                             )}
@@ -238,7 +257,7 @@ export default function DesignRoom() {
                         </div>
 
                         {/* Input */}
-                        <div className="p-4 border-t border-slate-800">
+                        <div className="p-4" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
                             <div className="relative">
                                 <textarea
                                     value={prompt}
@@ -251,39 +270,40 @@ export default function DesignRoom() {
                                     }}
                                     placeholder="Describe your design..."
                                     rows={3}
-                                    className={cn(
-                                        "w-full px-4 py-3 pr-12 rounded-xl resize-none",
-                                        "bg-slate-800 border border-slate-700",
-                                        "text-white placeholder:text-slate-500",
-                                        "focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                    )}
+                                    className="glass-input w-full px-4 py-3 pr-12 rounded-xl resize-none"
+                                    style={{ color: '#1a1a1a' }}
                                 />
                                 <button
                                     onClick={handleGenerate}
                                     disabled={!prompt.trim() || isGenerating}
-                                    className={cn(
-                                        "absolute right-3 bottom-3 p-2 rounded-lg",
-                                        "bg-amber-500 text-black",
-                                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                                        "hover:bg-amber-400 transition-colors"
-                                    )}
+                                    className="absolute right-3 bottom-3 p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
+                                        boxShadow: '0 4px 12px rgba(194, 90, 0, 0.3)',
+                                    }}
                                 >
-                                    <Send className="h-4 w-4" />
+                                    <Send className="h-4 w-4" style={{ color: '#fff' }} />
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     {/* Whiteboard */}
-                    <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex flex-col overflow-hidden">
                         {/* Toolbar */}
-                        <div className="h-12 border-b border-slate-800 flex items-center justify-between px-4">
+                        <div
+                            className="h-12 flex items-center justify-between px-4"
+                            style={{
+                                background: 'rgba(255,255,255,0.5)',
+                                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                            }}
+                        >
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-slate-400">
+                                <span className="text-sm" style={{ color: '#666' }}>
                                     {generatedImages.length} designs
                                 </span>
                                 {selectedImages.size > 0 && (
-                                    <span className="text-sm text-amber-400">
+                                    <span className="text-sm" style={{ color: '#c25a00' }}>
                                         ({selectedImages.size} selected)
                                     </span>
                                 )}
@@ -292,39 +312,36 @@ export default function DesignRoom() {
                             <div className="flex items-center gap-2">
                                 {selectedImages.size > 0 && (
                                     <>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
+                                        <button
                                             onClick={handleGetCode}
-                                            className="gap-2"
+                                            className="glass-button glass-button--small"
                                         >
-                                            <Code2 className="h-4 w-4" />
+                                            <Code2 className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
                                             Get Code
-                                        </Button>
-                                        <Button
-                                            size="sm"
+                                        </button>
+                                        <button
                                             onClick={handleAddToProject}
-                                            className="bg-amber-500 hover:bg-amber-400 text-black gap-2"
+                                            className="glass-button glass-button--glow"
                                         >
-                                            <FolderPlus className="h-4 w-4" />
+                                            <FolderPlus className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
                                             Add to Project
-                                        </Button>
+                                        </button>
                                     </>
                                 )}
 
                                 <div className="flex items-center gap-1 ml-4">
                                     <button
                                         onClick={() => setZoom(z => Math.max(50, z - 10))}
-                                        className="p-1.5 rounded hover:bg-slate-800 text-slate-400"
+                                        className="p-1.5 rounded hover:bg-black/5 transition-colors"
                                     >
-                                        <ZoomOut className="h-4 w-4" />
+                                        <ZoomOut className="h-4 w-4" style={{ color: '#666' }} />
                                     </button>
-                                    <span className="text-xs text-slate-400 w-12 text-center">{zoom}%</span>
+                                    <span className="text-xs w-12 text-center" style={{ color: '#666' }}>{zoom}%</span>
                                     <button
                                         onClick={() => setZoom(z => Math.min(200, z + 10))}
-                                        className="p-1.5 rounded hover:bg-slate-800 text-slate-400"
+                                        className="p-1.5 rounded hover:bg-black/5 transition-colors"
                                     >
-                                        <ZoomIn className="h-4 w-4" />
+                                        <ZoomIn className="h-4 w-4" style={{ color: '#666' }} />
                                     </button>
                                 </div>
                             </div>
@@ -334,14 +351,19 @@ export default function DesignRoom() {
                         <div
                             className="flex-1 overflow-auto p-8"
                             style={{
-                                background: 'radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%)',
+                                background: 'linear-gradient(145deg, rgba(220,216,211,0.5) 0%, rgba(200,196,191,0.5) 100%)',
                             }}
                         >
                             {generatedImages.length === 0 ? (
                                 <div className="h-full flex items-center justify-center">
                                     <div className="text-center">
-                                        <Image className="h-16 w-16 mx-auto text-slate-700 mb-4" />
-                                        <p className="text-slate-500">
+                                        <div
+                                            className="w-20 h-20 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                                            style={{ background: 'rgba(255,180,140,0.2)' }}
+                                        >
+                                            <Image className="h-10 w-10" style={{ color: '#c25a00' }} />
+                                        </div>
+                                        <p style={{ color: '#666' }}>
                                             Generated designs will appear here
                                         </p>
                                     </div>
@@ -360,11 +382,16 @@ export default function DesignRoom() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             className={cn(
                                                 "relative rounded-xl overflow-hidden cursor-pointer",
-                                                "border-2 transition-all",
-                                                selectedImages.has(image.id)
-                                                    ? "border-amber-500 ring-2 ring-amber-500/30"
-                                                    : "border-transparent hover:border-slate-600"
+                                                "border-2 transition-all glass-panel"
                                             )}
+                                            style={{
+                                                borderColor: selectedImages.has(image.id)
+                                                    ? '#c25a00'
+                                                    : 'transparent',
+                                                boxShadow: selectedImages.has(image.id)
+                                                    ? '0 0 20px rgba(194, 90, 0, 0.2)'
+                                                    : undefined,
+                                            }}
                                             onClick={() => toggleImageSelection(image.id)}
                                         >
                                             <img
@@ -375,22 +402,39 @@ export default function DesignRoom() {
 
                                             {/* Selection indicator */}
                                             {selectedImages.has(image.id) && (
-                                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-                                                    <Check className="h-4 w-4 text-black" />
+                                                <div
+                                                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                                                    style={{ background: '#c25a00' }}
+                                                >
+                                                    <Check className="h-4 w-4" style={{ color: '#fff' }} />
                                                 </div>
                                             )}
 
                                             {/* Actions overlay */}
-                                            <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity">
+                                            <div
+                                                className="absolute inset-x-0 bottom-0 p-2 opacity-0 hover:opacity-100 transition-opacity"
+                                                style={{
+                                                    background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+                                                }}
+                                            >
                                                 <div className="flex gap-1">
-                                                    <button className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">
-                                                        <Heart className="h-3.5 w-3.5" />
+                                                    <button
+                                                        className="p-1.5 rounded transition-colors"
+                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                    >
+                                                        <Heart className="h-3.5 w-3.5" style={{ color: '#fff' }} />
                                                     </button>
-                                                    <button className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">
-                                                        <Download className="h-3.5 w-3.5" />
+                                                    <button
+                                                        className="p-1.5 rounded transition-colors"
+                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                    >
+                                                        <Download className="h-3.5 w-3.5" style={{ color: '#fff' }} />
                                                     </button>
-                                                    <button className="p-1.5 rounded bg-slate-800/80 hover:bg-red-500/50 text-slate-300">
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    <button
+                                                        className="p-1.5 rounded transition-colors"
+                                                        style={{ background: 'rgba(255,255,255,0.2)' }}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" style={{ color: '#fff' }} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -403,12 +447,12 @@ export default function DesignRoom() {
                 </div>
             ) : (
                 /* Theme customizer */
-                <main className="container mx-auto px-4 py-8">
+                <main className="relative z-0 container mx-auto px-4 py-8 pb-20">
                     <div className="max-w-4xl mx-auto">
-                        <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Syne, sans-serif', color: '#1a1a1a' }}>
                             Design Themes
                         </h2>
-                        <p className="text-slate-400 mb-8">
+                        <p className="mb-8" style={{ color: '#666' }}>
                             Choose from 35+ design trends or create your own custom theme
                         </p>
 
@@ -419,11 +463,14 @@ export default function DesignRoom() {
                                     onClick={() => setActiveTheme(theme.id)}
                                     className={cn(
                                         "relative p-4 rounded-xl border-2 transition-all",
-                                        "hover:scale-105",
-                                        activeTheme === theme.id
-                                            ? "border-amber-500 bg-slate-800/50"
-                                            : "border-slate-700/50 bg-slate-900/50 hover:border-slate-600"
+                                        "hover:scale-105 glass-panel"
                                     )}
+                                    style={{
+                                        borderColor: activeTheme === theme.id ? '#c25a00' : 'transparent',
+                                        background: activeTheme === theme.id
+                                            ? 'rgba(255,180,140,0.15)'
+                                            : undefined,
+                                    }}
                                 >
                                     {/* Color preview */}
                                     <div className="flex gap-1 mb-3">
@@ -435,11 +482,14 @@ export default function DesignRoom() {
                                             />
                                         ))}
                                     </div>
-                                    <p className="text-sm font-medium text-white">{theme.name}</p>
+                                    <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{theme.name}</p>
 
                                     {activeTheme === theme.id && (
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-                                            <Check className="h-3 w-3 text-black" />
+                                        <div
+                                            className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                                            style={{ background: '#c25a00' }}
+                                        >
+                                            <Check className="h-3 w-3" style={{ color: '#fff' }} />
                                         </div>
                                     )}
                                 </button>
@@ -447,15 +497,15 @@ export default function DesignRoom() {
                         </div>
 
                         {/* Custom theme builder */}
-                        <div className="mt-12 p-6 rounded-2xl bg-slate-800/30 border border-slate-700/50">
-                            <h3 className="text-lg font-semibold text-white mb-4">Create Custom Theme</h3>
-                            <p className="text-slate-400 text-sm mb-6">
+                        <div className="mt-12 glass-panel p-6">
+                            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Create Custom Theme</h3>
+                            <p className="text-sm mb-6" style={{ color: '#666' }}>
                                 Customize colors, typography, and effects to match your brand
                             </p>
-                            <Button className="bg-amber-500 hover:bg-amber-400 text-black">
-                                <Sliders className="h-4 w-4 mr-2" />
+                            <button className="glass-button glass-button--glow">
+                                <Sliders className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
                                 Open Theme Editor
-                            </Button>
+                            </button>
                         </div>
                     </div>
                 </main>
@@ -463,4 +513,3 @@ export default function DesignRoom() {
         </div>
     );
 }
-

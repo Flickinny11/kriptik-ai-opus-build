@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
 import { useCostStore } from '../store/useCostStore';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
@@ -42,23 +41,19 @@ const PLANS = [
     { id: 'enterprise', name: 'Enterprise', price: 99, credits: 5000, features: ['Everything in Pro', 'Custom integrations', 'Dedicated support'] },
 ];
 
-// Deployment options
+// Deployment options - using text symbols instead of emojis
 const DEPLOY_OPTIONS = [
-    { id: 'vercel', name: 'Vercel', description: 'Serverless deployment', icon: '▲' },
-    { id: 'netlify', name: 'Netlify', description: 'JAMstack hosting', icon: '◆' },
-    { id: 'cloudflare', name: 'Cloudflare Pages', description: 'Edge deployment', icon: '☁️' },
-    { id: 'aws', name: 'AWS', description: 'Full cloud services', icon: '🔶' },
-    { id: 'gcp', name: 'Google Cloud', description: 'GCP deployment', icon: '🌐' },
-    { id: 'kriptik', name: 'KripTik Hosting', description: 'Managed hosting', icon: '⚡' },
+    { id: 'vercel', name: 'Vercel', description: 'Serverless deployment', symbol: 'V' },
+    { id: 'netlify', name: 'Netlify', description: 'JAMstack hosting', symbol: 'N' },
+    { id: 'cloudflare', name: 'Cloudflare Pages', description: 'Edge deployment', symbol: 'CF' },
+    { id: 'aws', name: 'AWS', description: 'Full cloud services', symbol: 'AWS' },
+    { id: 'gcp', name: 'Google Cloud', description: 'GCP deployment', symbol: 'GC' },
+    { id: 'kriptik', name: 'KripTik Hosting', description: 'Managed hosting', symbol: 'K' },
 ];
 
 function SectionCard({ children, className }: { children: React.ReactNode; className?: string }) {
     return (
-        <div className={cn(
-            "p-6 rounded-2xl",
-            "bg-slate-800/30 border border-slate-700/50",
-            className
-        )}>
+        <div className={cn("glass-panel p-6", className)}>
             {children}
         </div>
     );
@@ -69,35 +64,48 @@ function ProfileSection() {
 
     return (
         <SectionCard>
-            <h3 className="text-lg font-semibold text-white mb-4">Profile Information</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Profile Information</h3>
 
             <div className="flex items-start gap-6">
                 {/* Avatar */}
                 <div className="relative">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-3xl font-bold text-black">
+                    <div
+                        className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold"
+                        style={{
+                            background: 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)',
+                            boxShadow: '0 4px 16px rgba(194, 90, 0, 0.3)',
+                            color: '#fff',
+                        }}
+                    >
                         {user?.name?.charAt(0) || 'U'}
                     </div>
-                    <button className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-white">
-                        <Settings className="h-3.5 w-3.5" />
+                    <button
+                        className="absolute -bottom-1 -right-1 p-1.5 rounded-full"
+                        style={{
+                            background: 'rgba(255,180,140,0.3)',
+                            border: '1px solid rgba(255,200,170,0.5)',
+                        }}
+                    >
+                        <Settings className="h-3.5 w-3.5" style={{ color: '#c25a00' }} />
                     </button>
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 space-y-4">
                     <div>
-                        <label className="text-xs text-slate-500 uppercase tracking-wider">Name</label>
-                        <p className="text-white font-medium">{user?.name || 'User'}</p>
+                        <label className="text-xs uppercase tracking-wider" style={{ color: '#999' }}>Name</label>
+                        <p className="font-medium" style={{ color: '#1a1a1a' }}>{user?.name || 'User'}</p>
                     </div>
                     <div>
-                        <label className="text-xs text-slate-500 uppercase tracking-wider">Email</label>
-                        <p className="text-white font-medium">{user?.email || 'user@email.com'}</p>
+                        <label className="text-xs uppercase tracking-wider" style={{ color: '#999' }}>Email</label>
+                        <p className="font-medium" style={{ color: '#1a1a1a' }}>{user?.email || 'user@email.com'}</p>
                     </div>
                 </div>
             </div>
 
-            <Button variant="outline" className="mt-6 border-slate-700">
+            <button className="glass-button mt-6">
                 Edit Profile
-            </Button>
+            </button>
         </SectionCard>
     );
 }
@@ -107,7 +115,7 @@ function SubscriptionSection() {
 
     return (
         <SectionCard>
-            <h3 className="text-lg font-semibold text-white mb-4">Subscription</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Subscription</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {PLANS.map((plan) => (
@@ -116,38 +124,42 @@ function SubscriptionSection() {
                         className={cn(
                             "p-4 rounded-xl border-2 transition-all",
                             currentPlan === plan.id
-                                ? "border-amber-500 bg-amber-500/5"
-                                : "border-slate-700 hover:border-slate-600"
+                                ? "border-[#c25a00]"
+                                : "border-transparent"
                         )}
+                        style={{
+                            background: currentPlan === plan.id
+                                ? 'rgba(255,180,140,0.15)'
+                                : 'rgba(0,0,0,0.03)',
+                        }}
                     >
                         {currentPlan === plan.id && (
-                            <span className="text-xs text-amber-500 font-medium mb-2 block">CURRENT PLAN</span>
+                            <span className="text-xs font-medium mb-2 block" style={{ color: '#c25a00' }}>CURRENT PLAN</span>
                         )}
-                        <h4 className="text-lg font-semibold text-white">{plan.name}</h4>
-                        <p className="text-2xl font-bold text-white mt-1">
-                            ${plan.price}<span className="text-sm text-slate-400">/mo</span>
+                        <h4 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{plan.name}</h4>
+                        <p className="text-2xl font-bold mt-1" style={{ color: '#1a1a1a' }}>
+                            ${plan.price}<span className="text-sm" style={{ color: '#666' }}>/mo</span>
                         </p>
-                        <p className="text-sm text-amber-400 mt-1">{plan.credits.toLocaleString()} credits/mo</p>
+                        <p className="text-sm mt-1" style={{ color: '#c25a00' }}>{plan.credits.toLocaleString()} credits/mo</p>
 
                         <ul className="mt-4 space-y-2">
                             {plan.features.map((feature) => (
-                                <li key={feature} className="flex items-center gap-2 text-sm text-slate-400">
-                                    <Check className="h-4 w-4 text-emerald-500" />
+                                <li key={feature} className="flex items-center gap-2 text-sm" style={{ color: '#666' }}>
+                                    <Check className="h-4 w-4" style={{ color: '#16a34a' }} />
                                     {feature}
                                 </li>
                             ))}
                         </ul>
 
                         {currentPlan !== plan.id && (
-                            <Button
+                            <button
                                 className={cn(
                                     "w-full mt-4",
-                                    plan.id === 'pro' ? "bg-amber-500 hover:bg-amber-400 text-black" : ""
+                                    plan.id === 'pro' ? "glass-button glass-button--glow" : "glass-button"
                                 )}
-                                variant={plan.id === 'pro' ? 'default' : 'outline'}
                             >
                                 {plan.price > 0 ? 'Upgrade' : 'Downgrade'}
-                            </Button>
+                            </button>
                         )}
                     </div>
                 ))}
@@ -162,45 +174,61 @@ function CreditsSection() {
     return (
         <SectionCard>
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Credits & Usage</h3>
-                <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-black gap-2">
-                    <Plus className="h-4 w-4" />
+                <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Credits & Usage</h3>
+                <button className="glass-button glass-button--glow">
+                    <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
                     Top Up
-                </Button>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="p-4 rounded-xl bg-slate-900/50">
-                    <p className="text-sm text-slate-400">Available Credits</p>
-                    <p className="text-3xl font-bold text-amber-400">{balance.available.toLocaleString()}</p>
+                <div
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(255,180,140,0.1)' }}
+                >
+                    <p className="text-sm" style={{ color: '#666' }}>Available Credits</p>
+                    <p className="text-3xl font-bold" style={{ color: '#c25a00' }}>{balance.available.toLocaleString()}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-900/50">
-                    <p className="text-sm text-slate-400">Used This Month</p>
-                    <p className="text-3xl font-bold text-white">{balance.totalUsedThisMonth.toLocaleString()}</p>
+                <div
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(0,0,0,0.03)' }}
+                >
+                    <p className="text-sm" style={{ color: '#666' }}>Used This Month</p>
+                    <p className="text-3xl font-bold" style={{ color: '#1a1a1a' }}>{balance.totalUsedThisMonth.toLocaleString()}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-900/50">
-                    <p className="text-sm text-slate-400">Monthly Limit</p>
-                    <p className="text-3xl font-bold text-slate-400">{balance.limit.toLocaleString()}</p>
+                <div
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(0,0,0,0.03)' }}
+                >
+                    <p className="text-sm" style={{ color: '#666' }}>Monthly Limit</p>
+                    <p className="text-3xl font-bold" style={{ color: '#999' }}>{balance.limit.toLocaleString()}</p>
                 </div>
             </div>
 
             {/* Usage bar */}
             <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
-                    <span className="text-slate-400">Monthly Usage</span>
-                    <span className="text-slate-400">
+                    <span style={{ color: '#666' }}>Monthly Usage</span>
+                    <span style={{ color: '#666' }}>
                         {Math.round((balance.totalUsedThisMonth / balance.limit) * 100)}%
                     </span>
                 </div>
-                <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                    className="h-3 rounded-full overflow-hidden"
+                    style={{ background: 'rgba(0,0,0,0.08)' }}
+                >
                     <div
-                        className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, (balance.totalUsedThisMonth / balance.limit) * 100)}%` }}
+                        className="h-full rounded-full transition-all"
+                        style={{
+                            width: `${Math.min(100, (balance.totalUsedThisMonth / balance.limit) * 100)}%`,
+                            background: 'linear-gradient(90deg, #c25a00, #d97706)',
+                            boxShadow: '0 0 10px rgba(194, 90, 0, 0.4)',
+                        }}
                     />
                 </div>
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs" style={{ color: '#999' }}>
                 Resets on {new Date(balance.resetDate).toLocaleDateString()}
             </p>
         </SectionCard>
@@ -212,8 +240,8 @@ function DeploymentSection() {
 
     return (
         <SectionCard>
-            <h3 className="text-lg font-semibold text-white mb-4">Deployment Preferences</h3>
-            <p className="text-sm text-slate-400 mb-6">
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Deployment Preferences</h3>
+            <p className="text-sm mb-6" style={{ color: '#666' }}>
                 Choose your default deployment target for new projects
             </p>
 
@@ -223,17 +251,30 @@ function DeploymentSection() {
                         key={option.id}
                         onClick={() => setDefaultDeploy(option.id)}
                         className={cn(
-                            "p-4 rounded-xl border-2 text-left transition-all",
+                            "p-4 rounded-xl border-2 text-left transition-all hover:scale-105",
                             defaultDeploy === option.id
-                                ? "border-amber-500 bg-amber-500/5"
-                                : "border-slate-700 hover:border-slate-600"
+                                ? "border-[#c25a00]"
+                                : "border-transparent"
                         )}
+                        style={{
+                            background: defaultDeploy === option.id
+                                ? 'rgba(255,180,140,0.15)'
+                                : 'rgba(0,0,0,0.03)',
+                        }}
                     >
-                        <span className="text-2xl block mb-2">{option.icon}</span>
-                        <p className="font-medium text-white">{option.name}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{option.description}</p>
+                        <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold mb-2"
+                            style={{
+                                background: 'rgba(255,180,140,0.2)',
+                                color: '#c25a00',
+                            }}
+                        >
+                            {option.symbol}
+                        </div>
+                        <p className="font-medium" style={{ color: '#1a1a1a' }}>{option.name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#666' }}>{option.description}</p>
                         {defaultDeploy === option.id && (
-                            <div className="mt-2 flex items-center gap-1 text-amber-500">
+                            <div className="mt-2 flex items-center gap-1" style={{ color: '#c25a00' }}>
                                 <Check className="h-3.5 w-3.5" />
                                 <span className="text-xs">Default</span>
                             </div>
@@ -248,46 +289,55 @@ function DeploymentSection() {
 function SecuritySection() {
     return (
         <SectionCard>
-            <h3 className="text-lg font-semibold text-white mb-4">Security</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Security</h3>
 
             <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/50">
+                <div
+                    className="flex items-center justify-between p-4 rounded-xl"
+                    style={{ background: 'rgba(0,0,0,0.03)' }}
+                >
                     <div className="flex items-center gap-3">
-                        <Key className="h-5 w-5 text-slate-400" />
+                        <Key className="h-5 w-5" style={{ color: '#666' }} />
                         <div>
-                            <p className="font-medium text-white">Password</p>
-                            <p className="text-sm text-slate-400">Last changed 30 days ago</p>
+                            <p className="font-medium" style={{ color: '#1a1a1a' }}>Password</p>
+                            <p className="text-sm" style={{ color: '#666' }}>Last changed 30 days ago</p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="border-slate-700">
+                    <button className="glass-button glass-button--small">
                         Change
-                    </Button>
+                    </button>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/50">
+                <div
+                    className="flex items-center justify-between p-4 rounded-xl"
+                    style={{ background: 'rgba(0,0,0,0.03)' }}
+                >
                     <div className="flex items-center gap-3">
-                        <Smartphone className="h-5 w-5 text-slate-400" />
+                        <Smartphone className="h-5 w-5" style={{ color: '#666' }} />
                         <div>
-                            <p className="font-medium text-white">Two-Factor Authentication</p>
-                            <p className="text-sm text-slate-400">Not enabled</p>
+                            <p className="font-medium" style={{ color: '#1a1a1a' }}>Two-Factor Authentication</p>
+                            <p className="text-sm" style={{ color: '#666' }}>Not enabled</p>
                         </div>
                     </div>
-                    <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-black">
+                    <button className="glass-button glass-button--glow">
                         Enable
-                    </Button>
+                    </button>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/50">
+                <div
+                    className="flex items-center justify-between p-4 rounded-xl"
+                    style={{ background: 'rgba(0,0,0,0.03)' }}
+                >
                     <div className="flex items-center gap-3">
-                        <Globe className="h-5 w-5 text-slate-400" />
+                        <Globe className="h-5 w-5" style={{ color: '#666' }} />
                         <div>
-                            <p className="font-medium text-white">Active Sessions</p>
-                            <p className="text-sm text-slate-400">1 active session</p>
+                            <p className="font-medium" style={{ color: '#1a1a1a' }}>Active Sessions</p>
+                            <p className="text-sm" style={{ color: '#666' }}>1 active session</p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="border-slate-700">
+                    <button className="glass-button glass-button--small">
                         Manage
-                    </Button>
+                    </button>
                 </div>
             </div>
         </SectionCard>
@@ -300,7 +350,7 @@ export default function MyAccount() {
 
     return (
         <div
-            className="min-h-screen"
+            className="min-h-screen overflow-y-auto"
             style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d8d4cf 50%, #ccc8c3 100%)' }}
         >
             <HoverSidebar />
@@ -324,11 +374,11 @@ export default function MyAccount() {
                 </div>
             </header>
 
-            <main className="container mx-auto px-4 py-8">
+            <main className="relative z-0 container mx-auto px-4 py-8 pb-20">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar navigation */}
                     <div className="lg:w-64 shrink-0">
-                        <h1 className="text-3xl font-bold text-white mb-6" style={{ fontFamily: 'Syne, sans-serif' }}>
+                        <h1 className="text-3xl font-bold mb-6" style={{ fontFamily: 'Syne, sans-serif', color: '#1a1a1a' }}>
                             My Account
                         </h1>
 
@@ -338,11 +388,17 @@ export default function MyAccount() {
                                     key={section.id}
                                     onClick={() => setActiveSection(section.id)}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                                        activeSection === section.id
-                                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                                     )}
+                                    style={{
+                                        background: activeSection === section.id
+                                            ? 'rgba(255,180,140,0.2)'
+                                            : 'transparent',
+                                        color: activeSection === section.id ? '#c25a00' : '#666',
+                                        border: activeSection === section.id
+                                            ? '1px solid rgba(255,180,140,0.4)'
+                                            : '1px solid transparent',
+                                    }}
                                 >
                                     <section.icon className="h-5 w-5" />
                                     {section.label}
@@ -360,8 +416,8 @@ export default function MyAccount() {
                         {activeSection === 'security' && <SecuritySection />}
                         {activeSection === 'notifications' && (
                             <SectionCard>
-                                <h3 className="text-lg font-semibold text-white mb-4">Notification Preferences</h3>
-                                <p className="text-slate-400">Notification settings coming soon...</p>
+                                <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Notification Preferences</h3>
+                                <p style={{ color: '#666' }}>Notification settings coming soon...</p>
                             </SectionCard>
                         )}
                     </div>
@@ -370,4 +426,3 @@ export default function MyAccount() {
         </div>
     );
 }
-

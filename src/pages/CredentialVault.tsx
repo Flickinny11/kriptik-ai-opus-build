@@ -12,28 +12,27 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Plus, Eye, EyeOff, Trash2, RefreshCw,
-    Shield, Lock, Copy
+    Shield, Lock, Copy, Key, Database, Cloud,
+    CreditCard, Cpu, Server, Globe, Zap
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
-import { cn } from '@/lib/utils';
 import '../styles/realistic-glass.css';
 
-// Credential types
+// Credential types with Lucide icons instead of emojis
 const CREDENTIAL_TYPES = [
-    { id: 'openai', name: 'OpenAI', icon: '🤖', color: 'from-emerald-500 to-emerald-600' },
-    { id: 'anthropic', name: 'Anthropic', icon: '🧠', color: 'from-amber-500 to-orange-500' },
-    { id: 'vercel', name: 'Vercel', icon: '▲', color: 'from-slate-500 to-slate-600' },
-    { id: 'github', name: 'GitHub', icon: '⚡', color: 'from-slate-600 to-slate-700' },
-    { id: 'stripe', name: 'Stripe', icon: '💳', color: 'from-indigo-500 to-indigo-600' },
-    { id: 'supabase', name: 'Supabase', icon: '⚡', color: 'from-emerald-500 to-emerald-600' },
-    { id: 'turso', name: 'Turso', icon: '🔷', color: 'from-cyan-500 to-cyan-600' },
-    { id: 'aws', name: 'AWS', icon: '☁️', color: 'from-orange-500 to-orange-600' },
-    { id: 'gcp', name: 'Google Cloud', icon: '🌐', color: 'from-blue-500 to-blue-600' },
-    { id: 'runpod', name: 'RunPod', icon: '🚀', color: 'from-violet-500 to-violet-600' },
+    { id: 'openai', name: 'OpenAI', icon: Cpu, color: '#10a37f' },
+    { id: 'anthropic', name: 'Anthropic', icon: Cpu, color: '#c25a00' },
+    { id: 'vercel', name: 'Vercel', icon: Cloud, color: '#1a1a1a' },
+    { id: 'github', name: 'GitHub', icon: Globe, color: '#333' },
+    { id: 'stripe', name: 'Stripe', icon: CreditCard, color: '#635bff' },
+    { id: 'supabase', name: 'Supabase', icon: Database, color: '#3ecf8e' },
+    { id: 'turso', name: 'Turso', icon: Database, color: '#00c4b4' },
+    { id: 'aws', name: 'AWS', icon: Server, color: '#ff9900' },
+    { id: 'gcp', name: 'Google Cloud', icon: Cloud, color: '#4285f4' },
+    { id: 'runpod', name: 'RunPod', icon: Zap, color: '#673ab7' },
 ];
 
 interface StoredCredential {
@@ -59,6 +58,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
     const [showKey, setShowKey] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const typeInfo = CREDENTIAL_TYPES.find(t => t.id === credential.type);
+    const IconComponent = typeInfo?.icon || Key;
 
     return (
         <motion.div
@@ -121,7 +121,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
             <div className="flex items-start gap-4">
                 {/* Icon - 3D Glass Box */}
                 <div
-                    className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                    className="w-14 h-14 rounded-xl flex items-center justify-center"
                     style={{
                         background: 'linear-gradient(145deg, rgba(255,180,140,0.3) 0%, rgba(255,160,120,0.2) 100%)',
                         boxShadow: `
@@ -132,7 +132,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                         border: '1px solid rgba(255,200,170,0.4)',
                     }}
                 >
-                    {typeInfo?.icon || '🔑'}
+                    <IconComponent className="w-6 h-6" style={{ color: typeInfo?.color || '#c25a00' }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -155,13 +155,13 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                             className="glass-button p-2 rounded-lg"
                             style={{ padding: '6px' }}
                         >
-                            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            {showKey ? <EyeOff className="h-3.5 w-3.5" style={{ color: '#666' }} /> : <Eye className="h-3.5 w-3.5" style={{ color: '#666' }} />}
                         </button>
                         <button
                             className="glass-button p-2 rounded-lg"
                             style={{ padding: '6px' }}
                         >
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3.5 w-3.5" style={{ color: '#666' }} />
                         </button>
                     </div>
 
@@ -180,7 +180,7 @@ function CredentialCard({ credential, onDelete, onRefresh }: {
                     onClick={onRefresh}
                     className="glass-button glass-button--small flex-1"
                 >
-                    <RefreshCw className="h-4 w-4 mr-1" />
+                    <RefreshCw className="h-4 w-4 mr-1" style={{ color: '#1a1a1a' }} />
                     Validate
                 </button>
                 <button
@@ -271,7 +271,7 @@ export default function CredentialVault() {
                         onClick={() => setAddingNew(true)}
                         className="glass-button glass-button--glow"
                     >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
                         Add Credential
                     </button>
                 </div>
@@ -289,42 +289,53 @@ export default function CredentialVault() {
                 </div>
 
                 {credentials.length === 0 && (
-                    <div className="text-center py-16">
-                        <Lock className="h-16 w-16 mx-auto text-slate-700 mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">No credentials stored</h3>
-                        <p className="text-slate-400 mb-6">Add your first API key to get started</p>
-                        <Button
-                            onClick={() => setAddingNew(true)}
-                            className="bg-amber-500 hover:bg-amber-400 text-black"
+                    <div className="glass-panel text-center py-16">
+                        <div
+                            className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                            style={{ background: 'rgba(255,180,140,0.2)' }}
                         >
+                            <Lock className="h-10 w-10" style={{ color: '#c25a00' }} />
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>No credentials stored</h3>
+                        <p className="mb-6" style={{ color: '#666' }}>Add your first API key to get started</p>
+                        <button
+                            onClick={() => setAddingNew(true)}
+                            className="glass-button glass-button--glow"
+                        >
+                            <Plus className="h-4 w-4 mr-2" style={{ color: '#1a1a1a' }} />
                             Add Credential
-                        </Button>
+                        </button>
                     </div>
                 )}
 
                 {/* Available integrations */}
                 <div className="mt-12">
-                    <h2 className="text-xl font-semibold text-white mb-4">Available Integrations</h2>
+                    <h2 className="text-xl font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Available Integrations</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {CREDENTIAL_TYPES.map((type) => (
-                            <button
-                                key={type.id}
-                                onClick={() => setAddingNew(true)}
-                                className={cn(
-                                    "p-4 rounded-xl text-center",
-                                    "bg-slate-800/30 border border-slate-700/50",
-                                    "hover:border-amber-500/30 hover:bg-slate-800/50",
-                                    "transition-all"
-                                )}
-                            >
-                                <span className="text-2xl block mb-2">{type.icon}</span>
-                                <span className="text-sm text-slate-300">{type.name}</span>
-                            </button>
-                        ))}
+                        {CREDENTIAL_TYPES.map((type) => {
+                            const IconComp = type.icon;
+                            return (
+                                <button
+                                    key={type.id}
+                                    onClick={() => setAddingNew(true)}
+                                    className="glass-panel p-4 rounded-xl text-center transition-all hover:scale-105"
+                                    style={{
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <div
+                                        className="w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center"
+                                        style={{ background: 'rgba(255,180,140,0.2)' }}
+                                    >
+                                        <IconComp className="w-5 h-5" style={{ color: type.color }} />
+                                    </div>
+                                    <span className="text-sm" style={{ color: '#1a1a1a' }}>{type.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </main>
         </div>
     );
 }
-
