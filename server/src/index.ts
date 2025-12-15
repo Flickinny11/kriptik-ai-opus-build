@@ -414,6 +414,7 @@ import speedDialRouter from './routes/speed-dial.js';
 import tournamentRouter from './routes/tournament.js';
 import reflectionRouter from './routes/reflection.js';
 import previewRouter from './routes/preview.js';
+import { importRouter } from './routes/import.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -595,6 +596,9 @@ app.use("/api/adaptive", adaptiveUIRouter); // No credits - analytics should be 
 // Context Bridge - Codebase import and analysis
 import contextBridgeRouter from './routes/context-bridge.js';
 app.use("/api/context", requireCredits(25), contextBridgeRouter);
+
+// Project Import - ZIP, GitHub, AI Builder imports
+app.use("/api/import", importRouter);
 
 // =============================================================================
 // SELF-HEALING SYSTEM

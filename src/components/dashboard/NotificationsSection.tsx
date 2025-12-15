@@ -5,6 +5,15 @@ import { cn } from '@/lib/utils';
 
 type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning';
 
+interface NotificationMetadata {
+  projectId?: string;
+  filesModified?: number;
+  screenshotBase64?: string;
+  strategy?: string;
+  developerModeAgentId?: string;
+  [key: string]: unknown;
+}
+
 interface DashboardNotification {
   id: string;
   type: NotificationType;
@@ -15,7 +24,7 @@ interface DashboardNotification {
   read: boolean;
   createdAt: string | Date;
   actionUrl?: string | null;
-  metadata?: any;
+  metadata?: NotificationMetadata;
 }
 
 interface NotificationsSectionProps {
@@ -88,6 +97,52 @@ function svgExternal(size = 14) {
   );
 }
 
+function svgImage(size = 16) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect
+        x="2"
+        y="2"
+        width="12"
+        height="12"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="5.5" cy="5.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path
+        d="M14 10l-3-3-5 5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function svgExpand(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 6V2h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 10v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 2l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 14l-5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function svgClose(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 4l8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Modal({
   open,
   title,
@@ -150,6 +205,127 @@ function Modal({
   );
 }
 
+function ScreenshotModal({
+  open,
+  screenshotBase64,
+  onClose,
+}: {
+  open: boolean;
+  screenshotBase64: string;
+  onClose: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+        >
+          <div
+            className="absolute inset-0"
+            onClick={onClose}
+            style={{
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(16px)',
+            }}
+          />
+          <motion.div
+            initial={{ scale: 0.92, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.92, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            className="relative w-full max-w-5xl max-h-[90vh]"
+            style={{
+              borderRadius: 22,
+              border: '1px solid rgba(245,168,108,0.22)',
+              background: 'linear-gradient(145deg, rgba(30,30,30,0.95), rgba(10,10,10,0.98))',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.75), 0 0 80px rgba(245,168,108,0.08), inset 0 1px 0 rgba(255,255,255,0.08)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'linear-gradient(145deg, rgba(245,168,108,0.18), rgba(245,168,108,0.06))',
+                    border: '1px solid rgba(245,168,108,0.22)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'rgba(245,168,108,0.9)',
+                  }}
+                >
+                  {svgImage(16)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 850, letterSpacing: '-0.02em', color: 'rgba(255,255,255,0.92)', fontSize: 14 }}>
+                    Build Result Screenshot
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                    Visual verification of completed build
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="glass-button"
+                style={{
+                  color: 'rgba(255,255,255,0.85)',
+                  padding: '8px 12px',
+                  fontSize: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {svgClose(14)}
+                <span>Close</span>
+              </button>
+            </div>
+            <div
+              style={{
+                padding: 16,
+                maxHeight: 'calc(90vh - 70px)',
+                overflow: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={screenshotBase64.startsWith('data:') ? screenshotBase64 : `data:image/png;base64,${screenshotBase64}`}
+                alt="Build result screenshot"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: 'calc(90vh - 100px)',
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
+                }}
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function NotificationsSection({ userId }: NotificationsSectionProps) {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -159,6 +335,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timeline, setTimeline] = useState<Array<{ ts: string; type: string; message: string }> | null>(null);
   const [altText, setAltText] = useState('');
+  const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
@@ -432,6 +609,113 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
               </a>
             )}
 
+            {selected.metadata?.screenshotBase64 && (
+              <div
+                style={{
+                  borderRadius: 18,
+                  border: '1px solid rgba(245,168,108,0.18)',
+                  background: 'linear-gradient(145deg, rgba(245,168,108,0.06), rgba(0,0,0,0.18))',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)',
+                  padding: 12,
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: 'linear-gradient(145deg, rgba(245,168,108,0.18), rgba(245,168,108,0.06))',
+                        border: '1px solid rgba(245,168,108,0.22)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: 'rgba(245,168,108,0.9)',
+                      }}
+                    >
+                      {svgImage(14)}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 850, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
+                      Build Result Screenshot
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setScreenshotModalOpen(true)}
+                    className="glass-button"
+                    style={{
+                      color: 'rgba(255,255,255,0.85)',
+                      padding: '6px 10px',
+                      fontSize: 11,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    {svgExpand(12)}
+                    <span>Expand</span>
+                  </button>
+                </div>
+                <div
+                  style={{
+                    position: 'relative',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setScreenshotModalOpen(true)}
+                >
+                  <img
+                    src={
+                      selected.metadata.screenshotBase64.startsWith('data:')
+                        ? selected.metadata.screenshotBase64
+                        : `data:image/png;base64,${selected.metadata.screenshotBase64}`
+                    }
+                    alt="Build result screenshot"
+                    style={{
+                      width: '100%',
+                      maxHeight: 280,
+                      objectFit: 'cover',
+                      objectPosition: 'top',
+                      display: 'block',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.6) 100%)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 10,
+                      right: 10,
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      background: 'rgba(0,0,0,0.65)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: 'rgba(255,255,255,0.85)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {svgExpand(10)}
+                    Click to expand
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div
               style={{
                 borderRadius: 18,
@@ -563,6 +847,14 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
           </div>
         )}
       </Modal>
+
+      {selected?.metadata?.screenshotBase64 && (
+        <ScreenshotModal
+          open={screenshotModalOpen}
+          screenshotBase64={selected.metadata.screenshotBase64}
+          onClose={() => setScreenshotModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

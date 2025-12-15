@@ -57,6 +57,55 @@ import type {
     FileEvent,
     FixPreferences,
 } from './types.js';
+import { getNotificationService } from '../notifications/notification-service.js';
+
+// ============================================================================
+// URL/AUTH TRANSFORMATION TYPES
+// ============================================================================
+
+export interface ImportedProjectContext {
+    originalDomain: string;
+    kriptikDomain: string;
+    authProviders: AuthProviderConfig[];
+    externalApis: ExternalApiConfig[];
+}
+
+export interface AuthProviderConfig {
+    provider: 'google' | 'github' | 'facebook' | 'twitter' | 'supabase' | 'firebase' | 'auth0' | 'clerk';
+    detected: boolean;
+    envVars: string[];
+    setupUrl: string;
+    instructions: string;
+}
+
+export interface ExternalApiConfig {
+    name: string;
+    envVars: string[];
+    detected: boolean;
+    migrationRequired: boolean;
+}
+
+// URL transformation patterns
+const URL_PATTERNS = [
+    { pattern: /REDIRECT_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'REDIRECT_URL' },
+    { pattern: /CALLBACK_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'CALLBACK_URL' },
+    { pattern: /API_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'API_URL' },
+    { pattern: /BASE_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'BASE_URL' },
+    { pattern: /FRONTEND_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'FRONTEND_URL' },
+    { pattern: /APP_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'APP_URL' },
+    { pattern: /NEXT_PUBLIC_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'NEXT_PUBLIC_URL' },
+    { pattern: /VITE_APP_URL\s*[:=]\s*['"`]([^'"`]+)['"`]/g, name: 'VITE_APP_URL' },
+];
+
+// Auth provider detection patterns
+const AUTH_DETECTION_PATTERNS: Record<string, RegExp[]> = {
+    google: [/GOOGLE_CLIENT_ID/, /GoogleProvider/, /google\.oauth/i, /@react-oauth\/google/],
+    github: [/GITHUB_CLIENT_ID/, /GitHubProvider/, /github\.oauth/i],
+    supabase: [/SUPABASE_URL/, /createClient.*supabase/i, /@supabase\/supabase-js/],
+    firebase: [/FIREBASE_API_KEY/, /initializeApp.*firebase/i, /firebase\/app/],
+    auth0: [/AUTH0_DOMAIN/, /Auth0Provider/, /@auth0\/auth0-react/],
+    clerk: [/CLERK_PUBLISHABLE_KEY/, /ClerkProvider/, /@clerk\/clerk-react/],
+};
 
 export interface EnhancedFixExecutorConfig {
     userId: string;
@@ -265,6 +314,189 @@ Always explain your reasoning and provide detailed plans.`;
     private log(message: string): void {
         this.emit('log', message);
         console.log(`[EnhancedFixExecutor] ${message}`);
+    }
+
+    // =========================================================================
+    // URL/AUTH TRANSFORMATION METHODS
+    // =========================================================================
+
+    /**
+     * Transform URLs for imported projects
+     * Replaces original domain URLs with KripTik domain
+     */
+    async transformUrls(context: ImportedProjectContext): Promise<Map<string, { original: string; transformed: string }>> {
+        const transformations = new Map<string, { original: string; transformed: string }>();
+
+        this.log(`Transforming URLs from ${context.originalDomain} to ${context.kriptikDomain}`);
+
+        for (const [path, content] of this.projectFiles) {
+            let transformedContent = content;
+            let hasChanges = false;
+
+            for (const { pattern, name } of URL_PATTERNS) {
+                // Reset regex lastIndex
+                pattern.lastIndex = 0;
+                let match;
+
+                while ((match = pattern.exec(content)) !== null) {
+                    const originalUrl = match[1];
+                    if (originalUrl.includes(context.originalDomain)) {
+                        const transformedUrl = originalUrl.replace(
+                            context.originalDomain,
+                            context.kriptikDomain
+                        );
+                        transformedContent = transformedContent.replace(originalUrl, transformedUrl);
+                        hasChanges = true;
+
+                        transformations.set(`${path}:${name}`, {
+                            original: originalUrl,
+                            transformed: transformedUrl,
+                        });
+
+                        this.log(`Transformed ${name} in ${path}: ${originalUrl} -> ${transformedUrl}`);
+                    }
+                }
+            }
+
+            if (hasChanges) {
+                this.projectFiles.set(path, transformedContent);
+                this.generatedFiles.set(path, transformedContent);
+            }
+        }
+
+        return transformations;
+    }
+
+    /**
+     * Detect auth providers used in the project
+     */
+    detectAuthProviders(): AuthProviderConfig[] {
+        const providers: AuthProviderConfig[] = [];
+        const allContent = Array.from(this.projectFiles.values()).join('\n');
+
+        const providerConfigs: Record<string, Omit<AuthProviderConfig, 'detected'>> = {
+            google: {
+                provider: 'google',
+                envVars: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+                setupUrl: 'https://console.cloud.google.com/apis/credentials',
+                instructions: '1. Go to Google Cloud Console\n2. Create OAuth 2.0 credentials\n3. Add KripTik domain to authorized origins\n4. Add callback URL to redirect URIs',
+            },
+            github: {
+                provider: 'github',
+                envVars: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'],
+                setupUrl: 'https://github.com/settings/developers',
+                instructions: '1. Go to GitHub Developer Settings\n2. Create a new OAuth App\n3. Set the callback URL to your KripTik domain',
+            },
+            supabase: {
+                provider: 'supabase',
+                envVars: ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'],
+                setupUrl: 'https://supabase.com/dashboard',
+                instructions: '1. Go to your Supabase project\n2. Navigate to Settings > API\n3. Copy the URL and API keys',
+            },
+            firebase: {
+                provider: 'firebase',
+                envVars: ['FIREBASE_API_KEY', 'FIREBASE_AUTH_DOMAIN', 'FIREBASE_PROJECT_ID'],
+                setupUrl: 'https://console.firebase.google.com/',
+                instructions: '1. Go to Firebase Console\n2. Select your project\n3. Copy config from Project Settings',
+            },
+            auth0: {
+                provider: 'auth0',
+                envVars: ['AUTH0_DOMAIN', 'AUTH0_CLIENT_ID', 'AUTH0_CLIENT_SECRET'],
+                setupUrl: 'https://manage.auth0.com/',
+                instructions: '1. Go to Auth0 Dashboard\n2. Select your application\n3. Copy Domain, Client ID, and Secret',
+            },
+            clerk: {
+                provider: 'clerk',
+                envVars: ['CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY'],
+                setupUrl: 'https://dashboard.clerk.dev/',
+                instructions: '1. Go to Clerk Dashboard\n2. Select your application\n3. Copy the API Keys',
+            },
+        };
+
+        for (const [providerId, patterns] of Object.entries(AUTH_DETECTION_PATTERNS)) {
+            const isDetected = patterns.some(pattern => pattern.test(allContent));
+
+            if (isDetected && providerConfigs[providerId]) {
+                providers.push({
+                    ...providerConfigs[providerId],
+                    detected: true,
+                } as AuthProviderConfig);
+                this.log(`Detected auth provider: ${providerId}`);
+            }
+        }
+
+        return providers;
+    }
+
+    /**
+     * Detect proprietary auth systems that need migration
+     */
+    detectProprietaryAuth(): { hasProprietaryAuth: boolean; providers: string[]; migrationPath: string } {
+        const allContent = Array.from(this.projectFiles.values()).join('\n');
+        const proprietaryPatterns = [
+            { pattern: /base44/i, name: 'Base44' },
+            { pattern: /lovable\.dev.*auth/i, name: 'Lovable Auth' },
+            { pattern: /bolt\.new.*auth/i, name: 'Bolt Auth' },
+            { pattern: /v0\.dev.*auth/i, name: 'v0 Auth' },
+        ];
+
+        const detectedProviders: string[] = [];
+
+        for (const { pattern, name } of proprietaryPatterns) {
+            if (pattern.test(allContent)) {
+                detectedProviders.push(name);
+                this.log(`Detected proprietary auth: ${name}`);
+            }
+        }
+
+        if (detectedProviders.length > 0) {
+            return {
+                hasProprietaryAuth: true,
+                providers: detectedProviders,
+                migrationPath: 'Proprietary auth detected. Consider migrating to a standard provider like Supabase Auth, Firebase Auth, or Clerk.',
+            };
+        }
+
+        return { hasProprietaryAuth: false, providers: [], migrationPath: '' };
+    }
+
+    /**
+     * Send completion notification with optional screenshot
+     */
+    async sendCompletionNotification(
+        success: boolean,
+        screenshotBase64?: string
+    ): Promise<void> {
+        try {
+            const notificationService = getNotificationService();
+
+            const notificationPayload = {
+                type: success ? 'feature_complete' as const : 'error' as const,
+                title: success ? 'Fix My App Complete!' : 'Fix My App Failed',
+                message: success
+                    ? `Your project has been fixed and is ready to use. ${this.generatedFiles.size} files were updated.`
+                    : 'There was an issue fixing your project. Please check the logs for details.',
+                featureAgentId: this.orchestrationRunId,
+                featureAgentName: 'Fix My App',
+                actionUrl: `/builder/${this.projectId}`,
+                metadata: {
+                    projectId: this.projectId,
+                    filesModified: this.generatedFiles.size,
+                    screenshotBase64: screenshotBase64 || undefined,
+                    strategy: this.strategy.approach,
+                },
+            };
+
+            await notificationService.sendNotification(
+                this.userId,
+                ['email', 'push'],
+                notificationPayload
+            );
+
+            this.log(`Completion notification sent (success: ${success})`);
+        } catch (error) {
+            this.log(`Failed to send completion notification: ${error}`);
+        }
     }
 
     /**

@@ -109,7 +109,8 @@ export class HeadlessPreviewService {
                 session.page = page;
 
                 // Capture initial screenshot
-                const screenshot = await page.screenshot({ encoding: 'base64' });
+                const screenshotBuffer = await page.screenshot();
+                const screenshot = screenshotBuffer.toString('base64');
                 this.emitEvent(session, {
                     type: 'screenshot',
                     screenshot,
