@@ -600,6 +600,10 @@ app.use("/api/context", requireCredits(25), contextBridgeRouter);
 // Project Import - ZIP, GitHub, AI Builder imports
 app.use("/api/import", importRouter);
 
+// Browser Extension API - Import from extension, credential capture
+import { extensionRouter } from './routes/extension.js';
+app.use("/api/extension", extensionRouter);
+
 // =============================================================================
 // SELF-HEALING SYSTEM
 // =============================================================================

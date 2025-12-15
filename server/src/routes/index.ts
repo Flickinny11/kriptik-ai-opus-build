@@ -57,3 +57,6 @@ export { default as previewRouter } from './preview.js';
 
 // Project Import
 export { importRouter } from './import.js';
+
+// Browser Extension API
+export { extensionRouter } from './extension.js';
