@@ -462,40 +462,108 @@ Always explain your reasoning and provide detailed plans.`;
 
     /**
      * Send completion notification with optional screenshot
+     * Uses enhanced notification service with screenshot capture
      */
     async sendCompletionNotification(
         success: boolean,
-        screenshotBase64?: string
+        screenshotBase64?: string,
+        options: {
+            projectName?: string;
+            issuesFixed?: number;
+            verificationScore?: number;
+            previewUrl?: string;
+        } = {}
     ): Promise<void> {
         try {
             const notificationService = getNotificationService();
+            const projectName = options.projectName || `Project ${this.projectId?.slice(0, 8)}`;
+            const issuesFixed = options.issuesFixed || this.strategy.featuresToFix.length;
+            const verificationScore = options.verificationScore || 0;
 
-            const notificationPayload = {
-                type: success ? 'feature_complete' as const : 'error' as const,
-                title: success ? 'Fix My App Complete!' : 'Fix My App Failed',
-                message: success
-                    ? `Your project has been fixed and is ready to use. ${this.generatedFiles.size} files were updated.`
-                    : 'There was an issue fixing your project. Please check the logs for details.',
-                featureAgentId: this.orchestrationRunId,
-                featureAgentName: 'Fix My App',
-                actionUrl: `/builder/${this.projectId}`,
-                metadata: {
-                    projectId: this.projectId,
-                    filesModified: this.generatedFiles.size,
-                    screenshotBase64: screenshotBase64 || undefined,
-                    strategy: this.strategy.approach,
-                },
-            };
-
-            await notificationService.sendNotification(
-                this.userId,
-                ['email', 'push'],
-                notificationPayload
-            );
+            if (success) {
+                // Send enhanced notification with screenshot
+                await notificationService.sendNotificationWithScreenshot(
+                    this.userId,
+                    ['push'],
+                    {
+                        type: 'feature_complete',
+                        title: `${projectName} has been fixed!`,
+                        message: `Your project is ready. ${this.generatedFiles.size} files were updated and ${issuesFixed} issues were resolved automatically.`,
+                        featureAgentId: this.orchestrationRunId,
+                        featureAgentName: 'Fix My App',
+                        actionUrl: `/builder/${this.projectId}`,
+                        projectName,
+                        screenshotBase64: screenshotBase64,
+                        metadata: {
+                            projectId: this.projectId,
+                            projectName,
+                            filesModified: this.generatedFiles.size,
+                            issuesFixed,
+                            verificationScore,
+                            strategy: this.strategy.approach,
+                        },
+                    },
+                    options.previewUrl
+                );
+            } else {
+                // Send error notification
+                await notificationService.sendNotification(
+                    this.userId,
+                    ['push', 'email'],
+                    {
+                        type: 'error',
+                        title: `Issue fixing ${projectName}`,
+                        message: `We encountered issues that need your attention. ${this.generatedFiles.size} files were modified but some problems remain.`,
+                        featureAgentId: this.orchestrationRunId,
+                        featureAgentName: 'Fix My App',
+                        actionUrl: `/builder/${this.projectId}?view=errors`,
+                        metadata: {
+                            projectId: this.projectId,
+                            projectName,
+                            filesModified: this.generatedFiles.size,
+                            strategy: this.strategy.approach,
+                        },
+                    }
+                );
+            }
 
             this.log(`Completion notification sent (success: ${success})`);
         } catch (error) {
             this.log(`Failed to send completion notification: ${error}`);
+        }
+    }
+
+    /**
+     * Send credentials needed notification
+     */
+    async sendCredentialsNeededNotification(
+        projectName: string,
+        dependencies: string[]
+    ): Promise<void> {
+        try {
+            const notificationService = getNotificationService();
+
+            await notificationService.sendNotification(
+                this.userId,
+                ['push'],
+                {
+                    type: 'decision_needed',
+                    title: `Credentials needed for ${projectName}`,
+                    message: `We detected ${dependencies.length} external services that need your API keys: ${dependencies.slice(0, 3).join(', ')}${dependencies.length > 3 ? '...' : ''}.`,
+                    featureAgentId: this.orchestrationRunId,
+                    featureAgentName: 'Fix My App',
+                    actionUrl: `/builder/${this.projectId}?view=credentials`,
+                    metadata: {
+                        projectId: this.projectId,
+                        projectName,
+                        dependencies,
+                    },
+                }
+            );
+
+            this.log(`Credentials needed notification sent for ${dependencies.length} dependencies`);
+        } catch (error) {
+            this.log(`Failed to send credentials notification: ${error}`);
         }
     }
 

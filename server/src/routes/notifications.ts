@@ -138,6 +138,47 @@ router.get('/preferences', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * GET /api/notifications/project/:projectId
+ * Get notifications for a specific project
+ */
+router.get('/project/:projectId', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { projectId } = req.params;
+        const limit = typeof req.query.limit === 'string' ? Math.max(1, Math.min(50, Number(req.query.limit))) : 20;
+
+        const projectNotifications = await notificationService.listProjectNotifications(
+            userId,
+            projectId,
+            Number.isFinite(limit) ? limit : 20
+        );
+
+        res.json({ success: true, notifications: projectNotifications });
+    } catch (error) {
+        console.error('[Notifications] Project notifications error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get project notifications' });
+    }
+});
+
+/**
+ * GET /api/notifications/project/:projectId/unread-count
+ * Get unread notification count for a specific project
+ */
+router.get('/project/:projectId/unread-count', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { projectId } = req.params;
+
+        const count = await notificationService.getProjectUnreadCount(userId, projectId);
+
+        res.json({ success: true, count });
+    } catch (error) {
+        console.error('[Notifications] Project unread count error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get unread count' });
+    }
+});
+
 export default router;
 
 

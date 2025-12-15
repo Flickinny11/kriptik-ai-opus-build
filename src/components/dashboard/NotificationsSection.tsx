@@ -7,10 +7,17 @@ type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budg
 
 interface NotificationMetadata {
   projectId?: string;
+  projectName?: string;
   filesModified?: number;
   screenshotBase64?: string;
+  screenshotUrl?: string;
+  projectPreviewUrl?: string;
   strategy?: string;
   developerModeAgentId?: string;
+  issuesFixed?: number;
+  verificationScore?: number;
+  errorsRemaining?: number;
+  dependencies?: string[];
   [key: string]: unknown;
 }
 
@@ -140,6 +147,322 @@ function svgClose(size = 14) {
       <path d="M4 4l8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function svgArrowRight(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function svgCheck(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8l4 4 6-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * Premium Notification Card with screenshot preview
+ * Used for notifications that include project screenshots
+ */
+function PremiumNotificationCard({
+  notification,
+  onDismiss,
+  onClick,
+  onNavigate,
+}: {
+  notification: DashboardNotification;
+  onDismiss: (id: string) => void;
+  onClick: () => void;
+  onNavigate: (url: string) => void;
+}) {
+  const c = typeColor(notification.type);
+  const screenshot = notification.metadata?.screenshotBase64 || notification.metadata?.screenshotUrl;
+  const projectName = notification.metadata?.projectName || 'Project';
+  const hasScreenshot = !!screenshot;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -16, scale: 0.97 }}
+      whileHover={{ scale: 1.015 }}
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      onClick={onClick}
+      className={cn(
+        'relative overflow-hidden cursor-pointer',
+        'transition-all duration-300'
+      )}
+      style={{
+        borderRadius: 20,
+        background: hasScreenshot
+          ? 'linear-gradient(145deg, rgba(15,20,28,0.95) 0%, rgba(8,12,18,0.98) 100%)'
+          : notification.read
+            ? 'linear-gradient(145deg, rgba(255,255,255,0.10), rgba(0,0,0,0.03))'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(245,168,108,0.06))',
+        border: notification.read
+          ? '1px solid rgba(255,255,255,0.08)'
+          : `1px solid rgba(${notification.type === 'feature_complete' ? '47,201,121' : notification.type === 'error' ? '255,77,77' : '245,168,108'},0.28)`,
+        boxShadow: hasScreenshot
+          ? `0 24px 60px rgba(0,0,0,0.35), 0 0 40px ${c.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`
+          : notification.read
+            ? '0 12px 32px rgba(0,0,0,0.08)'
+            : `0 20px 50px ${c.glow}, 0 8px 24px rgba(0,0,0,0.12)`,
+      }}
+    >
+      {/* Screenshot Preview */}
+      {hasScreenshot && (
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: 140,
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={
+              screenshot && screenshot.startsWith('http')
+                ? screenshot
+                : `data:image/png;base64,${screenshot}`
+            }
+            alt={`Preview of ${projectName}`}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'top',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, transparent 30%, rgba(8,12,18,0.95) 100%)',
+            }}
+          />
+          {/* Type indicator floating on image */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: c.dot,
+              boxShadow: `0 0 12px ${c.dot}, 0 0 24px ${c.glow}`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Content */}
+      <div
+        style={{
+          padding: hasScreenshot ? '0 16px 16px' : '16px',
+          position: 'relative',
+        }}
+      >
+        {/* Type indicator for non-screenshot cards */}
+        {!hasScreenshot && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 18,
+              left: 16,
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: c.dot,
+              boxShadow: `0 0 0 6px ${c.glow}`,
+            }}
+          />
+        )}
+
+        {/* Unread badge */}
+        {!notification.read && (
+          <div
+            style={{
+              position: 'absolute',
+              top: hasScreenshot ? -32 : 12,
+              right: 12,
+              padding: '3px 10px',
+              borderRadius: 6,
+              background: hasScreenshot ? 'rgba(200,255,100,0.18)' : 'rgba(245,168,108,0.12)',
+              border: hasScreenshot ? '1px solid rgba(200,255,100,0.28)' : '1px solid rgba(245,168,108,0.22)',
+              color: hasScreenshot ? '#c8ff64' : '#1a1a1a',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
+            NEW
+          </div>
+        )}
+
+        {/* Title and message */}
+        <div style={{ marginLeft: hasScreenshot ? 0 : 26 }}>
+          <div
+            style={{
+              fontWeight: 850,
+              fontSize: 14,
+              letterSpacing: '-0.02em',
+              color: hasScreenshot ? 'rgba(255,255,255,0.95)' : '#1a1a1a',
+              marginBottom: 6,
+              marginTop: hasScreenshot ? -8 : 0,
+            }}
+          >
+            {notification.title}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.45,
+              color: hasScreenshot ? 'rgba(255,255,255,0.65)' : '#404040',
+              marginBottom: 12,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {notification.message}
+          </div>
+
+          {/* Stats row for feature_complete */}
+          {notification.type === 'feature_complete' && notification.metadata?.issuesFixed && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  background: hasScreenshot ? 'rgba(47,201,121,0.12)' : 'rgba(47,201,121,0.08)',
+                  border: '1px solid rgba(47,201,121,0.22)',
+                  color: '#2FC979',
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {svgCheck(12)}
+                <span>{notification.metadata.issuesFixed} Fixed</span>
+              </div>
+              {notification.metadata.verificationScore && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: hasScreenshot ? 'rgba(255,255,255,0.5)' : '#666',
+                  }}
+                >
+                  Score: {Math.round(notification.metadata.verificationScore)}%
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                color: hasScreenshot ? 'rgba(255,255,255,0.4)' : '#888',
+              }}
+            >
+              {formatRelative(notification.createdAt)}
+            </div>
+
+            {notification.actionUrl && (
+              <motion.button
+                whileHover={{ scale: 1.05, x: 3 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate(notification.actionUrl!);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  background: hasScreenshot ? 'rgba(200,255,100,0.12)' : 'rgba(245,168,108,0.08)',
+                  border: hasScreenshot ? '1px solid rgba(200,255,100,0.28)' : '1px solid rgba(245,168,108,0.22)',
+                  color: hasScreenshot ? '#c8ff64' : '#1a1a1a',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <span>Open Project</span>
+                {svgArrowRight(12)}
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Dismiss button */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss(notification.id);
+        }}
+        style={{
+          position: 'absolute',
+          top: hasScreenshot ? 8 : 12,
+          right: notification.read ? 12 : 80,
+          padding: 6,
+          borderRadius: 8,
+          background: hasScreenshot ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: hasScreenshot ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {svgClose(12)}
+      </motion.button>
+
+      {/* Top highlight line */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: '0 0 auto 0',
+          height: 1,
+          background: `linear-gradient(90deg, transparent, ${hasScreenshot ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.5)'}, transparent)`,
+        }}
+      />
+    </motion.div>
   );
 }
 
@@ -423,6 +746,14 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
     setDetailOpen(false);
   };
 
+  const handleNavigate = (url: string) => {
+    if (url.startsWith('/')) {
+      window.location.href = url;
+    } else if (url.startsWith('http')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div
       className="glass-panel"
@@ -516,70 +847,15 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
                 </div>
               )}
 
-              {!loading && items.map((n) => {
-                const c = typeColor(n.type);
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => openDetail(n)}
-                    className="glass-button"
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      color: '#1a1a1a',
-                      padding: 14,
-                      borderRadius: 18,
-                      border: `1px solid ${n.read ? 'rgba(0,0,0,0.08)' : 'rgba(245,168,108,0.22)'}`,
-                      boxShadow: n.read ? undefined : `0 18px 40px ${c.glow}`,
-                      background: n.read
-                        ? 'linear-gradient(145deg, rgba(255,255,255,0.10), rgba(0,0,0,0.03))'
-                        : 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(245,168,108,0.06))',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
-                        <div
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 999,
-                            marginTop: 6,
-                            background: c.dot,
-                            boxShadow: `0 0 0 6px ${c.glow}`,
-                            flex: '0 0 auto',
-                          }}
-                        />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 850, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {n.title}
-                          </div>
-                          <div style={{ fontSize: 12, color: '#404040', marginTop: 6, lineHeight: 1.35 }}>
-                            {n.message}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                        <div style={{ fontSize: 12, color: '#404040' }}>{formatRelative(n.createdAt)}</div>
-                        {!n.read && (
-                          <div
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 999,
-                              border: '1px solid rgba(245,168,108,0.20)',
-                              background: 'rgba(245,168,108,0.10)',
-                              fontSize: 11,
-                              fontWeight: 800,
-                            }}
-                          >
-                            Unread
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+              {!loading && items.map((n) => (
+                <PremiumNotificationCard
+                  key={n.id}
+                  notification={n}
+                  onDismiss={dismiss}
+                  onClick={() => openDetail(n)}
+                  onNavigate={handleNavigate}
+                />
+              ))}
             </div>
           </motion.div>
         )}
