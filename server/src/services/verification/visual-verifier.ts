@@ -11,6 +11,11 @@
  * - Accessibility basics (color contrast, focus states)
  * - Interactive element functionality
  *
+ * NOW ENHANCED WITH:
+ * - Video recording for user playback
+ * - Keyframe screenshot analysis for AI vision
+ * - Real-time console error monitoring
+ *
  * Part of Phase 4: 6-Agent Verification Swarm
  */
 
@@ -18,6 +23,15 @@ import { createClaudeService, CLAUDE_MODELS } from '../ai/claude-service.js';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import type { Browser, Page, BrowserContext } from 'playwright';
+import {
+    VisualMonitor,
+    createVisualMonitor,
+    type VisualMonitorConfig,
+    type KeyframeAnalysis,
+    type VisualMonitoringResult,
+    type ConsoleError as MonitorConsoleError,
+    type VisualIssue as MonitorVisualIssue,
+} from './visual-monitor.js';
 
 // ============================================================================
 // TYPES
@@ -62,6 +76,10 @@ export interface VisualVerificationResult {
     consoleErrors: string[];
     summary: string;
     aiSummary?: string;
+    // Enhanced monitoring results
+    videoUrl?: string;
+    keyframeAnalyses?: KeyframeAnalysis[];
+    monitoringResult?: VisualMonitoringResult;
 }
 
 export interface VisualVerifierConfig {
@@ -72,6 +90,9 @@ export interface VisualVerifierConfig {
     screenshotOnError: boolean;
     blockOnBlankScreen: boolean;
     blockOnConsoleErrors: boolean;
+    // Enhanced monitoring options
+    enableVideoMonitoring: boolean;
+    monitorConfig?: Partial<VisualMonitorConfig>;
 }
 
 // ============================================================================
@@ -90,6 +111,17 @@ const DEFAULT_CONFIG: VisualVerifierConfig = {
     screenshotOnError: true,
     blockOnBlankScreen: true,
     blockOnConsoleErrors: false,
+    // Enable enhanced video monitoring by default
+    enableVideoMonitoring: true,
+    monitorConfig: {
+        recordVideo: true,
+        captureKeyframes: true,
+        keyframeTriggers: ['page_load', 'click', 'navigation', 'error_detected'],
+        maxKeyframesPerSession: 20,
+        visionModel: 'claude-4.5-vision',
+        enableRealTimeConsoleErrors: true,
+        screenshotQuality: 'high',
+    },
 };
 
 // ============================================================================
@@ -103,6 +135,7 @@ export class VisualVerifierAgent extends EventEmitter {
     private claudeService: ReturnType<typeof createClaudeService>;
     private browser?: Browser;
     private lastResult?: VisualVerificationResult;
+    private visualMonitor?: VisualMonitor;
 
     constructor(
         projectId: string,
@@ -287,6 +320,167 @@ export class VisualVerifierAgent extends EventEmitter {
      */
     getLastResult(): VisualVerificationResult | undefined {
         return this.lastResult;
+    }
+
+    /**
+     * Enhanced verification with video monitoring and keyframe analysis
+     *
+     * This method uses the VisualMonitor to:
+     * 1. Record video of the testing session (for user viewing)
+     * 2. Capture keyframe screenshots at meaningful moments
+     * 3. Analyze each keyframe with Vision AI
+     * 4. Track console errors in real-time
+     */
+    async verifyWithMonitoring(url: string): Promise<VisualVerificationResult> {
+        const startTime = Date.now();
+
+        console.log(`[VisualVerifier] Starting enhanced monitoring verification of ${url}`);
+
+        // Create visual monitor
+        this.visualMonitor = createVisualMonitor(this.config.monitorConfig);
+
+        // Set up event listeners
+        this.visualMonitor.on('keyframe_captured', (keyframe: KeyframeAnalysis) => {
+            this.emit('keyframe_captured', keyframe);
+        });
+
+        this.visualMonitor.on('console_error', (error: MonitorConsoleError) => {
+            this.emit('console_error', error);
+        });
+
+        try {
+            // Start monitoring
+            await this.visualMonitor.startMonitoring(url, this.config.monitorConfig);
+
+            // Run interaction sequence for thorough testing
+            await this.visualMonitor.runInteractionSequence([
+                { type: 'wait', duration: 2000 },
+                { type: 'scroll', to: 'bottom' },
+                { type: 'wait', duration: 500 },
+                { type: 'scroll', to: 'top' },
+                { type: 'wait', duration: 500 },
+                { type: 'click', selector: 'button', maxElements: 10 },
+                { type: 'checkLinks', maxLinks: 10 },
+            ]);
+
+            // Stop monitoring and get results
+            const monitorResult = await this.visualMonitor.stopMonitoring();
+
+            // Convert monitor issues to verifier issues
+            const issues: VisualIssue[] = monitorResult.allIssues.map((issue: MonitorVisualIssue) => ({
+                id: issue.id,
+                type: this.mapIssueType(issue.type),
+                severity: issue.severity,
+                title: issue.title,
+                description: issue.description,
+            }));
+
+            // Convert monitor console errors to string array
+            const consoleErrors = monitorResult.consoleErrors.map(
+                (e: MonitorConsoleError) => `[${e.type}] ${e.message}${e.source ? ` (${e.source}:${e.lineNumber})` : ''}`
+            );
+
+            // Get screenshots from keyframes
+            const screenshots = monitorResult.keyframes.map((kf: KeyframeAnalysis, i: number) => ({
+                viewport: `keyframe_${i + 1}_${kf.trigger}`,
+                data: kf.screenshotBase64,
+            }));
+
+            // Determine blocking status
+            const criticalIssues = issues.filter(i => i.severity === 'critical');
+            const blocking = criticalIssues.length > 0 ||
+                (this.config.blockOnBlankScreen && issues.some(i => i.type === 'blank_screen')) ||
+                (this.config.blockOnConsoleErrors && consoleErrors.length > 0);
+
+            const result: VisualVerificationResult = {
+                timestamp: new Date(),
+                passed: monitorResult.overallScore >= 80,
+                blocking,
+                issues,
+                screenshots,
+                consoleErrors,
+                summary: monitorResult.summary,
+                aiSummary: this.generateAISummary(monitorResult),
+                videoUrl: monitorResult.videoPath || undefined,
+                keyframeAnalyses: monitorResult.keyframes,
+                monitoringResult: monitorResult,
+            };
+
+            this.lastResult = result;
+            this.emit('verification_complete', result);
+
+            console.log(`[VisualVerifier] Enhanced verification complete: score ${monitorResult.overallScore}, ${issues.length} issues (${Date.now() - startTime}ms)`);
+
+            return result;
+
+        } catch (error) {
+            console.error('[VisualVerifier] Enhanced verification failed:', error);
+
+            // Try to stop monitoring gracefully
+            if (this.visualMonitor?.isActive()) {
+                try {
+                    await this.visualMonitor.stopMonitoring();
+                } catch {
+                    // Ignore cleanup errors
+                }
+            }
+
+            return this.createFailedResult(error instanceof Error ? error.message : String(error));
+        }
+    }
+
+    /**
+     * Map monitor issue type to verifier issue type
+     */
+    private mapIssueType(type: string): VisualIssueType {
+        const mapping: Record<string, VisualIssueType> = {
+            'layout': 'layout_broken',
+            'design': 'style_missing',
+            'accessibility': 'accessibility',
+            'performance': 'render_error',
+            'broken': 'render_error',
+        };
+        return mapping[type] || 'style_missing';
+    }
+
+    /**
+     * Generate AI summary from monitoring result
+     */
+    private generateAISummary(result: VisualMonitoringResult): string {
+        const parts: string[] = [];
+
+        // Overall assessment
+        if (result.overallScore >= 85) {
+            parts.push('The UI demonstrates premium quality with excellent visual design.');
+        } else if (result.overallScore >= 70) {
+            parts.push('The UI shows good quality with room for improvement.');
+        } else {
+            parts.push('The UI needs attention to meet quality standards.');
+        }
+
+        // Anti-slop violations
+        const antiSlopViolations = result.keyframes.flatMap(
+            kf => kf.visionAnalysis.antiSlopViolations
+        );
+        if (antiSlopViolations.length > 0) {
+            const uniqueViolations = [...new Set(antiSlopViolations)].slice(0, 3);
+            parts.push(`Anti-slop violations detected: ${uniqueViolations.join(', ')}.`);
+        }
+
+        // Accessibility
+        const a11yIssues = result.keyframes.flatMap(
+            kf => kf.visionAnalysis.accessibilityIssues
+        );
+        if (a11yIssues.length > 0) {
+            parts.push(`Accessibility improvements needed: ${a11yIssues.length} issues found.`);
+        }
+
+        // Console errors
+        if (result.consoleErrors.length > 0) {
+            parts.push(`${result.consoleErrors.length} console error(s) detected during testing.`);
+        }
+
+        return parts.join(' ');
     }
 
     // ==========================================================================

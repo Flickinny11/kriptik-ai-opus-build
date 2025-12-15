@@ -673,6 +673,22 @@
   color: var(--text-dim);
 }
 
+/* Visual Verification Details Container */
+.agent-card__visual-details {
+  margin-top: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.agent-card__visual-details .visual-details {
+  max-height: none;
+  border-radius: 12px;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  padding: 0;
+}
+
 /* ============================================================================
    SCORE SECTION
    ============================================================================ */

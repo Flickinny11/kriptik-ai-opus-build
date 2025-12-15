@@ -10,6 +10,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './VerificationSwarmStatus.css';
+import {
+    VisualVerificationDetails,
+    type KeyframeAnalysis,
+    type ConsoleError as VisualConsoleError,
+} from './VisualVerificationDetails';
 
 // ============================================================================
 // TYPES
@@ -33,6 +38,10 @@ export interface AgentState {
     issues?: number;
     message?: string;
     details?: string[];
+    // Visual verifier enhanced data
+    videoUrl?: string;
+    keyframeAnalyses?: KeyframeAnalysis[];
+    consoleErrors?: VisualConsoleError[];
 }
 
 export interface SwarmVerdict {
@@ -355,6 +364,18 @@ function AgentCard({
                                             +{agent.details.length - 3} more...
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Visual Verifier Enhanced Details */}
+                            {type === 'visual_verifier' && agent.keyframeAnalyses && agent.keyframeAnalyses.length > 0 && (
+                                <div className="agent-card__visual-details">
+                                    <VisualVerificationDetails
+                                        videoUrl={agent.videoUrl}
+                                        keyframes={agent.keyframeAnalyses}
+                                        consoleErrors={agent.consoleErrors || []}
+                                        overallScore={agent.score}
+                                    />
                                 </div>
                             )}
 
