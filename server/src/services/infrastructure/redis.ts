@@ -1,5 +1,6 @@
 // Redis Infrastructure Service
-// Centralized Redis connection management for Upstash
+// Production-ready Redis connection management for Upstash
+// Supports both Vercel KV integration and direct Upstash credentials
 
 import { Redis } from '@upstash/redis';
 
@@ -9,33 +10,81 @@ let redisInstance: Redis | null = null;
 // Connection status
 let isConnected = false;
 let lastError: Error | null = null;
+let connectionMode: 'vercel-kv' | 'upstash-direct' | 'mock' = 'mock';
+
+// Production configuration
+const PRODUCTION_CONFIG = {
+    // Retry configuration for high traffic resilience
+    retries: 5,
+    backoff: (retryCount: number) => Math.min(Math.exp(retryCount) * 50, 2000),
+    // Enable automatic request deduplication
+    enableAutoPipelining: true,
+};
 
 /**
  * Get or create Redis connection
+ * Supports multiple credential sources:
+ * 1. Vercel KV integration (KV_REST_API_URL, KV_REST_API_TOKEN)
+ * 2. Direct Upstash (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN)
+ * 3. Fallback to mock for local development
  */
 export function getRedis(): Redis {
     if (!redisInstance) {
-        const url = process.env.UPSTASH_REDIS_REST_URL;
-        const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+        // Priority 1: Try Vercel KV integration variables
+        const kvUrl = process.env.KV_REST_API_URL;
+        const kvToken = process.env.KV_REST_API_TOKEN;
 
-        if (!url || !token) {
-            console.warn('[Redis] Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN');
+        // Priority 2: Try direct Upstash variables
+        const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+        const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+        if (kvUrl && kvToken) {
+            // Vercel KV integration (preferred for Vercel deployments)
+            redisInstance = new Redis({
+                url: kvUrl,
+                token: kvToken,
+                retry: PRODUCTION_CONFIG,
+            });
+            connectionMode = 'vercel-kv';
+            isConnected = true;
+            console.log('[Redis] Connected via Vercel KV integration');
+            console.log(`[Redis] Endpoint: ${kvUrl.substring(0, 30)}...`);
+        } else if (upstashUrl && upstashToken) {
+            // Direct Upstash credentials
+            redisInstance = new Redis({
+                url: upstashUrl,
+                token: upstashToken,
+                retry: PRODUCTION_CONFIG,
+            });
+            connectionMode = 'upstash-direct';
+            isConnected = true;
+            console.log('[Redis] Connected via direct Upstash credentials');
+        } else {
+            // No credentials - use mock for development only
+            console.warn('[Redis] No Redis credentials found. Checking environment variables:');
+            console.warn(`  KV_REST_API_URL: ${kvUrl ? 'SET' : 'NOT SET'}`);
+            console.warn(`  KV_REST_API_TOKEN: ${kvToken ? 'SET' : 'NOT SET'}`);
+            console.warn(`  UPSTASH_REDIS_REST_URL: ${upstashUrl ? 'SET' : 'NOT SET'}`);
+            console.warn(`  UPSTASH_REDIS_REST_TOKEN: ${upstashToken ? 'SET' : 'NOT SET'}`);
+
+            if (process.env.NODE_ENV === 'production') {
+                console.error('[Redis] WARNING: Running in production without Redis!');
+                console.error('[Redis] Session state and caching will not persist across requests.');
+            }
+
             console.warn('[Redis] Falling back to mock Redis for development');
-
-            // Return mock Redis for development
             return createMockRedis();
         }
-
-        redisInstance = new Redis({
-            url,
-            token,
-        });
-
-        isConnected = true;
-        console.log('[Redis] Connected to Upstash Redis');
     }
 
     return redisInstance;
+}
+
+/**
+ * Get Redis connection mode for diagnostics
+ */
+export function getConnectionMode(): string {
+    return connectionMode;
 }
 
 /**
@@ -207,6 +256,7 @@ export async function checkRedisHealth(): Promise<{
     connected: boolean;
     latency?: number;
     error?: string;
+    mode?: string;
 }> {
     try {
         const redis = getRedis();
@@ -220,6 +270,7 @@ export async function checkRedisHealth(): Promise<{
         return {
             connected: true,
             latency,
+            mode: connectionMode,
         };
     } catch (error) {
         isConnected = false;
@@ -228,6 +279,7 @@ export async function checkRedisHealth(): Promise<{
         return {
             connected: false,
             error: lastError.message,
+            mode: connectionMode,
         };
     }
 }
@@ -238,11 +290,101 @@ export async function checkRedisHealth(): Promise<{
 export function getRedisStatus(): {
     connected: boolean;
     lastError: string | null;
+    mode: string;
 } {
     return {
         connected: isConnected,
         lastError: lastError?.message ?? null,
+        mode: connectionMode,
     };
+}
+
+// =============================================================================
+// PRODUCTION RATE LIMITING HELPERS
+// =============================================================================
+
+/**
+ * Sliding window rate limiter for high-traffic scenarios
+ * Uses Redis sorted sets for precise rate limiting
+ */
+export async function checkRateLimit(
+    key: string,
+    limit: number,
+    windowSeconds: number
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+    const redis = getRedis();
+    const now = Date.now();
+    const windowStart = now - (windowSeconds * 1000);
+    const resetAt = now + (windowSeconds * 1000);
+
+    try {
+        // Remove expired entries
+        await redis.zremrangebyscore(key, 0, windowStart);
+
+        // Count current requests in window
+        const count = await redis.zcard(key);
+
+        if (count >= limit) {
+            return { allowed: false, remaining: 0, resetAt };
+        }
+
+        // Add current request
+        await redis.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+        await redis.expire(key, windowSeconds);
+
+        return { allowed: true, remaining: limit - count - 1, resetAt };
+    } catch (error) {
+        console.error('[Redis] Rate limit check failed:', error);
+        // Fail open in case of Redis errors to avoid blocking legitimate traffic
+        return { allowed: true, remaining: limit, resetAt };
+    }
+}
+
+/**
+ * Simple token bucket rate limiter for API endpoints
+ */
+export async function tokenBucketLimit(
+    key: string,
+    tokensPerInterval: number,
+    intervalSeconds: number,
+    maxTokens: number
+): Promise<{ allowed: boolean; tokens: number }> {
+    const redis = getRedis();
+    const now = Date.now();
+    const bucketKey = `bucket:${key}`;
+
+    try {
+        const bucket = await redis.hgetall<{ tokens: string; lastRefill: string }>(bucketKey);
+
+        let tokens = maxTokens;
+        let lastRefill = now;
+
+        if (bucket && bucket.tokens !== undefined) {
+            tokens = parseFloat(bucket.tokens);
+            lastRefill = parseInt(bucket.lastRefill, 10);
+
+            // Calculate tokens to add based on elapsed time
+            const elapsed = (now - lastRefill) / 1000;
+            const tokensToAdd = (elapsed / intervalSeconds) * tokensPerInterval;
+            tokens = Math.min(maxTokens, tokens + tokensToAdd);
+        }
+
+        if (tokens < 1) {
+            return { allowed: false, tokens: 0 };
+        }
+
+        // Consume one token
+        tokens -= 1;
+
+        // Upstash hset uses object format: hset(key, { field: value })
+        await redis.hset(bucketKey, { tokens: tokens.toString(), lastRefill: now.toString() });
+        await redis.expire(bucketKey, intervalSeconds * 2);
+
+        return { allowed: true, tokens: Math.floor(tokens) };
+    } catch (error) {
+        console.error('[Redis] Token bucket check failed:', error);
+        return { allowed: true, tokens: maxTokens };
+    }
 }
 
 /**
@@ -298,9 +440,12 @@ export const CacheTTL = {
 
 export default {
     getRedis,
+    getConnectionMode,
     checkRedisHealth,
     getRedisStatus,
     closeRedis,
+    checkRateLimit,
+    tokenBucketLimit,
     CacheKeys,
     CacheTTL,
 };

@@ -218,8 +218,10 @@ router.get('/redis', async (_req: Request, res: Response) => {
             timestamp: new Date().toISOString(),
             details: {
                 connected: health.connected,
+                mode: status.mode, // 'vercel-kv', 'upstash-direct', or 'mock'
                 latency: health.latency,
                 lastError: status.lastError,
+                productionReady: status.mode !== 'mock',
             },
             error: health.error,
         });
