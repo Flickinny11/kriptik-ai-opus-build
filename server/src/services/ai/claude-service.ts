@@ -930,38 +930,58 @@ Your entire response must be parseable JSON.`;
         // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
         let parsed: GenerationResponse;
 
-        if (this.anthropicClient) {
-            console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
-            const response = await this.anthropicClient.messages.create(requestParams);
-            parsed = this.parseResponse(response);
-        } else if (this.useOpenRouterFallback) {
-            console.log(`[ClaudeService] Structured output via OpenRouter fallback for ${model}`);
-            const openrouterModel = `anthropic/${model}`;
-            parsed = await this.unifiedClient.generate({
-                model: openrouterModel,
-                messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
-                systemPrompt: finalSystemPrompt,
-                maxTokens,
-                thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
-            });
-        } else {
-            throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+        console.log(`[ClaudeService.generateStructured] Starting request with model=${model}, hasAnthropicClient=${!!this.anthropicClient}, useOpenRouterFallback=${this.useOpenRouterFallback}`);
+
+        try {
+            if (this.anthropicClient) {
+                console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
+                console.log(`[ClaudeService] Request params:`, JSON.stringify({ model, max_tokens: requestParams.max_tokens, has_thinking: !!requestParams.thinking }));
+                const response = await this.anthropicClient.messages.create(requestParams);
+                console.log(`[ClaudeService] Got Anthropic response, stop_reason=${response.stop_reason}, content_blocks=${response.content.length}`);
+                parsed = this.parseResponse(response);
+                console.log(`[ClaudeService] Parsed response, content_length=${parsed.content.length}`);
+            } else if (this.useOpenRouterFallback) {
+                console.log(`[ClaudeService] Structured output via OpenRouter fallback for ${model}`);
+                const openrouterModel = `anthropic/${model}`;
+                parsed = await this.unifiedClient.generate({
+                    model: openrouterModel,
+                    messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                    systemPrompt: finalSystemPrompt,
+                    maxTokens,
+                    thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                });
+                console.log(`[ClaudeService] Got OpenRouter response, content_length=${parsed.content.length}`);
+            } else {
+                console.error('[ClaudeService] No AI provider available!');
+                throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+            }
+        } catch (apiError) {
+            console.error('[ClaudeService] API call failed:', apiError);
+            throw apiError;
         }
 
         // Try to extract JSON from the response content
+        console.log(`[ClaudeService] Attempting to parse JSON from response (first 200 chars): ${parsed.content.substring(0, 200)}`);
         try {
             // First try direct parse
-            return JSON.parse(parsed.content) as T;
-        } catch {
+            const result = JSON.parse(parsed.content) as T;
+            console.log(`[ClaudeService] Successfully parsed JSON directly`);
+            return result;
+        } catch (parseError) {
+            console.log(`[ClaudeService] Direct JSON parse failed, trying regex extraction`);
             // Try to find JSON in the response
             const jsonMatch = parsed.content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
             if (jsonMatch) {
                 try {
-                    return JSON.parse(jsonMatch[0]) as T;
-                } catch {
+                    const result = JSON.parse(jsonMatch[0]) as T;
+                    console.log(`[ClaudeService] Successfully parsed JSON via regex`);
+                    return result;
+                } catch (regexParseError) {
+                    console.error(`[ClaudeService] Regex JSON parse failed:`, regexParseError);
                     throw new Error(`Failed to parse JSON from response: ${parsed.content.substring(0, 500)}`);
                 }
             }
+            console.error(`[ClaudeService] No JSON found in response`);
             throw new Error(`No valid JSON found in response: ${parsed.content.substring(0, 500)}`);
         }
     }

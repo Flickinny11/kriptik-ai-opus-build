@@ -120,35 +120,51 @@ export class DevelopmentOrchestrator extends EventEmitter {
     async processRequest(request: ProjectRequest): Promise<ExecutionPlan> {
         this.emit('started', { projectName: request.projectName });
         this.log('info', `Processing project request: ${request.prompt.substring(0, 100)}...`);
+        console.log('[Orchestrator] processRequest started with prompt:', request.prompt.substring(0, 100));
 
         try {
             // Phase 1: Requirement Extraction
+            console.log('[Orchestrator] Phase 1: Starting requirement extraction');
             this.emitEvent('phase_started', { phase: 'requirement_extraction' });
             const analysis = await this.extractRequirements(request.prompt);
+            console.log('[Orchestrator] Phase 1 complete. Analysis:', JSON.stringify({
+                corePurpose: analysis.corePurpose?.substring(0, 50),
+                criticalFeaturesCount: analysis.criticalFeatures?.length ?? 0,
+                userPersonasCount: analysis.userPersonas?.length ?? 0,
+            }));
             this.log('info', `Extracted ${analysis.criticalFeatures.length} critical features`);
 
             // Phase 2: Architecture Decisions
+            console.log('[Orchestrator] Phase 2: Starting architecture decisions');
             this.emitEvent('phase_started', { phase: 'architecture_decisions' });
             const adrs = await this.generateArchitectureDecisions(analysis);
+            console.log('[Orchestrator] Phase 2 complete. ADRs count:', adrs?.length ?? 0);
             this.log('info', `Generated ${adrs.length} architecture decision records`);
 
             // Phase 3: Task Decomposition
+            console.log('[Orchestrator] Phase 3: Starting task decomposition');
             this.emitEvent('phase_started', { phase: 'task_decomposition' });
             const epics = await this.decomposeIntoTasks(analysis, adrs);
+            console.log('[Orchestrator] Phase 3 complete. Epics count:', epics?.length ?? 0);
             this.log('info', `Decomposed into ${epics.length} epics`);
 
             // Phase 4: Create Execution Plan
+            console.log('[Orchestrator] Phase 4: Creating execution plan');
             this.emitEvent('phase_started', { phase: 'execution_planning' });
             const plan = await this.createExecutionPlan(request, epics, analysis);
+            console.log('[Orchestrator] Phase 4 complete. Plan phases:', plan?.phases?.length ?? 0);
             this.currentPlan = plan;
             this.emitEvent('plan_created', { plan });
 
             // Phase 5: Spawn Queen Agents
+            console.log('[Orchestrator] Phase 5: Spawning queen agents');
             this.emitEvent('phase_started', { phase: 'agent_spawning' });
             await this.spawnQueenAgents();
+            console.log('[Orchestrator] Phase 5 complete');
 
             return plan;
         } catch (error) {
+            console.error('[Orchestrator] Error in processRequest:', error);
             this.log('error', `Failed to process request: ${error}`);
             this.emitEvent('error', { error: String(error) });
             throw error;
@@ -194,7 +210,9 @@ export class DevelopmentOrchestrator extends EventEmitter {
      * Extract requirements from natural language prompt
      */
     private async extractRequirements(prompt: string): Promise<ProjectAnalysis> {
+        console.log('[Orchestrator.extractRequirements] Starting extraction');
         const systemPrompt = getAgentPrompt('orchestrator');
+        console.log('[Orchestrator.extractRequirements] Got system prompt, length:', systemPrompt?.length ?? 0);
 
         const extractionPrompt = `Analyze this project request and extract structured requirements:
 
@@ -212,32 +230,42 @@ Extract and return a JSON object with:
 
 IMPORTANT: Provide realistic, production-ready analysis. No placeholders.`;
 
-        const response = await this.claudeService.generateStructured<ProjectAnalysis>(
-            extractionPrompt,
-            systemPrompt
-        );
+        console.log('[Orchestrator.extractRequirements] Calling claudeService.generateStructured');
+        try {
+            const response = await this.claudeService.generateStructured<ProjectAnalysis>(
+                extractionPrompt,
+                systemPrompt
+            );
+            console.log('[Orchestrator.extractRequirements] Got response, type:', typeof response);
+            console.log('[Orchestrator.extractRequirements] Response keys:', response ? Object.keys(response) : 'null');
 
-        // Validate and provide defaults for required array fields
-        // This prevents "Cannot read properties of undefined" errors
-        return {
-            corePurpose: response.corePurpose || 'Project purpose not specified',
-            userPersonas: Array.isArray(response.userPersonas) ? response.userPersonas : [],
-            criticalFeatures: Array.isArray(response.criticalFeatures) ? response.criticalFeatures : [],
-            niceToHave: Array.isArray(response.niceToHave) ? response.niceToHave : [],
-            scaleExpectations: response.scaleExpectations || {
-                estimatedUsers: '1000',
-                requestsPerSecond: '10',
-                dataVolumeGB: '1',
-                growthRate: 'steady',
-            },
-            constraints: response.constraints || {
-                budget: 'moderate',
-                timeline: 'flexible',
-                compliance: [],
-                technicalRequirements: [],
-            },
-            integrationNeeds: Array.isArray(response.integrationNeeds) ? response.integrationNeeds : [],
-        };
+            // Validate and provide defaults for required array fields
+            // This prevents "Cannot read properties of undefined" errors
+            const result = {
+                corePurpose: response.corePurpose || 'Project purpose not specified',
+                userPersonas: Array.isArray(response.userPersonas) ? response.userPersonas : [],
+                criticalFeatures: Array.isArray(response.criticalFeatures) ? response.criticalFeatures : [],
+                niceToHave: Array.isArray(response.niceToHave) ? response.niceToHave : [],
+                scaleExpectations: response.scaleExpectations || {
+                    estimatedUsers: '1000',
+                    requestsPerSecond: '10',
+                    dataVolumeGB: '1',
+                    growthRate: 'steady',
+                },
+                constraints: response.constraints || {
+                    budget: 'moderate',
+                    timeline: 'flexible',
+                    compliance: [],
+                    technicalRequirements: [],
+                },
+                integrationNeeds: Array.isArray(response.integrationNeeds) ? response.integrationNeeds : [],
+            };
+            console.log('[Orchestrator.extractRequirements] Validated result, criticalFeatures count:', result.criticalFeatures.length);
+            return result;
+        } catch (error) {
+            console.error('[Orchestrator.extractRequirements] Error calling claudeService:', error);
+            throw error;
+        }
     }
 
     /**
