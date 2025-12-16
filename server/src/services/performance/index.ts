@@ -23,3 +23,12 @@ export {
     type TaskPriority,
 } from './parallel-executor.js';
 
+export {
+    getDBQueryCache,
+    QueryTTL,
+    cacheUserQuery,
+    cacheProjectQuery,
+    cacheFileQuery,
+    cacheBuildQuery,
+    invalidateCache,
+} from './db-query-cache.js';

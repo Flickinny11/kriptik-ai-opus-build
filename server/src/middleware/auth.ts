@@ -2,10 +2,18 @@
  * Authentication Middleware
  *
  * Provides Express middleware for authenticating requests using better-auth
+ * with Redis session caching for horizontal scalability.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '../auth.js';
+import {
+    getSessionService,
+    cacheExistingSession,
+    type CachedSession,
+    type UserData,
+    type SessionData,
+} from '../services/infrastructure/session-service.js';
 
 function getCookieValue(cookieHeader: string | undefined, name: string): string | undefined {
     if (!cookieHeader) return undefined;
@@ -134,13 +142,44 @@ export async function optionalAuthMiddleware(
 
 type SessionValidationParams = { token?: string; cookieHeader?: string; origin?: string };
 
+/**
+ * Validate session using Redis cache first (fast path),
+ * then fall back to better-auth database lookup (slow path).
+ * This reduces database load significantly for authenticated requests.
+ */
 async function validateSession(params: SessionValidationParams): Promise<{
     user: Express.Request['user'];
     session: Express.Request['session'];
 } | null> {
     try {
-        // Use better-auth's API to get session.
-        // Prefer passing the Cookie header through so Better Auth can validate the session exactly as it does in HTTP flows.
+        // FAST PATH: Try Redis cache first for token-based auth
+        if (params.token) {
+            const sessionService = getSessionService();
+            const cached = await sessionService.getSession(params.token);
+
+            if (cached) {
+                return {
+                    user: {
+                        id: cached.user.id,
+                        email: cached.user.email,
+                        name: cached.user.name,
+                        image: cached.user.image,
+                        createdAt: new Date(cached.user.createdAt),
+                        updatedAt: new Date(cached.user.updatedAt),
+                    },
+                    session: {
+                        id: cached.session.id,
+                        userId: cached.session.userId,
+                        token: cached.session.token,
+                        expiresAt: new Date(cached.session.expiresAt),
+                        createdAt: new Date(cached.session.createdAt),
+                        updatedAt: new Date(cached.session.updatedAt),
+                    },
+                };
+            }
+        }
+
+        // SLOW PATH: Fall back to better-auth (database lookup)
         const headers: Record<string, string> = {};
         if (params.token) headers['Authorization'] = `Bearer ${params.token}`;
         if (params.cookieHeader) headers['Cookie'] = params.cookieHeader;
@@ -150,6 +189,32 @@ async function validateSession(params: SessionValidationParams): Promise<{
 
         if (!response?.session || !response?.user) {
             return null;
+        }
+
+        // Cache the session in Redis for future requests
+        if (params.token) {
+            const sessionData: SessionData = {
+                id: response.session.id,
+                userId: response.session.userId,
+                token: response.session.token,
+                expiresAt: response.session.expiresAt.getTime(),
+                createdAt: response.session.createdAt.getTime(),
+                updatedAt: response.session.updatedAt.getTime(),
+            };
+
+            const userData: UserData = {
+                id: response.user.id,
+                email: response.user.email,
+                name: response.user.name,
+                image: response.user.image,
+                createdAt: response.user.createdAt.getTime(),
+                updatedAt: response.user.updatedAt.getTime(),
+            };
+
+            // Non-blocking cache write
+            cacheExistingSession(params.token, sessionData, userData).catch((err) => {
+                console.warn('[Auth] Failed to cache session:', err);
+            });
         }
 
         return {
