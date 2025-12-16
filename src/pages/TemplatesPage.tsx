@@ -321,11 +321,14 @@ function TemplateCard({
             style={{ position: 'relative', height: '100%' }}
         >
             <div
-                className="glass-panel relative rounded-2xl overflow-hidden transition-all duration-500"
+                className="template-card-panel relative rounded-2xl overflow-hidden transition-all duration-500"
                 style={{
+                    background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                     boxShadow: isHovered
-                        ? '0 25px 50px -12px rgba(0,0,0,0.2), 0 0 30px -5px rgba(255,180,140,0.15)'
-                        : '0 10px 40px -10px rgba(0,0,0,0.15)',
+                        ? '0 25px 50px -12px rgba(0,0,0,0.2), 0 0 30px -5px rgba(255,180,140,0.15), inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.5)'
+                        : '0 10px 40px -10px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.5)',
                 }}
             >
                 {/* Preview area */}
@@ -557,7 +560,15 @@ export default function TemplatesPage() {
                 )}
 
                 {!loading && filteredTemplates.length === 0 && (
-                    <div className="glass-panel text-center py-16">
+                    <div
+                        className="text-center py-16 rounded-2xl"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(248, 248, 250, 0.4) 100%)',
+                            backdropFilter: 'blur(24px) saturate(180%)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.5)',
+                        }}
+                    >
                         <p style={{ color: '#666' }}>No templates found matching your criteria</p>
                     </div>
                 )}
@@ -579,9 +590,11 @@ export default function TemplatesPage() {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="glass-panel max-w-4xl w-full max-h-[90vh] overflow-hidden rounded-2xl"
+                            className="max-w-4xl w-full max-h-[90vh] overflow-hidden rounded-2xl"
                             style={{
                                 background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 50%, rgba(248,248,250,0.85) 100%)',
+                                backdropFilter: 'blur(24px) saturate(180%)',
+                                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                                 boxShadow: `
                                     0 25px 80px rgba(0,0,0,0.2),
                                     0 10px 30px rgba(0,0,0,0.15),
