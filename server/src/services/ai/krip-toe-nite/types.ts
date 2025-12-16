@@ -64,7 +64,9 @@ export type ModelTier = 'speed' | 'intelligence' | 'specialist';
 export interface KTNModelConfig {
     /** Unique identifier for this model config */
     id: string;
-    /** OpenRouter model ID */
+    /** Direct SDK model ID (for Anthropic/OpenAI native SDKs) */
+    directModelId?: string;
+    /** OpenRouter model ID (for fallback/other providers) */
     openRouterId: string;
     /** Human-readable name */
     name: string;

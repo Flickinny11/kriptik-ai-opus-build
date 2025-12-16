@@ -69,17 +69,31 @@ export class KripToeNiteExecutor {
     /**
      * Determine which client to use for a model
      */
-    private getProviderForModel(modelId: string): AIProvider {
-        // Direct Anthropic SDK for Claude models
-        if (modelId.startsWith('claude-') && this.anthropicClient) {
-            return 'anthropic';
+    private getProviderForModel(model: KTNModelConfig): AIProvider {
+        // Check if model has direct SDK ID and appropriate client is available
+        if (model.directModelId) {
+            // Direct Anthropic SDK for Claude models
+            if (model.directModelId.startsWith('claude-') && this.anthropicClient) {
+                return 'anthropic';
+            }
+            // Direct OpenAI SDK for GPT and o1 models
+            if ((model.directModelId.startsWith('gpt-') || model.directModelId.startsWith('o1')) && this.openaiClient) {
+                return 'openai';
+            }
         }
-        // Direct OpenAI SDK for GPT-5.2 models
-        if ((modelId.startsWith('gpt-5.2') || modelId === 'gpt-5.2-pro' || modelId === 'gpt-5.2-chat-latest') && this.openaiClient) {
-            return 'openai';
-        }
-        // OpenRouter for everything else
+        // OpenRouter for everything else (models without directModelId or without SDK keys)
         return 'openrouter';
+    }
+
+    /**
+     * Get the appropriate model ID for the provider
+     */
+    private getModelIdForProvider(model: KTNModelConfig, provider: AIProvider): string {
+        if (provider === 'openrouter') {
+            return model.openRouterId;
+        }
+        // Use directModelId for native SDKs, fallback to openRouterId
+        return model.directModelId || model.openRouterId;
     }
 
     /**
@@ -123,15 +137,16 @@ export class KripToeNiteExecutor {
         startTime: number
     ): AsyncGenerator<ExecutionChunk> {
         const model = decision.primaryModel;
-        const provider = this.getProviderForModel(model.id);
+        const provider = this.getProviderForModel(model);
+        const modelId = this.getModelIdForProvider(model, provider);
         let ttftMs: number | undefined;
 
         try {
             if (provider === 'anthropic' && this.anthropicClient) {
                 // Use direct Anthropic SDK
-                console.log(`[KTN Executor] Using Anthropic SDK for ${model.id}`);
+                console.log(`[KTN Executor] Using Anthropic SDK for ${model.id} (modelId: ${modelId})`);
                 const stream = this.anthropicClient.messages.stream({
-                    model: model.id,
+                    model: modelId,
                     max_tokens: request.maxTokens || model.maxOutput,
                     system: request.systemPrompt || this.buildSystemPrompt(request.context),
                     messages: [{
@@ -168,10 +183,10 @@ export class KripToeNiteExecutor {
                     }
                 }
             } else if (provider === 'openai' && this.openaiClient) {
-                // Use direct OpenAI SDK for GPT-5.2
-                console.log(`[KTN Executor] Using OpenAI SDK for ${model.id}`);
+                // Use direct OpenAI SDK for GPT models
+                console.log(`[KTN Executor] Using OpenAI SDK for ${model.id} (modelId: ${modelId})`);
                 const stream = await this.openaiClient.chat.completions.create({
-                    model: model.id,
+                    model: modelId,
                     max_tokens: request.maxTokens || model.maxOutput,
                     temperature: request.temperature ?? 0.7,
                     messages: [
@@ -510,15 +525,62 @@ export class KripToeNiteExecutor {
 
     /**
      * Execute a single model and collect full response
+     * Used by speculative and parallel strategies for non-streaming responses
      */
     private async collectFullResponse(
         request: GenerationRequest,
         model: KTNModelConfig
     ): Promise<{ content: string; model: string; latencyMs: number }> {
         const startTime = Date.now();
-        const client = this.openRouter.getClient();
+        const provider = this.getProviderForModel(model);
+        const modelId = this.getModelIdForProvider(model, provider);
 
         try {
+            // Try direct Anthropic SDK
+            if (provider === 'anthropic' && this.anthropicClient) {
+                const response = await this.anthropicClient.messages.create({
+                    model: modelId,
+                    max_tokens: request.maxTokens || model.maxOutput,
+                    system: request.systemPrompt || this.buildSystemPrompt(request.context),
+                    messages: [{
+                        role: 'user',
+                        content: request.prompt,
+                    }],
+                });
+
+                const content = response.content
+                    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+                    .map(block => block.text)
+                    .join('');
+
+                return {
+                    content,
+                    model: model.id,
+                    latencyMs: Date.now() - startTime,
+                };
+            }
+
+            // Try direct OpenAI SDK
+            if (provider === 'openai' && this.openaiClient) {
+                const response = await this.openaiClient.chat.completions.create({
+                    model: modelId,
+                    max_tokens: request.maxTokens || model.maxOutput,
+                    temperature: request.temperature ?? 0.7,
+                    messages: [
+                        { role: 'system', content: request.systemPrompt || this.buildSystemPrompt(request.context) },
+                        { role: 'user', content: request.prompt },
+                    ],
+                });
+
+                return {
+                    content: response.choices[0]?.message?.content || '',
+                    model: model.id,
+                    latencyMs: Date.now() - startTime,
+                };
+            }
+
+            // Fallback to OpenRouter
+            const client = this.openRouter.getClient();
             const response = await client.messages.create({
                 model: model.openRouterId,
                 max_tokens: request.maxTokens || model.maxOutput,
@@ -551,15 +613,97 @@ export class KripToeNiteExecutor {
 
     /**
      * Execute single model with streaming
+     * Used by ensemble and fallback strategies
      */
     private async *executeSingleModel(
         request: GenerationRequest,
         model: KTNModelConfig,
         startTime: number
     ): AsyncGenerator<ExecutionChunk> {
-        const client = this.openRouter.getClient();
+        const provider = this.getProviderForModel(model);
+        const modelId = this.getModelIdForProvider(model, provider);
         let ttftMs: number | undefined;
 
+        // Try direct SDK first if available
+        if (provider === 'anthropic' && this.anthropicClient) {
+            const stream = this.anthropicClient.messages.stream({
+                model: modelId,
+                max_tokens: request.maxTokens || model.maxOutput,
+                system: request.systemPrompt || this.buildSystemPrompt(request.context),
+                messages: [{
+                    role: 'user',
+                    content: request.prompt,
+                }],
+            });
+
+            for await (const event of stream) {
+                if (event.type === 'content_block_delta' && 'delta' in event) {
+                    const delta = event.delta as { type: string; text?: string };
+                    if (delta.type === 'text_delta' && delta.text) {
+                        if (!ttftMs) {
+                            ttftMs = Date.now() - startTime;
+                        }
+                        yield {
+                            type: 'text',
+                            content: delta.text,
+                            model: model.id,
+                            strategy: 'ensemble',
+                            timestamp: Date.now(),
+                        };
+                    }
+                }
+            }
+
+            yield {
+                type: 'done',
+                content: '',
+                model: model.id,
+                strategy: 'ensemble',
+                timestamp: Date.now(),
+            };
+            return;
+        }
+
+        if (provider === 'openai' && this.openaiClient) {
+            const stream = await this.openaiClient.chat.completions.create({
+                model: modelId,
+                max_tokens: request.maxTokens || model.maxOutput,
+                temperature: request.temperature ?? 0.7,
+                messages: [
+                    { role: 'system', content: request.systemPrompt || this.buildSystemPrompt(request.context) },
+                    { role: 'user', content: request.prompt },
+                ],
+                stream: true,
+            });
+
+            for await (const chunk of stream) {
+                const delta = chunk.choices[0]?.delta?.content;
+                if (delta) {
+                    if (!ttftMs) {
+                        ttftMs = Date.now() - startTime;
+                    }
+                    yield {
+                        type: 'text',
+                        content: delta,
+                        model: model.id,
+                        strategy: 'ensemble',
+                        timestamp: Date.now(),
+                    };
+                }
+            }
+
+            yield {
+                type: 'done',
+                content: '',
+                model: model.id,
+                strategy: 'ensemble',
+                timestamp: Date.now(),
+            };
+            return;
+        }
+
+        // Fallback to OpenRouter
+        const client = this.openRouter.getClient();
         const stream = await client.messages.stream({
             model: model.openRouterId,
             max_tokens: request.maxTokens || model.maxOutput,
