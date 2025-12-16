@@ -9,13 +9,16 @@
  * - Premium Glass Morphism UI
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VerificationSwarmStatus, type AgentState, type SwarmVerdict, type VerificationAgentType } from './VerificationSwarmStatus';
 import SwarmModeSelector, { type SwarmMode } from './SwarmModeSelector';
 import AgentConfigSlider, { type AgentConfig } from './AgentConfigSlider';
 import BugHuntTab from './BugHuntTab';
 import './FloatingVerificationSwarm.css';
+
+// Lazy load 3D component for performance
+const VerificationSwarm3D = lazy(() => import('./VerificationSwarm3D'));
 
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
@@ -88,6 +91,7 @@ export function FloatingVerificationSwarm({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'config' | 'bughunt'>('status');
+  const [view3D, setView3D] = useState(false);
   const [swarmMode, setSwarmMode] = useState<SwarmMode>('thorough');
   const [recommendedMode, setRecommendedMode] = useState<SwarmMode | undefined>();
   const [agentConfigs, setAgentConfigs] = useState<AgentConfig[]>(DEFAULT_AGENT_CONFIGS);
@@ -452,21 +456,69 @@ export function FloatingVerificationSwarm({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="mode-selector-wrapper">
-                    <SwarmModeSelector
-                      selectedMode={swarmMode}
-                      onModeChange={setSwarmMode}
-                      recommendedMode={recommendedMode}
-                      disabled={isRunning}
-                    />
+                  {/* 3D/2D Toggle */}
+                  <div className="view-toggle-wrapper">
+                    <button
+                      className={`view-toggle-btn ${!view3D ? 'active' : ''}`}
+                      onClick={() => setView3D(false)}
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                        <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                      </svg>
+                      2D
+                    </button>
+                    <button
+                      className={`view-toggle-btn ${view3D ? 'active' : ''}`}
+                      onClick={() => setView3D(true)}
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                        <path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                      </svg>
+                      3D
+                    </button>
                   </div>
-                  <VerificationSwarmStatus
-                    agents={agents}
-                    verdict={verdict}
-                    isRunning={isRunning}
-                    onRerun={handleRunSwarm}
-                    compact={false}
-                  />
+
+                  {view3D ? (
+                    <Suspense fallback={
+                      <div className="view-3d-loading">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          style={{ width: 24, height: 24, border: '2px solid rgba(245, 168, 108, 0.3)', borderTopColor: '#F5A86C', borderRadius: '50%' }}
+                        />
+                        <span>Loading 3D view...</span>
+                      </div>
+                    }>
+                      <div className="view-3d-container">
+                        <VerificationSwarm3D
+                          agents={agents}
+                          isRunning={isRunning}
+                          onAgentClick={(type) => {
+                            const config = agentConfigs.find(c => c.agentType === type);
+                            if (config) handleRunSingleAgent(type);
+                          }}
+                        />
+                      </div>
+                    </Suspense>
+                  ) : (
+                    <>
+                      <div className="mode-selector-wrapper">
+                        <SwarmModeSelector
+                          selectedMode={swarmMode}
+                          onModeChange={setSwarmMode}
+                          recommendedMode={recommendedMode}
+                          disabled={isRunning}
+                        />
+                      </div>
+                      <VerificationSwarmStatus
+                        agents={agents}
+                        verdict={verdict}
+                        isRunning={isRunning}
+                        onRerun={handleRunSwarm}
+                        compact={false}
+                      />
+                    </>
+                  )}
                   <button
                     className="run-swarm-main-btn"
                     onClick={handleRunSwarm}
@@ -617,6 +669,74 @@ export function FloatingVerificationSwarm({
                 .run-swarm-main-btn:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
+                }
+
+                /* 3D/2D View Toggle */
+                .view-toggle-wrapper {
+                    display: flex;
+                    gap: 4px;
+                    padding: 4px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 10px;
+                    margin-bottom: 12px;
+                }
+
+                .view-toggle-btn {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 8px 12px;
+                    background: transparent;
+                    border: none;
+                    border-radius: 8px;
+                    color: rgba(255, 255, 255, 0.5);
+                    font-size: 11px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .view-toggle-btn:hover {
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+                .view-toggle-btn.active {
+                    background: rgba(245, 168, 108, 0.15);
+                    color: #F5A86C;
+                    font-weight: 600;
+                }
+
+                .view-toggle-btn svg {
+                    opacity: 0.7;
+                    transition: opacity 0.2s;
+                }
+
+                .view-toggle-btn.active svg {
+                    opacity: 1;
+                }
+
+                /* 3D Container */
+                .view-3d-container {
+                    width: 100%;
+                    height: 280px;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    background: rgba(0, 0, 0, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .view-3d-loading {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    height: 280px;
+                    color: rgba(245, 168, 108, 0.8);
+                    font-size: 12px;
+                    font-weight: 500;
                 }
             `}</style>
     </motion.div>

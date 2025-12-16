@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { AgentType, AgentStatus, AgentLog, AgentState, AGENTS } from '../lib/agent-types';
+import { limitArray } from '../lib/store-utils';
+
+// Maximum logs to prevent memory leaks
+const MAX_LOGS = 1000;
 
 interface AgentStore {
     globalStatus: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
@@ -12,6 +16,7 @@ interface AgentStore {
     updateAgentStatus: (type: AgentType, status: AgentStatus) => void;
     updateAgentProgress: (type: AgentType, progress: number) => void;
     addLog: (log: AgentLog) => void;
+    clearLogs: () => void;
     reset: () => void;
 }
 
@@ -54,8 +59,14 @@ export const useAgentStore = create<AgentStore>((set) => ({
     })),
 
     addLog: (log) => set((state) => ({
-        logs: [...state.logs, log]
+        // Limit logs array to prevent memory leaks
+        logs: limitArray([...state.logs, log], {
+            maxItems: MAX_LOGS,
+            removeStrategy: 'fifo'
+        })
     })),
+
+    clearLogs: () => set({ logs: [] }),
 
     reset: () => set({
         globalStatus: 'idle',

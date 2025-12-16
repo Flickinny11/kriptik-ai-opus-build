@@ -8,12 +8,55 @@
  * - High-tech photorealistic design
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
+
+// Lazy load premium 3D panels for better performance
+const DatabasePanel = lazy(() => import('./panels/DatabasePanel'));
+const LiveHealthPanel = lazy(() => import('./panels/LiveHealthPanel'));
+const AiSlopPanel = lazy(() => import('./panels/AiSlopPanel'));
+const IntegrationsPanel = lazy(() => import('./panels/IntegrationsPanel'));
+
+// Loading fallback for lazy-loaded panels
+function PanelLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      gap: '12px',
+      color: 'rgba(245, 168, 108, 0.8)',
+    }}>
+      <div style={{
+        width: 24,
+        height: 24,
+        border: '2px solid rgba(245, 168, 108, 0.3)',
+        borderTopColor: '#F5A86C',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+      }} />
+      <span style={{ fontSize: 12 }}>Loading panel...</span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+// Wrapper for lazy-loaded panels with Suspense
+function LazyPanelWrapper({ Component }: { Component: React.LazyExoticComponent<React.FC<{ isActive: boolean; onClose: () => void }>> }) {
+  return function WrappedPanel(props: { isActive: boolean; onClose: () => void }) {
+    return (
+      <Suspense fallback={<PanelLoader />}>
+        <Component {...props} />
+      </Suspense>
+    );
+  };
+}
 
 interface DeveloperBarPanelProps {
   featureId: string;
@@ -41,21 +84,23 @@ const FEATURE_PANELS: Record<string, {
   // Premium comprehensive panels
   'feature-agent': { title: 'Feature Agent Command Center', icon: 'agents', component: FeatureAgentCommandCenterWrapper, fullWidth: true },
 
-  // Other panels (to be upgraded to comprehensive versions)
+  // Premium 3D panels
+  'database': { title: 'Database', icon: 'database', component: LazyPanelWrapper({ Component: DatabasePanel }) },
+  'live-health': { title: 'Live Health', icon: 'liveHealth', component: LazyPanelWrapper({ Component: LiveHealthPanel }) },
+  'ai-slop-catch': { title: 'AI-Slop Detection', icon: 'aiSlopCatch', component: LazyPanelWrapper({ Component: AiSlopPanel }) },
+  'integrations': { title: 'Integrations', icon: 'integrations', component: LazyPanelWrapper({ Component: IntegrationsPanel }) },
+
+  // Other panels (existing implementations)
   'memory': { title: 'Memory', icon: 'memory', component: MemoryPanel },
   'quality-check': { title: 'Quality', icon: 'qualityCheck', component: QualityCheckPanel },
   'ghost-mode': { title: 'Ghost Mode', icon: 'ghostMode', component: GhostModePanel },
   'time-machine': { title: 'Time Machine', icon: 'timeMachine', component: TimeMachinePanel },
   'deployment': { title: 'Deploy', icon: 'deployment', component: GenericPanel },
-  'database': { title: 'Database', icon: 'database', component: GenericPanel },
   'workflows': { title: 'Workflows', icon: 'workflows', component: GenericPanel },
   'live-debug': { title: 'Debug', icon: 'liveDebug', component: GenericPanel },
-  'live-health': { title: 'Health', icon: 'liveHealth', component: GenericPanel },
-  'integrations': { title: 'Integrations', icon: 'integrations', component: GenericPanel },
   'developer-settings': { title: 'Settings', icon: 'developerSettings', component: GenericPanel },
   'market-fit': { title: 'Market Fit', icon: 'marketFit', component: GenericPanel },
   'predictive-engine': { title: 'Predictive', icon: 'predictiveEngine', component: GenericPanel },
-  'ai-slop-catch': { title: 'AI-Slop', icon: 'aiSlopCatch', component: GenericPanel },
   'voice-first': { title: 'Voice', icon: 'voiceFirst', component: GenericPanel },
   'test-gen': { title: 'Test Gen', icon: 'testGen', component: GenericPanel },
   'self-heal': { title: 'Self Heal', icon: 'selfHeal', component: GenericPanel },
