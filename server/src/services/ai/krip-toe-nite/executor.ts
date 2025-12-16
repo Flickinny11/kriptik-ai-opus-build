@@ -7,10 +7,14 @@
  * - PARALLEL: Race models, take best
  * - ENSEMBLE: Multiple models contribute
  *
- * All models accessed via OpenRouter through the Anthropic SDK pattern.
+ * Dual-SDK Architecture (December 2025):
+ * - Anthropic SDK for Claude models (full features)
+ * - OpenAI SDK for GPT-5.2 models (400K context, 128K output)
+ * - OpenRouter for fallback models
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';
+import { OpenAI } from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -23,7 +27,7 @@ import {
     type KTNModelConfig,
 } from './types.js';
 
-import { getOpenRouterClient } from '../openrouter-client.js';
+import { getOpenRouterClient, type AIProvider } from '../openrouter-client.js';
 
 // =============================================================================
 // EXECUTOR CLASS
@@ -32,10 +36,51 @@ import { getOpenRouterClient } from '../openrouter-client.js';
 /**
  * Krip-Toe-Nite Executor
  *
- * Handles all model execution strategies via OpenRouter.
+ * Handles all model execution strategies via dual SDKs:
+ * - Anthropic SDK for Claude models
+ * - OpenAI SDK for GPT-5.2 models
+ * - OpenRouter for fallback
  */
 export class KripToeNiteExecutor {
     private openRouter = getOpenRouterClient();
+    private anthropicClient: Anthropic | null = null;
+    private openaiClient: OpenAI | null = null;
+
+    constructor() {
+        // Initialize direct Anthropic SDK
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
+        if (anthropicKey) {
+            this.anthropicClient = new Anthropic({
+                apiKey: anthropicKey,
+            });
+            console.log('[KTN Executor] Anthropic SDK initialized');
+        }
+
+        // Initialize direct OpenAI SDK for GPT-5.2
+        const openaiKey = process.env.OPENAI_API_KEY;
+        if (openaiKey) {
+            this.openaiClient = new OpenAI({
+                apiKey: openaiKey,
+            });
+            console.log('[KTN Executor] OpenAI SDK initialized');
+        }
+    }
+
+    /**
+     * Determine which client to use for a model
+     */
+    private getProviderForModel(modelId: string): AIProvider {
+        // Direct Anthropic SDK for Claude models
+        if (modelId.startsWith('claude-') && this.anthropicClient) {
+            return 'anthropic';
+        }
+        // Direct OpenAI SDK for GPT-5.2 models
+        if ((modelId.startsWith('gpt-5.2') || modelId === 'gpt-5.2-pro' || modelId === 'gpt-5.2-chat-latest') && this.openaiClient) {
+            return 'openai';
+        }
+        // OpenRouter for everything else
+        return 'openrouter';
+    }
 
     /**
      * Execute a generation request
@@ -70,7 +115,7 @@ export class KripToeNiteExecutor {
 
     /**
      * SINGLE strategy: Direct model execution
-     * Used for trivial/simple tasks
+     * Routes to Anthropic SDK, OpenAI SDK, or OpenRouter based on model
      */
     private async *executeSingle(
         request: GenerationRequest,
@@ -78,32 +123,72 @@ export class KripToeNiteExecutor {
         startTime: number
     ): AsyncGenerator<ExecutionChunk> {
         const model = decision.primaryModel;
+        const provider = this.getProviderForModel(model.id);
         let ttftMs: number | undefined;
 
         try {
-            const client = this.openRouter.getClient();
+            if (provider === 'anthropic' && this.anthropicClient) {
+                // Use direct Anthropic SDK
+                console.log(`[KTN Executor] Using Anthropic SDK for ${model.id}`);
+                const stream = this.anthropicClient.messages.stream({
+                    model: model.id,
+                    max_tokens: request.maxTokens || model.maxOutput,
+                    system: request.systemPrompt || this.buildSystemPrompt(request.context),
+                    messages: [{
+                        role: 'user',
+                        content: request.prompt,
+                    }],
+                });
 
-            const stream = await client.messages.stream({
-                model: model.openRouterId,
-                max_tokens: request.maxTokens || model.maxOutput,
-                temperature: request.temperature ?? 0.7,
-                system: request.systemPrompt || this.buildSystemPrompt(request.context),
-                messages: [{
-                    role: 'user',
-                    content: request.prompt,
-                }],
-            });
+                for await (const event of stream) {
+                    if (event.type === 'content_block_delta' && 'delta' in event) {
+                        const delta = event.delta as { type: string; text?: string };
+                        if (delta.type === 'text_delta' && delta.text) {
+                            if (!ttftMs) {
+                                ttftMs = Date.now() - startTime;
+                                yield {
+                                    type: 'status',
+                                    content: `⚡ First token in ${ttftMs}ms (Anthropic)`,
+                                    model: model.id,
+                                    strategy: 'single',
+                                    timestamp: Date.now(),
+                                    metadata: { ttftMs },
+                                };
+                            }
 
-            for await (const event of stream) {
-                if (event.type === 'content_block_delta' && 'delta' in event) {
-                    const delta = event.delta as { type: string; text?: string };
-                    if (delta.type === 'text_delta' && delta.text) {
-                        // Track TTFT
+                            yield {
+                                type: 'text',
+                                content: delta.text,
+                                model: model.id,
+                                strategy: 'single',
+                                timestamp: Date.now(),
+                                metadata: { latencyMs: Date.now() - startTime },
+                            };
+                        }
+                    }
+                }
+            } else if (provider === 'openai' && this.openaiClient) {
+                // Use direct OpenAI SDK for GPT-5.2
+                console.log(`[KTN Executor] Using OpenAI SDK for ${model.id}`);
+                const stream = await this.openaiClient.chat.completions.create({
+                    model: model.id,
+                    max_tokens: request.maxTokens || model.maxOutput,
+                    temperature: request.temperature ?? 0.7,
+                    messages: [
+                        { role: 'system', content: request.systemPrompt || this.buildSystemPrompt(request.context) },
+                        { role: 'user', content: request.prompt },
+                    ],
+                    stream: true,
+                });
+
+                for await (const chunk of stream) {
+                    const delta = chunk.choices[0]?.delta?.content;
+                    if (delta) {
                         if (!ttftMs) {
                             ttftMs = Date.now() - startTime;
                             yield {
                                 type: 'status',
-                                content: `⚡ First token in ${ttftMs}ms`,
+                                content: `⚡ First token in ${ttftMs}ms (OpenAI)`,
                                 model: model.id,
                                 strategy: 'single',
                                 timestamp: Date.now(),
@@ -113,14 +198,55 @@ export class KripToeNiteExecutor {
 
                         yield {
                             type: 'text',
-                            content: delta.text,
+                            content: delta,
                             model: model.id,
                             strategy: 'single',
                             timestamp: Date.now(),
-                            metadata: {
-                                latencyMs: Date.now() - startTime,
-                            },
+                            metadata: { latencyMs: Date.now() - startTime },
                         };
+                    }
+                }
+            } else {
+                // Use OpenRouter fallback
+                console.log(`[KTN Executor] Using OpenRouter for ${model.openRouterId}`);
+                const client = this.openRouter.getClient();
+
+                const stream = client.messages.stream({
+                    model: model.openRouterId,
+                    max_tokens: request.maxTokens || model.maxOutput,
+                    temperature: request.temperature ?? 0.7,
+                    system: request.systemPrompt || this.buildSystemPrompt(request.context),
+                    messages: [{
+                        role: 'user',
+                        content: request.prompt,
+                    }],
+                });
+
+                for await (const event of stream) {
+                    if (event.type === 'content_block_delta' && 'delta' in event) {
+                        const delta = event.delta as { type: string; text?: string };
+                        if (delta.type === 'text_delta' && delta.text) {
+                            if (!ttftMs) {
+                                ttftMs = Date.now() - startTime;
+                                yield {
+                                    type: 'status',
+                                    content: `⚡ First token in ${ttftMs}ms (OpenRouter)`,
+                                    model: model.id,
+                                    strategy: 'single',
+                                    timestamp: Date.now(),
+                                    metadata: { ttftMs },
+                                };
+                            }
+
+                            yield {
+                                type: 'text',
+                                content: delta.text,
+                                model: model.id,
+                                strategy: 'single',
+                                timestamp: Date.now(),
+                                metadata: { latencyMs: Date.now() - startTime },
+                            };
+                        }
                     }
                 }
             }

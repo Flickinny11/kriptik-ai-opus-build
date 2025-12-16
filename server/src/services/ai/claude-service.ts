@@ -1,7 +1,12 @@
 /**
- * Claude Service - AI Code Generation via OpenRouter
+ * Claude Service - AI Code Generation via Dual SDK Architecture
  *
- * This service handles all AI interactions for KripTik using OpenRouter:
+ * This service handles all AI interactions for KripTik:
+ * - Direct Anthropic SDK for Claude models (full features)
+ * - Direct OpenAI SDK for GPT-5.2 models (400K context, 128K output)
+ * - OpenRouter fallback for other models
+ *
+ * Features:
  * - Code generation with extended thinking
  * - Streaming responses for real-time UI updates
  * - Context management for multi-turn conversations
@@ -9,28 +14,29 @@
  * - Integrated design tokens for premium UI quality
  * - Automatic icon selection for contextual icons
  *
- * OpenRouter provides full Claude capabilities:
- * - Extended thinking
- * - Effort/Verbosity parameter (Opus 4.5)
- * - Tool calls
- * - 200K context window
- * - 64K output tokens
+ * December 2025 Capabilities:
+ * - Claude: 64K thinking budget, precise cache control, effort parameter
+ * - GPT-5.2: 400K context, 128K output, native thinking mode
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
-import { getOpenRouterClient, OPENROUTER_MODELS, type EffortLevel, type OpenRouterModel } from './openrouter-client.js';
+import { getUnifiedClient, ANTHROPIC_MODELS, OPENAI_MODELS, type AIProvider } from './unified-client.js';
+import { OPENROUTER_MODELS, type EffortLevel, type OpenRouterModel } from './openrouter-client.js';
 import { getDesignTokenPrompt } from './design-tokens.js';
 import { getIconSuggestionPrompt } from './icon-mapper.js';
 import { getComponentRegistry } from '../templates/component-registry.js';
 
-// Re-export OpenRouter models as CLAUDE_MODELS for backwards compatibility
+// Re-export models for backwards compatibility
 export const CLAUDE_MODELS = {
-    OPUS_4_5: OPENROUTER_MODELS.OPUS_4_5,     // Critical tasks, deep analysis, effort parameter
-    SONNET_4_5: OPENROUTER_MODELS.SONNET_4_5, // Main coding, extended thinking
-    SONNET_4: OPENROUTER_MODELS.SONNET_4,     // Standard tasks
-    HAIKU_3_5: OPENROUTER_MODELS.HAIKU_3_5,   // Fast, simple tasks
+    OPUS_4_5: ANTHROPIC_MODELS.OPUS_4_5,     // Critical tasks, deep analysis, effort parameter
+    SONNET_4_5: ANTHROPIC_MODELS.SONNET_4_5, // Main coding, extended thinking
+    SONNET_4: ANTHROPIC_MODELS.SONNET_4,     // Standard tasks
+    HAIKU_3_5: ANTHROPIC_MODELS.HAIKU_3_5,   // Fast, simple tasks
 } as const;
+
+// Export GPT-5.2 models for new code
+export const GPT_MODELS = OPENAI_MODELS;
 
 // Model capabilities reference:
 // - Claude Opus 4.5: 200K context, 64K output, extended thinking, effort parameter (low/medium/high)
@@ -389,20 +395,28 @@ function cacheGeneratedComponent(params: {
 }
 
 export class ClaudeService {
-    private client: Anthropic;
+    private unifiedClient: ReturnType<typeof getUnifiedClient>;
+    private anthropicClient: Anthropic | null = null;
     private context: GenerationContext;
 
     constructor(context: GenerationContext) {
         this.context = context;
 
-        // Get Anthropic SDK client via OpenRouter
-        const openRouter = getOpenRouterClient();
-        this.client = openRouter.withContext({
+        // Get unified client with dual SDK architecture
+        this.unifiedClient = getUnifiedClient().withContext({
             userId: context.userId,
             projectId: context.projectId,
             agentType: context.agentType,
             sessionId: context.sessionId,
         });
+
+        // Also get direct Anthropic client for full feature access
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
+        if (anthropicKey) {
+            this.anthropicClient = new Anthropic({
+                apiKey: anthropicKey,
+            });
+        }
     }
 
     /**
@@ -503,7 +517,12 @@ export class ClaudeService {
             requestParams.stop_sequences = stopSequences;
         }
 
-        const response = await this.client.messages.create(requestParams);
+        // Use direct Anthropic SDK for full feature access
+        if (!this.anthropicClient) {
+            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+        }
+        console.log(`[ClaudeService] Using direct Anthropic SDK for ${model}`);
+        const response = await this.anthropicClient.messages.create(requestParams);
         const parsed = this.parseResponse(response);
 
         // Cache successful generations for future reuse
@@ -609,7 +628,12 @@ export class ClaudeService {
         let stopReason = '';
 
         try {
-            const stream = this.client.messages.stream(requestParams);
+            // Use direct Anthropic SDK for streaming with full feature access
+            if (!this.anthropicClient) {
+                throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+            }
+            console.log(`[ClaudeService] Streaming via direct Anthropic SDK for ${model}`);
+            const stream = this.anthropicClient.messages.stream(requestParams);
 
             for await (const event of stream) {
                 if (event.type === 'content_block_delta') {
@@ -834,7 +858,12 @@ Your entire response must be parseable JSON.`;
             requestParams.temperature = 1;
         }
 
-        const response = await this.client.messages.create(requestParams);
+        // Use direct Anthropic SDK for structured output
+        if (!this.anthropicClient) {
+            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+        }
+        console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
+        const response = await this.anthropicClient.messages.create(requestParams);
         const parsed = this.parseResponse(response);
 
         // Try to extract JSON from the response content
@@ -894,7 +923,12 @@ Your entire response must be parseable JSON.`;
             requestParams.temperature = 1;
         }
 
-        const stream = this.client.messages.stream(requestParams);
+        // Use direct Anthropic SDK for streaming generator
+        if (!this.anthropicClient) {
+            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+        }
+        console.log(`[ClaudeService] Streaming generator via direct Anthropic SDK for ${model}`);
+        const stream = this.anthropicClient.messages.stream(requestParams);
         let fullContent = '';
 
         for await (const event of stream) {

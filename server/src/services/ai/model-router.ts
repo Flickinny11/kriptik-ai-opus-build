@@ -1,14 +1,21 @@
 /**
  * Model Router - Intelligent model selection for cost optimization
  *
- * This system routes AI requests to the most cost-effective model
- * based on task complexity, ensuring quality while minimizing costs.
+ * Dual-SDK Architecture (December 2025):
+ * - Anthropic SDK for Claude models (Opus 4.5, Sonnet 4.5, Haiku 3.5)
+ * - OpenAI SDK for GPT-5.2 models (Pro, Thinking, Instant)
+ * - OpenRouter for fallback models (DeepSeek, Gemini, Llama, etc.)
  *
- * Uses OpenRouter for unified access to all models with automatic failover.
+ * COST PHILOSOPHY:
+ * It's CHEAPER to use a better model that gets it right the first time than
+ * to use a cheap model that requires 3 correction cycles. Error correction
+ * costs the customer NOTHING - it costs US. So we optimize for first-time-right.
  */
 
 import { OpenAI } from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { ANTHROPIC_MODELS, OPENAI_MODELS, type AIProvider } from './openrouter-client.js';
 
 // ============================================================================
 // MODEL DEFINITIONS
@@ -354,19 +361,57 @@ export const MODELS: Record<string, ModelConfig> = {
     },
 
     // ========================================================================
-    // GPT-5 SERIES - Latest OpenAI flagship models
+    // GPT-5.2 SERIES - Latest OpenAI flagship models (December 11, 2025)
+    // Direct access via OpenAI SDK - 400K context, 128K output
     // ========================================================================
-    'gpt-5.2': {
-        id: 'openai/gpt-4o-2024-11-20', // Latest GPT-4o as proxy for GPT-5
+    'gpt-5.2-pro': {
+        id: 'gpt-5.2-pro', // Direct OpenAI access (most accurate)
         provider: 'openai',
-        name: 'GPT-5.2',
+        name: 'GPT-5.2 Pro',
+        contextWindow: 400000,
+        inputCostPer1M: 21.00,
+        outputCostPer1M: 168.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 128000,
+        tier: 'premium',
+    },
+    'gpt-5.2-thinking': {
+        id: 'gpt-5.2', // Direct OpenAI access (structured thinking)
+        provider: 'openai',
+        name: 'GPT-5.2 Thinking',
+        contextWindow: 400000,
+        inputCostPer1M: 1.75,
+        outputCostPer1M: 14.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 128000,
+        tier: 'thinking',
+    },
+    'gpt-5.2-instant': {
+        id: 'gpt-5.2-chat-latest', // Direct OpenAI access (fastest)
+        provider: 'openai',
+        name: 'GPT-5.2 Instant',
+        contextWindow: 400000,
+        inputCostPer1M: 0.50,
+        outputCostPer1M: 2.00,
+        supportsVision: true,
+        supportsStreaming: true,
+        maxOutputTokens: 128000,
+        tier: 'standard',
+    },
+    // Legacy GPT-5.x entries (via OpenRouter fallback)
+    'gpt-5.2': {
+        id: 'openai/gpt-4o-2024-11-20',
+        provider: 'openai',
+        name: 'GPT-5.2 (OpenRouter)',
         contextWindow: 128000,
         inputCostPer1M: 2.50,
         outputCostPer1M: 10.00,
         supportsVision: true,
         supportsStreaming: true,
         maxOutputTokens: 16384,
-        tier: 'premium',
+        tier: 'critical',
     },
     'gpt-5.1-codex-high': {
         id: 'openai/gpt-4o',
@@ -515,42 +560,42 @@ export const MODELS: Record<string, ModelConfig> = {
  *
  * The order matters - first model is tried first, fallback to next if unavailable
  *
- * NOVEMBER 2025 OPTIMIZATION:
- * - Claude 4.5 Sonnet is now the PRIMARY coding model (best quality/cost)
- * - DeepSeek V3 for simple tasks (90%+ cost reduction)
- * - Gemini 2.0 added as alternative for large context windows
+ * DECEMBER 2025 DUAL-SDK OPTIMIZATION:
+ * - GPT-5.2 Pro for premium tasks (400K context, 128K output)
+ * - Claude 4.5 Opus for critical reasoning with extended thinking
+ * - GPT-5.2 Thinking for structured planning/coordination
+ * - Claude 4.5 Sonnet for coding tasks
+ * - GPT-5.2 Instant for fast generation
+ * - DeepSeek V3 for simple tasks (cost-effective)
  */
 const TIER_PREFERENCES: Record<ModelTier, string[]> = {
-    premium: ['gpt-5.2', 'claude-opus-4.5', 'claude-sonnet-4.5'],
-    thinking: ['claude-opus-4.5-thinking', 'claude-sonnet-4.5-thinking', 'gpt-5.1-thinking', 'deepseek-r1'],
-    critical: ['claude-sonnet-4.5', 'claude-sonnet-4', 'gpt-4o', 'gemini-3-pro', 'gemini-2.0-pro'],
-    standard: ['claude-haiku-4.5', 'claude-haiku', 'gpt-4o-mini', 'grok-4.1-fast', 'deepseek-v3'],
-    simple: ['deepseek-v3.2', 'deepseek-v3', 'deepseek-coder', 'grok-code-fast', 'llama-3.3-70b', 'gpt-5.1-codex-low'],
-    vision: ['claude-4.5-vision', 'glm-4.6v-turbo', 'gpt-4-vision', 'gemini-vision', 'claude-vision'],
+    premium: ['gpt-5.2-pro', 'claude-opus-4.5', 'claude-sonnet-4.5'],
+    thinking: ['claude-opus-4.5-thinking', 'gpt-5.2-thinking', 'claude-sonnet-4.5-thinking', 'deepseek-r1'],
+    critical: ['claude-sonnet-4.5', 'gpt-5.2-thinking', 'claude-sonnet-4', 'gpt-4o'],
+    standard: ['gpt-5.2-instant', 'claude-haiku-4.5', 'claude-haiku', 'gpt-4o-mini'],
+    simple: ['gpt-5.2-instant', 'deepseek-v3', 'claude-haiku', 'deepseek-coder'],
+    vision: ['claude-4.5-vision', 'gpt-5.2-thinking', 'gpt-4-vision', 'gemini-vision'],
 };
 
 /**
- * PREMIUM MODE - Uses Claude 4.5 Opus exclusively for maximum quality
- * This mode ensures first-time-right code, reducing error correction cycles
+ * PREMIUM MODE - Uses best models per tier for maximum quality
+ *
+ * Dual-SDK Strategy:
+ * - Anthropic SDK: Claude Opus 4.5 with 64K thinking budget
+ * - OpenAI SDK: GPT-5.2 Pro for verification/ensemble
  *
  * Cost analysis:
  * - Standard mode: ~$0.05/generation, but may need 2-3 corrections = ~$0.15 total
  * - Premium mode: ~$0.20/generation, but usually correct first time = $0.20 total
  * - Premium is actually MORE cost-effective for complex tasks
- *
- * When to use Premium Mode:
- * - Full application architecture
- * - Complex UI with animations/interactions
- * - Multi-service systems
- * - Production deployments
  */
 const PREMIUM_TIER_PREFERENCES: Record<ModelTier, string[]> = {
-    premium: ['claude-opus-4.5', 'gpt-5.2', 'claude-sonnet-4.5'],
-    thinking: ['claude-opus-4.5-thinking', 'claude-sonnet-4.5-thinking', 'gpt-5.1-thinking'],
-    critical: ['claude-opus-4.5', 'claude-opus-4', 'claude-sonnet-4.5'],
-    standard: ['claude-sonnet-4.5', 'claude-sonnet-4', 'claude-haiku-4.5'],
-    simple: ['claude-haiku-4.5', 'claude-haiku', 'gpt-4o-mini'],
-    vision: ['claude-4.5-vision', 'claude-vision', 'gpt-4-vision'],
+    premium: ['claude-opus-4.5', 'gpt-5.2-pro', 'claude-sonnet-4.5'],
+    thinking: ['claude-opus-4.5-thinking', 'gpt-5.2-thinking', 'claude-sonnet-4.5-thinking'],
+    critical: ['claude-opus-4.5', 'gpt-5.2-thinking', 'claude-sonnet-4.5'],
+    standard: ['claude-sonnet-4.5', 'gpt-5.2-instant', 'claude-haiku-4.5'],
+    simple: ['claude-haiku-4.5', 'gpt-5.2-instant', 'gpt-4o-mini'],
+    vision: ['claude-4.5-vision', 'gpt-5.2-thinking', 'gpt-4-vision'],
 };
 
 // ============================================================================
@@ -741,7 +786,9 @@ export interface StreamCallbacks {
 }
 
 export class ModelRouter {
-    private client: OpenAI;
+    private openrouterClient: OpenAI;
+    private anthropicClient: Anthropic | null = null;
+    private openaiClient: OpenAI | null = null;
     private config: RouterConfig;
     private requestCount = 0;
     private totalCost = 0;
@@ -756,8 +803,8 @@ export class ModelRouter {
             ...config,
         };
 
-        // Initialize OpenRouter client
-        this.client = new OpenAI({
+        // Initialize OpenRouter client (fallback for other models)
+        this.openrouterClient = new OpenAI({
             apiKey: config.openRouterApiKey,
             baseURL: 'https://openrouter.ai/api/v1',
             defaultHeaders: {
@@ -765,6 +812,40 @@ export class ModelRouter {
                 'X-Title': 'KripTik AI Builder',
             },
         });
+
+        // Initialize Anthropic client (direct access for Claude models)
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
+        if (anthropicKey) {
+            this.anthropicClient = new Anthropic({
+                apiKey: anthropicKey,
+            });
+            console.log('[ModelRouter] Anthropic SDK initialized (direct Claude access)');
+        }
+
+        // Initialize OpenAI client (direct access for GPT-5.2)
+        const openaiKey = process.env.OPENAI_API_KEY;
+        if (openaiKey) {
+            this.openaiClient = new OpenAI({
+                apiKey: openaiKey,
+            });
+            console.log('[ModelRouter] OpenAI SDK initialized (direct GPT-5.2 access)');
+        }
+    }
+
+    /**
+     * Determine which client to use for a model
+     */
+    private getProviderForModel(modelId: string): AIProvider {
+        // Direct Anthropic SDK for Claude models
+        if (modelId.startsWith('claude-') && this.anthropicClient) {
+            return 'anthropic';
+        }
+        // Direct OpenAI SDK for GPT-5.2 models
+        if ((modelId.startsWith('gpt-5.2') || modelId === 'gpt-5.2-pro' || modelId === 'gpt-5.2-chat-latest') && this.openaiClient) {
+            return 'openai';
+        }
+        // OpenRouter for everything else
+        return 'openrouter';
     }
 
     /**
@@ -887,13 +968,61 @@ export class ModelRouter {
                     await this.sleep(attempt - 1);
                 }
 
-                const response = await this.client.chat.completions.create({
-                    model: model.id,
-                    messages,
-                    max_tokens: request.maxTokens || model.maxOutputTokens,
-                    temperature: request.temperature ?? 0.7,
-                    stream: false,
-                });
+                // Route to appropriate client based on model
+                const provider = this.getProviderForModel(model.id);
+                let response;
+
+                if (provider === 'anthropic' && this.anthropicClient) {
+                    // Use direct Anthropic SDK
+                    const anthropicMessages: Anthropic.MessageParam[] = messages
+                        .filter(m => m.role !== 'system')
+                        .map(m => ({
+                            role: m.role as 'user' | 'assistant',
+                            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+                        }));
+
+                    const systemPrompt = messages.find(m => m.role === 'system');
+                    const anthropicResponse = await this.anthropicClient.messages.create({
+                        model: model.id,
+                        max_tokens: request.maxTokens || model.maxOutputTokens,
+                        system: systemPrompt ? String(systemPrompt.content) : undefined,
+                        messages: anthropicMessages,
+                    });
+
+                    const textContent = anthropicResponse.content
+                        .filter(block => block.type === 'text')
+                        .map(block => (block as { type: 'text'; text: string }).text)
+                        .join('');
+
+                    response = {
+                        choices: [{ message: { content: textContent } }],
+                        usage: {
+                            prompt_tokens: anthropicResponse.usage.input_tokens,
+                            completion_tokens: anthropicResponse.usage.output_tokens,
+                        },
+                    };
+                    console.log(`[ModelRouter] Used Anthropic SDK for ${model.id}`);
+                } else if (provider === 'openai' && this.openaiClient) {
+                    // Use direct OpenAI SDK for GPT-5.2
+                    response = await this.openaiClient.chat.completions.create({
+                        model: model.id,
+                        messages,
+                        max_tokens: request.maxTokens || model.maxOutputTokens,
+                        temperature: request.temperature ?? 0.7,
+                        stream: false,
+                    });
+                    console.log(`[ModelRouter] Used OpenAI SDK for ${model.id}`);
+                } else {
+                    // Use OpenRouter for fallback
+                    response = await this.openrouterClient.chat.completions.create({
+                        model: model.id,
+                        messages,
+                        max_tokens: request.maxTokens || model.maxOutputTokens,
+                        temperature: request.temperature ?? 0.7,
+                        stream: false,
+                    });
+                    console.log(`[ModelRouter] Used OpenRouter for ${model.id}`);
+                }
 
                 const inputTokens = response.usage?.prompt_tokens || 0;
                 const outputTokens = response.usage?.completion_tokens || 0;
@@ -981,30 +1110,75 @@ export class ModelRouter {
         }
 
         try {
-            const stream = await this.client.chat.completions.create({
-                model: model.id,
-                messages,
-                max_tokens: request.maxTokens || model.maxOutputTokens,
-                temperature: request.temperature ?? 0.7,
-                stream: true,
-            });
-
+            const provider = this.getProviderForModel(model.id);
             let fullContent = '';
             let inputTokens = 0;
             let outputTokens = 0;
 
-            for await (const chunk of stream) {
-                const delta = chunk.choices[0]?.delta?.content;
-                if (delta) {
-                    fullContent += delta;
-                    callbacks.onToken?.(delta);
-                }
+            if (provider === 'anthropic' && this.anthropicClient) {
+                // Stream via Anthropic SDK
+                const anthropicMessages: Anthropic.MessageParam[] = messages
+                    .filter(m => m.role !== 'system')
+                    .map(m => ({
+                        role: m.role as 'user' | 'assistant',
+                        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+                    }));
 
-                // Track usage from stream (if provided)
-                if (chunk.usage) {
-                    inputTokens = chunk.usage.prompt_tokens || 0;
-                    outputTokens = chunk.usage.completion_tokens || 0;
+                const systemPrompt = messages.find(m => m.role === 'system');
+                const stream = this.anthropicClient.messages.stream({
+                    model: model.id,
+                    max_tokens: request.maxTokens || model.maxOutputTokens,
+                    system: systemPrompt ? String(systemPrompt.content) : undefined,
+                    messages: anthropicMessages,
+                });
+
+                for await (const event of stream) {
+                    if (event.type === 'content_block_delta') {
+                        const delta = event.delta as { type: string; text?: string };
+                        if (delta.type === 'text_delta' && delta.text) {
+                            fullContent += delta.text;
+                            callbacks.onToken?.(delta.text);
+                        }
+                    } else if (event.type === 'message_start') {
+                        const msgStart = event as { message?: { usage?: { input_tokens: number } } };
+                        if (msgStart.message?.usage) {
+                            inputTokens = msgStart.message.usage.input_tokens || 0;
+                        }
+                    } else if (event.type === 'message_delta') {
+                        const msgDelta = event as { usage?: { output_tokens: number } };
+                        if (msgDelta.usage) {
+                            outputTokens = msgDelta.usage.output_tokens || 0;
+                        }
+                    }
                 }
+                console.log(`[ModelRouter] Streamed via Anthropic SDK for ${model.id}`);
+            } else {
+                // Stream via OpenAI SDK (direct or OpenRouter)
+                const client = (provider === 'openai' && this.openaiClient)
+                    ? this.openaiClient
+                    : this.openrouterClient;
+
+                const stream = await client.chat.completions.create({
+                    model: model.id,
+                    messages,
+                    max_tokens: request.maxTokens || model.maxOutputTokens,
+                    temperature: request.temperature ?? 0.7,
+                    stream: true,
+                });
+
+                for await (const chunk of stream) {
+                    const delta = chunk.choices[0]?.delta?.content;
+                    if (delta) {
+                        fullContent += delta;
+                        callbacks.onToken?.(delta);
+                    }
+
+                    if (chunk.usage) {
+                        inputTokens = chunk.usage.prompt_tokens || 0;
+                        outputTokens = chunk.usage.completion_tokens || 0;
+                    }
+                }
+                console.log(`[ModelRouter] Streamed via ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'} for ${model.id}`);
             }
 
             // Estimate tokens if not provided
@@ -1053,12 +1227,49 @@ export class ModelRouter {
         }
         messages.push({ role: 'user', content: request.prompt });
 
-        const response = await this.client.chat.completions.create({
-            model: model.id,
-            messages,
-            max_tokens: request.maxTokens || model.maxOutputTokens,
-            temperature: request.temperature ?? 0.7,
-        });
+        const provider = this.getProviderForModel(model.id);
+        let response;
+
+        if (provider === 'anthropic' && this.anthropicClient) {
+            const anthropicMessages: Anthropic.MessageParam[] = messages
+                .filter(m => m.role !== 'system')
+                .map(m => ({
+                    role: m.role as 'user' | 'assistant',
+                    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+                }));
+
+            const systemPrompt = messages.find(m => m.role === 'system');
+            const anthropicResponse = await this.anthropicClient.messages.create({
+                model: model.id,
+                max_tokens: request.maxTokens || model.maxOutputTokens,
+                system: systemPrompt ? String(systemPrompt.content) : undefined,
+                messages: anthropicMessages,
+            });
+
+            const textContent = anthropicResponse.content
+                .filter(block => block.type === 'text')
+                .map(block => (block as { type: 'text'; text: string }).text)
+                .join('');
+
+            response = {
+                choices: [{ message: { content: textContent } }],
+                usage: {
+                    prompt_tokens: anthropicResponse.usage.input_tokens,
+                    completion_tokens: anthropicResponse.usage.output_tokens,
+                },
+            };
+        } else {
+            const client = (provider === 'openai' && this.openaiClient)
+                ? this.openaiClient
+                : this.openrouterClient;
+
+            response = await client.chat.completions.create({
+                model: model.id,
+                messages,
+                max_tokens: request.maxTokens || model.maxOutputTokens,
+                temperature: request.temperature ?? 0.7,
+            });
+        }
 
         const inputTokens = response.usage?.prompt_tokens || 0;
         const outputTokens = response.usage?.completion_tokens || 0;

@@ -53,33 +53,82 @@ export function getAllBetaHeaders(): string {
     return Object.values(OPENROUTER_BETAS).join(',');
 }
 
-// OpenRouter model IDs
+// =============================================================================
+// ANTHROPIC MODELS (Direct SDK Access)
+// =============================================================================
+
+/**
+ * Claude models accessed via direct Anthropic SDK
+ * Full features: 64K thinking budget, precise cache control, effort parameter
+ */
+export const ANTHROPIC_MODELS = {
+    OPUS_4_5: 'claude-opus-4-5-20250514',
+    SONNET_4_5: 'claude-sonnet-4-5-20250514',
+    SONNET_4: 'claude-sonnet-4-20250514',
+    HAIKU_3_5: 'claude-3-5-haiku-20241022',
+} as const;
+
+// =============================================================================
+// OPENAI MODELS (Direct SDK Access for GPT-5.2)
+// =============================================================================
+
+/**
+ * GPT-5.2 models accessed via direct OpenAI SDK
+ * Full features: 400K context, 128K output, native thinking mode
+ * Released December 11, 2025
+ */
+export const OPENAI_MODELS = {
+    GPT_5_2_PRO: 'gpt-5.2-pro',           // Most accurate, $21/$168 per 1M tokens
+    GPT_5_2_THINKING: 'gpt-5.2',          // Structured thinking, $1.75/$14 per 1M tokens
+    GPT_5_2_INSTANT: 'gpt-5.2-chat-latest', // Fastest, for writing/info seeking
+    GPT_4O: 'gpt-4o',
+    GPT_4O_MINI: 'gpt-4o-mini',
+} as const;
+
+// =============================================================================
+// OPENROUTER MODELS (Fallback for other providers)
+// =============================================================================
+
+/**
+ * Models accessed via OpenRouter (fallback)
+ * Used for: DeepSeek, Gemini, Llama, Mistral, etc.
+ */
 export const OPENROUTER_MODELS = {
-    // Claude Opus 4.5 - For critical tasks, infrastructure, deep analysis
-    // Supports effort/verbosity parameter, 64K output
+    // Claude models (via OpenRouter as fallback)
     OPUS_4_5: 'anthropic/claude-opus-4.5',
-
-    // Claude Sonnet 4.5 - Main coding model, extended thinking
-    // Supports 1M context with beta flag, 64K output
     SONNET_4_5: 'anthropic/claude-sonnet-4.5',
-
-    // Claude Sonnet 4 - Standard tasks
     SONNET_4: 'anthropic/claude-sonnet-4',
-
-    // Claude Haiku 3.5 - Fast, cost-effective for simple tasks
     HAIKU_3_5: 'anthropic/claude-3.5-haiku',
 
     // DeepSeek V3 - Cost-effective for bulk operations
     DEEPSEEK_V3: 'deepseek/deepseek-chat-v3-0324',
+    DEEPSEEK_CODER: 'deepseek/deepseek-coder',
+    DEEPSEEK_R1: 'deepseek/deepseek-reasoner',
 
-    // GPT-4o - Alternative for certain tasks
+    // GPT-4o via OpenRouter (fallback)
     GPT_4O: 'openai/gpt-4o',
+    GPT_4O_MINI: 'openai/gpt-4o-mini',
 
     // Gemini 2.0 - Good for certain use cases
     GEMINI_2_FLASH: 'google/gemini-2.0-flash-thinking-exp',
+
+    // Llama 3.3 - Open source alternative
+    LLAMA_3_3_70B: 'meta-llama/llama-3.3-70b-instruct',
+
+    // Grok 2 - Fast
+    GROK_2: 'x-ai/grok-2-1212',
+
+    // Mistral Large
+    MISTRAL_LARGE: 'mistralai/mistral-large-2411',
 } as const;
 
-export type OpenRouterModel = typeof OPENROUTER_MODELS[keyof typeof OPENROUTER_MODELS];
+export type AnthropicModel = typeof ANTHROPIC_MODELS[keyof typeof ANTHROPIC_MODELS];
+export type OpenAIModel = typeof OPENAI_MODELS[keyof typeof OPENAI_MODELS];
+export type OpenRouterOnlyModel = typeof OPENROUTER_MODELS[keyof typeof OPENROUTER_MODELS];
+// OpenRouterModel now includes all model types for backwards compatibility
+// Also allows string for dynamic model selection
+export type OpenRouterModel = AnthropicModel | OpenAIModel | OpenRouterOnlyModel | (string & {});
+export type AIModel = OpenRouterModel;
 
 // Effort levels for Opus 4.5 (maps to OpenRouter's verbosity parameter)
 export type EffortLevel = 'low' | 'medium' | 'high';
@@ -132,70 +181,98 @@ export const DEFAULT_CONTEXT_EDITS: ContextEditRule[] = [
 // =============================================================================
 
 /**
+ * AI Provider type
+ */
+export type AIProvider = 'anthropic' | 'openai' | 'openrouter';
+
+/**
  * Model/effort configuration per build phase
- * Based on Anthropic's token economics research
+ * Dual-SDK architecture: Anthropic + OpenAI direct access
  */
 export interface PhaseConfig {
-    model: OpenRouterModel;
-    effort: EffortLevel;
+    model: string;
+    provider: AIProvider;
+    effort?: EffortLevel;
     thinkingBudget: number;
     description: string;
+    /** Optional secondary model for verification */
+    verificationModel?: string;
+    /** Optional model for validation pass */
+    validationModel?: string;
+    /** Optional model for ensemble voting */
+    ensembleModel?: string;
 }
 
 export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
     'intent_lock': {
-        model: OPENROUTER_MODELS.OPUS_4_5,
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
         effort: 'high',
         thinkingBudget: 64000,
-        description: 'Critical contract creation - maximum reasoning',
+        description: 'Sacred Contract creation - maximum reasoning with Opus 4.5',
+        verificationModel: OPENAI_MODELS.GPT_5_2_PRO,
     },
     'initialization': {
-        model: OPENROUTER_MODELS.OPUS_4_5,
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
         effort: 'medium',
         thinkingBudget: 32000,
         description: 'Artifact setup - good reasoning',
     },
     'build_orchestrator': {
-        model: OPENROUTER_MODELS.OPUS_4_5,
-        effort: 'medium',
+        model: OPENAI_MODELS.GPT_5_2_THINKING,
+        provider: 'openai',
         thinkingBudget: 16000,
-        description: 'Coordination - moderate reasoning',
+        description: 'Coordination - GPT-5.2 excels at structured planning',
     },
     'build_agent': {
-        model: OPENROUTER_MODELS.SONNET_4_5,
+        model: ANTHROPIC_MODELS.SONNET_4_5,
+        provider: 'anthropic',
         effort: 'medium',
         thinkingBudget: 16000,
-        description: 'Feature building - efficient reasoning',
+        description: 'Feature building - Sonnet 4.5 for coding',
+        validationModel: OPENAI_MODELS.GPT_5_2_THINKING,
     },
     'error_check': {
-        model: OPENROUTER_MODELS.SONNET_4_5,
-        effort: 'medium',
+        model: OPENAI_MODELS.GPT_5_2_THINKING,
+        provider: 'openai',
         thinkingBudget: 8000,
-        description: 'Error checking - fast verification',
+        description: 'Error checking - GPT-5.2 pattern recognition',
     },
     'visual_verify': {
-        model: OPENROUTER_MODELS.SONNET_4_5,
+        model: ANTHROPIC_MODELS.SONNET_4_5,
+        provider: 'anthropic',
         effort: 'high',
         thinkingBudget: 32000,
-        description: 'Visual verification - deep analysis',
+        description: 'Visual verification - Claude vision + deep analysis',
     },
     'intent_satisfaction': {
-        model: OPENROUTER_MODELS.OPUS_4_5,
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
         effort: 'high',
         thinkingBudget: 64000,
-        description: 'Critical gate - maximum reasoning',
+        description: 'Critical gate - Opus 4.5 maximum reasoning',
     },
     'tournament_judge': {
-        model: OPENROUTER_MODELS.OPUS_4_5,
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
         effort: 'high',
         thinkingBudget: 64000,
-        description: 'Best-of-breed selection - maximum reasoning',
+        description: 'Best-of-breed selection - ensemble judging',
+        ensembleModel: OPENAI_MODELS.GPT_5_2_PRO,
     },
     'simple_check': {
-        model: OPENROUTER_MODELS.HAIKU_3_5,
+        model: ANTHROPIC_MODELS.HAIKU_3_5,
+        provider: 'anthropic',
         effort: 'low',
         thinkingBudget: 0,
-        description: 'Simple checks - fast execution',
+        description: 'Simple checks - fast Haiku execution',
+    },
+    'quick_generation': {
+        model: OPENAI_MODELS.GPT_5_2_INSTANT,
+        provider: 'openai',
+        thinkingBudget: 0,
+        description: 'Fast generation - GPT-5.2 Instant for speed',
     },
 };
 
@@ -337,8 +414,8 @@ export class OpenRouterClient {
     } {
         const config = getPhaseConfig(phase);
         return {
-            model: config.model,
-            effort: config.effort,
+            model: config.model as OpenRouterModel,
+            effort: config.effort || 'medium',
             thinkingBudget: config.thinkingBudget,
             useExtendedThinking: config.thinkingBudget > 0,
         };
@@ -377,8 +454,8 @@ export class OpenRouterClient {
 
         if (options.phase) {
             const phaseConfig = getPhaseConfig(options.phase);
-            model = options.model || phaseConfig.model;
-            effort = options.effort || phaseConfig.effort;
+            model = options.model || (phaseConfig.model as OpenRouterModel);
+            effort = options.effort || phaseConfig.effort || 'medium';
             thinkingBudget = options.thinkingBudgetTokens || phaseConfig.thinkingBudget;
             useThinking = options.useExtendedThinking ?? (phaseConfig.thinkingBudget > 0);
         }
