@@ -232,9 +232,11 @@ IMPORTANT: Provide realistic, production-ready analysis. No placeholders.`;
 
         console.log('[Orchestrator.extractRequirements] Calling claudeService.generateStructured');
         try {
+            // Disable extended thinking for faster responses (stay within Vercel timeout)
             const response = await this.claudeService.generateStructured<ProjectAnalysis>(
                 extractionPrompt,
-                systemPrompt
+                systemPrompt,
+                { useExtendedThinking: false, maxTokens: 8000 }
             );
             console.log('[Orchestrator.extractRequirements] Got response, type:', typeof response);
             console.log('[Orchestrator.extractRequirements] Response keys:', response ? Object.keys(response) : 'null');
@@ -299,9 +301,11 @@ For each ADR include:
 
 Return as a JSON array of ADRs. Make real, production-appropriate decisions.`;
 
+        // Disable extended thinking for faster responses (stay within Vercel timeout)
         const response = await this.claudeService.generateStructured<ArchitectureDecisionRecord[]>(
             adrPrompt,
-            systemPrompt
+            systemPrompt,
+            { useExtendedThinking: false, maxTokens: 8000 }
         );
 
         // Ensure we always return an array
@@ -347,9 +351,11 @@ For each Task, specify:
 
 Return as JSON array of Epics. Be thorough and realistic.`;
 
+        // Disable extended thinking for faster responses (stay within Vercel timeout)
         const response = await this.claudeService.generateStructured<Epic[]>(
             decompositionPrompt,
-            systemPrompt
+            systemPrompt,
+            { useExtendedThinking: false, maxTokens: 16000 }
         );
 
         // Ensure we always return an array
