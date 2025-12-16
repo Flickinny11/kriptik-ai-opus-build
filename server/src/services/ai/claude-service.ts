@@ -397,6 +397,7 @@ function cacheGeneratedComponent(params: {
 export class ClaudeService {
     private unifiedClient: ReturnType<typeof getUnifiedClient>;
     private anthropicClient: Anthropic | null = null;
+    private useOpenRouterFallback: boolean = false;
     private context: GenerationContext;
 
     constructor(context: GenerationContext) {
@@ -410,12 +411,22 @@ export class ClaudeService {
             sessionId: context.sessionId,
         });
 
-        // Also get direct Anthropic client for full feature access
+        // Try to get direct Anthropic client for full feature access
         const anthropicKey = process.env.ANTHROPIC_API_KEY;
         if (anthropicKey) {
             this.anthropicClient = new Anthropic({
                 apiKey: anthropicKey,
             });
+            console.log('[ClaudeService] Using direct Anthropic SDK');
+        } else {
+            // Check if OpenRouter is available as fallback
+            const openrouterKey = process.env.OPENROUTER_API_KEY;
+            if (openrouterKey) {
+                this.useOpenRouterFallback = true;
+                console.log('[ClaudeService] ANTHROPIC_API_KEY not set, using OpenRouter fallback for Claude models');
+            } else {
+                console.warn('[ClaudeService] Neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY set - AI generation will fail');
+            }
         }
     }
 
@@ -517,13 +528,29 @@ export class ClaudeService {
             requestParams.stop_sequences = stopSequences;
         }
 
-        // Use direct Anthropic SDK for full feature access
-        if (!this.anthropicClient) {
-            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+        // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+        let parsed: GenerationResponse;
+
+        if (this.anthropicClient) {
+            console.log(`[ClaudeService] Using direct Anthropic SDK for ${model}`);
+            const response = await this.anthropicClient.messages.create(requestParams);
+            parsed = this.parseResponse(response);
+        } else if (this.useOpenRouterFallback) {
+            // Use unified client with OpenRouter for Claude models
+            console.log(`[ClaudeService] Using OpenRouter fallback for ${model}`);
+            const openrouterModel = `anthropic/${model}`;
+            parsed = await this.unifiedClient.generate({
+                model: openrouterModel,
+                messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                systemPrompt: systemPromptText,
+                maxTokens,
+                temperature: useExtendedThinking ? 1 : temperature,
+                thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                stopSequences,
+            });
+        } else {
+            throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
         }
-        console.log(`[ClaudeService] Using direct Anthropic SDK for ${model}`);
-        const response = await this.anthropicClient.messages.create(requestParams);
-        const parsed = this.parseResponse(response);
 
         // Cache successful generations for future reuse
         if (this.context.agentType === 'generation' && parsed.content) {
@@ -628,38 +655,80 @@ export class ClaudeService {
         let stopReason = '';
 
         try {
-            // Use direct Anthropic SDK for streaming with full feature access
-            if (!this.anthropicClient) {
-                throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
-            }
-            console.log(`[ClaudeService] Streaming via direct Anthropic SDK for ${model}`);
-            const stream = this.anthropicClient.messages.stream(requestParams);
+            // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+            if (this.anthropicClient) {
+                console.log(`[ClaudeService] Streaming via direct Anthropic SDK for ${model}`);
+                const stream = this.anthropicClient.messages.stream(requestParams);
 
-            for await (const event of stream) {
-                if (event.type === 'content_block_delta') {
-                    const delta = event.delta as any;
+                for await (const event of stream) {
+                    if (event.type === 'content_block_delta') {
+                        const delta = event.delta as any;
 
-                    if (delta.type === 'thinking_delta' && delta.thinking) {
-                        fullThinking += delta.thinking;
-                        callbacks.onThinking?.(delta.thinking);
-                    } else if (delta.type === 'text_delta' && delta.text) {
-                        fullText += delta.text;
-                        callbacks.onText?.(delta.text);
-                    }
-                } else if (event.type === 'message_delta') {
-                    const msgDelta = event as any;
-                    if (msgDelta.usage) {
-                        outputTokens = msgDelta.usage.output_tokens || 0;
-                    }
-                    if (msgDelta.delta?.stop_reason) {
-                        stopReason = msgDelta.delta.stop_reason;
-                    }
-                } else if (event.type === 'message_start') {
-                    const msgStart = event as any;
-                    if (msgStart.message?.usage) {
-                        inputTokens = msgStart.message.usage.input_tokens || 0;
+                        if (delta.type === 'thinking_delta' && delta.thinking) {
+                            fullThinking += delta.thinking;
+                            callbacks.onThinking?.(delta.thinking);
+                        } else if (delta.type === 'text_delta' && delta.text) {
+                            fullText += delta.text;
+                            callbacks.onText?.(delta.text);
+                        }
+                    } else if (event.type === 'message_delta') {
+                        const msgDelta = event as any;
+                        if (msgDelta.usage) {
+                            outputTokens = msgDelta.usage.output_tokens || 0;
+                        }
+                        if (msgDelta.delta?.stop_reason) {
+                            stopReason = msgDelta.delta.stop_reason;
+                        }
+                    } else if (event.type === 'message_start') {
+                        const msgStart = event as any;
+                        if (msgStart.message?.usage) {
+                            inputTokens = msgStart.message.usage.input_tokens || 0;
+                        }
                     }
                 }
+            } else if (this.useOpenRouterFallback) {
+                // Use unified client with OpenRouter for streaming
+                console.log(`[ClaudeService] Streaming via OpenRouter fallback for ${model}`);
+                const openrouterModel = `anthropic/${model}`;
+
+                const systemText = typeof systemPrompt === 'string'
+                    ? systemPrompt
+                    : systemPrompt.map((s: any) => s.text).join('\n');
+
+                const result = await this.unifiedClient.generateStream(
+                    {
+                        model: openrouterModel,
+                        messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                        systemPrompt: systemText,
+                        maxTokens,
+                        thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                        stopSequences,
+                    },
+                    {
+                        onThinking: (thinking) => {
+                            fullThinking += thinking;
+                            callbacks.onThinking?.(thinking);
+                        },
+                        onText: (text) => {
+                            fullText += text;
+                            callbacks.onText?.(text);
+                        },
+                        onComplete: (res) => {
+                            inputTokens = res.usage.inputTokens;
+                            outputTokens = res.usage.outputTokens;
+                            stopReason = res.stopReason;
+                        },
+                        onError: callbacks.onError,
+                    }
+                );
+
+                fullText = result.content;
+                fullThinking = result.thinking || '';
+                inputTokens = result.usage.inputTokens;
+                outputTokens = result.usage.outputTokens;
+                stopReason = result.stopReason;
+            } else {
+                throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
             }
 
             const response: GenerationResponse = {
@@ -858,13 +927,26 @@ Your entire response must be parseable JSON.`;
             requestParams.temperature = 1;
         }
 
-        // Use direct Anthropic SDK for structured output
-        if (!this.anthropicClient) {
-            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
+        // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+        let parsed: GenerationResponse;
+
+        if (this.anthropicClient) {
+            console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
+            const response = await this.anthropicClient.messages.create(requestParams);
+            parsed = this.parseResponse(response);
+        } else if (this.useOpenRouterFallback) {
+            console.log(`[ClaudeService] Structured output via OpenRouter fallback for ${model}`);
+            const openrouterModel = `anthropic/${model}`;
+            parsed = await this.unifiedClient.generate({
+                model: openrouterModel,
+                messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                systemPrompt: finalSystemPrompt,
+                maxTokens,
+                thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+            });
+        } else {
+            throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
         }
-        console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
-        const response = await this.anthropicClient.messages.create(requestParams);
-        const parsed = this.parseResponse(response);
 
         // Try to extract JSON from the response content
         try {
@@ -923,28 +1005,60 @@ Your entire response must be parseable JSON.`;
             requestParams.temperature = 1;
         }
 
-        // Use direct Anthropic SDK for streaming generator
-        if (!this.anthropicClient) {
-            throw new Error('Anthropic client not initialized. Set ANTHROPIC_API_KEY.');
-        }
-        console.log(`[ClaudeService] Streaming generator via direct Anthropic SDK for ${model}`);
-        const stream = this.anthropicClient.messages.stream(requestParams);
-        let fullContent = '';
+        // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+        if (this.anthropicClient) {
+            console.log(`[ClaudeService] Streaming generator via direct Anthropic SDK for ${model}`);
+            const stream = this.anthropicClient.messages.stream(requestParams);
+            let fullContent = '';
 
-        for await (const event of stream) {
-            if (event.type === 'content_block_delta') {
-                const delta = event.delta as any;
+            for await (const event of stream) {
+                if (event.type === 'content_block_delta') {
+                    const delta = event.delta as any;
 
-                if (delta.type === 'thinking_delta' && delta.thinking) {
-                    yield { type: 'thinking', content: delta.thinking };
-                } else if (delta.type === 'text_delta' && delta.text) {
-                    fullContent += delta.text;
-                    yield { type: 'text', content: delta.text };
+                    if (delta.type === 'thinking_delta' && delta.thinking) {
+                        yield { type: 'thinking', content: delta.thinking };
+                    } else if (delta.type === 'text_delta' && delta.text) {
+                        fullContent += delta.text;
+                        yield { type: 'text', content: delta.text };
+                    }
                 }
             }
-        }
 
-        yield { type: 'complete', content: fullContent };
+            yield { type: 'complete', content: fullContent };
+        } else if (this.useOpenRouterFallback) {
+            // Use unified client with OpenRouter (non-streaming for generator)
+            console.log(`[ClaudeService] Generator via OpenRouter fallback for ${model}`);
+            const openrouterModel = `anthropic/${model}`;
+            let fullContent = '';
+
+            const result = await this.unifiedClient.generateStream(
+                {
+                    model: openrouterModel,
+                    messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                    systemPrompt: finalSystemPrompt,
+                    maxTokens,
+                    thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                },
+                {
+                    onThinking: (thinking) => {
+                        // Can't yield from callback, will accumulate
+                    },
+                    onText: (text) => {
+                        fullContent += text;
+                    },
+                }
+            );
+
+            // Since we can't yield from callbacks in OpenRouter streaming,
+            // yield the complete content at once
+            if (result.thinking) {
+                yield { type: 'thinking', content: result.thinking };
+            }
+            yield { type: 'text', content: result.content };
+            yield { type: 'complete', content: result.content };
+        } else {
+            throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+        }
     }
 }
 
