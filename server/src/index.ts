@@ -8,6 +8,10 @@ import { checkRedisHealth, closeRedis } from './services/infrastructure/redis.js
 import { closeJobQueues } from './services/infrastructure/job-queue.js';
 import { initializeWorkers } from './workers/index.js';
 import { healthRouter } from './routes/health.js';
+import { startMonitoring, stopMonitoring } from './services/infrastructure/monitoring-service.js';
+import { createRequestLogger, errorLogger } from './middleware/request-logger.js';
+import cronRouter from './routes/cron.js';
+import monitoringRouter from './routes/monitoring.js';
 
 dotenv.config();
 
@@ -42,6 +46,10 @@ const initializeInfrastructure = async () => {
         await initializeWorkers();
         console.log('[Infrastructure] Background workers initialized');
 
+        // Start monitoring service
+        startMonitoring();
+        console.log('[Infrastructure] Monitoring service started');
+
         console.log('[Infrastructure] Production services ready');
     } catch (error) {
         console.error('[Infrastructure] Failed to initialize:', error);
@@ -54,6 +62,10 @@ const gracefulShutdown = async (signal: string) => {
     console.log(`[Server] Received ${signal}, starting graceful shutdown...`);
 
     try {
+        // Stop monitoring service
+        stopMonitoring();
+        console.log('[Server] Monitoring service stopped');
+
         // Close job queues
         await closeJobQueues();
         console.log('[Server] Job queues closed');
@@ -222,11 +234,20 @@ import { requireCredits } from './services/billing/credits.js';
 const allowedOrigins = [
     // Production frontend
     'https://kriptik-ai-opus-build.vercel.app',
-    // Vercel preview deployments - multiple patterns to catch all variations
+    // Vercel preview deployments - comprehensive patterns
+    // Pattern: kriptik-ai-opus-build-{git-hash}.vercel.app
     /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app$/,
-    /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app$/,
-    // Custom frontend URL from env
+    // Pattern: kriptik-ai-opus-build-{username}-projects-{hash}.vercel.app (Vercel team deploys)
+    /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+-projects-[a-z0-9]+\.vercel\.app$/,
+    // Pattern: kriptik-ai-{anything}.vercel.app (catch-all for any kriptik-ai subdomain)
+    /^https:\/\/kriptik-ai[a-z0-9-]*\.vercel\.app$/,
+    // Catch-all for ANY Vercel preview with kriptik in the name
+    /^https:\/\/[a-z0-9-]*kriptik[a-z0-9-]*\.vercel\.app$/,
+    // Custom frontend URL from env (important for production)
     process.env.FRONTEND_URL,
+    // Backend URLs (for same-origin requests or internal calls)
+    'https://kriptik-ai-opus-build-backend.vercel.app',
+    /^https:\/\/kriptik-ai-opus-build-backend[a-z0-9-]*\.vercel\.app$/,
     // Development
     'http://localhost:5173',
     'http://localhost:3000',
@@ -250,10 +271,17 @@ app.use((req, res, next) => {
 
     const origin = req.headers.origin as string;
 
-    // Check if origin is allowed
-    const isAllowed = !origin ||
+    // Check if origin is allowed via explicit match or regex
+    let isAllowed = !origin ||
         allowedOrigins.includes(origin) ||
         allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
+
+    // Fallback: Allow any Vercel domain with "kriptik" in the name
+    // This prevents auth failures from new/unexpected preview URL patterns
+    if (!isAllowed && origin && origin.endsWith('.vercel.app') && (origin.toLowerCase().includes('kriptik'))) {
+        console.warn(`[CORS Preflight] Allowing Vercel domain as fallback: ${origin}`);
+        isAllowed = true;
+    }
 
     if (isAllowed) {
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -265,7 +293,8 @@ app.use((req, res, next) => {
         return res.status(204).end();
     }
 
-    res.status(403).json({ error: 'CORS not allowed' });
+    console.warn(`[CORS Preflight] Blocked origin: ${origin}`);
+    res.status(403).json({ error: 'CORS not allowed', origin });
 });
 
 app.use(cors({
@@ -285,12 +314,18 @@ app.use(cors({
             }
         }
 
-        // Log blocked origins in development
-        if (process.env.NODE_ENV !== 'production') {
-            console.warn(`CORS blocked origin: ${origin}`);
+        // ALWAYS log blocked origins for debugging (critical for auth issues)
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        console.warn(`[CORS] Allowed patterns: ${allowedOrigins.filter(o => o instanceof RegExp).map(o => o.toString()).join(', ')}`);
+
+        // In production, be more permissive for Vercel domains to avoid auth failures
+        // This is a fallback - if we got here, the patterns above didn't match
+        if (origin.endsWith('.vercel.app') && (origin.includes('kriptik') || origin.includes('Kriptik'))) {
+            console.warn(`[CORS] Allowing Vercel domain as fallback: ${origin}`);
+            return callback(null, true);
         }
 
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -301,6 +336,9 @@ app.use(express.json({ limit: '10mb' }));
 
 // NOTE: Sanitizer is NOT applied globally anymore to avoid breaking OAuth
 // It's applied per-route where needed (see route definitions below)
+
+// Apply request logging middleware
+app.use(createRequestLogger({ logLevel: 'standard' }));
 
 // Apply general rate limiting to all API routes
 app.use('/api', generalRateLimiter);
@@ -658,6 +696,12 @@ app.use("/api/extension", extensionRouter);
 // Health Check Routes - Comprehensive infrastructure monitoring
 app.use("/api/health", healthRouter);
 
+// Cron Routes - Vercel scheduled tasks
+app.use("/api/cron", cronRouter);
+
+// Monitoring Routes - System observability
+app.use("/api/monitoring", monitoringRouter);
+
 // =============================================================================
 // SELF-HEALING SYSTEM
 // =============================================================================
@@ -782,6 +826,9 @@ app.get('/api/config/services', (req, res) => {
 // =============================================================================
 // ERROR HANDLING
 // =============================================================================
+
+// Error logging middleware (logs to monitoring service)
+app.use(errorLogger);
 
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err);
