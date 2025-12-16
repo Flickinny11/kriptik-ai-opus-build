@@ -42,9 +42,9 @@ const FEATURE_PANELS: Record<string, {
   'feature-agent': { title: 'Feature Agent Command Center', icon: 'agents', component: FeatureAgentCommandCenterWrapper, fullWidth: true },
 
   // Other panels (to be upgraded to comprehensive versions)
+  // Note: Ghost Mode configuration is now integrated into Feature Agent Command Center
   'memory': { title: 'Memory', icon: 'memory', component: MemoryPanel },
   'quality-check': { title: 'Quality', icon: 'qualityCheck', component: QualityCheckPanel },
-  'ghost-mode': { title: 'Ghost Mode', icon: 'ghostMode', component: GhostModePanel },
   'time-machine': { title: 'Time Machine', icon: 'timeMachine', component: TimeMachinePanel },
   'deployment': { title: 'Deploy', icon: 'deployment', component: GenericPanel },
   'database': { title: 'Database', icon: 'database', component: GenericPanel },
@@ -322,95 +322,7 @@ function QualityCheckPanel({ isActive: _isActive }: { isActive: boolean; onClose
   );
 }
 
-function GhostModePanel({ isActive }: { isActive: boolean; onClose: () => void }) {
-  const [config, setConfig] = useState({
-    maxRuntime: 8,
-    maxCredits: 50,
-    autonomyLevel: 'medium',
-    pauseOnError: true,
-    notifyEmail: true,
-  });
-
-  return (
-    <div className="panel-ghost">
-      <div className="panel-ghost__status">
-        <div className={`panel-ghost__indicator ${isActive ? 'panel-ghost__indicator--active' : ''}`}>
-          {isActive && (
-            <motion.div
-              className="panel-ghost__indicator-ring"
-              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.2, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          )}
-          <DeveloperBarIcon name="ghostMode" size={28} isActive={isActive} />
-        </div>
-        <span>{isActive ? 'Active' : 'Idle'}</span>
-      </div>
-
-      <div className="panel-ghost__config">
-        <div className="panel-ghost__field">
-          <label>Runtime (h)</label>
-          <div className="panel-ghost__slider-row">
-            <input
-              type="range"
-              min="1"
-              max="24"
-              value={config.maxRuntime}
-              onChange={(e) => setConfig({ ...config, maxRuntime: parseInt(e.target.value) })}
-            />
-            <span>{config.maxRuntime}h</span>
-          </div>
-        </div>
-        <div className="panel-ghost__field">
-          <label>Credits ($)</label>
-          <div className="panel-ghost__slider-row">
-            <input
-              type="range"
-              min="10"
-              max="200"
-              value={config.maxCredits}
-              onChange={(e) => setConfig({ ...config, maxCredits: parseInt(e.target.value) })}
-            />
-            <span>${config.maxCredits}</span>
-          </div>
-        </div>
-        <div className="panel-ghost__field">
-          <label>Autonomy</label>
-          <select
-            value={config.autonomyLevel}
-            onChange={(e) => setConfig({ ...config, autonomyLevel: e.target.value })}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-        <div className="panel-ghost__toggles">
-          <label className="panel-ghost__toggle">
-            <input
-              type="checkbox"
-              checked={config.pauseOnError}
-              onChange={(e) => setConfig({ ...config, pauseOnError: e.target.checked })}
-            />
-            <span>Pause on Error</span>
-          </label>
-          <label className="panel-ghost__toggle">
-            <input
-              type="checkbox"
-              checked={config.notifyEmail}
-              onChange={(e) => setConfig({ ...config, notifyEmail: e.target.checked })}
-            />
-            <span>Email Notify</span>
-          </label>
-        </div>
-      </div>
-
-      <button className={`panel-ghost__start-btn ${isActive ? 'panel-ghost__start-btn--stop' : ''}`}>
-        {isActive ? 'Stop Ghost Mode' : 'Start Ghost Mode'}
-      </button>
-    </div>
-  );
-}
+// Note: GhostModePanel has been removed - Ghost Mode is now configured in Feature Agent Command Center
 
 function TimeMachinePanel({ isActive: _isActive }: { isActive: boolean; onClose: () => void }) {
   const checkpoints = [

@@ -10,12 +10,113 @@
  * - Liquid glass UI elements
  */
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import { useFeatureAgentTileStore } from '@/store/useFeatureAgentTileStore';
-import { useFeatureAgentStore, type RunningAgent } from '@/store/feature-agent-store';
+import { useFeatureAgentStore, type RunningAgent, type GhostModeAgentConfig } from '@/store/feature-agent-store';
 import './AgentsCommandCenter.css';
+
+// Custom SVG Icons (no lucide-react)
+function IconGhost() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5C5.24 1.5 3 3.74 3 6.5v5.5c0 .28.22.5.5.5.14 0 .27-.05.35-.15L5 11.2l.65.65c.09.1.22.15.35.15s.27-.05.35-.15L8 10.2l1.65 1.65c.09.1.22.15.35.15s.27-.05.35-.15l.65-.65 1.15 1.15c.09.1.21.15.35.15.28 0 .5-.22.5-.5V6.5c0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="6" r="0.75" fill="currentColor" />
+      <circle cx="10" cy="6" r="0.75" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconMail() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M1.5 4l5.5 3.5L12.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconPhone() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="3.5" y="1" width="7" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M5.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconBell() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 1.5c-2.21 0-4 1.79-4 4v2l-.8 1.6c-.12.24.05.4.3.4h9c.25 0 .42-.16.3-.4L11 7.5v-2c0-2.21-1.79-4-4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 11c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconSave() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M11 13H3a1 1 0 01-1-1V2a1 1 0 011-1h6l3 3v8a1 1 0 01-1 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 1v3H6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 8h4M5 10h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Default Ghost Mode Config
+const DEFAULT_GHOST_CONFIG: GhostModeAgentConfig = {
+  maxBudgetUSD: 50,
+  notifyEmail: false,
+  emailAddress: '',
+  notifySMS: false,
+  phoneNumber: '',
+  notifySlack: false,
+  slackWebhookUrl: '',
+  notifyPush: true,
+  notifyOnErrors: true,
+  notifyOnDecisions: true,
+  notifyOnBudgetThreshold: true,
+  budgetThresholdPercent: 80,
+  notifyOnCompletion: true,
+  mergeWhenComplete: false,
+};
+
+// Saved contact info storage key
+const SAVED_CONTACTS_KEY = 'kriptik-ghost-mode-contacts';
+
+interface SavedContacts {
+  emails: string[];
+  phones: string[];
+}
+
+function getSavedContacts(): SavedContacts {
+  try {
+    const saved = localStorage.getItem(SAVED_CONTACTS_KEY);
+    return saved ? JSON.parse(saved) : { emails: [], phones: [] };
+  } catch {
+    return { emails: [], phones: [] };
+  }
+}
+
+function saveContact(type: 'email' | 'phone', value: string) {
+  const contacts = getSavedContacts();
+  if (type === 'email' && !contacts.emails.includes(value)) {
+    contacts.emails.push(value);
+  } else if (type === 'phone' && !contacts.phones.includes(value)) {
+    contacts.phones.push(value);
+  }
+  localStorage.setItem(SAVED_CONTACTS_KEY, JSON.stringify(contacts));
+}
 
 // Production AI Models - Comprehensive list with thinking/codex variants
 const AI_MODELS = [
@@ -281,15 +382,235 @@ interface RunningAgentTileProps {
   onStop: () => void;
 }
 
+// Ghost Mode Configuration Panel
+interface GhostModeConfigPanelProps {
+  onSaveConfig: (config: GhostModeAgentConfig) => void;
+  currentConfig: GhostModeAgentConfig | null;
+}
+
+function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPanelProps) {
+  const [config, setConfig] = useState<GhostModeAgentConfig>(currentConfig || DEFAULT_GHOST_CONFIG);
+  const [savedContacts, setSavedContacts] = useState<SavedContacts>(getSavedContacts());
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const updateConfig = <K extends keyof GhostModeAgentConfig>(key: K, value: GhostModeAgentConfig[K]) => {
+    setConfig((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+    setSaveSuccess(false);
+  };
+
+  const handleSaveEmail = () => {
+    if (newEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      saveContact('email', newEmail);
+      setSavedContacts(getSavedContacts());
+      updateConfig('emailAddress', newEmail);
+      setNewEmail('');
+      setShowEmailInput(false);
+      setErrors((prev) => { const next = { ...prev }; delete next.newEmail; return next; });
+    } else {
+      setErrors((prev) => ({ ...prev, newEmail: 'Invalid email format' }));
+    }
+  };
+
+  const handleSavePhone = () => {
+    if (newPhone && /^\+?[\d\s-]{10,}$/.test(newPhone)) {
+      saveContact('phone', newPhone);
+      setSavedContacts(getSavedContacts());
+      updateConfig('phoneNumber', newPhone);
+      setNewPhone('');
+      setShowPhoneInput(false);
+      setErrors((prev) => { const next = { ...prev }; delete next.newPhone; return next; });
+    } else {
+      setErrors((prev) => ({ ...prev, newPhone: 'Invalid phone format' }));
+    }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (config.maxBudgetUSD <= 0) {
+      newErrors.budget = 'Budget must be greater than 0';
+    }
+    if (config.notifyEmail && !config.emailAddress?.trim()) {
+      newErrors.email = 'Select or add an email address';
+    }
+    if (config.notifySMS && !config.phoneNumber?.trim()) {
+      newErrors.phone = 'Select or add a phone number';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    if (config.notifyPush && 'Notification' in window) {
+      await Notification.requestPermission();
+    }
+    onSaveConfig(config);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  return (
+    <div className="acc-v2__ghost-config">
+      <div className="acc-v2__ghost-header">
+        <div className="acc-v2__ghost-icon"><IconGhost /></div>
+        <div className="acc-v2__ghost-title-area">
+          <h3 className="acc-v2__ghost-title">Ghost Mode Configuration</h3>
+          <p className="acc-v2__ghost-subtitle">Configure autonomous agent execution settings</p>
+        </div>
+      </div>
+
+      <div className="acc-v2__ghost-content">
+        {/* Token Usage Budget */}
+        <div className="acc-v2__ghost-section">
+          <label className="acc-v2__ghost-label">Token Usage Max Budget</label>
+          <div className="acc-v2__ghost-budget-row">
+            <span className="acc-v2__ghost-budget-prefix">$</span>
+            <input
+              type="number"
+              className={`acc-v2__ghost-budget-input ${errors.budget ? 'acc-v2__ghost-input--error' : ''}`}
+              value={config.maxBudgetUSD}
+              onChange={(e) => updateConfig('maxBudgetUSD', parseFloat(e.target.value) || 0)}
+              min={1}
+              step={1}
+            />
+            <span className="acc-v2__ghost-budget-suffix">USD</span>
+          </div>
+          {errors.budget && <span className="acc-v2__ghost-error">{errors.budget}</span>}
+        </div>
+
+        {/* Alert Scenarios */}
+        <div className="acc-v2__ghost-section">
+          <label className="acc-v2__ghost-label">Alert Me When</label>
+          <div className="acc-v2__ghost-alerts">
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnErrors} onChange={(e) => updateConfig('notifyOnErrors', e.target.checked)} />
+              <span className="acc-v2__ghost-checkbox-custom" />
+              <span>Errors Occur</span>
+            </label>
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnDecisions} onChange={(e) => updateConfig('notifyOnDecisions', e.target.checked)} />
+              <span className="acc-v2__ghost-checkbox-custom" />
+              <span>Decisions Needed</span>
+            </label>
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnBudgetThreshold} onChange={(e) => updateConfig('notifyOnBudgetThreshold', e.target.checked)} />
+              <span className="acc-v2__ghost-checkbox-custom" />
+              <span>Budget Threshold ({config.budgetThresholdPercent}%)</span>
+            </label>
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnCompletion} onChange={(e) => updateConfig('notifyOnCompletion', e.target.checked)} />
+              <span className="acc-v2__ghost-checkbox-custom" />
+              <span>Task Completion</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Notification Methods */}
+        <div className="acc-v2__ghost-section">
+          <label className="acc-v2__ghost-label">Notification Methods</label>
+          <div className="acc-v2__ghost-notify-methods">
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyPush} onChange={(e) => updateConfig('notifyPush', e.target.checked)} />
+              <span className="acc-v2__ghost-checkbox-custom" /><IconBell /><span>KripTik Notifications</span>
+            </label>
+
+            <div className="acc-v2__ghost-notify-row">
+              <label className="acc-v2__ghost-checkbox-label">
+                <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifySMS} onChange={(e) => updateConfig('notifySMS', e.target.checked)} />
+                <span className="acc-v2__ghost-checkbox-custom" /><IconPhone /><span>SMS</span>
+              </label>
+              {config.notifySMS && (
+                <div className="acc-v2__ghost-contact-select">
+                  {savedContacts.phones.length > 0 && (
+                    <select className="acc-v2__ghost-select" value={config.phoneNumber || ''} onChange={(e) => updateConfig('phoneNumber', e.target.value)}>
+                      <option value="">Select phone...</option>
+                      {savedContacts.phones.map((phone) => (<option key={phone} value={phone}>{phone}</option>))}
+                    </select>
+                  )}
+                  {!showPhoneInput ? (
+                    <button className="acc-v2__ghost-add-btn" onClick={() => setShowPhoneInput(true)}>+ Add New</button>
+                  ) : (
+                    <div className="acc-v2__ghost-input-row">
+                      <input type="tel" className={`acc-v2__ghost-input ${errors.newPhone ? 'acc-v2__ghost-input--error' : ''}`} placeholder="+1 555-555-5555" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+                      <button className="acc-v2__ghost-save-btn" onClick={handleSavePhone}><IconSave /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.phone && <span className="acc-v2__ghost-error">{errors.phone}</span>}
+
+            <div className="acc-v2__ghost-notify-row">
+              <label className="acc-v2__ghost-checkbox-label">
+                <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyEmail} onChange={(e) => updateConfig('notifyEmail', e.target.checked)} />
+                <span className="acc-v2__ghost-checkbox-custom" /><IconMail /><span>Email</span>
+              </label>
+              {config.notifyEmail && (
+                <div className="acc-v2__ghost-contact-select">
+                  {savedContacts.emails.length > 0 && (
+                    <select className="acc-v2__ghost-select" value={config.emailAddress || ''} onChange={(e) => updateConfig('emailAddress', e.target.value)}>
+                      <option value="">Select email...</option>
+                      {savedContacts.emails.map((email) => (<option key={email} value={email}>{email}</option>))}
+                    </select>
+                  )}
+                  {!showEmailInput ? (
+                    <button className="acc-v2__ghost-add-btn" onClick={() => setShowEmailInput(true)}>+ Add New</button>
+                  ) : (
+                    <div className="acc-v2__ghost-input-row">
+                      <input type="email" className={`acc-v2__ghost-input ${errors.newEmail ? 'acc-v2__ghost-input--error' : ''}`} placeholder="your@email.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                      <button className="acc-v2__ghost-save-btn" onClick={handleSaveEmail}><IconSave /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.email && <span className="acc-v2__ghost-error">{errors.email}</span>}
+          </div>
+        </div>
+
+        {/* Auto-Merge Option */}
+        <div className="acc-v2__ghost-section acc-v2__ghost-section--merge">
+          <label className="acc-v2__ghost-checkbox-label">
+            <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.mergeWhenComplete} onChange={(e) => updateConfig('mergeWhenComplete', e.target.checked)} />
+            <span className="acc-v2__ghost-checkbox-custom" />
+            <span>Auto-merge when feature passes verification</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="acc-v2__ghost-footer">
+        <button className={`acc-v2__ghost-enable-btn ${saveSuccess ? 'acc-v2__ghost-enable-btn--success' : ''}`} onClick={handleSave}>
+          {saveSuccess ? <><IconCheck /><span>Settings Saved</span></> : <><IconGhost /><span>Save Ghost Mode Settings</span></>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RunningAgentTile({ agent, index, onClick, onStop }: RunningAgentTileProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const modelData = AI_MODELS.find((m) => m.id === agent.model);
   const isActive = !['complete', 'failed', 'paused'].includes(agent.status);
+  const updateAgentInStore = useFeatureAgentStore((s) => s.updateAgentStatus);
 
-  const handleStopClick = (e: React.MouseEvent) => {
+  const handleStopClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (showConfirm) {
-      onStop();
+      await onStop();
+      // Mark agent as paused so it moves to history
+      updateAgentInStore(agent.id, { status: 'paused' });
       setShowConfirm(false);
     } else {
       setShowConfirm(true);
@@ -381,9 +702,10 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[1].id);
   const [taskPrompt, setTaskPrompt] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'running' | 'history'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'running' | 'history' | 'ghost'>('active');
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [ghostConfig, setGhostConfig] = useState<GhostModeAgentConfig | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const openTile = useFeatureAgentTileStore((s) => s.openTile);
 
@@ -392,9 +714,33 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
   const addRunningAgent = useFeatureAgentStore((s) => s.addRunningAgent);
   const updateAgentInStore = useFeatureAgentStore((s) => s.updateAgentStatus);
 
-  // Sorted running agents (most recent first)
+  // Load ghost config from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('kriptik-ghost-mode-config');
+      if (saved) setGhostConfig(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
+
+  // Save ghost config
+  const handleSaveGhostConfig = (config: GhostModeAgentConfig) => {
+    setGhostConfig(config);
+    localStorage.setItem('kriptik-ghost-mode-config', JSON.stringify(config));
+  };
+
+  // Sorted running agents - only active ones (most recent first)
   const sortedRunningAgents = useMemo(
-    () => [...runningAgents].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
+    () => [...runningAgents]
+      .filter((a) => !['complete', 'failed', 'paused'].includes(a.status))
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
+    [runningAgents]
+  );
+
+  // History agents (completed/failed/paused)
+  const sortedHistoryAgents = useMemo(
+    () => [...runningAgents]
+      .filter((a) => ['complete', 'failed', 'paused'].includes(a.status))
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
     [runningAgents]
   );
 
@@ -456,6 +802,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           name: agentName,
           taskPrompt: taskPrompt.trim(),
           model: mapUiModelToDeveloperModeModel(selectedModel),
+          ghostModeConfig: ghostConfig || undefined,
         }
       );
       const realAgentId = created.agent?.id as string;
@@ -496,7 +843,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           progress: 5,
           taskPrompt: taskPrompt.trim(),
           startedAt: new Date().toISOString(),
-          ghostModeEnabled: false,
+          ghostModeEnabled: !!ghostConfig,
+          ghostModeConfig: ghostConfig || undefined,
         });
       }
 
@@ -658,17 +1006,20 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
 
           {/* Liquid Glass Tabs */}
           <div className="acc-v2__tabs">
-            {(['active', 'running', 'history'] as const).map(tab => (
+            {(['active', 'running', 'history', 'ghost'] as const).map(tab => (
               <button
                 key={tab}
-                className={`acc-v2__tab ${activeTab === tab ? 'acc-v2__tab--active' : ''}`}
+                className={`acc-v2__tab ${activeTab === tab ? 'acc-v2__tab--active' : ''} ${tab === 'ghost' ? 'acc-v2__tab--ghost' : ''}`}
                 onClick={() => setActiveTab(tab)}
               >
                 <span className="acc-v2__tab-text">
-                  {tab === 'active' ? 'DEPLOY' : tab === 'running' ? 'RUNNING' : 'HISTORY'}
+                  {tab === 'active' ? 'DEPLOY' : tab === 'running' ? 'RUNNING' : tab === 'history' ? 'HISTORY' : 'GHOST MODE'}
                 </span>
                 {tab === 'running' && sortedRunningAgents.length > 0 && (
                   <span className="acc-v2__tab-badge">{sortedRunningAgents.length}</span>
+                )}
+                {tab === 'ghost' && ghostConfig && (
+                  <span className="acc-v2__tab-badge acc-v2__tab-badge--ghost"><IconCheck /></span>
                 )}
                 {activeTab === tab && <div className="acc-v2__tab-glow" />}
               </button>
@@ -812,8 +1163,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                   </div>
                 </div>
 
-                {/* 3D Agent Tiles */}
-                <div className="acc-v2__agents">
+                {/* Agent Tiles - No skew */}
+                <div className="acc-v2__agents acc-v2__agents--no-skew">
                   <AnimatePresence>
                     {agents.map((agent, index) => {
                       const status = getStatusConfig(agent.status);
@@ -823,15 +1174,10 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                       return (
                         <motion.div
                           key={agent.id}
-                          className={`acc-v2__tile ${isExpanded ? 'acc-v2__tile--expanded' : ''} acc-v2__tile--${agent.status}`}
-                          initial={{ opacity: 0, scale: 0.8, rotateY: -15, rotateX: 5 }}
-                          animate={{
-                            opacity: 1,
-                            scale: 1,
-                            rotateY: isExpanded ? 0 : -8,
-                            rotateX: isExpanded ? 0 : 3,
-                          }}
-                          exit={{ opacity: 0, scale: 0.8 }}
+                          className={`acc-v2__tile acc-v2__tile--no-skew ${isExpanded ? 'acc-v2__tile--expanded-vertical' : ''} acc-v2__tile--${agent.status}`}
+                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
                           transition={{
                             type: 'spring',
                             stiffness: 300,
@@ -891,11 +1237,11 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                             </div>
                           )}
 
-                          {/* Expanded Content */}
+                          {/* Expanded Content - Vertical Only */}
                           <AnimatePresence>
                             {isExpanded && (
                               <motion.div
-                                className="acc-v2__tile-expanded"
+                                className="acc-v2__tile-expanded acc-v2__tile-expanded--vertical"
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
@@ -1070,19 +1416,79 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                 exit={{ opacity: 0, y: -10 }}
                 className="acc-v2__history"
               >
-                <div className="acc-v2__history-empty">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.2" />
-                    <path d="M24 14v10l6 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
-                  </svg>
-                  <span>No agent history yet</span>
-                  <p>Completed agent runs will appear here</p>
-                </div>
+                {sortedHistoryAgents.length === 0 ? (
+                  <div className="acc-v2__history-empty">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.2" />
+                      <path d="M24 14v10l6 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
+                    </svg>
+                    <span>No agent history yet</span>
+                    <p>Completed agent runs will appear here</p>
+                  </div>
+                ) : (
+                  <div className="acc-v2__history-list">
+                    <AnimatePresence mode="popLayout">
+                      {sortedHistoryAgents.map((agent, index) => {
+                        const modelData = AI_MODELS.find((m) => m.id === agent.model);
+                        return (
+                          <motion.div
+                            key={agent.id}
+                            className={`acc-v2__history-tile acc-v2__history-tile--${agent.status}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2, delay: index * 0.03 }}
+                            onClick={() => openRunningAgentTile(agent)}
+                            style={{ '--tile-color': modelData?.color || '#F5A86C' } as React.CSSProperties}
+                          >
+                            <div className="acc-v2__history-tile-header">
+                              <div className="acc-v2__history-tile-model">
+                                {modelData?.icon ? (
+                                  <img src={modelData.icon} alt="" className="acc-v2__history-tile-icon" />
+                                ) : (
+                                  <div className="acc-v2__history-tile-icon-placeholder" style={{ background: modelData?.color }}>
+                                    {modelData?.provider === 'kriptik' ? 'K' : 'DS'}
+                                  </div>
+                                )}
+                                <span className="acc-v2__history-tile-name">{agent.name}</span>
+                              </div>
+                              <div className={`acc-v2__history-tile-status acc-v2__history-tile-status--${agent.status}`}>
+                                {agent.status.toUpperCase()}
+                              </div>
+                            </div>
+                            <p className="acc-v2__history-tile-task">{agent.taskPrompt}</p>
+                            <div className="acc-v2__history-tile-footer">
+                              <span className="acc-v2__history-tile-date">{new Date(agent.startedAt).toLocaleDateString()}</span>
+                              <span className="acc-v2__history-tile-progress">{agent.progress}% completed</span>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'ghost' && (
+              <motion.div
+                key="ghost"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="acc-v2__ghost-tab"
+              >
+                <GhostModeConfigPanel onSaveConfig={handleSaveGhostConfig} currentConfig={ghostConfig} />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Resize handles for proper window resizing */}
+      <div className="acc-v2__resize-handle acc-v2__resize-handle--e" />
+      <div className="acc-v2__resize-handle acc-v2__resize-handle--s" />
+      <div className="acc-v2__resize-handle acc-v2__resize-handle--se" />
     </div>
   );
 }
