@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, blob } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // Helper for generating UUIDs in SQLite
@@ -15,11 +15,7 @@ export const users = sqliteTable('users', {
     tier: text('tier').default('free').notNull(), // free, pro, enterprise
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    emailIdx: uniqueIndex('users_email_idx').on(table.email),
-    tierIdx: index('users_tier_idx').on(table.tier),
-    createdAtIdx: index('users_created_at_idx').on(table.createdAt),
-}));
+});
 
 // Projects table
 export const projects = sqliteTable('projects', {
@@ -31,12 +27,7 @@ export const projects = sqliteTable('projects', {
     isPublic: integer('is_public', { mode: 'boolean' }).default(false).notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    ownerIdIdx: index('projects_owner_id_idx').on(table.ownerId),
-    createdAtIdx: index('projects_created_at_idx').on(table.createdAt),
-    ownerCreatedIdx: index('projects_owner_created_idx').on(table.ownerId, table.createdAt),
-    isPublicIdx: index('projects_is_public_idx').on(table.isPublic),
-}));
+});
 
 // Files table
 export const files = sqliteTable('files', {
@@ -48,11 +39,7 @@ export const files = sqliteTable('files', {
     version: integer('version').default(1).notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('files_project_id_idx').on(table.projectId),
-    pathIdx: index('files_path_idx').on(table.path),
-    projectPathIdx: uniqueIndex('files_project_path_idx').on(table.projectId, table.path),
-}));
+});
 
 // ============================================================================
 // Notifications (Feature Agent + System)
@@ -71,12 +58,7 @@ export const notifications = sqliteTable('notifications', {
     read: integer('read', { mode: 'boolean' }).default(false),
     dismissed: integer('dismissed', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('notifications_user_id_idx').on(table.userId),
-    userReadIdx: index('notifications_user_read_idx').on(table.userId, table.read),
-    userCreatedIdx: index('notifications_user_created_idx').on(table.userId, table.createdAt),
-    typeIdx: index('notifications_type_idx').on(table.type),
-}));
+});
 
 export const notificationPreferences = sqliteTable('notification_preferences', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -87,9 +69,7 @@ export const notificationPreferences = sqliteTable('notification_preferences', {
     pushEnabled: integer('push_enabled', { mode: 'boolean' }).default(false),
     pushSubscription: text('push_subscription'), // JSON
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: uniqueIndex('notification_prefs_user_id_idx').on(table.userId),
-}));
+});
 
 // Generations table
 export const generations = sqliteTable('generations', {
@@ -104,13 +84,7 @@ export const generations = sqliteTable('generations', {
     cost: integer('cost').default(0).notNull(),
     status: text('status').default('completed').notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('generations_project_id_idx').on(table.projectId),
-    userIdIdx: index('generations_user_id_idx').on(table.userId),
-    userCreatedIdx: index('generations_user_created_idx').on(table.userId, table.createdAt),
-    statusIdx: index('generations_status_idx').on(table.status),
-    modelIdx: index('generations_model_idx').on(table.model),
-}));
+});
 
 // ============================================================================
 // Better Auth Tables (required for authentication)
@@ -125,11 +99,7 @@ export const sessions = sqliteTable("session", {
     userId: text("user_id").notNull().references(() => users.id),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    tokenIdx: uniqueIndex('sessions_token_idx').on(table.token),
-    userIdIdx: index('sessions_user_id_idx').on(table.userId),
-    expiresAtIdx: index('sessions_expires_at_idx').on(table.expiresAt),
-}));
+});
 
 export const accounts = sqliteTable("account", {
     id: text("id").primaryKey(),
@@ -145,11 +115,7 @@ export const accounts = sqliteTable("account", {
     password: text("password"),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('accounts_user_id_idx').on(table.userId),
-    providerIdx: index('accounts_provider_idx').on(table.providerId),
-    accountProviderIdx: uniqueIndex('accounts_account_provider_idx').on(table.accountId, table.providerId),
-}));
+});
 
 export const verifications = sqliteTable("verification", {
     id: text("id").primaryKey(),
@@ -158,10 +124,7 @@ export const verifications = sqliteTable("verification", {
     expiresAt: text("expires_at").notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
-}, (table) => ({
-    identifierIdx: index('verifications_identifier_idx').on(table.identifier),
-    expiresAtIdx: index('verifications_expires_at_idx').on(table.expiresAt),
-}));
+});
 
 // ============================================================================
 // Deployments
@@ -181,12 +144,7 @@ export const deployments = sqliteTable('deployments', {
     actualCost: integer('actual_cost').default(0),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('deployments_project_id_idx').on(table.projectId),
-    userIdIdx: index('deployments_user_id_idx').on(table.userId),
-    statusIdx: index('deployments_status_idx').on(table.status),
-    providerIdx: index('deployments_provider_idx').on(table.provider),
-}));
+});
 
 // Orchestration runs
 export const orchestrationRuns = sqliteTable('orchestration_runs', {
@@ -203,12 +161,7 @@ export const orchestrationRuns = sqliteTable('orchestration_runs', {
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('orchestration_runs_project_id_idx').on(table.projectId),
-    userIdIdx: index('orchestration_runs_user_id_idx').on(table.userId),
-    statusIdx: index('orchestration_runs_status_idx').on(table.status),
-    createdAtIdx: index('orchestration_runs_created_at_idx').on(table.createdAt),
-}));
+});
 
 // User subscriptions for billing
 export const subscriptions = sqliteTable('subscriptions', {
@@ -223,13 +176,7 @@ export const subscriptions = sqliteTable('subscriptions', {
     currentPeriodEnd: text('current_period_end'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('subscriptions_user_id_idx').on(table.userId),
-    stripeCustomerIdIdx: index('subscriptions_stripe_customer_id_idx').on(table.stripeCustomerId),
-    stripeSubscriptionIdIdx: index('subscriptions_stripe_subscription_id_idx').on(table.stripeSubscriptionId),
-    statusIdx: index('subscriptions_status_idx').on(table.status),
-    planIdx: index('subscriptions_plan_idx').on(table.plan),
-}));
+});
 
 // ============================================================================
 // CREDENTIAL VAULT - Encrypted storage for user integration credentials
@@ -254,12 +201,7 @@ export const userCredentials = sqliteTable('user_credentials', {
     validationStatus: text('validation_status').default('pending'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('user_credentials_user_id_idx').on(table.userId),
-    integrationIdIdx: index('user_credentials_integration_id_idx').on(table.integrationId),
-    userIntegrationIdx: uniqueIndex('user_credentials_user_integration_idx').on(table.userId, table.integrationId),
-    isActiveIdx: index('user_credentials_is_active_idx').on(table.isActive),
-}));
+});
 
 export const oauthStates = sqliteTable('oauth_states', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -273,11 +215,7 @@ export const oauthStates = sqliteTable('oauth_states', {
     expiresAt: text('expires_at').notNull(),
     usedAt: text('used_at'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    stateIdx: uniqueIndex('oauth_states_state_idx').on(table.state),
-    userIdIdx: index('oauth_states_user_id_idx').on(table.userId),
-    expiresAtIdx: index('oauth_states_expires_at_idx').on(table.expiresAt),
-}));
+});
 
 export const credentialAuditLogs = sqliteTable('credential_audit_logs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -291,12 +229,7 @@ export const credentialAuditLogs = sqliteTable('credential_audit_logs', {
     requestId: text('request_id'),
     details: text('details', { mode: 'json' }),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('credential_audit_logs_user_id_idx').on(table.userId),
-    credentialIdIdx: index('credential_audit_logs_credential_id_idx').on(table.credentialId),
-    createdAtIdx: index('credential_audit_logs_created_at_idx').on(table.createdAt),
-    actionIdx: index('credential_audit_logs_action_idx').on(table.action),
-}));
+});
 
 export const projectEnvVars = sqliteTable('project_env_vars', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -311,10 +244,7 @@ export const projectEnvVars = sqliteTable('project_env_vars', {
     environment: text('environment').default('all'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('project_env_vars_project_id_idx').on(table.projectId),
-    projectEnvKeyIdx: uniqueIndex('project_env_vars_project_env_key_idx').on(table.projectId, table.envKey),
-}));
+});
 
 // ============================================================================
 // HOSTED DEPLOYMENTS - KripTik managed hosting (Cloudflare/Vercel)
@@ -353,14 +283,7 @@ export const hostedDeployments = sqliteTable('hosted_deployments', {
     buildOutput: text('build_output', { mode: 'json' }),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('hosted_deployments_project_id_idx').on(table.projectId),
-    userIdIdx: index('hosted_deployments_user_id_idx').on(table.userId),
-    statusIdx: index('hosted_deployments_status_idx').on(table.status),
-    providerIdx: index('hosted_deployments_provider_idx').on(table.provider),
-    subdomainIdx: uniqueIndex('hosted_deployments_subdomain_idx').on(table.subdomain),
-    customDomainIdx: index('hosted_deployments_custom_domain_idx').on(table.customDomain),
-}));
+});
 
 // ============================================================================
 // DOMAINS - User domain registrations via IONOS
@@ -399,13 +322,7 @@ export const domains = sqliteTable('domains', {
     // Metadata
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    domainIdx: uniqueIndex('domains_domain_idx').on(table.domain),
-    userIdIdx: index('domains_user_id_idx').on(table.userId),
-    projectIdIdx: index('domains_project_id_idx').on(table.projectId),
-    registrationStatusIdx: index('domains_registration_status_idx').on(table.registrationStatus),
-    expiresAtIdx: index('domains_expires_at_idx').on(table.expiresAt),
-}));
+});
 
 // ============================================================================
 // DOMAIN TRANSACTIONS - Billing history for domains
@@ -425,12 +342,7 @@ export const domainTransactions = sqliteTable('domain_transactions', {
     status: text('status').notNull(), // 'pending', 'completed', 'failed', 'refunded'
 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('domain_transactions_user_id_idx').on(table.userId),
-    domainIdIdx: index('domain_transactions_domain_id_idx').on(table.domainId),
-    statusIdx: index('domain_transactions_status_idx').on(table.status),
-    createdAtIdx: index('domain_transactions_created_at_idx').on(table.createdAt),
-}));
+});
 
 // ============================================================================
 // USER SETTINGS - Comprehensive user preferences
@@ -522,9 +434,7 @@ export const userSettings = sqliteTable('user_settings', {
 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: uniqueIndex('user_settings_user_id_idx').on(table.userId),
-}));
+});
 
 // ============================================================================
 // User Context Memory - For persistent AI context
@@ -537,11 +447,7 @@ export const userContextMemories = sqliteTable('user_context_memories', {
     data: text('data', { mode: 'json' }).notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('user_context_memories_user_id_idx').on(table.userId),
-    projectIdIdx: index('user_context_memories_project_id_idx').on(table.projectId),
-    userProjectIdx: index('user_context_memories_user_project_idx').on(table.userId, table.projectId),
-}));
+});
 
 // ============================================================================
 // Interaction Logs - For learning system
@@ -554,11 +460,7 @@ export const interactionLogs = sqliteTable('interaction_logs', {
     data: text('data', { mode: 'json' }).notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
-}, (table) => ({
-    userIdIdx: index('interaction_logs_user_id_idx').on(table.userId),
-    projectIdIdx: index('interaction_logs_project_id_idx').on(table.projectId),
-    createdAtIdx: index('interaction_logs_created_at_idx').on(table.createdAt),
-}));
+});
 
 // ============================================================================
 // Project Contexts - For shared agent context
@@ -572,10 +474,7 @@ export const projectContexts = sqliteTable('project_contexts', {
     summary: text('summary'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('project_contexts_project_id_idx').on(table.projectId),
-    userIdIdx: index('project_contexts_user_id_idx').on(table.userId),
-}));
+});
 
 // ============================================================================
 // Published Apps - For user sandbox publishing
@@ -593,13 +492,7 @@ export const publishedApps = sqliteTable('published_apps', {
     visitCount: integer('visit_count').default(0),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    slugIdx: uniqueIndex('published_apps_slug_idx').on(table.slug),
-    projectIdIdx: index('published_apps_project_id_idx').on(table.projectId),
-    userIdIdx: index('published_apps_user_id_idx').on(table.userId),
-    statusIdx: index('published_apps_status_idx').on(table.status),
-    customDomainIdx: index('published_apps_custom_domain_idx').on(table.customDomain),
-}));
+});
 
 // =============================================================================
 // FIX MY APP SESSIONS - Import and fix broken apps from other AI builders
@@ -644,12 +537,7 @@ export const fixSessions = sqliteTable('fix_sessions', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
-}, (table) => ({
-    userIdIdx: index('fix_sessions_user_id_idx').on(table.userId),
-    projectIdIdx: index('fix_sessions_project_id_idx').on(table.projectId),
-    statusIdx: index('fix_sessions_status_idx').on(table.status),
-    sourceIdx: index('fix_sessions_source_idx').on(table.source),
-}));
+});
 
 // =============================================================================
 // ULTIMATE BUILDER ARCHITECTURE - Core Build System Tables
@@ -677,12 +565,7 @@ export const buildIntents = sqliteTable('build_intents', {
     generatedBy: text('generated_by').default('claude-opus-4.5'),
     thinkingTokensUsed: integer('thinking_tokens_used').default(0),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('build_intents_project_id_idx').on(table.projectId),
-    orchestrationRunIdIdx: index('build_intents_orchestration_run_id_idx').on(table.orchestrationRunId),
-    userIdIdx: index('build_intents_user_id_idx').on(table.userId),
-    lockedIdx: index('build_intents_locked_idx').on(table.locked),
-}));
+});
 
 /**
  * Feature Progress - Tracks features with passes: true/false
@@ -716,14 +599,7 @@ export const featureProgress = sqliteTable('feature_progress', {
     passedAt: text('passed_at'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    buildIntentIdIdx: index('feature_progress_build_intent_id_idx').on(table.buildIntentId),
-    orchestrationRunIdIdx: index('feature_progress_orchestration_run_id_idx').on(table.orchestrationRunId),
-    projectIdIdx: index('feature_progress_project_id_idx').on(table.projectId),
-    passesIdx: index('feature_progress_passes_idx').on(table.passes),
-    categoryIdx: index('feature_progress_category_idx').on(table.category),
-    priorityIdx: index('feature_progress_priority_idx').on(table.priority),
-}));
+});
 
 /**
  * Verification Results - Individual agent results
@@ -745,13 +621,7 @@ export const verificationResults = sqliteTable('verification_results', {
     tokensUsed: integer('tokens_used').default(0),
     durationMs: integer('duration_ms'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    orchestrationRunIdIdx: index('verification_results_orchestration_run_id_idx').on(table.orchestrationRunId),
-    featureProgressIdIdx: index('verification_results_feature_progress_id_idx').on(table.featureProgressId),
-    projectIdIdx: index('verification_results_project_id_idx').on(table.projectId),
-    agentTypeIdx: index('verification_results_agent_type_idx').on(table.agentType),
-    passedIdx: index('verification_results_passed_idx').on(table.passed),
-}));
+});
 
 /**
  * Build Checkpoints - Time Machine snapshots
@@ -775,12 +645,7 @@ export const buildCheckpoints = sqliteTable('build_checkpoints', {
     rolledBackToId: text('rolled_back_to_id'),
     wasRolledBack: integer('was_rolled_back', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    orchestrationRunIdIdx: index('build_checkpoints_orchestration_run_id_idx').on(table.orchestrationRunId),
-    projectIdIdx: index('build_checkpoints_project_id_idx').on(table.projectId),
-    userIdIdx: index('build_checkpoints_user_id_idx').on(table.userId),
-    createdAtIdx: index('build_checkpoints_created_at_idx').on(table.createdAt),
-}));
+});
 
 /**
  * App Soul Templates - Design systems for different app types
@@ -799,9 +664,7 @@ export const appSoulTemplates = sqliteTable('app_soul_templates', {
     exampleApps: text('example_apps', { mode: 'json' }).$type<string[]>().default([]),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    soulTypeIdx: uniqueIndex('app_soul_templates_soul_type_idx').on(table.soulType),
-}));
+});
 
 /**
  * Error Escalation History - 4-level escalation tracking
@@ -825,12 +688,7 @@ export const errorEscalationHistory = sqliteTable('error_escalation_history', {
     wasRebuiltFromIntent: integer('was_rebuilt_from_intent', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    orchestrationRunIdIdx: index('error_escalation_orchestration_run_id_idx').on(table.orchestrationRunId),
-    projectIdIdx: index('error_escalation_project_id_idx').on(table.projectId),
-    resolvedIdx: index('error_escalation_resolved_idx').on(table.resolved),
-    errorTypeIdx: index('error_escalation_error_type_idx').on(table.errorType),
-}));
+});
 
 /**
  * Build Mode Configs - Speed Dial settings
@@ -859,9 +717,7 @@ export const buildModeConfigs = sqliteTable('build_mode_configs', {
     successRate: integer('success_rate').default(0),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    modeIdx: uniqueIndex('build_mode_configs_mode_idx').on(table.mode),
-}));
+});
 
 /**
  * Tournament Runs - Competing implementations with AI judge
@@ -881,11 +737,7 @@ export const tournamentRuns = sqliteTable('tournament_runs', {
     totalDurationMs: integer('total_duration_ms'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     completedAt: text('completed_at'),
-}, (table) => ({
-    orchestrationRunIdIdx: index('tournament_runs_orchestration_run_id_idx').on(table.orchestrationRunId),
-    projectIdIdx: index('tournament_runs_project_id_idx').on(table.projectId),
-    statusIdx: index('tournament_runs_status_idx').on(table.status),
-}));
+});
 
 /**
  * Intelligence Dial Configs - Per-request capability toggles
@@ -904,10 +756,7 @@ export const intelligenceDialConfigs = sqliteTable('intelligence_dial_configs', 
     customCodeQualityThreshold: integer('custom_code_quality_threshold'),
     customThinkingBudget: integer('custom_thinking_budget'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    orchestrationRunIdIdx: index('intelligence_dial_orchestration_run_id_idx').on(table.orchestrationRunId),
-    userIdIdx: index('intelligence_dial_user_id_idx').on(table.userId),
-}));
+});
 
 /**
  * Build Session Progress - Real-time progress for UI streaming
@@ -928,10 +777,7 @@ export const buildSessionProgress = sqliteTable('build_session_progress', {
     blockingErrorMessage: text('blocking_error_message'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    orchestrationRunIdIdx: uniqueIndex('build_session_progress_orchestration_run_id_idx').on(table.orchestrationRunId),
-    projectIdIdx: index('build_session_progress_project_id_idx').on(table.projectId),
-}));
+});
 
 // =============================================================================
 // DEVELOPER MODE - Multi-agent development environment
@@ -975,12 +821,7 @@ export const developerModeSessions = sqliteTable('developer_mode_sessions', {
 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    projectIdIdx: index('developer_mode_sessions_project_id_idx').on(table.projectId),
-    userIdIdx: index('developer_mode_sessions_user_id_idx').on(table.userId),
-    statusIdx: index('developer_mode_sessions_status_idx').on(table.status),
-    userStatusIdx: index('developer_mode_sessions_user_status_idx').on(table.userId, table.status),
-}));
+});
 
 /**
  * Developer Mode Agents - Individual agent instances
@@ -2373,12 +2214,7 @@ export const poolTransactions = sqliteTable('pool_transactions', {
     apiReserveAfter: integer('api_reserve_after'),
     freeSubsidyAfter: integer('free_subsidy_after'),
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    typeIdx: index('pool_transactions_type_idx').on(table.type),
-    categoryIdx: index('pool_transactions_category_idx').on(table.category),
-    userIdIdx: index('pool_transactions_user_id_idx').on(table.userId),
-    timestampIdx: index('pool_transactions_timestamp_idx').on(table.timestamp),
-}));
+});
 
 // Daily Pool Snapshots - for analytics
 export const poolSnapshots = sqliteTable('pool_snapshots', {
@@ -2392,9 +2228,7 @@ export const poolSnapshots = sqliteTable('pool_snapshots', {
     dailyApiSpend: integer('daily_api_spend').notNull(),
     freeUserCount: integer('free_user_count'),
     paidUserCount: integer('paid_user_count'),
-}, (table) => ({
-    dateIdx: uniqueIndex('pool_snapshots_date_idx').on(table.date),
-}));
+});
 
 // =============================================================================
 // USAGE TRACKING - Persistent Usage Records
@@ -2413,13 +2247,7 @@ export const usageRecords = sqliteTable('usage_records', {
     endpoint: text('endpoint'),
     metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('usage_records_user_id_idx').on(table.userId),
-    projectIdIdx: index('usage_records_project_id_idx').on(table.projectId),
-    categoryIdx: index('usage_records_category_idx').on(table.category),
-    timestampIdx: index('usage_records_timestamp_idx').on(table.timestamp),
-    userTimestampIdx: index('usage_records_user_timestamp_idx').on(table.userId, table.timestamp),
-}));
+});
 
 // Usage summaries - daily aggregates per user
 export const usageSummaries = sqliteTable('usage_summaries', {
@@ -2432,11 +2260,7 @@ export const usageSummaries = sqliteTable('usage_summaries', {
     apiCredits: integer('api_credits').notNull().default(0),
     generationCount: integer('generation_count').notNull().default(0),
     totalTokens: integer('total_tokens').notNull().default(0),
-}, (table) => ({
-    userIdIdx: index('usage_summaries_user_id_idx').on(table.userId),
-    dateIdx: index('usage_summaries_date_idx').on(table.date),
-    userDateIdx: uniqueIndex('usage_summaries_user_date_idx').on(table.userId, table.date),
-}));
+});
 
 // =============================================================================
 // CONTENT FLAGS - Competitor Protection Logging
@@ -2451,8 +2275,4 @@ export const contentFlags = sqliteTable('content_flags', {
     matchedPatterns: text('matched_patterns', { mode: 'json' }).$type<string[]>(),
     userAcknowledged: integer('user_acknowledged', { mode: 'boolean' }).default(false),
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-    userIdIdx: index('content_flags_user_id_idx').on(table.userId),
-    categoryIdx: index('content_flags_category_idx').on(table.category),
-    timestampIdx: index('content_flags_timestamp_idx').on(table.timestamp),
-}));
+});
