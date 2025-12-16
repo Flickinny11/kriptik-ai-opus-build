@@ -13,7 +13,7 @@
  * - PARALLEL: Race multiple models, take best (complex)
  * - ENSEMBLE: Multiple models vote/merge (expert)
  *
- * VERIFIED: December 7, 2025 - Uses actual OpenRouter models
+ * VERIFIED: December 16, 2025 - Dual-SDK architecture with direct Anthropic/OpenAI calls
  */
 
 import {
@@ -220,35 +220,36 @@ export class KripToeNiteRouter {
     /**
      * Select models for PARALLEL strategy (complex tasks)
      * Race intelligence tier models, take best response
+     * Uses Opus 4.5 for complex reasoning - per CLAUDE.md requirements
      */
     private selectParallelModels(analysis: TaskAnalysis): {
         primaryModel: KTNModelConfig;
         parallelModel: KTNModelConfig;
         fallbackModel: KTNModelConfig;
     } {
-        // For code-heavy complex tasks
+        // For code-heavy complex tasks - use Opus for maximum quality
         if (this.isCodeTask(analysis.taskType)) {
             return {
-                primaryModel: KTN_MODELS['claude-sonnet-4.5'],
+                primaryModel: KTN_MODELS['claude-opus-4.5'],
                 parallelModel: KTN_MODELS['gpt-5.1-codex-max'],
-                fallbackModel: KTN_MODELS['gemini-3-pro'],
+                fallbackModel: KTN_MODELS['claude-sonnet-4.5'],
             };
         }
 
-        // For architecture/design
+        // For architecture/design - Opus is mandatory
         if (analysis.taskType === TaskType.ARCHITECTURE ||
             analysis.taskType === TaskType.DESIGN_SYSTEM) {
             return {
                 primaryModel: KTN_MODELS['claude-opus-4.5'],
-                parallelModel: KTN_MODELS['claude-sonnet-4.5'],
-                fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
+                parallelModel: KTN_MODELS['gpt-5.2-pro'],
+                fallbackModel: KTN_MODELS['claude-sonnet-4.5'],
             };
         }
 
-        // Default complex
+        // Default complex - always use Opus 4.5 for complex tasks
         return {
-            primaryModel: KTN_MODELS[STRATEGY_MODELS.complex.primary],
-            parallelModel: KTN_MODELS['gpt-5.1-codex-max'],
+            primaryModel: KTN_MODELS[STRATEGY_MODELS.complex.primary], // claude-opus-4.5
+            parallelModel: KTN_MODELS['gpt-5.2-pro'],
             fallbackModel: KTN_MODELS[STRATEGY_MODELS.complex.fallback],
         };
     }
@@ -256,6 +257,7 @@ export class KripToeNiteRouter {
     /**
      * Select models for ENSEMBLE strategy (expert tasks)
      * Multiple models contribute, responses merged/voted
+     * Uses Opus 4.5 + GPT-5.2 Pro for maximum quality
      */
     private selectEnsembleModels(analysis: TaskAnalysis): {
         primaryModel: KTNModelConfig;
@@ -263,15 +265,17 @@ export class KripToeNiteRouter {
         fallbackModel: KTNModelConfig;
     } {
         // Expert tasks always use best available
+        // Opus 4.5 for intent lock, GPT-5.2 Pro for validation
         return {
-            primaryModel: KTN_MODELS[STRATEGY_MODELS.expert.primary],
-            parallelModel: KTN_MODELS[STRATEGY_MODELS.expert.fallback],
-            fallbackModel: KTN_MODELS['gpt-5.1-codex-max'],
+            primaryModel: KTN_MODELS[STRATEGY_MODELS.expert.primary], // claude-opus-4.5
+            parallelModel: KTN_MODELS[STRATEGY_MODELS.expert.parallel], // gpt-5.2-pro
+            fallbackModel: KTN_MODELS[STRATEGY_MODELS.expert.fallback], // claude-sonnet-4.5
         };
     }
 
     /**
      * Select model by task type and tier
+     * Speed tier now uses Claude Haiku 4.5 (matches Sonnet 4 quality, much faster)
      */
     private selectByTaskType(
         taskType: TaskType,
@@ -283,41 +287,40 @@ export class KripToeNiteRouter {
             case TaskType.CODE_REFACTOR:
             case TaskType.DEBUGGING:
                 return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3']
-                    : KTN_MODELS['claude-sonnet-4.5'];
+                    ? KTN_MODELS['claude-haiku-4.5']  // Haiku 4.5 matches Sonnet 4 for code
+                    : KTN_MODELS['claude-opus-4.5'];  // Opus for intelligence tier
 
             case TaskType.UI_COMPONENT:
             case TaskType.DESIGN_SYSTEM:
                 return tier === 'speed'
-                    ? KTN_MODELS['gemini-2.5-flash']
-                    : KTN_MODELS['claude-sonnet-4.5'];
+                    ? KTN_MODELS['claude-haiku-4.5']
+                    : KTN_MODELS['claude-opus-4.5'];
 
             case TaskType.API_DESIGN:
             case TaskType.DATABASE:
                 return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3']
-                    : KTN_MODELS['claude-sonnet-4.5'];
+                    ? KTN_MODELS['claude-haiku-4.5']
+                    : KTN_MODELS['claude-opus-4.5'];
 
             case TaskType.TESTING:
                 return tier === 'speed'
-                    ? KTN_MODELS['qwen3-coder']
+                    ? KTN_MODELS['claude-haiku-4.5']
                     : KTN_MODELS['gpt-5.1-codex-max'];
 
             case TaskType.EXPLANATION:
             case TaskType.DOCUMENTATION:
                 return tier === 'speed'
-                    ? KTN_MODELS['gpt-4o-mini']
-                    : KTN_MODELS['gemini-3-pro'];
+                    ? KTN_MODELS['claude-haiku-4.5']
+                    : KTN_MODELS['claude-sonnet-4.5'];
 
             case TaskType.ARCHITECTURE:
             case TaskType.COMPLEX_REASONING:
-                return tier === 'speed'
-                    ? KTN_MODELS['deepseek-v3']
-                    : KTN_MODELS['claude-opus-4.5'];
+                // Architecture always gets Opus, even for "speed" tier
+                return KTN_MODELS['claude-opus-4.5'];
 
             default:
                 return tier === 'speed'
-                    ? KTN_MODELS['gemini-2.5-flash']
+                    ? KTN_MODELS['claude-haiku-4.5']
                     : KTN_MODELS['claude-sonnet-4.5'];
         }
     }
