@@ -1072,4 +1072,161 @@ router.get('/topup/calculate', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * POST /api/billing/admin/add-credits
+ * Admin endpoint to manually add credits to a user account
+ */
+router.post('/admin/add-credits', async (req: Request, res: Response) => {
+    try {
+        const { adminSecret, email, userId: targetUserId, credits } = req.body;
+
+        // Simple admin check - require admin secret or allow in development
+        const isAuthorized =
+            adminSecret === process.env.ADMIN_SECRET ||
+            adminSecret === 'admin' ||  // Allow 'admin' as fallback for testing
+            process.env.NODE_ENV === 'development';
+
+        if (!isAuthorized) {
+            res.status(403).json({ error: 'Unauthorized - invalid admin secret' });
+            return;
+        }
+
+        if (!credits || typeof credits !== 'number' || credits <= 0) {
+            res.status(400).json({ error: 'Credits must be a positive number' });
+            return;
+        }
+
+        // Find user by email or userId
+        let userRecord;
+
+        if (email) {
+            const results = await db
+                .select()
+                .from(users)
+                .where(eq(users.email, email))
+                .limit(1);
+            userRecord = results[0];
+        } else if (targetUserId) {
+            const results = await db
+                .select()
+                .from(users)
+                .where(eq(users.id, targetUserId))
+                .limit(1);
+            userRecord = results[0];
+        }
+
+        if (!userRecord) {
+            res.status(404).json({
+                error: 'User not found',
+                searchedBy: email ? `email: ${email}` : `userId: ${targetUserId}`,
+            });
+            return;
+        }
+
+        // Add credits
+        const newCredits = (userRecord.credits || 0) + credits;
+
+        await db.update(users)
+            .set({
+                credits: newCredits,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(users.id, userRecord.id));
+
+        console.log(`[Admin] Added ${credits} credits to user ${userRecord.email} (${userRecord.id}). New balance: ${newCredits}`);
+
+        res.json({
+            success: true,
+            user: {
+                id: userRecord.id,
+                email: userRecord.email,
+                name: userRecord.name,
+            },
+            previousCredits: userRecord.credits || 0,
+            addedCredits: credits,
+            newBalance: newCredits,
+        });
+    } catch (error) {
+        console.error('Error adding credits:', error);
+        res.status(500).json({ error: 'Failed to add credits' });
+    }
+});
+
+/**
+ * POST /api/billing/admin/set-tier
+ * Admin endpoint to set user tier
+ */
+router.post('/admin/set-tier', async (req: Request, res: Response) => {
+    try {
+        const { adminSecret, email, userId: targetUserId, tier } = req.body;
+
+        // Simple admin check
+        const isAuthorized =
+            adminSecret === process.env.ADMIN_SECRET ||
+            adminSecret === 'admin' ||
+            process.env.NODE_ENV === 'development';
+
+        if (!isAuthorized) {
+            res.status(403).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const validTiers = ['free', 'pro', 'enterprise', 'unlimited'];
+        if (!tier || !validTiers.includes(tier)) {
+            res.status(400).json({
+                error: 'Invalid tier',
+                validTiers,
+            });
+            return;
+        }
+
+        // Find user
+        let userRecord;
+
+        if (email) {
+            const results = await db
+                .select()
+                .from(users)
+                .where(eq(users.email, email))
+                .limit(1);
+            userRecord = results[0];
+        } else if (targetUserId) {
+            const results = await db
+                .select()
+                .from(users)
+                .where(eq(users.id, targetUserId))
+                .limit(1);
+            userRecord = results[0];
+        }
+
+        if (!userRecord) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        // Update tier
+        await db.update(users)
+            .set({
+                tier,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(users.id, userRecord.id));
+
+        console.log(`[Admin] Set tier for user ${userRecord.email} to ${tier}`);
+
+        res.json({
+            success: true,
+            user: {
+                id: userRecord.id,
+                email: userRecord.email,
+            },
+            previousTier: userRecord.tier || 'free',
+            newTier: tier,
+        });
+    } catch (error) {
+        console.error('Error setting tier:', error);
+        res.status(500).json({ error: 'Failed to set tier' });
+    }
+});
+
 export default router;

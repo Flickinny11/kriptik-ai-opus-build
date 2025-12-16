@@ -34,17 +34,17 @@ interface RateLimitEntry {
 const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
     free: {
         windowMs: 60 * 1000,  // 1 minute
-        maxRequests: 10,
+        maxRequests: 120,     // Increased from 10 - allows ~2 requests/second for normal UI
         message: 'Rate limit exceeded. Upgrade to Pro for higher limits.',
     },
     pro: {
         windowMs: 60 * 1000,
-        maxRequests: 50,
+        maxRequests: 300,     // Increased from 50 - allows ~5 requests/second
         message: 'Rate limit exceeded. Contact support for enterprise limits.',
     },
     enterprise: {
         windowMs: 60 * 1000,
-        maxRequests: 200,
+        maxRequests: 1000,    // Increased from 200 - allows ~17 requests/second
         message: 'Rate limit exceeded. Please try again shortly.',
     },
     unlimited: {
@@ -55,21 +55,27 @@ const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
 };
 
 // Route-specific limits (override tier limits for specific routes)
+// These are BASE limits that get multiplied by tier multiplier
 const ROUTE_LIMITS: Record<string, RateLimitConfig> = {
     '/api/ai/generate': {
         windowMs: 60 * 1000,
-        maxRequests: 5,  // AI generation is expensive
+        maxRequests: 20,  // AI generation - allows bursts during active building
         message: 'Generation rate limit exceeded. Please wait before generating more.',
     },
     '/api/orchestrate': {
         windowMs: 60 * 1000,
-        maxRequests: 3,  // Full orchestration is very expensive
+        maxRequests: 10,  // Full orchestration - multiple phases per minute
         message: 'Orchestration rate limit exceeded. Please wait before starting another build.',
     },
     '/api/autonomous': {
         windowMs: 60 * 1000,
-        maxRequests: 2,  // Autonomous building is the most expensive
+        maxRequests: 5,   // Autonomous building - longer running
         message: 'Autonomous build limit exceeded. Please wait for current build to complete.',
+    },
+    '/api/krip-toe-nite': {
+        windowMs: 60 * 1000,
+        maxRequests: 30,  // KripToeNite - main builder interface
+        message: 'Builder rate limit exceeded. Please wait before making more requests.',
     },
 };
 
@@ -371,7 +377,7 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
  */
 export const aiRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 5,
+    maxRequests: 20,  // Allows bursts during active building
 });
 
 /**
@@ -379,7 +385,7 @@ export const aiRateLimiter = createRateLimiter({
  */
 export const orchestrationRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 3,
+    maxRequests: 10,  // Multiple phases per minute
 });
 
 /**
@@ -387,7 +393,7 @@ export const orchestrationRateLimiter = createRateLimiter({
  */
 export const autonomousRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 2,
+    maxRequests: 5,   // Longer running operations
 });
 
 /**
