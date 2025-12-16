@@ -80,10 +80,11 @@ export interface GenerationResponse {
 // =============================================================================
 
 export const ANTHROPIC_MODELS = {
-    OPUS_4_5: 'claude-opus-4-5-20250514',
-    SONNET_4_5: 'claude-sonnet-4-5-20250514',
-    SONNET_4: 'claude-sonnet-4-20250514',
-    HAIKU_3_5: 'claude-3-5-haiku-20241022',
+    // December 2025 model IDs (verified against Anthropic/OpenRouter)
+    OPUS_4_5: 'claude-opus-4-5',          // Latest Opus 4.5
+    SONNET_4_5: 'claude-sonnet-4-5',      // Latest Sonnet 4.5
+    SONNET_4: 'claude-sonnet-4',          // Sonnet 4
+    HAIKU_3_5: 'claude-3-5-haiku',        // Haiku 3.5
 } as const;
 
 export const OPENAI_MODELS = {
