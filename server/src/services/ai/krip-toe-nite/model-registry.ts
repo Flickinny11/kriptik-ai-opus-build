@@ -1,16 +1,33 @@
 /**
  * Krip-Toe-Nite Model Registry
  *
- * Defines all available models via OpenRouter with performance characteristics.
- * All models are accessed through OpenRouter's unified API.
+ * Dual-SDK Architecture (December 2025):
+ * - directModelId: For direct SDK calls (Anthropic SDK, OpenAI SDK)
+ * - openRouterId: For OpenRouter fallback
  *
- * VERIFIED: December 7, 2025 - Actual models from OpenRouter
- * - Speed Tier: Sub-500ms TTFT models for trivial/simple tasks
- * - Intelligence Tier: Best-in-class models for complex tasks
- * - Specialist Tier: Code-focused models for development tasks
+ * VERIFIED: December 16, 2025 - Updated model IDs from official docs
+ * - Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001
+ * - OpenAI: gpt-5.2-pro, gpt-4o, etc.
+ * - Other providers: Via OpenRouter only
  */
 
 import type { KTNModelConfig, ModelTier } from './types.js';
+
+// =============================================================================
+// DIRECT SDK MODEL IDS - Use these for Anthropic/OpenAI SDK calls
+// =============================================================================
+
+export const DIRECT_ANTHROPIC_MODELS = {
+    OPUS_4_5: 'claude-opus-4-5-20251101',
+    SONNET_4_5: 'claude-sonnet-4-5-20250929',
+    HAIKU_4_5: 'claude-haiku-4-5-20251001',
+} as const;
+
+export const DIRECT_OPENAI_MODELS = {
+    GPT_5_2_PRO: 'gpt-5.2-pro',
+    GPT_4O: 'gpt-4o',
+    GPT_4O_MINI: 'gpt-4o-mini',
+} as const;
 
 // =============================================================================
 // MODEL DEFINITIONS - VERIFIED DECEMBER 7, 2025
@@ -44,7 +61,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'gpt-4o-mini': {
         id: 'gpt-4o-mini',
-        openRouterId: 'openai/gpt-4o-mini',
+        directModelId: DIRECT_OPENAI_MODELS.GPT_4O_MINI, // For OpenAI SDK
+        openRouterId: 'openai/gpt-4o-mini',              // For OpenRouter fallback
         name: 'GPT-4o Mini',
         tier: 'speed',
         avgTtftMs: 200,
@@ -113,7 +131,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'claude-opus-4.5': {
         id: 'claude-opus-4.5',
-        openRouterId: 'anthropic/claude-opus-4.5',
+        directModelId: DIRECT_ANTHROPIC_MODELS.OPUS_4_5, // For Anthropic SDK
+        openRouterId: 'anthropic/claude-opus-4.5',       // For OpenRouter fallback
         name: 'Claude Opus 4.5',
         tier: 'intelligence',
         avgTtftMs: 1200,
@@ -129,7 +148,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'claude-sonnet-4.5': {
         id: 'claude-sonnet-4.5',
-        openRouterId: 'anthropic/claude-sonnet-4.5',
+        directModelId: DIRECT_ANTHROPIC_MODELS.SONNET_4_5, // For Anthropic SDK
+        openRouterId: 'anthropic/claude-sonnet-4.5',       // For OpenRouter fallback
         name: 'Claude Sonnet 4.5',
         tier: 'intelligence',
         avgTtftMs: 800,
@@ -161,7 +181,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'gpt-5.1-codex-max': {
         id: 'gpt-5.1-codex-max',
-        openRouterId: 'openai/gpt-5.1-codex-max',
+        directModelId: 'gpt-5.1-codex-max',        // For OpenAI SDK (same ID)
+        openRouterId: 'openai/gpt-5.1-codex-max',  // For OpenRouter fallback
         name: 'GPT-5.1 Codex Max',
         tier: 'intelligence',
         avgTtftMs: 700,

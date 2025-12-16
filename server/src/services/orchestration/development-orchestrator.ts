@@ -217,7 +217,27 @@ IMPORTANT: Provide realistic, production-ready analysis. No placeholders.`;
             systemPrompt
         );
 
-        return response;
+        // Validate and provide defaults for required array fields
+        // This prevents "Cannot read properties of undefined" errors
+        return {
+            corePurpose: response.corePurpose || 'Project purpose not specified',
+            userPersonas: Array.isArray(response.userPersonas) ? response.userPersonas : [],
+            criticalFeatures: Array.isArray(response.criticalFeatures) ? response.criticalFeatures : [],
+            niceToHave: Array.isArray(response.niceToHave) ? response.niceToHave : [],
+            scaleExpectations: response.scaleExpectations || {
+                estimatedUsers: '1000',
+                requestsPerSecond: '10',
+                dataVolumeGB: '1',
+                growthRate: 'steady',
+            },
+            constraints: response.constraints || {
+                budget: 'moderate',
+                timeline: 'flexible',
+                compliance: [],
+                technicalRequirements: [],
+            },
+            integrationNeeds: Array.isArray(response.integrationNeeds) ? response.integrationNeeds : [],
+        };
     }
 
     /**
@@ -256,7 +276,8 @@ Return as a JSON array of ADRs. Make real, production-appropriate decisions.`;
             systemPrompt
         );
 
-        return response;
+        // Ensure we always return an array
+        return Array.isArray(response) ? response : [];
     }
 
     /**
@@ -303,7 +324,8 @@ Return as JSON array of Epics. Be thorough and realistic.`;
             systemPrompt
         );
 
-        return response;
+        // Ensure we always return an array
+        return Array.isArray(response) ? response : [];
     }
 
     /**

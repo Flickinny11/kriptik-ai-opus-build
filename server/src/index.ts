@@ -98,18 +98,39 @@ interface ServiceStatus {
 function validateCredentials(): ServiceStatus[] {
     const services: ServiceStatus[] = [];
 
-    // CRITICAL: OpenRouter API (Required for AI)
-    if (process.env.OPENROUTER_API_KEY) {
+    // CRITICAL: AI API Keys - Dual SDK Architecture
+    // Priority: Direct SDKs (Anthropic, OpenAI) > OpenRouter fallback
+    const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+    const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+    const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
+    const hasAnyAIProvider = hasAnthropicKey || hasOpenAIKey || hasOpenRouterKey;
+
+    if (hasAnthropicKey) {
         services.push({
-            name: 'OpenRouter (AI Models)',
+            name: 'Anthropic (Claude)',
             status: 'ok',
-            message: 'Multi-model AI routing enabled',
+            message: 'Direct Claude API enabled (Opus 4.5, Sonnet 4.5)',
         });
-    } else {
+    }
+    if (hasOpenAIKey) {
         services.push({
-            name: 'OpenRouter (AI Models)',
+            name: 'OpenAI (GPT)',
+            status: 'ok',
+            message: 'Direct OpenAI API enabled (GPT-5.2, GPT-4o)',
+        });
+    }
+    if (hasOpenRouterKey) {
+        services.push({
+            name: 'OpenRouter (Fallback)',
+            status: 'ok',
+            message: 'Multi-model routing available',
+        });
+    }
+    if (!hasAnyAIProvider) {
+        services.push({
+            name: 'AI Providers',
             status: 'missing',
-            message: '⚠️  CRITICAL: No AI features will work!',
+            message: '⚠️  CRITICAL: No AI features will work! Set ANTHROPIC_API_KEY or OPENAI_API_KEY',
         });
     }
 
@@ -810,15 +831,25 @@ app.get('/health', (req, res) => {
 
 // Service configuration status (for frontend to know what's available)
 app.get('/api/config/services', (req, res) => {
+    // Dual SDK Architecture - check for any AI provider
+    const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+    const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+    const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
+    const hasAnyAIProvider = hasAnthropicKey || hasOpenAIKey || hasOpenRouterKey;
+
     res.json({
         ai: {
-            enabled: !!process.env.OPENROUTER_API_KEY,
-            provider: 'openrouter',
-            models: ['claude-sonnet-4', 'gpt-4o', 'claude-haiku', 'gpt-4o-mini', 'llama-3.3-70b'],
+            enabled: hasAnyAIProvider,
+            providers: {
+                anthropic: hasAnthropicKey,
+                openai: hasOpenAIKey,
+                openrouter: hasOpenRouterKey,
+            },
+            models: ['claude-opus-4.5', 'claude-sonnet-4.5', 'gpt-5.2-pro', 'gpt-4o', 'gemini-2.5-flash'],
             heliconeEnabled: process.env.HELICONE_ENABLED !== 'false' && !!process.env.HELICONE_API_KEY,
-            imageToCode: !!process.env.OPENROUTER_API_KEY,
-            selfHealing: !!process.env.OPENROUTER_API_KEY,
-            testGeneration: !!process.env.OPENROUTER_API_KEY,
+            imageToCode: hasAnyAIProvider,
+            selfHealing: hasAnyAIProvider,
+            testGeneration: hasAnyAIProvider,
         },
         export: {
             github: !!process.env.GITHUB_TOKEN,
@@ -891,12 +922,23 @@ if (!process.env.VERCEL) {
         const services = validateCredentials();
         printStartupStatus(services);
 
-        if (!process.env.OPENROUTER_API_KEY) {
+        // Check for AI provider keys - Dual SDK Architecture
+        const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+        const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+        const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
+
+        if (!hasAnthropicKey && !hasOpenAIKey && !hasOpenRouterKey) {
             console.log('================================================================');
-            console.log('  OPENROUTER_API_KEY is not set!');
+            console.log('  No AI API keys set!');
             console.log('  AI code generation WILL NOT WORK.');
-            console.log('  Get your API key from: https://openrouter.ai/keys');
+            console.log('  Set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY');
             console.log('================================================================\n');
+        } else {
+            console.log('[AI] Active providers:', [
+                hasAnthropicKey && 'Anthropic (Claude)',
+                hasOpenAIKey && 'OpenAI (GPT)',
+                hasOpenRouterKey && 'OpenRouter (fallback)',
+            ].filter(Boolean).join(', '));
         }
 
         console.log('[Server] Ready to accept requests');
