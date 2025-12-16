@@ -62,12 +62,27 @@ export async function ensureAuthTables(): Promise<void> {
  * Prevents open redirect vulnerabilities
  */
 const ALLOWED_REDIRECT_PATTERNS = [
-    // Production frontend
+    // ==========================================================================
+    // PRODUCTION CUSTOM DOMAIN - kriptik.app
+    // ==========================================================================
+    /^https:\/\/kriptik\.app(\/.*)?$/,
+    /^https:\/\/www\.kriptik\.app(\/.*)?$/,
+    /^https:\/\/[a-z0-9-]+\.kriptik\.app(\/.*)?$/,  // Subdomains
+
+    // ==========================================================================
+    // VERCEL DEPLOYMENTS
+    // ==========================================================================
+    // Production frontend (Vercel)
     /^https:\/\/kriptik-ai-opus-build\.vercel\.app(\/.*)?$/,
     /^https:\/\/kriptik-ai\.vercel\.app(\/.*)?$/,
     // Vercel preview deployments
     /^https:\/\/kriptik-ai-opus-build-[a-z0-9]+-logans-projects-[a-z0-9]+\.vercel\.app(\/.*)?$/,
-    // Development
+    /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app(\/.*)?$/,
+    /^https:\/\/[a-z0-9-]*kriptik[a-z0-9-]*\.vercel\.app(\/.*)?$/,
+
+    // ==========================================================================
+    // DEVELOPMENT
+    // ==========================================================================
     /^http:\/\/localhost:\d+(\/.*)?$/,
     /^http:\/\/127\.0\.0\.1:\d+(\/.*)?$/,
     // Custom domain (if configured)
@@ -247,7 +262,16 @@ export const auth = betterAuth({
         const origin = request.headers.get('origin') || '';
 
         const allowedExact = new Set<string>([
-            // Production frontend
+            // ==========================================================================
+            // PRODUCTION CUSTOM DOMAIN - kriptik.app
+            // ==========================================================================
+            'https://kriptik.app',
+            'https://www.kriptik.app',
+
+            // ==========================================================================
+            // VERCEL DEPLOYMENTS
+            // ==========================================================================
+            // Production frontend (Vercel)
             'https://kriptik-ai-opus-build.vercel.app',
             'https://kriptik-ai.vercel.app',
             // Backend URL(s)
@@ -255,7 +279,10 @@ export const auth = betterAuth({
             backendUrl,
             // Frontend URL(s)
             frontendUrl,
-            // Common local dev origins
+
+            // ==========================================================================
+            // DEVELOPMENT
+            // ==========================================================================
             'http://localhost:3000',
             'http://localhost:3001',
             'http://localhost:5173',
@@ -268,10 +295,16 @@ export const auth = betterAuth({
             allowedExact.add(origin);
         }
 
+        // Allow kriptik.app subdomains
+        if (/^https:\/\/([a-z0-9-]+\.)?kriptik\.app$/.test(origin)) {
+            allowedExact.add(origin);
+        }
+
         // Allow Vercel previews (frontend + backend variations)
         if (
             /^https:\/\/kriptik-ai-opus-build-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
-            /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app$/.test(origin)
+            /^https:\/\/kriptik-ai-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+            /^https:\/\/[a-z0-9-]*kriptik[a-z0-9-]*\.vercel\.app$/.test(origin)
         ) {
             allowedExact.add(origin);
         }

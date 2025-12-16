@@ -232,7 +232,17 @@ import { requireCredits } from './services/billing/credits.js';
 
 // Allowed origins for CORS
 const allowedOrigins = [
-    // Production frontend
+    // ==========================================================================
+    // PRODUCTION CUSTOM DOMAIN - kriptik.app
+    // ==========================================================================
+    'https://kriptik.app',
+    'https://www.kriptik.app',
+    /^https:\/\/([a-z0-9-]+\.)?kriptik\.app$/,  // Any subdomain of kriptik.app
+
+    // ==========================================================================
+    // VERCEL DEPLOYMENTS
+    // ==========================================================================
+    // Production frontend (Vercel)
     'https://kriptik-ai-opus-build.vercel.app',
     // Vercel preview deployments - comprehensive patterns
     // Pattern: kriptik-ai-opus-build-{git-hash}.vercel.app
@@ -248,7 +258,10 @@ const allowedOrigins = [
     // Backend URLs (for same-origin requests or internal calls)
     'https://kriptik-ai-opus-build-backend.vercel.app',
     /^https:\/\/kriptik-ai-opus-build-backend[a-z0-9-]*\.vercel\.app$/,
-    // Development
+
+    // ==========================================================================
+    // DEVELOPMENT
+    // ==========================================================================
     'http://localhost:5173',
     'http://localhost:3000',
     'http://127.0.0.1:5173',
@@ -276,11 +289,16 @@ app.use((req, res, next) => {
         allowedOrigins.includes(origin) ||
         allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
 
-    // Fallback: Allow any Vercel domain with "kriptik" in the name
-    // This prevents auth failures from new/unexpected preview URL patterns
-    if (!isAllowed && origin && origin.endsWith('.vercel.app') && (origin.toLowerCase().includes('kriptik'))) {
-        console.warn(`[CORS Preflight] Allowing Vercel domain as fallback: ${origin}`);
-        isAllowed = true;
+    // Fallback: Allow kriptik.app domain and Vercel domains with "kriptik" in the name
+    // This prevents auth failures from new/unexpected URL patterns
+    if (!isAllowed && origin) {
+        if (origin.endsWith('.kriptik.app') || origin === 'https://kriptik.app' || origin === 'https://www.kriptik.app') {
+            console.warn(`[CORS Preflight] Allowing kriptik.app domain: ${origin}`);
+            isAllowed = true;
+        } else if (origin.endsWith('.vercel.app') && origin.toLowerCase().includes('kriptik')) {
+            console.warn(`[CORS Preflight] Allowing Vercel domain as fallback: ${origin}`);
+            isAllowed = true;
+        }
     }
 
     if (isAllowed) {
@@ -318,8 +336,14 @@ app.use(cors({
         console.warn(`[CORS] Blocked origin: ${origin}`);
         console.warn(`[CORS] Allowed patterns: ${allowedOrigins.filter(o => o instanceof RegExp).map(o => o.toString()).join(', ')}`);
 
-        // In production, be more permissive for Vercel domains to avoid auth failures
+        // In production, be more permissive to avoid auth failures
         // This is a fallback - if we got here, the patterns above didn't match
+        // Allow kriptik.app domain
+        if (origin.endsWith('.kriptik.app') || origin === 'https://kriptik.app' || origin === 'https://www.kriptik.app') {
+            console.warn(`[CORS] Allowing kriptik.app domain: ${origin}`);
+            return callback(null, true);
+        }
+        // Allow Vercel domains with kriptik in the name
         if (origin.endsWith('.vercel.app') && (origin.includes('kriptik') || origin.includes('Kriptik'))) {
             console.warn(`[CORS] Allowing Vercel domain as fallback: ${origin}`);
             return callback(null, true);
