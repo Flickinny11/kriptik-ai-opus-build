@@ -64,7 +64,7 @@ export type ModelTier = 'speed' | 'intelligence' | 'specialist';
 export interface KTNModelConfig {
     /** Unique identifier for this model config */
     id: string;
-    /** Direct SDK model ID (for Anthropic SDK, OpenAI SDK) - optional, only for supported providers */
+    /** Direct SDK model ID (for Anthropic/OpenAI native SDKs) - optional, only for supported providers */
     directModelId?: string;
     /** OpenRouter model ID (for fallback/other providers) */
     openRouterId: string;
@@ -379,4 +379,3 @@ export interface KripToeNiteConfig {
 export type {
     KTNModelConfig as ModelConfig,
 };
-

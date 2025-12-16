@@ -6,8 +6,8 @@
  * - openRouterId: For OpenRouter fallback
  *
  * VERIFIED: December 16, 2025 - Updated model IDs from official docs
- * - Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001
- * - OpenAI: gpt-5.2-pro, gpt-4o, etc.
+ * - Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929
+ * - OpenAI: gpt-5.2-pro, gpt-4o, gpt-4o-mini
  * - Other providers: Via OpenRouter only
  */
 
@@ -20,7 +20,6 @@ import type { KTNModelConfig, ModelTier } from './types.js';
 export const DIRECT_ANTHROPIC_MODELS = {
     OPUS_4_5: 'claude-opus-4-5-20251101',
     SONNET_4_5: 'claude-sonnet-4-5-20250929',
-    HAIKU_4_5: 'claude-haiku-4-5-20251001',
 } as const;
 
 export const DIRECT_OPENAI_MODELS = {
@@ -30,7 +29,7 @@ export const DIRECT_OPENAI_MODELS = {
 } as const;
 
 // =============================================================================
-// MODEL DEFINITIONS - VERIFIED DECEMBER 7, 2025
+// MODEL DEFINITIONS - VERIFIED DECEMBER 16, 2025
 // =============================================================================
 
 /**
@@ -61,8 +60,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'gpt-4o-mini': {
         id: 'gpt-4o-mini',
-        directModelId: DIRECT_OPENAI_MODELS.GPT_4O_MINI, // For OpenAI SDK
-        openRouterId: 'openai/gpt-4o-mini',              // For OpenRouter fallback
+        directModelId: DIRECT_OPENAI_MODELS.GPT_4O_MINI,
+        openRouterId: 'openai/gpt-4o-mini',
         name: 'GPT-4o Mini',
         tier: 'speed',
         avgTtftMs: 200,
@@ -126,13 +125,13 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     // =========================================================================
     // INTELLIGENCE TIER - Best quality for complex tasks
-    // Verified December 7, 2025
+    // Verified December 16, 2025
     // =========================================================================
 
     'claude-opus-4.5': {
         id: 'claude-opus-4.5',
-        directModelId: DIRECT_ANTHROPIC_MODELS.OPUS_4_5, // For Anthropic SDK
-        openRouterId: 'anthropic/claude-opus-4.5',       // For OpenRouter fallback
+        directModelId: DIRECT_ANTHROPIC_MODELS.OPUS_4_5,
+        openRouterId: 'anthropic/claude-opus-4.5',
         name: 'Claude Opus 4.5',
         tier: 'intelligence',
         avgTtftMs: 1200,
@@ -148,8 +147,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'claude-sonnet-4.5': {
         id: 'claude-sonnet-4.5',
-        directModelId: DIRECT_ANTHROPIC_MODELS.SONNET_4_5, // For Anthropic SDK
-        openRouterId: 'anthropic/claude-sonnet-4.5',       // For OpenRouter fallback
+        directModelId: DIRECT_ANTHROPIC_MODELS.SONNET_4_5,
+        openRouterId: 'anthropic/claude-sonnet-4.5',
         name: 'Claude Sonnet 4.5',
         tier: 'intelligence',
         avgTtftMs: 800,
@@ -181,9 +180,9 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     'gpt-5.1-codex-max': {
         id: 'gpt-5.1-codex-max',
-        directModelId: 'gpt-5.1-codex-max',        // For OpenAI SDK (same ID)
-        openRouterId: 'openai/gpt-5.1-codex-max',  // For OpenRouter fallback
-        name: 'GPT-5.1 Codex Max',
+        directModelId: DIRECT_OPENAI_MODELS.GPT_5_2_PRO,
+        openRouterId: 'openai/gpt-5.1-codex-max',
+        name: 'GPT-5.2 Pro',
         tier: 'intelligence',
         avgTtftMs: 700,
         avgTpsMs: 10,
@@ -462,7 +461,7 @@ export function getAllModelsForDisplay(): Array<{
         // Krip-Toe-Nite is THE recommended option
         {
             id: 'krip-toe-nite',
-            name: 'Krip-Toe-Nite ✨',
+            name: 'Krip-Toe-Nite',
             tier: 'intelligence' as ModelTier,
             description: 'Intelligent orchestration - fastest + best quality',
             speed: 'fast',
@@ -491,7 +490,7 @@ export function getAllModelsForDisplay(): Array<{
         },
         {
             id: 'gpt-5.1-codex-max',
-            name: 'GPT-5.1 Codex Max',
+            name: 'GPT-5.2 Pro',
             tier: 'intelligence',
             description: 'OpenAI agentic coding with 400K context',
             speed: 'medium',
