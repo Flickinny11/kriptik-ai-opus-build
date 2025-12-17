@@ -18,16 +18,6 @@ import { useFeatureAgentStore, type RunningAgent, type GhostModeAgentConfig } fr
 import './AgentsCommandCenter.css';
 
 // Custom SVG Icons (no lucide-react)
-function IconGhost() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M8 1.5C5.24 1.5 3 3.74 3 6.5v5.5c0 .28.22.5.5.5.14 0 .27-.05.35-.15L5 11.2l.65.65c.09.1.22.15.35.15s.27-.05.35-.15L8 10.2l1.65 1.65c.09.1.22.15.35.15s.27-.05.35-.15l.65-.65 1.15 1.15c.09.1.21.15.35.15.28 0 .5-.22.5-.5V6.5c0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="6" cy="6" r="0.75" fill="currentColor" />
-      <circle cx="10" cy="6" r="0.75" fill="currentColor" />
-    </svg>
-  );
-}
-
 function IconMail() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -51,16 +41,6 @@ function IconBell() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <path d="M7 1.5c-2.21 0-4 1.79-4 4v2l-.8 1.6c-.12.24.05.4.3.4h9c.25 0 .42-.16.3-.4L11 7.5v-2c0-2.21-1.79-4-4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M5.5 11c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconSave() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M11 13H3a1 1 0 01-1-1V2a1 1 0 011-1h6l3 3v8a1 1 0 01-1 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 1v3H6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5 8h4M5 10h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -90,33 +70,6 @@ const DEFAULT_GHOST_CONFIG: GhostModeAgentConfig = {
   notifyOnCompletion: true,
   mergeWhenComplete: false,
 };
-
-// Saved contact info storage key
-const SAVED_CONTACTS_KEY = 'kriptik-ghost-mode-contacts';
-
-interface SavedContacts {
-  emails: string[];
-  phones: string[];
-}
-
-function getSavedContacts(): SavedContacts {
-  try {
-    const saved = localStorage.getItem(SAVED_CONTACTS_KEY);
-    return saved ? JSON.parse(saved) : { emails: [], phones: [] };
-  } catch {
-    return { emails: [], phones: [] };
-  }
-}
-
-function saveContact(type: 'email' | 'phone', value: string) {
-  const contacts = getSavedContacts();
-  if (type === 'email' && !contacts.emails.includes(value)) {
-    contacts.emails.push(value);
-  } else if (type === 'phone' && !contacts.phones.includes(value)) {
-    contacts.phones.push(value);
-  }
-  localStorage.setItem(SAVED_CONTACTS_KEY, JSON.stringify(contacts));
-}
 
 // Production AI Models - Comprehensive list with thinking/codex variants
 const AI_MODELS = [
@@ -384,21 +337,26 @@ interface RunningAgentTileProps {
 
 // Ghost Mode Configuration Panel
 interface GhostModeConfigPanelProps {
-  onSaveConfig: (config: GhostModeAgentConfig) => void;
+  onSaveConfig: (config: GhostModeAgentConfig, enabled: boolean) => void;
   currentConfig: GhostModeAgentConfig | null;
+  isEnabled: boolean;
 }
 
-function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPanelProps) {
-  const [config, setConfig] = useState<GhostModeAgentConfig>(currentConfig || DEFAULT_GHOST_CONFIG);
-  const [savedContacts, setSavedContacts] = useState<SavedContacts>(getSavedContacts());
+// Extended config with error level
+interface ExtendedGhostConfig extends GhostModeAgentConfig {
+  errorAlertLevel: 'all' | 'critical' | 'warning' | 'none';
+}
+
+function GhostModeConfigPanel({ onSaveConfig, currentConfig, isEnabled: initialEnabled }: GhostModeConfigPanelProps) {
+  const [isEnabled, setIsEnabled] = useState(initialEnabled);
+  const [config, setConfig] = useState<ExtendedGhostConfig>({
+    ...(currentConfig || DEFAULT_GHOST_CONFIG),
+    errorAlertLevel: 'all',
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showEmailInput, setShowEmailInput] = useState(false);
-  const [showPhoneInput, setShowPhoneInput] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [newPhone, setNewPhone] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const updateConfig = <K extends keyof GhostModeAgentConfig>(key: K, value: GhostModeAgentConfig[K]) => {
+  const updateConfig = <K extends keyof ExtendedGhostConfig>(key: K, value: ExtendedGhostConfig[K]) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) {
       setErrors((prev) => {
@@ -410,30 +368,12 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
     setSaveSuccess(false);
   };
 
-  const handleSaveEmail = () => {
-    if (newEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      saveContact('email', newEmail);
-      setSavedContacts(getSavedContacts());
-      updateConfig('emailAddress', newEmail);
-      setNewEmail('');
-      setShowEmailInput(false);
-      setErrors((prev) => { const next = { ...prev }; delete next.newEmail; return next; });
-    } else {
-      setErrors((prev) => ({ ...prev, newEmail: 'Invalid email format' }));
-    }
+  const validateEmail = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSavePhone = () => {
-    if (newPhone && /^\+?[\d\s-]{10,}$/.test(newPhone)) {
-      saveContact('phone', newPhone);
-      setSavedContacts(getSavedContacts());
-      updateConfig('phoneNumber', newPhone);
-      setNewPhone('');
-      setShowPhoneInput(false);
-      setErrors((prev) => { const next = { ...prev }; delete next.newPhone; return next; });
-    } else {
-      setErrors((prev) => ({ ...prev, newPhone: 'Invalid phone format' }));
-    }
+  const validatePhone = (phone: string): boolean => {
+    return /^\+?[\d\s-]{10,}$/.test(phone);
   };
 
   const validate = (): boolean => {
@@ -441,11 +381,11 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
     if (config.maxBudgetUSD <= 0) {
       newErrors.budget = 'Budget must be greater than 0';
     }
-    if (config.notifyEmail && !config.emailAddress?.trim()) {
-      newErrors.email = 'Select or add an email address';
+    if (config.notifyEmail && config.emailAddress && !validateEmail(config.emailAddress)) {
+      newErrors.email = 'Invalid email format';
     }
-    if (config.notifySMS && !config.phoneNumber?.trim()) {
-      newErrors.phone = 'Select or add a phone number';
+    if (config.notifySMS && config.phoneNumber && !validatePhone(config.phoneNumber)) {
+      newErrors.phone = 'Invalid phone format (10+ digits required)';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -453,25 +393,45 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
 
   const handleSave = async () => {
     if (!validate()) return;
-    if (config.notifyPush && 'Notification' in window) {
+    if (isEnabled && config.notifyPush && 'Notification' in window) {
       await Notification.requestPermission();
     }
-    onSaveConfig(config);
+    onSaveConfig(config, isEnabled);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleToggleEnable = () => {
+    setIsEnabled(!isEnabled);
+    setSaveSuccess(false);
   };
 
   return (
     <div className="acc-v2__ghost-config">
       <div className="acc-v2__ghost-header">
-        <div className="acc-v2__ghost-icon"><IconGhost /></div>
+        <div className="acc-v2__ghost-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a7 7 0 0 0-7 7v6a5 5 0 0 0 2 4l1 1h2l1-2 2 2 2-2 1 2h2l1-1a5 5 0 0 0 2-4V9a7 7 0 0 0-7-7Z"/>
+            <circle cx="9" cy="10" r="1.5" fill="currentColor"/>
+            <circle cx="15" cy="10" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
         <div className="acc-v2__ghost-title-area">
-          <h3 className="acc-v2__ghost-title">Ghost Mode Configuration</h3>
-          <p className="acc-v2__ghost-subtitle">Configure autonomous agent execution settings</p>
+          <h3 className="acc-v2__ghost-title">Ghost Mode</h3>
+          <p className="acc-v2__ghost-subtitle">Autonomous agent execution</p>
+        </div>
+        <div className="acc-v2__ghost-toggle-wrapper">
+          <button
+            className={`acc-v2__ghost-toggle ${isEnabled ? 'acc-v2__ghost-toggle--active' : ''}`}
+            onClick={handleToggleEnable}
+            title={isEnabled ? 'Disable Ghost Mode' : 'Enable Ghost Mode'}
+          >
+            <span className="acc-v2__ghost-toggle-knob" />
+          </button>
         </div>
       </div>
 
-      <div className="acc-v2__ghost-content">
+      <div className={`acc-v2__ghost-content ${!isEnabled ? 'acc-v2__ghost-content--disabled' : ''}`}>
         {/* Token Usage Budget */}
         <div className="acc-v2__ghost-section">
           <label className="acc-v2__ghost-label">Token Usage Max Budget</label>
@@ -484,10 +444,27 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
               onChange={(e) => updateConfig('maxBudgetUSD', parseFloat(e.target.value) || 0)}
               min={1}
               step={1}
+              disabled={!isEnabled}
             />
             <span className="acc-v2__ghost-budget-suffix">USD</span>
           </div>
           {errors.budget && <span className="acc-v2__ghost-error">{errors.budget}</span>}
+        </div>
+
+        {/* Error Alert Level */}
+        <div className="acc-v2__ghost-section">
+          <label className="acc-v2__ghost-label">Error Alert Level</label>
+          <select
+            className="acc-v2__ghost-select-styled"
+            value={config.errorAlertLevel}
+            onChange={(e) => updateConfig('errorAlertLevel', e.target.value as ExtendedGhostConfig['errorAlertLevel'])}
+            disabled={!isEnabled}
+          >
+            <option value="all">All Errors</option>
+            <option value="critical">Critical Only</option>
+            <option value="warning">Warning & Above</option>
+            <option value="none">No Error Alerts</option>
+          </select>
         </div>
 
         {/* Alert Scenarios */}
@@ -495,22 +472,22 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
           <label className="acc-v2__ghost-label">Alert Me When</label>
           <div className="acc-v2__ghost-alerts">
             <label className="acc-v2__ghost-checkbox-label">
-              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnErrors} onChange={(e) => updateConfig('notifyOnErrors', e.target.checked)} />
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnErrors} onChange={(e) => updateConfig('notifyOnErrors', e.target.checked)} disabled={!isEnabled} />
               <span className="acc-v2__ghost-checkbox-custom" />
               <span>Errors Occur</span>
             </label>
             <label className="acc-v2__ghost-checkbox-label">
-              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnDecisions} onChange={(e) => updateConfig('notifyOnDecisions', e.target.checked)} />
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnDecisions} onChange={(e) => updateConfig('notifyOnDecisions', e.target.checked)} disabled={!isEnabled} />
               <span className="acc-v2__ghost-checkbox-custom" />
               <span>Decisions Needed</span>
             </label>
             <label className="acc-v2__ghost-checkbox-label">
-              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnBudgetThreshold} onChange={(e) => updateConfig('notifyOnBudgetThreshold', e.target.checked)} />
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnBudgetThreshold} onChange={(e) => updateConfig('notifyOnBudgetThreshold', e.target.checked)} disabled={!isEnabled} />
               <span className="acc-v2__ghost-checkbox-custom" />
               <span>Budget Threshold ({config.budgetThresholdPercent}%)</span>
             </label>
             <label className="acc-v2__ghost-checkbox-label">
-              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnCompletion} onChange={(e) => updateConfig('notifyOnCompletion', e.target.checked)} />
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyOnCompletion} onChange={(e) => updateConfig('notifyOnCompletion', e.target.checked)} disabled={!isEnabled} />
               <span className="acc-v2__ghost-checkbox-custom" />
               <span>Task Completion</span>
             </label>
@@ -522,68 +499,60 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
           <label className="acc-v2__ghost-label">Notification Methods</label>
           <div className="acc-v2__ghost-notify-methods">
             <label className="acc-v2__ghost-checkbox-label">
-              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyPush} onChange={(e) => updateConfig('notifyPush', e.target.checked)} />
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyPush} onChange={(e) => updateConfig('notifyPush', e.target.checked)} disabled={!isEnabled} />
               <span className="acc-v2__ghost-checkbox-custom" /><IconBell /><span>KripTik Notifications</span>
             </label>
 
-            <div className="acc-v2__ghost-notify-row">
-              <label className="acc-v2__ghost-checkbox-label">
-                <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifySMS} onChange={(e) => updateConfig('notifySMS', e.target.checked)} />
-                <span className="acc-v2__ghost-checkbox-custom" /><IconPhone /><span>SMS</span>
-              </label>
-              {config.notifySMS && (
-                <div className="acc-v2__ghost-contact-select">
-                  {savedContacts.phones.length > 0 && (
-                    <select className="acc-v2__ghost-select" value={config.phoneNumber || ''} onChange={(e) => updateConfig('phoneNumber', e.target.value)}>
-                      <option value="">Select phone...</option>
-                      {savedContacts.phones.map((phone) => (<option key={phone} value={phone}>{phone}</option>))}
-                    </select>
-                  )}
-                  {!showPhoneInput ? (
-                    <button className="acc-v2__ghost-add-btn" onClick={() => setShowPhoneInput(true)}>+ Add New</button>
-                  ) : (
-                    <div className="acc-v2__ghost-input-row">
-                      <input type="tel" className={`acc-v2__ghost-input ${errors.newPhone ? 'acc-v2__ghost-input--error' : ''}`} placeholder="+1 555-555-5555" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-                      <button className="acc-v2__ghost-save-btn" onClick={handleSavePhone}><IconSave /></button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {errors.phone && <span className="acc-v2__ghost-error">{errors.phone}</span>}
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifySMS} onChange={(e) => updateConfig('notifySMS', e.target.checked)} disabled={!isEnabled} />
+              <span className="acc-v2__ghost-checkbox-custom" /><IconPhone /><span>SMS</span>
+            </label>
 
-            <div className="acc-v2__ghost-notify-row">
-              <label className="acc-v2__ghost-checkbox-label">
-                <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyEmail} onChange={(e) => updateConfig('notifyEmail', e.target.checked)} />
-                <span className="acc-v2__ghost-checkbox-custom" /><IconMail /><span>Email</span>
-              </label>
-              {config.notifyEmail && (
-                <div className="acc-v2__ghost-contact-select">
-                  {savedContacts.emails.length > 0 && (
-                    <select className="acc-v2__ghost-select" value={config.emailAddress || ''} onChange={(e) => updateConfig('emailAddress', e.target.value)}>
-                      <option value="">Select email...</option>
-                      {savedContacts.emails.map((email) => (<option key={email} value={email}>{email}</option>))}
-                    </select>
-                  )}
-                  {!showEmailInput ? (
-                    <button className="acc-v2__ghost-add-btn" onClick={() => setShowEmailInput(true)}>+ Add New</button>
-                  ) : (
-                    <div className="acc-v2__ghost-input-row">
-                      <input type="email" className={`acc-v2__ghost-input ${errors.newEmail ? 'acc-v2__ghost-input--error' : ''}`} placeholder="your@email.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                      <button className="acc-v2__ghost-save-btn" onClick={handleSaveEmail}><IconSave /></button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <label className="acc-v2__ghost-checkbox-label">
+              <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.notifyEmail} onChange={(e) => updateConfig('notifyEmail', e.target.checked)} disabled={!isEnabled} />
+              <span className="acc-v2__ghost-checkbox-custom" /><IconMail /><span>Email</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Email Input - Always Visible */}
+        <div className="acc-v2__ghost-section">
+          <div className="acc-v2__ghost-input-group">
+            <label className="acc-v2__ghost-input-label">Email Address</label>
+            <input
+              type="email"
+              className={`acc-v2__ghost-input-field ${errors.email ? 'acc-v2__ghost-input-field--error' : ''}`}
+              placeholder="your@email.com"
+              value={config.emailAddress || ''}
+              onChange={(e) => updateConfig('emailAddress', e.target.value)}
+              disabled={!isEnabled}
+            />
             {errors.email && <span className="acc-v2__ghost-error">{errors.email}</span>}
+            <span className="acc-v2__ghost-input-help">Used for email notifications when enabled</span>
+          </div>
+        </div>
+
+        {/* Phone Input - Always Visible */}
+        <div className="acc-v2__ghost-section">
+          <div className="acc-v2__ghost-input-group">
+            <label className="acc-v2__ghost-input-label">Phone Number</label>
+            <input
+              type="tel"
+              className={`acc-v2__ghost-input-field ${errors.phone ? 'acc-v2__ghost-input-field--error' : ''}`}
+              placeholder="+1 555-555-5555"
+              value={config.phoneNumber || ''}
+              onChange={(e) => updateConfig('phoneNumber', e.target.value)}
+              disabled={!isEnabled}
+            />
+            {errors.phone && <span className="acc-v2__ghost-error">{errors.phone}</span>}
+            <span className="acc-v2__ghost-input-help">Used for SMS notifications when enabled</span>
           </div>
         </div>
 
         {/* Auto-Merge Option */}
         <div className="acc-v2__ghost-section acc-v2__ghost-section--merge">
           <label className="acc-v2__ghost-checkbox-label">
-            <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.mergeWhenComplete} onChange={(e) => updateConfig('mergeWhenComplete', e.target.checked)} />
+            <input type="checkbox" className="acc-v2__ghost-checkbox" checked={config.mergeWhenComplete} onChange={(e) => updateConfig('mergeWhenComplete', e.target.checked)} disabled={!isEnabled} />
             <span className="acc-v2__ghost-checkbox-custom" />
             <span>Auto-merge when feature passes verification</span>
           </label>
@@ -592,7 +561,7 @@ function GhostModeConfigPanel({ onSaveConfig, currentConfig }: GhostModeConfigPa
 
       <div className="acc-v2__ghost-footer">
         <button className={`acc-v2__ghost-enable-btn ${saveSuccess ? 'acc-v2__ghost-enable-btn--success' : ''}`} onClick={handleSave}>
-          {saveSuccess ? <><IconCheck /><span>Settings Saved</span></> : <><IconGhost /><span>Save Ghost Mode Settings</span></>}
+          {saveSuccess ? <><IconCheck /><span>Settings Saved</span></> : <><span>{isEnabled ? 'Save & Enable Ghost Mode' : 'Save Settings'}</span></>}
         </button>
       </div>
     </div>
@@ -706,6 +675,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [ghostConfig, setGhostConfig] = useState<GhostModeAgentConfig | null>(null);
+  const [ghostModeEnabled, setGhostModeEnabled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const openTile = useFeatureAgentTileStore((s) => s.openTile);
 
@@ -718,14 +688,19 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
   useEffect(() => {
     try {
       const saved = localStorage.getItem('kriptik-ghost-mode-config');
-      if (saved) setGhostConfig(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setGhostConfig(parsed.config || parsed);
+        setGhostModeEnabled(parsed.enabled || false);
+      }
     } catch { /* ignore */ }
   }, []);
 
   // Save ghost config
-  const handleSaveGhostConfig = (config: GhostModeAgentConfig) => {
+  const handleSaveGhostConfig = (config: GhostModeAgentConfig, enabled: boolean) => {
     setGhostConfig(config);
-    localStorage.setItem('kriptik-ghost-mode-config', JSON.stringify(config));
+    setGhostModeEnabled(enabled);
+    localStorage.setItem('kriptik-ghost-mode-config', JSON.stringify({ config, enabled }));
   };
 
   // Sorted running agents - only active ones (most recent first)
@@ -802,7 +777,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           name: agentName,
           taskPrompt: taskPrompt.trim(),
           model: mapUiModelToDeveloperModeModel(selectedModel),
-          ghostModeConfig: ghostConfig || undefined,
+          ghostModeConfig: ghostModeEnabled ? ghostConfig || undefined : undefined,
         }
       );
       const realAgentId = created.agent?.id as string;
@@ -843,8 +818,8 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           progress: 5,
           taskPrompt: taskPrompt.trim(),
           startedAt: new Date().toISOString(),
-          ghostModeEnabled: !!ghostConfig,
-          ghostModeConfig: ghostConfig || undefined,
+          ghostModeEnabled: ghostModeEnabled,
+          ghostModeConfig: ghostModeEnabled ? ghostConfig || undefined : undefined,
         });
       }
 
@@ -1018,7 +993,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                 {tab === 'running' && sortedRunningAgents.length > 0 && (
                   <span className="acc-v2__tab-badge">{sortedRunningAgents.length}</span>
                 )}
-                {tab === 'ghost' && ghostConfig && (
+                {tab === 'ghost' && ghostModeEnabled && (
                   <span className="acc-v2__tab-badge acc-v2__tab-badge--ghost"><IconCheck /></span>
                 )}
                 {activeTab === tab && <div className="acc-v2__tab-glow" />}
@@ -1478,17 +1453,13 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                 exit={{ opacity: 0, y: -10 }}
                 className="acc-v2__ghost-tab"
               >
-                <GhostModeConfigPanel onSaveConfig={handleSaveGhostConfig} currentConfig={ghostConfig} />
+                <GhostModeConfigPanel onSaveConfig={handleSaveGhostConfig} currentConfig={ghostConfig} isEnabled={ghostModeEnabled} />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Resize handles for proper window resizing */}
-      <div className="acc-v2__resize-handle acc-v2__resize-handle--e" />
-      <div className="acc-v2__resize-handle acc-v2__resize-handle--s" />
-      <div className="acc-v2__resize-handle acc-v2__resize-handle--se" />
     </div>
   );
 }

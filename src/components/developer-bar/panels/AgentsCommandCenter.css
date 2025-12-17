@@ -1322,29 +1322,29 @@
 }
 
 /* ============================================================================
-   GHOST MODE TAB
+   GHOST MODE TAB - Uses amber/warm color scheme to match existing styling
    ============================================================================ */
 .acc-v2__tab--ghost {
-  color: rgba(168, 85, 247, 0.7);
+  color: rgba(245, 168, 108, 0.7);
 }
 
 .acc-v2__tab--ghost.acc-v2__tab--active {
   background: linear-gradient(
     145deg,
-    rgba(168, 85, 247, 0.15) 0%,
-    rgba(168, 85, 247, 0.05) 100%
+    rgba(245, 168, 108, 0.15) 0%,
+    rgba(245, 168, 108, 0.05) 100%
   );
-  border-color: rgba(168, 85, 247, 0.3);
-  color: #C084FC;
+  border-color: rgba(245, 168, 108, 0.3);
+  color: var(--amber);
 }
 
 .acc-v2__tab--ghost .acc-v2__tab-glow {
-  background: linear-gradient(135deg, #A855F7 0%, transparent 50%);
+  background: linear-gradient(135deg, var(--amber) 0%, transparent 50%);
 }
 
 .acc-v2__tab-badge--ghost {
-  background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
-  box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, var(--amber) 0%, #D46A4A 100%);
+  box-shadow: 0 2px 6px rgba(245, 168, 108, 0.3);
 }
 
 .acc-v2__ghost-tab {
@@ -1352,7 +1352,7 @@
 }
 
 /* ============================================================================
-   GHOST MODE CONFIGURATION PANEL
+   GHOST MODE CONFIGURATION PANEL - Amber/warm color scheme
    ============================================================================ */
 .acc-v2__ghost-config {
   background: linear-gradient(
@@ -1361,13 +1361,13 @@
     rgba(20, 24, 33, 0.95) 100%
   );
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(245, 168, 108, 0.15);
   border-radius: 16px;
   overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 4px 16px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(168, 85, 247, 0.08);
+    0 0 30px rgba(245, 168, 108, 0.08);
 }
 
 .acc-v2__ghost-header {
@@ -1376,7 +1376,7 @@
   gap: 12px;
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(245, 168, 108, 0.08) 0%, transparent 100%);
 }
 
 .acc-v2__ghost-icon {
@@ -1385,10 +1385,10 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(245, 168, 108, 0.25) 0%, rgba(245, 168, 108, 0.1) 100%);
   border-radius: 10px;
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  color: #C084FC;
+  border: 1px solid rgba(245, 168, 108, 0.35);
+  color: var(--amber);
 }
 
 .acc-v2__ghost-title-area {
@@ -1408,12 +1408,136 @@
   margin: 2px 0 0;
 }
 
+/* Ghost Mode Enable Toggle Switch */
+.acc-v2__ghost-toggle-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.acc-v2__ghost-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.acc-v2__ghost-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.acc-v2__ghost-toggle--active {
+  background: linear-gradient(135deg, rgba(245, 168, 108, 0.4) 0%, rgba(245, 168, 108, 0.2) 100%);
+  border-color: rgba(245, 168, 108, 0.5);
+}
+
+.acc-v2__ghost-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.acc-v2__ghost-toggle--active .acc-v2__ghost-toggle-knob {
+  left: 22px;
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(245, 168, 108, 0.4);
+}
+
+/* Ghost Mode Disabled State Overlay */
+.acc-v2__ghost-content--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Error Level Severity Dropdown */
+.acc-v2__ghost-select-styled {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.acc-v2__ghost-select-styled:focus {
+  border-color: rgba(245, 168, 108, 0.4);
+}
+
+.acc-v2__ghost-select-styled option {
+  background: #1c222d;
+  color: #fff;
+}
+
+/* Input Fields Section */
+.acc-v2__ghost-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acc-v2__ghost-input-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.acc-v2__ghost-input-field {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.acc-v2__ghost-input-field:focus {
+  border-color: rgba(245, 168, 108, 0.4);
+}
+
+.acc-v2__ghost-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.acc-v2__ghost-input-field--error {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.acc-v2__ghost-input-help {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 2px;
+}
+
 .acc-v2__ghost-content {
   padding: 16px;
   max-height: 400px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(168, 85, 247, 0.2) transparent;
+  scrollbar-color: rgba(245, 168, 108, 0.2) transparent;
 }
 
 .acc-v2__ghost-content::-webkit-scrollbar {
@@ -1421,7 +1545,7 @@
 }
 
 .acc-v2__ghost-content::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.25);
+  background: rgba(245, 168, 108, 0.25);
   border-radius: 2px;
 }
 
@@ -1481,7 +1605,7 @@
 }
 
 .acc-v2__ghost-budget-input:focus {
-  color: #C084FC;
+  color: var(--amber);
 }
 
 /* Checkboxes */
@@ -1534,16 +1658,16 @@
 }
 
 .acc-v2__ghost-checkbox:checked + .acc-v2__ghost-checkbox-custom {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0.15) 100%);
-  border-color: rgba(168, 85, 247, 0.5);
+  background: linear-gradient(135deg, rgba(245, 168, 108, 0.3) 0%, rgba(245, 168, 108, 0.15) 100%);
+  border-color: rgba(245, 168, 108, 0.5);
 }
 
 .acc-v2__ghost-checkbox:checked + .acc-v2__ghost-checkbox-custom::after {
-  background: #C084FC;
+  background: var(--amber);
 }
 
 .acc-v2__ghost-checkbox:focus + .acc-v2__ghost-checkbox-custom {
-  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 0 2px rgba(245, 168, 108, 0.2);
 }
 
 .acc-v2__ghost-checkbox-label svg {
@@ -1581,15 +1705,15 @@
 }
 
 .acc-v2__ghost-select:focus {
-  border-color: rgba(168, 85, 247, 0.4);
+  border-color: rgba(245, 168, 108, 0.4);
 }
 
 .acc-v2__ghost-add-btn {
   padding: 8px 12px;
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(245, 168, 108, 0.1);
+  border: 1px solid rgba(245, 168, 108, 0.3);
   border-radius: 6px;
-  color: #C084FC;
+  color: var(--amber);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -1597,8 +1721,8 @@
 }
 
 .acc-v2__ghost-add-btn:hover {
-  background: rgba(168, 85, 247, 0.2);
-  border-color: rgba(168, 85, 247, 0.5);
+  background: rgba(245, 168, 108, 0.2);
+  border-color: rgba(245, 168, 108, 0.5);
 }
 
 .acc-v2__ghost-input-row {
@@ -1620,7 +1744,7 @@
 }
 
 .acc-v2__ghost-input:focus {
-  border-color: rgba(168, 85, 247, 0.4);
+  border-color: rgba(245, 168, 108, 0.4);
 }
 
 .acc-v2__ghost-input::placeholder {
@@ -1637,16 +1761,16 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: rgba(245, 168, 108, 0.15);
+  border: 1px solid rgba(245, 168, 108, 0.35);
   border-radius: 6px;
-  color: #C084FC;
+  color: var(--amber);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .acc-v2__ghost-save-btn:hover {
-  background: rgba(168, 85, 247, 0.25);
+  background: rgba(245, 168, 108, 0.25);
 }
 
 .acc-v2__ghost-error {
@@ -1672,7 +1796,7 @@
   justify-content: center;
   gap: 8px;
   padding: 12px 18px;
-  background: linear-gradient(135deg, #A855F7 0%, #9333EA 50%, #7C3AED 100%);
+  background: linear-gradient(135deg, var(--amber) 0%, #E88B4D 50%, #D46A4A 100%);
   border: none;
   border-radius: 10px;
   color: #fff;
@@ -1683,7 +1807,7 @@
   overflow: hidden;
   box-shadow:
     0 2px 0 rgba(0, 0, 0, 0.2),
-    0 4px 14px rgba(168, 85, 247, 0.35),
+    0 4px 14px rgba(245, 168, 108, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.2s;
 }
@@ -1702,7 +1826,7 @@
   transform: translateY(-1px);
   box-shadow:
     0 4px 0 rgba(0, 0, 0, 0.2),
-    0 8px 24px rgba(168, 85, 247, 0.45),
+    0 8px 24px rgba(245, 168, 108, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -1900,11 +2024,11 @@
   gap: 8px;
   padding: 8px 12px;
   margin-bottom: 12px;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0.04) 100%);
-  border: 1px solid rgba(168, 85, 247, 0.25);
+  background: linear-gradient(135deg, rgba(245, 168, 108, 0.12) 0%, rgba(245, 168, 108, 0.04) 100%);
+  border: 1px solid rgba(245, 168, 108, 0.25);
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
-  color: #C084FC;
+  color: var(--amber);
 }
 
