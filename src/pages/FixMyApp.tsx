@@ -1325,15 +1325,13 @@ export default function FixMyApp() {
                                                     </button>
                                                     <button
                                                         onClick={() => {
-                                                            // Show checking toast
-                                                            toast({
-                                                                title: 'Checking for extension...',
-                                                                description: 'Looking for KripTik AI extension',
-                                                            });
+                                                            // Track if we got a response (local var to avoid stale closure)
+                                                            let gotResponse = false;
 
-                                                            // Set up listener for response
+                                                            // Set up listener for response BEFORE showing toast
                                                             const handlePong = (event: MessageEvent) => {
                                                                 if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                                                                    gotResponse = true;
                                                                     setExtensionInstalled(true);
                                                                     setExtensionCheckComplete(true);
                                                                     window.removeEventListener('message', handlePong);
@@ -1348,10 +1346,10 @@ export default function FixMyApp() {
                                                             // Send ping
                                                             window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
 
-                                                            // Timeout - if no response after 1.5s, suggest refresh
+                                                            // Timeout - if no response after 1.5s, show error
                                                             setTimeout(() => {
                                                                 window.removeEventListener('message', handlePong);
-                                                                if (!extensionInstalled) {
+                                                                if (!gotResponse) {
                                                                     toast({
                                                                         title: 'Extension not detected',
                                                                         description: 'Please refresh the page after installing, or check that the extension is enabled.',
