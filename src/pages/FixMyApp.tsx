@@ -696,10 +696,26 @@ export default function FixMyApp() {
 
         checkExtension();
     }, []);
+
+    // Clean up Fix My App session when workflow completes or component unmounts
+    useEffect(() => {
+        // End session when step becomes 'complete'
+        if (step === 'complete' && extensionInstalled) {
+            window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
+        }
+
+        // Also cleanup on unmount
+        return () => {
+            if (extensionInstalled) {
+                window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
+            }
+        };
+    }, [step, extensionInstalled]);
+
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
-    const [chatHistory, setChatHistory] = useState('');
     const [projectUrl, setProjectUrl] = useState(''); // URL of user's project in AI builder
+    const [chatHistory, setChatHistory] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentPhase, setCurrentPhase] = useState('');
@@ -1344,6 +1360,35 @@ export default function FixMyApp() {
                                     </motion.div>
                                 )}
 
+                                {/* Project URL Input - For AI Builders */}
+                                {requiresBrowserLogin() && (
+                                    <div className="mb-8 p-6 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                        <label className="block text-sm font-medium text-white mb-2">
+                                            Your Project URL in {sourceOptions.find(s => s.id === source)?.name}
+                                        </label>
+                                        <p className="text-sm text-slate-400 mb-4">
+                                            Paste the URL of your project. This is the page where you can see your chat history and code.
+                                        </p>
+                                        <input
+                                            type="url"
+                                            value={projectUrl}
+                                            onChange={(e) => setProjectUrl(e.target.value)}
+                                            placeholder={
+                                                source === 'bolt' ? 'https://bolt.new/~/your-project-id' :
+                                                source === 'lovable' ? 'https://lovable.dev/projects/your-project-id' :
+                                                source === 'v0' ? 'https://v0.dev/chat/your-chat-id' :
+                                                'https://...'
+                                            }
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all"
+                                        />
+                                        {projectUrl && !projectUrl.includes(source || '') && (
+                                            <p className="mt-2 text-sm text-amber-400">
+                                                Make sure this URL is from {sourceOptions.find(s => s.id === source)?.name}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="space-y-4 mb-8">
                                     {[
                                         { key: 'chatHistory', label: 'Chat/Conversation History', description: 'What you asked for, what the AI responded, where errors first appeared' },
@@ -1415,11 +1460,19 @@ export default function FixMyApp() {
                                     <button
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
-                                                // Open user's specific project URL - extension will handle capture
-                                                const platformUrl = getPlatformUrl();
-                                                if (platformUrl) {
-                                                    window.open(platformUrl, '_blank');
-                                                }
+                                                // Signal extension to start Fix My App session BEFORE opening platform
+                                                window.postMessage({
+                                                    type: 'KRIPTIK_START_FIX_SESSION',
+                                                    projectName: session?.sessionId || 'Imported Project',
+                                                    returnUrl: window.location.href,
+                                                    apiEndpoint: window.location.origin,
+                                                    token: localStorage.getItem('auth_token') || ''
+                                                }, '*');
+
+                                                // Open the user's specific project URL, not the homepage
+                                                setTimeout(() => {
+                                                    window.open(projectUrl, '_blank');
+                                                }, 100); // Small delay to ensure session is stored
                                             }
                                             submitConsent();
                                         }}
@@ -1430,7 +1483,7 @@ export default function FixMyApp() {
                                         {isLoading ? (
                                             <><Loader2Icon size={16} className="animate-spin" /> Saving...</>
                                         ) : extensionInstalled && requiresBrowserLogin() ? (
-                                            <>Open {sourceOptions.find(s => s.id === source)?.name} & Capture <ArrowRightIcon size={16} /></>
+                                            <>Open Project & Capture <ArrowRightIcon size={16} /></>
                                         ) : (
                                             <>Grant Access & Continue <ArrowRightIcon size={16} /></>
                                         )}
