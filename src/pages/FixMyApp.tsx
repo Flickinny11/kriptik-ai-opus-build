@@ -1489,11 +1489,13 @@ export default function FixMyApp() {
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
                                                 // Signal extension to start Fix My App session BEFORE opening platform
+                                                // Use backend API URL from env, not frontend origin
+                                                const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
                                                 const sessionData = {
                                                     type: 'KRIPTIK_START_FIX_SESSION',
                                                     projectName: session?.sessionId || 'Imported Project',
                                                     returnUrl: window.location.href,
-                                                    apiEndpoint: window.location.origin,
+                                                    apiEndpoint: backendUrl,
                                                     token: localStorage.getItem('auth_token') || 'kriptik_session_' + Date.now()
                                                 };
                                                 console.log('[KripTik] Sending session to extension:', sessionData);
