@@ -344,8 +344,9 @@ function detectFramework(fileList: string[]): string {
 /**
  * POST /api/extension/import
  * Receive import data from browser extension
+ * Uses optionalAuthMiddleware to populate req.user from session cookies if available
  */
-router.post('/import', async (req: Request, res: Response) => {
+router.post('/import', optionalAuthMiddleware, async (req: Request, res: Response) => {
     try {
         // Validate extension token OR regular auth
         const authHeader = req.headers.authorization;
@@ -453,14 +454,13 @@ router.post('/import', async (req: Request, res: Response) => {
             type: 'project_imported',
             title: `Project Imported: ${projectName}`,
             message: `Your project from ${payload.platform.name} has been imported with ${payload.chatHistory?.messageCount || 0} chat messages and ${payload.errors?.count || 0} errors captured. Analysis will begin automatically.`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 platform: payload.platform.id,
                 chatMessages: payload.chatHistory?.messageCount || 0,
                 errors: payload.errors?.count || 0,
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
 
         // Start Fix My App analysis in background (non-blocking)
@@ -861,7 +861,7 @@ async function startFixMyAppAnalysis(
             type: 'analysis_complete',
             title: 'Fix My App Analysis Complete',
             message: `Analysis of your ${payload.platform.name} project is complete. Found ${analysis.implementationGaps.length} issues to fix. Strategy: ${analysis.recommendedStrategy.approach}`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 sessionId: controller.id,
                 intent: analysis.intentSummary.corePurpose,
@@ -870,7 +870,6 @@ async function startFixMyAppAnalysis(
                 confidence: analysis.recommendedStrategy.confidence,
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
 
         // If confidence is high and gaps are found, auto-start fix (configurable)
@@ -887,12 +886,11 @@ async function startFixMyAppAnalysis(
                     type: 'fix_complete',
                     title: 'Your App Has Been Fixed!',
                     message: `We've automatically fixed your ${payload.platform.name} project. Check your dashboard to see the results.`,
-                    data: JSON.stringify({
+                    metadata: JSON.stringify({
                         projectId,
                         sessionId: controller.id,
                     }),
                     read: false,
-                    createdAt: new Date().toISOString(),
                 });
             }).catch(err => {
                 console.error(`[Fix My App] Auto-fix error for ${projectId}:`, err);
@@ -909,12 +907,11 @@ async function startFixMyAppAnalysis(
             type: 'analysis_error',
             title: 'Analysis Error',
             message: `There was an error analyzing your ${payload.platform.name} project. Our team has been notified.`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 error: error instanceof Error ? error.message : 'Unknown error',
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
     }
 }
