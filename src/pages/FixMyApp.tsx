@@ -697,19 +697,14 @@ export default function FixMyApp() {
         checkExtension();
     }, []);
 
-    // Clean up Fix My App session when workflow completes or component unmounts
+    // Clean up Fix My App session ONLY when workflow is fully complete
+    // DO NOT end session on unmount - user needs to navigate to AI builder to capture data
     useEffect(() => {
-        // End session when step becomes 'complete'
+        // End session only when step becomes 'complete' (workflow finished)
         if (step === 'complete' && extensionInstalled) {
             window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
         }
-
-        // Also cleanup on unmount
-        return () => {
-            if (extensionInstalled) {
-                window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
-            }
-        };
+        // Note: No cleanup on unmount - session must persist while user is on AI builder
     }, [step, extensionInstalled]);
 
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
