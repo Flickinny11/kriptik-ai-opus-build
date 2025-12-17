@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { RequiredCredential } from '@/store/useFeatureAgentTileStore';
 
 interface CredentialsCollectionViewProps {
   credentials: RequiredCredential[];
   onCredentialsSubmit: (credentials: Record<string, string>) => Promise<void> | void;
+  sessionToken?: string;
+  apiEndpoint?: string;
 }
+
+// Status of auto-capture per credential
+type AutoCaptureStatus = 'idle' | 'capturing' | 'captured' | 'error';
 
 function svgExternal(size = 14) {
   return (
@@ -40,12 +45,159 @@ function isSecretName(name: string): boolean {
   return n.includes('secret') || n.includes('token') || n.includes('key') || n.includes('password');
 }
 
-export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: CredentialsCollectionViewProps) {
+function svgWand(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M12.2 11.8L11 13M12.2 6.2L11 5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 21l9-9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function svgCheck(size = 14) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 6L9 17l-5-5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SpinnerIcon({ size = 14 }: { size?: number }) {
+  return (
+    <>
+      <style>
+        {`@keyframes kriptik-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}
+      </style>
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ animation: 'kriptik-spin 1s linear infinite' }}>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </>
+  );
+}
+
+// Check if KripTik extension is installed
+async function checkExtensionInstalled(): Promise<boolean> {
+  try {
+    // Try to communicate with the extension
+    // The extension should respond to this message if installed
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(false), 1000);
+
+      // Use window.postMessage to communicate with content script
+      window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+          clearTimeout(timeout);
+          window.removeEventListener('message', handler);
+          resolve(true);
+        }
+      };
+
+      window.addEventListener('message', handler);
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function CredentialsCollectionView({ credentials, onCredentialsSubmit, sessionToken, apiEndpoint }: CredentialsCollectionViewProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [extensionInstalled, setExtensionInstalled] = useState(false);
+  const [autoCaptureStatus, setAutoCaptureStatus] = useState<Record<string, AutoCaptureStatus>>({});
 
   const required = useMemo(() => credentials.filter((c) => c.required), [credentials]);
   const ready = useMemo(() => required.every((c) => (values[c.envVariableName] || '').trim().length > 0), [required, values]);
+
+  // Check if extension is installed on mount
+  useEffect(() => {
+    checkExtensionInstalled().then(setExtensionInstalled);
+  }, []);
+
+  // Listen for credentials returned from extension
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'KRIPTIK_CREDENTIALS_RECEIVED' && event.data?.credentials) {
+        const receivedCredentials = event.data.credentials as Record<string, string>;
+
+        // Update values with received credentials
+        setValues((prev) => ({ ...prev, ...receivedCredentials }));
+
+        // Update capture status
+        setAutoCaptureStatus((prev) => {
+          const updated = { ...prev };
+          for (const key of Object.keys(receivedCredentials)) {
+            updated[key] = 'captured';
+          }
+          return updated;
+        });
+      }
+
+      if (event.data?.type === 'KRIPTIK_CAPTURE_CANCELLED') {
+        // Reset any "capturing" status to idle
+        setAutoCaptureStatus((prev) => {
+          const updated = { ...prev };
+          for (const key of Object.keys(updated)) {
+            if (updated[key] === 'capturing') {
+              updated[key] = 'idle';
+            }
+          }
+          return updated;
+        });
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // Start auto-capture for a specific credential or group
+  const startAutoCapture = useCallback((credential: RequiredCredential) => {
+    if (!extensionInstalled || !sessionToken || !apiEndpoint) return;
+
+    // Find all credentials from the same platform
+    const platformCredentials = credentials.filter(
+      (c) => c.platformUrl === credential.platformUrl
+    );
+
+    // Mark all as capturing
+    setAutoCaptureStatus((prev) => {
+      const updated = { ...prev };
+      for (const c of platformCredentials) {
+        updated[c.envVariableName] = 'capturing';
+      }
+      return updated;
+    });
+
+    // Send message to extension to start capture
+    window.postMessage({
+      type: 'KRIPTIK_START_CREDENTIAL_CAPTURE',
+      platformUrl: credential.platformUrl,
+      requiredCredentials: platformCredentials.map((c) => c.envVariableName),
+      sessionToken,
+      apiEndpoint,
+    }, '*');
+  }, [extensionInstalled, sessionToken, apiEndpoint, credentials]);
 
   const submit = async () => {
     if (!ready || submitting) return;
@@ -112,31 +264,87 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
                   </div>
                 </div>
 
-                <a
-                  href={c.platformUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    height: 30,
-                    padding: '0 10px',
-                    borderRadius: 12,
-                    border: '1px solid rgba(245,168,108,0.18)',
-                    background: 'linear-gradient(145deg, rgba(245,168,108,0.10), rgba(255,255,255,0.02))',
-                    color: 'rgba(255,255,255,0.86)',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    fontSize: 11,
-                    fontWeight: 750,
-                    letterSpacing: '0.06em',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={`Open ${c.platformName}`}
-                >
-                  {svgExternal(14)}
-                  <span>Open</span>
-                </a>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* Auto-capture button (only if extension installed and tokens available) */}
+                  {extensionInstalled && sessionToken && apiEndpoint && (
+                    <button
+                      onClick={() => startAutoCapture(c)}
+                      disabled={autoCaptureStatus[c.envVariableName] === 'capturing'}
+                      style={{
+                        height: 30,
+                        padding: '0 10px',
+                        borderRadius: 12,
+                        border: autoCaptureStatus[c.envVariableName] === 'captured'
+                          ? '1px solid rgba(122,232,160,0.3)'
+                          : '1px solid rgba(96,165,250,0.25)',
+                        background: autoCaptureStatus[c.envVariableName] === 'captured'
+                          ? 'linear-gradient(145deg, rgba(122,232,160,0.15), rgba(255,255,255,0.02))'
+                          : autoCaptureStatus[c.envVariableName] === 'capturing'
+                            ? 'linear-gradient(145deg, rgba(96,165,250,0.08), rgba(255,255,255,0.02))'
+                            : 'linear-gradient(145deg, rgba(96,165,250,0.15), rgba(255,255,255,0.02))',
+                        color: autoCaptureStatus[c.envVariableName] === 'captured'
+                          ? 'rgba(122,232,160,0.9)'
+                          : 'rgba(96,165,250,0.9)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 11,
+                        fontWeight: 750,
+                        letterSpacing: '0.06em',
+                        whiteSpace: 'nowrap',
+                        cursor: autoCaptureStatus[c.envVariableName] === 'capturing' ? 'not-allowed' : 'pointer',
+                        opacity: autoCaptureStatus[c.envVariableName] === 'capturing' ? 0.7 : 1,
+                      }}
+                      title={autoCaptureStatus[c.envVariableName] === 'captured'
+                        ? 'Captured'
+                        : autoCaptureStatus[c.envVariableName] === 'capturing'
+                          ? 'Capturing...'
+                          : 'Auto-capture with AI'}
+                    >
+                      {autoCaptureStatus[c.envVariableName] === 'captured' ? (
+                        svgCheck(14)
+                      ) : autoCaptureStatus[c.envVariableName] === 'capturing' ? (
+                        <SpinnerIcon size={14} />
+                      ) : (
+                        svgWand(14)
+                      )}
+                      <span>
+                        {autoCaptureStatus[c.envVariableName] === 'captured'
+                          ? 'Done'
+                          : autoCaptureStatus[c.envVariableName] === 'capturing'
+                            ? 'Capturing'
+                            : 'Auto'}
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Manual open link */}
+                  <a
+                    href={c.platformUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      height: 30,
+                      padding: '0 10px',
+                      borderRadius: 12,
+                      border: '1px solid rgba(245,168,108,0.18)',
+                      background: 'linear-gradient(145deg, rgba(245,168,108,0.10), rgba(255,255,255,0.02))',
+                      color: 'rgba(255,255,255,0.86)',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 11,
+                      fontWeight: 750,
+                      letterSpacing: '0.06em',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`Open ${c.platformName} manually`}
+                  >
+                    {svgExternal(14)}
+                    <span>Open</span>
+                  </a>
+                </div>
               </div>
 
               <div style={{ marginTop: 10 }}>

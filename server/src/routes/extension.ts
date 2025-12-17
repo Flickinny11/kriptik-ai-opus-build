@@ -773,4 +773,295 @@ router.get('/status', optionalAuthMiddleware, async (req: Request, res: Response
     });
 });
 
+// ============================================================================
+// VISION-BASED CREDENTIAL EXTRACTION
+// ============================================================================
+
+interface VisionExtractRequest {
+    screenshot: string; // Base64 PNG
+    targetCredentials: string[]; // e.g., ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']
+    currentUrl: string;
+    pageTitle: string;
+    pageText?: string;
+    attempt: number;
+}
+
+interface VisionExtractResponse {
+    success: boolean;
+    credentials?: Record<string, string>;
+    action: 'none' | 'navigate' | 'click' | 'scroll';
+    navigateTo?: string;
+    clickSelector?: string;
+    clickText?: string;
+    scrollDirection?: 'up' | 'down';
+    message?: string;
+}
+
+/**
+ * Credential extraction hints for common platforms
+ * Helps the AI understand where to find credentials
+ */
+const PLATFORM_HINTS: Record<string, {
+    credentials: Record<string, { hints: string[]; format?: RegExp; navigation?: string }>;
+    navigationTips: string[];
+}> = {
+    'console.cloud.google.com': {
+        credentials: {
+            'GOOGLE_CLIENT_ID': {
+                hints: ['OAuth 2.0 Client IDs', 'Client ID', 'ends with .apps.googleusercontent.com'],
+                format: /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/,
+                navigation: 'APIs & Services > Credentials'
+            },
+            'GOOGLE_CLIENT_SECRET': {
+                hints: ['Client secret', 'Secret', 'GOCSPX-'],
+                format: /^GOCSPX-[A-Za-z0-9_-]+$/,
+                navigation: 'APIs & Services > Credentials > OAuth client'
+            }
+        },
+        navigationTips: [
+            'Click on "APIs & Services" in the left menu',
+            'Then click on "Credentials"',
+            'Look for "OAuth 2.0 Client IDs" section',
+            'Click on the client name to see the secret'
+        ]
+    },
+    'dashboard.stripe.com': {
+        credentials: {
+            'STRIPE_PUBLISHABLE_KEY': {
+                hints: ['Publishable key', 'pk_live_', 'pk_test_'],
+                format: /^pk_(live|test)_[A-Za-z0-9]+$/,
+                navigation: 'Developers > API keys'
+            },
+            'STRIPE_SECRET_KEY': {
+                hints: ['Secret key', 'sk_live_', 'sk_test_', 'Reveal key'],
+                format: /^sk_(live|test)_[A-Za-z0-9]+$/,
+                navigation: 'Developers > API keys'
+            }
+        },
+        navigationTips: [
+            'Click on "Developers" in the left sidebar',
+            'Then click on "API keys"',
+            'You may need to click "Reveal key" to see the secret key'
+        ]
+    },
+    'supabase.com': {
+        credentials: {
+            'SUPABASE_URL': {
+                hints: ['Project URL', 'https://', '.supabase.co'],
+                format: /^https:\/\/[a-z0-9]+\.supabase\.co$/,
+                navigation: 'Settings > API'
+            },
+            'SUPABASE_ANON_KEY': {
+                hints: ['anon', 'public', 'anon key'],
+                format: /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+                navigation: 'Settings > API'
+            },
+            'SUPABASE_SERVICE_ROLE_KEY': {
+                hints: ['service_role', 'service role', 'secret'],
+                format: /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+                navigation: 'Settings > API'
+            }
+        },
+        navigationTips: [
+            'Go to your project dashboard',
+            'Click on "Settings" (gear icon)',
+            'Then click on "API" in the settings menu',
+            'All keys are listed on this page'
+        ]
+    },
+    'platform.openai.com': {
+        credentials: {
+            'OPENAI_API_KEY': {
+                hints: ['API key', 'sk-', 'Secret key'],
+                format: /^sk-[A-Za-z0-9]+$/,
+                navigation: 'API keys'
+            }
+        },
+        navigationTips: [
+            'Click on your profile in the top right',
+            'Go to "API keys"',
+            'You may need to create a new key if none exist'
+        ]
+    },
+    'console.anthropic.com': {
+        credentials: {
+            'ANTHROPIC_API_KEY': {
+                hints: ['API key', 'sk-ant-', 'Secret key'],
+                format: /^sk-ant-[A-Za-z0-9-]+$/,
+                navigation: 'API Keys'
+            }
+        },
+        navigationTips: [
+            'Go to Settings > API Keys',
+            'Create a new key if needed'
+        ]
+    },
+    'vercel.com': {
+        credentials: {
+            'VERCEL_TOKEN': {
+                hints: ['Token', 'API token'],
+                navigation: 'Settings > Tokens'
+            }
+        },
+        navigationTips: [
+            'Click on your avatar',
+            'Go to Settings',
+            'Click on Tokens'
+        ]
+    }
+};
+
+/**
+ * POST /api/extension/vision-extract
+ * Use AI vision to extract credentials from a screenshot
+ */
+router.post('/vision-extract', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const {
+            screenshot,
+            targetCredentials,
+            currentUrl,
+            pageTitle,
+            pageText,
+            attempt
+        } = req.body as VisionExtractRequest;
+
+        if (!screenshot || !targetCredentials || targetCredentials.length === 0) {
+            return res.status(400).json({
+                success: false,
+                action: 'none',
+                message: 'Missing required fields: screenshot and targetCredentials'
+            });
+        }
+
+        // Determine platform from URL
+        const urlObj = new URL(currentUrl);
+        const hostname = urlObj.hostname;
+        const platformHints = Object.entries(PLATFORM_HINTS).find(
+            ([domain]) => hostname.includes(domain)
+        )?.[1];
+
+        // Build context for the AI
+        const credentialHints = targetCredentials.map(cred => {
+            const hint = platformHints?.credentials[cred];
+            return hint ? `- ${cred}: Look for ${hint.hints.join(', ')}${hint.navigation ? ` (usually at: ${hint.navigation})` : ''}` : `- ${cred}`;
+        }).join('\n');
+
+        const navigationTips = platformHints?.navigationTips?.join('\n- ') || '';
+
+        // Import OpenRouter client dynamically to avoid circular deps
+        const { createOpenRouterClient, OPENROUTER_MODELS } = await import('../services/ai/openrouter-client.js');
+        const openRouter = createOpenRouterClient();
+
+        // Call vision model
+        const response = await openRouter.messages.create({
+            model: OPENROUTER_MODELS.SONNET_4_5,
+            max_tokens: 2000,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: 'image/png',
+                                data: screenshot
+                            }
+                        },
+                        {
+                            type: 'text',
+                            text: `You are a credential extraction assistant. Analyze this screenshot to find API keys and credentials.
+
+**Current URL:** ${currentUrl}
+**Page Title:** ${pageTitle}
+**Extraction Attempt:** ${attempt}
+
+**Credentials Needed:**
+${credentialHints}
+
+${navigationTips ? `**Navigation Tips for this Platform:**\n- ${navigationTips}` : ''}
+
+${pageText ? `**Visible Text (partial):** ${pageText.slice(0, 1000)}...` : ''}
+
+**Your Task:**
+1. Look at the screenshot carefully
+2. If you can see any of the requested credentials, extract them EXACTLY as shown
+3. If credentials are not visible, determine what navigation or action is needed
+
+**Response Format (JSON only):**
+{
+  "success": true/false,
+  "credentials": {
+    "CREDENTIAL_NAME": "actual_value_from_screenshot"
+  },
+  "action": "none" | "navigate" | "click" | "scroll",
+  "navigateTo": "URL or menu item to click",
+  "clickText": "text of button/link to click",
+  "scrollDirection": "up" | "down",
+  "message": "explanation of what you found or what action to take"
+}
+
+**Important Rules:**
+- Only extract credentials you can ACTUALLY SEE in the screenshot
+- Never guess or make up credential values
+- If you see a "Show" or "Reveal" button next to a hidden credential, set action to "click"
+- If credentials are on a different page, set action to "navigate"
+- Include the full credential value, not truncated
+- Return ONLY valid JSON, no markdown code blocks`
+                        }
+                    ]
+                }
+            ]
+        });
+
+        // Parse the AI response
+        const content = response.content[0];
+        if (content.type !== 'text') {
+            return res.json({
+                success: false,
+                action: 'none',
+                message: 'Unexpected response format from AI'
+            });
+        }
+
+        // Extract JSON from response (handle potential markdown wrapping)
+        let jsonText = content.text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+        }
+
+        const result: VisionExtractResponse = JSON.parse(jsonText);
+
+        // Validate extracted credentials against known formats
+        if (result.success && result.credentials && platformHints) {
+            for (const [key, value] of Object.entries(result.credentials)) {
+                const hint = platformHints.credentials[key];
+                if (hint?.format && !hint.format.test(value)) {
+                    console.warn(`[Vision Extract] Credential ${key} doesn't match expected format`);
+                    // Don't reject, but log for debugging
+                }
+            }
+        }
+
+        console.log(`[Vision Extract] Attempt ${attempt}: ${result.success ? 'Found credentials' : result.action}`);
+
+        return res.json(result);
+
+    } catch (error) {
+        console.error('[Vision Extract] Error:', error);
+
+        // Try to determine if it's a parsing error
+        const isParseError = error instanceof SyntaxError;
+
+        return res.status(isParseError ? 422 : 500).json({
+            success: false,
+            action: 'none',
+            message: isParseError
+                ? 'Failed to parse AI response'
+                : 'Vision extraction failed'
+        });
+    }
+});
+
 export { router as extensionRouter };
