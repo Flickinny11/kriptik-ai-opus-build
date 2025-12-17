@@ -310,6 +310,14 @@ app.use((req, res, next) => {
         allowedOrigins.includes(origin) ||
         allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
 
+    // Allow Chrome and Firefox extensions
+    if (!isAllowed && origin) {
+        if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+            console.log(`[CORS Preflight] Allowing browser extension: ${origin}`);
+            isAllowed = true;
+        }
+    }
+
     // Fallback: Allow kriptik.app domain and Vercel domains with "kriptik" in the name
     // This prevents auth failures from new/unexpected URL patterns
     if (!isAllowed && origin) {
@@ -340,6 +348,18 @@ app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
+
+        // Allow Chrome extension origins (chrome-extension://...)
+        if (origin.startsWith('chrome-extension://')) {
+            console.log(`[CORS] Allowing Chrome extension: ${origin}`);
+            return callback(null, true);
+        }
+
+        // Allow Firefox extension origins (moz-extension://...)
+        if (origin.startsWith('moz-extension://')) {
+            console.log(`[CORS] Allowing Firefox extension: ${origin}`);
+            return callback(null, true);
+        }
 
         // Check exact matches
         if (allowedOrigins.includes(origin)) {
