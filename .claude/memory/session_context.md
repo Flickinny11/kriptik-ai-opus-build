@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-14)
+## Current State (as of 2025-12-16)
 
 ### Progress Summary
 - **Total Features**: 66
@@ -13,36 +13,35 @@
 - **Current Phase**: Phase 15+ (Advanced Features)
 
 ### Build Status
-- **Last Known Build**: Passing
+- **Last Known Build**: PASSING (verified 2025-12-16)
 - **TypeScript Errors**: None
-- **Current Branch**: ecstatic-greider (worktree)
+- **Current Branch**: main
 
 ---
 
-## Recent Completions (Last 7 Days)
+## Recent Completions
+
+### 2025-12-16
+- **Ghost Mode Tab Improvements**:
+  - Changed all colors from purple to amber (#F5A86C) to match existing styling
+  - Added enable/disable toggle switch in panel header
+  - Made email/phone input fields always visible (not conditional)
+  - Added error level severity dropdown (All/Critical/Warning/None)
+  - Removed redundant resize handles (parent handles resizing)
+  - Fixed ghost mode colors in feature-agent-tile.css
+  - Cleaned up unused code (IconGhost, IconSave, saveContact)
+
+- **Template Cards Fix**:
+  - Fixed template cards stacking issue caused by `.glass-panel` position:fixed conflict
+  - Replaced `glass-panel` class with inline styles in TemplatesPage.tsx
+
+### 2025-12-14
+- Claude Code extension migration completed
+- Memory system now uses .claude/memory/ alongside .cursor/memory/
 
 ### 2025-12-12
 - **F065**: Feature Agent Command Center V2 + Tile Workflow
-  - Renamed Agents -> Feature Agent in Developer Bar
-  - Feature Agent Tile popout with SSE streaming
-  - Implementation Plan approval UI
-  - Credentials collection UI
-  - Backend FeatureAgentService
-
 - **F066**: Notifications System
-  - DB tables: notifications + notification_preferences
-  - NotificationService (email/sms/slack/push)
-  - Dashboard NotificationsSection with glass styling
-
-### 2025-12-09
-- Developer Bar Panels upgrade
-- Three.js error fix (barrel export issue)
-- Premium Agents Command Center Panel
-
-### 2025-12-07
-- Component 28: Autonomous Learning Engine (all 5 layers complete)
-- F061: Advanced Developer Settings Page
-- F038-F045: Developer Mode advanced features
 
 ---
 
@@ -67,9 +66,12 @@
 
 ---
 
-## Known Blockers
+## Known Issues
 
-*None currently*
+### Ghost Mode / Feature Agent
+- Window resize works via parent DeveloperBarPanel (not internal handles)
+- Tile expansion CSS needs review - may still have horizontal expansion issues
+- Tile angle/skew styling may need adjustment for deployed agents
 
 ---
 
@@ -77,19 +79,27 @@
 
 *Set at the start of each session*
 
-### Current Session
-- [ ] Goal 1: (to be set)
-- [ ] Goal 2: (to be set)
-- [ ] Goal 3: (to be set)
+### Current Session (2025-12-16)
+- [x] Fix Ghost Mode styling (purple -> amber)
+- [x] Add enable toggle to Ghost Mode
+- [x] Add visible input fields for email/phone
+- [x] Add error level selector
+- [ ] Verify window resize actually works in browser
+- [ ] Verify tile expansion is vertical only
+- [ ] Verify Ghost Mode connects to backend properly
 
 ---
 
 ## Notes
 
-- Claude Code extension migration completed 2025-12-14
-- Memory system now uses .claude/memory/ alongside .cursor/memory/
-- All changes must pass verification checklist before completion
+- Today's date: 2025-12-16
+- Current models available:
+  - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
+  - Claude Sonnet 4.5 - Critical tier
+  - Claude Haiku - Standard tier
+- Extended thinking available on Opus/Sonnet with thinking_budget parameter
+- All Ghost Mode colors should use #F5A86C (amber), NOT purple
 
 ---
 
-*Last updated: 2025-12-14*
+*Last updated: 2025-12-16*

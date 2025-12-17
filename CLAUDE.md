@@ -4,6 +4,39 @@
 
 ---
 
+## MANDATORY SESSION START (READ FIRST)
+
+**Before doing ANYTHING else in a new session, you MUST:**
+
+1. **Read today's date from system** - It's provided in the system prompt. Use current year (2025) for all searches/documentation.
+
+2. **Read memory files** (in order):
+   ```
+   .claude/memory/session_context.md     - What was done recently, current goals
+   .claude/memory/gotchas.md             - Known issues to avoid
+   .cursor/memory/build_state.json       - Phase status
+   ```
+
+3. **Acknowledge context** - State what you understand about current work before proceeding.
+
+4. **Set session goals** - Update session_context.md with today's goals if user provides tasks.
+
+**FAILURE TO DO THIS CAUSES**: Lost context, repeated mistakes, outdated information, claiming done when not done.
+
+---
+
+## MANDATORY SESSION END
+
+**Before ending work on any task:**
+
+1. Run `npm run build` - Must pass
+2. Update `.claude/memory/session_context.md` with what was done
+3. Update `.claude/memory/implementation_log.md` with implementation details
+4. Add any new gotchas to `.claude/memory/gotchas.md`
+5. Run the Completion Checklist (see below)
+
+---
+
 ## PROJECT IDENTITY
 
 **Project**: KripTik AI - Ultimate AI-First Builder Platform
@@ -194,6 +227,21 @@ CRITICAL MODEL SELECTION BY PHASE:
 - tournament_judge: Opus 4.5, HIGH effort, 64K thinking
 - simple_check: Haiku 3.5, low effort, no thinking
 ```
+
+### CURRENT MODEL IDs (Keep Updated)
+**Last verified: 2025-12**
+
+| Tier | Model | ID |
+|------|-------|-----|
+| Premium | Claude Opus 4.5 | `claude-opus-4-5-20251101` |
+| Critical | Claude Sonnet 4.5 | `claude-sonnet-4-5-20241022` |
+| Standard | Claude Haiku 3.5 | `claude-haiku-3-5-20241022` |
+| Vision | GPT-4o | `gpt-4o` |
+| Simple | DeepSeek | `deepseek-chat` |
+
+**Extended Thinking**: Use `thinking_budget` parameter (Opus: 64K, Sonnet: 32K)
+
+**DEPRECATED - DO NOT USE**: claude-3-opus, claude-3-sonnet, claude-3-haiku, gpt-4-turbo
 
 ### 8. Anti-Slop Detection
 **Location**: `server/src/services/verification/anti-slop-detector.ts`
