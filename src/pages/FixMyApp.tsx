@@ -699,6 +699,7 @@ export default function FixMyApp() {
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
     const [chatHistory, setChatHistory] = useState('');
+    const [projectUrl, setProjectUrl] = useState(''); // URL of user's project in AI builder
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentPhase, setCurrentPhase] = useState('');
@@ -863,6 +864,11 @@ export default function FixMyApp() {
 
     // Get platform URL based on source
     const getPlatformUrl = useCallback(() => {
+        // If user provided a specific project URL, use that
+        if (projectUrl) {
+            return projectUrl;
+        }
+        // Otherwise fall back to platform homepage
         const urls: Record<string, string> = {
             lovable: 'https://lovable.dev/projects',
             bolt: 'https://bolt.new',
@@ -875,7 +881,7 @@ export default function FixMyApp() {
             replit: 'https://replit.com',
         };
         return source ? urls[source] || '' : '';
-    }, [source]);
+    }, [source, projectUrl]);
 
     // Note: Browser automation removed - users now export and upload manually
 
@@ -1360,11 +1366,41 @@ export default function FixMyApp() {
                                     ))}
                                 </div>
 
+                                {/* Project URL Input - Required for AI Builders */}
+                                {requiresBrowserLogin() && (
+                                    <div className="mb-8 p-6 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                        <label className="block text-sm font-medium text-white mb-2">
+                                            Your Project URL in {sourceOptions.find(s => s.id === source)?.name}
+                                        </label>
+                                        <p className="text-sm text-slate-400 mb-4">
+                                            Paste the URL of your project. This is the page where you can see your chat history and code.
+                                        </p>
+                                        <input
+                                            type="url"
+                                            value={projectUrl}
+                                            onChange={(e) => setProjectUrl(e.target.value)}
+                                            placeholder={
+                                                source === 'bolt' ? 'https://bolt.new/~/your-project-id' :
+                                                source === 'lovable' ? 'https://lovable.dev/projects/your-project-id' :
+                                                source === 'v0' ? 'https://v0.dev/chat/your-chat-id' :
+                                                source === 'create' ? 'https://create.xyz/your-project-id' :
+                                                'https://...'
+                                            }
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all"
+                                        />
+                                        {!projectUrl && (
+                                            <p className="text-sm text-amber-400 mt-2">
+                                                Required: Enter your project URL to continue
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-8">
                                     <p className="text-sm text-amber-400">
                                         {extensionInstalled
-                                            ? '🚀 Extension detected! Click continue and we\'ll automatically capture all context from your project.'
-                                            : '💡 With full context, fix success rate increases from ~60% to ~95%.'}
+                                            ? 'Extension detected! Click continue and we\'ll automatically capture all context from your project.'
+                                            : 'With full context, fix success rate increases from ~60% to ~95%.'}
                                     </p>
                                 </div>
 
@@ -1379,7 +1415,7 @@ export default function FixMyApp() {
                                     <button
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
-                                                // Open the platform in new tab - extension will handle capture
+                                                // Open user's specific project URL - extension will handle capture
                                                 const platformUrl = getPlatformUrl();
                                                 if (platformUrl) {
                                                     window.open(platformUrl, '_blank');
@@ -1387,7 +1423,7 @@ export default function FixMyApp() {
                                             }
                                             submitConsent();
                                         }}
-                                        disabled={isLoading}
+                                        disabled={isLoading || Boolean(requiresBrowserLogin() && !projectUrl)}
                                         style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
