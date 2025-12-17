@@ -9,13 +9,14 @@
 import { Router, type Request, type Response } from 'express';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.js';
 import { db } from '../db.js';
-import { projects, files, users } from '../schema.js';
+import { projects, files, users, notifications } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
+import { createImportController } from '../services/fix-my-app/import-controller.js';
 
 const router = Router();
 
@@ -445,19 +446,49 @@ router.post('/import', async (req: Request, res: Response) => {
 
         const frontendUrl = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
 
+        // Create notification for user that project was imported
+        await db.insert(notifications).values({
+            id: uuidv4(),
+            userId,
+            type: 'project_imported',
+            title: `Project Imported: ${projectName}`,
+            message: `Your project from ${payload.platform.name} has been imported with ${payload.chatHistory?.messageCount || 0} chat messages and ${payload.errors?.count || 0} errors captured. Analysis will begin automatically.`,
+            data: JSON.stringify({
+                projectId,
+                platform: payload.platform.id,
+                chatMessages: payload.chatHistory?.messageCount || 0,
+                errors: payload.errors?.count || 0,
+            }),
+            read: false,
+            createdAt: new Date().toISOString(),
+        });
+
+        // Start Fix My App analysis in background (non-blocking)
+        // This will analyze the chat history, find intent, identify errors, and start fixing
+        if (payload.chatHistory && payload.chatHistory.messageCount > 0) {
+            console.log(`[Extension] Starting Fix My App analysis for project ${projectId}`);
+
+            // Run analysis asynchronously - don't await
+            startFixMyAppAnalysis(userId, projectId, payload).catch(err => {
+                console.error(`[Extension] Fix My App analysis error for ${projectId}:`, err);
+            });
+        }
+
         return res.json({
             success: true,
             projectId,
             projectName,
-            message: `Project imported successfully. ${fileCount} files processed.`,
+            message: `Project imported successfully. ${fileCount} files processed. Analysis starting...`,
             dashboardUrl: `${frontendUrl}/dashboard`,
             builderUrl: `${frontendUrl}/builder/${projectId}`,
+            fixMyAppUrl: `${frontendUrl}/fix-my-app/${projectId}`,
             stats: {
                 files: fileCount,
                 totalSize,
                 chatMessages: payload.chatHistory?.messageCount || 0,
                 errors: payload.errors?.count || 0,
             },
+            analysisStarted: (payload.chatHistory?.messageCount || 0) > 0,
         });
 
     } catch (error) {
@@ -772,5 +803,120 @@ router.get('/status', optionalAuthMiddleware, async (req: Request, res: Response
         timestamp: new Date().toISOString(),
     });
 });
+
+// ============================================================================
+// FIX MY APP ANALYSIS (Background Processing)
+// ============================================================================
+
+/**
+ * Start Fix My App analysis in background
+ * This runs asynchronously and notifies user when complete
+ */
+async function startFixMyAppAnalysis(
+    userId: string,
+    projectId: string,
+    payload: ExtensionImportPayload
+): Promise<void> {
+    console.log(`[Fix My App] Starting analysis for project ${projectId}`);
+
+    try {
+        // Create import controller
+        const controller = createImportController(userId);
+
+        // Initialize session with source platform
+        const platformId = payload.platform.id as any;
+        await controller.initSession(platformId, payload.project.url);
+
+        // Set consent (all data was already captured by extension)
+        controller.setConsent({
+            chatHistory: true,
+            buildLogs: true,
+            errorLogs: true,
+            versionHistory: true,
+        });
+
+        // Submit chat history from extension
+        if (payload.chatHistory && payload.chatHistory.messages.length > 0) {
+            // Format chat messages for the controller
+            const chatText = payload.chatHistory.messages
+                .map(msg => `[${msg.role.toUpperCase()}]: ${msg.content}`)
+                .join('\n\n---\n\n');
+
+            await controller.submitChatHistory(chatText);
+        }
+
+        // Run analysis
+        console.log(`[Fix My App] Running analysis for ${projectId}...`);
+        const analysis = await controller.runAnalysis();
+
+        console.log(`[Fix My App] Analysis complete for ${projectId}`);
+        console.log(`[Fix My App] Intent: ${analysis.intentSummary.corePurpose}`);
+        console.log(`[Fix My App] Gaps found: ${analysis.implementationGaps.length}`);
+        console.log(`[Fix My App] Recommended strategy: ${analysis.recommendedStrategy.approach}`);
+
+        // Create notification that analysis is complete
+        await db.insert(notifications).values({
+            id: uuidv4(),
+            userId,
+            type: 'analysis_complete',
+            title: 'Fix My App Analysis Complete',
+            message: `Analysis of your ${payload.platform.name} project is complete. Found ${analysis.implementationGaps.length} issues to fix. Strategy: ${analysis.recommendedStrategy.approach}`,
+            data: JSON.stringify({
+                projectId,
+                sessionId: controller.id,
+                intent: analysis.intentSummary.corePurpose,
+                gapCount: analysis.implementationGaps.length,
+                strategy: analysis.recommendedStrategy.approach,
+                confidence: analysis.recommendedStrategy.confidence,
+            }),
+            read: false,
+            createdAt: new Date().toISOString(),
+        });
+
+        // If confidence is high and gaps are found, auto-start fix (configurable)
+        const autoFix = process.env.AUTO_FIX_ENABLED === 'true';
+        if (autoFix && analysis.recommendedStrategy.confidence > 0.7 && analysis.implementationGaps.length > 0) {
+            console.log(`[Fix My App] Auto-starting fix for ${projectId}`);
+
+            // Execute fix in background
+            controller.executeFix().then(async () => {
+                // Notify user fix is complete
+                await db.insert(notifications).values({
+                    id: uuidv4(),
+                    userId,
+                    type: 'fix_complete',
+                    title: 'Your App Has Been Fixed!',
+                    message: `We've automatically fixed your ${payload.platform.name} project. Check your dashboard to see the results.`,
+                    data: JSON.stringify({
+                        projectId,
+                        sessionId: controller.id,
+                    }),
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                });
+            }).catch(err => {
+                console.error(`[Fix My App] Auto-fix error for ${projectId}:`, err);
+            });
+        }
+
+    } catch (error) {
+        console.error(`[Fix My App] Analysis error for ${projectId}:`, error);
+
+        // Notify user of error
+        await db.insert(notifications).values({
+            id: uuidv4(),
+            userId,
+            type: 'analysis_error',
+            title: 'Analysis Error',
+            message: `There was an error analyzing your ${payload.platform.name} project. Our team has been notified.`,
+            data: JSON.stringify({
+                projectId,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+            read: false,
+            createdAt: new Date().toISOString(),
+        });
+    }
+}
 
 export { router as extensionRouter };
