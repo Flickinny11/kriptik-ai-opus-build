@@ -659,6 +659,43 @@ export default function FixMyApp() {
         errorLogs: true,
         versionHistory: true, // Auto-selected for maximum context
     });
+
+    // Extension state
+    const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
+    const [extensionCheckComplete, setExtensionCheckComplete] = useState(false);
+
+    // Chrome Web Store URL for the extension
+    const EXTENSION_STORE_URL = 'https://github.com/Flickinny11/KripTik-Extension'; // TODO: Replace with Chrome Web Store URL once published
+
+    // Check if extension is installed
+    useEffect(() => {
+        const checkExtension = () => {
+            // Send message to check if extension is installed
+            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+
+            // Listen for response
+            const handleMessage = (event: MessageEvent) => {
+                if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                    setExtensionInstalled(true);
+                    setExtensionCheckComplete(true);
+                    window.removeEventListener('message', handleMessage);
+                }
+            };
+
+            window.addEventListener('message', handleMessage);
+
+            // Timeout - if no response after 1 second, extension is not installed
+            setTimeout(() => {
+                if (!extensionInstalled) {
+                    setExtensionInstalled(false);
+                    setExtensionCheckComplete(true);
+                }
+                window.removeEventListener('message', handleMessage);
+            }, 1000);
+        };
+
+        checkExtension();
+    }, []);
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
     const [chatHistory, setChatHistory] = useState('');
@@ -1233,13 +1270,73 @@ export default function FixMyApp() {
                             </Card>
                         )}
 
-                        {/* Step 2: Consent */}
+                        {/* Step 2: Consent - With Extension Detection */}
                         {step === 'consent' && (
                             <Card className="p-8 bg-slate-900/50 border-slate-800">
                                 <h2 className="text-2xl font-bold mb-2">Context Retrieval Authorization</h2>
                                 <p className="text-slate-400 mb-8">
                                     Granting access allows KripTik AI to understand your INTENT, not just your broken code.
                                 </p>
+
+                                {/* Extension Required Notice - Show for AI builders that need context capture */}
+                                {requiresBrowserLogin() && extensionCheckComplete && !extensionInstalled && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mb-8 p-6 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center flex-shrink-0">
+                                                <DownloadIcon size={24} className="text-amber-400" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-lg font-semibold text-white mb-2">Browser Extension Required</h3>
+                                                <p className="text-slate-400 text-sm mb-4">
+                                                    To automatically capture your chat history, build logs, and errors from {sourceOptions.find(s => s.id === source)?.name},
+                                                    you need the KripTik AI browser extension. This ensures we capture <strong className="text-amber-400">100% of your context</strong> for the best fix results.
+                                                </p>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <button
+                                                        onClick={() => window.open(EXTENSION_STORE_URL, '_blank')}
+                                                        style={{...primaryButtonStyles, padding: '12px 20px'}}
+                                                        className="hover:translate-y-[2px] active:translate-y-[4px]"
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <DownloadIcon size={16} />
+                                                            Install Extension
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            // Re-check for extension
+                                                            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+                                                            toast({
+                                                                title: 'Checking for extension...',
+                                                                description: 'If you just installed it, please refresh the page.',
+                                                            });
+                                                        }}
+                                                        style={{...secondaryButtonStyles, padding: '12px 20px'}}
+                                                        className="hover:bg-slate-600/60"
+                                                    >
+                                                        I've Installed It
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Extension Installed Badge */}
+                                {extensionInstalled && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3"
+                                    >
+                                        <CheckCircle2Icon size={20} className="text-emerald-400" />
+                                        <span className="text-emerald-400 font-medium">KripTik Extension Installed - Ready for automatic context capture</span>
+                                    </motion.div>
+                                )}
 
                                 <div className="space-y-4 mb-8">
                                     {[
@@ -1265,7 +1362,9 @@ export default function FixMyApp() {
 
                                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-8">
                                     <p className="text-sm text-amber-400">
-                                        💡 <strong>Why this matters:</strong> With full context, fix success rate increases from ~60% to ~95%.
+                                        {extensionInstalled
+                                            ? '🚀 Extension detected! Click continue and we\'ll automatically capture all context from your project.'
+                                            : '💡 With full context, fix success rate increases from ~60% to ~95%.'}
                                     </p>
                                 </div>
 
@@ -1278,13 +1377,24 @@ export default function FixMyApp() {
                                         <ArrowLeftIcon size={16} /> Back
                                     </button>
                                     <button
-                                        onClick={submitConsent}
+                                        onClick={() => {
+                                            if (requiresBrowserLogin() && extensionInstalled) {
+                                                // Open the platform in new tab - extension will handle capture
+                                                const platformUrl = getPlatformUrl();
+                                                if (platformUrl) {
+                                                    window.open(platformUrl, '_blank');
+                                                }
+                                            }
+                                            submitConsent();
+                                        }}
                                         disabled={isLoading}
                                         style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
                                             <><Loader2Icon size={16} className="animate-spin" /> Saving...</>
+                                        ) : extensionInstalled && requiresBrowserLogin() ? (
+                                            <>Open {sourceOptions.find(s => s.id === source)?.name} & Capture <ArrowRightIcon size={16} /></>
                                         ) : (
                                             <>Grant Access & Continue <ArrowRightIcon size={16} /></>
                                         )}
