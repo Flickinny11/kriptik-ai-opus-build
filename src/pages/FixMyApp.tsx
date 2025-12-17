@@ -696,6 +696,22 @@ export default function FixMyApp() {
 
         checkExtension();
     }, []);
+
+    // Clean up Fix My App session when workflow completes or component unmounts
+    useEffect(() => {
+        // End session when step becomes 'complete'
+        if (step === 'complete' && extensionInstalled) {
+            window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
+        }
+
+        // Also cleanup on unmount
+        return () => {
+            if (extensionInstalled) {
+                window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
+            }
+        };
+    }, [step, extensionInstalled]);
+
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
     const [chatHistory, setChatHistory] = useState('');
@@ -1379,10 +1395,21 @@ export default function FixMyApp() {
                                     <button
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
+                                                // Signal extension to start Fix My App session BEFORE opening platform
+                                                window.postMessage({
+                                                    type: 'KRIPTIK_START_FIX_SESSION',
+                                                    projectName: session?.sessionId || 'Imported Project',
+                                                    returnUrl: window.location.href,
+                                                    apiEndpoint: window.location.origin,
+                                                    token: localStorage.getItem('auth_token') || ''
+                                                }, '*');
+
                                                 // Open the platform in new tab - extension will handle capture
                                                 const platformUrl = getPlatformUrl();
                                                 if (platformUrl) {
-                                                    window.open(platformUrl, '_blank');
+                                                    setTimeout(() => {
+                                                        window.open(platformUrl, '_blank');
+                                                    }, 100); // Small delay to ensure session is stored
                                                 }
                                             }
                                             submitConsent();
