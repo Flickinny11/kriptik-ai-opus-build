@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-16)
+## Current State (as of 2025-12-17)
 
 ### Progress Summary
 - **Total Features**: 66
@@ -13,13 +13,27 @@
 - **Current Phase**: Phase 15+ (Advanced Features)
 
 ### Build Status
-- **Last Known Build**: PASSING (verified 2025-12-16)
+- **Last Known Build**: PASSING (verified 2025-12-17)
 - **TypeScript Errors**: None
-- **Current Branch**: main
+- **Current Branch**: priceless-torvalds (worktree)
 
 ---
 
 ## Recent Completions
+
+### 2025-12-17
+- **Fix My App + Extension Integration Fix**:
+  - Identified why extension wasn't working with Fix My App workflow
+  - Fixed extension service-worker.js to use `credentials: 'include'` for cookie-based auth
+  - Fixed FixMyApp.tsx to use session ID instead of non-existent localStorage token
+  - Added `optionalAuthMiddleware` to `/api/extension/import` route to populate req.user from cookies
+  - Fixed notification inserts using wrong field name (`data` -> `metadata`)
+
+- **Issues Fixed**:
+  1. Extension's fetch requests weren't including cookies for session auth
+  2. Frontend passed invalid token (localStorage.getItem returns null with Better Auth)
+  3. Backend route wasn't using auth middleware to populate req.user from session cookies
+  4. Pre-existing bugs: notification inserts used `data` field but schema uses `metadata`
 
 ### 2025-12-16
 - **Ghost Mode Tab Improvements**:
@@ -66,6 +80,29 @@
 
 ---
 
+## Extension Integration Notes
+
+### How Fix My App + Extension Works
+1. User starts Fix My App on KripTik, selects platform (Bolt/Lovable/etc)
+2. Clicks "Open Project & Capture" - sends session data to extension via window.postMessage
+3. Extension stores session in chrome.storage.local (for content scripts on AI platforms)
+4. Extension stores API config in chrome.storage.sync (for KripTikAPIHandler)
+5. User's project opens in new tab
+6. "Capture for KripTik AI" button appears (only if session active)
+7. User clicks capture -> Overlay scrapes chat, errors, files
+8. Data sent to `/api/extension/import` via service worker
+9. Backend creates project, stores context, starts Fix My App analysis
+
+### Key Files
+- Extension: `/Volumes/Logan T7 Touch/Claude_KripTik Extension/`
+  - `src/background/service-worker.js` - handles API communication
+  - `src/content/kriptik-bridge.js` - bridges KripTik site <-> extension
+  - `src/content/content.js` - shows capture button on AI platforms
+  - `src/content/exporters/kriptik-api-handler.js` - formats & sends data
+- Backend: `server/src/routes/extension.ts` - receives extension data
+
+---
+
 ## Known Issues
 
 ### Ghost Mode / Feature Agent
@@ -79,20 +116,21 @@
 
 *Set at the start of each session*
 
-### Current Session (2025-12-16)
-- [x] Fix Ghost Mode styling (purple -> amber)
-- [x] Add enable toggle to Ghost Mode
-- [x] Add visible input fields for email/phone
-- [x] Add error level selector
-- [ ] Verify window resize actually works in browser
-- [ ] Verify tile expansion is vertical only
-- [ ] Verify Ghost Mode connects to backend properly
+### Current Session (2025-12-17)
+- [x] Analyze Fix My App + Extension workflow
+- [x] Identify why extension wasn't working
+- [x] Fix extension service-worker.js to include credentials
+- [x] Fix FixMyApp.tsx token handling
+- [x] Add auth middleware to /api/extension/import route
+- [x] Fix pre-existing notification insert bugs
+- [x] Verify builds pass
 
 ---
 
 ## Notes
 
-- Today's date: 2025-12-16
+- Today's date: 2025-12-17
+- Working in git worktree: priceless-torvalds
 - Current models available:
   - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
   - Claude Sonnet 4.5 - Critical tier
@@ -102,4 +140,4 @@
 
 ---
 
-*Last updated: 2025-12-16*
+*Last updated: 2025-12-17*
