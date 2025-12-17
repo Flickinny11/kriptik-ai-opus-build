@@ -1330,12 +1330,40 @@ export default function FixMyApp() {
                                                     </button>
                                                     <button
                                                         onClick={() => {
-                                                            // Re-check for extension
-                                                            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+                                                            // Show checking toast
                                                             toast({
                                                                 title: 'Checking for extension...',
-                                                                description: 'If you just installed it, please refresh the page.',
+                                                                description: 'Looking for KripTik AI extension',
                                                             });
+
+                                                            // Set up listener for response
+                                                            const handlePong = (event: MessageEvent) => {
+                                                                if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                                                                    setExtensionInstalled(true);
+                                                                    setExtensionCheckComplete(true);
+                                                                    window.removeEventListener('message', handlePong);
+                                                                    toast({
+                                                                        title: 'Extension Connected!',
+                                                                        description: 'KripTik AI extension is ready. You can now continue.',
+                                                                    });
+                                                                }
+                                                            };
+                                                            window.addEventListener('message', handlePong);
+
+                                                            // Send ping
+                                                            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+
+                                                            // Timeout - if no response after 1.5s, suggest refresh
+                                                            setTimeout(() => {
+                                                                window.removeEventListener('message', handlePong);
+                                                                if (!extensionInstalled) {
+                                                                    toast({
+                                                                        title: 'Extension not detected',
+                                                                        description: 'Please refresh the page after installing, or check that the extension is enabled.',
+                                                                        variant: 'destructive',
+                                                                    });
+                                                                }
+                                                            }, 1500);
                                                         }}
                                                         style={{...secondaryButtonStyles, padding: '12px 20px'}}
                                                         className="hover:bg-slate-600/60"
