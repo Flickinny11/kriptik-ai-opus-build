@@ -1368,7 +1368,7 @@ export default function FixMyApp() {
                                                         style={{...secondaryButtonStyles, padding: '12px 20px'}}
                                                         className="hover:bg-slate-600/60"
                                                     >
-                                                        I've Installed It
+                                                        Installed - Verify Connection
                                                     </button>
                                                 </div>
                                             </div>
@@ -1489,18 +1489,29 @@ export default function FixMyApp() {
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
                                                 // Signal extension to start Fix My App session BEFORE opening platform
-                                                window.postMessage({
+                                                const sessionData = {
                                                     type: 'KRIPTIK_START_FIX_SESSION',
                                                     projectName: session?.sessionId || 'Imported Project',
                                                     returnUrl: window.location.href,
                                                     apiEndpoint: window.location.origin,
-                                                    token: localStorage.getItem('auth_token') || ''
-                                                }, '*');
+                                                    token: localStorage.getItem('auth_token') || 'kriptik_session_' + Date.now()
+                                                };
+                                                console.log('[KripTik] Sending session to extension:', sessionData);
+                                                window.postMessage(sessionData, '*');
+
+                                                // Listen for confirmation from extension
+                                                const handleSessionStarted = (event: MessageEvent) => {
+                                                    if (event.data?.type === 'KRIPTIK_FIX_SESSION_STARTED') {
+                                                        console.log('[KripTik] Extension confirmed session started');
+                                                        window.removeEventListener('message', handleSessionStarted);
+                                                    }
+                                                };
+                                                window.addEventListener('message', handleSessionStarted);
 
                                                 // Open the user's specific project URL, not the homepage
                                                 setTimeout(() => {
                                                     window.open(projectUrl, '_blank');
-                                                }, 100); // Small delay to ensure session is stored
+                                                }, 200); // Slightly longer delay to ensure session is stored
                                             }
                                             submitConsent();
                                         }}
