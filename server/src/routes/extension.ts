@@ -17,6 +17,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import { createImportController } from '../services/fix-my-app/import-controller.js';
+import {
+  getCaptureOrchestrator,
+  type CaptureSession,
+  type CaptureOptions
+} from '../services/vision-capture/capture-orchestrator.js';
 
 const router = Router();
 
@@ -913,6 +918,415 @@ async function startFixMyAppAnalysis(
             }),
             read: false,
         });
+    }
+}
+
+// ============================================================================
+// VISION CAPTURE API (Gemini 3 Flash + Playwright Browser Automation)
+// ============================================================================
+
+// Store for SSE connections
+const captureSSEConnections = new Map<string, Response>();
+
+/**
+ * POST /api/extension/vision-capture/start
+ * Start a vision-based capture session
+ *
+ * The server launches a headless browser, navigates to the URL,
+ * and uses Gemini 3 Flash vision to intelligently capture content.
+ */
+router.post('/vision-capture/start', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        // Validate auth
+        const authHeader = req.headers.authorization;
+        let userId: string | undefined;
+
+        const extAuth = await validateExtensionToken(authHeader);
+        if (extAuth) {
+            userId = extAuth.userId;
+        } else if (req.user?.id) {
+            userId = req.user.id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required',
+            });
+        }
+
+        const { url, cookies, options } = req.body;
+
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                error: 'URL is required',
+            });
+        }
+
+        console.log(`[VisionCapture] Starting capture for ${url} (user: ${userId})`);
+
+        const sessionId = uuidv4();
+        const orchestrator = getCaptureOrchestrator();
+
+        // Set up progress callback to emit SSE events
+        orchestrator.setProgressCallback((session: CaptureSession) => {
+            const sseConn = captureSSEConnections.get(sessionId);
+            if (sseConn && !sseConn.writableEnded) {
+                sseConn.write(`data: ${JSON.stringify({
+                    type: 'progress',
+                    session: {
+                        id: session.id,
+                        status: session.status,
+                        progress: session.progress,
+                        platform: session.platform,
+                        error: session.error,
+                    }
+                })}\n\n`);
+            }
+        });
+
+        // Start capture in background
+        const captureOptions: CaptureOptions = {
+            cookies: cookies || [],
+            maxScrollAttempts: options?.maxScrollAttempts || 50,
+            maxApiCalls: options?.maxApiCalls || 100,
+            captureScreenshots: options?.captureScreenshots !== false,
+            skipFileCapture: options?.skipFileCapture || false,
+            skipErrorCapture: options?.skipErrorCapture || false,
+            viewport: options?.viewport || { width: 1920, height: 1080 },
+        };
+
+        // Don't await - let it run in background
+        orchestrator.startCapture(sessionId, url, captureOptions)
+            .then(async (completedSession) => {
+                // When complete, emit final event
+                const sseConn = captureSSEConnections.get(sessionId);
+                if (sseConn && !sseConn.writableEnded) {
+                    sseConn.write(`data: ${JSON.stringify({
+                        type: 'complete',
+                        session: {
+                            id: completedSession.id,
+                            status: completedSession.status,
+                            platform: completedSession.platform,
+                            progress: completedSession.progress,
+                            error: completedSession.error,
+                        },
+                        result: completedSession.result ? {
+                            chatMessageCount: completedSession.result.chatHistory.length,
+                            fileCount: completedSession.result.files.length,
+                            errorCount: completedSession.result.errors.length,
+                            hasExport: !!completedSession.result.exportZip,
+                            captureStats: completedSession.result.captureStats,
+                        } : null,
+                    })}\n\n`);
+                    sseConn.end();
+                }
+                captureSSEConnections.delete(sessionId);
+
+                // If successful, auto-import the results
+                if (completedSession.status === 'completed' && completedSession.result) {
+                    console.log(`[VisionCapture] Auto-importing results for session ${sessionId}`);
+                    await autoImportVisionCapture(userId!, sessionId, url, completedSession);
+                }
+            })
+            .catch((error) => {
+                console.error(`[VisionCapture] Capture error:`, error);
+                const sseConn = captureSSEConnections.get(sessionId);
+                if (sseConn && !sseConn.writableEnded) {
+                    sseConn.write(`data: ${JSON.stringify({
+                        type: 'error',
+                        error: error.message,
+                    })}\n\n`);
+                    sseConn.end();
+                }
+                captureSSEConnections.delete(sessionId);
+            });
+
+        return res.json({
+            success: true,
+            sessionId,
+            message: 'Vision capture started',
+            eventsUrl: `/api/extension/vision-capture/events/${sessionId}`,
+        });
+
+    } catch (error) {
+        console.error('[VisionCapture] Start error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to start vision capture',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/extension/vision-capture/events/:sessionId
+ * SSE stream for capture progress
+ */
+router.get('/vision-capture/events/:sessionId', async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Store connection
+    captureSSEConnections.set(sessionId, res);
+
+    // Send initial heartbeat
+    res.write(`data: ${JSON.stringify({ type: 'connected', sessionId })}\n\n`);
+
+    // Check if session already exists
+    const orchestrator = getCaptureOrchestrator();
+    const existingSession = orchestrator.getSession(sessionId);
+    if (existingSession) {
+        res.write(`data: ${JSON.stringify({
+            type: 'progress',
+            session: {
+                id: existingSession.id,
+                status: existingSession.status,
+                progress: existingSession.progress,
+                platform: existingSession.platform,
+                error: existingSession.error,
+            }
+        })}\n\n`);
+    }
+
+    // Keep connection alive
+    const heartbeat = setInterval(() => {
+        if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+        } else {
+            clearInterval(heartbeat);
+        }
+    }, 30000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        captureSSEConnections.delete(sessionId);
+    });
+});
+
+/**
+ * GET /api/extension/vision-capture/status/:sessionId
+ * Get capture session status
+ */
+router.get('/vision-capture/status/:sessionId', async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const orchestrator = getCaptureOrchestrator();
+    const session = orchestrator.getSession(sessionId);
+
+    if (!session) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found',
+        });
+    }
+
+    return res.json({
+        success: true,
+        session: {
+            id: session.id,
+            url: session.url,
+            platform: session.platform,
+            status: session.status,
+            progress: session.progress,
+            error: session.error,
+            startedAt: session.startedAt,
+            completedAt: session.completedAt,
+        },
+        result: session.result ? {
+            chatMessageCount: session.result.chatHistory.length,
+            fileCount: session.result.files.length,
+            errorCount: session.result.errors.length,
+            hasExport: !!session.result.exportZip,
+            captureStats: session.result.captureStats,
+        } : null,
+    });
+});
+
+/**
+ * POST /api/extension/vision-capture/cancel/:sessionId
+ * Cancel a capture session
+ */
+router.post('/vision-capture/cancel/:sessionId', async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const orchestrator = getCaptureOrchestrator();
+    await orchestrator.cancelCapture(sessionId);
+
+    const sseConn = captureSSEConnections.get(sessionId);
+    if (sseConn && !sseConn.writableEnded) {
+        sseConn.write(`data: ${JSON.stringify({ type: 'cancelled' })}\n\n`);
+        sseConn.end();
+    }
+    captureSSEConnections.delete(sessionId);
+
+    return res.json({
+        success: true,
+        message: 'Capture cancelled',
+    });
+});
+
+/**
+ * GET /api/extension/vision-capture/result/:sessionId
+ * Get full capture results (chat history, files, etc.)
+ */
+router.get('/vision-capture/result/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const orchestrator = getCaptureOrchestrator();
+    const session = orchestrator.getSession(sessionId);
+
+    if (!session) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found',
+        });
+    }
+
+    if (session.status !== 'completed') {
+        return res.status(400).json({
+            success: false,
+            error: `Capture not complete. Status: ${session.status}`,
+        });
+    }
+
+    if (!session.result) {
+        return res.status(500).json({
+            success: false,
+            error: 'No results available',
+        });
+    }
+
+    // Format results similar to extension import payload
+    return res.json({
+        success: true,
+        platform: {
+            id: session.platform,
+            name: session.platform,
+            provider: 'vision-capture',
+        },
+        project: {
+            url: session.url,
+            name: `Captured from ${session.platform}`,
+        },
+        chatHistory: {
+            messageCount: session.result.chatHistory.length,
+            messages: session.result.chatHistory,
+        },
+        files: {
+            structure: {},
+            stats: {
+                totalFiles: session.result.files.length,
+                totalFolders: 0,
+                fileTypes: {},
+            },
+            files: session.result.files,
+        },
+        errors: {
+            count: session.result.errors.length,
+            entries: session.result.errors,
+        },
+        captureStats: session.result.captureStats,
+        // Don't include screenshots in response - too large
+        screenshotCount: session.result.screenshots.length,
+    });
+});
+
+/**
+ * Auto-import vision capture results into a project
+ */
+async function autoImportVisionCapture(
+    userId: string,
+    sessionId: string,
+    url: string,
+    session: CaptureSession
+): Promise<void> {
+    if (!session.result) return;
+
+    try {
+        // Create project
+        const projectId = uuidv4();
+        const projectName = `Captured from ${session.platform}`;
+
+        await db.insert(projects).values({
+            id: projectId,
+            name: projectName,
+            description: `Vision capture from ${session.platform}. ${session.result.chatHistory.length} messages captured.`,
+            ownerId: userId,
+            framework: 'react', // Default
+            isPublic: false,
+        });
+
+        // Store chat context
+        const contextDir = path.join(process.cwd(), 'uploads', 'projects', projectId, 'context');
+        if (!fs.existsSync(contextDir)) {
+            fs.mkdirSync(contextDir, { recursive: true });
+        }
+
+        if (session.result.chatHistory.length > 0) {
+            fs.writeFileSync(
+                path.join(contextDir, 'chat-history.json'),
+                JSON.stringify({
+                    messageCount: session.result.chatHistory.length,
+                    messages: session.result.chatHistory,
+                }, null, 2)
+            );
+        }
+
+        if (session.result.errors.length > 0) {
+            fs.writeFileSync(
+                path.join(contextDir, 'errors.json'),
+                JSON.stringify({
+                    count: session.result.errors.length,
+                    entries: session.result.errors,
+                }, null, 2)
+            );
+        }
+
+        // Store capture metadata
+        fs.writeFileSync(
+            path.join(contextDir, 'capture-metadata.json'),
+            JSON.stringify({
+                sessionId,
+                url,
+                platform: session.platform,
+                capturedAt: session.startedAt.toISOString(),
+                completedAt: session.completedAt?.toISOString(),
+                stats: session.result.captureStats,
+                uiState: session.result.uiState,
+            }, null, 2)
+        );
+
+        // Create notification
+        await db.insert(notifications).values({
+            id: uuidv4(),
+            userId,
+            type: 'project_imported',
+            title: `Vision Capture Complete: ${projectName}`,
+            message: `Captured ${session.result.chatHistory.length} messages from ${session.platform}. Cost: $${session.result.captureStats.estimatedCost.toFixed(4)}`,
+            metadata: JSON.stringify({
+                projectId,
+                sessionId,
+                platform: session.platform,
+                chatMessages: session.result.chatHistory.length,
+                files: session.result.files.length,
+                errors: session.result.errors.length,
+                cost: session.result.captureStats.estimatedCost,
+            }),
+            read: false,
+        });
+
+        console.log(`[VisionCapture] Auto-imported to project ${projectId}`);
+
+    } catch (error) {
+        console.error(`[VisionCapture] Auto-import error:`, error);
     }
 }
 
