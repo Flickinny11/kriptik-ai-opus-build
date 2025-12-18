@@ -2,7 +2,14 @@
  * Build Phase Indicator Component
  *
  * Visualizes the 6-phase build loop progress.
- * Part of Phase 9: UI Enhancements
+ * UPDATED: Now connects to UnifiedBuildService via useBuildStore
+ *
+ * Shows:
+ * - Current phase with animated progress
+ * - Completed phases with checkmarks
+ * - Upcoming phases
+ * - Intent Lock (Sacred Contract) status
+ * - Done Contract status
  */
 
 import {
@@ -10,8 +17,16 @@ import {
     LoadingIcon,
     SettingsIcon,
     AlertCircleIcon,
+    LockIcon,
 } from '../ui/icons';
 import { motion } from 'framer-motion';
+import {
+    useBuildStore,
+    BUILD_PHASES,
+    useBuildProgress,
+    useIntentLock,
+    useDoneContract,
+} from '../../store/useBuildStore';
 
 // Custom icons for build phases (using inline SVG)
 const FileTextIcon = ({ className, ...props }: { className?: string; size?: number }) => (
@@ -472,4 +487,322 @@ export function BuildPhaseInline({ phases, currentPhase }: { phases: PhaseInfo[]
 }
 
 export default BuildPhaseIndicator;
+
+// ============================================================================
+// STORE-CONNECTED COMPONENTS (Use these for Unified Build integration)
+// ============================================================================
+
+/**
+ * Intent Lock Status Badge
+ * Shows the Sacred Contract status with visual feedback
+ */
+export function IntentLockStatus() {
+    const { contract, locked } = useIntentLock();
+    const { status } = useBuildStore();
+
+    if (status === 'idle' || !contract) {
+        return null;
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+            style={{
+                background: locked
+                    ? 'linear-gradient(145deg, rgba(34,197,94,0.3) 0%, rgba(22,163,74,0.2) 100%)'
+                    : 'linear-gradient(145deg, rgba(234,179,8,0.3) 0%, rgba(202,138,4,0.2) 100%)',
+                boxShadow: locked
+                    ? '0 2px 8px rgba(34, 197, 94, 0.2), inset 0 1px 2px rgba(255,255,255,0.5)'
+                    : '0 2px 8px rgba(234, 179, 8, 0.2), inset 0 1px 2px rgba(255,255,255,0.5)',
+                border: `1px solid ${locked ? 'rgba(34,197,94,0.4)' : 'rgba(234,179,8,0.4)'}`,
+            }}
+        >
+            {/* Lock icon */}
+            <motion.div
+                animate={locked ? { rotate: 0 } : { rotate: [0, -10, 10, 0] }}
+                transition={locked ? {} : { duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+            >
+                <LockIcon
+                    size={14}
+                    style={{ color: locked ? '#16a34a' : '#ca8a04' }}
+                />
+            </motion.div>
+
+            {/* Status text */}
+            <div className="flex flex-col">
+                <span
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: locked ? '#16a34a' : '#ca8a04' }}
+                >
+                    {locked ? 'Intent Locked' : 'Locking Intent...'}
+                </span>
+                <span className="text-[9px]" style={{ color: '#666' }}>
+                    {contract.appType} - {contract.criteriaCount} criteria
+                </span>
+            </div>
+
+            {/* Animated pulse when locking */}
+            {!locked && (
+                <motion.div
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: '#ca8a04' }}
+                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                />
+            )}
+        </motion.div>
+    );
+}
+
+/**
+ * Done Contract Status
+ * Shows whether the build satisfies the Intent Lock criteria
+ */
+export function DoneContractStatus() {
+    const doneContract = useDoneContract();
+
+    if (!doneContract) {
+        return null;
+    }
+
+    const { satisfied, criteriaPassRate, workflowsVerified, blockers } = doneContract;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 rounded-xl"
+            style={{
+                background: satisfied
+                    ? 'linear-gradient(145deg, rgba(34,197,94,0.2) 0%, rgba(22,163,74,0.1) 100%)'
+                    : 'linear-gradient(145deg, rgba(239,68,68,0.2) 0%, rgba(220,38,38,0.1) 100%)',
+                border: `1px solid ${satisfied ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            }}
+        >
+            <div className="flex items-center justify-between mb-2">
+                <span
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: satisfied ? '#16a34a' : '#dc2626' }}
+                >
+                    Done Contract {satisfied ? 'Satisfied' : 'Not Satisfied'}
+                </span>
+                <span
+                    className="text-sm font-bold"
+                    style={{ color: satisfied ? '#16a34a' : '#dc2626' }}
+                >
+                    {Math.round(criteriaPassRate * 100)}%
+                </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-1.5 rounded-full bg-black/10 overflow-hidden mb-2">
+                <motion.div
+                    className="h-full rounded-full"
+                    style={{
+                        background: satisfied
+                            ? 'linear-gradient(90deg, #16a34a 0%, #22c55e 100%)'
+                            : 'linear-gradient(90deg, #dc2626 0%, #ef4444 100%)',
+                    }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${criteriaPassRate * 100}%` }}
+                    transition={{ duration: 0.5 }}
+                />
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-[10px]" style={{ color: '#666' }}>
+                <span>{workflowsVerified} workflows verified</span>
+                {blockers.length > 0 && (
+                    <span style={{ color: '#dc2626' }}>{blockers.length} blockers</span>
+                )}
+            </div>
+
+            {/* Blockers list */}
+            {blockers.length > 0 && (
+                <div className="mt-2 space-y-1">
+                    {blockers.slice(0, 3).map((blocker, idx) => (
+                        <div
+                            key={idx}
+                            className="text-[10px] px-2 py-1 rounded bg-red-500/10"
+                            style={{ color: '#dc2626' }}
+                        >
+                            {blocker}
+                        </div>
+                    ))}
+                    {blockers.length > 3 && (
+                        <div className="text-[10px]" style={{ color: '#888' }}>
+                            +{blockers.length - 3} more...
+                        </div>
+                    )}
+                </div>
+            )}
+        </motion.div>
+    );
+}
+
+/**
+ * Store-Connected Build Phase Indicator
+ * Automatically reads from useBuildStore
+ */
+export function BuildPhaseIndicatorConnected() {
+    const { status, completedPhases, currentPhase, phaseProgress } = useBuildStore();
+
+    if (status === 'idle') {
+        return null;
+    }
+
+    // Convert store state to phases prop format
+    const phases: PhaseInfo[] = PHASE_ORDER.map(phase => {
+        const isCompleted = completedPhases.includes(phase as any);
+        const isCurrent = currentPhase === phase;
+
+        return {
+            phase,
+            status: isCompleted ? 'complete' : isCurrent ? 'active' : 'pending',
+            progress: isCurrent ? phaseProgress : isCompleted ? 100 : 0,
+        };
+    });
+
+    return (
+        <BuildPhaseIndicator
+            phases={phases}
+            currentPhase={currentPhase as any}
+            compact={true}
+        />
+    );
+}
+
+/**
+ * Compact Build Status Bar
+ * Combines phase indicator + intent lock + progress
+ */
+export function BuildStatusBar() {
+    const { status, currentPhase, intentLocked } = useBuildStore();
+    const { overallProgress } = useBuildProgress();
+
+    if (status === 'idle') {
+        return null;
+    }
+
+    const phaseInfo = currentPhase ? BUILD_PHASES[currentPhase as keyof typeof BUILD_PHASES] : null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-3 p-2 rounded-xl"
+            style={{
+                background: 'linear-gradient(145deg, rgba(255,200,170,0.3) 0%, rgba(255,180,150,0.2) 100%)',
+                boxShadow: '0 2px 10px rgba(255, 140, 100, 0.1), inset 0 1px 2px rgba(255,255,255,0.8)',
+                border: '1px solid rgba(255, 200, 170, 0.3)',
+            }}
+        >
+            {/* Intent Lock Status */}
+            <div
+                className="w-6 h-6 rounded-full flex items-center justify-center"
+                style={{
+                    background: intentLocked
+                        ? 'linear-gradient(145deg, rgba(34,197,94,0.8) 0%, rgba(22,163,74,0.7) 100%)'
+                        : 'linear-gradient(145deg, rgba(234,179,8,0.8) 0%, rgba(202,138,4,0.7) 100%)',
+                }}
+            >
+                <LockIcon size={12} style={{ color: '#fff' }} />
+            </div>
+
+            {/* Current Phase */}
+            <div className="flex-1">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase" style={{ color: '#c25a00' }}>
+                        Phase {phaseInfo?.number ?? 0}/6
+                    </span>
+                    <span className="text-xs font-medium" style={{ color: '#1a1a1a' }}>
+                        {phaseInfo?.name ?? 'Initializing'}
+                    </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-1 h-1 rounded-full bg-white/50 overflow-hidden">
+                    <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                            background: 'linear-gradient(90deg, #c25a00 0%, #e67e22 100%)',
+                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${overallProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                    />
+                </div>
+            </div>
+
+            {/* Overall Progress */}
+            <div className="text-right">
+                <span className="text-sm font-bold" style={{ color: '#c25a00' }}>
+                    {overallProgress}%
+                </span>
+            </div>
+        </motion.div>
+    );
+}
+
+/**
+ * Active Agents Display
+ * Shows currently working agents in the build
+ */
+export function ActiveAgentsDisplay() {
+    const agents = useBuildStore(state => state.activeAgents);
+
+    if (agents.length === 0) {
+        return null;
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-2 overflow-x-auto py-1"
+        >
+            <span className="text-[10px] font-medium shrink-0" style={{ color: '#888' }}>
+                Agents:
+            </span>
+            {agents.map((agent) => (
+                <motion.div
+                    key={agent.id}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0"
+                    style={{
+                        background: agent.status === 'working'
+                            ? 'linear-gradient(145deg, rgba(255,200,170,0.4) 0%, rgba(255,180,150,0.3) 100%)'
+                            : agent.status === 'complete'
+                                ? 'linear-gradient(145deg, rgba(34,197,94,0.3) 0%, rgba(22,163,74,0.2) 100%)'
+                                : 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)',
+                        border: agent.status === 'working'
+                            ? '1px solid rgba(255,200,170,0.5)'
+                            : '1px solid rgba(200,200,200,0.3)',
+                    }}
+                >
+                    {agent.status === 'working' && (
+                        <motion.div
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: '#c25a00' }}
+                            animate={{ opacity: [1, 0.3, 1] }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                        />
+                    )}
+                    <span className="text-[10px] font-medium" style={{ color: '#1a1a1a' }}>
+                        {agent.name}
+                    </span>
+                    {agent.status === 'working' && (
+                        <span className="text-[9px]" style={{ color: '#888' }}>
+                            {agent.progress}%
+                        </span>
+                    )}
+                </motion.div>
+            ))}
+        </motion.div>
+    );
+}
 

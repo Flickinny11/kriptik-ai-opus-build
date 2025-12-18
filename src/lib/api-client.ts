@@ -78,6 +78,166 @@ export interface IntelligenceSettings {
     designDetail: 'minimal' | 'standard' | 'polished' | 'premium';
 }
 
+// =============================================================================
+// UNIFIED BUILD TYPES (Intent Lock + 6-Phase Build Loop + Done Contract)
+// =============================================================================
+
+export type BuildPhase =
+    | 'intent_lock'
+    | 'initialization'
+    | 'parallel_build'
+    | 'integration_check'
+    | 'functional_test'
+    | 'intent_satisfaction'
+    | 'browser_demo';
+
+export type BuildMode = 'lightning' | 'standard' | 'tournament' | 'production';
+
+export interface UnifiedBuildEvent {
+    type:
+        | 'build_started'
+        | 'intent_created'
+        | 'intent_locked'
+        | 'phase_start'
+        | 'phase_complete'
+        | 'feature_building'
+        | 'agent_update'
+        | 'verification_result'
+        | 'done_check'
+        | 'build_complete'
+        | 'error'
+        | 'complete';
+    buildId?: string;
+    timestamp?: number;
+    // Phase events
+    phase?: BuildPhase;
+    phaseNumber?: number;
+    phaseName?: string;
+    progress?: number;
+    // Intent events
+    intentContract?: IntentContractSummary;
+    // Feature events
+    featureName?: string;
+    featureProgress?: number;
+    // Agent events
+    agentId?: string;
+    agentName?: string;
+    agentStatus?: string;
+    // Verification events
+    verificationScore?: number;
+    verificationPassed?: boolean;
+    verificationIssues?: string[];
+    // Done contract events
+    doneContract?: DoneContractResult;
+    // Build complete events
+    success?: boolean;
+    message?: string;
+    projectId?: string;
+    status?: string;
+    // Error events
+    error?: string;
+}
+
+export interface IntentContractSummary {
+    id: string;
+    appType: string;
+    appSoul: string;
+    coreValueProp: string;
+    locked: boolean;
+    criteriaCount: number;
+    workflowCount: number;
+}
+
+export interface DoneContractResult {
+    satisfied: boolean;
+    criteriaPassRate: number;
+    workflowsVerified: number;
+    blockers: string[];
+}
+
+export interface SuccessCriterion {
+    id: string;
+    description: string;
+    passed: boolean;
+}
+
+export interface UserWorkflow {
+    name: string;
+    verified: boolean;
+}
+
+export interface UnifiedBuildStatus {
+    buildId: string;
+    projectId: string;
+    status: 'initializing' | 'intent_lock' | 'building' | 'verifying' | 'complete' | 'failed';
+    mode: BuildMode;
+    entryPoint: string;
+    intentContract: {
+        id: string;
+        appType: string;
+        appSoul: string;
+        locked: boolean;
+        successCriteria: SuccessCriterion[];
+        workflows: UserWorkflow[];
+    } | null;
+    buildLoop: {
+        currentPhase: number;
+        phaseName: string;
+        status: string;
+    } | null;
+    enhancedLoop: {
+        streamingFeedback: boolean;
+        continuousVerification: boolean;
+        runtimeDebug: boolean;
+        browserInLoop: boolean;
+        humanCheckpoints: boolean;
+        multiAgentJudging: boolean;
+        errorPatterns: boolean;
+    } | null;
+    timestamps: {
+        created: string;
+        updated: string;
+    };
+}
+
+export interface ProjectContextResponse {
+    projectId: string;
+    projectName: string;
+    intentContract: {
+        id: string;
+        appType: string;
+        locked: boolean;
+    } | null;
+    buildHistory: Array<{
+        buildId: string;
+        status: string;
+        completedAt: string;
+    }>;
+    memory: {
+        decisionsCount: number;
+        patternsCount: number;
+        errorHistoryCount: number;
+        topPatterns: Array<{
+            name: string;
+            successRate: number;
+            usageCount: number;
+        }>;
+    };
+    lastBuild: {
+        id: string;
+        status: string;
+        completedAt: string;
+    };
+}
+
+export interface BuildCheckpoint {
+    id: string;
+    buildId: string;
+    phase: BuildPhase;
+    label: string;
+    createdAt: string;
+}
+
 // API Client
 class ApiClient {
     private baseUrl: string;
@@ -961,6 +1121,148 @@ class ApiClient {
         uptime: number;
     }> {
         return this.fetch('/api/krip-toe-nite/health');
+    }
+
+    // =========================================================================
+    // UNIFIED BUILD API (Intent Lock + 6-Phase Build Loop + Done Contract)
+    // =========================================================================
+
+    /**
+     * Stream unified build with full pipeline:
+     * - Intent Lock (Sacred Contract)
+     * - 6-Phase Build Loop
+     * - Enhanced Build Loop (Cursor 2.1+ services)
+     * - Done Contract enforcement
+     *
+     * This is the CORRECT way to build - uses full orchestration
+     */
+    streamUnifiedBuild(
+        data: {
+            prompt: string;
+            projectName?: string;
+            projectId?: string;
+            mode?: 'lightning' | 'standard' | 'tournament' | 'production';
+            enableEnhanced?: boolean;
+        },
+        onEvent: (event: UnifiedBuildEvent) => void,
+        onComplete?: () => void,
+        onError?: (error: Error) => void
+    ): AbortController {
+        const controller = new AbortController();
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...(this.userId && { 'x-user-id': this.userId }),
+        };
+
+        fetch(`${this.baseUrl}/api/orchestrate/build`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                ...data,
+                mode: data.mode || 'standard',
+                enableEnhanced: data.enableEnhanced ?? true,
+            }),
+            signal: controller.signal,
+            credentials: 'include',
+        }).then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`Build error: ${response.status}`);
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    let currentEvent = '';
+                    let currentData = '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.slice(7);
+                        } else if (line.startsWith('data: ')) {
+                            currentData = line.slice(6);
+                        } else if (line === '' && currentEvent && currentData) {
+                            try {
+                                const data = JSON.parse(currentData);
+                                onEvent({
+                                    type: currentEvent as UnifiedBuildEvent['type'],
+                                    ...data,
+                                });
+                            } catch {
+                                // Skip malformed JSON
+                            }
+                            currentEvent = '';
+                            currentData = '';
+                        }
+                    }
+                }
+                onComplete?.();
+            } catch (err) {
+                if (err instanceof Error && err.name !== 'AbortError') {
+                    onError?.(err);
+                }
+            }
+        }).catch((err) => {
+            if (err.name !== 'AbortError') {
+                onError?.(err);
+            }
+        });
+
+        return controller;
+    }
+
+    /**
+     * Get build status including Intent Lock and Done Contract
+     */
+    async getBuildStatus(buildId: string): Promise<UnifiedBuildStatus> {
+        return this.fetch(`/api/orchestrate/${buildId}/status`);
+    }
+
+    /**
+     * Get project context (cross-request memory)
+     */
+    async getProjectContext(projectId: string): Promise<ProjectContextResponse> {
+        return this.fetch(`/api/orchestrate/${projectId}/context`);
+    }
+
+    /**
+     * Pause a running build
+     */
+    async pauseBuild(buildId: string): Promise<{ success: boolean; message: string }> {
+        return this.fetch(`/api/orchestrate/${buildId}/pause`, {
+            method: 'POST',
+        });
+    }
+
+    /**
+     * Get build checkpoints
+     */
+    async getBuildCheckpoints(buildId: string): Promise<{ checkpoints: BuildCheckpoint[] }> {
+        return this.fetch(`/api/orchestrate/${buildId}/checkpoints`);
+    }
+
+    /**
+     * Rollback to checkpoint
+     */
+    async rollbackBuild(buildId: string, checkpointId: string): Promise<{ success: boolean; message: string }> {
+        return this.fetch(`/api/orchestrate/${buildId}/rollback`, {
+            method: 'POST',
+            body: JSON.stringify({ checkpointId }),
+        });
     }
 }
 

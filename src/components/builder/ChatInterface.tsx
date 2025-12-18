@@ -37,8 +37,15 @@ import { useCostStore } from '../../store/useCostStore';
 import CostEstimatorModal from '../cost/CostEstimatorModal';
 import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
-import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
+import { apiClient, type KripToeNiteChunk, type UnifiedBuildEvent } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
+import { useBuildStore } from '../../store/useBuildStore';
+import {
+    IntentLockStatus,
+    BuildStatusBar,
+    DoneContractStatus,
+    ActiveAgentsDisplay,
+} from './BuildPhaseIndicator';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
@@ -56,13 +63,23 @@ interface Message {
 }
 
 // Available models for the chat
-type ChatModel = 'krip-toe-nite' | 'orchestrator';
+type ChatModel = 'krip-toe-nite' | 'orchestrator' | 'unified-build';
+
+// Lock icon for unified build
+const LockBuildIcon = ({ size = 18 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        <circle cx="12" cy="16" r="1" />
+    </svg>
+);
 
 const CHAT_MODELS: Array<{
     id: ChatModel;
     name: string;
     description: string;
     icon: React.ReactNode;
+    badge?: string;
 }> = [
     {
         id: 'krip-toe-nite',
@@ -71,9 +88,16 @@ const CHAT_MODELS: Array<{
         icon: <KripTikNiteLogo size={18} />,
     },
     {
+        id: 'unified-build',
+        name: 'Unified Build',
+        description: 'Full pipeline with Intent Lock',
+        icon: <LockBuildIcon size={18} />,
+        badge: 'Recommended',
+    },
+    {
         id: 'orchestrator',
         name: 'Multi-Agent',
-        description: 'Full orchestrated build',
+        description: 'Legacy orchestrated build',
         icon: <OrchestratorIcon size={18} />,
     },
 ];
@@ -276,10 +300,14 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
     const [showBreakdown, setShowBreakdown] = useState(false);
 
     // KTN State
-    const [selectedModel, setSelectedModel] = useState<ChatModel>('krip-toe-nite');
+    const [selectedModel, setSelectedModel] = useState<ChatModel>('unified-build'); // Default to unified build
     const [showModelDropdown, setShowModelDropdown] = useState(false);
     const [streamController, setStreamController] = useState<AbortController | null>(null);
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
+
+    // Unified Build Store
+    const buildStore = useBuildStore();
+    const buildStatus = buildStore.status;
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -385,6 +413,107 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
         setStreamController(controller);
     }, []);
 
+    // Unified Build streaming handler
+    const handleUnifiedBuildStream = useCallback((prompt: string) => {
+        const msgId = `msg-${Date.now() + 2}`;
+        const buildId = `build-${Date.now()}`;
+        const projectId = `project-${Date.now()}`;
+
+        // Initialize build store
+        buildStore.startBuild(buildId, projectId, 'standard');
+
+        // Add initial assistant message
+        setMessages(prev => [...prev, {
+            id: msgId,
+            role: 'assistant',
+            content: 'Starting unified build with Intent Lock...',
+            timestamp: new Date(),
+            agentType: 'unified-build',
+        }]);
+
+        const controller = apiClient.streamUnifiedBuild(
+            {
+                prompt,
+                projectName: `Project ${Date.now()}`,
+                mode: 'standard',
+                enableEnhanced: true,
+            },
+            (event: UnifiedBuildEvent) => {
+                // Forward events to build store
+                buildStore.handleEvent(event);
+
+                // Update message based on event type
+                let messageUpdate = '';
+
+                switch (event.type) {
+                    case 'build_started':
+                        messageUpdate = 'Build started - creating Intent Lock...';
+                        break;
+                    case 'intent_created':
+                        messageUpdate = `Intent Lock created: ${event.intentContract?.appType || 'app'} with ${event.intentContract?.criteriaCount || 0} success criteria`;
+                        break;
+                    case 'intent_locked':
+                        messageUpdate = 'Sacred Contract locked - beginning 6-phase build';
+                        break;
+                    case 'phase_start':
+                        messageUpdate = `Phase ${event.phaseNumber}: ${event.phaseName || event.phase}`;
+                        break;
+                    case 'phase_complete':
+                        messageUpdate = `Completed phase: ${event.phaseName || event.phase}`;
+                        break;
+                    case 'feature_building':
+                        messageUpdate = `Building: ${event.featureName || 'feature'} (${event.featureProgress || 0}%)`;
+                        break;
+                    case 'verification_result':
+                        messageUpdate = `Verification: ${event.verificationPassed ? 'Passed' : 'Needs work'} (${event.verificationScore || 0}%)`;
+                        break;
+                    case 'done_check':
+                        if (event.doneContract) {
+                            messageUpdate = event.doneContract.satisfied
+                                ? 'Done Contract satisfied - all criteria met!'
+                                : `Done Contract: ${Math.round(event.doneContract.criteriaPassRate * 100)}% criteria passing`;
+                        }
+                        break;
+                    case 'build_complete':
+                    case 'complete':
+                        messageUpdate = event.success
+                            ? 'Build complete - all success criteria satisfied!'
+                            : 'Build completed with issues - check blockers';
+                        break;
+                    case 'error':
+                        messageUpdate = `Error: ${event.error || event.message || 'Unknown error'}`;
+                        break;
+                }
+
+                if (messageUpdate) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === msgId
+                            ? { ...m, content: messageUpdate }
+                            : m
+                    ));
+                }
+            },
+            () => {
+                // On complete
+                setIsTyping(false);
+                setStreamController(null);
+            },
+            (error) => {
+                console.error('Unified build error:', error);
+                setIsTyping(false);
+                setStreamController(null);
+                buildStore.setError(error.message);
+                setMessages(prev => prev.map(m =>
+                    m.id === msgId
+                        ? { ...m, content: `Build failed: ${error.message}` }
+                        : m
+                ));
+            }
+        );
+
+        setStreamController(controller);
+    }, [buildStore]);
+
     const confirmGeneration = async () => {
         if (!pendingPrompt) return;
 
@@ -409,19 +538,31 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: '⚡ Using Krip-Toe-Nite intelligent routing...',
+                content: 'Using Krip-Toe-Nite intelligent routing...',
                 timestamp: new Date(),
                 agentType: 'krip-toe-nite',
             };
             setMessages(prev => [...prev, systemMessage]);
 
             handleKtnStream(prompt);
-        } else {
-            // Use multi-agent orchestrator
+        } else if (selectedModel === 'unified-build') {
+            // Use Unified Build with Intent Lock + 6-Phase Build Loop
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: 'Starting multi-agent orchestration...',
+                content: 'Starting Unified Build with Intent Lock (Sacred Contract)...',
+                timestamp: new Date(),
+                agentType: 'unified-build',
+            };
+            setMessages(prev => [...prev, systemMessage]);
+
+            handleUnifiedBuildStream(prompt);
+        } else {
+            // Use multi-agent orchestrator (legacy)
+            const systemMessage: Message = {
+                id: `msg-${Date.now() + 1}`,
+                role: 'system',
+                content: 'Starting multi-agent orchestration (legacy)...',
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             };
@@ -480,54 +621,83 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
 
             {/* Header - Liquid Glass */}
             <div
-                className="p-4 flex justify-between items-center shrink-0"
+                className="p-4 shrink-0 space-y-3"
                 style={{
                     borderBottom: '1px solid rgba(0,0,0,0.06)',
                 }}
             >
-                <div className="flex items-center gap-3">
-                    <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{
-                            background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
-                            boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
-                        }}
-                    >
-                        <AIAssistantIcon size={22} />
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
+                                boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
+                            }}
+                        >
+                            <AIAssistantIcon size={22} />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                Build Assistant
+                            </h2>
+                            <p className="text-xs" style={{ color: globalStatus === 'running' || buildStatus === 'building' ? '#c25a00' : '#666' }}>
+                                {buildStatus === 'building' ? 'Building with Intent Lock...' :
+                                 buildStatus === 'verifying' ? 'Verifying...' :
+                                 buildStatus === 'complete' ? 'Build complete' :
+                                 globalStatus === 'running' ? 'Building...' :
+                                 globalStatus === 'paused' ? 'Paused' : 'Ready to create'}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                            Build Assistant
-                        </h2>
-                        <p className="text-xs" style={{ color: globalStatus === 'running' ? '#c25a00' : '#666' }}>
-                            {globalStatus === 'running' ? 'Building...' :
-                             globalStatus === 'paused' ? 'Paused' : 'Ready to create'}
-                        </p>
+
+                    <div className="flex items-center gap-2">
+                        {/* Intent Lock Status Badge */}
+                        <IntentLockStatus />
+
+                        {(globalStatus !== 'idle' || buildStatus !== 'idle') && (
+                            <div className="flex gap-2">
+                                <GlassButton
+                                    onClick={handlePauseResume}
+                                    disabled={globalStatus === 'completed' || globalStatus === 'failed'}
+                                    size="sm"
+                                >
+                                    {globalStatus === 'paused'
+                                        ? <PlayIcon size={18} />
+                                        : <PauseIcon size={18} />
+                                    }
+                                </GlassButton>
+                                <GlassButton
+                                    onClick={() => {
+                                        handleStop();
+                                        if (buildStatus !== 'idle') {
+                                            buildStore.resetBuild();
+                                        }
+                                    }}
+                                    disabled={globalStatus === 'completed' || globalStatus === 'failed'}
+                                    variant="danger"
+                                    size="sm"
+                                >
+                                    <StopIcon size={18} />
+                                </GlassButton>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {globalStatus !== 'idle' && (
-                    <div className="flex gap-2">
-                        <GlassButton
-                            onClick={handlePauseResume}
-                            disabled={globalStatus === 'completed' || globalStatus === 'failed'}
-                            size="sm"
+                {/* Build Status Bar - Shows when unified build is active */}
+                <AnimatePresence>
+                    {buildStatus !== 'idle' && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
                         >
-                            {globalStatus === 'paused'
-                                ? <PlayIcon size={18} />
-                                : <PauseIcon size={18} />
-                            }
-                        </GlassButton>
-                        <GlassButton
-                            onClick={handleStop}
-                            disabled={globalStatus === 'completed' || globalStatus === 'failed'}
-                            variant="danger"
-                            size="sm"
-                        >
-                            <StopIcon size={18} />
-                        </GlassButton>
-                    </div>
-                )}
+                            <BuildStatusBar />
+                            <ActiveAgentsDisplay />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Main Content Area */}
@@ -789,9 +959,16 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
                                         }`}
                                     >
                                         {model.icon}
-                                        <div className="text-left">
-                                            <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                                                {model.name}
+                                        <div className="text-left flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
+                                                    {model.name}
+                                                </span>
+                                                {model.badge && (
+                                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                                                        {model.badge}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-[10px]" style={{ color: '#666' }}>
                                                 {model.description}
@@ -887,10 +1064,30 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
                     {selectedModel === 'krip-toe-nite' && (
                         <>
                             <span style={{ color: '#ccc' }}>•</span>
-                            <span className="text-yellow-600">⚡ Krip-Toe-Nite</span>
+                            <span className="text-yellow-600">Krip-Toe-Nite</span>
+                        </>
+                    )}
+                    {selectedModel === 'unified-build' && (
+                        <>
+                            <span style={{ color: '#ccc' }}>•</span>
+                            <span className="text-green-600">Intent Lock + 6-Phase Build</span>
                         </>
                     )}
                 </div>
+
+                {/* Done Contract Status - Shows when build is verifying or complete */}
+                <AnimatePresence>
+                    {(buildStatus === 'verifying' || buildStatus === 'complete') && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="mt-3"
+                        >
+                            <DoneContractStatus />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
