@@ -659,8 +659,57 @@ export default function FixMyApp() {
         errorLogs: true,
         versionHistory: true, // Auto-selected for maximum context
     });
+
+    // Extension state
+    const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
+    const [extensionCheckComplete, setExtensionCheckComplete] = useState(false);
+
+    // Chrome Web Store URL for the extension
+    const EXTENSION_STORE_URL = 'https://github.com/Flickinny11/KripTik-Extension'; // TODO: Replace with Chrome Web Store URL once published
+
+    // Check if extension is installed
+    useEffect(() => {
+        const checkExtension = () => {
+            // Send message to check if extension is installed
+            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+
+            // Listen for response
+            const handleMessage = (event: MessageEvent) => {
+                if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                    setExtensionInstalled(true);
+                    setExtensionCheckComplete(true);
+                    window.removeEventListener('message', handleMessage);
+                }
+            };
+
+            window.addEventListener('message', handleMessage);
+
+            // Timeout - if no response after 1 second, extension is not installed
+            setTimeout(() => {
+                if (!extensionInstalled) {
+                    setExtensionInstalled(false);
+                    setExtensionCheckComplete(true);
+                }
+                window.removeEventListener('message', handleMessage);
+            }, 1000);
+        };
+
+        checkExtension();
+    }, []);
+
+    // Clean up Fix My App session ONLY when workflow is fully complete
+    // DO NOT end session on unmount - user needs to navigate to AI builder to capture data
+    useEffect(() => {
+        // End session only when step becomes 'complete' (workflow finished)
+        if (step === 'complete' && extensionInstalled) {
+            window.postMessage({ type: 'KRIPTIK_END_FIX_SESSION' }, '*');
+        }
+        // Note: No cleanup on unmount - session must persist while user is on AI builder
+    }, [step, extensionInstalled]);
+
     const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
     const [githubUrl, setGithubUrl] = useState('');
+    const [projectUrl, setProjectUrl] = useState(''); // URL of user's project in AI builder
     const [chatHistory, setChatHistory] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -826,6 +875,11 @@ export default function FixMyApp() {
 
     // Get platform URL based on source
     const getPlatformUrl = useCallback(() => {
+        // If user provided a specific project URL, use that
+        if (projectUrl) {
+            return projectUrl;
+        }
+        // Otherwise fall back to platform homepage
         const urls: Record<string, string> = {
             lovable: 'https://lovable.dev/projects',
             bolt: 'https://bolt.new',
@@ -838,7 +892,7 @@ export default function FixMyApp() {
             replit: 'https://replit.com',
         };
         return source ? urls[source] || '' : '';
-    }, [source]);
+    }, [source, projectUrl]);
 
     // Note: Browser automation removed - users now export and upload manually
 
@@ -1233,13 +1287,128 @@ export default function FixMyApp() {
                             </Card>
                         )}
 
-                        {/* Step 2: Consent */}
+                        {/* Step 2: Consent - With Extension Detection */}
                         {step === 'consent' && (
                             <Card className="p-8 bg-slate-900/50 border-slate-800">
                                 <h2 className="text-2xl font-bold mb-2">Context Retrieval Authorization</h2>
                                 <p className="text-slate-400 mb-8">
                                     Granting access allows KripTik AI to understand your INTENT, not just your broken code.
                                 </p>
+
+                                {/* Extension Required Notice - Show for AI builders that need context capture */}
+                                {requiresBrowserLogin() && extensionCheckComplete && !extensionInstalled && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mb-8 p-6 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center flex-shrink-0">
+                                                <DownloadIcon size={24} className="text-amber-400" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-lg font-semibold text-white mb-2">Browser Extension Required</h3>
+                                                <p className="text-slate-400 text-sm mb-4">
+                                                    To automatically capture your chat history, build logs, and errors from {sourceOptions.find(s => s.id === source)?.name},
+                                                    you need the KripTik AI browser extension. This ensures we capture <strong className="text-amber-400">100% of your context</strong> for the best fix results.
+                                                </p>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <button
+                                                        onClick={() => window.open(EXTENSION_STORE_URL, '_blank')}
+                                                        style={{...primaryButtonStyles, padding: '12px 20px'}}
+                                                        className="hover:translate-y-[2px] active:translate-y-[4px]"
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <DownloadIcon size={16} />
+                                                            Install Extension
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            // Track if we got a response (local var to avoid stale closure)
+                                                            let gotResponse = false;
+
+                                                            // Set up listener for response BEFORE showing toast
+                                                            const handlePong = (event: MessageEvent) => {
+                                                                if (event.data?.type === 'KRIPTIK_EXTENSION_PONG') {
+                                                                    gotResponse = true;
+                                                                    setExtensionInstalled(true);
+                                                                    setExtensionCheckComplete(true);
+                                                                    window.removeEventListener('message', handlePong);
+                                                                    toast({
+                                                                        title: 'Extension Connected!',
+                                                                        description: 'KripTik AI extension is ready. You can now continue.',
+                                                                    });
+                                                                }
+                                                            };
+                                                            window.addEventListener('message', handlePong);
+
+                                                            // Send ping
+                                                            window.postMessage({ type: 'KRIPTIK_EXTENSION_PING' }, '*');
+
+                                                            // Timeout - if no response after 1.5s, show error
+                                                            setTimeout(() => {
+                                                                window.removeEventListener('message', handlePong);
+                                                                if (!gotResponse) {
+                                                                    toast({
+                                                                        title: 'Extension not detected',
+                                                                        description: 'Please refresh the page after installing, or check that the extension is enabled.',
+                                                                        variant: 'destructive',
+                                                                    });
+                                                                }
+                                                            }, 1500);
+                                                        }}
+                                                        style={{...secondaryButtonStyles, padding: '12px 20px'}}
+                                                        className="hover:bg-slate-600/60"
+                                                    >
+                                                        Installed - Verify Connection
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Extension Installed Badge */}
+                                {extensionInstalled && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3"
+                                    >
+                                        <CheckCircle2Icon size={20} className="text-emerald-400" />
+                                        <span className="text-emerald-400 font-medium">KripTik Extension Installed - Ready for automatic context capture</span>
+                                    </motion.div>
+                                )}
+
+                                {/* Project URL Input - For AI Builders */}
+                                {requiresBrowserLogin() && (
+                                    <div className="mb-8 p-6 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                        <label className="block text-sm font-medium text-white mb-2">
+                                            Your Project URL in {sourceOptions.find(s => s.id === source)?.name}
+                                        </label>
+                                        <p className="text-sm text-slate-400 mb-4">
+                                            Paste the URL of your project. This is the page where you can see your chat history and code.
+                                        </p>
+                                        <input
+                                            type="url"
+                                            value={projectUrl}
+                                            onChange={(e) => setProjectUrl(e.target.value)}
+                                            placeholder={
+                                                source === 'bolt' ? 'https://bolt.new/~/your-project-id' :
+                                                source === 'lovable' ? 'https://lovable.dev/projects/your-project-id' :
+                                                source === 'v0' ? 'https://v0.dev/chat/your-chat-id' :
+                                                'https://...'
+                                            }
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all"
+                                        />
+                                        {projectUrl && !projectUrl.includes(source || '') && (
+                                            <p className="mt-2 text-sm text-amber-400">
+                                                Make sure this URL is from {sourceOptions.find(s => s.id === source)?.name}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="space-y-4 mb-8">
                                     {[
@@ -1263,9 +1432,41 @@ export default function FixMyApp() {
                                     ))}
                                 </div>
 
+                                {/* Project URL Input - Required for AI Builders */}
+                                {requiresBrowserLogin() && (
+                                    <div className="mb-8 p-6 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                        <label className="block text-sm font-medium text-white mb-2">
+                                            Your Project URL in {sourceOptions.find(s => s.id === source)?.name}
+                                        </label>
+                                        <p className="text-sm text-slate-400 mb-4">
+                                            Paste the URL of your project. This is the page where you can see your chat history and code.
+                                        </p>
+                                        <input
+                                            type="url"
+                                            value={projectUrl}
+                                            onChange={(e) => setProjectUrl(e.target.value)}
+                                            placeholder={
+                                                source === 'bolt' ? 'https://bolt.new/~/your-project-id' :
+                                                source === 'lovable' ? 'https://lovable.dev/projects/your-project-id' :
+                                                source === 'v0' ? 'https://v0.dev/chat/your-chat-id' :
+                                                source === 'create' ? 'https://create.xyz/your-project-id' :
+                                                'https://...'
+                                            }
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all"
+                                        />
+                                        {!projectUrl && (
+                                            <p className="text-sm text-amber-400 mt-2">
+                                                Required: Enter your project URL to continue
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-8">
                                     <p className="text-sm text-amber-400">
-                                        💡 <strong>Why this matters:</strong> With full context, fix success rate increases from ~60% to ~95%.
+                                        {extensionInstalled
+                                            ? 'Extension detected! Click continue and we\'ll automatically capture all context from your project.'
+                                            : 'With full context, fix success rate increases from ~60% to ~95%.'}
                                     </p>
                                 </div>
 
@@ -1278,13 +1479,49 @@ export default function FixMyApp() {
                                         <ArrowLeftIcon size={16} /> Back
                                     </button>
                                     <button
-                                        onClick={submitConsent}
-                                        disabled={isLoading}
+                                        onClick={() => {
+                                            if (requiresBrowserLogin() && extensionInstalled) {
+                                                // Signal extension to start Fix My App session BEFORE opening platform
+                                                // Use backend API URL from env, not frontend origin
+                                                const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+                                                // Note: We don't need to pass a token since the extension will use
+                                                // credentials: 'include' to send cookies for session-based auth.
+                                                // The sessionId is just for tracking purposes.
+                                                const sessionData = {
+                                                    type: 'KRIPTIK_START_FIX_SESSION',
+                                                    projectName: session?.sessionId || 'Imported Project',
+                                                    returnUrl: window.location.href,
+                                                    apiEndpoint: backendUrl,
+                                                    // Pass session ID - the extension will use cookies for auth
+                                                    token: `session_${session?.sessionId || Date.now()}`
+                                                };
+                                                console.log('[KripTik] Sending session to extension:', sessionData);
+                                                window.postMessage(sessionData, '*');
+
+                                                // Listen for confirmation from extension
+                                                const handleSessionStarted = (event: MessageEvent) => {
+                                                    if (event.data?.type === 'KRIPTIK_FIX_SESSION_STARTED') {
+                                                        console.log('[KripTik] Extension confirmed session started');
+                                                        window.removeEventListener('message', handleSessionStarted);
+                                                    }
+                                                };
+                                                window.addEventListener('message', handleSessionStarted);
+
+                                                // Open the user's specific project URL, not the homepage
+                                                setTimeout(() => {
+                                                    window.open(projectUrl, '_blank');
+                                                }, 200); // Slightly longer delay to ensure session is stored
+                                            }
+                                            submitConsent();
+                                        }}
+                                        disabled={isLoading || Boolean(requiresBrowserLogin() && !projectUrl)}
                                         style={{...primaryButtonStyles, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
                                         className="hover:translate-y-[2px] hover:shadow-[0_2px_0_rgba(0,0,0,0.3),0_4px_16px_rgba(251,146,60,0.5)] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isLoading ? (
                                             <><Loader2Icon size={16} className="animate-spin" /> Saving...</>
+                                        ) : extensionInstalled && requiresBrowserLogin() ? (
+                                            <>Open Project & Capture <ArrowRightIcon size={16} /></>
                                         ) : (
                                             <>Grant Access & Continue <ArrowRightIcon size={16} /></>
                                         )}

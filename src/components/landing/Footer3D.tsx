@@ -6,6 +6,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 // Custom social icons (not Lucide)
 const SocialIcons = {
@@ -101,15 +102,36 @@ function AnimatedLogo() {
 
 // Link with micro-animation
 function FooterLink({ label, href }: { label: string; href: string }) {
-  return (
-    <motion.a
-      href={href}
-      className="text-sm text-kriptik-silver/60 hover:text-kriptik-white transition-colors relative group"
-      whileHover={{ x: 4 }}
-    >
+  // External links start with http or have a # for hash links
+  const isExternal = href.startsWith('http') || href.startsWith('#');
+
+  const linkClasses = "text-sm text-kriptik-silver/60 hover:text-kriptik-white transition-colors relative group block";
+  const content = (
+    <>
       {label}
       <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-kriptik-lime opacity-0 group-hover:opacity-100 transition-opacity" />
-    </motion.a>
+    </>
+  );
+
+  if (isExternal) {
+    return (
+      <motion.a
+        href={href}
+        className={linkClasses}
+        whileHover={{ x: 4 }}
+        {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      >
+        {content}
+      </motion.a>
+    );
+  }
+
+  return (
+    <motion.div whileHover={{ x: 4 }}>
+      <Link to={href} className={linkClasses}>
+        {content}
+      </Link>
+    </motion.div>
   );
 }
 

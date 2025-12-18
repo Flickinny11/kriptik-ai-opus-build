@@ -13,6 +13,7 @@ import UsageDashboard from './pages/UsageDashboard';
 import SettingsPage from './pages/SettingsPage';
 import FixMyApp from './pages/FixMyApp';
 import MyStuff from './pages/MyStuff';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useUserStore } from './store/useUserStore';
 
 // Lazy load new pages (will be created)
@@ -44,6 +45,11 @@ function App() {
                     <Route path="/" element={
                         <PageErrorBoundary>
                             <LandingPage />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/privacy" element={
+                        <PageErrorBoundary>
+                            <PrivacyPolicy />
                         </PageErrorBoundary>
                     } />
                 </Route>
