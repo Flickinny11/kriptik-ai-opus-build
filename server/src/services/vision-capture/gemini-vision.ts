@@ -125,10 +125,16 @@ export class GeminiVisionClient {
    * Make a vision request to OpenRouter using Gemini 3 Flash
    *
    * Gemini 3 Flash supports configurable thinking levels:
-   * - minimal: fastest, basic reasoning
-   * - low: quick decisions
-   * - medium: balanced (default for most tasks)
-   * - high: thorough reasoning (for complex decisions)
+   * - minimal: fastest, basic reasoning (NOT recommended for vision tasks)
+   * - low: quick decisions (NOT recommended for vision tasks)
+   * - medium: balanced reasoning
+   * - high: thorough reasoning (RECOMMENDED for all vision tasks)
+   *
+   * For vision/multimodal tasks, we default to HIGH thinking because:
+   * - Screenshots contain complex visual information
+   * - The model needs to reason about UI elements, text, layout
+   * - Accuracy is more important than speed for browser automation
+   * - Cost difference is minimal compared to error recovery costs
    */
   private async makeVisionRequest(
     prompt: string,
@@ -140,6 +146,11 @@ export class GeminiVisionClient {
       includeReasoning?: boolean;
     }
   ): Promise<string> {
+    // For vision tasks, default to HIGH thinking and generous token limits
+    // Visual reasoning requires more compute to properly analyze screenshots
+    const thinkingLevel = options?.thinkingLevel ?? 'high';
+    const maxTokens = options?.maxTokens ?? 8192;
+
     // Build request body with Gemini 3 Flash specific parameters
     const requestBody: Record<string, unknown> = {
       model: this.model,
@@ -160,15 +171,17 @@ export class GeminiVisionClient {
           ],
         },
       ],
-      temperature: options?.temperature ?? 0.1,
-      max_tokens: options?.maxTokens ?? 4096,
+      temperature: options?.temperature ?? 0.2, // Slightly higher for better reasoning
+      max_tokens: maxTokens,
     };
 
     // Add Gemini 3 Flash reasoning configuration
     if (this.model.includes('gemini-3')) {
-      requestBody.reasoning = options?.thinkingLevel ?? 'medium';
-      requestBody.include_reasoning = options?.includeReasoning ?? false;
+      requestBody.reasoning = thinkingLevel;
+      requestBody.include_reasoning = options?.includeReasoning ?? true; // Include reasoning for debugging
     }
+
+    console.log(`[VisionClient] Request: model=${this.model}, thinking=${thinkingLevel}, maxTokens=${maxTokens}`);
 
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -193,6 +206,14 @@ export class GeminiVisionClient {
 
   /**
    * Analyze a screenshot and determine next action for chat capture
+   *
+   * This is a critical agentic task - the model needs to:
+   * - Understand the current UI state
+   * - Identify scrollable areas and buttons
+   * - Extract visible messages
+   * - Decide the best next action
+   *
+   * Always use HIGH thinking for accurate visual reasoning.
    */
   async analyzeChatCapture(
     screenshot: Buffer,
@@ -206,13 +227,14 @@ export class GeminiVisionClient {
     const prompt = this.buildChatCapturePrompt(context);
     const imageBase64 = screenshot.toString('base64');
 
-    // Use medium thinking for navigation, high for extraction
-    const thinkingLevel = context.goal === 'extract_messages' ? 'high' : 'medium';
+    // Always use HIGH thinking for visual reasoning tasks
+    // Token limit depends on whether we're extracting messages (need more space)
+    const maxTokens = context.goal === 'extract_messages' ? 16384 : 8192;
 
     const response = await this.makeVisionRequest(prompt, imageBase64, {
-      temperature: 0.1,
-      maxTokens: 4096,
-      thinkingLevel,
+      temperature: 0.2,
+      maxTokens,
+      thinkingLevel: 'high',
     });
 
     return this.parseVisionResponse(response);
@@ -220,6 +242,14 @@ export class GeminiVisionClient {
 
   /**
    * Analyze a screenshot for file/project export
+   *
+   * Another critical agentic task requiring:
+   * - Finding file explorer panels
+   * - Reading file names and structure
+   * - Identifying clickable elements
+   * - Locating export/download buttons
+   *
+   * Use HIGH thinking for reliable file tree parsing.
    */
   async analyzeFileCapture(
     screenshot: Buffer,
@@ -233,11 +263,11 @@ export class GeminiVisionClient {
     const prompt = this.buildFileCapturePrompt(context);
     const imageBase64 = screenshot.toString('base64');
 
-    // Use medium thinking for file navigation
+    // HIGH thinking for accurate file structure identification
     const response = await this.makeVisionRequest(prompt, imageBase64, {
-      temperature: 0.1,
-      maxTokens: 4096,
-      thinkingLevel: 'medium',
+      temperature: 0.2,
+      maxTokens: 8192,
+      thinkingLevel: 'high',
     });
 
     return this.parseVisionResponse(response);
@@ -245,6 +275,14 @@ export class GeminiVisionClient {
 
   /**
    * Extract all visible chat messages from a screenshot
+   *
+   * This is the most demanding visual task:
+   * - Must read and transcribe all visible text accurately
+   * - Must identify code blocks and their languages
+   * - Must distinguish user vs assistant messages
+   * - Must preserve message order and content
+   *
+   * Use HIGH thinking with maximum tokens for complete extraction.
    */
   async extractVisibleMessages(screenshot: Buffer): Promise<ChatMessage[]> {
     const prompt = `You are extracting chat messages from an AI coding assistant interface.
@@ -279,10 +317,11 @@ Return ONLY the JSON, no other text.`;
 
     const imageBase64 = screenshot.toString('base64');
 
-    // Use HIGH thinking for message extraction - need maximum accuracy
+    // HIGH thinking with maximum tokens for complete message extraction
+    // This is the most important task - accuracy is critical
     const response = await this.makeVisionRequest(prompt, imageBase64, {
-      temperature: 0,
-      maxTokens: 16384, // Increased for large conversations
+      temperature: 0.1, // Very low for consistent extraction
+      maxTokens: 32768, // Maximum for large conversations with code blocks
       thinkingLevel: 'high',
     });
 
@@ -297,20 +336,30 @@ Return ONLY the JSON, no other text.`;
 
   /**
    * Determine UI state from screenshot
-   * Uses minimal thinking - quick assessment task
+   *
+   * This is the initial assessment that guides all subsequent actions.
+   * Getting this wrong means the entire capture flow fails.
+   *
+   * Needs to accurately identify:
+   * - All UI panels and their positions
+   * - Scroll indicators
+   * - Interactive elements like "Load more" buttons
+   * - Current view state
+   *
+   * Use HIGH thinking because this is foundational to the capture process.
    */
   async analyzeUIState(screenshot: Buffer, platform: string): Promise<UIState> {
     const prompt = `Analyze this screenshot of ${platform} (an AI coding assistant).
 
-Determine the UI state:
+Determine the UI state by carefully examining all visible elements:
 
 1. Is there a chat/conversation panel visible? (hasChat)
 2. Is there a file explorer/sidebar? (hasSidebar)
 3. Is there a terminal/console panel? (hasTerminal)
 4. Is there a preview/output panel? (hasPreview)
-5. Can the chat scroll up (is there content above)? (canScrollUp)
-6. Can the chat scroll down (is there content below)? (canScrollDown)
-7. Is there a "Load more" or "Show earlier" button? If yes, give approximate x,y coordinates
+5. Can the chat scroll up (is there content above)? Look for scroll indicators, truncated content, or scroll shadows. (canScrollUp)
+6. Can the chat scroll down (is there content below)? Look for scroll indicators or content cut off at bottom. (canScrollDown)
+7. Is there a "Load more", "Show earlier", "View older messages" or similar button? If yes, give approximate x,y coordinates. (loadMoreButton)
 8. What is the main view showing? (chat, code, preview, settings, unknown)
 
 Return JSON:
@@ -329,11 +378,12 @@ Return ONLY the JSON.`;
 
     const imageBase64 = screenshot.toString('base64');
 
-    // Use LOW thinking - this is a quick assessment task
+    // HIGH thinking for accurate UI state detection
+    // This is foundational - errors here cascade through the entire capture
     const response = await this.makeVisionRequest(prompt, imageBase64, {
-      temperature: 0,
-      maxTokens: 1024,
-      thinkingLevel: 'low',
+      temperature: 0.2,
+      maxTokens: 4096,
+      thinkingLevel: 'high',
     });
 
     try {
