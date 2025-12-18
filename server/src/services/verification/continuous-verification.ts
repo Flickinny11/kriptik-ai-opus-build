@@ -320,7 +320,7 @@ export class ContinuousVerificationService extends EventEmitter {
      */
     private runImmediateChecks(filePath: string, content: string): void {
         // Only run lightweight pattern-based checks immediately
-        const immediateChecks: VerificationCheckType[] = ['placeholder', 'security', 'antiSlop'];
+        const immediateChecks: Array<'placeholder' | 'security' | 'antiSlop'> = ['placeholder', 'security', 'antiSlop'];
 
         for (const checkType of immediateChecks) {
             if (!this.checks.get(checkType)?.enabled) continue;

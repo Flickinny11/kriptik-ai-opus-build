@@ -33,6 +33,11 @@ import { getCredentialVault } from '../security/credential-vault.js';
 import { createVerificationSwarm, type CombinedVerificationResult } from '../verification/index.js';
 import { GhostModeController } from '../ghost-mode/ghost-controller.js';
 import { getNotificationService } from '../notifications/notification-service.js';
+import {
+    createEnhancedBuildLoop,
+    type EnhancedBuildLoopOrchestrator,
+} from '../automation/enhanced-build-loop.js';
+import { getSharedContextPool } from '../orchestration/shared-context-pool.js';
 
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
@@ -70,6 +75,7 @@ type FeatureAgentRuntime = {
     sessionId: string | null;
     developerModeAgentId: string | null;
     providedCredentialKeys: Set<string>;
+    enhancedLoop: EnhancedBuildLoopOrchestrator | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -270,6 +276,7 @@ export class FeatureAgentService extends EventEmitter {
             sessionId: null,
             developerModeAgentId: null,
             providedCredentialKeys: new Set(),
+            enhancedLoop: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Intent lock starting.', timestamp: Date.now() });
@@ -573,6 +580,72 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         const devAgent = await orchestrator.deployAgent(session.id, req);
         rt.developerModeAgentId = devAgent.id;
 
+        // =========================================================================
+        // ENHANCED BUILD LOOP INTEGRATION (Cursor 2.1+ services)
+        // =========================================================================
+        const projectPath = `/tmp/builds/${rt.config.projectId}`;
+        rt.enhancedLoop = createEnhancedBuildLoop({
+            buildId: agentId,
+            projectId: rt.config.projectId,
+            userId: rt.config.userId,
+            projectPath,
+            previewUrl: `http://localhost:3100`,
+            enableStreamingFeedback: true,
+            enableContinuousVerification: true,
+            enableRuntimeDebug: true,
+            enableBrowserInLoop: true,
+            enableHumanCheckpoints: true,
+            enableMultiAgentJudging: true,
+            enablePatternLibrary: true,
+            visualQualityThreshold: 85,
+            humanCheckpointEscalationLevel: 2,
+        });
+
+        // Start enhanced services
+        await rt.enhancedLoop.start();
+
+        // Register the developer agent with enhanced loop for feedback streaming
+        rt.enhancedLoop.registerAgent(devAgent.id, rt.config.name, rt.config.taskPrompt);
+
+        // Forward enhanced loop events to feature agent stream
+        rt.enhancedLoop.on('agent:feedback', (data) => {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Enhanced feedback: ${data.feedback?.message || 'Verification update'}`,
+                timestamp: Date.now(),
+                metadata: data,
+            });
+        });
+
+        rt.enhancedLoop.on('agent:self-corrected', (data) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Self-correction applied: ${data.correction || 'Auto-fix'}`,
+                timestamp: Date.now(),
+                metadata: data,
+            });
+        });
+
+        rt.enhancedLoop.on('error:pattern-fixed', (data) => {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Pattern fix applied (Level 0): ${data.pattern || 'Known pattern'}`,
+                timestamp: Date.now(),
+                metadata: data,
+            });
+        });
+
+        // Store in shared context for cross-request memory
+        const contextPool = getSharedContextPool();
+        await contextPool.loadOrCreateContext(rt.config.projectId, rt.config.userId);
+
+        this.emitStream(agentId, {
+            type: 'status',
+            content: 'Enhanced Build Loop activated with Cursor 2.1+ services',
+            timestamp: Date.now(),
+            metadata: { capabilities: rt.enhancedLoop.getCapabilitiesSummary() },
+        });
+
         // Forward key orchestrator events for this agent into FeatureAgent stream
         const forward = (eventType: string) => (data: any) => {
             if (!data || data.agentId !== devAgent.id) return;
@@ -626,6 +699,17 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
             try {
                 this.setStatus(agentId, 'verifying');
+
+                // Stop enhanced loop before verification (it was helping during build)
+                if (rt.enhancedLoop) {
+                    await rt.enhancedLoop.stop();
+                    this.emitStream(agentId, {
+                        type: 'status',
+                        content: 'Enhanced Build Loop stopped - running final verification',
+                        timestamp: Date.now(),
+                    });
+                }
+
                 const fileRows = await db.select().from(files).where(eq(files.projectId, rt.config.projectId));
                 const map = new Map<string, string>();
                 for (const row of fileRows) map.set(row.path, row.content);
@@ -646,6 +730,15 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                     timestamp: Date.now(),
                     metadata: combined as any,
                 });
+
+                // Record in shared context for cross-request memory
+                const contextPool = getSharedContextPool();
+                await contextPool.recordSuccessfulApproach(
+                    rt.config.projectId,
+                    rt.config.taskPrompt,
+                    `Feature Agent: ${rt.config.name}`,
+                    combined.verdict
+                );
 
                 rt.config.completedAt = now();
                 this.setStatus(agentId, combined.verdict === 'APPROVED' ? 'complete' : 'failed');

@@ -20,8 +20,10 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     getOpenRouterClient,
     getPhaseConfig,
-    type PhaseType,
 } from '../ai/openrouter-client.js';
+
+// Phase type for multi-agent judging
+type PhaseType = string;
 
 // =============================================================================
 // TYPES
