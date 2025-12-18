@@ -21,6 +21,30 @@
 
 ## Recent Completions
 
+### 2025-12-18: Placeholder and Orphaned Code Cleanup
+Comprehensive cleanup of all placeholders, mock data, and orphaned code:
+
+**Frontend Fixes:**
+- PublishButton.tsx: Removed emoji, implemented custom domain connection UI
+- MyAccount.tsx: Implemented full notification preferences section with toggles
+- MyStuff.tsx: Integrated share modal with collaboration store
+- DesignRoom.tsx: Implemented image-to-code and project selector modal
+- CredentialVault.tsx: Implemented credential validation handler
+- FixMyApp.tsx: Made extension URL configurable via VITE_EXTENSION_STORE_URL
+- ShareModal.tsx: Added fallback avatars for missing user images
+- useCollaborationStore.ts: Replaced mock users with production-ready state
+
+**Backend Fixes:**
+- billing.ts: Implemented actual usage tracking from usage service
+- stripe-integration.ts: Implemented checkout fulfillment data extraction
+- credentials.ts: Implemented proper project env vars query from database
+
+**Cleanup:**
+- Removed unused SplineToolbar.tsx and SplineGlassBackground.tsx
+- Removed commented future exports from panels/index.ts
+
+**Branch:** claude/find-placeholders-orphaned-code-eJaRi
+
 ### 2025-12-18: Major Enhancement - Cursor 2.1+ Feature Parity
 Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
