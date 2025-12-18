@@ -1,17 +1,21 @@
 /**
- * Gemini 3 Flash Vision Client
+ * Vision Client via OpenRouter
  *
- * Uses Gemini 3 Flash for vision-based browser understanding.
- * Optimized for cost efficiency with context caching and low-res options.
+ * Uses Gemini 2.0 Flash (or other vision models) via OpenRouter for
+ * vision-based browser understanding. This integrates with KripTik's
+ * existing OpenRouter infrastructure.
  *
- * Pricing (Dec 2025):
- * - Input: $0.50/1M tokens
- * - Output: $3/1M tokens
- * - Images: ~560 tokens each ($0.0003/image)
- * - Video: 258 tokens/second
+ * Supported Vision Models via OpenRouter:
+ * - google/gemini-2.0-flash-thinking-exp (primary - good for reasoning)
+ * - google/gemini-2.0-flash-exp (faster, cheaper)
+ * - anthropic/claude-sonnet-4.5 (Claude vision)
+ * - openai/gpt-4o (GPT-4 vision)
+ *
+ * Pricing (Dec 2025, Gemini 2.0 Flash):
+ * - Input: $0.10/1M tokens
+ * - Output: $0.40/1M tokens
+ * - Images: ~258 tokens per frame
  */
-
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
 // Action types the vision model can return
 export type VisionAction =
@@ -76,17 +80,83 @@ export interface VisionAnalysis {
   confidence: number;
 }
 
-export class GeminiVisionClient {
-  private client: GoogleGenerativeAI;
-  private model: string = 'gemini-3-flash';
-  private cachedContext: string | null = null;
+// OpenRouter vision models
+export const VISION_MODELS = {
+  GEMINI_2_FLASH_THINKING: 'google/gemini-2.0-flash-thinking-exp',
+  GEMINI_2_FLASH: 'google/gemini-2.0-flash-exp',
+  CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet',
+  GPT_4O: 'openai/gpt-4o',
+} as const;
 
-  constructor(apiKey?: string) {
-    const key = apiKey || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error('Gemini API key not configured. Set GOOGLE_AI_API_KEY or GEMINI_API_KEY');
+export type VisionModel = typeof VISION_MODELS[keyof typeof VISION_MODELS];
+
+export class GeminiVisionClient {
+  private apiKey: string;
+  private model: VisionModel;
+  private baseUrl: string = 'https://openrouter.ai/api/v1';
+
+  constructor(options?: { apiKey?: string; model?: VisionModel }) {
+    this.apiKey = options?.apiKey || process.env.OPENROUTER_API_KEY || '';
+    this.model = options?.model || VISION_MODELS.GEMINI_2_FLASH_THINKING;
+
+    if (!this.apiKey) {
+      throw new Error('OPENROUTER_API_KEY is required for vision capture');
     }
-    this.client = new GoogleGenerativeAI(key);
+
+    console.log(`[VisionClient] Initialized with model: ${this.model}`);
+  }
+
+  /**
+   * Make a vision request to OpenRouter
+   */
+  private async makeVisionRequest(
+    prompt: string,
+    imageBase64: string,
+    options?: {
+      temperature?: number;
+      maxTokens?: number;
+    }
+  ): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://kriptik.ai',
+        'X-Title': 'KripTik AI Vision Capture',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${imageBase64}`,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: options?.temperature ?? 0.1,
+        max_tokens: options?.maxTokens ?? 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('[VisionClient] OpenRouter error:', error);
+      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
   }
 
   /**
@@ -101,25 +171,13 @@ export class GeminiVisionClient {
       messagesCollected: number;
     }
   ): Promise<VisionAnalysis> {
-    const model = this.client.getGenerativeModel({
-      model: this.model,
-      generationConfig: {
-        temperature: 0.1, // Low temp for consistent actions
-        maxOutputTokens: 2048,
-      }
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: 'image/png',
-        data: screenshot.toString('base64')
-      }
-    };
-
     const prompt = this.buildChatCapturePrompt(context);
+    const imageBase64 = screenshot.toString('base64');
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = result.response.text();
+    const response = await this.makeVisionRequest(prompt, imageBase64, {
+      temperature: 0.1,
+      maxTokens: 2048,
+    });
 
     return this.parseVisionResponse(response);
   }
@@ -136,25 +194,13 @@ export class GeminiVisionClient {
       filesFound: string[];
     }
   ): Promise<VisionAnalysis> {
-    const model = this.client.getGenerativeModel({
-      model: this.model,
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-      }
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: 'image/png',
-        data: screenshot.toString('base64')
-      }
-    };
-
     const prompt = this.buildFileCapturePrompt(context);
+    const imageBase64 = screenshot.toString('base64');
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = result.response.text();
+    const response = await this.makeVisionRequest(prompt, imageBase64, {
+      temperature: 0.1,
+      maxTokens: 2048,
+    });
 
     return this.parseVisionResponse(response);
   }
@@ -163,21 +209,6 @@ export class GeminiVisionClient {
    * Extract all visible chat messages from a screenshot
    */
   async extractVisibleMessages(screenshot: Buffer): Promise<ChatMessage[]> {
-    const model = this.client.getGenerativeModel({
-      model: this.model,
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 8192, // More tokens for message extraction
-      }
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: 'image/png',
-        data: screenshot.toString('base64')
-      }
-    };
-
     const prompt = `You are extracting chat messages from an AI coding assistant interface.
 
 Look at this screenshot and extract ALL visible chat messages.
@@ -208,14 +239,17 @@ Important:
 
 Return ONLY the JSON, no other text.`;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = result.response.text();
+    const imageBase64 = screenshot.toString('base64');
+    const response = await this.makeVisionRequest(prompt, imageBase64, {
+      temperature: 0,
+      maxTokens: 8192,
+    });
 
     try {
       const parsed = JSON.parse(response.replace(/```json\n?|\n?```/g, ''));
       return parsed.messages || [];
     } catch (e) {
-      console.error('[GeminiVision] Failed to parse messages:', e);
+      console.error('[VisionClient] Failed to parse messages:', e);
       return [];
     }
   }
@@ -224,21 +258,6 @@ Return ONLY the JSON, no other text.`;
    * Determine UI state from screenshot
    */
   async analyzeUIState(screenshot: Buffer, platform: string): Promise<UIState> {
-    const model = this.client.getGenerativeModel({
-      model: this.model,
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 1024,
-      }
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: 'image/png',
-        data: screenshot.toString('base64')
-      }
-    };
-
     const prompt = `Analyze this screenshot of ${platform} (an AI coding assistant).
 
 Determine the UI state:
@@ -266,14 +285,17 @@ Return JSON:
 
 Return ONLY the JSON.`;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = result.response.text();
+    const imageBase64 = screenshot.toString('base64');
+    const response = await this.makeVisionRequest(prompt, imageBase64, {
+      temperature: 0,
+      maxTokens: 1024,
+    });
 
     try {
       const parsed = JSON.parse(response.replace(/```json\n?|\n?```/g, ''));
       return parsed;
     } catch (e) {
-      console.error('[GeminiVision] Failed to parse UI state:', e);
+      console.error('[VisionClient] Failed to parse UI state:', e);
       return {
         hasChat: false,
         hasSidebar: false,
@@ -384,8 +406,8 @@ Return ONLY the JSON.`;
         confidence: parsed.confidence || 0.5
       };
     } catch (e) {
-      console.error('[GeminiVision] Failed to parse response:', e);
-      console.error('[GeminiVision] Raw response:', response);
+      console.error('[VisionClient] Failed to parse response:', e);
+      console.error('[VisionClient] Raw response:', response);
       return {
         action: { type: 'ERROR', message: `Failed to parse vision response: ${e}` },
         extracted: {},
@@ -394,14 +416,33 @@ Return ONLY the JSON.`;
       };
     }
   }
+
+  /**
+   * Get the current model being used
+   */
+  getModel(): VisionModel {
+    return this.model;
+  }
+
+  /**
+   * Set a different vision model
+   */
+  setModel(model: VisionModel): void {
+    this.model = model;
+    console.log(`[VisionClient] Model changed to: ${model}`);
+  }
 }
 
 // Singleton instance
-let geminiVisionInstance: GeminiVisionClient | null = null;
+let visionClientInstance: GeminiVisionClient | null = null;
 
-export function getGeminiVision(): GeminiVisionClient {
-  if (!geminiVisionInstance) {
-    geminiVisionInstance = new GeminiVisionClient();
+export function getGeminiVision(options?: { model?: VisionModel }): GeminiVisionClient {
+  if (!visionClientInstance) {
+    visionClientInstance = new GeminiVisionClient(options);
   }
-  return geminiVisionInstance;
+  return visionClientInstance;
+}
+
+export function resetVisionClient(): void {
+  visionClientInstance = null;
 }
