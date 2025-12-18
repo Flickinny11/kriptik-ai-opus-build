@@ -1,20 +1,29 @@
 /**
  * Vision Client via OpenRouter
  *
- * Uses Gemini 2.0 Flash (or other vision models) via OpenRouter for
+ * Uses Gemini 3 Flash (released Dec 17, 2025) via OpenRouter for
  * vision-based browser understanding. This integrates with KripTik's
  * existing OpenRouter infrastructure.
  *
- * Supported Vision Models via OpenRouter:
- * - google/gemini-2.0-flash-thinking-exp (primary - good for reasoning)
- * - google/gemini-2.0-flash-exp (faster, cheaper)
- * - anthropic/claude-sonnet-4.5 (Claude vision)
- * - openai/gpt-4o (GPT-4 vision)
+ * Gemini 3 Flash Features:
+ * - Pro-grade reasoning at Flash speeds (3x faster than Gemini 2.5 Pro)
+ * - 1M token context window
+ * - Multimodal: images, video, audio, PDFs
+ * - Configurable thinking levels (minimal, low, medium, high)
+ * - Tool use and structured output support
+ * - 81.2% on MMMU-Pro (state-of-the-art multimodal understanding)
+ * - 78% on SWE-bench Verified (leading coding agent tasks)
  *
- * Pricing (Dec 2025, Gemini 2.0 Flash):
- * - Input: $0.10/1M tokens
- * - Output: $0.40/1M tokens
- * - Images: ~258 tokens per frame
+ * Supported Vision Models via OpenRouter:
+ * - google/gemini-3-flash-preview (PRIMARY - best for agentic workflows)
+ * - google/gemini-3-pro-preview (higher quality, slower)
+ * - anthropic/claude-sonnet-4.5 (Claude vision fallback)
+ * - openai/gpt-4o (GPT-4 vision fallback)
+ *
+ * Pricing (Dec 2025, Gemini 3 Flash):
+ * - Input: $0.50/1M tokens
+ * - Output: $3.00/1M tokens
+ * - Images: included in token count
  */
 
 // Action types the vision model can return
@@ -82,10 +91,16 @@ export interface VisionAnalysis {
 
 // OpenRouter vision models
 export const VISION_MODELS = {
+  // Primary - Gemini 3 Flash (released Dec 17, 2025) - best for agentic workflows
+  GEMINI_3_FLASH: 'google/gemini-3-flash-preview',
+  // Higher quality alternative
+  GEMINI_3_PRO: 'google/gemini-3-pro-preview',
+  // Fallbacks
+  CLAUDE_SONNET: 'anthropic/claude-sonnet-4-5-20241022',
+  GPT_4O: 'openai/gpt-4o',
+  // Legacy (deprecated)
   GEMINI_2_FLASH_THINKING: 'google/gemini-2.0-flash-thinking-exp',
   GEMINI_2_FLASH: 'google/gemini-2.0-flash-exp',
-  CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet',
-  GPT_4O: 'openai/gpt-4o',
 } as const;
 
 export type VisionModel = typeof VISION_MODELS[keyof typeof VISION_MODELS];
@@ -97,7 +112,7 @@ export class GeminiVisionClient {
 
   constructor(options?: { apiKey?: string; model?: VisionModel }) {
     this.apiKey = options?.apiKey || process.env.OPENROUTER_API_KEY || '';
-    this.model = options?.model || VISION_MODELS.GEMINI_2_FLASH_THINKING;
+    this.model = options?.model || VISION_MODELS.GEMINI_3_FLASH;
 
     if (!this.apiKey) {
       throw new Error('OPENROUTER_API_KEY is required for vision capture');
@@ -107,7 +122,13 @@ export class GeminiVisionClient {
   }
 
   /**
-   * Make a vision request to OpenRouter
+   * Make a vision request to OpenRouter using Gemini 3 Flash
+   *
+   * Gemini 3 Flash supports configurable thinking levels:
+   * - minimal: fastest, basic reasoning
+   * - low: quick decisions
+   * - medium: balanced (default for most tasks)
+   * - high: thorough reasoning (for complex decisions)
    */
   private async makeVisionRequest(
     prompt: string,
@@ -115,8 +136,40 @@ export class GeminiVisionClient {
     options?: {
       temperature?: number;
       maxTokens?: number;
+      thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high';
+      includeReasoning?: boolean;
     }
   ): Promise<string> {
+    // Build request body with Gemini 3 Flash specific parameters
+    const requestBody: Record<string, unknown> = {
+      model: this.model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/png;base64,${imageBase64}`,
+              },
+            },
+          ],
+        },
+      ],
+      temperature: options?.temperature ?? 0.1,
+      max_tokens: options?.maxTokens ?? 4096,
+    };
+
+    // Add Gemini 3 Flash reasoning configuration
+    if (this.model.includes('gemini-3')) {
+      requestBody.reasoning = options?.thinkingLevel ?? 'medium';
+      requestBody.include_reasoning = options?.includeReasoning ?? false;
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -125,28 +178,7 @@ export class GeminiVisionClient {
         'HTTP-Referer': 'https://kriptik.ai',
         'X-Title': 'KripTik AI Vision Capture',
       },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/png;base64,${imageBase64}`,
-                },
-              },
-            ],
-          },
-        ],
-        temperature: options?.temperature ?? 0.1,
-        max_tokens: options?.maxTokens ?? 2048,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -174,9 +206,13 @@ export class GeminiVisionClient {
     const prompt = this.buildChatCapturePrompt(context);
     const imageBase64 = screenshot.toString('base64');
 
+    // Use medium thinking for navigation, high for extraction
+    const thinkingLevel = context.goal === 'extract_messages' ? 'high' : 'medium';
+
     const response = await this.makeVisionRequest(prompt, imageBase64, {
       temperature: 0.1,
-      maxTokens: 2048,
+      maxTokens: 4096,
+      thinkingLevel,
     });
 
     return this.parseVisionResponse(response);
@@ -197,9 +233,11 @@ export class GeminiVisionClient {
     const prompt = this.buildFileCapturePrompt(context);
     const imageBase64 = screenshot.toString('base64');
 
+    // Use medium thinking for file navigation
     const response = await this.makeVisionRequest(prompt, imageBase64, {
       temperature: 0.1,
-      maxTokens: 2048,
+      maxTokens: 4096,
+      thinkingLevel: 'medium',
     });
 
     return this.parseVisionResponse(response);
@@ -240,9 +278,12 @@ Important:
 Return ONLY the JSON, no other text.`;
 
     const imageBase64 = screenshot.toString('base64');
+
+    // Use HIGH thinking for message extraction - need maximum accuracy
     const response = await this.makeVisionRequest(prompt, imageBase64, {
       temperature: 0,
-      maxTokens: 8192,
+      maxTokens: 16384, // Increased for large conversations
+      thinkingLevel: 'high',
     });
 
     try {
@@ -256,6 +297,7 @@ Return ONLY the JSON, no other text.`;
 
   /**
    * Determine UI state from screenshot
+   * Uses minimal thinking - quick assessment task
    */
   async analyzeUIState(screenshot: Buffer, platform: string): Promise<UIState> {
     const prompt = `Analyze this screenshot of ${platform} (an AI coding assistant).
@@ -286,9 +328,12 @@ Return JSON:
 Return ONLY the JSON.`;
 
     const imageBase64 = screenshot.toString('base64');
+
+    // Use LOW thinking - this is a quick assessment task
     const response = await this.makeVisionRequest(prompt, imageBase64, {
       temperature: 0,
       maxTokens: 1024,
+      thinkingLevel: 'low',
     });
 
     try {
