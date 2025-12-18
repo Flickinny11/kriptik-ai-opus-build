@@ -664,8 +664,8 @@ export default function FixMyApp() {
     const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
     const [extensionCheckComplete, setExtensionCheckComplete] = useState(false);
 
-    // Chrome Web Store URL for the extension
-    const EXTENSION_STORE_URL = 'https://github.com/Flickinny11/KripTik-Extension'; // TODO: Replace with Chrome Web Store URL once published
+    // Chrome Web Store URL for the extension - configured in environment or defaults to extension docs
+    const EXTENSION_STORE_URL = import.meta.env.VITE_EXTENSION_STORE_URL || '/docs/extension';
 
     // Check if extension is installed
     useEffect(() => {

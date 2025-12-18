@@ -286,6 +286,100 @@ function DeploymentSection() {
     );
 }
 
+function NotificationSection() {
+    const [emailNotifications, setEmailNotifications] = useState(true);
+    const [buildAlerts, setBuildAlerts] = useState(true);
+    const [agentUpdates, setAgentUpdates] = useState(true);
+    const [securityAlerts, setSecurityAlerts] = useState(true);
+    const [marketingEmails, setMarketingEmails] = useState(false);
+    const [pushEnabled, setPushEnabled] = useState(false);
+
+    const ToggleSwitch = ({ enabled, onChange, label, description }: {
+        enabled: boolean;
+        onChange: (v: boolean) => void;
+        label: string;
+        description: string;
+    }) => (
+        <div
+            className="flex items-center justify-between p-4 rounded-xl"
+            style={{ background: 'rgba(0,0,0,0.03)' }}
+        >
+            <div>
+                <p className="font-medium" style={{ color: '#1a1a1a' }}>{label}</p>
+                <p className="text-sm" style={{ color: '#666' }}>{description}</p>
+            </div>
+            <button
+                onClick={() => onChange(!enabled)}
+                className="relative w-12 h-6 rounded-full transition-colors"
+                style={{
+                    background: enabled
+                        ? 'linear-gradient(135deg, #c25a00 0%, #a04800 100%)'
+                        : 'rgba(0,0,0,0.15)',
+                }}
+            >
+                <div
+                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform"
+                    style={{
+                        transform: enabled ? 'translateX(26px)' : 'translateX(2px)',
+                    }}
+                />
+            </button>
+        </div>
+    );
+
+    return (
+        <SectionCard>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Notification Preferences</h3>
+            <p className="text-sm mb-6" style={{ color: '#666' }}>
+                Control how and when you receive notifications from KripTik AI
+            </p>
+
+            <div className="space-y-3">
+                <ToggleSwitch
+                    enabled={emailNotifications}
+                    onChange={setEmailNotifications}
+                    label="Email Notifications"
+                    description="Receive important updates via email"
+                />
+                <ToggleSwitch
+                    enabled={buildAlerts}
+                    onChange={setBuildAlerts}
+                    label="Build Alerts"
+                    description="Get notified when builds complete or fail"
+                />
+                <ToggleSwitch
+                    enabled={agentUpdates}
+                    onChange={setAgentUpdates}
+                    label="Agent Updates"
+                    description="Updates when Ghost Mode or agents need attention"
+                />
+                <ToggleSwitch
+                    enabled={securityAlerts}
+                    onChange={setSecurityAlerts}
+                    label="Security Alerts"
+                    description="Critical security notifications (recommended)"
+                />
+                <ToggleSwitch
+                    enabled={pushEnabled}
+                    onChange={setPushEnabled}
+                    label="Browser Push Notifications"
+                    description="Receive push notifications in your browser"
+                />
+                <ToggleSwitch
+                    enabled={marketingEmails}
+                    onChange={setMarketingEmails}
+                    label="Product Updates"
+                    description="New features and platform announcements"
+                />
+            </div>
+
+            <button className="glass-button mt-6">
+                Save Preferences
+            </button>
+        </SectionCard>
+    );
+}
+
 function SecuritySection() {
     return (
         <SectionCard>
@@ -414,12 +508,7 @@ export default function MyAccount() {
                         {activeSection === 'credits' && <CreditsSection />}
                         {activeSection === 'deployment' && <DeploymentSection />}
                         {activeSection === 'security' && <SecuritySection />}
-                        {activeSection === 'notifications' && (
-                            <SectionCard>
-                                <h3 className="text-lg font-semibold mb-4" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>Notification Preferences</h3>
-                                <p style={{ color: '#666' }}>Notification settings coming soon...</p>
-                            </SectionCard>
-                        )}
+                        {activeSection === 'notifications' && <NotificationSection />}
                     </div>
                 </div>
             </main>

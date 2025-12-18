@@ -42,6 +42,9 @@ interface CollaborationState {
     isShareModalOpen: boolean;
 
     // Actions
+    setCurrentUser: (user: { id: string; name: string; email: string; avatar?: string }) => void;
+    setCollaborators: (collaborators: Collaborator[]) => void;
+    setActivityFeed: (activity: ActivityItem[]) => void;
     setShareModalOpen: (isOpen: boolean) => void;
     addCollaborator: (email: string, role: UserRole) => void;
     removeCollaborator: (id: string) => void;
@@ -50,61 +53,68 @@ interface CollaborationState {
     addActivity: (action: string, target: string) => void;
 }
 
-const MOCK_USER: Collaborator = {
-    id: 'me',
-    name: 'You',
-    email: 'you@example.com',
-    avatar: 'https://github.com/shadcn.png',
-    role: 'owner',
-    color: '#10b981',
-    status: 'online'
-};
-
-const MOCK_COLLABORATORS: Collaborator[] = [
-    {
-        id: 'sarah',
-        name: 'Sarah Chen',
-        email: 'sarah@example.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-        role: 'editor',
-        color: '#f59e0b',
-        status: 'online',
-        currentFile: 'Button.tsx'
-    },
-    {
-        id: 'mike',
-        name: 'Mike Johnson',
-        email: 'mike@example.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-        role: 'viewer',
-        color: '#3b82f6',
-        status: 'idle'
+// Generate a color based on user ID for consistent avatar colors
+function generateUserColor(id: string): string {
+    const colors = ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
     }
-];
+    return colors[Math.abs(hash) % colors.length];
+}
+
+// Create a default user that will be updated when auth data loads
+function createDefaultUser(): Collaborator {
+    return {
+        id: '',
+        name: '',
+        email: '',
+        avatar: '',
+        role: 'owner',
+        color: '#10b981',
+        status: 'online'
+    };
+}
 
 export const useCollaborationStore = create<CollaborationState>((set) => ({
-    currentUser: MOCK_USER,
-    collaborators: MOCK_COLLABORATORS,
+    currentUser: createDefaultUser(),
+    collaborators: [], // Collaborators are fetched per-project from the backend
     comments: [],
-    activityFeed: [
-        { id: '1', userId: 'sarah', userName: 'Sarah Chen', action: 'edited', target: 'Button.tsx', timestamp: Date.now() - 1000 * 60 * 5 },
-        { id: '2', userId: 'me', userName: 'You', action: 'deployed', target: 'Staging', timestamp: Date.now() - 1000 * 60 * 30 }
-    ],
+    activityFeed: [], // Activity is loaded from the backend per-project
     isShareModalOpen: false,
+
+    setCurrentUser: (user) => set({
+        currentUser: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar || '',
+            role: 'owner',
+            color: generateUserColor(user.id),
+            status: 'online'
+        }
+    }),
+
+    setCollaborators: (collaborators) => set({ collaborators }),
+
+    setActivityFeed: (activity) => set({ activityFeed: activity }),
 
     setShareModalOpen: (isOpen) => set({ isShareModalOpen: isOpen }),
 
-    addCollaborator: (email, role) => set((state) => ({
-        collaborators: [...state.collaborators, {
-            id: Math.random().toString(),
-            name: email.split('@')[0],
-            email,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            role,
-            color: '#8b5cf6',
-            status: 'offline'
-        }]
-    })),
+    addCollaborator: (email, role) => set((state) => {
+        const id = crypto.randomUUID();
+        return {
+            collaborators: [...state.collaborators, {
+                id,
+                name: email.split('@')[0],
+                email,
+                avatar: '', // Avatar managed by user profile, not hardcoded
+                role,
+                color: generateUserColor(id),
+                status: 'offline'
+            }]
+        };
+    }),
 
     removeCollaborator: (id) => set((state) => ({
         collaborators: state.collaborators.filter(c => c.id !== id)
