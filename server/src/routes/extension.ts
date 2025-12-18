@@ -22,6 +22,11 @@ import {
   type CaptureSession,
   type CaptureOptions
 } from '../services/vision-capture/capture-orchestrator.js';
+import {
+  getFixOrchestrator,
+  type ChatMessage as FixChatMessage,
+  type CapturedError,
+} from '../services/fix-my-app/fix-orchestrator.js';
 
 const router = Router();
 
@@ -1240,7 +1245,12 @@ router.get('/vision-capture/result/:sessionId', optionalAuthMiddleware, async (r
 });
 
 /**
- * Auto-import vision capture results into a project
+ * Auto-import vision capture results into a project and start Fix My App flow
+ *
+ * This is the critical integration point that connects:
+ * 1. Vision Capture (Gemini 3 Flash + Playwright)
+ * 2. Project creation with fixing status
+ * 3. Fix Orchestrator (Intent Lock + Build Loop)
  */
 async function autoImportVisionCapture(
     userId: string,
@@ -1251,7 +1261,7 @@ async function autoImportVisionCapture(
     if (!session.result) return;
 
     try {
-        // Create project
+        // Create project with fixing status set
         const projectId = uuidv4();
         const projectName = `Captured from ${session.platform}`;
 
@@ -1260,8 +1270,15 @@ async function autoImportVisionCapture(
             name: projectName,
             description: `Vision capture from ${session.platform}. ${session.result.chatHistory.length} messages captured.`,
             ownerId: userId,
-            framework: 'react', // Default
+            framework: 'react', // Default - will be detected during build
             isPublic: false,
+            // Fix My App status fields - start in analyzing state
+            fixingStatus: 'analyzing',
+            fixingProgress: 5,
+            fixingSessionId: sessionId,
+            fixingStartedAt: new Date().toISOString(),
+            importSource: session.platform,
+            importUrl: url,
         });
 
         // Store chat context
@@ -1304,13 +1321,13 @@ async function autoImportVisionCapture(
             }, null, 2)
         );
 
-        // Create notification
+        // Create initial notification
         await db.insert(notifications).values({
             id: uuidv4(),
             userId,
             type: 'project_imported',
             title: `Vision Capture Complete: ${projectName}`,
-            message: `Captured ${session.result.chatHistory.length} messages from ${session.platform}. Cost: $${session.result.captureStats.estimatedCost.toFixed(4)}`,
+            message: `Captured ${session.result.chatHistory.length} messages from ${session.platform}. KripTik AI is now analyzing and fixing your project...`,
             metadata: JSON.stringify({
                 projectId,
                 sessionId,
@@ -1324,6 +1341,58 @@ async function autoImportVisionCapture(
         });
 
         console.log(`[VisionCapture] Auto-imported to project ${projectId}`);
+
+        // =====================================================================
+        // START FIX MY APP FLOW
+        // This triggers Intent Lock creation and Build Loop execution
+        // =====================================================================
+
+        if (session.result.chatHistory.length > 0) {
+            console.log(`[VisionCapture] Starting Fix My App flow for project ${projectId}`);
+
+            // Convert chat history to fix orchestrator format
+            const chatMessages: FixChatMessage[] = session.result.chatHistory.map((msg, index) => ({
+                id: `msg-${index}`,
+                role: msg.role as 'user' | 'assistant',
+                content: msg.content,
+                timestamp: msg.timestamp,
+                codeBlocks: msg.codeBlocks,
+            }));
+
+            // Convert errors to fix orchestrator format
+            // ErrorInfo has: type, message, source, line (no timestamp or stack)
+            const capturedErrors: CapturedError[] = session.result.errors.map(err => ({
+                type: err.type || 'error',
+                message: err.message,
+                timestamp: new Date().toISOString(),
+                source: err.source,
+            }));
+
+            // Start fix orchestration (runs asynchronously)
+            const fixOrchestrator = getFixOrchestrator();
+            fixOrchestrator.startFix(
+                projectId,
+                userId,
+                chatMessages,
+                capturedErrors,
+                session.platform,
+                url
+            ).then(fixSession => {
+                console.log(`[VisionCapture] Fix session started: ${fixSession.id}`);
+            }).catch(error => {
+                console.error(`[VisionCapture] Failed to start fix:`, error);
+            });
+        } else {
+            console.log(`[VisionCapture] No chat history - skipping fix flow`);
+            // Update project to show import complete but no fix needed
+            await db.update(projects)
+                .set({
+                    fixingStatus: 'completed',
+                    fixingProgress: 100,
+                    fixingCompletedAt: new Date().toISOString(),
+                })
+                .where(eq(projects.id, projectId));
+        }
 
     } catch (error) {
         console.error(`[VisionCapture] Auto-import error:`, error);

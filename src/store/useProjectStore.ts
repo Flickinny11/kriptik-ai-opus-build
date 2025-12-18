@@ -10,6 +10,11 @@ export interface Project {
     framework: string;
     status: 'live' | 'development';
     thumbnailUrl?: string;
+    // Fix My App status
+    fixingStatus?: 'analyzing' | 'creating_intent' | 'building' | 'verifying' | 'completed' | 'failed' | null;
+    fixingProgress?: number;
+    importSource?: string;
+    importUrl?: string;
 }
 
 export interface ProjectState {
@@ -33,6 +38,11 @@ const mapApiProject = (apiProject: ApiProject): Project => ({
     lastEdited: formatLastEdited(apiProject.updatedAt),
     framework: apiProject.framework,
     status: apiProject.isPublic ? 'live' : 'development',
+    // Fix My App fields
+    fixingStatus: (apiProject as any).fixingStatus || null,
+    fixingProgress: (apiProject as any).fixingProgress || 0,
+    importSource: (apiProject as any).importSource || null,
+    importUrl: (apiProject as any).importUrl || null,
 });
 
 // Format "last edited" as relative time

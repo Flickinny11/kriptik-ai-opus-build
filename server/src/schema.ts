@@ -25,6 +25,14 @@ export const projects = sqliteTable('projects', {
     ownerId: text('owner_id').references(() => users.id).notNull(),
     framework: text('framework').default('react').notNull(),
     isPublic: integer('is_public', { mode: 'boolean' }).default(false).notNull(),
+    // Fix My App status tracking
+    fixingStatus: text('fixing_status'), // null | 'analyzing' | 'creating_intent' | 'building' | 'verifying' | 'completed' | 'failed'
+    fixingProgress: integer('fixing_progress').default(0), // 0-100 progress percentage
+    fixingSessionId: text('fixing_session_id'), // Reference to the fix session
+    fixingStartedAt: text('fixing_started_at'),
+    fixingCompletedAt: text('fixing_completed_at'),
+    importSource: text('import_source'), // 'lovable' | 'bolt' | 'v0' | etc.
+    importUrl: text('import_url'), // Original URL of the imported project
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
