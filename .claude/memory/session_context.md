@@ -21,15 +21,21 @@
 
 ## Recent Completions
 
-### 2025-12-19: Vision Capture Service + Extension Integration
+### 2025-12-19: Vision Capture Service - Streaming Video Analysis
 
-**Major Changes:**
+**Major Rewrite - Now Uses Live Video Streaming:**
 1. **Vision Capture Service** (`server/src/services/extension/vision-capture-service.ts`)
-   - Server-side capture using Gemini Flash + Playwright
-   - Takes screenshots of AI platforms, analyzes with vision AI
-   - Extracts chat history, errors, file tree automatically
+   - **Primary Mode**: Gemini Live API for real-time streaming video analysis
+   - Uses `@google/genai` SDK with WebSocket-based `ai.live.connect()`
+   - Streams video frames at 2 FPS continuously as page scrolls
+   - AI agent guides scrolling, finds export buttons, captures entire chat history
+   - Requires `GOOGLE_AI_API_KEY` environment variable
+   - **Fallback Mode**: OpenRouter with enhanced vision if no Google API key
+     - Uses Gemini 3 Flash with HIGH thinking level (not 'low')
+     - 32K token limit for comprehensive extraction
+   - Unlimited scrolling until entire chat history captured
+   - Detects UI elements: export/zip buttons, build logs, settings panels
    - Auto-imports to KripTik when capture completes
-   - Creates notification for user on completion
 
 2. **Vision Capture API Routes** (`server/src/routes/extension.ts`)
    - `POST /api/extension/vision-capture/start` - Start capture session
@@ -248,7 +254,11 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 - Extended thinking available on Opus/Sonnet with thinking_budget parameter
 - All Ghost Mode colors should use #F5A86C (amber), NOT purple
 - Extension is now in main repo under `browser-extension/`
-- Vision capture uses Gemini Flash for screenshot analysis
+- Vision capture now has TWO modes:
+  - **Live API** (requires GOOGLE_AI_API_KEY): Real-time streaming video analysis via WebSocket
+  - **OpenRouter fallback**: Enhanced screenshot analysis with HIGH thinking level and 32K tokens
+- @google/genai SDK installed for Live API support (v1.34.0)
+- Model: `gemini-2.0-flash-live-001` for Live API streaming
 
 ---
 
