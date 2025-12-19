@@ -25,6 +25,8 @@ import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
+import ShareModal from '../components/collaboration/ShareModal';
+import { useCollaborationStore } from '../store/useCollaborationStore';
 import { cn } from '@/lib/utils';
 
 // Project thumbnail card with 3D effects
@@ -315,6 +317,7 @@ function ImportModal({
 export default function MyStuff() {
     const navigate = useNavigate();
     const { projects, addProject, removeProject, fetchProjects, isLoading } = useProjectStore();
+    const { setShareModalOpen } = useCollaborationStore();
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchQuery, setSearchQuery] = useState('');
     const [importModalOpen, setImportModalOpen] = useState(false);
@@ -534,7 +537,7 @@ export default function MyStuff() {
                                             createdAt: new Date(),
                                         });
                                     }}
-                                    onShare={() => {/* TODO: Share modal */}}
+                                    onShare={() => setShareModalOpen(true)}
                                     onImport={() => handleImport(project.id)}
                                 />
                             </motion.div>
@@ -652,6 +655,9 @@ export default function MyStuff() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Share modal */}
+            <ShareModal />
         </div>
     );
 }

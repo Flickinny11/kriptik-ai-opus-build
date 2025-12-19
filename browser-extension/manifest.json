@@ -1,0 +1,221 @@
+{
+  "manifest_version": 3,
+  "name": "KripTik AI - Project Import Assistant",
+  "version": "1.2.0",
+  "description": "Capture AI-generated projects with full context and auto-capture credentials for KripTik AI",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://lovable.dev/*",
+    "https://*.lovable.dev/*",
+    "https://bolt.new/*",
+    "https://*.bolt.new/*",
+    "https://v0.dev/*",
+    "https://*.v0.dev/*",
+    "https://create.xyz/*",
+    "https://*.create.xyz/*",
+    "https://gptengineer.app/*",
+    "https://*.gptengineer.app/*",
+    "https://claude.ai/*",
+    "https://*.claude.ai/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*",
+    "https://github.com/*",
+    "https://*.github.com/*",
+    "https://cursor.sh/*",
+    "https://*.cursor.sh/*",
+    "https://cursor.com/*",
+    "https://*.cursor.com/*",
+    "https://codeium.com/*",
+    "https://*.codeium.com/*",
+    "https://replit.com/*",
+    "https://*.replit.com/*",
+    "https://codesandbox.io/*",
+    "https://*.codesandbox.io/*",
+    "https://stackblitz.com/*",
+    "https://*.stackblitz.com/*",
+    "https://marblism.com/*",
+    "https://*.marblism.com/*",
+    "https://console.cloud.google.com/*",
+    "https://console.developers.google.com/*",
+    "https://dashboard.stripe.com/*",
+    "https://supabase.com/*",
+    "https://*.supabase.com/*",
+    "https://app.supabase.com/*",
+    "https://vercel.com/*",
+    "https://*.vercel.com/*",
+    "https://railway.app/*",
+    "https://*.railway.app/*",
+    "https://app.netlify.com/*",
+    "https://*.netlify.com/*",
+    "https://platform.openai.com/*",
+    "https://console.anthropic.com/*",
+    "https://dash.cloudflare.com/*",
+    "https://*.cloudflare.com/*",
+    "https://app.resend.com/*",
+    "https://*.neon.tech/*",
+    "https://app.planetscale.com/*",
+    "https://*.upstash.com/*",
+    "https://kriptik.ai/*",
+    "https://*.kriptik.ai/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*",
+        "https://bolt.new/*",
+        "https://*.bolt.new/*",
+        "https://v0.dev/*",
+        "https://*.v0.dev/*",
+        "https://create.xyz/*",
+        "https://*.create.xyz/*",
+        "https://gptengineer.app/*",
+        "https://*.gptengineer.app/*",
+        "https://claude.ai/*",
+        "https://*.claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://github.com/*",
+        "https://*.github.com/*",
+        "https://cursor.sh/*",
+        "https://*.cursor.sh/*",
+        "https://cursor.com/*",
+        "https://*.cursor.com/*",
+        "https://codeium.com/*",
+        "https://*.codeium.com/*",
+        "https://replit.com/*",
+        "https://*.replit.com/*",
+        "https://codesandbox.io/*",
+        "https://*.codesandbox.io/*",
+        "https://stackblitz.com/*",
+        "https://*.stackblitz.com/*",
+        "https://marblism.com/*",
+        "https://*.marblism.com/*"
+      ],
+      "js": [
+        "lib/jszip.min.js",
+        "src/utils/dom-helpers.js",
+        "src/utils/metadata-builder.js",
+        "src/utils/storage.js",
+        "src/utils/zip-handler.js",
+        "src/content/platforms/platform-registry.js",
+        "src/content/platforms/configs/bolt.config.js",
+        "src/content/platforms/configs/lovable.config.js",
+        "src/content/platforms/configs/v0.config.js",
+        "src/content/platforms/configs/cursor.config.js",
+        "src/content/platforms/configs/replit.config.js",
+        "src/content/platforms/configs/copilot.config.js",
+        "src/content/platforms/configs/windsurf.config.js",
+        "src/content/platforms/configs/claude.config.js",
+        "src/content/platforms/configs/marblism.config.js",
+        "src/content/platforms/configs/create.config.js",
+        "src/content/platforms/platform-detector.js",
+        "src/content/exporters/export-handler-base.js",
+        "src/content/exporters/download-zip-handler.js",
+        "src/content/exporters/copy-code-handler.js",
+        "src/content/exporters/github-export-handler.js",
+        "src/content/exporters/api-export-handler.js",
+        "src/content/exporters/kriptik-api-handler.js",
+        "src/content/scrapers/chat-scraper.js",
+        "src/content/scrapers/error-scraper.js",
+        "src/content/scrapers/file-tree-scraper.js",
+        "src/content/scrapers/console-capture.js",
+        "src/content/scrapers/artifact-scraper.js",
+        "src/content/scrapers/diff-scraper.js",
+        "src/content/scrapers/terminal-scraper.js",
+        "src/content/vision-capture.js",
+        "src/content/ui/phases.js",
+        "src/content/ui/platform-logos.js",
+        "src/content/ui/progress-animation.js",
+        "src/content/ui/overlay.js",
+        "src/content/content.js"
+      ],
+      "css": [
+        "src/styles/overlay.css"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://console.cloud.google.com/*",
+        "https://console.developers.google.com/*",
+        "https://dashboard.stripe.com/*",
+        "https://supabase.com/*",
+        "https://*.supabase.com/*",
+        "https://app.supabase.com/*",
+        "https://vercel.com/*",
+        "https://*.vercel.com/*",
+        "https://railway.app/*",
+        "https://*.railway.app/*",
+        "https://app.netlify.com/*",
+        "https://*.netlify.com/*",
+        "https://platform.openai.com/*",
+        "https://console.anthropic.com/*",
+        "https://dash.cloudflare.com/*",
+        "https://*.cloudflare.com/*",
+        "https://app.resend.com/*",
+        "https://*.neon.tech/*",
+        "https://app.planetscale.com/*",
+        "https://*.upstash.com/*"
+      ],
+      "js": [
+        "src/content/credentials/credential-capture.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://kriptik.ai/*",
+        "https://*.kriptik.ai/*",
+        "https://kriptik.app/*",
+        "https://*.kriptik.app/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": [
+        "src/content/kriptik-bridge.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    },
+    "default_title": "KripTik AI - Import Assistant",
+    "default_popup": "src/popup/popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*",
+        "lib/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

@@ -109,8 +109,11 @@ export const OPENROUTER_MODELS = {
     GPT_4O: 'openai/gpt-4o',
     GPT_4O_MINI: 'openai/gpt-4o-mini',
 
-    // Gemini 2.0 - Good for certain use cases
-    GEMINI_2_FLASH: 'google/gemini-2.0-flash-thinking-exp',
+    // Gemini 3 Flash Preview - Dec 2025 (best for vision/video, configurable thinking)
+    GEMINI_3_FLASH: 'google/gemini-3-flash-preview',
+    // Gemini 2.0 Flash - Affordable vision/multimodal
+    GEMINI_2_FLASH: 'google/gemini-2.0-flash-001',
+    GEMINI_2_FLASH_LITE: 'google/gemini-2.0-flash-lite-001',
 
     // Llama 3.3 - Open source alternative
     LLAMA_3_3_70B: 'meta-llama/llama-3.3-70b-instruct',
@@ -657,14 +660,35 @@ export class OpenRouterClient {
                 costPer1MInput: 2.5,
                 costPer1MOutput: 10,
             },
+            // Gemini 3 Flash Preview (Dec 2025) - best for vision/video
+            [OPENROUTER_MODELS.GEMINI_3_FLASH]: {
+                contextWindow: 1048576,  // 1M native
+                maxOutput: 65535,
+                supportsThinking: true,  // Has thinking levels: minimal, low, medium, high
+                supportsEffort: true,    // Via thinking parameter
+                supports1MContext: true,
+                costPer1MInput: 0.5,     // $0.50/M input
+                costPer1MOutput: 3,      // $3.00/M output - supports vision & video
+            },
+            // Gemini 2.0 Flash - affordable vision/video
             [OPENROUTER_MODELS.GEMINI_2_FLASH]: {
                 contextWindow: 1000000,  // 1M native
                 maxOutput: 8192,
-                supportsThinking: true,
+                supportsThinking: false,
                 supportsEffort: false,
                 supports1MContext: true,
-                costPer1MInput: 1.25,
-                costPer1MOutput: 5,
+                costPer1MInput: 0.1,     // $0.10/M input
+                costPer1MOutput: 0.4,    // $0.40/M output - supports vision & video (258 tokens/sec)
+            },
+            // Gemini 2.0 Flash Lite - cheapest option
+            [OPENROUTER_MODELS.GEMINI_2_FLASH_LITE]: {
+                contextWindow: 1050000,
+                maxOutput: 8192,
+                supportsThinking: false,
+                supportsEffort: false,
+                supports1MContext: true,
+                costPer1MInput: 0.075,   // $0.075/M input - cheapest
+                costPer1MOutput: 0.3,    // $0.30/M output - supports vision & video
             },
         };
 

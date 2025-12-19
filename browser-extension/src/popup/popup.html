@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KripTik AI</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-section">
+        <img src="../../assets/logo.png" alt="KripTik AI" class="logo">
+        <div class="title-section">
+          <h1>KripTik AI</h1>
+          <span class="version">v1.0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform Status -->
+    <div class="status-card">
+      <div class="status-row">
+        <div class="status-indicator" id="platform-status"></div>
+        <div class="status-info">
+          <span class="status-label">Current Platform</span>
+          <span class="status-value" id="platform-name">Detecting...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="status-card">
+      <div class="status-row">
+        <div class="status-indicator" id="connection-status"></div>
+        <div class="status-info">
+          <span class="status-label">KripTik Connection</span>
+          <span class="status-value" id="connection-value">Not configured</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fix My App Session Status -->
+    <div class="status-card session-card" id="fix-session-card" style="display: none;">
+      <div class="status-row">
+        <div class="status-indicator active pulsing"></div>
+        <div class="status-info">
+          <span class="status-label">Fix My App Session</span>
+          <span class="status-value" id="session-status">Active - Ready to capture</span>
+        </div>
+      </div>
+      <p class="session-help">
+        Click the amber "Capture for KripTik AI" button on your project page to start capturing.
+      </p>
+    </div>
+
+    <!-- API Token Section -->
+    <div class="config-section">
+      <label for="api-endpoint">API Endpoint</label>
+      <input
+        type="text"
+        id="api-endpoint"
+        placeholder="https://your-kriptik-instance.vercel.app"
+        spellcheck="false"
+      >
+
+      <label for="api-token">Extension Token</label>
+      <div class="token-input-wrapper">
+        <input
+          type="password"
+          id="api-token"
+          placeholder="kriptik_ext_..."
+          spellcheck="false"
+        >
+        <button class="toggle-visibility" id="toggle-token" title="Show/Hide">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <button id="save-config" class="btn-primary">
+        <span class="btn-content">Save Configuration</span>
+      </button>
+
+      <p class="help-text">
+        Get your extension token from KripTik AI Settings.
+      </p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="actions-section">
+      <button id="open-kriptik" class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+        Open KripTik AI
+      </button>
+
+      <button id="test-connection" class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        Test Connection
+      </button>
+    </div>
+
+    <!-- Capture Mode Indicator -->
+    <div class="capture-mode" id="capture-mode" style="display: none;">
+      <div class="capture-indicator"></div>
+      <span>Capture Mode Active</span>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <a href="https://kriptik.ai/docs/extension" target="_blank">Documentation</a>
+      <span class="separator">|</span>
+      <a href="https://kriptik.ai/support" target="_blank">Support</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

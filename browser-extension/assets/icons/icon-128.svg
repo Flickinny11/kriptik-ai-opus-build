@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <!-- Gradients for 3D depth -->
+    <linearGradient id="darkFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a2a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="lightFace" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8e8e8"/>
+      <stop offset="100%" style="stop-color:#ffffff"/>
+    </linearGradient>
+    <linearGradient id="midFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#cccccc"/>
+      <stop offset="100%" style="stop-color:#999999"/>
+    </linearGradient>
+    <linearGradient id="redAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444"/>
+      <stop offset="100%" style="stop-color:#cc2222"/>
+    </linearGradient>
+    <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6666"/>
+      <stop offset="100%" style="stop-color:#ee3333"/>
+    </linearGradient>
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle with subtle gradient -->
+  <circle cx="64" cy="64" r="60" fill="url(#darkFace)" filter="url(#shadow)"/>
+  <circle cx="64" cy="64" r="58" fill="none" stroke="#333" stroke-width="1"/>
+
+  <!-- Outer hexagonal frame - white -->
+  <g transform="translate(64, 64)">
+    <!-- Back faces (darker) -->
+    <polygon points="0,-38 33,-19 33,19 0,38 -33,19 -33,-19" fill="none" stroke="url(#midFace)" stroke-width="3"/>
+
+    <!-- 3D Cube 1 - Top Left (White) -->
+    <g transform="translate(-18, -12)">
+      <!-- Top face -->
+      <polygon points="0,-16 14,-8 0,0 -14,-8" fill="url(#lightFace)"/>
+      <!-- Right face -->
+      <polygon points="0,0 14,-8 14,8 0,16" fill="url(#midFace)"/>
+      <!-- Left face -->
+      <polygon points="0,0 -14,-8 -14,8 0,16" fill="#e0e0e0"/>
+    </g>
+
+    <!-- 3D Cube 2 - Top Right (Black) -->
+    <g transform="translate(18, -12)">
+      <!-- Top face -->
+      <polygon points="0,-16 14,-8 0,0 -14,-8" fill="#333333"/>
+      <!-- Right face -->
+      <polygon points="0,0 14,-8 14,8 0,16" fill="#1a1a1a"/>
+      <!-- Left face -->
+      <polygon points="0,0 -14,-8 -14,8 0,16" fill="url(#darkFace)"/>
+    </g>
+
+    <!-- 3D Cube 3 - Bottom (Red Accent) -->
+    <g transform="translate(0, 20)">
+      <!-- Top face -->
+      <polygon points="0,-16 14,-8 0,0 -14,-8" fill="url(#redGlow)"/>
+      <!-- Right face -->
+      <polygon points="0,0 14,-8 14,8 0,16" fill="url(#redAccent)"/>
+      <!-- Left face -->
+      <polygon points="0,0 -14,-8 -14,8 0,16" fill="#aa2222"/>
+    </g>
+
+    <!-- Interlocking connector bars -->
+    <!-- White bar connecting cubes -->
+    <polygon points="-4,-28 4,-28 4,-4 -4,-4" fill="url(#lightFace)" opacity="0.9"/>
+    <polygon points="4,-28 8,-26 8,-2 4,-4" fill="url(#midFace)" opacity="0.9"/>
+
+    <!-- Black bar -->
+    <polygon points="10,-8 26,-8 26,0 10,0" fill="#222" opacity="0.9"/>
+    <polygon points="26,-8 26,0 30,-2 30,-10" fill="#111" opacity="0.9"/>
+
+    <!-- Red accent connector -->
+    <polygon points="-26,-8 -10,-8 -10,0 -26,0" fill="url(#redAccent)" opacity="0.9"/>
+    <polygon points="-26,-8 -26,0 -30,-2 -30,-10" fill="#991111" opacity="0.9"/>
+  </g>
+
+  <!-- Inner geometric detail - interlocking triangles -->
+  <g transform="translate(64, 64)">
+    <!-- Central diamond highlight -->
+    <polygon points="0,-8 6,0 0,8 -6,0" fill="url(#redGlow)" opacity="0.8"/>
+    <polygon points="0,-6 4,0 0,6 -4,0" fill="#ffffff" opacity="0.6"/>
+  </g>
+
+  <!-- Outer ring accent -->
+  <circle cx="64" cy="64" r="56" fill="none" stroke="url(#redAccent)" stroke-width="1.5" opacity="0.6"/>
+</svg>
