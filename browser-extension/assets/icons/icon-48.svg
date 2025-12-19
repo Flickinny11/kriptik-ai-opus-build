@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="dark48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a2a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="light48" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8e8e8"/>
+      <stop offset="100%" style="stop-color:#ffffff"/>
+    </linearGradient>
+    <linearGradient id="mid48" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#cccccc"/>
+      <stop offset="100%" style="stop-color:#999999"/>
+    </linearGradient>
+    <linearGradient id="red48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444"/>
+      <stop offset="100%" style="stop-color:#cc2222"/>
+    </linearGradient>
+    <filter id="shadow48" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="24" cy="24" r="22" fill="url(#dark48)" filter="url(#shadow48)"/>
+
+  <g transform="translate(24, 24)">
+    <!-- 3D Cube - Top Left (White) -->
+    <g transform="translate(-7, -5)">
+      <polygon points="0,-6 5,-3 0,0 -5,-3" fill="url(#light48)"/>
+      <polygon points="0,0 5,-3 5,3 0,6" fill="url(#mid48)"/>
+      <polygon points="0,0 -5,-3 -5,3 0,6" fill="#e0e0e0"/>
+    </g>
+
+    <!-- 3D Cube - Top Right (Black) -->
+    <g transform="translate(7, -5)">
+      <polygon points="0,-6 5,-3 0,0 -5,-3" fill="#333333"/>
+      <polygon points="0,0 5,-3 5,3 0,6" fill="#1a1a1a"/>
+      <polygon points="0,0 -5,-3 -5,3 0,6" fill="url(#dark48)"/>
+    </g>
+
+    <!-- 3D Cube - Bottom (Red) -->
+    <g transform="translate(0, 8)">
+      <polygon points="0,-6 5,-3 0,0 -5,-3" fill="#ff5555"/>
+      <polygon points="0,0 5,-3 5,3 0,6" fill="url(#red48)"/>
+      <polygon points="0,0 -5,-3 -5,3 0,6" fill="#aa2222"/>
+    </g>
+
+    <!-- Central connector -->
+    <polygon points="0,-3 2,0 0,3 -2,0" fill="#ff4444"/>
+    <polygon points="0,-2 1,0 0,2 -1,0" fill="#ffffff" opacity="0.7"/>
+  </g>
+
+  <!-- Accent ring -->
+  <circle cx="24" cy="24" r="20" fill="none" stroke="url(#red48)" stroke-width="1" opacity="0.5"/>
+</svg>

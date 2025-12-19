@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-18)
+## Current State (as of 2025-12-19)
 
 ### Progress Summary
 - **Total Features**: 66 + 7 New Cursor 2.1+ Features
@@ -13,13 +13,43 @@
 - **Current Phase**: Phase 15+ (Advanced Features)
 
 ### Build Status
-- **Last Known Build**: PASSING (verified 2025-12-18)
+- **Last Known Build**: PASSING (verified 2025-12-19)
 - **TypeScript Errors**: None
-- **Current Branch**: claude/kriptik-ai-analysis-Mvu8c
+- **Current Branch**: claude/extension-local-testing-TQhGf
 
 ---
 
 ## Recent Completions
+
+### 2025-12-19: Vision Capture Service + Extension Integration
+
+**Major Changes:**
+1. **Vision Capture Service** (`server/src/services/extension/vision-capture-service.ts`)
+   - Server-side capture using Gemini Flash + Playwright
+   - Takes screenshots of AI platforms, analyzes with vision AI
+   - Extracts chat history, errors, file tree automatically
+   - Auto-imports to KripTik when capture completes
+   - Creates notification for user on completion
+
+2. **Vision Capture API Routes** (`server/src/routes/extension.ts`)
+   - `POST /api/extension/vision-capture/start` - Start capture session
+   - `GET /api/extension/vision-capture/events/:sessionId` - SSE for progress
+   - `GET /api/extension/vision-capture/status/:sessionId` - Get status
+   - `POST /api/extension/vision-capture/cancel/:sessionId` - Cancel
+   - `GET /api/extension/vision-capture/result/:sessionId` - Get result
+
+3. **Extension Moved to Main Repo** (`browser-extension/`)
+   - Unified codebase - easier to keep API and extension in sync
+   - Extension now uses vision-only capture (no DOM fallback)
+   - Simplified capture flow: one button, one method
+   - All platform configs, scrapers, and UI components included
+
+4. **Fixed Pre-existing TypeScript Errors**
+   - browser-in-loop.ts: Fixed duplicate property spread
+   - continuous-verification.ts: Fixed type narrowing
+   - multi-agent-judge.ts: Removed unused PhaseType import
+
+**Branch:** claude/extension-local-testing-TQhGf
 
 ### 2025-12-18: Placeholder and Orphaned Code Cleanup
 Comprehensive cleanup of all placeholders, mock data, and orphaned code:
@@ -152,24 +182,28 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ## Extension Integration Notes
 
-### How Fix My App + Extension Works
+### How Fix My App + Extension Works (Vision Capture Flow)
 1. User starts Fix My App on KripTik, selects platform (Bolt/Lovable/etc)
 2. Clicks "Open Project & Capture" - sends session data to extension via window.postMessage
 3. Extension stores session in chrome.storage.local (for content scripts on AI platforms)
-4. Extension stores API config in chrome.storage.sync (for KripTikAPIHandler)
-5. User's project opens in new tab
-6. "Capture for KripTik AI" button appears (only if session active)
-7. User clicks capture -> Overlay scrapes chat, errors, files
-8. Data sent to `/api/extension/import` via service worker
-9. Backend creates project, stores context, starts Fix My App analysis
+4. User's project opens in new tab
+5. "Capture for KripTik AI" button appears (only if session active)
+6. User clicks capture -> Extension calls backend `/api/extension/vision-capture/start`
+7. Backend uses Playwright to load page + Gemini Flash to analyze screenshots
+8. Extracts chat history, errors, file tree via AI vision
+9. Auto-imports as project, creates notification for user
+10. Client receives SSE updates on progress and completion
 
 ### Key Files
-- Extension: `/Volumes/Logan T7 Touch/Claude_KripTik Extension/`
-  - `src/background/service-worker.js` - handles API communication
+- Extension: `browser-extension/` (now in main repo!)
+  - `src/background/service-worker.js` - handles API communication, vision capture calls
   - `src/content/kriptik-bridge.js` - bridges KripTik site <-> extension
   - `src/content/content.js` - shows capture button on AI platforms
-  - `src/content/exporters/kriptik-api-handler.js` - formats & sends data
-- Backend: `server/src/routes/extension.ts` - receives extension data
+  - `src/content/ui/overlay.js` - capture UI, now vision-only
+  - `src/content/vision-capture.js` - client-side vision capture coordinator
+- Backend:
+  - `server/src/routes/extension.ts` - all extension routes including vision-capture
+  - `server/src/services/extension/vision-capture-service.ts` - Gemini + Playwright capture
 
 ---
 
@@ -206,14 +240,16 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ## Notes
 
-- Today's date: 2025-12-18
+- Today's date: 2025-12-19
 - Current models available:
   - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
   - Claude Sonnet 4.5 - Critical tier
   - Claude Haiku - Standard tier
 - Extended thinking available on Opus/Sonnet with thinking_budget parameter
 - All Ghost Mode colors should use #F5A86C (amber), NOT purple
+- Extension is now in main repo under `browser-extension/`
+- Vision capture uses Gemini Flash for screenshot analysis
 
 ---
 
-*Last updated: 2025-12-18*
+*Last updated: 2025-12-19*
