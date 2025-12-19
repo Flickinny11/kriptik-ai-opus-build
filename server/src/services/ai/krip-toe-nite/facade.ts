@@ -6,9 +6,19 @@
  * - Intelligent model routing
  * - Strategy selection (single, speculative, parallel, ensemble)
  * - Cost optimization
+ * - RICH CONTEXT INJECTION from unified context system
  *
  * This provides convenience methods for common use cases while
  * allowing full customization when needed.
+ *
+ * CRITICAL: All code generation now automatically includes:
+ * - Intent Lock contract
+ * - Verification swarm results
+ * - Tournament/judge winning patterns
+ * - Learning engine patterns and strategies
+ * - Error escalation history
+ * - Anti-slop rules
+ * - User preferences
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -29,6 +39,13 @@ import {
     type TaskAnalysis,
     type RoutingDecision,
 } from './index.js';
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+    type UnifiedContextOptions,
+} from '../unified-context.js';
 
 // =============================================================================
 // TYPES
@@ -44,6 +61,14 @@ export interface RequestContext {
     activeFile?: string;
     conversationHistory?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     currentErrors?: string[];
+    /** Path to project directory for loading unified context */
+    projectPath?: string;
+    /** Pre-loaded unified context (to avoid re-loading) */
+    unifiedContext?: UnifiedContext;
+    /** Whether to inject rich context into prompts (default true for code gen) */
+    injectRichContext?: boolean;
+    /** Context options for fine-tuning what to include */
+    contextOptions?: UnifiedContextOptions;
 }
 
 export interface KTNResult {
@@ -62,6 +87,8 @@ export interface KTNResult {
     latencyMs: number;
     ttftMs?: number;
     wasEnhanced: boolean;
+    /** The unified context that was loaded and injected (for debugging/logging) */
+    unifiedContextSummary?: string;
 }
 
 export interface StreamingKTNResult {
@@ -93,12 +120,83 @@ export class KripToeNiteFacade {
     private classifier: TaskClassifier;
     private router: KripToeNiteRouter;
 
+    // Cache for unified contexts to avoid reloading
+    private contextCache: Map<string, { context: UnifiedContext; loadedAt: number }> = new Map();
+    private contextCacheTTL = 60000; // 1 minute cache
+
     constructor() {
         this.service = getKripToeNiteService();
         this.classifier = getTaskClassifier();
         this.router = getKripToeNiteRouter();
 
-        console.log('[KripToeNiteFacade] Initialized');
+        console.log('[KripToeNiteFacade] Initialized with unified context support');
+    }
+
+    // =========================================================================
+    // CONTEXT LOADING
+    // =========================================================================
+
+    /**
+     * Load unified context for a project
+     * Uses caching to avoid repeated database queries
+     */
+    async loadContext(
+        projectId: string,
+        userId: string,
+        projectPath: string,
+        options?: UnifiedContextOptions
+    ): Promise<UnifiedContext> {
+        const cacheKey = `${projectId}:${userId}`;
+        const cached = this.contextCache.get(cacheKey);
+
+        // Return cached if fresh enough
+        if (cached && Date.now() - cached.loadedAt < this.contextCacheTTL) {
+            console.log(`[KripToeNiteFacade] Using cached context for ${projectId}`);
+            return cached.context;
+        }
+
+        // Load fresh context
+        console.log(`[KripToeNiteFacade] Loading fresh unified context for ${projectId}`);
+        const context = await loadUnifiedContext(projectId, userId, projectPath, options);
+
+        // Cache it
+        this.contextCache.set(cacheKey, { context, loadedAt: Date.now() });
+
+        return context;
+    }
+
+    /**
+     * Invalidate cached context for a project
+     */
+    invalidateContext(projectId: string, userId: string): void {
+        const cacheKey = `${projectId}:${userId}`;
+        this.contextCache.delete(cacheKey);
+        console.log(`[KripToeNiteFacade] Invalidated context cache for ${projectId}`);
+    }
+
+    /**
+     * Build an enriched system prompt with unified context
+     */
+    private buildEnrichedSystemPrompt(
+        baseSystemPrompt: string | undefined,
+        unifiedContext: UnifiedContext,
+        useFullContext: boolean = true
+    ): string {
+        const contextSection = useFullContext
+            ? formatUnifiedContextForCodeGen(unifiedContext)
+            : formatUnifiedContextSummary(unifiedContext);
+
+        const enrichedPrompt = `# KRIPTIK AI CODE GENERATION CONTEXT
+
+${contextSection}
+
+---
+
+# YOUR TASK
+
+${baseSystemPrompt || 'Generate high-quality code following the context above.'}`;
+
+        return enrichedPrompt;
     }
 
     // =========================================================================
@@ -110,6 +208,16 @@ export class KripToeNiteFacade {
      *
      * Automatically classifies the task, selects optimal strategy and model,
      * and executes the request.
+     *
+     * UNIFIED CONTEXT: If projectPath is provided and injectRichContext is not false,
+     * the system will automatically load and inject the full unified context including:
+     * - Intent Lock (sacred contract)
+     * - Verification swarm results
+     * - Tournament/judge winning patterns
+     * - Learning engine patterns and strategies
+     * - Error escalation history
+     * - Anti-slop rules
+     * - User preferences
      *
      * @param prompt - The user prompt
      * @param options - Generation options
@@ -128,6 +236,32 @@ export class KripToeNiteFacade {
         } & RequestContext
     ): Promise<KTNResult> {
         const startTime = Date.now();
+
+        // Determine if we should inject rich context
+        const shouldInjectContext = options.injectRichContext !== false && options.projectPath;
+
+        // Load or use provided unified context
+        let unifiedContext: UnifiedContext | undefined;
+        let contextSummary: string | undefined;
+
+        if (shouldInjectContext) {
+            try {
+                unifiedContext = options.unifiedContext || await this.loadContext(
+                    options.projectId,
+                    options.userId,
+                    options.projectPath!,
+                    options.contextOptions
+                );
+                contextSummary = formatUnifiedContextSummary(unifiedContext);
+            } catch (error) {
+                console.warn('[KripToeNiteFacade] Failed to load unified context:', error);
+            }
+        }
+
+        // Build enriched system prompt if context is available
+        const enrichedSystemPrompt = unifiedContext
+            ? this.buildEnrichedSystemPrompt(options.systemPrompt, unifiedContext, true)
+            : options.systemPrompt;
 
         // Build context from options
         const context: BuildContext = {
@@ -150,7 +284,7 @@ export class KripToeNiteFacade {
         // Create generation request
         const request: GenerationRequest = {
             prompt: fullPrompt,
-            systemPrompt: options.systemPrompt,
+            systemPrompt: enrichedSystemPrompt,
             context,
             maxTokens: options.maxTokens,
             temperature: options.temperature,
@@ -172,11 +306,14 @@ export class KripToeNiteFacade {
             latencyMs: Date.now() - startTime,
             ttftMs: response.ttftMs,
             wasEnhanced: response.wasEnhanced,
+            unifiedContextSummary: contextSummary,
         };
     }
 
     /**
      * Generate a streaming response
+     *
+     * UNIFIED CONTEXT: Automatically loads and injects rich context when projectPath is provided.
      *
      * @param prompt - The user prompt
      * @param options - Generation options
@@ -193,6 +330,30 @@ export class KripToeNiteFacade {
             temperature?: number;
         } & RequestContext
     ): AsyncGenerator<ExecutionChunk> {
+        // Determine if we should inject rich context
+        const shouldInjectContext = options.injectRichContext !== false && options.projectPath;
+
+        // Load or use provided unified context
+        let unifiedContext: UnifiedContext | undefined;
+
+        if (shouldInjectContext) {
+            try {
+                unifiedContext = options.unifiedContext || await this.loadContext(
+                    options.projectId,
+                    options.userId,
+                    options.projectPath!,
+                    options.contextOptions
+                );
+            } catch (error) {
+                console.warn('[KripToeNiteFacade] Failed to load unified context for streaming:', error);
+            }
+        }
+
+        // Build enriched system prompt if context is available
+        const enrichedSystemPrompt = unifiedContext
+            ? this.buildEnrichedSystemPrompt(options.systemPrompt, unifiedContext, true)
+            : options.systemPrompt;
+
         // Build context from options
         const context: BuildContext = {
             projectId: options.projectId,
@@ -214,7 +375,7 @@ export class KripToeNiteFacade {
         // Create generation request
         const request: GenerationRequest = {
             prompt: fullPrompt,
-            systemPrompt: options.systemPrompt,
+            systemPrompt: enrichedSystemPrompt,
             context,
             maxTokens: options.maxTokens,
             temperature: options.temperature,
@@ -469,5 +630,13 @@ export async function executeForAgent(
     return handler(ktn, prompt, context);
 }
 
-export default KripToeNiteFacade;
+// Re-export unified context types and functions for convenience
+export {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+    type UnifiedContextOptions,
+} from '../unified-context.js';
 
+export default KripToeNiteFacade;

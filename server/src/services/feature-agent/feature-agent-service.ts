@@ -33,6 +33,12 @@ import { getCredentialVault } from '../security/credential-vault.js';
 import { createVerificationSwarm, type CombinedVerificationResult } from '../verification/index.js';
 import { GhostModeController } from '../ghost-mode/ghost-controller.js';
 import { getNotificationService } from '../notifications/notification-service.js';
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+} from '../ai/unified-context.js';
 
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
@@ -70,6 +76,8 @@ type FeatureAgentRuntime = {
     sessionId: string | null;
     developerModeAgentId: string | null;
     providedCredentialKeys: Set<string>;
+    /** Cached unified context for this agent's project */
+    unifiedContext: UnifiedContext | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -206,6 +214,75 @@ export class FeatureAgentService extends EventEmitter {
         return out;
     }
 
+    /**
+     * Load unified context for a feature agent
+     *
+     * This loads ALL the rich context including:
+     * - Intent Lock (sacred contract)
+     * - Verification swarm results
+     * - Tournament/judge winning patterns
+     * - Learning engine patterns and strategies
+     * - Error escalation history
+     * - Anti-slop rules
+     * - User preferences
+     */
+    private async loadUnifiedContextForAgent(agentId: string): Promise<UnifiedContext | null> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        try {
+            // For now, use the project ID as the project path
+            // In production, this would be resolved to an actual file path
+            const projectPath = `/tmp/kriptik-projects/${rt.config.projectId}`;
+
+            const context = await loadUnifiedContext(
+                rt.config.projectId,
+                rt.config.userId,
+                projectPath,
+                {
+                    includeIntentLock: true,
+                    includeVerificationResults: true,
+                    includeTournamentResults: true,
+                    includeErrorHistory: true,
+                    includeLearningData: true,
+                    includeProjectAnalysis: true,
+                    includeProjectRules: true,
+                    includeUserPreferences: true,
+                }
+            );
+
+            rt.unifiedContext = context;
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Context loaded: ${context.learnedPatterns.length} patterns, ${context.verificationResults.length} verification results`,
+                timestamp: Date.now(),
+            });
+
+            return context;
+        } catch (error) {
+            console.warn(`[FeatureAgent] Failed to load unified context for agent ${agentId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Build an enriched prompt with unified context for code generation
+     */
+    private buildEnrichedPrompt(basePrompt: string, context: UnifiedContext | null): string {
+        if (!context) return basePrompt;
+
+        const contextSection = formatUnifiedContextForCodeGen(context);
+
+        return `# KRIPTIK AI FEATURE AGENT - RICH CONTEXT
+
+${contextSection}
+
+---
+
+# YOUR TASK
+
+${basePrompt}`;
+    }
+
     private setStatus(agentId: string, status: FeatureAgentStatus): void {
         const rt = this.getRuntimeOrThrow(agentId);
         rt.config.status = status;
@@ -270,13 +347,17 @@ export class FeatureAgentService extends EventEmitter {
             sessionId: null,
             developerModeAgentId: null,
             providedCredentialKeys: new Set(),
+            unifiedContext: null,
         });
 
-        this.emitStream(id, { type: 'thinking', content: 'Intent lock starting.', timestamp: Date.now() });
+        this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
 
-        // Async pipeline: intent -> plan -> credentials/approval gate
+        // Async pipeline: context -> intent -> plan -> credentials/approval gate
         void (async () => {
             try {
+                // Load unified context first - this gives us rich project context
+                await this.loadUnifiedContextForAgent(id);
+
                 const intent = await this.analyzeIntent(id, config.taskPrompt);
                 const plan = await this.generateImplementationPlan(id, intent);
                 agent.implementationPlan = plan;
@@ -551,7 +632,8 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         rt.sessionId = session.id;
         rt.config.sessionId = session.id;
 
-        const agentPrompt = [
+        // Build base prompt with intent and plan
+        const basePrompt = [
             rt.config.taskPrompt,
             '',
             '---',
@@ -561,6 +643,19 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             'IMPLEMENTATION PLAN (APPROVED):',
             JSON.stringify({ whatIsDone: plan.whatIsDone, phases: plan.phases }, null, 2),
         ].join('\n');
+
+        // CRITICAL: Enrich the prompt with unified context
+        // This includes all learned patterns, verification results, error history,
+        // tournament winners, anti-slop rules, and more
+        const agentPrompt = this.buildEnrichedPrompt(basePrompt, rt.unifiedContext);
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: rt.unifiedContext
+                ? `Deploying agent with rich context (${rt.unifiedContext.learnedPatterns.length} patterns, ${rt.unifiedContext.verificationResults.length} verification results)`
+                : 'Deploying agent (no unified context available)',
+            timestamp: Date.now(),
+        });
 
         const req: DeployAgentRequest = {
             name: rt.config.name,

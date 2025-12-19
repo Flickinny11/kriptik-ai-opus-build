@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-16)
+## Current State (as of 2025-12-19)
 
 ### Progress Summary
 - **Total Features**: 66
@@ -13,27 +13,68 @@
 - **Current Phase**: Phase 15+ (Advanced Features)
 
 ### Build Status
-- **Last Known Build**: PASSING (verified 2025-12-16)
+- **Last Known Build**: PASSING (verified 2025-12-19)
 - **TypeScript Errors**: None
-- **Current Branch**: main
+- **Current Branch**: silly-mendel (worktree)
 
 ---
 
 ## Recent Completions
 
+### 2025-12-19 - UNIFIED CONTEXT SYSTEM
+Major implementation: **Rich Context Injection for ALL Code Generation**
+
+**Created**: `server/src/services/ai/unified-context.ts`
+- Comprehensive context loader that pulls ALL rich data from the database
+- Includes Intent Lock, verification results, tournament winners, learning patterns, error history
+- Provides anti-slop rules, provider code hints, and user preferences
+- Exports `loadUnifiedContext`, `formatUnifiedContextForCodeGen`, `formatUnifiedContextSummary`
+
+**Integrated into**:
+1. **KripToeNite Facade** (`krip-toe-nite/facade.ts`)
+   - Added context caching with TTL
+   - Auto-loads and injects context into `generate()` and `generateStream()`
+   - Enriches system prompts with full unified context
+   - Added `loadContext()` and `invalidateContext()` methods
+
+2. **Feature Agent Service** (`feature-agent/feature-agent-service.ts`)
+   - Added `loadUnifiedContextForAgent()` method
+   - Added `buildEnrichedPrompt()` method
+   - Context loaded at agent creation, injected into implementation prompts
+   - Runtime now stores `unifiedContext` for reuse
+
+3. **Orchestration Routes** (`routes/orchestrate.ts`)
+   - Added context caching for projects
+   - `loadContextForProject()` and `enrichPromptWithContext()` helpers
+   - `/analyze` endpoint now loads and injects context
+   - Returns `contextSummary` in response
+
+**Context Includes**:
+- Intent Lock (sacred contract) with app soul and success criteria
+- App Soul Template (design system)
+- Build phase status
+- Verification swarm results (recent 20)
+- Tournament/judge results (recent 10)
+- Error escalation history (what hasn't worked)
+- Learned patterns (top 20 by success rate)
+- Active strategies by domain
+- Judge decisions
+- Project analysis (auto-detected patterns)
+- Project rules (user-defined)
+- User preferences
+- Anti-slop rules (instant fail patterns, design principles, thresholds)
+- Provider code hints (imports, env vars, usage examples)
+
 ### 2025-12-16
 - **Ghost Mode Tab Improvements**:
   - Changed all colors from purple to amber (#F5A86C) to match existing styling
   - Added enable/disable toggle switch in panel header
-  - Made email/phone input fields always visible (not conditional)
-  - Added error level severity dropdown (All/Critical/Warning/None)
-  - Removed redundant resize handles (parent handles resizing)
+  - Made email/phone input fields always visible
+  - Added error level severity dropdown
   - Fixed ghost mode colors in feature-agent-tile.css
-  - Cleaned up unused code (IconGhost, IconSave, saveContact)
 
 - **Template Cards Fix**:
   - Fixed template cards stacking issue caused by `.glass-panel` position:fixed conflict
-  - Replaced `glass-panel` class with inline styles in TemplatesPage.tsx
 
 ### 2025-12-14
 - Claude Code extension migration completed
@@ -71,7 +112,10 @@
 ### Ghost Mode / Feature Agent
 - Window resize works via parent DeveloperBarPanel (not internal handles)
 - Tile expansion CSS needs review - may still have horizontal expansion issues
-- Tile angle/skew styling may need adjustment for deployed agents
+
+### Unified Context
+- Project path is currently hardcoded to `/tmp/kriptik-projects/{projectId}`
+- In production, this should resolve to actual project file paths
 
 ---
 
@@ -79,27 +123,42 @@
 
 *Set at the start of each session*
 
-### Current Session (2025-12-16)
-- [x] Fix Ghost Mode styling (purple -> amber)
-- [x] Add enable toggle to Ghost Mode
-- [x] Add visible input fields for email/phone
-- [x] Add error level selector
-- [ ] Verify window resize actually works in browser
-- [ ] Verify tile expansion is vertical only
-- [ ] Verify Ghost Mode connects to backend properly
+### Current Session (2025-12-19)
+- [x] Create unified-context.ts with ALL orchestration data
+- [x] Include 6-phase build loop context
+- [x] Include verification swarm results
+- [x] Include tournament/judge winning patterns
+- [x] Include learning engine patterns and strategies
+- [x] Include error escalation history
+- [x] Export from AI index
+- [x] Integrate into KripToeNite facade
+- [x] Integrate into Feature Agent Service
+- [x] Integrate into Orchestration routes
+- [x] Verify build passes
 
 ---
 
 ## Notes
 
-- Today's date: 2025-12-16
+- Today's date: 2025-12-19
 - Current models available:
   - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
   - Claude Sonnet 4.5 - Critical tier
   - Claude Haiku - Standard tier
 - Extended thinking available on Opus/Sonnet with thinking_budget parameter
 - All Ghost Mode colors should use #F5A86C (amber), NOT purple
+- **NEW**: All code generation paths now inject rich unified context automatically
 
 ---
 
-*Last updated: 2025-12-16*
+## Key Files Modified This Session
+
+1. `server/src/services/ai/unified-context.ts` - NEW
+2. `server/src/services/ai/index.ts` - Added exports
+3. `server/src/services/ai/krip-toe-nite/facade.ts` - Context integration
+4. `server/src/services/feature-agent/feature-agent-service.ts` - Context integration
+5. `server/src/routes/orchestrate.ts` - Context integration
+
+---
+
+*Last updated: 2025-12-19*

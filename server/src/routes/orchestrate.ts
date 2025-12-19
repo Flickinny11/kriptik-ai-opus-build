@@ -6,31 +6,104 @@
  * - Execute plans
  * - Stream events to frontend
  * - Manage agent status
+ *
+ * UNIFIED CONTEXT: All code generation routes now automatically
+ * load and inject rich context including:
+ * - Intent Lock (sacred contract)
+ * - Verification swarm results
+ * - Tournament/judge winning patterns
+ * - Learning engine patterns and strategies
+ * - Error escalation history
+ * - Anti-slop rules
+ * - User preferences
  */
 
 import { Router, Request, Response } from 'express';
 import { DevelopmentOrchestrator, ProjectRequest } from '../services/orchestration/index.js';
 import { createOrchestratorClaudeService } from '../services/ai/claude-service.js';
 import { v4 as uuidv4 } from 'uuid';
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+} from '../services/ai/unified-context.js';
 
 const router = Router();
 
 // Store active orchestrators per project
 const orchestrators = new Map<string, DevelopmentOrchestrator>();
 
+// Store loaded unified contexts per project
+const projectContexts = new Map<string, UnifiedContext>();
+
+/**
+ * Load unified context for a project
+ */
+async function loadContextForProject(projectId: string, userId: string): Promise<UnifiedContext | null> {
+    try {
+        // Check cache first
+        const cached = projectContexts.get(projectId);
+        if (cached) {
+            return cached;
+        }
+
+        // Load fresh context
+        const projectPath = `/tmp/kriptik-projects/${projectId}`;
+        const context = await loadUnifiedContext(projectId, userId, projectPath);
+        projectContexts.set(projectId, context);
+
+        console.log(`[Orchestrate] Loaded unified context for ${projectId}: ${context.learnedPatterns.length} patterns, ${context.verificationResults.length} verification results`);
+
+        return context;
+    } catch (error) {
+        console.warn(`[Orchestrate] Failed to load unified context for ${projectId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Enrich a prompt with unified context
+ */
+function enrichPromptWithContext(prompt: string, context: UnifiedContext | null): string {
+    if (!context) return prompt;
+
+    const contextSection = formatUnifiedContextForCodeGen(context);
+
+    return `# KRIPTIK AI ORCHESTRATION - RICH CONTEXT
+
+${contextSection}
+
+---
+
+# YOUR TASK
+
+${prompt}`;
+}
+
 /**
  * POST /api/orchestrate/analyze
  * Analyze a project request and create an execution plan
+ *
+ * UNIFIED CONTEXT: Automatically loads rich project context including
+ * learned patterns, verification results, error history, and more.
  */
 router.post('/analyze', async (req: Request, res: Response) => {
     try {
-        const { prompt, projectName, projectId, constraints } = req.body;
+        const { prompt, projectName, projectId, constraints, userId } = req.body;
 
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
         const id = projectId || uuidv4();
+
+        // CRITICAL: Load unified context for rich code generation
+        let unifiedContext: UnifiedContext | null = null;
+        if (userId) {
+            unifiedContext = await loadContextForProject(id, userId);
+        }
+
         const claudeService = createOrchestratorClaudeService();
         const orchestrator = new DevelopmentOrchestrator(claudeService, {
             maxConcurrentTasks: 4,
@@ -41,8 +114,11 @@ router.post('/analyze', async (req: Request, res: Response) => {
         // Store orchestrator for later execution
         orchestrators.set(id, orchestrator);
 
+        // Enrich the prompt with unified context
+        const enrichedPrompt = enrichPromptWithContext(prompt, unifiedContext);
+
         const request: ProjectRequest = {
-            prompt,
+            prompt: enrichedPrompt,
             projectName: projectName || `Project ${Date.now()}`,
             projectId: id,
             constraints,
@@ -55,6 +131,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
             projectId: id,
             plan,
             agents: orchestrator.getAgents(),
+            contextSummary: unifiedContext ? formatUnifiedContextSummary(unifiedContext) : null,
         });
     } catch (error) {
         console.error('Orchestration analysis failed:', error);
