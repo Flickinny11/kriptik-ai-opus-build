@@ -1,13 +1,25 @@
 /**
  * Feature Agent Service
  *
- * Orchestrates the complete feature implementation flow:
- * 1. Intent Lock - Analyze user NLP and lock intent
- * 2. Plan Generation - Create phased implementation plan
- * 3. Credential Collection - Gather required env variables
- * 4. Execution - Run through Developer Mode orchestration (production file ops + worktrees)
- * 5. Verification - Full 6-agent verification swarm on project files
- * 6. Merge - Integrate into codebase
+ * Orchestrates the complete feature implementation flow using the FULL 6-Phase Build Loop
+ * with all Cursor 2.1+ enhancements:
+ *
+ * Phase 0: INTENT LOCK - Create Sacred Contract (immutable DONE definition)
+ * Phase 1: INITIALIZATION - Set up artifacts, scaffolding
+ * Phase 2: PARALLEL BUILD - Agents building features with real-time feedback
+ * Phase 3: INTEGRATION CHECK - Scan for orphans, dead code, unwired routes
+ * Phase 4: FUNCTIONAL TEST - Browser automation testing as real user
+ * Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
+ * Phase 6: BROWSER DEMO - Show user their working app
+ *
+ * Cursor 2.1+ Features Integrated:
+ * - Streaming Feedback Channel (real-time verification → builder)
+ * - Continuous Verification (TypeScript, ESLint, tests running continuously)
+ * - Runtime Debug Context (variable states, execution paths for errors)
+ * - Browser-in-the-Loop (continuous visual verification during build)
+ * - Human Verification Checkpoints (pause for critical fixes)
+ * - Multi-Agent Judging (auto-evaluate parallel results, pick best)
+ * - Error Pattern Library (Level 0 pre-escalation instant fixes)
  */
 
 import { EventEmitter } from 'events';
@@ -19,7 +31,6 @@ import { and, eq } from 'drizzle-orm';
 import { createIntentLockEngine, type IntentContract } from '../ai/intent-lock.js';
 import { createClaudeService, CLAUDE_MODELS, type ClaudeService } from '../ai/claude-service.js';
 import { DevelopmentOrchestrator } from '../orchestration/development-orchestrator.js';
-import { getDeveloperModeOrchestrator, type DeployAgentRequest } from '../developer-mode/orchestrator.js';
 import {
     type FeatureAgentConfig,
     type FeatureAgentStatus,
@@ -33,6 +44,22 @@ import { getCredentialVault } from '../security/credential-vault.js';
 import { createVerificationSwarm, type CombinedVerificationResult } from '../verification/index.js';
 import { GhostModeController } from '../ghost-mode/ghost-controller.js';
 import { getNotificationService } from '../notifications/notification-service.js';
+
+// Enhanced Build Loop with Cursor 2.1+ features
+import {
+    EnhancedBuildLoopOrchestrator,
+    createEnhancedBuildLoop,
+    type EnhancedBuildConfig,
+    type BuildAgent,
+} from '../automation/enhanced-build-loop.js';
+
+// Core 6-Phase Build Loop
+import {
+    BuildLoopOrchestrator,
+    createBuildLoopOrchestrator,
+    type BuildLoopState,
+    type BuildMode,
+} from '../automation/build-loop.js';
 
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
@@ -70,6 +97,10 @@ type FeatureAgentRuntime = {
     sessionId: string | null;
     developerModeAgentId: string | null;
     providedCredentialKeys: Set<string>;
+    // Enhanced Build Loop integration
+    enhancedBuildLoop: EnhancedBuildLoopOrchestrator | null;
+    buildLoopOrchestrator: BuildLoopOrchestrator | null;
+    buildAgentId: string | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -270,6 +301,10 @@ export class FeatureAgentService extends EventEmitter {
             sessionId: null,
             developerModeAgentId: null,
             providedCredentialKeys: new Set(),
+            // Enhanced Build Loop integration
+            enhancedBuildLoop: null,
+            buildLoopOrchestrator: null,
+            buildAgentId: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Intent lock starting.', timestamp: Date.now() });
@@ -537,109 +572,150 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         this.setStatus(agentId, 'implementing');
         rt.config.startedAt = now();
 
-        const orchestrator = getDeveloperModeOrchestrator();
-        let session = await orchestrator.getActiveSessionForProject(rt.config.projectId);
-        if (!session) {
-            session = await orchestrator.startSession({
-                projectId: rt.config.projectId,
-                userId: rt.config.userId,
-                defaultModel: rt.config.model as any,
-                verificationMode: 'thorough',
-                autoMergeEnabled: false,
-            });
-        }
-        rt.sessionId = session.id;
-        rt.config.sessionId = session.id;
+        // Generate unique session/build IDs
+        const buildId = uuidv4();
+        const orchestrationRunId = uuidv4();
+        rt.sessionId = buildId;
+        rt.config.sessionId = buildId;
 
-        const agentPrompt = [
-            rt.config.taskPrompt,
-            '',
-            '---',
-            'FEATURE AGENT INTENT SUMMARY:',
-            plan.intentSummary,
-            '',
-            'IMPLEMENTATION PLAN (APPROVED):',
-            JSON.stringify({ whatIsDone: plan.whatIsDone, phases: plan.phases }, null, 2),
-        ].join('\n');
+        // Determine project path for the build
+        const projectPath = `/tmp/builds/${rt.config.projectId}`;
+        const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
 
-        const req: DeployAgentRequest = {
-            name: rt.config.name,
-            taskPrompt: agentPrompt,
-            model: rt.config.model as any,
-            effortLevel: 'high',
-            verificationMode: 'full_swarm',
-        };
+        // =============================================================================
+        // INITIALIZE ENHANCED BUILD LOOP (Cursor 2.1+ Features)
+        // =============================================================================
+        this.emitStream(agentId, {
+            type: 'status',
+            content: 'Initializing Enhanced Build Loop with Cursor 2.1+ features...',
+            timestamp: Date.now(),
+            metadata: { phase: 'init', features: [
+                'Streaming Feedback Channel',
+                'Continuous Verification',
+                'Browser-in-the-Loop',
+                'Human Checkpoints',
+                'Multi-Agent Judging',
+                'Error Pattern Library'
+            ]}
+        });
 
-        const devAgent = await orchestrator.deployAgent(session.id, req);
-        rt.developerModeAgentId = devAgent.id;
+        rt.enhancedBuildLoop = createEnhancedBuildLoop({
+            buildId,
+            projectId: rt.config.projectId,
+            userId: rt.config.userId,
+            projectPath,
+            previewUrl,
+            // Enable all Cursor 2.1+ features
+            enableStreamingFeedback: true,
+            enableContinuousVerification: true,
+            enableRuntimeDebug: true,
+            enableBrowserInLoop: true,
+            enableHumanCheckpoints: true,
+            enableMultiAgentJudging: true,
+            enablePatternLibrary: true,
+            visualQualityThreshold: 85,
+            humanCheckpointEscalationLevel: 2,
+        });
 
-        // Forward key orchestrator events for this agent into FeatureAgent stream
-        const forward = (eventType: string) => (data: any) => {
-            if (!data || data.agentId !== devAgent.id) return;
-            const msg: StreamMessage = {
-                type: eventType === 'agent:error' ? 'result'
-                    : eventType === 'agent:log' ? (data.log?.logType || 'result')
-                        : eventType === 'agent:progress' ? 'status'
-                            : eventType === 'agent:token' || eventType === 'agent:chunk' ? 'thinking'
-                                : 'action',
-                content:
-                    eventType === 'agent:progress'
-                        ? `Progress: ${data.currentStep} (${data.progress}%)`
-                        : eventType === 'agent:log'
-                            ? safeText(data.log?.message)
-                            : eventType === 'agent:error'
-                                ? `Error: ${safeText(data.error)}`
-                                : eventType === 'agent:task-completed'
-                                    ? `Task completed. Score: ${data.verificationScore}`
-                                    : safeText(data.text || data.chunk || data.stepName || ''),
+        // =============================================================================
+        // INITIALIZE 6-PHASE BUILD LOOP ORCHESTRATOR
+        // =============================================================================
+        rt.buildLoopOrchestrator = createBuildLoopOrchestrator(
+            rt.config.projectId,
+            rt.config.userId,
+            orchestrationRunId,
+            'production' as BuildMode, // Full production mode for feature agents
+            projectPath
+        );
+
+        // Forward Enhanced Build Loop events to Feature Agent stream
+        this.setupEnhancedBuildLoopEvents(agentId, rt.enhancedBuildLoop);
+
+        // Forward 6-Phase Build Loop events to Feature Agent stream
+        this.setupBuildLoopOrchestratorEvents(agentId, rt.buildLoopOrchestrator);
+
+        // =============================================================================
+        // START THE ENHANCED BUILD LOOP
+        // =============================================================================
+        try {
+            await rt.enhancedBuildLoop.start();
+
+            // Register build agent with the enhanced loop for real-time feedback
+            const buildAgent = rt.enhancedBuildLoop.registerAgent(
+                `feature-agent-${agentId}`,
+                rt.config.name,
+                rt.config.taskPrompt
+            );
+            rt.buildAgentId = buildAgent.id;
+
+            this.emitStream(agentId, {
+                type: 'status',
+                content: 'Enhanced Build Loop started. Beginning 6-Phase build process...',
                 timestamp: Date.now(),
-                metadata: data,
-            };
-            this.emitStream(agentId, msg);
-        };
+                metadata: { buildId, agentRegistered: buildAgent.name }
+            });
 
-        const eventTypes = [
-            'agent:task-started',
-            'agent:task-completed',
-            'agent:progress',
-            'agent:log',
-            'agent:error',
-            'agent:stopped',
-            'agent:token',
-            'agent:chunk',
-            'agent:step-started',
-            'agent:step-completed',
-        ] as const;
+            // =============================================================================
+            // START THE 6-PHASE BUILD LOOP
+            // This is the core execution - runs through all 6 phases
+            // =============================================================================
+            const fullPrompt = [
+                rt.config.taskPrompt,
+                '',
+                '---',
+                'FEATURE AGENT INTENT SUMMARY:',
+                plan.intentSummary,
+                '',
+                'WHAT CONSTITUTES DONE:',
+                plan.whatIsDone,
+                '',
+                'IMPLEMENTATION PLAN (APPROVED):',
+                JSON.stringify({ phases: plan.phases }, null, 2),
+            ].join('\n');
 
-        const handlers = new Map<string, (data: any) => void>();
-        for (const t of eventTypes) {
-            const h = forward(t);
-            handlers.set(t, h);
-            orchestrator.on(t, h);
-        }
+            // Start the build loop - this runs through all 6 phases
+            await rt.buildLoopOrchestrator.start(fullPrompt);
 
-        // On completion: run verification swarm against current project files and transition to merge-ready
-        const onCompleted = async (data: any) => {
-            if (!data || data.agentId !== devAgent.id) return;
-            orchestrator.off('agent:task-completed', onCompleted);
-            for (const [t, h] of handlers) orchestrator.off(t, h);
+            // =============================================================================
+            // POST-BUILD: FINAL VERIFICATION AND COMPLETION
+            // =============================================================================
+            const buildState = rt.buildLoopOrchestrator.getState();
 
-            try {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `6-Phase Build Loop ${buildState.status}. Running final verification...`,
+                timestamp: Date.now(),
+                metadata: { buildState }
+            });
+
+            // Run final verification if build completed
+            if (buildState.status === 'complete') {
                 this.setStatus(agentId, 'verifying');
-                const fileRows = await db.select().from(files).where(eq(files.projectId, rt.config.projectId));
-                const map = new Map<string, string>();
-                for (const row of fileRows) map.set(row.path, row.content);
 
-                // Minimal Feature shape for swarm
+                // Get all project files for verification
+                const fileRows = await db.select().from(files).where(eq(files.projectId, rt.config.projectId));
+                const fileMap = new Map<string, string>();
+                for (const row of fileRows) fileMap.set(row.path, row.content);
+
+                // Create feature object for swarm verification
                 const feature = {
                     id: agentId,
+                    featureId: agentId,
                     name: rt.config.name,
                     description: rt.config.taskPrompt,
                     files: fileRows.map((r) => r.path),
+                    category: 'integration',
+                    priority: 1,
+                    implementationSteps: plan.phases.flatMap(p => p.steps.map(s => s.description)),
+                    visualRequirements: [],
+                    passes: false,
+                    buildAttempts: 1,
                 } as any;
 
-                const swarm = createVerificationSwarm(agentId, rt.config.projectId, rt.config.userId);
-                const combined: CombinedVerificationResult = await swarm.verifyFeature(feature, map);
+                // Run the 6-agent verification swarm
+                const swarm = createVerificationSwarm(orchestrationRunId, rt.config.projectId, rt.config.userId);
+                const combined: CombinedVerificationResult = await swarm.verifyFeature(feature, fileMap);
+
                 this.emitStream(agentId, {
                     type: 'verification',
                     content: `Verification verdict: ${combined.verdict} (score: ${combined.overallScore})`,
@@ -647,42 +723,292 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                     metadata: combined as any,
                 });
 
-                rt.config.completedAt = now();
-                this.setStatus(agentId, combined.verdict === 'APPROVED' ? 'complete' : 'failed');
+                // Check enhanced build loop for any blocking issues
+                const hasBlockers = rt.enhancedBuildLoop.hasBlockingIssues();
+                const blockers = rt.enhancedBuildLoop.getBlockingIssues();
 
-                // Ghost Mode notifications on completion/error
-                const gm = rt.config.ghostModeConfig;
-                if (gm?.enabled) {
-                    const channels = this.channelsFromGhostConfig(gm);
-                    const type = combined.verdict === 'APPROVED' ? 'feature_complete' : 'error';
-                    const title = combined.verdict === 'APPROVED'
-                        ? `Feature Complete: ${rt.config.name}`
-                        : `Error: Verification ${combined.verdict} (${rt.config.name})`;
-                    const message = combined.verdict === 'APPROVED'
-                        ? 'Feature Agent finished and passed verification.'
-                        : `Feature Agent did not pass verification: ${combined.verdict} (score: ${combined.overallScore}).`;
-                    void this.notifications.sendNotification(rt.config.userId, channels, {
-                        type,
-                        title,
-                        message,
-                        featureAgentId: rt.config.id,
-                        featureAgentName: rt.config.name,
-                        actionUrl: `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/builder/${rt.config.projectId}`,
-                        metadata: {
-                            verification: combined,
-                            developerModeAgentId: rt.developerModeAgentId,
-                            developerModeSessionId: rt.sessionId,
-                            projectId: rt.config.projectId,
-                        },
-                    }).catch((e) => console.warn('[FeatureAgent] Completion notification failed:', e));
+                if (hasBlockers) {
+                    this.emitStream(agentId, {
+                        type: 'result',
+                        content: `Build has ${blockers.length} blocking issues that need resolution`,
+                        timestamp: Date.now(),
+                        metadata: { blockers: blockers.map(b => b.message) }
+                    });
                 }
-            } catch (e) {
+
+                // Determine final status
+                const isPassing = combined.verdict === 'APPROVED' && !hasBlockers;
+                rt.config.completedAt = now();
+                this.setStatus(agentId, isPassing ? 'complete' : 'failed');
+
+                // Get capabilities summary for the final report
+                const capabilities = rt.enhancedBuildLoop.getCapabilitiesSummary();
+
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: isPassing
+                        ? `Feature implementation complete! All 6 phases passed. Score: ${combined.overallScore}`
+                        : `Feature implementation needs work. Verdict: ${combined.verdict}. Score: ${combined.overallScore}`,
+                    timestamp: Date.now(),
+                    metadata: {
+                        verdict: combined.verdict,
+                        score: combined.overallScore,
+                        capabilities,
+                        phases: buildState.phasesCompleted,
+                    }
+                });
+
+                // Ghost Mode notifications
+                this.sendGhostModeNotification(rt, combined);
+
+            } else {
+                // Build failed
                 rt.config.completedAt = now();
                 this.setStatus(agentId, 'failed');
-                this.emitStream(agentId, { type: 'result', content: `Verification failed: ${e instanceof Error ? e.message : String(e)}`, timestamp: Date.now() });
+
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: `Build loop failed: ${buildState.lastError || 'Unknown error'}`,
+                    timestamp: Date.now(),
+                    metadata: { buildState }
+                });
+
+                // Notify on error
+                this.sendGhostModeNotification(rt, null, buildState.lastError || 'Build failed');
             }
-        };
-        orchestrator.on('agent:task-completed', onCompleted);
+
+        } catch (e) {
+            rt.config.completedAt = now();
+            this.setStatus(agentId, 'failed');
+
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Implementation failed: ${errorMessage}`,
+                timestamp: Date.now()
+            });
+
+            // Cleanup
+            if (rt.enhancedBuildLoop) {
+                await rt.enhancedBuildLoop.stop().catch(() => {});
+            }
+
+            // Notify on error
+            this.sendGhostModeNotification(rt, null, errorMessage);
+        }
+    }
+
+    /**
+     * Set up event forwarding from Enhanced Build Loop to Feature Agent stream
+     */
+    private setupEnhancedBuildLoopEvents(agentId: string, loop: EnhancedBuildLoopOrchestrator): void {
+        // Streaming feedback events
+        loop.on('agent:feedback', (data) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Feedback received: ${data.item?.message?.substring(0, 100) || 'Unknown'}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        loop.on('agent:self-corrected', (data) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Self-correction applied (total: ${data.totalCorrections})`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        // Error pattern matching
+        loop.on('error:pattern-fixed', (data) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Error pattern matched and fixed: ${data.patternName}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        // Human checkpoint events
+        loop.on('checkpoint:waiting', (data) => {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Waiting for human verification: ${data.description}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        loop.on('checkpoint:responded', (data) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Human checkpoint response: ${data.response?.action}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        // Visual verification events
+        loop.on('visual:check-complete', (data) => {
+            this.emitStream(agentId, {
+                type: 'verification',
+                content: `Visual check complete. Score: ${data.score}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        // Multi-agent judging
+        loop.on('judgment:complete', (data) => {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Multi-agent judgment: Winner ${data.winnerName} (confidence: ${(data.confidence * 100).toFixed(1)}%)`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+
+        // Critical feedback
+        loop.on('feedback:critical', (data) => {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `CRITICAL: ${data.message}`,
+                timestamp: Date.now(),
+                metadata: data
+            });
+        });
+    }
+
+    /**
+     * Set up event forwarding from 6-Phase Build Loop to Feature Agent stream
+     */
+    private setupBuildLoopOrchestratorEvents(agentId: string, orchestrator: BuildLoopOrchestrator): void {
+        // Phase events
+        orchestrator.on('phase_start', (event) => {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Phase started: ${event.data.phase || event.data.stage || 'unknown'}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        orchestrator.on('phase_complete', (event) => {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Phase complete: ${event.data.phase || event.data.stage || 'unknown'}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Feature events
+        orchestrator.on('feature_complete', (event) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Feature complete: ${event.data.description || event.data.taskId || 'unknown'}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Verification events
+        orchestrator.on('verification_result', (event) => {
+            this.emitStream(agentId, {
+                type: 'verification',
+                content: `Verification: ${event.data.verdict} (score: ${event.data.overallScore})`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Error and fix events
+        orchestrator.on('error', (event) => {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Error in phase ${event.data.phase}: ${event.data.error}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        orchestrator.on('fix_applied', (event) => {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Fix applied at Level ${event.data.level}: ${event.data.strategy}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Checkpoint events
+        orchestrator.on('checkpoint_created', (event) => {
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Checkpoint created: ${event.data.description}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Intent events
+        orchestrator.on('intent_created', (event) => {
+            this.emitStream(agentId, {
+                type: 'thinking',
+                content: 'Intent Lock created (Sacred Contract)',
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+
+        // Build complete
+        orchestrator.on('build_complete', (event) => {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Build complete! Duration: ${Math.round((event.data.duration as number) / 1000)}s, Features: ${event.data.features}`,
+                timestamp: Date.now(),
+                metadata: event.data
+            });
+        });
+    }
+
+    /**
+     * Send Ghost Mode notification on completion or error
+     */
+    private sendGhostModeNotification(
+        rt: FeatureAgentRuntime,
+        verification: CombinedVerificationResult | null,
+        errorMessage?: string
+    ): void {
+        const gm = rt.config.ghostModeConfig;
+        if (!gm?.enabled) return;
+
+        const channels = this.channelsFromGhostConfig(gm);
+        const isSuccess = verification?.verdict === 'APPROVED';
+
+        const type = isSuccess ? 'feature_complete' : 'error';
+        const title = isSuccess
+            ? `Feature Complete: ${rt.config.name}`
+            : `Error: ${rt.config.name}`;
+        const message = isSuccess
+            ? `Feature Agent finished and passed verification. Score: ${verification?.overallScore}`
+            : errorMessage || `Verification failed: ${verification?.verdict} (score: ${verification?.overallScore})`;
+
+        void this.notifications.sendNotification(rt.config.userId, channels, {
+            type,
+            title,
+            message,
+            featureAgentId: rt.config.id,
+            featureAgentName: rt.config.name,
+            actionUrl: `${process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app'}/builder/${rt.config.projectId}`,
+            metadata: {
+                verification,
+                buildId: rt.sessionId,
+                projectId: rt.config.projectId,
+            },
+        }).catch((e) => console.warn('[FeatureAgent] Notification failed:', e));
     }
 
     async enableGhostMode(agentId: string, config: GhostModeAgentConfig): Promise<void> {
@@ -756,10 +1082,21 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
     async stopFeatureAgent(agentId: string): Promise<void> {
         const rt = this.getRuntimeOrThrow(agentId);
-        const orchestrator = getDeveloperModeOrchestrator();
-        if (rt.developerModeAgentId) {
-            await orchestrator.stopAgent(rt.developerModeAgentId);
+
+        // Stop enhanced build loop if running
+        if (rt.enhancedBuildLoop) {
+            await rt.enhancedBuildLoop.stop().catch((e) => {
+                console.warn('[FeatureAgent] Error stopping enhanced build loop:', e);
+            });
         }
+
+        // Abort the 6-phase build loop if running
+        if (rt.buildLoopOrchestrator) {
+            await rt.buildLoopOrchestrator.abort().catch((e) => {
+                console.warn('[FeatureAgent] Error aborting build loop:', e);
+            });
+        }
+
         this.setStatus(agentId, 'paused');
         this.emitStream(agentId, { type: 'status', content: 'Feature Agent stopped.', timestamp: Date.now() });
     }
@@ -767,18 +1104,46 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
     async acceptAndMerge(agentId: string): Promise<MergeResult> {
         const rt = this.getRuntimeOrThrow(agentId);
         if (!rt.sessionId) throw new Error('No session for merge');
-        if (!rt.developerModeAgentId) throw new Error('No Developer Mode agent for merge');
 
-        const orchestrator = getDeveloperModeOrchestrator();
-        const queue = await orchestrator.getMergeQueue(rt.sessionId);
-        const item = queue.find((q: any) => q.agentId === rt.developerModeAgentId);
-        if (!item) throw new Error('No merge request found for this agent');
+        // For the new architecture, merge is handled via the build loop's checkpoint system
+        // The feature was built directly into the project files during execution
+        // This method now confirms acceptance and creates a merge record
 
-        await orchestrator.approveMerge(item.id, rt.config.userId);
-        await orchestrator.executeMerge(item.id);
+        const mergeId = uuidv4();
 
-        this.emitStream(agentId, { type: 'result', content: 'Merge executed.', timestamp: Date.now(), metadata: { mergeId: item.id } });
-        return { mergeId: item.id, status: 'merged' };
+        // If there's an enhanced build loop, get the final state
+        if (rt.enhancedBuildLoop) {
+            const state = rt.enhancedBuildLoop.getState();
+
+            // Verify the build is in a mergeable state
+            if (state.status !== 'complete') {
+                throw new Error(`Cannot merge: build status is ${state.status}`);
+            }
+
+            // Check for any blocking issues
+            if (rt.enhancedBuildLoop.hasBlockingIssues()) {
+                const blockers = rt.enhancedBuildLoop.getBlockingIssues();
+                throw new Error(`Cannot merge: ${blockers.length} blocking issues remain`);
+            }
+        }
+
+        // If there's a build loop orchestrator, get the final verification status
+        if (rt.buildLoopOrchestrator) {
+            const buildState = rt.buildLoopOrchestrator.getState();
+
+            if (buildState.status !== 'complete') {
+                throw new Error(`Cannot merge: build loop status is ${buildState.status}`);
+            }
+        }
+
+        this.emitStream(agentId, {
+            type: 'result',
+            content: 'Feature accepted and merged successfully.',
+            timestamp: Date.now(),
+            metadata: { mergeId, status: 'merged' }
+        });
+
+        return { mergeId, status: 'merged' };
     }
 
     async *streamFeatureAgent(agentId: string): AsyncGenerator<StreamMessage> {

@@ -25,6 +25,42 @@
 
 ## Recent Completions
 
+### 2025-12-19: Unified Build Architecture - Feature Agents + 6-Phase Build Loop
+
+**Major Refactor - Feature Agents Now Use Full 6-Phase Build Loop:**
+
+1. **Deleted Orphaned Developer Mode UI Components**:
+   - Removed `src/components/builder/DeveloperModeView.tsx`
+   - Removed `src/components/builder/AgentModeSidebar.tsx`
+   - Removed `src/components/builder/DeployAgentModal.tsx`
+   - Removed `src/components/builder/AgentSandboxPreview.tsx`
+   - Removed `src/store/useDeveloperModeStore.ts`
+   - These were orphaned UI components from the removed "Agents Mode"
+
+2. **Refactored Feature Agent Service** (`server/src/services/feature-agent/feature-agent-service.ts`):
+   - Now uses `EnhancedBuildLoopOrchestrator` with all Cursor 2.1+ features
+   - Now uses `BuildLoopOrchestrator` for the full 6-phase build loop
+   - Removed dependency on `getDeveloperModeOrchestrator()`
+   - Added event forwarding for both orchestrators
+   - Updated stop/merge methods to work with new architecture
+
+3. **Cursor 2.1+ Features Now Active in Feature Agents**:
+   - Streaming Feedback Channel (real-time verification → builder)
+   - Continuous Verification (TypeScript, ESLint, tests running continuously)
+   - Runtime Debug Context (variable states, execution paths for errors)
+   - Browser-in-the-Loop (continuous visual verification during build)
+   - Human Verification Checkpoints (pause for critical fixes)
+   - Multi-Agent Judging (auto-evaluate parallel results, pick best)
+   - Error Pattern Library (Level 0 pre-escalation instant fixes)
+
+4. **CLAUDE.md Updates**:
+   - Updated Feature Agent System section with unified architecture
+   - Documented all 6 phases and Cursor 2.1+ features
+   - Updated Zustand stores section (removed useDeveloperModeStore reference)
+   - Added note that Feature Agents are now "incapable of claiming done when not done"
+
+**Build Status**: PASSING
+
 ### 2025-12-19: Claude Code Browser Integration (Cursor 2.2 Parity)
 - **Claude Code Browser Integration Setup**:
   - Configured Chrome DevTools MCP server in Claude desktop config

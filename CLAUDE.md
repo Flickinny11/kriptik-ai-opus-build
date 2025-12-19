@@ -415,20 +415,39 @@ CRITICAL MODEL SELECTION BY PHASE:
 | 3: Rewrite | Opus 4.5 + 64K | 2 | targeted component rewrite |
 | 4: Rebuild | Opus 4.5 + 64K | 1 | full feature from Intent |
 
-### 10. Feature Agent System
+### 10. Feature Agent System (Unified with 6-Phase Build Loop)
 **Location**: `server/src/services/feature-agent/feature-agent-service.ts`
 
-Complete feature implementation workflow:
-1. Intent Lock creation for feature
-2. Implementation plan generation
-3. Phase-by-phase approval (approve/modify/approve-all)
-4. Credentials collection (secure vault + .env write)
-5. Execution via Developer Mode
-6. Verification swarm validation
-7. Merge to main
+Feature Agents now use the FULL 6-Phase Build Loop with all Cursor 2.1+ enhancements:
+
+**Complete feature implementation workflow:**
+1. Intent Lock creation (Sacred Contract)
+2. Implementation plan generation with phase approval
+3. Credentials collection (secure vault + .env write)
+4. **6-Phase Build Loop Execution:**
+   - Phase 0: INTENT LOCK - Create/validate Sacred Contract
+   - Phase 1: INITIALIZATION - Artifacts, scaffolding, seed data
+   - Phase 2: PARALLEL BUILD - Agents build with real-time feedback
+   - Phase 3: INTEGRATION CHECK - Orphan scan, dead code, unwired routes
+   - Phase 4: FUNCTIONAL TEST - Browser automation as real user
+   - Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
+   - Phase 6: BROWSER DEMO - Visual verification
+5. Verification swarm validation (6-agent parallel check)
+6. Merge to main
+
+**Cursor 2.1+ Features Active:**
+- Streaming Feedback Channel (real-time verification → builder)
+- Continuous Verification (TypeScript, ESLint, tests running continuously)
+- Runtime Debug Context (variable states, execution paths for errors)
+- Browser-in-the-Loop (continuous visual verification during build)
+- Human Verification Checkpoints (pause for critical fixes)
+- Multi-Agent Judging (auto-evaluate parallel results, pick best)
+- Error Pattern Library (Level 0 pre-escalation instant fixes)
 
 **UI Components**: `src/components/feature-agent/*`
 **Store**: `useFeatureAgentTileStore.ts`
+
+**CRITICAL**: Feature Agents are now INCAPABLE of claiming done when not done. The 6-phase loop with Intent Satisfaction gate (Phase 5) ensures all success criteria are verified before completion.
 
 ### 11. Autonomous Learning Engine (Component 28)
 **Location**: `server/src/services/learning/*`
@@ -547,15 +566,17 @@ GET  /api/verification/swarm/:buildId - Swarm status
 
 ---
 
-## ZUSTAND STORES (16 total)
+## ZUSTAND STORES (15 total)
 
 **Critical stores to understand**:
-- `useDeveloperModeStore.ts` - Agent sessions, progress, merge queue
-- `useFeatureAgentTileStore.ts` - Feature agent tile state
+- `useFeatureAgentTileStore.ts` - Feature agent tile state (primary agent UI)
 - `useLearningStore.ts` - Evolution flywheel state
 - `useBuilderStore.ts` - Main builder state
 - `useProjectStore.ts` - Project management
 - `useAuthStore.ts` - Authentication state
+- `useGhostModeStore.ts` - Ghost mode autonomous building
+
+**NOTE**: `useDeveloperModeStore.ts` has been removed. Feature Agents now use the unified 6-Phase Build Loop directly.
 
 **IMPORTANT**: Always check existing store before adding state.
 
