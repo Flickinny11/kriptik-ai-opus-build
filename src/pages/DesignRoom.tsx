@@ -10,16 +10,17 @@
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     SendIcon, ImagePlusIcon, WandIcon, DownloadIcon, TrashIcon, HeartIcon,
     LayersIcon, Code2Icon, MaximizeIcon, MinimizeIcon,
-    PaletteIcon, SettingsIcon, CheckIcon, SparklesIcon
+    PaletteIcon, SettingsIcon, CheckIcon, SparklesIcon, XIcon
 } from '../components/ui/icons';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { GlitchText } from '../components/ui/GlitchText';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
+import { useProjectStore } from '../store/useProjectStore';
 import { cn } from '@/lib/utils';
 import '../styles/realistic-glass.css';
 
@@ -58,6 +59,7 @@ interface ChatMessage {
 
 export default function DesignRoom() {
     const navigate = useNavigate();
+    const { projects } = useProjectStore();
     const [activeTab, setActiveTab] = useState<'generate' | 'themes'>('generate');
     const [prompt, setPrompt] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -66,6 +68,7 @@ export default function DesignRoom() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [activeTheme, setActiveTheme] = useState('minimal-dark');
     const [zoom, setZoom] = useState(100);
+    const [showProjectSelector, setShowProjectSelector] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const handleGenerate = async () => {
@@ -115,13 +118,30 @@ export default function DesignRoom() {
     };
 
     const handleGetCode = () => {
-        // TODO: Convert selected images to code
-        console.log('Get code for:', Array.from(selectedImages));
+        // Get selected image data to pass to the builder
+        const selectedImageData = generatedImages.filter(img => selectedImages.has(img.id));
+        if (selectedImageData.length === 0) return;
+
+        // Navigate to builder with image context for AI code generation
+        const imageUrls = selectedImageData.map(img => img.url).join(',');
+        const prompts = selectedImageData.map(img => img.prompt).join('; ');
+        navigate(`/builder/new?designRef=${encodeURIComponent(imageUrls)}&context=${encodeURIComponent(prompts)}`);
     };
 
     const handleAddToProject = () => {
-        // TODO: Open project selector modal
-        console.log('Add to project:', Array.from(selectedImages));
+        if (selectedImages.size === 0) return;
+        setShowProjectSelector(true);
+    };
+
+    const handleSelectProject = (projectId: string) => {
+        // Get selected image data
+        const selectedImageData = generatedImages.filter(img => selectedImages.has(img.id));
+        const imageUrls = selectedImageData.map(img => img.url).join(',');
+        const prompts = selectedImageData.map(img => img.prompt).join('; ');
+
+        // Navigate to the selected project with design context
+        navigate(`/builder/${projectId}?designRef=${encodeURIComponent(imageUrls)}&context=${encodeURIComponent(prompts)}`);
+        setShowProjectSelector(false);
     };
 
     return (
@@ -510,6 +530,76 @@ export default function DesignRoom() {
                     </div>
                 </main>
             )}
+
+            {/* Project Selector Modal */}
+            <AnimatePresence>
+                {showProjectSelector && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowProjectSelector(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="glass-panel p-6 w-full max-w-md mx-4"
+                            onClick={e => e.stopPropagation()}
+                            style={{ background: 'rgba(255,255,255,0.95)' }}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                    Add to Project
+                                </h3>
+                                <button
+                                    onClick={() => setShowProjectSelector(false)}
+                                    className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+                                >
+                                    <XIcon size={18} style={{ color: '#666' }} />
+                                </button>
+                            </div>
+
+                            <p className="text-sm mb-4" style={{ color: '#666' }}>
+                                Select a project to add {selectedImages.size} design{selectedImages.size > 1 ? 's' : ''} as reference
+                            </p>
+
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {projects.length === 0 ? (
+                                    <p className="text-sm text-center py-4" style={{ color: '#999' }}>
+                                        No projects yet. Create one to get started.
+                                    </p>
+                                ) : (
+                                    projects.map(project => (
+                                        <button
+                                            key={project.id}
+                                            onClick={() => handleSelectProject(project.id)}
+                                            className="w-full p-3 rounded-xl text-left transition-colors hover:bg-black/5"
+                                            style={{ border: '1px solid rgba(0,0,0,0.1)' }}
+                                        >
+                                            <p className="font-medium" style={{ color: '#1a1a1a' }}>{project.name}</p>
+                                            <p className="text-xs mt-0.5" style={{ color: '#666' }}>
+                                                {project.lastEdited}
+                                            </p>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setShowProjectSelector(false);
+                                    navigate('/builder/new');
+                                }}
+                                className="glass-button glass-button--glow w-full mt-4"
+                            >
+                                Create New Project
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -61,9 +61,18 @@ export default function ShareModal() {
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full" alt={currentUser.name} />
+                                    {currentUser.avatar ? (
+                                        <img src={currentUser.avatar} className="w-8 h-8 rounded-full" alt={currentUser.name} />
+                                    ) : (
+                                        <div
+                                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                                            style={{ background: currentUser.color || '#10b981' }}
+                                        >
+                                            {currentUser.name?.charAt(0) || 'U'}
+                                        </div>
+                                    )}
                                     <div>
-                                        <div className="text-sm font-medium">{currentUser.name} (You)</div>
+                                        <div className="text-sm font-medium">{currentUser.name || 'You'} (You)</div>
                                         <div className="text-xs text-muted-foreground">{currentUser.email}</div>
                                     </div>
                                 </div>
@@ -73,7 +82,16 @@ export default function ShareModal() {
                             {collaborators.map(user => (
                                 <div key={user.id} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <img src={user.avatar} className="w-8 h-8 rounded-full" alt={user.name} />
+                                        {user.avatar ? (
+                                            <img src={user.avatar} className="w-8 h-8 rounded-full" alt={user.name} />
+                                        ) : (
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                                                style={{ background: user.color || '#8b5cf6' }}
+                                            >
+                                                {user.name?.charAt(0) || '?'}
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="text-sm font-medium">{user.name}</div>
                                             <div className="text-xs text-muted-foreground">{user.email}</div>

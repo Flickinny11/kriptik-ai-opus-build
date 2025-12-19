@@ -626,9 +626,28 @@ export async function handleStripeWebhook(
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      // Handle successful checkout
+      // Handle successful checkout - fulfillment for user's project
+      // This webhook is forwarded to the user's configured endpoint
+      // The session contains: customer, payment_status, amount_total, metadata
       console.log('Payment successful:', session.id);
-      // TODO: Fulfill order, update database, send confirmation
+
+      // Extract fulfillment data
+      const fulfillmentData = {
+        sessionId: session.id,
+        customerId: session.customer as string,
+        customerEmail: session.customer_details?.email,
+        paymentStatus: session.payment_status,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+        metadata: session.metadata,
+        createdAt: new Date(session.created * 1000).toISOString(),
+      };
+
+      // Log fulfillment for user's webhook forwarding
+      console.log('Checkout fulfillment data:', JSON.stringify(fulfillmentData));
+
+      // Note: Actual fulfillment is handled by user's application via their webhook endpoint
+      // This handler just validates and logs the event for debugging purposes
       break;
     }
 
