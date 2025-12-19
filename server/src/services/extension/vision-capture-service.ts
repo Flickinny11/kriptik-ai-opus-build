@@ -1,21 +1,28 @@
 /**
- * Vision Capture Service
+ * Vision Capture Service - Live Video Streaming Analysis
  *
- * Server-side capture using Gemini 3 Flash Preview + Playwright.
- * Uses OpenRouter API for Gemini access (December 2025 model).
+ * Uses Gemini Live API for real-time streaming video analysis.
+ * This is NOT screenshot-by-screenshot - it's continuous video monitoring.
  *
- * Captures AI platform content by:
- * 1. Loading the page with user's session cookies
- * 2. Taking screenshots at intervals
- * 3. Using Gemini 3 Flash vision to extract chat history, errors, file tree
- * 4. Streaming progress to the extension via SSE
- * 5. Auto-importing to KripTik when capture completes
+ * How it works:
+ * 1. Opens the page with user's session cookies via Playwright
+ * 2. Establishes a WebSocket connection to Gemini Live API
+ * 3. Continuously streams video frames (1-5 FPS) as we scroll
+ * 4. The AI sees the page in real-time and guides the capture:
+ *    - Tells us where to scroll
+ *    - Identifies chat messages, errors, file trees
+ *    - Finds export/zip buttons and build logs
+ *    - Keeps scrolling until entire chat history is captured
+ * 5. Auto-imports to KripTik when capture completes
  *
- * Model: google/gemini-3-flash-preview (released Dec 17, 2025)
- * - 1M context window, 65K output tokens
- * - Supports: text, image, audio, video input
- * - Configurable thinking levels: minimal, low, medium, high
- * - Cost: $0.50/M input, $3.00/M output
+ * Requires: GOOGLE_AI_API_KEY environment variable for Live API access
+ * Fallback: Uses OpenRouter with enhanced vision if Google AI key not set
+ *
+ * Model: gemini-2.0-flash-live-001 (Live API GA, Dec 2025)
+ * - Real-time bidirectional streaming
+ * - Video processing at 1-60 FPS
+ * - WebSocket-based session
+ * - Supports system instructions and function calling
  *
  * This is the ONLY capture method - there is no "non-vision" alternative.
  */
@@ -26,16 +33,27 @@ import { db } from '../../db.js';
 import { projects, notifications } from '../../schema.js';
 import { OPENROUTER_MODELS } from '../ai/openrouter-client.js';
 
-// Gemini 3 Flash thinking levels for vision analysis
-type GeminiThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
+// =============================================================================
+// LAZY IMPORTS
+// =============================================================================
 
-// Vision model configuration
-const VISION_MODEL_CONFIG = {
-    model: OPENROUTER_MODELS.GEMINI_3_FLASH,  // google/gemini-3-flash-preview
-    thinkingLevel: 'low' as GeminiThinkingLevel,  // Low thinking for speed, still accurate
-    maxTokens: 8192,
-    temperature: 0.3,  // Lower for more consistent extraction
-};
+// Lazy-load Google GenAI SDK
+let GoogleGenAI: typeof import('@google/genai').GoogleGenAI | null = null;
+let Modality: typeof import('@google/genai').Modality | null = null;
+
+async function getGoogleGenAI() {
+    if (GoogleGenAI) return { GoogleGenAI, Modality };
+
+    try {
+        const genai = await import('@google/genai');
+        GoogleGenAI = genai.GoogleGenAI;
+        Modality = genai.Modality;
+        return { GoogleGenAI, Modality };
+    } catch (error) {
+        console.error('[VisionCapture] Failed to load @google/genai:', error);
+        throw new Error('Google GenAI SDK not available');
+    }
+}
 
 // Lazy-load Playwright (not available in serverless)
 let playwrightModule: typeof import('playwright') | null = null;
@@ -59,6 +77,76 @@ type Page = import('playwright').Page;
 type BrowserContext = import('playwright').BrowserContext;
 
 // =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+// Live API configuration for complex video analysis
+const LIVE_API_CONFIG = {
+    // Live API model - GA December 2025
+    model: 'gemini-2.0-flash-live-001',
+    // Frames per second for video streaming (1-60 supported)
+    fps: 2,
+    // Maximum session duration (Live API default is 10 min, we extend via reconnection)
+    maxSessionDurationMs: 8 * 60 * 1000, // 8 minutes to allow buffer before 10 min limit
+    // Viewport for capture
+    viewport: { width: 1920, height: 1080 },
+};
+
+// OpenRouter fallback configuration (if no Google AI key)
+const OPENROUTER_FALLBACK_CONFIG = {
+    model: OPENROUTER_MODELS.GEMINI_3_FLASH,
+    // HIGH thinking for complex analysis (not 'low')
+    thinkingLevel: 'high' as const,
+    // Large token limit for comprehensive extraction
+    maxTokens: 32768,
+    temperature: 0.2,
+};
+
+// System instructions for the Live API vision agent
+const VISION_AGENT_INSTRUCTIONS = `You are an AI vision agent for KripTik AI's project import system.
+Your job is to COMPLETELY capture the content from an AI code builder platform.
+
+You will receive a continuous stream of video frames as the page scrolls.
+
+YOUR TASKS:
+1. EXTRACT CHAT HISTORY - Find and extract EVERY message in the conversation
+   - User messages and AI assistant responses
+   - Include ALL code blocks with their language
+   - Continue scrolling until you've seen the ENTIRE chat history
+
+2. FIND ERRORS - Look for error messages, warnings, build failures
+   - Terminal/console output
+   - Error toasts and notifications
+   - Build logs with errors
+
+3. MAP FILE TREE - If a file explorer is visible, capture the structure
+   - All files and folders
+   - Note the programming languages used
+
+4. LOCATE UI ELEMENTS - Find important interactive elements
+   - Export/Download/ZIP buttons (for downloading project files)
+   - Build/Deploy buttons
+   - Settings or configuration panels
+
+RESPONSE FORMAT:
+After each frame or batch of frames, respond with JSON:
+{
+  "action": "continue" | "scroll_down" | "scroll_up" | "click" | "complete",
+  "reason": "why this action",
+  "new_messages": [{"role": "user"|"assistant", "content": "...", "codeBlocks": [...]}],
+  "new_errors": [{"type": "...", "severity": "error"|"warning", "message": "..."}],
+  "new_files": [{"path": "...", "type": "file"|"folder"}],
+  "ui_elements_found": [{"type": "export_button"|"download_button"|"build_log", "location": "..."}],
+  "progress": {"chat_complete": false, "estimated_remaining_messages": 10}
+}
+
+IMPORTANT:
+- Keep scrolling until progress.chat_complete is true
+- Don't stop early - capture EVERYTHING
+- If you see a loading spinner, wait for content to load
+- Track what you've already extracted to avoid duplicates`;
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -74,22 +162,23 @@ export interface CookieData {
 }
 
 export interface VisionCaptureOptions {
-    maxScrolls?: number;           // Max number of scroll iterations (default: 10)
-    captureInterval?: number;      // MS between captures (default: 2000)
-    waitForSelector?: string;      // Optional selector to wait for before capture
-    timeout?: number;              // Overall timeout in MS (default: 120000)
-    includeFileTree?: boolean;     // Try to capture file tree (default: true)
-    includeErrors?: boolean;       // Try to capture errors (default: true)
-    includeConsole?: boolean;      // Try to capture console (default: true)
+    maxScrolls?: number;           // Max scroll iterations (unlimited if not set)
+    captureInterval?: number;      // MS between frames (default: 500 = 2 FPS)
+    waitForSelector?: string;      // Optional selector to wait for
+    timeout?: number;              // Overall timeout (default: 300000 = 5 min)
+    includeFileTree?: boolean;     // Capture file tree (default: true)
+    includeErrors?: boolean;       // Capture errors (default: true)
+    maxApiCalls?: number;          // Max API calls for fallback mode (default: 100)
 }
 
 export interface CaptureProgress {
-    phase: 'initializing' | 'loading' | 'capturing' | 'analyzing' | 'finalizing';
+    phase: 'initializing' | 'connecting' | 'streaming' | 'analyzing' | 'finalizing';
     step: string;
     percentage: number;
     messagesFound: number;
     errorsFound: number;
     filesFound: number;
+    uiElementsFound: string[];
 }
 
 export interface ChatMessage {
@@ -114,9 +203,16 @@ export interface FileEntry {
     language?: string;
 }
 
+export interface UIElement {
+    type: 'export_button' | 'download_button' | 'build_log' | 'zip_button' | 'other';
+    location: string;
+    selector?: string;
+}
+
 export interface VisionCaptureResult {
     success: boolean;
     sessionId: string;
+    captureMode: 'live_api' | 'openrouter_fallback';
     platform: {
         id: string;
         name: string;
@@ -134,17 +230,18 @@ export interface VisionCaptureResult {
         count: number;
         entries: FileEntry[];
     };
+    uiElements: UIElement[];
     screenshots: {
         count: number;
-        finalScreenshot?: string; // base64
+        finalScreenshot?: string;
     };
     captureStats: {
         duration: number;
         scrollCount: number;
+        frameCount: number;
         apiCalls: number;
         estimatedCost: number;
     };
-    // Added after auto-import
     projectId?: string;
     projectName?: string;
 }
@@ -163,7 +260,7 @@ export interface VisionCaptureSession {
 }
 
 // =============================================================================
-// PLATFORM DETECTION PATTERNS
+// PLATFORM DETECTION
 // =============================================================================
 
 const PLATFORM_PATTERNS: Record<string, { name: string; chatSelector: string; errorSelector?: string; fileTreeSelector?: string }> = {
@@ -233,13 +330,25 @@ const PLATFORM_PATTERNS: Record<string, { name: string; chatSelector: string; er
 
 class VisionCaptureService {
     private sessions: Map<string, VisionCaptureSession> = new Map();
+    private googleApiKey: string;
     private openRouterApiKey: string;
+    private useLiveApi: boolean;
 
     constructor() {
-        // Use OpenRouter for Gemini 3 Flash access
+        this.googleApiKey = process.env.GOOGLE_AI_API_KEY || '';
         this.openRouterApiKey = process.env.OPENROUTER_API_KEY || '';
-        if (!this.openRouterApiKey) {
-            console.warn('[VisionCapture] OPENROUTER_API_KEY not set - vision capture will fail');
+
+        // Use Live API if Google AI key is available
+        this.useLiveApi = !!this.googleApiKey;
+
+        if (!this.googleApiKey && !this.openRouterApiKey) {
+            console.warn('[VisionCapture] No API keys configured - vision capture will fail');
+        }
+
+        if (this.useLiveApi) {
+            console.log('[VisionCapture] Using Gemini Live API for streaming video analysis');
+        } else {
+            console.log('[VisionCapture] Using OpenRouter fallback (no GOOGLE_AI_API_KEY)');
         }
     }
 
@@ -266,6 +375,7 @@ class VisionCaptureService {
                 messagesFound: 0,
                 errorsFound: 0,
                 filesFound: 0,
+                uiElementsFound: [],
             },
             startedAt: new Date(),
             events: new EventEmitter(),
@@ -274,11 +384,23 @@ class VisionCaptureService {
         this.sessions.set(sessionId, session);
 
         // Start capture in background
-        this.runCapture(session, cookies, options).catch((error) => {
-            session.status = 'failed';
-            session.error = error.message;
-            session.events.emit('error', { error: error.message });
-        });
+        if (this.useLiveApi) {
+            this.runLiveApiCapture(session, cookies, options).catch((error) => {
+                console.error('[VisionCapture] Live API capture failed, trying fallback:', error);
+                // Fallback to OpenRouter
+                this.runOpenRouterCapture(session, cookies, options).catch((err) => {
+                    session.status = 'failed';
+                    session.error = err.message;
+                    session.events.emit('error', { error: err.message });
+                });
+            });
+        } else {
+            this.runOpenRouterCapture(session, cookies, options).catch((error) => {
+                session.status = 'failed';
+                session.error = error.message;
+                session.events.emit('error', { error: error.message });
+            });
+        }
 
         return session;
     }
@@ -306,18 +428,409 @@ class VisionCaptureService {
         return false;
     }
 
+    // =========================================================================
+    // LIVE API STREAMING CAPTURE
+    // =========================================================================
+
     /**
-     * Main capture logic
+     * Run capture using Gemini Live API with real-time video streaming
+     * This provides continuous video analysis as we scroll through the page
      */
-    private async runCapture(
+    private async runLiveApiCapture(
         session: VisionCaptureSession,
         cookies: CookieData[],
         options: VisionCaptureOptions
     ): Promise<void> {
         const {
-            maxScrolls = 10,
-            captureInterval = 2000,
-            timeout = 120000,
+            captureInterval = 500, // 2 FPS default
+            timeout = 300000,      // 5 minutes
+            includeFileTree = true,
+            includeErrors = true,
+        } = options;
+
+        let browser: Browser | null = null;
+        let context: BrowserContext | null = null;
+        let page: Page | null = null;
+        let liveSession: any = null;
+
+        const startTime = Date.now();
+        let frameCount = 0;
+        let scrollCount = 0;
+
+        const allMessages: ChatMessage[] = [];
+        const allErrors: ErrorEntry[] = [];
+        const allFiles: FileEntry[] = [];
+        const allUIElements: UIElement[] = [];
+        const screenshots: string[] = [];
+
+        try {
+            session.status = 'running';
+            this.updateProgress(session, 'initializing', 'Loading browser...', 5);
+
+            // Load dependencies
+            const playwright = await getPlaywright();
+            const { GoogleGenAI: GenAI, Modality: Mod } = await getGoogleGenAI();
+
+            this.updateProgress(session, 'initializing', 'Launching browser...', 10);
+
+            // Launch browser
+            browser = await playwright.chromium.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+            });
+
+            context = await browser.newContext({
+                viewport: LIVE_API_CONFIG.viewport,
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            });
+
+            // Add cookies
+            if (cookies.length > 0) {
+                const playwrightCookies = cookies.map((c) => ({
+                    name: c.name,
+                    value: c.value,
+                    domain: c.domain,
+                    path: c.path || '/',
+                    expires: c.expires || undefined,
+                    httpOnly: c.httpOnly,
+                    secure: c.secure,
+                    sameSite: c.sameSite as 'Strict' | 'Lax' | 'None' | undefined,
+                }));
+                await context.addCookies(playwrightCookies);
+            }
+
+            page = await context.newPage();
+
+            this.updateProgress(session, 'initializing', `Navigating to page...`, 15);
+
+            // Navigate
+            await page.goto(session.url, {
+                waitUntil: 'networkidle',
+                timeout: 30000,
+            });
+
+            const platform = this.detectPlatform(session.url);
+            this.updateProgress(session, 'initializing', `Detected: ${platform.name}`, 20);
+
+            await page.waitForTimeout(2000);
+
+            // Initialize Google GenAI and Live API
+            this.updateProgress(session, 'connecting', 'Connecting to Gemini Live API...', 25);
+
+            const ai = new GenAI!({ apiKey: this.googleApiKey });
+
+            // Track AI responses
+            let lastAIResponse: any = null;
+            let chatComplete = false;
+            let consecutiveNoNewContent = 0;
+            const maxNoNewContent = 5; // Stop after 5 frames with no new content
+
+            // Connect to Live API
+            liveSession = await ai.live.connect({
+                model: LIVE_API_CONFIG.model,
+                config: {
+                    responseModalities: [Mod!.TEXT],
+                    systemInstruction: VISION_AGENT_INSTRUCTIONS,
+                },
+                callbacks: {
+                    onopen: () => {
+                        console.log('[VisionCapture] Live API connected');
+                    },
+                    onmessage: (message: any) => {
+                        // Handle text responses from the AI
+                        if (message.serverContent?.modelTurn?.parts) {
+                            for (const part of message.serverContent.modelTurn.parts) {
+                                if (part.text) {
+                                    try {
+                                        // Parse JSON response
+                                        const jsonMatch = part.text.match(/\{[\s\S]*\}/);
+                                        if (jsonMatch) {
+                                            lastAIResponse = JSON.parse(jsonMatch[0]);
+                                        }
+                                    } catch (e) {
+                                        console.log('[VisionCapture] Non-JSON response:', part.text.substring(0, 100));
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    onerror: (error: Error) => {
+                        console.error('[VisionCapture] Live API error:', error);
+                    },
+                    onclose: () => {
+                        console.log('[VisionCapture] Live API disconnected');
+                    },
+                },
+            });
+
+            this.updateProgress(session, 'streaming', 'Streaming video to AI...', 30);
+
+            // Main capture loop - continuously stream frames and follow AI instructions
+            while (session.status === 'running' && !chatComplete) {
+                // Check timeout
+                if (Date.now() - startTime > timeout) {
+                    console.log('[VisionCapture] Timeout reached');
+                    break;
+                }
+
+                // Capture frame
+                const screenshotBuffer = await page.screenshot({
+                    type: 'jpeg',
+                    quality: 80,
+                    fullPage: false,
+                });
+                const base64Frame = screenshotBuffer.toString('base64');
+                frameCount++;
+
+                // Send frame to Live API
+                await liveSession.sendRealtimeInput({
+                    media: {
+                        mimeType: 'image/jpeg',
+                        data: base64Frame,
+                    },
+                });
+
+                // Wait for AI to process
+                await new Promise(resolve => setTimeout(resolve, captureInterval));
+
+                // Process AI response
+                if (lastAIResponse) {
+                    const response = lastAIResponse;
+                    lastAIResponse = null;
+
+                    // Extract new content
+                    let hasNewContent = false;
+
+                    if (response.new_messages?.length > 0) {
+                        for (const msg of response.new_messages) {
+                            if (!allMessages.some(m => m.content === msg.content)) {
+                                allMessages.push({
+                                    id: `msg-${Date.now()}-${allMessages.length}`,
+                                    role: msg.role || 'assistant',
+                                    content: msg.content || '',
+                                    codeBlocks: msg.codeBlocks || [],
+                                    timestamp: new Date().toISOString(),
+                                });
+                                hasNewContent = true;
+                            }
+                        }
+                    }
+
+                    if (response.new_errors?.length > 0 && includeErrors) {
+                        for (const err of response.new_errors) {
+                            if (!allErrors.some(e => e.message === err.message)) {
+                                allErrors.push({
+                                    type: err.type || 'runtime',
+                                    severity: err.severity || 'error',
+                                    message: err.message || '',
+                                    timestamp: new Date().toISOString(),
+                                });
+                                hasNewContent = true;
+                            }
+                        }
+                    }
+
+                    if (response.new_files?.length > 0 && includeFileTree) {
+                        for (const file of response.new_files) {
+                            if (!allFiles.some(f => f.path === file.path)) {
+                                allFiles.push({
+                                    path: file.path || '',
+                                    type: file.type || 'file',
+                                    language: file.language,
+                                });
+                                hasNewContent = true;
+                            }
+                        }
+                    }
+
+                    if (response.ui_elements_found?.length > 0) {
+                        for (const elem of response.ui_elements_found) {
+                            if (!allUIElements.some(e => e.type === elem.type && e.location === elem.location)) {
+                                allUIElements.push({
+                                    type: elem.type,
+                                    location: elem.location,
+                                });
+                            }
+                        }
+                    }
+
+                    // Check if chat is complete
+                    if (response.progress?.chat_complete) {
+                        chatComplete = true;
+                        console.log('[VisionCapture] AI reports chat history is complete');
+                    }
+
+                    // Track consecutive frames with no new content
+                    if (hasNewContent) {
+                        consecutiveNoNewContent = 0;
+                    } else {
+                        consecutiveNoNewContent++;
+                        if (consecutiveNoNewContent >= maxNoNewContent) {
+                            console.log('[VisionCapture] No new content for multiple frames, considering complete');
+                            chatComplete = true;
+                        }
+                    }
+
+                    // Execute action based on AI response
+                    if (response.action === 'scroll_down') {
+                        await page.evaluate(() => window.scrollBy(0, window.innerHeight * 0.7));
+                        scrollCount++;
+                    } else if (response.action === 'scroll_up') {
+                        await page.evaluate(() => window.scrollBy(0, -window.innerHeight * 0.5));
+                        scrollCount++;
+                    } else if (response.action === 'complete') {
+                        chatComplete = true;
+                    }
+                    // 'continue' means keep streaming without scrolling
+
+                    // Update progress
+                    const progressPct = Math.min(90, 30 + (allMessages.length / 10) * 3);
+                    this.updateProgress(
+                        session,
+                        'streaming',
+                        `Found ${allMessages.length} messages, ${allErrors.length} errors, ${allFiles.length} files...`,
+                        progressPct,
+                        allMessages.length,
+                        allErrors.length,
+                        allFiles.length,
+                        allUIElements.map(e => e.type)
+                    );
+                } else {
+                    // No response yet, scroll down to show more content
+                    await page.evaluate(() => window.scrollBy(0, window.innerHeight * 0.5));
+                    scrollCount++;
+                }
+
+                // Store final screenshot
+                screenshots.push(base64Frame);
+                if (screenshots.length > 5) {
+                    screenshots.shift(); // Keep only last 5
+                }
+            }
+
+            // Close Live API session
+            if (liveSession) {
+                try {
+                    await liveSession.close();
+                } catch (e) {
+                    // Ignore close errors
+                }
+            }
+
+            this.updateProgress(session, 'finalizing', 'Processing results...', 92);
+
+            // Take final screenshot
+            let finalScreenshot: string | undefined;
+            try {
+                await page.evaluate(() => window.scrollTo(0, 0));
+                await page.waitForTimeout(500);
+                const finalBuffer = await page.screenshot({
+                    type: 'jpeg',
+                    quality: 90,
+                    fullPage: true,
+                });
+                finalScreenshot = finalBuffer.toString('base64');
+            } catch {
+                finalScreenshot = screenshots[screenshots.length - 1];
+            }
+
+            // Calculate cost (Live API pricing)
+            // Approximately $0.0001 per second of video streaming
+            const durationSec = (Date.now() - startTime) / 1000;
+            const estimatedCost = durationSec * 0.0001;
+
+            // Build result
+            const result: VisionCaptureResult = {
+                success: true,
+                sessionId: session.id,
+                captureMode: 'live_api',
+                platform: {
+                    id: platform.id,
+                    name: platform.name,
+                    detected: platform.detected,
+                },
+                chatHistory: {
+                    messageCount: allMessages.length,
+                    messages: allMessages,
+                },
+                errors: {
+                    count: allErrors.length,
+                    entries: allErrors,
+                },
+                files: {
+                    count: allFiles.length,
+                    entries: allFiles,
+                },
+                uiElements: allUIElements,
+                screenshots: {
+                    count: frameCount,
+                    finalScreenshot,
+                },
+                captureStats: {
+                    duration: Date.now() - startTime,
+                    scrollCount,
+                    frameCount,
+                    apiCalls: 1, // Live API is one continuous session
+                    estimatedCost,
+                },
+            };
+
+            session.result = result;
+            session.status = 'completed';
+            session.completedAt = new Date();
+
+            this.updateProgress(session, 'finalizing', 'Importing to KripTik...', 95);
+
+            // Auto-import
+            const importResult = await this.autoImport(session.userId, result);
+            if (importResult.success) {
+                result.projectId = importResult.projectId;
+                result.projectName = importResult.projectName;
+            }
+
+            this.updateProgress(session, 'finalizing', 'Capture complete!', 100);
+            session.events.emit('complete', { result });
+
+            console.log(`[VisionCapture] Live API session ${session.id} completed:`, {
+                mode: 'live_api',
+                messages: allMessages.length,
+                errors: allErrors.length,
+                files: allFiles.length,
+                uiElements: allUIElements.length,
+                frames: frameCount,
+                duration: result.captureStats.duration,
+            });
+
+        } catch (error) {
+            console.error('[VisionCapture] Live API error:', error);
+            throw error; // Will trigger fallback to OpenRouter
+        } finally {
+            if (liveSession) {
+                try { await liveSession.close(); } catch {}
+            }
+            if (page) await page.close().catch(() => {});
+            if (context) await context.close().catch(() => {});
+            if (browser) await browser.close().catch(() => {});
+        }
+    }
+
+    // =========================================================================
+    // OPENROUTER FALLBACK CAPTURE
+    // =========================================================================
+
+    /**
+     * Fallback capture using OpenRouter with enhanced vision analysis
+     * Uses higher thinking levels and token limits for thorough extraction
+     */
+    private async runOpenRouterCapture(
+        session: VisionCaptureSession,
+        cookies: CookieData[],
+        options: VisionCaptureOptions
+    ): Promise<void> {
+        const {
+            captureInterval = 1500,
+            timeout = 300000,
+            maxApiCalls = 100,
             includeFileTree = true,
             includeErrors = true,
         } = options;
@@ -329,41 +842,39 @@ class VisionCaptureService {
         const startTime = Date.now();
         let apiCalls = 0;
         let scrollCount = 0;
+        let frameCount = 0;
         const screenshots: string[] = [];
 
         const allMessages: ChatMessage[] = [];
         const allErrors: ErrorEntry[] = [];
         const allFiles: FileEntry[] = [];
+        const allUIElements: UIElement[] = [];
 
         try {
             session.status = 'running';
-            this.updateProgress(session, 'initializing', 'Loading Playwright...', 5);
+            this.updateProgress(session, 'initializing', 'Loading browser (fallback mode)...', 5);
 
-            // Check if Playwright is available
             const playwright = await getPlaywright();
 
             this.updateProgress(session, 'initializing', 'Launching browser...', 10);
 
-            // Launch browser
             browser = await playwright.chromium.launch({
                 headless: true,
                 args: ['--no-sandbox', '--disable-setuid-sandbox'],
             });
 
-            // Create context with cookies
             context = await browser.newContext({
                 viewport: { width: 1920, height: 1080 },
-                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             });
 
-            // Add cookies if provided
             if (cookies.length > 0) {
                 const playwrightCookies = cookies.map((c) => ({
                     name: c.name,
                     value: c.value,
                     domain: c.domain,
                     path: c.path || '/',
-                    expires: c.expires ? c.expires : undefined,
+                    expires: c.expires || undefined,
                     httpOnly: c.httpOnly,
                     secure: c.secure,
                     sameSite: c.sameSite as 'Strict' | 'Lax' | 'None' | undefined,
@@ -373,39 +884,29 @@ class VisionCaptureService {
 
             page = await context.newPage();
 
-            this.updateProgress(session, 'loading', `Navigating to ${session.url}...`, 15);
+            this.updateProgress(session, 'initializing', 'Navigating to page...', 15);
 
-            // Navigate to URL
             await page.goto(session.url, {
                 waitUntil: 'networkidle',
                 timeout: 30000,
             });
 
-            // Detect platform
             const platform = this.detectPlatform(session.url);
-            this.updateProgress(session, 'loading', `Detected platform: ${platform.name}`, 20);
+            this.updateProgress(session, 'analyzing', `Detected: ${platform.name}`, 20);
 
-            // Wait for content to load
             await page.waitForTimeout(2000);
 
-            if (options.waitForSelector) {
-                try {
-                    await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
-                } catch {
-                    console.log('[VisionCapture] waitForSelector timeout, continuing...');
-                }
-            }
+            // Continuous capture with intelligent scrolling
+            let chatComplete = false;
+            let consecutiveNoNewContent = 0;
+            let previousMessageCount = 0;
 
-            this.updateProgress(session, 'capturing', 'Taking initial screenshot...', 25);
-
-            // Capture and analyze loop
-            for (let i = 0; i < maxScrolls && session.status === 'running'; i++) {
-                // Check timeout
-                if (Date.now() - startTime > timeout) {
-                    console.log('[VisionCapture] Timeout reached');
-                    break;
-                }
-
+            while (
+                session.status === 'running' &&
+                !chatComplete &&
+                apiCalls < maxApiCalls &&
+                Date.now() - startTime < timeout
+            ) {
                 // Take screenshot
                 const screenshotBuffer = await page.screenshot({
                     type: 'jpeg',
@@ -414,19 +915,21 @@ class VisionCaptureService {
                 });
                 const screenshotBase64 = screenshotBuffer.toString('base64');
                 screenshots.push(screenshotBase64);
+                frameCount++;
 
-                // Analyze with Gemini
-                const analysis = await this.analyzeScreenshot(
+                // Analyze with OpenRouter
+                const analysis = await this.analyzeWithOpenRouter(
                     screenshotBase64,
                     platform.name,
-                    i === 0 // isFirst - provide more context on first
+                    apiCalls === 0,
+                    allMessages.length,
+                    allUIElements
                 );
                 apiCalls++;
 
                 // Merge results
                 if (analysis.messages) {
                     for (const msg of analysis.messages) {
-                        // Dedupe by content
                         if (!allMessages.some((m) => m.content === msg.content)) {
                             allMessages.push(msg);
                         }
@@ -449,37 +952,64 @@ class VisionCaptureService {
                     }
                 }
 
+                if (analysis.uiElements) {
+                    for (const elem of analysis.uiElements) {
+                        if (!allUIElements.some((e) => e.type === elem.type)) {
+                            allUIElements.push(elem);
+                        }
+                    }
+                }
+
+                // Check for completion
+                if (analysis.chatComplete) {
+                    chatComplete = true;
+                    console.log('[VisionCapture] OpenRouter reports chat history complete');
+                }
+
+                // Track if we're finding new content
+                if (allMessages.length === previousMessageCount) {
+                    consecutiveNoNewContent++;
+                    if (consecutiveNoNewContent >= 5) {
+                        chatComplete = true;
+                        console.log('[VisionCapture] No new messages found, considering complete');
+                    }
+                } else {
+                    consecutiveNoNewContent = 0;
+                    previousMessageCount = allMessages.length;
+                }
+
                 // Update progress
-                const progressPct = 25 + Math.floor((i / maxScrolls) * 60);
+                const progressPct = Math.min(90, 20 + Math.floor((apiCalls / maxApiCalls) * 70));
                 this.updateProgress(
                     session,
-                    'capturing',
-                    `Captured ${i + 1}/${maxScrolls} views...`,
+                    'analyzing',
+                    `Captured ${allMessages.length} messages (call ${apiCalls}/${maxApiCalls})...`,
                     progressPct,
                     allMessages.length,
                     allErrors.length,
-                    allFiles.length
+                    allFiles.length,
+                    allUIElements.map(e => e.type)
                 );
 
-                // Check if we've found enough content
-                if (allMessages.length >= 50 && i >= 3) {
-                    console.log('[VisionCapture] Found sufficient content, stopping early');
-                    break;
-                }
-
                 // Scroll down
-                await page.evaluate(() => {
-                    window.scrollBy(0, window.innerHeight * 0.8);
+                const scrolled = await page.evaluate(() => {
+                    const before = window.scrollY;
+                    window.scrollBy(0, window.innerHeight * 0.7);
+                    return window.scrollY !== before;
                 });
                 scrollCount++;
 
-                // Wait between captures
+                // If can't scroll anymore, we're at the bottom
+                if (!scrolled && apiCalls > 3) {
+                    consecutiveNoNewContent++;
+                }
+
                 await page.waitForTimeout(captureInterval);
             }
 
-            this.updateProgress(session, 'finalizing', 'Processing results...', 90);
+            this.updateProgress(session, 'finalizing', 'Processing results...', 92);
 
-            // Take final full-page screenshot
+            // Final screenshot
             let finalScreenshot: string | undefined;
             try {
                 await page.evaluate(() => window.scrollTo(0, 0));
@@ -491,19 +1021,18 @@ class VisionCaptureService {
                 });
                 finalScreenshot = finalBuffer.toString('base64');
             } catch {
-                console.log('[VisionCapture] Final screenshot failed');
+                finalScreenshot = screenshots[screenshots.length - 1];
             }
 
-            // Calculate estimated cost for Gemini 3 Flash Preview
-            // $0.50/M input, $3.00/M output
-            // Average screenshot analysis: ~2K input tokens (image), ~1K output tokens
-            // Per call: ~$0.001 input + ~$0.003 output = ~$0.004
-            const estimatedCost = apiCalls * 0.004;
+            // Cost calculation for Gemini 3 Flash via OpenRouter
+            // ~$0.006 per call average (image + text)
+            const estimatedCost = apiCalls * 0.006;
 
             // Build result
             const result: VisionCaptureResult = {
                 success: true,
                 sessionId: session.id,
+                captureMode: 'openrouter_fallback',
                 platform: {
                     id: platform.id,
                     name: platform.name,
@@ -521,13 +1050,15 @@ class VisionCaptureService {
                     count: allFiles.length,
                     entries: allFiles,
                 },
+                uiElements: allUIElements,
                 screenshots: {
-                    count: screenshots.length,
+                    count: frameCount,
                     finalScreenshot,
                 },
                 captureStats: {
                     duration: Date.now() - startTime,
                     scrollCount,
+                    frameCount,
                     apiCalls,
                     estimatedCost,
                 },
@@ -539,7 +1070,6 @@ class VisionCaptureService {
 
             this.updateProgress(session, 'finalizing', 'Importing to KripTik...', 95);
 
-            // Auto-import the captured data to KripTik
             const importResult = await this.autoImport(session.userId, result);
             if (importResult.success) {
                 result.projectId = importResult.projectId;
@@ -549,21 +1079,21 @@ class VisionCaptureService {
             this.updateProgress(session, 'finalizing', 'Capture complete!', 100);
             session.events.emit('complete', { result });
 
-            console.log(`[VisionCapture] Session ${session.id} completed:`, {
+            console.log(`[VisionCapture] OpenRouter session ${session.id} completed:`, {
+                mode: 'openrouter_fallback',
                 messages: allMessages.length,
                 errors: allErrors.length,
                 files: allFiles.length,
+                apiCalls,
                 duration: result.captureStats.duration,
-                projectId: importResult.projectId,
             });
 
         } catch (error) {
-            console.error('[VisionCapture] Error:', error);
+            console.error('[VisionCapture] OpenRouter error:', error);
             session.status = 'failed';
             session.error = error instanceof Error ? error.message : 'Unknown error';
             session.events.emit('error', { error: session.error });
         } finally {
-            // Cleanup
             if (page) await page.close().catch(() => {});
             if (context) await context.close().catch(() => {});
             if (browser) await browser.close().catch(() => {});
@@ -571,88 +1101,85 @@ class VisionCaptureService {
     }
 
     /**
-     * Detect platform from URL
+     * Analyze screenshot with OpenRouter using HIGH thinking and large token limit
      */
-    private detectPlatform(url: string): { id: string; name: string; detected: boolean } {
-        try {
-            const hostname = new URL(url).hostname.replace('www.', '');
-
-            for (const [domain, config] of Object.entries(PLATFORM_PATTERNS)) {
-                if (hostname.includes(domain)) {
-                    return {
-                        id: domain.replace('.', '-'),
-                        name: config.name,
-                        detected: true,
-                    };
-                }
-            }
-        } catch {
-            // URL parsing failed
-        }
-
-        return {
-            id: 'unknown',
-            name: 'Unknown Platform',
-            detected: false,
-        };
-    }
-
-    /**
-     * Analyze screenshot with Gemini 3 Flash Preview via OpenRouter
-     * Uses configurable thinking levels for optimal speed/accuracy balance
-     */
-    private async analyzeScreenshot(
+    private async analyzeWithOpenRouter(
         screenshotBase64: string,
         platformName: string,
-        isFirst: boolean
+        isFirst: boolean,
+        currentMessageCount: number,
+        foundUIElements: UIElement[]
     ): Promise<{
         messages?: ChatMessage[];
         errors?: ErrorEntry[];
         files?: FileEntry[];
+        uiElements?: UIElement[];
+        chatComplete?: boolean;
     }> {
+        const foundElementsStr = foundUIElements.length > 0
+            ? `\n\nUI elements already found: ${foundUIElements.map(e => e.type).join(', ')}`
+            : '';
+
         const prompt = isFirst
             ? `You are analyzing a screenshot of ${platformName}, an AI code builder platform.
+Your goal is to COMPLETELY capture all content. We will scroll through the entire page.
 
-Extract ALL visible content from this screenshot:
+CURRENT STATUS: This is the FIRST frame. Messages found so far: 0${foundElementsStr}
 
-1. CHAT MESSAGES: Extract every visible message in the conversation.
-   - For each message, identify if it's from the user or the AI assistant
-   - Include the full text content
-   - Note any code blocks with their language
+Extract ALL visible content:
 
-2. ERRORS: Look for any error messages, warnings, or failure notifications.
-   - Include the error message text
-   - Classify severity (error, warning, info)
+1. CHAT MESSAGES - Every visible message
+   - User and AI responses
+   - Include ALL code blocks with language
+   - Full text content, don't truncate
 
-3. FILE TREE: If a file explorer/tree is visible, list all visible files and folders.
-   - Include the full path
-   - Mark as file or folder
+2. ERRORS - Any error messages, warnings, build failures
+   - Console errors
+   - Toast notifications
+   - Build log errors
 
-Return JSON in this exact format:
+3. FILE TREE - List all visible files/folders
+
+4. UI ELEMENTS - IMPORTANT: Find these buttons/sections:
+   - Export button
+   - Download/ZIP button
+   - Build logs section
+   - Settings panel
+
+5. COMPLETION CHECK - Can you see the START of the conversation?
+   If you see the very first message (often a greeting or project description),
+   set chatComplete: true only if ALL messages are visible without scrolling.
+
+Return JSON:
 {
-  "messages": [
-    {"role": "user", "content": "message text", "codeBlocks": [{"language": "typescript", "code": "..."}]},
-    {"role": "assistant", "content": "response text"}
-  ],
-  "errors": [
-    {"type": "runtime", "severity": "error", "message": "error text"}
-  ],
-  "files": [
-    {"path": "src/App.tsx", "type": "file", "language": "typescript"},
-    {"path": "src/components", "type": "folder"}
-  ]
+  "messages": [{"role": "user"|"assistant", "content": "...", "codeBlocks": [{"language": "...", "code": "..."}]}],
+  "errors": [{"type": "...", "severity": "error"|"warning", "message": "..."}],
+  "files": [{"path": "...", "type": "file"|"folder"}],
+  "uiElements": [{"type": "export_button"|"download_button"|"build_log"|"zip_button", "location": "top-right"}],
+  "chatComplete": false
 }
 
-Be thorough - extract EVERYTHING visible. If something is partially visible, include what you can see.`
-            : `Continue extracting content from this ${platformName} screenshot.
-Focus on any NEW messages, errors, or files not seen before.
-Return the same JSON format: {"messages": [...], "errors": [...], "files": [...]}
-Only include NEW content visible in this screenshot.`;
+Be thorough - extract EVERYTHING visible.`
+            : `Continue analyzing ${platformName}. Frame ${currentMessageCount > 0 ? `(${currentMessageCount} messages found so far)` : ''}.${foundElementsStr}
+
+Look for NEW content not previously captured:
+- New chat messages (especially older ones as we scroll)
+- New errors
+- New files in file tree
+- Export/Download buttons
+
+If you see the VERY FIRST message of the conversation (the beginning), set chatComplete: true.
+
+Return only NEW content in JSON format:
+{
+  "messages": [...only new messages...],
+  "errors": [...only new errors...],
+  "files": [...only new files...],
+  "uiElements": [...any newly visible buttons...],
+  "chatComplete": false
+}`;
 
         try {
-            // Use OpenRouter with Gemini 3 Flash Preview for vision analysis
-            // Model: google/gemini-3-flash-preview (Dec 2025)
-            // Supports configurable thinking levels for speed/accuracy balance
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -662,13 +1189,13 @@ Only include NEW content visible in this screenshot.`;
                     'X-Title': 'KripTik AI Vision Capture',
                 },
                 body: JSON.stringify({
-                    model: VISION_MODEL_CONFIG.model,
-                    max_tokens: VISION_MODEL_CONFIG.maxTokens,
-                    temperature: VISION_MODEL_CONFIG.temperature,
-                    // Gemini 3 Flash thinking configuration
+                    model: OPENROUTER_FALLBACK_CONFIG.model,
+                    max_tokens: OPENROUTER_FALLBACK_CONFIG.maxTokens,
+                    temperature: OPENROUTER_FALLBACK_CONFIG.temperature,
+                    // HIGH thinking for complex analysis
                     thinking: {
                         type: 'enabled',
-                        level: VISION_MODEL_CONFIG.thinkingLevel,
+                        level: OPENROUTER_FALLBACK_CONFIG.thinkingLevel,
                     },
                     messages: [
                         {
@@ -692,20 +1219,18 @@ Only include NEW content visible in this screenshot.`;
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[VisionCapture] OpenRouter API error:', response.status, errorText);
-                throw new Error(`OpenRouter API error: ${response.status}`);
+                console.error('[VisionCapture] OpenRouter error:', response.status, errorText);
+                return {};
             }
 
             const data = await response.json();
             const content = data.choices?.[0]?.message?.content || '';
 
-            // Parse JSON from response
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
                     const parsed = JSON.parse(jsonMatch[0]);
 
-                    // Add IDs and timestamps to messages
                     const messages = (parsed.messages || []).map((m: any, i: number) => ({
                         id: `msg-${Date.now()}-${i}`,
                         role: m.role === 'user' ? 'user' : 'assistant',
@@ -727,21 +1252,60 @@ Only include NEW content visible in this screenshot.`;
                         language: f.language,
                     }));
 
-                    return { messages, errors, files };
+                    const uiElements = (parsed.uiElements || []).map((u: any) => ({
+                        type: u.type || 'other',
+                        location: u.location || 'unknown',
+                    }));
+
+                    return {
+                        messages,
+                        errors,
+                        files,
+                        uiElements,
+                        chatComplete: parsed.chatComplete === true,
+                    };
                 } catch (parseError) {
                     console.error('[VisionCapture] JSON parse error:', parseError);
                 }
             }
         } catch (error) {
-            console.error('[VisionCapture] Vision analysis error:', error);
+            console.error('[VisionCapture] Analysis error:', error);
         }
 
         return {};
     }
 
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    /**
+     * Detect platform from URL
+     */
+    private detectPlatform(url: string): { id: string; name: string; detected: boolean } {
+        try {
+            const hostname = new URL(url).hostname.replace('www.', '');
+
+            for (const [domain, config] of Object.entries(PLATFORM_PATTERNS)) {
+                if (hostname.includes(domain)) {
+                    return {
+                        id: domain.replace('.', '-'),
+                        name: config.name,
+                        detected: true,
+                    };
+                }
+            }
+        } catch {}
+
+        return {
+            id: 'unknown',
+            name: 'Unknown Platform',
+            detected: false,
+        };
+    }
+
     /**
      * Auto-import captured data to KripTik
-     * Creates a project and stores the captured chat history
      */
     private async autoImport(
         userId: string,
@@ -751,26 +1315,25 @@ Only include NEW content visible in this screenshot.`;
             const projectId = uuidv4();
             const projectName = `${result.platform.name} Import - ${new Date().toLocaleDateString()}`;
 
-            // Build description with metadata
             const metadataStr = JSON.stringify({
                 source: 'vision-capture',
+                captureMode: result.captureMode,
                 platform: result.platform,
                 captureStats: result.captureStats,
                 chatHistory: result.chatHistory,
                 errors: result.errors,
                 files: result.files,
+                uiElements: result.uiElements,
             });
 
-            // Create project in database
             await db.insert(projects).values({
                 id: projectId,
                 name: projectName,
                 ownerId: userId,
-                description: `Imported from ${result.platform.name} via Vision Capture. Contains ${result.chatHistory.messageCount} messages.\n\n<!-- VISION_CAPTURE_METADATA: ${metadataStr} -->`,
+                description: `Imported from ${result.platform.name} via Vision Capture (${result.captureMode}). Contains ${result.chatHistory.messageCount} messages.\n\n<!-- VISION_CAPTURE_METADATA: ${metadataStr} -->`,
                 framework: 'react',
             });
 
-            // Create notification for user
             await db.insert(notifications).values({
                 id: uuidv4(),
                 userId,
@@ -781,6 +1344,7 @@ Only include NEW content visible in this screenshot.`;
                 metadata: JSON.stringify({
                     projectId,
                     platform: result.platform.name,
+                    captureMode: result.captureMode,
                     messageCount: result.chatHistory.messageCount,
                     errorCount: result.errors.count,
                     fileCount: result.files.count,
@@ -801,7 +1365,7 @@ Only include NEW content visible in this screenshot.`;
     }
 
     /**
-     * Update session progress and emit event
+     * Update session progress
      */
     private updateProgress(
         session: VisionCaptureSession,
@@ -810,7 +1374,8 @@ Only include NEW content visible in this screenshot.`;
         percentage: number,
         messagesFound?: number,
         errorsFound?: number,
-        filesFound?: number
+        filesFound?: number,
+        uiElementsFound?: string[]
     ): void {
         session.progress = {
             phase,
@@ -819,13 +1384,14 @@ Only include NEW content visible in this screenshot.`;
             messagesFound: messagesFound ?? session.progress.messagesFound,
             errorsFound: errorsFound ?? session.progress.errorsFound,
             filesFound: filesFound ?? session.progress.filesFound,
+            uiElementsFound: uiElementsFound ?? session.progress.uiElementsFound,
         };
 
         session.events.emit('progress', { session: { ...session, events: undefined } });
     }
 
     /**
-     * Cleanup old sessions (call periodically)
+     * Cleanup old sessions
      */
     cleanupOldSessions(maxAgeMs: number = 3600000): void {
         const now = Date.now();
@@ -833,21 +1399,19 @@ Only include NEW content visible in this screenshot.`;
             if (session.completedAt && now - session.completedAt.getTime() > maxAgeMs) {
                 this.sessions.delete(id);
             } else if (now - session.startedAt.getTime() > maxAgeMs * 2) {
-                // Force cleanup very old sessions
                 this.sessions.delete(id);
             }
         }
     }
 }
 
-// Singleton instance
+// Singleton
 let visionCaptureService: VisionCaptureService | null = null;
 
 export function getVisionCaptureService(): VisionCaptureService {
     if (!visionCaptureService) {
         visionCaptureService = new VisionCaptureService();
 
-        // Cleanup old sessions every 30 minutes
         setInterval(() => {
             visionCaptureService?.cleanupOldSessions();
         }, 1800000);
