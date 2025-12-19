@@ -135,12 +135,17 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 When the user selects an element via browser tools:
 
 1. **Receive element context** - You'll see the element's UID, tag, classes, text
-2. **Identify the component** - Find the React component that renders this element
+2. **Identify the component** - Find the React component that renders this element:
+   - Search for unique class names: `grep -r "className.*uniqueClass" src/`
+   - Search for text content: `grep -r "Button Text" src/`
+   - Check common locations: `src/components/`, `src/pages/`
+   - Look for Tailwind classes that match the element
 3. **Make the change** - Following ALL KripTik rules:
    - No placeholders
    - No emoji
-   - Custom icons only (not Lucide)
-   - Premium design standards
+   - Custom icons only (`src/components/icons/`, NOT Lucide)
+   - Premium design standards (depth, motion, typography)
+   - Anti-slop rules (no purple-pink gradients, no flat designs)
 4. **Verify visually** - Take screenshot to confirm the change
 5. **Check console** - Ensure no errors were introduced
 6. **Wire up if needed** - Ensure the change is integrated, not orphaned
@@ -216,7 +221,7 @@ When the user selects an element via browser tools:
 - **Framework**: React 18.3.1 + TypeScript 5.6.2
 - **Build**: Vite 5.4.10
 - **Styling**: Tailwind CSS 3.4.1 + tailwindcss-animate
-- **UI Components**: Radix UI (14 packages), Lucide React
+- **UI Components**: Radix UI (14 packages), Custom Icons (`src/components/icons/`)
 - **Animation**: Framer Motion 12.23.24
 - **3D**: Three.js 0.165.0, @react-three/fiber 9.4.2, @react-three/drei
 - **State**: Zustand 5.0.8 (16 stores)
@@ -591,6 +596,7 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 - Subtle gradients over flat colors
 - Glow effects for emphasis (used sparingly)
 - **BANNED**: purple-to-pink, blue-to-purple gradients
+- **Ghost Mode**: Always use `#F5A86C` (amber) - NEVER purple
 
 ---
 
@@ -607,14 +613,18 @@ Each Claude Code session is a NEW agent with NO memory of previous sessions. The
 - `decisions.json` - Architectural decisions (AD001-AD006), technical choices
 - `issue_resolutions.json` - Issue patterns and resolutions
 
-### Claude Code (.claude/memory/) - READ/WRITE
-- `session_context.md` - Current session focus and progress
-- `implementation_log.md` - What was built and why
-- `pending_items.md` - Deferred or partial items
-- `gotchas.md` - Known issues, workarounds
-- `architecture_map.md` - System dependencies
+### Claude Code (.claude/rules/) - AUTO-LOADED (Primary)
+> **These files are automatically loaded at session start. Update them for next agent.**
+- `01-session-context.md` - Current session focus and progress
+- `02-gotchas.md` - Known issues, workarounds
+- `03-browser-integration.md` - Browser MCP tools guide
+- `04-architecture.md` - System dependencies
+- `05-pending-items.md` - Deferred or partial items
+
+### Claude Code (.claude/memory/) - Manual Read (Secondary)
+> **These are NOT auto-loaded. Read manually when needed.**
+- `implementation_log.md` - What was built and why (detailed)
 - `feature_dependencies.md` - Feature→file mapping
-- `browser-integration.md` - Browser MCP tools guide (USE THIS!)
 
 ### Reference Files (Root)
 - `feature_list.json` - 66 features with status
@@ -769,18 +779,18 @@ Update memory files when:
 
 ## CONTEXT REFRESH PROTOCOL
 
+**NOTE**: Files in `.claude/rules/*.md` are AUTO-LOADED at session start. You don't need to manually read them.
+
 At the start of EVERY session:
-1. Read `.cursor/memory/build_state.json` for current phase
-2. Read `.cursor/memory/decisions.json` for constraints
-3. Read `feature_list.json` for completion status
-4. Read `intent.json` for Sacred Contract
-5. Read `.claude/memory/session_context.md` for recent work
-6. Understand what was done, what's in progress, what's next
+1. **AUTO-LOADED**: `.claude/rules/*.md` (session context, gotchas, architecture, etc.)
+2. Read `.cursor/memory/build_state.json` for current phase (if needed)
+3. Read `feature_list.json` for completion status (if working on features)
+4. Read `intent.json` for Sacred Contract (if making significant changes)
 
 After EVERY significant change:
-1. Update `.claude/memory/session_context.md`
-2. Update `.claude/memory/implementation_log.md`
-3. Note any new gotchas in `.claude/memory/gotchas.md`
+1. Update `.claude/rules/01-session-context.md` (auto-loaded by next agent)
+2. Update `.claude/memory/implementation_log.md` (detailed log)
+3. Note any new gotchas in `.claude/rules/02-gotchas.md` (auto-loaded by next agent)
 
 ---
 
@@ -970,9 +980,9 @@ As of 2025-12-19, Claude Code in this project has:
 - Search with current year (2025) for latest info
 
 ### 3. Agent Memory System
-- Memory files in `.claude/memory/` persist across sessions
-- UPDATE THESE before ending work
-- Next agent depends on your handoff artifacts
+- Memory files in `.claude/rules/` are AUTO-LOADED at session start
+- UPDATE `.claude/rules/01-session-context.md` before ending work
+- Next agent depends on your handoff artifacts in rules/
 
 ### 4. Visual Verification
 - Use browser tools to verify UI changes
@@ -1007,7 +1017,7 @@ This configuration provides feature parity with Cursor 2.2:
 | Console error reading | Browser MCP `get_console_logs` |
 | Knowledge currency | WebSearch mandate before external integrations |
 | Quality gates | Build pass + anti-slop 85+ required |
-| Agent memory | `.claude/memory/` files persist |
+| Agent memory | `.claude/rules/` auto-loaded + memory files |
 | Parallel agents | Worktree architecture + MCP servers |
 
 **Additional KripTik Advantages**:
