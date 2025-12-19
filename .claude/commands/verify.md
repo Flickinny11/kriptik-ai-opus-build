@@ -1,6 +1,6 @@
 # Verify Command
 
-Run full verification against anti-slop rules, build status, and quality checks.
+Run full verification against anti-slop rules, build status, and quality checks. This provides Cursor-like constant feedback.
 
 ## Steps to Execute
 
@@ -16,7 +16,19 @@ Report:
 - Any TypeScript errors
 - Any compilation warnings
 
-### 2. Anti-Slop Check
+### 2. TypeScript Deep Check
+```bash
+npx tsc --noEmit 2>&1
+```
+
+### 3. Browser Verification (if available)
+
+If Chrome DevTools MCP is active:
+- Take screenshot of current app state
+- Check console for errors: `get_console_logs`
+- Report any runtime issues
+
+### 4. Anti-Slop Check
 
 Search for anti-slop violations in recently changed files:
 
@@ -36,7 +48,7 @@ Search for anti-slop violations in recently changed files:
 - Static buttons without hover states
 - Cards without layered shadows
 
-### 3. Placeholder Detection
+### 5. Placeholder Detection
 
 Search for placeholder content:
 ```
@@ -53,7 +65,7 @@ Search for placeholder content:
 - "dummy"
 ```
 
-### 4. Design Score Estimation
+### 6. Design Score Estimation
 
 Based on findings, estimate design score:
 - Start at 100
@@ -61,15 +73,26 @@ Based on findings, estimate design score:
 - Subtract 5 for each Warning
 - Minimum pass: 85
 
+### 7. Memory Freshness Check
+
+Verify `.claude/memory/session_context.md`:
+- Was it updated today?
+- Does it reflect current work?
+
 ## Expected Output Format
 
 ```
-## Verification Report
+=== VERIFICATION REPORT ===
 
 ### Build Status
 - TypeScript: [PASS/FAIL]
 - Compilation: [PASS/FAIL]
 - Errors: [count or "none"]
+
+### Browser Check
+- Screenshot: [TAKEN/SKIPPED]
+- Console Errors: [count or "none"]
+- Visual Issues: [list or "none"]
 
 ### Anti-Slop Detection
 - Instant Fails: [count]
@@ -85,6 +108,10 @@ Based on findings, estimate design score:
 - Estimated: [score]/100
 - Status: [PASS (85+) / FAIL (<85)]
 
+### Memory Status
+- Last Updated: [date]
+- Current: [YES/NO]
+
 ### Overall Verdict
 [APPROVED / NEEDS_WORK / BLOCKED]
 
@@ -96,4 +123,7 @@ Based on findings, estimate design score:
 
 - Run before claiming any task complete
 - Run after significant UI changes
+- Use browser tools when available for visual verification
 - Focus on recently changed files first
+
+$ARGUMENTS

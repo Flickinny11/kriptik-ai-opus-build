@@ -15,11 +15,55 @@
 ### Build Status
 - **Last Known Build**: PASSING (verified 2025-12-19)
 - **TypeScript Errors**: None
-- **Current Branch**: claude/extension-local-testing-TQhGf
+- **Current Branch**: silly-rosalind (worktree)
+
+### Development Environment Enhancement
+- **Browser Integration Configured**: Chrome DevTools MCP enabled
+- **Browser Feedback Loop**: Available via `~/bin/chrome-dev` script
 
 ---
 
 ## Recent Completions
+
+### 2025-12-19: Claude Code Browser Integration (Cursor 2.2 Parity)
+- **Claude Code Browser Integration Setup**:
+  - Configured Chrome DevTools MCP server in Claude desktop config
+  - Created project-level `.mcp.json` for browser integration
+  - Created `~/bin/chrome-dev` script to launch Chrome with remote debugging
+  - This enables Claude Code to have Cursor-like browser feedback loops
+  - Can now: read console errors, inspect DOM, take screenshots, interact with pages
+
+- **CLAUDE.md Major Updates**:
+  - Added "Knowledge Currency Mandate" section at top - reminds agents their knowledge is ~1 year stale
+  - Added "Browser Integration Tools (MCP)" section with tool reference table
+  - Expanded "Memory System" to "Memory System & Agent Handoff Protocol"
+  - Added artifact format requirements for session handoffs
+  - Added "Knowledge Currency Checklist" to self-verification protocol
+  - Updated completion checklist with browser verification and knowledge currency checks
+  - Added "Enhanced Capabilities Available" section documenting all tools
+
+- **Browser Integration Documentation**:
+  - Created `.claude/memory/browser-integration.md` with full usage guide
+  - Documents all available MCP tools and when to use them
+  - Includes development workflow examples
+  - Comparison of before/after browser integration
+
+- **Full Cursor 2.2 Parity Enhancement**:
+  - Created `.claude/settings.json` with autonomous operation config
+  - Added quality gates, auto-fix settings, permissions
+  - Created `.mcp.json` with 5 MCP servers (browser-tools, chrome-devtools, github, filesystem, memory)
+  - Created custom slash commands:
+    - `/implement` - Full implementation protocol with research
+    - `/design` - UI implementation with design standards
+    - `/verify` - Full verification with browser check
+    - `/build` - Build with auto-fix loop
+    - `/research` - Research current state before implementing
+  - Updated CLAUDE.md with:
+    - Autonomous Operation Protocol
+    - Slash Commands reference table
+    - Cursor 2.2 Parity Checklist
+    - When to Ask vs When to Act guidelines
+    - Error escalation protocol
 
 ### 2025-12-19: Vision Capture Service - Streaming Video Analysis
 
@@ -55,8 +99,6 @@
    - continuous-verification.ts: Fixed type narrowing
    - multi-agent-judge.ts: Removed unused PhaseType import
 
-**Branch:** claude/extension-local-testing-TQhGf
-
 ### 2025-12-18: Placeholder and Orphaned Code Cleanup
 Comprehensive cleanup of all placeholders, mock data, and orphaned code:
 
@@ -79,81 +121,24 @@ Comprehensive cleanup of all placeholders, mock data, and orphaned code:
 - Removed unused SplineToolbar.tsx and SplineGlassBackground.tsx
 - Removed commented future exports from panels/index.ts
 
-**Branch:** claude/find-placeholders-orphaned-code-eJaRi
-
 ### 2025-12-18: Major Enhancement - Cursor 2.1+ Feature Parity
 Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 1. **Streaming Feedback Channel** (`server/src/services/feedback/streaming-feedback-channel.ts`)
-   - Real-time verification → builder communication
-   - No more async DB lookups - pure in-memory event streams
-   - Deduplication, severity tracking, auto-fix suggestions
-
 2. **Continuous Verification** (`server/src/services/verification/continuous-verification.ts`)
-   - Actually runs checks on intervals (not just heartbeats)
-   - Placeholder, security, anti-slop, TypeScript, ESLint, import checks
-   - Streams issues directly to building agents
-
 3. **Runtime Debug Context** (`server/src/services/debug/runtime-debug-context.ts`)
-   - Code instrumentation for variable state capture
-   - Execution trace analysis
-   - Multiple hypothesis generation for fixes
-   - Debug prompt generation for AI
-
 4. **Browser-in-the-Loop** (`server/src/services/verification/browser-in-loop.ts`)
-   - Continuous visual verification during build
-   - Auto screenshot on file changes
-   - Real-time anti-slop detection
-   - DOM state capture for debugging
-
 5. **Human Verification Checkpoints** (`server/src/services/verification/human-checkpoint.ts`)
-   - Pause for critical fixes (like Cursor's Debug Mode)
-   - Configurable triggers and timeouts
-   - Auto-approve low-risk, high-confidence fixes
-
 6. **Multi-Agent Judging** (`server/src/services/verification/multi-agent-judge.ts`)
-   - Auto-evaluate parallel agent results
-   - Multi-criteria scoring (correctness, quality, intent alignment)
-   - Conflict detection and merge strategy
-
 7. **Error Pattern Library** (`server/src/services/automation/error-pattern-library.ts`)
-   - Level 0 pre-escalation instant fixes
-   - 20+ built-in patterns for common errors
-   - Learning capability for new patterns
-
 8. **Enhanced Build Loop Orchestrator** (`server/src/services/automation/enhanced-build-loop.ts`)
-   - Integrates all 7 services
-   - Feature flags for each capability
-   - Agent feedback subscription system
-   - Complete state tracking
 
 ### 2025-12-17
-- **Fix My App + Extension Integration Fix**:
-  - Identified why extension wasn't working with Fix My App workflow
-  - Fixed extension service-worker.js to use `credentials: 'include'` for cookie-based auth
-  - Fixed FixMyApp.tsx to use session ID instead of non-existent localStorage token
-  - Added `optionalAuthMiddleware` to `/api/extension/import` route to populate req.user from cookies
-  - Fixed notification inserts using wrong field name (`data` -> `metadata`)
-
-- **Issues Fixed**:
-  1. Extension's fetch requests weren't including cookies for session auth
-  2. Frontend passed invalid token (localStorage.getItem returns null with Better Auth)
-  3. Backend route wasn't using auth middleware to populate req.user from session cookies
-  4. Pre-existing bugs: notification inserts used `data` field but schema uses `metadata`
+- **Fix My App + Extension Integration Fix**
 
 ### 2025-12-16
-- **Ghost Mode Tab Improvements**:
-  - Changed all colors from purple to amber (#F5A86C) to match existing styling
-  - Added enable/disable toggle switch in panel header
-  - Made email/phone input fields always visible (not conditional)
-  - Added error level severity dropdown (All/Critical/Warning/None)
-  - Removed redundant resize handles (parent handles resizing)
-  - Fixed ghost mode colors in feature-agent-tile.css
-  - Cleaned up unused code (IconGhost, IconSave, saveContact)
-
-- **Template Cards Fix**:
-  - Fixed template cards stacking issue caused by `.glass-panel` position:fixed conflict
-  - Replaced `glass-panel` class with inline styles in TemplatesPage.tsx
+- **Ghost Mode Tab Improvements**
+- **Template Cards Fix**
 
 ### 2025-12-14
 - Claude Code extension migration completed
@@ -202,14 +187,7 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ### Key Files
 - Extension: `browser-extension/` (now in main repo!)
-  - `src/background/service-worker.js` - handles API communication, vision capture calls
-  - `src/content/kriptik-bridge.js` - bridges KripTik site <-> extension
-  - `src/content/content.js` - shows capture button on AI platforms
-  - `src/content/ui/overlay.js` - capture UI, now vision-only
-  - `src/content/vision-capture.js` - client-side vision capture coordinator
-- Backend:
-  - `server/src/routes/extension.ts` - all extension routes including vision-capture
-  - `server/src/services/extension/vision-capture-service.ts` - Gemini + Playwright capture
+- Backend: `server/src/routes/extension.ts`, `server/src/services/extension/vision-capture-service.ts`
 
 ---
 
@@ -226,39 +204,50 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 *Set at the start of each session*
 
-### Current Session (2025-12-18)
-- [x] Analyze Cursor 2.1 capabilities
-- [x] Implement Streaming Feedback Channel
-- [x] Implement Continuous Verification
-- [x] Implement Runtime Debug Context
-- [x] Implement Browser-in-the-Loop
-- [x] Implement Human Verification Checkpoints
-- [x] Implement Multi-Agent Judging
-- [x] Implement Error Pattern Library
-- [x] Implement Enhanced Build Loop Orchestrator
-- [x] Verify build passes
-- [x] Resolve merge conflicts
-- [x] Clean up browser-in-loop.ts placeholder comments
-- [x] Push all commits to remote
-- [x] All code production-ready (6,044 lines added)
+### Current Session (2025-12-19)
+- [x] Set up Chrome DevTools MCP for browser integration
+- [x] Create `~/bin/chrome-dev` launch script
+- [x] Update CLAUDE.md with knowledge currency mandate
+- [x] Update CLAUDE.md with browser integration tools
+- [x] Update memory system documentation with handoff protocol
+- [x] Create browser-integration.md guide
+- [x] Full Cursor 2.2 Parity Enhancement
+- [x] Resolve merge conflicts with main branch
+- [ ] Test browser MCP integration with running app
+
+---
+
+## What Should Happen Next
+
+1. **Restart Claude Code** to pick up the new MCP configuration
+2. **Start the dev server** (`npm run dev`) and navigate to it in the debugging Chrome
+3. **Launch Chrome with debugging**: `~/bin/chrome-dev`
+4. **Test browser integration** by asking Claude to take screenshots, read console, etc.
+5. **Use new slash commands** for autonomous building:
+   - `/implement [feature]` for new features with research
+   - `/design [component]` for UI work
+   - `/verify` after changes
+   - `/build` for build with auto-fix
+6. **Continue building KripTik AI** with full Cursor 2.2 parity!
 
 ---
 
 ## Notes
 
 - Today's date: 2025-12-19
+- Chrome with remote debugging is running on port 9222 (started via `~/bin/chrome-dev`)
 - Current models available:
   - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
   - Claude Sonnet 4.5 - Critical tier
   - Claude Haiku - Standard tier
 - Extended thinking available on Opus/Sonnet with thinking_budget parameter
 - All Ghost Mode colors should use #F5A86C (amber), NOT purple
+- **Browser MCP tools available** - USE THEM for visual verification!
+- **Always search for current info** when integrating with external services
 - Extension is now in main repo under `browser-extension/`
-- Vision capture now has TWO modes:
-  - **Live API** (requires GOOGLE_AI_API_KEY): Real-time streaming video analysis via WebSocket
-  - **OpenRouter fallback**: Enhanced screenshot analysis with HIGH thinking level and 32K tokens
-- @google/genai SDK installed for Live API support (v1.34.0)
-- Model: `gemini-2.0-flash-live-001` for Live API streaming
+- Vision capture has TWO modes:
+  - **Live API** (requires GOOGLE_AI_API_KEY): Real-time streaming video analysis
+  - **OpenRouter fallback**: Enhanced screenshot analysis with HIGH thinking level
 
 ---
 
