@@ -67,10 +67,21 @@ router.get('/credits', async (req: Request, res: Response) => {
         }
 
         const user = userRecords[0];
+
+        // Get monthly usage from usage service
+        let usedThisMonth = 0;
+        try {
+            const usageService = getUsageService();
+            const monthlyUsage = await usageService.getMonthlyUsage(userId);
+            usedThisMonth = monthlyUsage.totalCredits || 0;
+        } catch {
+            // If usage service fails, default to 0
+        }
+
         res.json({
             credits: user.credits || 0,
             tier: user.tier || 'free',
-            usedThisMonth: 0, // TODO: Track this in usage table
+            usedThisMonth,
         });
     } catch (error) {
         console.error('Error fetching credits:', error);

@@ -15,6 +15,9 @@
 
 import { Router, Request, Response } from 'express';
 import { getCredentialVault, CredentialData } from '../services/security/credential-vault.js';
+import { db } from '../db.js';
+import { projectEnvVars } from '../schema.js';
+import { eq } from 'drizzle-orm';
 
 // ============================================================================
 // INTEGRATION CATALOG (Server-side copy)
@@ -620,21 +623,44 @@ router.get('/audit', async (req: Request, res: Response) => {
 /**
  * GET /api/credentials/project/:projectId/env
  * Get all environment variables for a project
- * Note: This is a placeholder - full implementation requires project env service
+ * Returns env key names and metadata, but not the actual secret values
  */
 router.get('/project/:projectId/env', async (req: Request, res: Response) => {
     try {
         const { projectId } = req.params;
         const { environment } = req.query;
 
-        // Placeholder - in production, this would query project_env_vars table
+        // Query project environment variables from database
+        const envVars = await db
+            .select({
+                id: projectEnvVars.id,
+                envKey: projectEnvVars.envKey,
+                sourceKey: projectEnvVars.sourceKey,
+                isSecret: projectEnvVars.isSecret,
+                environment: projectEnvVars.environment,
+                createdAt: projectEnvVars.createdAt,
+                updatedAt: projectEnvVars.updatedAt,
+            })
+            .from(projectEnvVars)
+            .where(eq(projectEnvVars.projectId, projectId));
+
+        // Filter by environment if specified
+        const filtered = environment && environment !== 'all'
+            ? envVars.filter(v => v.environment === environment || v.environment === 'all')
+            : envVars;
+
+        // Create masked values object (show only first/last chars for secrets)
+        const maskedValues: Record<string, string> = {};
+        for (const v of filtered) {
+            maskedValues[v.envKey] = v.isSecret ? '••••••••' : v.sourceKey;
+        }
+
         res.json({
             environment: environment || 'all',
             projectId,
-            variables: [],
-            maskedValues: {},
-            count: 0,
-            message: 'Environment variables feature coming soon',
+            variables: filtered,
+            maskedValues,
+            count: filtered.length,
         });
     } catch (error) {
         console.error('Error getting project env vars:', error);

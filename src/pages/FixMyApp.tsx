@@ -664,8 +664,8 @@ export default function FixMyApp() {
     const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
     const [extensionCheckComplete, setExtensionCheckComplete] = useState(false);
 
-    // Chrome Web Store URL for the extension
-    const EXTENSION_STORE_URL = 'https://github.com/Flickinny11/KripTik-Extension'; // TODO: Replace with Chrome Web Store URL once published
+    // Chrome Web Store URL for the extension - configured in environment or defaults to extension docs
+    const EXTENSION_STORE_URL = import.meta.env.VITE_EXTENSION_STORE_URL || '/docs/extension';
 
     // Check if extension is installed
     useEffect(() => {
@@ -1484,12 +1484,16 @@ export default function FixMyApp() {
                                                 // Signal extension to start Fix My App session BEFORE opening platform
                                                 // Use backend API URL from env, not frontend origin
                                                 const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+                                                // Note: We don't need to pass a token since the extension will use
+                                                // credentials: 'include' to send cookies for session-based auth.
+                                                // The sessionId is just for tracking purposes.
                                                 const sessionData = {
                                                     type: 'KRIPTIK_START_FIX_SESSION',
                                                     projectName: session?.sessionId || 'Imported Project',
                                                     returnUrl: window.location.href,
                                                     apiEndpoint: backendUrl,
-                                                    token: localStorage.getItem('auth_token') || 'kriptik_session_' + Date.now()
+                                                    // Pass session ID - the extension will use cookies for auth
+                                                    token: `session_${session?.sessionId || Date.now()}`
                                                 };
                                                 console.log('[KripTik] Sending session to extension:', sessionData);
                                                 window.postMessage(sessionData, '*');

@@ -477,19 +477,34 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                                 >
                                     <div className="p-4">
                                         <p className="text-sm font-medium text-white mb-3">Custom Domain</p>
-                                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
-                                            <p className="text-xs text-amber-400">
-                                                🚧 Domain purchasing coming soon! For now, use a free .kriptik.app subdomain.
-                                            </p>
+                                        <p className="text-xs text-slate-400 mb-3">
+                                            Connect a domain you already own. Your free .kriptik.app subdomain remains active.
+                                        </p>
+                                        <div className="space-y-3">
+                                            <input
+                                                type="text"
+                                                placeholder="yourdomain.com"
+                                                className={cn(
+                                                    "w-full px-3 py-2 text-sm rounded-lg",
+                                                    "bg-slate-800 border border-slate-700",
+                                                    "text-white placeholder:text-slate-500",
+                                                    "focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                                )}
+                                            />
+                                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                                <p className="text-xs text-slate-300 font-medium mb-2">DNS Configuration</p>
+                                                <p className="text-xs text-slate-400 font-mono">
+                                                    CNAME → {deployment?.subdomain || 'yourapp'}.kriptik.app
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start border-slate-700 hover:border-amber-500/50 hover:bg-amber-500/5"
+                                            >
+                                                <GlobeIcon size={16} className="mr-2" />
+                                                Verify & Connect Domain
+                                            </Button>
                                         </div>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start border-slate-700 opacity-50 cursor-not-allowed"
-                                            disabled
-                                        >
-                                            <GlobeIcon size={16} className="mr-2" />
-                                            Search & Buy Domain (Coming Soon)
-                                        </Button>
                                     </div>
                                 </motion.div>
                             )}

@@ -17,6 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import { createImportController } from '../services/fix-my-app/import-controller.js';
+import { getVisionCaptureService, type CookieData, type VisionCaptureOptions } from '../services/extension/vision-capture-service.js';
 
 const router = Router();
 
@@ -344,8 +345,9 @@ function detectFramework(fileList: string[]): string {
 /**
  * POST /api/extension/import
  * Receive import data from browser extension
+ * Uses optionalAuthMiddleware to populate req.user from session cookies if available
  */
-router.post('/import', async (req: Request, res: Response) => {
+router.post('/import', optionalAuthMiddleware, async (req: Request, res: Response) => {
     try {
         // Validate extension token OR regular auth
         const authHeader = req.headers.authorization;
@@ -453,14 +455,13 @@ router.post('/import', async (req: Request, res: Response) => {
             type: 'project_imported',
             title: `Project Imported: ${projectName}`,
             message: `Your project from ${payload.platform.name} has been imported with ${payload.chatHistory?.messageCount || 0} chat messages and ${payload.errors?.count || 0} errors captured. Analysis will begin automatically.`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 platform: payload.platform.id,
                 chatMessages: payload.chatHistory?.messageCount || 0,
                 errors: payload.errors?.count || 0,
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
 
         // Start Fix My App analysis in background (non-blocking)
@@ -861,7 +862,7 @@ async function startFixMyAppAnalysis(
             type: 'analysis_complete',
             title: 'Fix My App Analysis Complete',
             message: `Analysis of your ${payload.platform.name} project is complete. Found ${analysis.implementationGaps.length} issues to fix. Strategy: ${analysis.recommendedStrategy.approach}`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 sessionId: controller.id,
                 intent: analysis.intentSummary.corePurpose,
@@ -870,7 +871,6 @@ async function startFixMyAppAnalysis(
                 confidence: analysis.recommendedStrategy.confidence,
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
 
         // If confidence is high and gaps are found, auto-start fix (configurable)
@@ -887,12 +887,11 @@ async function startFixMyAppAnalysis(
                     type: 'fix_complete',
                     title: 'Your App Has Been Fixed!',
                     message: `We've automatically fixed your ${payload.platform.name} project. Check your dashboard to see the results.`,
-                    data: JSON.stringify({
+                    metadata: JSON.stringify({
                         projectId,
                         sessionId: controller.id,
                     }),
                     read: false,
-                    createdAt: new Date().toISOString(),
                 });
             }).catch(err => {
                 console.error(`[Fix My App] Auto-fix error for ${projectId}:`, err);
@@ -909,14 +908,235 @@ async function startFixMyAppAnalysis(
             type: 'analysis_error',
             title: 'Analysis Error',
             message: `There was an error analyzing your ${payload.platform.name} project. Our team has been notified.`,
-            data: JSON.stringify({
+            metadata: JSON.stringify({
                 projectId,
                 error: error instanceof Error ? error.message : 'Unknown error',
             }),
             read: false,
-            createdAt: new Date().toISOString(),
         });
     }
 }
+
+// ============================================================================
+// VISION CAPTURE ROUTES
+// ============================================================================
+
+/**
+ * POST /api/extension/vision-capture/start
+ * Start a new vision capture session
+ */
+router.post('/vision-capture/start', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    try {
+        // Validate auth
+        const authHeader = req.headers.authorization;
+        let userId: string | undefined;
+
+        const extAuth = await validateExtensionToken(authHeader);
+        if (extAuth) {
+            userId = extAuth.userId;
+        } else if (req.user?.id) {
+            userId = req.user.id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required',
+            });
+        }
+
+        const { url, cookies, options } = req.body as {
+            url: string;
+            cookies: CookieData[];
+            options?: VisionCaptureOptions;
+        };
+
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                error: 'URL is required',
+            });
+        }
+
+        console.log(`[Extension] Starting vision capture for user ${userId}: ${url}`);
+
+        const service = getVisionCaptureService();
+        const session = await service.startCapture(userId, url, cookies || [], options || {});
+
+        return res.json({
+            success: true,
+            sessionId: session.id,
+            eventsUrl: `/api/extension/vision-capture/events/${session.id}`,
+        });
+
+    } catch (error) {
+        console.error('[Extension] Vision capture start error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to start vision capture',
+        });
+    }
+});
+
+/**
+ * GET /api/extension/vision-capture/events/:sessionId
+ * SSE stream for capture progress
+ */
+router.get('/vision-capture/events/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const service = getVisionCaptureService();
+    const session = service.getSession(sessionId);
+
+    if (!session) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found',
+        });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Send initial connection event
+    res.write(`data: ${JSON.stringify({ type: 'connected', sessionId })}\n\n`);
+
+    // Set up event handlers
+    const onProgress = (data: any) => {
+        res.write(`data: ${JSON.stringify({ type: 'progress', ...data })}\n\n`);
+    };
+
+    const onComplete = (data: any) => {
+        res.write(`data: ${JSON.stringify({ type: 'complete', ...data })}\n\n`);
+        cleanup();
+    };
+
+    const onError = (data: any) => {
+        res.write(`data: ${JSON.stringify({ type: 'error', ...data })}\n\n`);
+        cleanup();
+    };
+
+    const onCancelled = () => {
+        res.write(`data: ${JSON.stringify({ type: 'cancelled' })}\n\n`);
+        cleanup();
+    };
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+        res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+    }, 30000);
+
+    const cleanup = () => {
+        clearInterval(heartbeat);
+        session.events.off('progress', onProgress);
+        session.events.off('complete', onComplete);
+        session.events.off('error', onError);
+        session.events.off('cancelled', onCancelled);
+        res.end();
+    };
+
+    // Subscribe to events
+    session.events.on('progress', onProgress);
+    session.events.on('complete', onComplete);
+    session.events.on('error', onError);
+    session.events.on('cancelled', onCancelled);
+
+    // Handle client disconnect
+    req.on('close', cleanup);
+
+    // If session already completed, send result immediately
+    if (session.status === 'completed' && session.result) {
+        res.write(`data: ${JSON.stringify({ type: 'complete', result: session.result })}\n\n`);
+        cleanup();
+    } else if (session.status === 'failed') {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: session.error })}\n\n`);
+        cleanup();
+    }
+});
+
+/**
+ * GET /api/extension/vision-capture/status/:sessionId
+ * Get current status of a capture session
+ */
+router.get('/vision-capture/status/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const service = getVisionCaptureService();
+    const session = service.getSession(sessionId);
+
+    if (!session) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found',
+        });
+    }
+
+    return res.json({
+        success: true,
+        sessionId: session.id,
+        status: session.status,
+        progress: session.progress,
+        startedAt: session.startedAt,
+        completedAt: session.completedAt,
+        error: session.error,
+    });
+});
+
+/**
+ * POST /api/extension/vision-capture/cancel/:sessionId
+ * Cancel a running capture session
+ */
+router.post('/vision-capture/cancel/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const service = getVisionCaptureService();
+    const cancelled = await service.cancelSession(sessionId);
+
+    if (!cancelled) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found or not running',
+        });
+    }
+
+    return res.json({
+        success: true,
+        message: 'Capture cancelled',
+    });
+});
+
+/**
+ * GET /api/extension/vision-capture/result/:sessionId
+ * Get the result of a completed capture session
+ */
+router.get('/vision-capture/result/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const service = getVisionCaptureService();
+    const session = service.getSession(sessionId);
+
+    if (!session) {
+        return res.status(404).json({
+            success: false,
+            error: 'Session not found',
+        });
+    }
+
+    if (session.status !== 'completed') {
+        return res.status(400).json({
+            success: false,
+            error: `Session is ${session.status}, not completed`,
+            status: session.status,
+        });
+    }
+
+    return res.json({
+        success: true,
+        ...session.result,
+    });
+});
 
 export { router as extensionRouter };

@@ -4,22 +4,52 @@
 
 ---
 
-## MANDATORY SESSION START (READ FIRST)
+## KNOWLEDGE CURRENCY MANDATE (READ FIRST)
+
+> **YOUR KNOWLEDGE IS STALE. ALWAYS VERIFY CURRENT STATE.**
+
+Claude's training data has a cutoff approximately 1 year behind today's date. In the AI era, this means:
+- **Models**: Newer, more capable versions exist (e.g., Claude 4.x → 4.5, GPT-4 → 4o → o1)
+- **APIs**: Endpoints, parameters, and capabilities have changed significantly
+- **Libraries**: Major version bumps with breaking changes and new features
+- **Platforms**: New features, pricing, limits, and integrations
+- **Best Practices**: What was optimal 1 year ago may now be anti-pattern
+
+**MANDATORY KNOWLEDGE VERIFICATION**:
+1. **Check today's date** from system prompt (format: YYYY-MM-DD)
+2. **Use WebSearch** when integrating with ANY external service, API, or library
+3. **Search for "[technology] 2025"** or "[library] latest version 2025"
+4. **Never assume** your knowledge of configs, endpoints, or features is current
+5. **Verify model IDs** before using them - they change frequently
+
+**Example Stale Knowledge Patterns to Avoid**:
+- Using `claude-3-opus` instead of `claude-opus-4-5-20251101`
+- Using deprecated API endpoints
+- Using old configuration formats
+- Missing new required parameters
+- Not leveraging newer, better features
+
+---
+
+## MANDATORY SESSION START
 
 **Before doing ANYTHING else in a new session, you MUST:**
 
-1. **Read today's date from system** - It's provided in the system prompt. Use current year (2025) for all searches/documentation.
+1. **Read today's date from system** - It's provided in the system prompt. Use current year for all searches/documentation. Your knowledge is ~1 year old, so ALWAYS search for current information.
 
 2. **Read memory files** (in order):
    ```
    .claude/memory/session_context.md     - What was done recently, current goals
    .claude/memory/gotchas.md             - Known issues to avoid
+   .claude/memory/browser-integration.md - Browser tools available (USE THEM!)
    .cursor/memory/build_state.json       - Phase status
    ```
 
 3. **Acknowledge context** - State what you understand about current work before proceeding.
 
 4. **Set session goals** - Update session_context.md with today's goals if user provides tasks.
+
+5. **Check browser tools** - If Chrome DevTools MCP is available, USE IT for visual verification.
 
 **FAILURE TO DO THIS CAUSES**: Lost context, repeated mistakes, outdated information, claiming done when not done.
 
@@ -34,6 +64,53 @@
 3. Update `.claude/memory/implementation_log.md` with implementation details
 4. Add any new gotchas to `.claude/memory/gotchas.md`
 5. Run the Completion Checklist (see below)
+
+---
+
+## BROWSER INTEGRATION TOOLS (MCP)
+
+> **USE THESE TOOLS!** They provide Cursor-like browser feedback during development.
+
+### Available via Chrome DevTools MCP
+
+When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have access to:
+
+| Tool | Purpose | When to Use |
+|------|---------|-------------|
+| `snapshot` | Get page content with element UIDs | Understand current page state |
+| `screenshot` | Take visual screenshot | Verify UI changes visually |
+| `get_console_logs` | Read console output | Debug runtime errors |
+| `click` | Click elements by UID | Test interactions |
+| `fill` | Fill form fields | Test forms |
+| `navigate` | Go to URL | Navigate to test pages |
+| `execute_script` | Run JS in page | Debug/inspect state |
+| `get_network_requests` | See API calls | Debug network issues |
+
+### Development Workflow with Browser Tools
+
+```
+1. Make code change
+2. Hot reload updates browser
+3. Use `screenshot` to verify visual change
+4. Use `get_console_logs` to check for errors
+5. If issues found, fix and repeat
+6. All without leaving Claude Code!
+```
+
+### Starting Browser with Debugging
+
+```bash
+~/bin/chrome-dev                        # Default port 9222
+~/bin/chrome-dev 9223                   # Custom port
+~/bin/chrome-dev 9222 http://localhost:5173  # With initial URL
+```
+
+### Configuration
+
+- Global: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Project: `.mcp.json` in project root
+
+**IMPORTANT**: Restart Claude Code after config changes to pick up MCP servers.
 
 ---
 
@@ -461,7 +538,13 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 
 ---
 
-## MEMORY SYSTEM
+## MEMORY SYSTEM & AGENT HANDOFF PROTOCOL
+
+> **CRITICAL**: Memory files are how agents communicate across sessions. Without proper updates, the next agent starts blind.
+
+### The Handoff Problem
+
+Each Claude Code session is a NEW agent with NO memory of previous sessions. The ONLY way context survives is through these files. Treat memory updates as **mandatory handoff artifacts**.
 
 ### Existing (.cursor/memory/) - READ ONLY
 - `build_state.json` - Current phase, progress, completed features
@@ -475,10 +558,58 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 - `gotchas.md` - Known issues, workarounds
 - `architecture_map.md` - System dependencies
 - `feature_dependencies.md` - Feature→file mapping
+- `browser-integration.md` - Browser MCP tools guide (USE THIS!)
 
 ### Reference Files (Root)
 - `feature_list.json` - 66 features with status
 - `intent.json` - Locked Intent Contract
+- `.mcp.json` - MCP server configuration for browser tools
+
+### Agent Handoff Artifact Requirements
+
+**After EVERY session, update these for the next agent:**
+
+1. **session_context.md** - MANDATORY
+   ```markdown
+   ## What Was Done This Session
+   - [List specific changes with file paths]
+
+   ## What's In Progress (Incomplete)
+   - [List any partially completed work]
+
+   ## What Should Happen Next
+   - [List recommended next steps]
+
+   ## Blockers/Issues Discovered
+   - [List any problems found]
+   ```
+
+2. **implementation_log.md** - For significant code changes
+   ```markdown
+   ## [Date] - [Feature/Fix Name]
+   **Files Changed**: [list]
+   **Why**: [rationale]
+   **How**: [approach]
+   **Integration Points**: [what it connects to]
+   ```
+
+3. **gotchas.md** - When you discover something that could trip up future agents
+   ```markdown
+   ## [Problem Category]
+   **Problem**: [what happened]
+   **Solution**: [how to fix/avoid]
+   **Files**: [affected files]
+   ```
+
+### Memory Update Triggers
+
+Update memory files when:
+- Completing a feature or significant change
+- Discovering a bug or workaround
+- Making architectural decisions
+- Leaving work incomplete
+- Finding something that "just works this way"
+- Before ending ANY session
 
 ---
 
@@ -491,12 +622,36 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 4. Consider integration with existing systems
 5. Plan implementation order
 6. Anticipate what might fail
+7. **KNOWLEDGE CHECK**: Is this integrating with external services? → WebSearch first!
+
+### Knowledge Currency Checklist
+**Before integrating with ANY external technology:**
+
+```
+[ ] What is today's date? (from system prompt)
+[ ] Is my knowledge of this technology current?
+[ ] Have I searched for "[technology] [current year]" updates?
+[ ] Am I using the latest API version/endpoints?
+[ ] Am I using current model IDs (not deprecated)?
+[ ] Have new features been added I should use?
+[ ] Has the configuration format changed?
+```
+
+**Common Stale Knowledge Areas:**
+- AI model IDs (change every few months)
+- API authentication methods
+- SDK method signatures
+- Configuration file formats
+- Required vs optional parameters
+- Pricing and rate limits
+- Platform capabilities
 
 ### During Implementation
 1. After significant code, run build
 2. If build fails, fix before continuing
 3. If approach isn't working, acknowledge and pivot
 4. Don't stack changes without verification
+5. **Use browser tools** to verify UI changes visually
 
 ### Completion Checklist
 **YOU MUST complete this before claiming ANY task done**:
@@ -506,10 +661,12 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 [ ] Build verified: npm run build (pass/fail)
 [ ] TypeScript errors: none
 [ ] Feature tested (describe how)
+[ ] Browser verification (if UI change): screenshot taken
 [ ] Anti-slop check: no violations
+[ ] Knowledge currency verified (if external integration)
 [ ] Remaining items (if any)
 [ ] Blockers or concerns (if any)
-[ ] Memory files updated
+[ ] Memory files updated (session_context.md at minimum)
 ```
 
 ---
@@ -611,5 +768,171 @@ Consider splitting if adding significant code to these files.
 
 ---
 
+## AUTONOMOUS OPERATION PROTOCOL
+
+> This section defines how Claude Code operates autonomously - matching or exceeding Cursor 2.2's capabilities.
+
+### Core Philosophy
+
+**First-Time-Right > Fast-and-Wrong**
+
+It's CHEAPER to:
+- Use extended thinking and get it right
+- Research current APIs before implementing
+- Verify with browser tools before claiming done
+
+Than to:
+- Rush and create bugs
+- Use stale knowledge and break integrations
+- Claim done and require fix cycles
+
+### Autonomous Capabilities
+
+Claude Code in this project can:
+
+1. **Auto-fix simple errors** without asking:
+   - Missing imports
+   - Type mismatches (when obvious)
+   - Unused variables
+   - Simple syntax errors
+
+2. **Research before implementing**:
+   - Use WebSearch for any external integration
+   - Verify API endpoints, model IDs, configs
+   - Check for breaking changes
+
+3. **Visual verification**:
+   - Take screenshots via browser MCP
+   - Read console errors
+   - Verify UI changes actually work
+
+4. **Iterative building**:
+   - Build → Check → Fix → Repeat
+   - Up to 5 iterations without user approval
+   - Escalate if stuck
+
+### When to Ask vs When to Act
+
+**ACT AUTONOMOUSLY**:
+- Fixing build errors
+- Adding missing imports
+- Correcting type errors
+- Running verification
+- Taking screenshots
+- Searching for current info
+
+**ASK FIRST**:
+- Changing architecture
+- Removing functionality
+- Adding new dependencies
+- Modifying intent.json
+- Changes affecting multiple features
+- Anything that feels "risky"
+
+### Quality Gates (Auto-Enforced)
+
+Before claiming ANY task complete:
+- [ ] Build passes (`npm run build`)
+- [ ] No TypeScript errors
+- [ ] No placeholder content
+- [ ] Anti-slop score 85+
+- [ ] Browser verification (if UI)
+- [ ] Memory files updated
+
+### Error Escalation
+
+If auto-fix fails after 3 attempts:
+1. Stop trying the same thing
+2. Report what was attempted
+3. Show the persistent error
+4. Ask for user guidance
+5. Document in gotchas.md
+
+---
+
+## SLASH COMMANDS AVAILABLE
+
+Use these for common workflows:
+
+| Command | Purpose |
+|---------|---------|
+| `/implement [feature]` | Full implementation protocol with research |
+| `/design [component]` | UI implementation with design standards |
+| `/verify` | Full verification with browser check |
+| `/build` | Build with auto-fix loop |
+| `/research [topic]` | Research current state before implementing |
+| `/refresh` | Re-read all memory files |
+| `/status` | Report current build state |
+| `/complete` | Run completion checklist |
+| `/feature F0XX` | Look up specific feature |
+| `/intent-check` | Validate against Intent Lock |
+
+---
+
+## ENHANCED CAPABILITIES AVAILABLE
+
+As of 2025-12-19, Claude Code in this project has:
+
+### 1. Browser Integration (MCP)
+- **Chrome DevTools MCP** configured in `.mcp.json`
+- Take screenshots, read console logs, interact with pages
+- Launch Chrome with: `~/bin/chrome-dev`
+- See `.claude/memory/browser-integration.md` for full guide
+
+### 2. Web Search
+- Use `WebSearch` tool to get current information
+- ALWAYS use for external integrations
+- Search with current year (2025) for latest info
+
+### 3. Agent Memory System
+- Memory files in `.claude/memory/` persist across sessions
+- UPDATE THESE before ending work
+- Next agent depends on your handoff artifacts
+
+### 4. Visual Verification
+- Use browser tools to verify UI changes
+- Don't claim UI is "fixed" without visual confirmation
+- Screenshot evidence > assumptions
+
+### 5. MCP Servers Available
+- **chrome-devtools**: Browser automation
+- **github**: PR creation, issue management
+- **filesystem**: Enhanced file operations
+- **memory**: Persistent memory across sessions
+
+### 6. Settings & Hooks
+- **Auto-permissions**: Common operations pre-approved
+- **Quality gates**: Build must pass, no placeholders
+- **Model**: Opus 4.5 with extended thinking (32K budget)
+
+**USE THESE CAPABILITIES TO THEIR FULLEST!**
+
+---
+
+## CURSOR 2.2 PARITY CHECKLIST
+
+This configuration provides feature parity with Cursor 2.2:
+
+| Cursor Feature | KripTik Implementation |
+|----------------|------------------------|
+| Constant feedback loop | Browser MCP + auto-build verification |
+| Auto error fixing | 3-attempt auto-fix before escalation |
+| Multi-file context | Context includes all memory files |
+| Visual verification | Chrome DevTools screenshots |
+| Console error reading | Browser MCP `get_console_logs` |
+| Knowledge currency | WebSearch mandate before external integrations |
+| Quality gates | Build pass + anti-slop 85+ required |
+| Agent memory | `.claude/memory/` files persist |
+| Parallel agents | Worktree architecture + MCP servers |
+
+**Additional KripTik Advantages**:
+- Intent Lock system (immutable contracts)
+- 6-agent verification swarm
+- 4-level error escalation
+- Anti-slop detection (85 minimum)
+- Premium design standards enforcement
+
+---
+
 *This document is the source of truth for Claude Code operation within KripTik AI.*
-*Last updated: 2025-12-14*
+*Last updated: 2025-12-19*

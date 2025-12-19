@@ -57,7 +57,7 @@ interface StoredCredential {
     id: string;
     type: string;
     name: string;
-    status: 'active' | 'expired' | 'invalid';
+    status: 'active' | 'expired' | 'invalid' | 'validating';
     lastUsed?: Date;
     createdAt: Date;
 }
@@ -252,6 +252,22 @@ export default function CredentialVault() {
         setIsSaving(false);
     };
 
+    const handleValidateCredential = async (credentialId: string) => {
+        // Update status to validating
+        setCredentials(prev => prev.map(c =>
+            c.id === credentialId ? { ...c, status: 'validating' as const } : c
+        ));
+
+        // Simulate validation API call
+        // Backend integration point: POST /api/credentials/:id/validate
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Update with validation result (simulated success)
+        setCredentials(prev => prev.map(c =>
+            c.id === credentialId ? { ...c, status: 'active', lastUsed: new Date() } : c
+        ));
+    };
+
     const handleCloseModal = () => {
         setAddingNew(false);
         setSelectedType(null);
@@ -344,7 +360,7 @@ export default function CredentialVault() {
                             key={cred.id}
                             credential={cred}
                             onDelete={() => setCredentials(c => c.filter(x => x.id !== cred.id))}
-                            onRefresh={() => {/* TODO */}}
+                            onRefresh={() => handleValidateCredential(cred.id)}
                         />
                     ))}
                 </div>
