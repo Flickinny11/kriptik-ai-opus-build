@@ -11,7 +11,14 @@
       "Bash(pwd:*)",
       "Bash(which:*)",
       "Bash(cat:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(curl:*)",
+      "Bash(~/bin/chrome-dev:*)",
+      "Read:**",
+      "Glob:**",
+      "Grep:**",
+      "WebSearch",
+      "WebFetch"
     ],
     "deny": [
       "Read(.env)",
@@ -28,9 +35,12 @@
       "Write(.env.local)",
       "Write(.env.production)",
       "Write(secrets/*)",
+      "Write(**/node_modules/**)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)",
-      "Bash(rm -rf .git)"
+      "Bash(rm -rf .git)",
+      "Bash(git push --force)",
+      "Bash(git reset --hard)"
     ]
   },
   "context": {
@@ -41,7 +51,10 @@
       ".cursor/memory/*.json",
       ".claude/memory/*.md",
       "package.json",
-      "server/package.json"
+      "server/package.json",
+      "tsconfig.json",
+      "vite.config.ts",
+      "tailwind.config.js"
     ],
     "exclude": [
       "node_modules/**",
@@ -53,12 +66,32 @@
     ]
   },
   "model": {
-    "default": "claude-sonnet-4-5-20250929",
-    "preferExtendedThinking": true
+    "default": "claude-opus-4-5-20251101",
+    "preferExtendedThinking": true,
+    "thinkingBudget": 32000
   },
   "behavior": {
     "autoFormat": true,
     "verifyBeforeComplete": true,
-    "updateMemoryOnChange": true
+    "updateMemoryOnChange": true,
+    "requireFileReadBeforeEdit": true,
+    "autoRunBuildAfterChanges": true,
+    "useBrowserToolsForVisualVerification": true
+  },
+  "autonomousOperations": {
+    "enabled": true,
+    "maxIterationsWithoutApproval": 5,
+    "autoFixLintErrors": true,
+    "autoFixTypeErrors": true,
+    "autoRunTestsAfterChanges": false,
+    "requireBuildPassBeforeClaim": true,
+    "webSearchBeforeExternalIntegration": true
+  },
+  "qualityGates": {
+    "buildMustPass": true,
+    "noTypeScriptErrors": true,
+    "noPlaceholderContent": true,
+    "antiSlopScore": 85,
+    "memoryFilesMustUpdate": true
   }
 }
