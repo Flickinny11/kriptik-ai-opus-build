@@ -738,6 +738,10 @@ app.use("/api/import", importRouter);
 import { extensionRouter } from './routes/extension.js';
 app.use("/api/extension", extensionRouter);
 
+// Production Stack Configuration - User app infrastructure setup
+import productionStackRouter from './routes/production-stack.js';
+app.use("/api/production-stack", productionStackRouter);
+
 // Health Check Routes - Comprehensive infrastructure monitoring
 app.use("/api/health", healthRouter);
 

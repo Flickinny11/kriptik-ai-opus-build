@@ -624,8 +624,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             rt.config.projectId,
             rt.config.userId,
             orchestrationRunId,
-            'production' as BuildMode, // Full production mode for feature agents
-            projectPath
+            'production' as BuildMode // Full production mode for feature agents
         );
 
         // Forward Enhanced Build Loop events to Feature Agent stream

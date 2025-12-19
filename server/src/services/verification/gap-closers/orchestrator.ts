@@ -515,13 +515,13 @@ export function generateProductionReadinessReport(results: GapCloserResults): st
         lines.push(``, `## BLOCKING ISSUES`);
         lines.push(`There are ${results.criticalIssues} critical issues that must be resolved before deployment.`);
 
-        if (results.adversarial?.vulnerabilities.filter(v => v.severity === 'critical').length) {
+        if (results.adversarial?.vulnerabilities.filter((v: { severity: string }) => v.severity === 'critical').length) {
             lines.push(`- Security vulnerabilities detected`);
         }
-        if (results.realData?.violations.filter(v => v.severity === 'critical').length) {
+        if (results.realData?.violations.filter((v: { severity: string }) => v.severity === 'critical').length) {
             lines.push(`- Mock data detected in production code`);
         }
-        if (results.accessibility?.violations.filter(v => v.impact === 'critical').length) {
+        if (results.accessibility?.violations.filter((v: { impact: string }) => v.impact === 'critical').length) {
             lines.push(`- Critical accessibility violations`);
         }
     }

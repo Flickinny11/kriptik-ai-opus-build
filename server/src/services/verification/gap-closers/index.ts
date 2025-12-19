@@ -30,7 +30,7 @@ export {
     type AccessibilityResult,
     type AccessibilityConfig,
     type AccessibilityViolation,
-} from './accessibility-verifier';
+} from './accessibility-verifier.js';
 
 export {
     AdversarialTestingAgent,
@@ -39,7 +39,7 @@ export {
     type AdversarialConfig,
     type AdversarialVulnerability,
     type AdversarialTestType,
-} from './adversarial-tester';
+} from './adversarial-tester.js';
 
 export {
     ErrorStateTestingAgent,
@@ -48,7 +48,7 @@ export {
     type ErrorStateConfig,
     type ErrorStateIssue,
     type ErrorStateType,
-} from './error-state-tester';
+} from './error-state-tester.js';
 
 export {
     PerformanceVerificationAgent,
@@ -58,7 +58,7 @@ export {
     type PerformanceIssue,
     type CoreWebVitals,
     type MemoryMetrics,
-} from './performance-verifier';
+} from './performance-verifier.js';
 
 export {
     CrossBrowserTestingAgent,
@@ -68,7 +68,7 @@ export {
     type CrossBrowserIssue,
     type BrowserName,
     type BrowserTestResult,
-} from './cross-browser-tester';
+} from './cross-browser-tester.js';
 
 export {
     ExploratoryTestingAgent,
@@ -76,7 +76,7 @@ export {
     type ExploratoryResult,
     type ExploratoryConfig,
     type ExploratoryFinding,
-} from './exploratory-tester';
+} from './exploratory-tester.js';
 
 export {
     RealDataIntegrationEnforcer,
@@ -85,7 +85,7 @@ export {
     type RealDataConfig,
     type MockDataViolation,
     type MockDataViolationType,
-} from './real-data-enforcer';
+} from './real-data-enforcer.js';
 
 export {
     GapCloserOrchestrator,
@@ -96,19 +96,19 @@ export {
     type GapCloserRunContext,
     type GapCloserEvent,
     type GapCloserPhase,
-} from './orchestrator';
+} from './orchestrator.js';
 
 // =============================================================================
 // COMBINED TYPES
 // =============================================================================
 
-import type { AccessibilityResult } from './accessibility-verifier';
-import type { AdversarialResult } from './adversarial-tester';
-import type { ErrorStateResult } from './error-state-tester';
-import type { PerformanceResult } from './performance-verifier';
-import type { CrossBrowserResult } from './cross-browser-tester';
-import type { ExploratoryResult } from './exploratory-tester';
-import type { RealDataResult } from './real-data-enforcer';
+import type { AccessibilityResult, AccessibilityViolation } from './accessibility-verifier.js';
+import type { AdversarialResult } from './adversarial-tester.js';
+import type { ErrorStateResult } from './error-state-tester.js';
+import type { PerformanceResult } from './performance-verifier.js';
+import type { CrossBrowserResult } from './cross-browser-tester.js';
+import type { ExploratoryResult } from './exploratory-tester.js';
+import type { RealDataResult } from './real-data-enforcer.js';
 
 /**
  * Combined result from all gap closers
@@ -246,7 +246,7 @@ export function aggregateIssues(results: GapCloserResults): {
     };
 
     if (results.accessibility?.violations) {
-        countBySeverity(results.accessibility.violations.map(v => ({
+        countBySeverity(results.accessibility.violations.map((v: AccessibilityViolation) => ({
             severity: v.impact === 'critical' ? 'critical' : v.impact === 'serious' ? 'high' : v.impact === 'moderate' ? 'medium' : 'low'
         })));
     }

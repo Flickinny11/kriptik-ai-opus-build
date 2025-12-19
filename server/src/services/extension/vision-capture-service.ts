@@ -554,8 +554,8 @@ class VisionCaptureService {
                             }
                         }
                     },
-                    onerror: (error: Error) => {
-                        console.error('[VisionCapture] Live API error:', error);
+                    onerror: (event: ErrorEvent) => {
+                        console.error('[VisionCapture] Live API error:', event.message);
                     },
                     onclose: () => {
                         console.log('[VisionCapture] Live API disconnected');

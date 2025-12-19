@@ -429,7 +429,7 @@ export class CrossBrowserTestingAgent extends EventEmitter {
 
             // Check for features that might not work everywhere
             const problematicFeatures = [
-                { pattern: /:has\\(/, name: ':has() selector', safari: 'Safari 15.4+' },
+                { pattern: /:has\(/, name: ':has() selector', safari: 'Safari 15.4+' },
                 { pattern: /container-type/, name: 'Container queries', safari: 'Safari 16+' },
                 { pattern: /backdrop-filter/, name: 'backdrop-filter', firefox: 'Firefox 103+' },
                 { pattern: /subgrid/, name: 'CSS Subgrid', firefox: 'Firefox 71+, Safari 16+' },

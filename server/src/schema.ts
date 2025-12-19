@@ -2263,6 +2263,101 @@ export const usageSummaries = sqliteTable('usage_summaries', {
 });
 
 // =============================================================================
+// PROJECT PRODUCTION STACKS - User's app infrastructure configuration
+// =============================================================================
+
+/**
+ * Stores the production stack configuration for user-built apps.
+ * This is NOT for KripTik's infrastructure, but for the apps users create.
+ * Users select their auth/database/storage providers and KripTik generates
+ * the appropriate integration code and .env configuration.
+ */
+export const projectProductionStacks = sqliteTable('project_production_stacks', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull().unique(),
+
+    // Authentication provider for user's app
+    authProvider: text('auth_provider').$type<
+        'clerk' | 'better-auth' | 'nextauth' | 'supabase-auth' | 'auth0' | 'firebase-auth' | 'none'
+    >(),
+    authConfig: text('auth_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        features?: string[]; // social-login, magic-link, mfa, etc.
+        envVars?: string[]; // List of required env var names
+    }>(),
+
+    // Database provider for user's app
+    databaseProvider: text('database_provider').$type<
+        'supabase' | 'planetscale' | 'turso' | 'neon' | 'mongodb' | 'firebase' | 'prisma-postgres' | 'none'
+    >(),
+    databaseConfig: text('database_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        type?: 'sql' | 'nosql' | 'graph';
+        orm?: string; // drizzle, prisma, etc.
+        envVars?: string[];
+    }>(),
+
+    // Storage provider for user's app
+    storageProvider: text('storage_provider').$type<
+        's3' | 'r2' | 'supabase-storage' | 'firebase-storage' | 'cloudinary' | 'uploadthing' | 'none'
+    >(),
+    storageConfig: text('storage_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        bucketName?: string;
+        region?: string;
+        envVars?: string[];
+    }>(),
+
+    // Payment provider for user's app
+    paymentProvider: text('payment_provider').$type<
+        'stripe' | 'lemon-squeezy' | 'paddle' | 'none'
+    >(),
+    paymentConfig: text('payment_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        mode?: 'test' | 'live';
+        envVars?: string[];
+    }>(),
+
+    // Email provider for user's app
+    emailProvider: text('email_provider').$type<
+        'resend' | 'sendgrid' | 'postmark' | 'ses' | 'none'
+    >(),
+    emailConfig: text('email_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        fromDomain?: string;
+        envVars?: string[];
+    }>(),
+
+    // Hosting target for user's app
+    hostingTarget: text('hosting_target').$type<
+        'vercel' | 'netlify' | 'cloudflare' | 'aws' | 'railway' | 'fly' | 'self-hosted' | 'none'
+    >(),
+    hostingConfig: text('hosting_config', { mode: 'json' }).$type<{
+        configured: boolean;
+        framework?: string;
+        buildCommand?: string;
+        outputDir?: string;
+    }>(),
+
+    // Resource estimation
+    estimatedUsers: text('estimated_users').$type<'mvp' | 'startup' | 'growth' | 'scale'>(),
+    estimatedStorage: text('estimated_storage').$type<'minimal' | 'moderate' | 'heavy'>(),
+
+    // Generated dependencies to install
+    dependencies: text('dependencies', { mode: 'json' }).$type<{
+        npm: string[];
+        devDeps?: string[];
+    }>(),
+
+    // Whether stack has been fully configured
+    isConfigured: integer('is_configured', { mode: 'boolean' }).default(false).notNull(),
+    configuredAt: text('configured_at'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// =============================================================================
 // CONTENT FLAGS - Competitor Protection Logging
 // =============================================================================
 
