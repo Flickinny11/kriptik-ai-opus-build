@@ -102,10 +102,10 @@ export class BrowserInLoopService extends EventEmitter {
     constructor(config: BrowserInLoopConfig) {
         super();
         this.config = {
-            checkIntervalMs: 30000, // 30 seconds default
-            captureOnFileChange: true,
-            antiSlopThreshold: 85,
             ...config,
+            checkIntervalMs: config.checkIntervalMs ?? 30000, // 30 seconds default
+            captureOnFileChange: config.captureOnFileChange ?? true,
+            antiSlopThreshold: config.antiSlopThreshold ?? 85,
         };
         this.feedbackChannel = getStreamingFeedbackChannel();
 
