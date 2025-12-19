@@ -213,22 +213,33 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 - [x] Create browser-integration.md guide
 - [x] Full Cursor 2.2 Parity Enhancement
 - [x] Resolve merge conflicts with main branch
+- [x] Fix memory system - move to .claude/rules/ for auto-loading
+- [x] Add SessionStart hooks for context reminder
+- [x] Add custom icons rule (no Lucide, use src/components/icons/)
+- [x] Add browser element selection workflow
+- [x] Add THINK AHEAD proactive problem prevention
+- [x] Add MAXIMIZE BROWSER USAGE mandate
+- [x] Add NO ORPHANED CODE rule
 - [ ] Test browser MCP integration with running app
 
 ---
 
 ## What Should Happen Next
 
-1. **Restart Claude Code** to pick up the new MCP configuration
-2. **Start the dev server** (`npm run dev`) and navigate to it in the debugging Chrome
-3. **Launch Chrome with debugging**: `~/bin/chrome-dev`
-4. **Test browser integration** by asking Claude to take screenshots, read console, etc.
-5. **Use new slash commands** for autonomous building:
+1. **Restart Claude Code** to pick up:
+   - New MCP configuration from `.mcp.json`
+   - Auto-loaded rules from `.claude/rules/*.md`
+   - SessionStart hooks from `.claude/settings.json`
+2. **Verify auto-loading works** - SessionStart hook should display reminder
+3. **Start the dev server** (`npm run dev`) and navigate to it in the debugging Chrome
+4. **Launch Chrome with debugging**: `~/bin/chrome-dev`
+5. **Test browser integration** by asking Claude to take screenshots, read console, etc.
+6. **Use new slash commands** for autonomous building:
    - `/implement [feature]` for new features with research
    - `/design [component]` for UI work
    - `/verify` after changes
    - `/build` for build with auto-fix
-6. **Continue building KripTik AI** with full Cursor 2.2 parity!
+7. **Continue building KripTik AI** with full Cursor 2.2 parity!
 
 ---
 

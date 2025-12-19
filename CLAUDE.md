@@ -106,6 +106,45 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 6. All without leaving Claude Code!
 ```
 
+### MAXIMIZE BROWSER TOOL USAGE
+
+> **MANDATE**: Use browser tools constantly, not just occasionally.
+
+**For EVERY UI change:**
+- Take a screenshot BEFORE and AFTER
+- Check console for errors BEFORE claiming done
+- Verify the change actually renders correctly
+
+**For debugging:**
+- Use `snapshot` to understand current DOM state
+- Use `get_network_requests` to debug API issues
+- Use `execute_script` to inspect state
+
+**When user selects an element in browser:**
+- The element selection provides context about what to modify
+- Still follow ALL rules (anti-slop, no placeholders, custom icons, etc.)
+- Verify your edit with a screenshot after making changes
+
+**DON'T:**
+- Claim UI is fixed without visual verification
+- Skip screenshot for "small" changes
+- Assume hot reload worked - verify it
+
+### Element Selection Workflow
+
+When the user selects an element via browser tools:
+
+1. **Receive element context** - You'll see the element's UID, tag, classes, text
+2. **Identify the component** - Find the React component that renders this element
+3. **Make the change** - Following ALL KripTik rules:
+   - No placeholders
+   - No emoji
+   - Custom icons only (not Lucide)
+   - Premium design standards
+4. **Verify visually** - Take screenshot to confirm the change
+5. **Check console** - Ensure no errors were introduced
+6. **Wire up if needed** - Ensure the change is integrated, not orphaned
+
 ### Starting Browser with Debugging
 
 ```bash
@@ -143,23 +182,31 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 - Use flat designs without depth (shadows, layers, glass effects required).
 - Use generic fonts (Arial, Helvetica, system-ui, font-sans without override).
 - Use purple-to-pink or blue-to-purple gradients (classic AI slop).
+- Use Lucide React icons - use custom icons from `src/components/icons/` instead.
+- Create orphaned code (components, routes, functions that aren't wired up).
 - Modify existing database column types (Turso limitation).
 - Add new databases or AI service providers (AD002 constraint).
 - Claim completion without verification.
 - Dismiss items from prompts without explicit acknowledgment.
 - Modify intent.json after it's locked.
 - Skip the verification checklist.
+- Skip browser verification for UI changes.
 
 ### ALWAYS:
 - Read files before modifying them.
 - Verify builds pass after changes.
-- Update .claude/memory/ files after significant work.
+- Update .claude/rules/*.md files after significant work (auto-loaded by next agent).
 - Check feature_list.json for current status before working on features.
 - Respect the Intent Lock contract (intent.json).
 - Use the completion checklist before claiming done.
 - Preserve existing architecture (AD003: additive changes only).
 - Consider credit costs when suggesting model usage.
 - Report blockers immediately rather than guessing.
+- Use custom icons from `src/components/icons/` (NOT Lucide React).
+- Wire up new code to existing systems (no orphaned code).
+- Use browser tools to verify UI changes visually.
+- Think ahead: anticipate integration points and potential issues.
+- Leave artifacts in memory files for the next agent.
 
 ---
 
@@ -794,6 +841,35 @@ Than to:
 - Rush and create bugs
 - Use stale knowledge and break integrations
 - Claim done and require fix cycles
+
+### THINK AHEAD - Proactive Problem Prevention
+
+> **MANDATE**: Anticipate problems BEFORE they happen. Don't just fix errors - prevent them.
+
+**Before writing ANY code, ask:**
+1. Where does this need to be imported?
+2. What existing components/services does this integrate with?
+3. What routes/API calls need to be wired up?
+4. What could break when I add this?
+5. Is there existing code that does something similar I should follow?
+
+**Integration Checklist (run mentally BEFORE coding):**
+```
+[ ] Where is this component rendered?
+[ ] What store(s) does it need access to?
+[ ] What API routes does it call?
+[ ] Are those routes implemented?
+[ ] What other components might be affected?
+[ ] Is there a pattern in the codebase I should follow?
+```
+
+**NO ORPHANED CODE:**
+- Every component must be imported and rendered somewhere
+- Every API route must be registered in the router
+- Every store action must be called by some component
+- Every function must be called by some code path
+
+**If you create something, you must wire it up in the same session.**
 
 ### Autonomous Capabilities
 
