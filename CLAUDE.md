@@ -33,25 +33,32 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 
 ## MANDATORY SESSION START
 
-**Before doing ANYTHING else in a new session, you MUST:**
+**AUTOMATIC CONTEXT LOADING**: Claude Code automatically loads all files from `.claude/rules/*.md` at session start. You do NOT need to manually read these - they are already in your context.
 
-1. **Read today's date from system** - It's provided in the system prompt. Use current year for all searches/documentation. Your knowledge is ~1 year old, so ALWAYS search for current information.
+**The SessionStart hook will display a reminder message. After seeing it:**
 
-2. **Read memory files** (in order):
-   ```
-   .claude/memory/session_context.md     - What was done recently, current goals
-   .claude/memory/gotchas.md             - Known issues to avoid
-   .claude/memory/browser-integration.md - Browser tools available (USE THEM!)
-   .cursor/memory/build_state.json       - Phase status
-   ```
+1. **Acknowledge the auto-loaded context** - Confirm you have the session context, gotchas, and architecture loaded.
 
-3. **Acknowledge context** - State what you understand about current work before proceeding.
+2. **Check today's date** - Use current year (2025) for all searches. Your knowledge is ~1 year stale.
 
-4. **Set session goals** - Update session_context.md with today's goals if user provides tasks.
+3. **If working on UI** - Launch browser tools: `~/bin/chrome-dev`
 
-5. **Check browser tools** - If Chrome DevTools MCP is available, USE IT for visual verification.
+**Memory Files (AUTO-LOADED via .claude/rules/):**
+```
+.claude/rules/01-session-context.md  - Recent work, current goals
+.claude/rules/02-gotchas.md          - Known issues to avoid
+.claude/rules/03-browser-integration.md - Browser tools guide
+.claude/rules/04-architecture.md     - System dependencies
+.claude/rules/05-pending-items.md    - Deferred items
+```
 
-**FAILURE TO DO THIS CAUSES**: Lost context, repeated mistakes, outdated information, claiming done when not done.
+**Legacy locations (for reference):**
+```
+.cursor/memory/build_state.json      - Phase status (still valid)
+.claude/memory/*                     - Old location (deprecated, use rules/)
+```
+
+**FAILURE TO ACKNOWLEDGE CONTEXT**: Lost work, repeated mistakes, stale information.
 
 ---
 
@@ -60,10 +67,12 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 **Before ending work on any task:**
 
 1. Run `npm run build` - Must pass
-2. Update `.claude/memory/session_context.md` with what was done
+2. Update `.claude/rules/01-session-context.md` with what was done
 3. Update `.claude/memory/implementation_log.md` with implementation details
-4. Add any new gotchas to `.claude/memory/gotchas.md`
+4. Add any new gotchas to `.claude/rules/02-gotchas.md`
 5. Run the Completion Checklist (see below)
+
+**IMPORTANT**: The rules/ files are auto-loaded by the next session. If you don't update them, the next agent loses context!
 
 ---
 

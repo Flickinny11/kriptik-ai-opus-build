@@ -1,22 +1,30 @@
 # Refresh Context Command
 
-Re-read all memory files and confirm understanding of current project state.
+Re-confirm understanding of auto-loaded memory files and verify current project state.
+
+> **NOTE**: Memory files in `.claude/rules/*.md` are AUTO-LOADED at session start.
+> This command is for verification or if you need to re-read after they've been updated.
 
 ## Steps to Execute
 
-1. **Read Memory Files**
+1. **Verify Auto-Loaded Memory Files**
 
-Read these files and summarize their contents:
+These files should already be in your context (auto-loaded from `.claude/rules/`):
 
-- `.cursor/memory/build_state.json` - Current phase, progress percentage, completed features
-- `.cursor/memory/decisions.json` - Architectural decisions (AD001-AD006), technical choices
-- `.cursor/memory/issue_resolutions.json` - Past issues and resolutions
-- `.claude/memory/session_context.md` - Current session focus
-- `.claude/memory/pending_items.md` - Pending features and items
-- `.claude/memory/gotchas.md` - Known issues to avoid
+- `.claude/rules/01-session-context.md` - Recent work, current goals
+- `.claude/rules/02-gotchas.md` - Known issues to avoid
+- `.claude/rules/03-browser-integration.md` - Browser tools guide
+- `.claude/rules/04-architecture.md` - System dependencies
+- `.claude/rules/05-pending-items.md` - Deferred items
 
-2. **Read Reference Files**
+If context seems stale, explicitly re-read these files.
 
+2. **Read Additional Reference Files**
+
+These are NOT auto-loaded - read if needed:
+
+- `.cursor/memory/build_state.json` - Current phase, progress percentage
+- `.cursor/memory/decisions.json` - Architectural decisions (AD001-AD006)
 - `feature_list.json` - Feature completion status (X/66 complete)
 - `intent.json` - Locked Intent Contract (Sacred Contract)
 
@@ -27,12 +35,17 @@ Report back with:
 - Number of completed vs pending features
 - Any active work items
 - Any known blockers
-- Key constraints from decisions.json
+- Key constraints
 
 ## Expected Output Format
 
 ```
-## Context Refreshed
+## Context Verified
+
+### Auto-Loaded Memory
+- Session Context: [confirmed/stale]
+- Gotchas: [confirmed/stale]
+- Architecture: [confirmed/stale]
 
 ### Progress
 - Phase: [current phase]
@@ -40,22 +53,23 @@ Report back with:
 - Build Status: [passing/failing]
 
 ### Active Work
-- [Current focus areas]
+- [Current focus areas from session_context]
 
 ### Key Constraints
-- AD001: [summary]
-- AD002: [summary]
-- AD003: [summary]
+- AD001: Preserve Turso SQLite
+- AD002: Preserve OpenRouter
+- AD003: Additive changes only
 
 ### Blockers
 - [Any blockers or "None"]
 
 ### Ready to Continue
-[Confirmation that context is loaded and ready to work]
+[Confirmation that context is fresh and ready to work]
 ```
 
-## Notes
+## When to Use
 
-- Run this at the start of each session
-- Run after pulling changes from remote
-- Run if context seems stale or confused
+- **NOT needed at session start** - memory auto-loads from rules/
+- Use after pulling changes from remote
+- Use if context seems stale or confused
+- Use to verify memory files were updated correctly
