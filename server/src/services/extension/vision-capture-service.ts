@@ -1,22 +1,41 @@
 /**
  * Vision Capture Service
  *
- * Server-side capture using Gemini Flash + Playwright.
+ * Server-side capture using Gemini 3 Flash Preview + Playwright.
+ * Uses OpenRouter API for Gemini access (December 2025 model).
+ *
  * Captures AI platform content by:
  * 1. Loading the page with user's session cookies
  * 2. Taking screenshots at intervals
- * 3. Using Gemini vision to extract chat history, errors, file tree
+ * 3. Using Gemini 3 Flash vision to extract chat history, errors, file tree
  * 4. Streaming progress to the extension via SSE
  * 5. Auto-importing to KripTik when capture completes
+ *
+ * Model: google/gemini-3-flash-preview (released Dec 17, 2025)
+ * - 1M context window, 65K output tokens
+ * - Supports: text, image, audio, video input
+ * - Configurable thinking levels: minimal, low, medium, high
+ * - Cost: $0.50/M input, $3.00/M output
  *
  * This is the ONLY capture method - there is no "non-vision" alternative.
  */
 
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import OpenAI from 'openai';
 import { db } from '../../db.js';
 import { projects, notifications } from '../../schema.js';
+import { OPENROUTER_MODELS } from '../ai/openrouter-client.js';
+
+// Gemini 3 Flash thinking levels for vision analysis
+type GeminiThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
+
+// Vision model configuration
+const VISION_MODEL_CONFIG = {
+    model: OPENROUTER_MODELS.GEMINI_3_FLASH,  // google/gemini-3-flash-preview
+    thinkingLevel: 'low' as GeminiThinkingLevel,  // Low thinking for speed, still accurate
+    maxTokens: 8192,
+    temperature: 0.3,  // Lower for more consistent extraction
+};
 
 // Lazy-load Playwright (not available in serverless)
 let playwrightModule: typeof import('playwright') | null = null;
@@ -214,14 +233,14 @@ const PLATFORM_PATTERNS: Record<string, { name: string; chatSelector: string; er
 
 class VisionCaptureService {
     private sessions: Map<string, VisionCaptureSession> = new Map();
-    private openai: OpenAI;
+    private openRouterApiKey: string;
 
     constructor() {
-        // Use OpenRouter for Gemini access
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
-            baseURL: process.env.OPENROUTER_API_KEY ? 'https://openrouter.ai/api/v1' : undefined,
-        });
+        // Use OpenRouter for Gemini 3 Flash access
+        this.openRouterApiKey = process.env.OPENROUTER_API_KEY || '';
+        if (!this.openRouterApiKey) {
+            console.warn('[VisionCapture] OPENROUTER_API_KEY not set - vision capture will fail');
+        }
     }
 
     /**
@@ -475,9 +494,11 @@ class VisionCaptureService {
                 console.log('[VisionCapture] Final screenshot failed');
             }
 
-            // Calculate estimated cost (Gemini Flash is very cheap)
-            // ~$0.35/1M input tokens, ~$1.05/1M output for Gemini 2.0 Flash
-            const estimatedCost = apiCalls * 0.002; // ~$0.002 per call estimate
+            // Calculate estimated cost for Gemini 3 Flash Preview
+            // $0.50/M input, $3.00/M output
+            // Average screenshot analysis: ~2K input tokens (image), ~1K output tokens
+            // Per call: ~$0.001 input + ~$0.003 output = ~$0.004
+            const estimatedCost = apiCalls * 0.004;
 
             // Build result
             const result: VisionCaptureResult = {
@@ -577,7 +598,8 @@ class VisionCaptureService {
     }
 
     /**
-     * Analyze screenshot with Gemini vision
+     * Analyze screenshot with Gemini 3 Flash Preview via OpenRouter
+     * Uses configurable thinking levels for optimal speed/accuracy balance
      */
     private async analyzeScreenshot(
         screenshotBase64: string,
@@ -628,34 +650,54 @@ Return the same JSON format: {"messages": [...], "errors": [...], "files": [...]
 Only include NEW content visible in this screenshot.`;
 
         try {
-            // Use OpenRouter with Gemini Flash for vision
-            const modelId = process.env.OPENROUTER_API_KEY
-                ? 'google/gemini-2.0-flash-thinking-exp'
-                : 'gpt-4o-mini'; // Fallback if no OpenRouter
-
-            const response = await this.openai.chat.completions.create({
-                model: modelId,
-                max_tokens: 4096,
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:image/jpeg;base64,${screenshotBase64}`,
-                                },
-                            },
-                            {
-                                type: 'text',
-                                text: prompt,
-                            },
-                        ],
+            // Use OpenRouter with Gemini 3 Flash Preview for vision analysis
+            // Model: google/gemini-3-flash-preview (Dec 2025)
+            // Supports configurable thinking levels for speed/accuracy balance
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.openRouterApiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://kriptik.app',
+                    'X-Title': 'KripTik AI Vision Capture',
+                },
+                body: JSON.stringify({
+                    model: VISION_MODEL_CONFIG.model,
+                    max_tokens: VISION_MODEL_CONFIG.maxTokens,
+                    temperature: VISION_MODEL_CONFIG.temperature,
+                    // Gemini 3 Flash thinking configuration
+                    thinking: {
+                        type: 'enabled',
+                        level: VISION_MODEL_CONFIG.thinkingLevel,
                     },
-                ],
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:image/jpeg;base64,${screenshotBase64}`,
+                                    },
+                                },
+                                {
+                                    type: 'text',
+                                    text: prompt,
+                                },
+                            ],
+                        },
+                    ],
+                }),
             });
 
-            const content = response.choices[0]?.message?.content || '';
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[VisionCapture] OpenRouter API error:', response.status, errorText);
+                throw new Error(`OpenRouter API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || '';
 
             // Parse JSON from response
             const jsonMatch = content.match(/\{[\s\S]*\}/);
