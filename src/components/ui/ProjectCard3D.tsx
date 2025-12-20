@@ -5,6 +5,10 @@ interface ProjectCard3DProps {
     onClick: () => void;
     thumbnail?: string;
     projectName?: string;
+    // Fix My App status
+    fixingStatus?: 'analyzing' | 'creating_intent' | 'building' | 'verifying' | 'completed' | 'failed' | null;
+    fixingProgress?: number;
+    importSource?: string;
 }
 
 /**
@@ -17,8 +21,31 @@ interface ProjectCard3DProps {
  * - Smooth 3D depth with soft shadows
  * - Glass shine micro-animation
  */
-export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3DProps) {
+export function ProjectCard3D({
+    onClick,
+    thumbnail,
+    projectName,
+    fixingStatus,
+    fixingProgress = 0,
+    importSource
+}: ProjectCard3DProps) {
     const [isHovered, setIsHovered] = useState(false);
+
+    // Determine if project is being fixed
+    const isBeingFixed = fixingStatus && !['completed', 'failed', null].includes(fixingStatus);
+
+    // Get status message
+    const getStatusMessage = () => {
+        switch (fixingStatus) {
+            case 'analyzing': return 'Analyzing project...';
+            case 'creating_intent': return 'Creating Sacred Contract...';
+            case 'building': return 'Building your app...';
+            case 'verifying': return 'Verifying quality...';
+            case 'completed': return 'Fixed!';
+            case 'failed': return 'Fix failed';
+            default: return '';
+        }
+    };
 
     return (
         <div
@@ -147,7 +174,7 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     />
 
                     {/* Inner glow ring on hover */}
-                    {isHovered && (
+                    {isHovered && !isBeingFixed && (
                         <div
                             style={{
                                 position: 'absolute',
@@ -159,6 +186,119 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                                 animation: 'pulse-glow 2s ease-in-out infinite',
                             }}
                         />
+                    )}
+
+                    {/* FIX MY APP - Pulsing Red Overlay for projects being fixed */}
+                    {isBeingFixed && (
+                        <>
+                            {/* Semi-transparent red pulsing overlay */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    borderRadius: '20px',
+                                    background: 'linear-gradient(180deg, rgba(220, 38, 38, 0.15) 0%, rgba(185, 28, 28, 0.25) 100%)',
+                                    animation: 'fixing-pulse 2s ease-in-out infinite',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+
+                            {/* Red glow ring */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    inset: '3px',
+                                    borderRadius: '17px',
+                                    border: '2px solid rgba(239, 68, 68, 0.5)',
+                                    boxShadow: `
+                                        inset 0 0 30px rgba(239, 68, 68, 0.2),
+                                        0 0 20px rgba(239, 68, 68, 0.3)
+                                    `,
+                                    pointerEvents: 'none',
+                                    animation: 'fixing-ring-pulse 2s ease-in-out infinite',
+                                }}
+                            />
+
+                            {/* Status badge */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: '12px',
+                                    left: '12px',
+                                    right: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 12px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(0, 0, 0, 0.7)',
+                                    backdropFilter: 'blur(8px)',
+                                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                                }}
+                            >
+                                {/* Pulsing dot */}
+                                <div
+                                    style={{
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        background: '#ef4444',
+                                        animation: 'dot-pulse 1s ease-in-out infinite',
+                                    }}
+                                />
+                                <span style={{ color: '#fff', fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>
+                                    BEING FIXED
+                                </span>
+                                {importSource && (
+                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px', marginLeft: 'auto' }}>
+                                        from {importSource}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Progress bar at bottom */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '12px',
+                                    left: '12px',
+                                    right: '12px',
+                                    padding: '8px 12px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(0, 0, 0, 0.7)',
+                                    backdropFilter: 'blur(8px)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '10px' }}>
+                                        {getStatusMessage()}
+                                    </span>
+                                    <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>
+                                        {fixingProgress}%
+                                    </span>
+                                </div>
+                                <div
+                                    style={{
+                                        height: '4px',
+                                        borderRadius: '2px',
+                                        background: 'rgba(255, 255, 255, 0.1)',
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            height: '100%',
+                                            width: `${fixingProgress}%`,
+                                            background: 'linear-gradient(90deg, #ef4444, #f87171)',
+                                            borderRadius: '2px',
+                                            transition: 'width 0.5s ease',
+                                            boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     {/* Default content when no thumbnail */}
@@ -265,6 +405,40 @@ export function ProjectCard3D({ onClick, thumbnail, projectName }: ProjectCard3D
                     50% {
                         opacity: 1;
                         box-shadow: inset 0 0 30px rgba(255, 160, 120, 0.25);
+                    }
+                }
+
+                /* Fix My App - Red pulsing overlay */
+                @keyframes fixing-pulse {
+                    0%, 100% {
+                        opacity: 0.4;
+                        background: linear-gradient(180deg, rgba(220, 38, 38, 0.1) 0%, rgba(185, 28, 28, 0.2) 100%);
+                    }
+                    50% {
+                        opacity: 0.7;
+                        background: linear-gradient(180deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.35) 100%);
+                    }
+                }
+
+                @keyframes fixing-ring-pulse {
+                    0%, 100% {
+                        border-color: rgba(239, 68, 68, 0.3);
+                        box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.1), 0 0 15px rgba(239, 68, 68, 0.2);
+                    }
+                    50% {
+                        border-color: rgba(239, 68, 68, 0.6);
+                        box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.25), 0 0 30px rgba(239, 68, 68, 0.4);
+                    }
+                }
+
+                @keyframes dot-pulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1.3);
+                        opacity: 0.7;
                     }
                 }
             `}</style>

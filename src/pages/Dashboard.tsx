@@ -405,13 +405,20 @@ function ProjectThumbnail({ project }: { project: any }) {
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const frameworks = project.framework || 'React';
 
+    // Check if project is being fixed
+    const isBeingFixed = project.fixingStatus &&
+        !['completed', 'failed', null].includes(project.fixingStatus);
+
     return (
         <div className="group" style={{ marginBottom: '24px' }}>
-            {/* 3D Glass Card */}
+            {/* 3D Glass Card with Fix My App status */}
             <ProjectCard3D
                 onClick={() => navigate(`/builder/${project.id}`)}
                 thumbnail={project.thumbnail}
                 projectName={project.name}
+                fixingStatus={project.fixingStatus}
+                fixingProgress={project.fixingProgress}
+                importSource={project.importSource}
             />
 
             {/* Project Info */}
@@ -436,9 +443,20 @@ function ProjectThumbnail({ project }: { project: any }) {
                     <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}>
                         {frameworks}
                     </span>
-                    <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
-                        Active
-                    </span>
+                    {isBeingFixed ? (
+                        <span className="px-2 py-0.5 text-[10px] rounded-full flex items-center gap-1" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            Being Fixed
+                        </span>
+                    ) : project.fixingStatus === 'completed' ? (
+                        <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
+                            Fixed
+                        </span>
+                    ) : (
+                        <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
+                            Active
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
@@ -477,6 +495,23 @@ export default function Dashboard() {
             fetchProjects();
         }
     }, [isAuthenticated, user?.id, fetchProjects]);
+
+    // Poll for projects being fixed (every 5 seconds when there are active fixes)
+    useEffect(() => {
+        // Check if any projects are being fixed
+        const hasProjectsBeingFixed = projects.some(p =>
+            p.fixingStatus && !['completed', 'failed', null].includes(p.fixingStatus)
+        );
+
+        if (!hasProjectsBeingFixed || !isAuthenticated) return;
+
+        console.log('[Dashboard] Polling for Fix My App progress...');
+        const pollInterval = setInterval(() => {
+            fetchProjects();
+        }, 5000); // Poll every 5 seconds
+
+        return () => clearInterval(pollInterval);
+    }, [projects, isAuthenticated, fetchProjects]);
 
     useEffect(() => {
         if (!hasCompletedOnboarding) {
