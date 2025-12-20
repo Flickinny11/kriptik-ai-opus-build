@@ -60,3 +60,6 @@ export { importRouter } from './import.js';
 
 // Browser Extension API
 export { extensionRouter } from './extension.js';
+
+// Production Stack Configuration
+export { default as productionStackRouter } from './production-stack.js';

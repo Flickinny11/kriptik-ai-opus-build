@@ -11,7 +11,7 @@
 import { motion } from 'framer-motion';
 
 export type IconName =
-  | 'agents' | 'memory' | 'qualityCheck' | 'integrations'
+  | 'agents' | 'memory' | 'qualityCheck' | 'integrations' | 'server'
   | 'ghostMode' | 'marketFit' | 'predictiveEngine' | 'aiSlopCatch' | 'userTwin'
   | 'workflows' | 'database' | 'developerSettings' | 'voiceFirst' | 'dna'
   | 'liveDebug' | 'liveHealth' | 'testGen' | 'timeMachine' | 'selfHeal'
@@ -199,6 +199,41 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       />
       {/* Connection indicator */}
       <circle cx="12" cy="11" r="1.5" fill={isActive ? '#FFF' : '#888'} />
+    </g>
+  ),
+
+  // Server - Production Stack (stacked server modules with database symbol)
+  server: ({ isActive, isHovered }) => (
+    <g filter="url(#dropShadow)">
+      <GradientDefs />
+      {/* Top server module */}
+      <motion.rect
+        x="5" y="4" width="14" height="4" rx="1"
+        fill={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
+        animate={{ y: isHovered ? 3.5 : 4 }}
+      />
+      <circle cx="16" cy="6" r="0.8" fill={isActive ? '#c8ff64' : '#666'} />
+      {/* Middle server module */}
+      <motion.rect
+        x="5" y="10" width="14" height="4" rx="1"
+        fill={isActive ? 'url(#activeGlow)' : '#B8B8C4'}
+        animate={{ y: isHovered ? 9.5 : 10 }}
+      />
+      <circle cx="16" cy="12" r="0.8" fill={isActive ? '#c8ff64' : '#666'} />
+      {/* Bottom server module */}
+      <motion.rect
+        x="5" y="16" width="14" height="4" rx="1"
+        fill={isActive ? 'url(#cyanTech)' : '#A8A8B4'}
+        animate={{ y: isHovered ? 15.5 : 16 }}
+      />
+      <circle cx="16" cy="18" r="0.8" fill={isActive ? '#c8ff64' : '#666'} />
+      {/* Connection lines */}
+      <motion.path
+        d="M8 8V10M8 14V16"
+        stroke={isActive ? '#FFF' : '#666'}
+        strokeWidth="1"
+        animate={{ opacity: isHovered ? 1 : 0.6 }}
+      />
     </g>
   ),
 

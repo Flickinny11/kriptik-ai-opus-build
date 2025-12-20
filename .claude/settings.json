@@ -13,6 +13,7 @@
       "Bash(cat:*)",
       "Bash(xargs:*)",
       "Bash(curl:*)",
+      "Bash(gh:*)",
       "Bash(~/bin/chrome-dev:*)",
       "Read:**",
       "Glob:**",
@@ -43,55 +44,37 @@
       "Bash(git reset --hard)"
     ]
   },
-  "context": {
-    "include": [
-      "CLAUDE.md",
-      "feature_list.json",
-      "intent.json",
-      ".cursor/memory/*.json",
-      ".claude/memory/*.md",
-      "package.json",
-      "server/package.json",
-      "tsconfig.json",
-      "vite.config.ts",
-      "tailwind.config.js"
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== KRIPTIK AI SESSION START ===' && echo '' && echo 'Memory files auto-loaded from .claude/rules/*.md' && echo 'CLAUDE.md loaded with operational framework' && echo '' && echo 'Today: '$(date '+%Y-%m-%d') && echo '' && echo 'CRITICAL REMINDERS:' && echo '1. Your knowledge is ~1 year old - USE WebSearch for current APIs' && echo '2. Browser tools available - launch Chrome: ~/bin/chrome-dev' && echo '3. Build must pass before claiming completion' && echo '4. Update .claude/rules/01-session-context.md after work' && echo '' && echo '=== READY TO BUILD ==='"
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== SESSION RESUMED ===' && echo 'Memory context restored from .claude/rules/*.md' && echo 'Continue from where you left off.'"
+          }
+        ]
+      }
     ],
-    "exclude": [
-      "node_modules/**",
-      "dist/**",
-      ".git/**",
-      "*.log",
-      ".env*",
-      "secrets/**"
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Remember: No placeholders, no TODOs, no mock data!'"
+          }
+        ]
+      }
     ]
-  },
-  "model": {
-    "default": "claude-opus-4-5-20251101",
-    "preferExtendedThinking": true,
-    "thinkingBudget": 32000
-  },
-  "behavior": {
-    "autoFormat": true,
-    "verifyBeforeComplete": true,
-    "updateMemoryOnChange": true,
-    "requireFileReadBeforeEdit": true,
-    "autoRunBuildAfterChanges": true,
-    "useBrowserToolsForVisualVerification": true
-  },
-  "autonomousOperations": {
-    "enabled": true,
-    "maxIterationsWithoutApproval": 5,
-    "autoFixLintErrors": true,
-    "autoFixTypeErrors": true,
-    "autoRunTestsAfterChanges": false,
-    "requireBuildPassBeforeClaim": true,
-    "webSearchBeforeExternalIntegration": true
-  },
-  "qualityGates": {
-    "buildMustPass": true,
-    "noTypeScriptErrors": true,
-    "noPlaceholderContent": true,
-    "antiSlopScore": 85,
-    "memoryFilesMustUpdate": true
   }
 }

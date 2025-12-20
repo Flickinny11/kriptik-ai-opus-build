@@ -33,25 +33,32 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 
 ## MANDATORY SESSION START
 
-**Before doing ANYTHING else in a new session, you MUST:**
+**AUTOMATIC CONTEXT LOADING**: Claude Code automatically loads all files from `.claude/rules/*.md` at session start. You do NOT need to manually read these - they are already in your context.
 
-1. **Read today's date from system** - It's provided in the system prompt. Use current year for all searches/documentation. Your knowledge is ~1 year old, so ALWAYS search for current information.
+**The SessionStart hook will display a reminder message. After seeing it:**
 
-2. **Read memory files** (in order):
-   ```
-   .claude/memory/session_context.md     - What was done recently, current goals
-   .claude/memory/gotchas.md             - Known issues to avoid
-   .claude/memory/browser-integration.md - Browser tools available (USE THEM!)
-   .cursor/memory/build_state.json       - Phase status
-   ```
+1. **Acknowledge the auto-loaded context** - Confirm you have the session context, gotchas, and architecture loaded.
 
-3. **Acknowledge context** - State what you understand about current work before proceeding.
+2. **Check today's date** - Use current year (2025) for all searches. Your knowledge is ~1 year stale.
 
-4. **Set session goals** - Update session_context.md with today's goals if user provides tasks.
+3. **If working on UI** - Launch browser tools: `~/bin/chrome-dev`
 
-5. **Check browser tools** - If Chrome DevTools MCP is available, USE IT for visual verification.
+**Memory Files (AUTO-LOADED via .claude/rules/):**
+```
+.claude/rules/01-session-context.md  - Recent work, current goals
+.claude/rules/02-gotchas.md          - Known issues to avoid
+.claude/rules/03-browser-integration.md - Browser tools guide
+.claude/rules/04-architecture.md     - System dependencies
+.claude/rules/05-pending-items.md    - Deferred items
+```
 
-**FAILURE TO DO THIS CAUSES**: Lost context, repeated mistakes, outdated information, claiming done when not done.
+**Legacy locations (for reference):**
+```
+.cursor/memory/build_state.json      - Phase status (still valid)
+.claude/memory/*                     - Old location (deprecated, use rules/)
+```
+
+**FAILURE TO ACKNOWLEDGE CONTEXT**: Lost work, repeated mistakes, stale information.
 
 ---
 
@@ -60,10 +67,12 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 **Before ending work on any task:**
 
 1. Run `npm run build` - Must pass
-2. Update `.claude/memory/session_context.md` with what was done
+2. Update `.claude/rules/01-session-context.md` with what was done
 3. Update `.claude/memory/implementation_log.md` with implementation details
-4. Add any new gotchas to `.claude/memory/gotchas.md`
+4. Add any new gotchas to `.claude/rules/02-gotchas.md`
 5. Run the Completion Checklist (see below)
+
+**IMPORTANT**: The rules/ files are auto-loaded by the next session. If you don't update them, the next agent loses context!
 
 ---
 
@@ -96,6 +105,50 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 5. If issues found, fix and repeat
 6. All without leaving Claude Code!
 ```
+
+### MAXIMIZE BROWSER TOOL USAGE
+
+> **MANDATE**: Use browser tools constantly, not just occasionally.
+
+**For EVERY UI change:**
+- Take a screenshot BEFORE and AFTER
+- Check console for errors BEFORE claiming done
+- Verify the change actually renders correctly
+
+**For debugging:**
+- Use `snapshot` to understand current DOM state
+- Use `get_network_requests` to debug API issues
+- Use `execute_script` to inspect state
+
+**When user selects an element in browser:**
+- The element selection provides context about what to modify
+- Still follow ALL rules (anti-slop, no placeholders, custom icons, etc.)
+- Verify your edit with a screenshot after making changes
+
+**DON'T:**
+- Claim UI is fixed without visual verification
+- Skip screenshot for "small" changes
+- Assume hot reload worked - verify it
+
+### Element Selection Workflow
+
+When the user selects an element via browser tools:
+
+1. **Receive element context** - You'll see the element's UID, tag, classes, text
+2. **Identify the component** - Find the React component that renders this element:
+   - Search for unique class names: `grep -r "className.*uniqueClass" src/`
+   - Search for text content: `grep -r "Button Text" src/`
+   - Check common locations: `src/components/`, `src/pages/`
+   - Look for Tailwind classes that match the element
+3. **Make the change** - Following ALL KripTik rules:
+   - No placeholders
+   - No emoji
+   - Custom icons only (`src/components/icons/`, NOT Lucide)
+   - Premium design standards (depth, motion, typography)
+   - Anti-slop rules (no purple-pink gradients, no flat designs)
+4. **Verify visually** - Take screenshot to confirm the change
+5. **Check console** - Ensure no errors were introduced
+6. **Wire up if needed** - Ensure the change is integrated, not orphaned
 
 ### Starting Browser with Debugging
 
@@ -134,23 +187,31 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 - Use flat designs without depth (shadows, layers, glass effects required).
 - Use generic fonts (Arial, Helvetica, system-ui, font-sans without override).
 - Use purple-to-pink or blue-to-purple gradients (classic AI slop).
+- Use Lucide React icons - use custom icons from `src/components/icons/` instead.
+- Create orphaned code (components, routes, functions that aren't wired up).
 - Modify existing database column types (Turso limitation).
 - Add new databases or AI service providers (AD002 constraint).
 - Claim completion without verification.
 - Dismiss items from prompts without explicit acknowledgment.
 - Modify intent.json after it's locked.
 - Skip the verification checklist.
+- Skip browser verification for UI changes.
 
 ### ALWAYS:
 - Read files before modifying them.
 - Verify builds pass after changes.
-- Update .claude/memory/ files after significant work.
+- Update .claude/rules/*.md files after significant work (auto-loaded by next agent).
 - Check feature_list.json for current status before working on features.
 - Respect the Intent Lock contract (intent.json).
 - Use the completion checklist before claiming done.
 - Preserve existing architecture (AD003: additive changes only).
 - Consider credit costs when suggesting model usage.
 - Report blockers immediately rather than guessing.
+- Use custom icons from `src/components/icons/` (NOT Lucide React).
+- Wire up new code to existing systems (no orphaned code).
+- Use browser tools to verify UI changes visually.
+- Think ahead: anticipate integration points and potential issues.
+- Leave artifacts in memory files for the next agent.
 
 ---
 
@@ -160,7 +221,7 @@ When Chrome is running with remote debugging (`~/bin/chrome-dev`), you have acce
 - **Framework**: React 18.3.1 + TypeScript 5.6.2
 - **Build**: Vite 5.4.10
 - **Styling**: Tailwind CSS 3.4.1 + tailwindcss-animate
-- **UI Components**: Radix UI (14 packages), Lucide React
+- **UI Components**: Radix UI (14 packages), Custom Icons (`src/components/icons/`)
 - **Animation**: Framer Motion 12.23.24
 - **3D**: Three.js 0.165.0, @react-three/fiber 9.4.2, @react-three/drei
 - **State**: Zustand 5.0.8 (16 stores)
@@ -354,20 +415,39 @@ CRITICAL MODEL SELECTION BY PHASE:
 | 3: Rewrite | Opus 4.5 + 64K | 2 | targeted component rewrite |
 | 4: Rebuild | Opus 4.5 + 64K | 1 | full feature from Intent |
 
-### 10. Feature Agent System
+### 10. Feature Agent System (Unified with 6-Phase Build Loop)
 **Location**: `server/src/services/feature-agent/feature-agent-service.ts`
 
-Complete feature implementation workflow:
-1. Intent Lock creation for feature
-2. Implementation plan generation
-3. Phase-by-phase approval (approve/modify/approve-all)
-4. Credentials collection (secure vault + .env write)
-5. Execution via Developer Mode
-6. Verification swarm validation
-7. Merge to main
+Feature Agents now use the FULL 6-Phase Build Loop with all Cursor 2.1+ enhancements:
+
+**Complete feature implementation workflow:**
+1. Intent Lock creation (Sacred Contract)
+2. Implementation plan generation with phase approval
+3. Credentials collection (secure vault + .env write)
+4. **6-Phase Build Loop Execution:**
+   - Phase 0: INTENT LOCK - Create/validate Sacred Contract
+   - Phase 1: INITIALIZATION - Artifacts, scaffolding, seed data
+   - Phase 2: PARALLEL BUILD - Agents build with real-time feedback
+   - Phase 3: INTEGRATION CHECK - Orphan scan, dead code, unwired routes
+   - Phase 4: FUNCTIONAL TEST - Browser automation as real user
+   - Phase 5: INTENT SATISFACTION - Critical gate (prevents premature victory)
+   - Phase 6: BROWSER DEMO - Visual verification
+5. Verification swarm validation (6-agent parallel check)
+6. Merge to main
+
+**Cursor 2.1+ Features Active:**
+- Streaming Feedback Channel (real-time verification → builder)
+- Continuous Verification (TypeScript, ESLint, tests running continuously)
+- Runtime Debug Context (variable states, execution paths for errors)
+- Browser-in-the-Loop (continuous visual verification during build)
+- Human Verification Checkpoints (pause for critical fixes)
+- Multi-Agent Judging (auto-evaluate parallel results, pick best)
+- Error Pattern Library (Level 0 pre-escalation instant fixes)
 
 **UI Components**: `src/components/feature-agent/*`
 **Store**: `useFeatureAgentTileStore.ts`
+
+**CRITICAL**: Feature Agents are now INCAPABLE of claiming done when not done. The 6-phase loop with Intent Satisfaction gate (Phase 5) ensures all success criteria are verified before completion.
 
 ### 11. Autonomous Learning Engine (Component 28)
 **Location**: `server/src/services/learning/*`
@@ -486,15 +566,17 @@ GET  /api/verification/swarm/:buildId - Swarm status
 
 ---
 
-## ZUSTAND STORES (16 total)
+## ZUSTAND STORES (15 total)
 
 **Critical stores to understand**:
-- `useDeveloperModeStore.ts` - Agent sessions, progress, merge queue
-- `useFeatureAgentTileStore.ts` - Feature agent tile state
+- `useFeatureAgentTileStore.ts` - Feature agent tile state (primary agent UI)
 - `useLearningStore.ts` - Evolution flywheel state
 - `useBuilderStore.ts` - Main builder state
 - `useProjectStore.ts` - Project management
 - `useAuthStore.ts` - Authentication state
+- `useGhostModeStore.ts` - Ghost mode autonomous building
+
+**NOTE**: `useDeveloperModeStore.ts` has been removed. Feature Agents now use the unified 6-Phase Build Loop directly.
 
 **IMPORTANT**: Always check existing store before adding state.
 
@@ -535,6 +617,7 @@ KripTik must create the reaction: **"Holy shit, this is amazing - this is more a
 - Subtle gradients over flat colors
 - Glow effects for emphasis (used sparingly)
 - **BANNED**: purple-to-pink, blue-to-purple gradients
+- **Ghost Mode**: Always use `#F5A86C` (amber) - NEVER purple
 
 ---
 
@@ -551,14 +634,18 @@ Each Claude Code session is a NEW agent with NO memory of previous sessions. The
 - `decisions.json` - Architectural decisions (AD001-AD006), technical choices
 - `issue_resolutions.json` - Issue patterns and resolutions
 
-### Claude Code (.claude/memory/) - READ/WRITE
-- `session_context.md` - Current session focus and progress
-- `implementation_log.md` - What was built and why
-- `pending_items.md` - Deferred or partial items
-- `gotchas.md` - Known issues, workarounds
-- `architecture_map.md` - System dependencies
+### Claude Code (.claude/rules/) - AUTO-LOADED (Primary)
+> **These files are automatically loaded at session start. Update them for next agent.**
+- `01-session-context.md` - Current session focus and progress
+- `02-gotchas.md` - Known issues, workarounds
+- `03-browser-integration.md` - Browser MCP tools guide
+- `04-architecture.md` - System dependencies
+- `05-pending-items.md` - Deferred or partial items
+
+### Claude Code (.claude/memory/) - Manual Read (Secondary)
+> **These are NOT auto-loaded. Read manually when needed.**
+- `implementation_log.md` - What was built and why (detailed)
 - `feature_dependencies.md` - Feature→file mapping
-- `browser-integration.md` - Browser MCP tools guide (USE THIS!)
 
 ### Reference Files (Root)
 - `feature_list.json` - 66 features with status
@@ -713,18 +800,18 @@ Update memory files when:
 
 ## CONTEXT REFRESH PROTOCOL
 
+**NOTE**: Files in `.claude/rules/*.md` are AUTO-LOADED at session start. You don't need to manually read them.
+
 At the start of EVERY session:
-1. Read `.cursor/memory/build_state.json` for current phase
-2. Read `.cursor/memory/decisions.json` for constraints
-3. Read `feature_list.json` for completion status
-4. Read `intent.json` for Sacred Contract
-5. Read `.claude/memory/session_context.md` for recent work
-6. Understand what was done, what's in progress, what's next
+1. **AUTO-LOADED**: `.claude/rules/*.md` (session context, gotchas, architecture, etc.)
+2. Read `.cursor/memory/build_state.json` for current phase (if needed)
+3. Read `feature_list.json` for completion status (if working on features)
+4. Read `intent.json` for Sacred Contract (if making significant changes)
 
 After EVERY significant change:
-1. Update `.claude/memory/session_context.md`
-2. Update `.claude/memory/implementation_log.md`
-3. Note any new gotchas in `.claude/memory/gotchas.md`
+1. Update `.claude/rules/01-session-context.md` (auto-loaded by next agent)
+2. Update `.claude/memory/implementation_log.md` (detailed log)
+3. Note any new gotchas in `.claude/rules/02-gotchas.md` (auto-loaded by next agent)
 
 ---
 
@@ -785,6 +872,35 @@ Than to:
 - Rush and create bugs
 - Use stale knowledge and break integrations
 - Claim done and require fix cycles
+
+### THINK AHEAD - Proactive Problem Prevention
+
+> **MANDATE**: Anticipate problems BEFORE they happen. Don't just fix errors - prevent them.
+
+**Before writing ANY code, ask:**
+1. Where does this need to be imported?
+2. What existing components/services does this integrate with?
+3. What routes/API calls need to be wired up?
+4. What could break when I add this?
+5. Is there existing code that does something similar I should follow?
+
+**Integration Checklist (run mentally BEFORE coding):**
+```
+[ ] Where is this component rendered?
+[ ] What store(s) does it need access to?
+[ ] What API routes does it call?
+[ ] Are those routes implemented?
+[ ] What other components might be affected?
+[ ] Is there a pattern in the codebase I should follow?
+```
+
+**NO ORPHANED CODE:**
+- Every component must be imported and rendered somewhere
+- Every API route must be registered in the router
+- Every store action must be called by some component
+- Every function must be called by some code path
+
+**If you create something, you must wire it up in the same session.**
 
 ### Autonomous Capabilities
 
@@ -885,9 +1001,9 @@ As of 2025-12-19, Claude Code in this project has:
 - Search with current year (2025) for latest info
 
 ### 3. Agent Memory System
-- Memory files in `.claude/memory/` persist across sessions
-- UPDATE THESE before ending work
-- Next agent depends on your handoff artifacts
+- Memory files in `.claude/rules/` are AUTO-LOADED at session start
+- UPDATE `.claude/rules/01-session-context.md` before ending work
+- Next agent depends on your handoff artifacts in rules/
 
 ### 4. Visual Verification
 - Use browser tools to verify UI changes
@@ -922,7 +1038,7 @@ This configuration provides feature parity with Cursor 2.2:
 | Console error reading | Browser MCP `get_console_logs` |
 | Knowledge currency | WebSearch mandate before external integrations |
 | Quality gates | Build pass + anti-slop 85+ required |
-| Agent memory | `.claude/memory/` files persist |
+| Agent memory | `.claude/rules/` auto-loaded + memory files |
 | Parallel agents | Worktree architecture + MCP servers |
 
 **Additional KripTik Advantages**:

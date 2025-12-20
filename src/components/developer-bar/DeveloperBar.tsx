@@ -74,6 +74,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   { id: 'memory', name: 'Memory', icon: 'memory', category: 'core' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck', category: 'core' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations', category: 'core' },
+  { id: 'production-stack', name: 'Prod Stack', icon: 'server', category: 'core' },
   { id: 'market-fit', name: 'Market Fit', icon: 'marketFit', category: 'ai' },
   { id: 'predictive-engine', name: 'Predictive', icon: 'predictiveEngine', category: 'ai' },
   { id: 'ai-slop-catch', name: 'AI-Slop', icon: 'aiSlopCatch', category: 'ai' },

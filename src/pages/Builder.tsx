@@ -62,6 +62,8 @@ import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import ExtensionAlternative from '../components/builder/ExtensionAlternative';
+import { ProductionStackWizard } from '../components/production-stack';
+import { useProductionStackStore } from '../store/useProductionStackStore';
 
 // Lazy load device-specific layouts for code splitting
 const BuilderMobile = lazy(() => import('../components/builder/BuilderMobile'));
@@ -395,6 +397,7 @@ export default function Builder() {
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
+    const { openWizard, loadStack, currentStack } = useProductionStackStore();
 
     // Show extension alternative on mobile after initial load
     useEffect(() => {
@@ -404,6 +407,19 @@ export default function Builder() {
             return () => clearTimeout(timer);
         }
     }, [isMobile, isTouchDevice]);
+
+    // Check for production stack configuration on project load
+    useEffect(() => {
+        if (projectId && projectId !== 'new') {
+            loadStack(projectId).then((stack) => {
+                // If no stack or not configured, we could auto-open the wizard
+                // For now, we'll just make it available via the Developer Bar
+                if (!stack || !stack.isConfigured) {
+                    console.log('[ProductionStack] Not configured for project:', projectId);
+                }
+            });
+        }
+    }, [projectId, loadStack]);
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
@@ -474,6 +490,12 @@ export default function Builder() {
             case 'feature-agent':
                 setShowAgentPanel(prev => !prev);
                 break;
+            case 'production-stack':
+                // Open production stack wizard with current project
+                if (projectId) {
+                    openWizard(projectId, currentStack);
+                }
+                break;
             default:
                 // Toggle in active features list for Developer Bar panel handling
                 setActiveDevBarFeatures(prev =>
@@ -482,7 +504,7 @@ export default function Builder() {
                         : [...prev, featureId]
                 );
         }
-    }, [setIntegrationsOpen, setDeploymentOpen, handleProductionCheck]);
+    }, [setIntegrationsOpen, setDeploymentOpen, handleProductionCheck, projectId, openWizard, currentStack]);
 
     // Shared props for responsive layouts
     const responsiveProps = {
@@ -598,6 +620,9 @@ export default function Builder() {
                         console.log('Codebase imported:', profile);
                     }}
                 />
+
+                {/* Production Stack Wizard - Configure user app infrastructure */}
+                <ProductionStackWizard />
 
                 {/* ============================================================ */}
                 {/* DEVELOPER BAR - 3D Glass Command Center with Spline */}
