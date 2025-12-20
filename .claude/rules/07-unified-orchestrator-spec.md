@@ -308,42 +308,205 @@ const config: UnifiedOrchestratorConfig = {
 
 ---
 
-## PART 4: ALL 30 FEATURES PRESERVED
+## PART 4: COMPLETE 66+ FEATURE INVENTORY
 
-### Feature Integration Matrix
+> **ALL features must be preserved and integrated into the unified orchestrator.**
 
-| # | Feature | Integration Point | Status |
-|---|---------|-------------------|--------|
-| 1 | Soft Interrupt | Phase 2 (during build), Ghost Mode | PRESERVE |
-| 2 | Time Machine | Phase boundaries, on-demand | PRESERVE |
-| 3 | Fix My App | Mode: `fix`, uses same orchestrator | PRESERVE |
-| 4 | Credential Vault | Phase 1 (initialization) | PRESERVE |
-| 5 | Credential Collection UI | Phase 1, before build starts | PRESERVE |
-| 6 | Context Injection | ALL phases, via UnifiedContext | PRESERVE + FIX |
-| 7 | Verification Swarm | Phase 6, continuous during Phase 2 | PRESERVE |
-| 8 | Bug Finder | Part of verification swarm | PRESERVE |
-| 9 | Bug Fixer | Part of error escalation | PRESERVE |
-| 10 | Error Checker | Verification swarm agent | PRESERVE |
-| 11 | Error Escalation | Phase 2+ (on any error) | PRESERVE |
-| 12 | Anti-Slop | Phase 5, Phase 6 | PRESERVE |
-| 13 | Learning Engine | Phase 8, after completion | PRESERVE |
-| 14 | Ghost Mode | Wraps unified orchestrator | PRESERVE |
-| 15 | Speed Dial | Config for unified orchestrator | PRESERVE |
-| 16 | Intelligence Dial | Per-request settings | PRESERVE |
-| 17 | Tournament Mode | Special Phase 2 variant | PRESERVE |
-| 18 | Sandbox Service | Component-based sandboxing | ENHANCE |
-| 19 | Browser Automation | Phase 4, Phase 7 | PRESERVE |
-| 20 | Preview Service | Phase 7 (Show Me) | PRESERVE |
-| 21 | Gap Closers | Phase 4, Phase 6 | PRESERVE |
-| 22 | Predictive Error Prevention | Phase 2 (before generation) | PRESERVE |
-| 23 | Shadow Models | Phase 2 (pattern injection) | PRESERVE |
-| 24 | Multi-Agent Judging | Phase 2 (parallel results) | PRESERVE |
-| 25 | Human Checkpoints | Phase 2+ (critical decisions) | PRESERVE |
-| 26 | Streaming Feedback | Phase 2 (continuous) | PRESERVE |
-| 27 | Continuous Verification | Phase 2 (background) | PRESERVE |
-| 28 | Browser-in-the-Loop | Phase 2 (visual during build) | PRESERVE |
-| 29 | Runtime Debug Context | Error escalation L2+ | PRESERVE |
-| 30 | Error Pattern Library | Phase 2 (Level 0 fixes) | PRESERVE |
+### FOUNDATIONAL COMPONENTS (F001-F006)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F001 | Intent Lock Engine | `services/ai/intent-lock.ts` | Phase 0 - Sacred Contract |
+| F002 | Feature List Manager | `services/ai/feature-list.ts` | All phases - tracking |
+| F003 | Progress Artifacts | `services/ai/artifacts.ts` | All phases - Memory Harness |
+| F004 | OpenRouter Beta Features | `services/ai/openrouter-client.ts` | All AI calls |
+| F005 | Context Editing (84% reduction) | `services/ai/openrouter-client.ts` | All AI calls |
+| F006 | 6-Phase Build Loop | `services/automation/build-loop.ts` | CORE - Expand to 8 phases |
+
+### VERIFICATION SWARM (F007-F013)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F007 | Verification Swarm Coordinator | `services/verification/swarm.ts` | Phase 6 + continuous |
+| F008 | Error Checker Agent (5s) | `services/verification/error-checker.ts` | BLOCKING |
+| F009 | Code Quality Agent (30s) | `services/verification/code-quality.ts` | 80+ required |
+| F010 | Visual Verifier Agent (60s) | `services/verification/visual-verifier.ts` | Anti-slop |
+| F011 | Security Scanner Agent (60s) | `services/verification/security-scanner.ts` | BLOCKING |
+| F012 | Placeholder Eliminator (10s) | `services/verification/placeholder-eliminator.ts` | ZERO tolerance |
+| F013 | Design Style Agent | `services/verification/design-style-agent.ts` | 85+ required |
+
+### DESIGN SYSTEM (F014-F015)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F014 | App Soul Mapper (8 types) | `services/ai/app-soul.ts` | Phase 0, design decisions |
+| F015 | Anti-Slop Detection | `services/verification/anti-slop-detector.ts` | Phase 5, 6 |
+
+### ERROR HANDLING (F016-F018)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F016 | Error Escalation (4 levels) | `services/automation/error-escalation.ts` | Phase 2+ (never gives up) |
+| F017 | Enhanced Fix Executor | `services/fix-my-app/enhanced-fix-executor.ts` | Fix My App mode |
+| F018 | Intent Lock Integration (Fix) | `services/fix-my-app/` | Fix My App mode |
+
+### COMPETITIVE ENHANCEMENTS (F019-F023)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F019 | Speed Dial (4 modes) | `services/ai/speed-dial.ts` | Config layer |
+| F020 | Tournament Mode | `services/ai/tournament.ts` | Phase 2 variant |
+| F021 | Time Machine Checkpoints | `services/checkpoints/time-machine.ts` | Phase boundaries |
+| F022 | Intelligence Dial | `services/ai/intelligence-dial.ts` | Per-request config |
+| F023 | Infinite Reflection Engine | `services/ai/reflection-engine.ts` | Self-healing loop |
+
+### UI COMPONENTS (F024-F027)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F024 | Speed Dial Selector UI | `components/builder/SpeedDialSelector.tsx` | Builder UI |
+| F025 | Intelligence Toggles UI | `components/builder/IntelligenceToggles.tsx` | Builder UI |
+| F026 | Build Phase Indicator | `components/builder/BuildPhaseIndicator.tsx` | Builder UI |
+| F027 | Verification Swarm Status | `components/builder/VerificationSwarmStatus.tsx` | Builder UI |
+
+### DEVELOPER MODE (F028-F045)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F028 | Database Migrations (10 tables) | `server/src/schema.ts` | Data layer |
+| F029 | Developer View UI | `components/builder/` | Builder UI |
+| F030 | Developer Mode Agent Service | `services/developer-mode/agent-service.ts` | Agent management |
+| F031 | Developer Mode Orchestrator | `services/developer-mode/orchestrator.ts` | 6 concurrent agents |
+| F033 | Verification Mode Scaling | `services/developer-mode/verification-modes.ts` | Quick/Standard/Thorough/Full |
+| F034 | Developer Mode API Routes | `routes/developer-mode.ts` | REST API |
+| F035 | Developer Mode DB Schema | `schema.ts` | 8 new tables |
+| F036 | Developer Mode Store | `store/useDeveloperModeStore.ts` | Frontend state |
+| F037 | AgentModeSidebar Connection | `components/builder/` | Real-time updates |
+| F038 | Sandbox Preview Component | `components/builder/AgentSandboxPreview.tsx` | Live preview |
+| F039 | Deploy Agent Modal | `components/builder/DeployAgentModal.tsx` | Agent config |
+| F040 | SSE Event Streaming | `routes/developer-mode.ts` | Real-time |
+| F041 | Git Branch Manager | `services/developer-mode/git-branch-manager.ts` | Worktree isolation |
+| F042 | Sandbox Service | `services/developer-mode/sandbox-service.ts` | Isolated previews |
+| F043 | Credit Calculator | `services/developer-mode/credit-calculator.ts` | Cost tracking |
+| F044 | PR Creation Integration | `services/developer-mode/pr-integration.ts` | GitHub/GitLab/Bitbucket |
+| F045 | Micro Intent Lock | `services/ai/intent-lock.ts` | Task-level contracts |
+
+### ADVANCED OPTIONS (F046-F061)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F046 | Soft Interrupt System | `services/soft-interrupt/interrupt-manager.ts` | Phase 2, Ghost Mode |
+| F047 | Pre-Deployment Validation | `services/validation/pre-flight-validator.ts` | Phase 4 |
+| F048 | Ghost Mode Controller | `services/ghost-mode/ghost-controller.ts` | Wraps orchestrator |
+| F049 | Ghost Session Events & Replay | `services/ghost-mode/event-recorder.ts` | Event capture |
+| F057 | Time Machine Timeline UI | PENDING - `components/builder/TimeMachineTimeline.tsx` | Visual scrub |
+| F061 | Advanced Developer Settings | `components/settings/DeveloperSettingsSection.tsx` | Settings UI |
+
+### FEATURE AGENTS (F065-F066)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| F065 | Feature Agent Command Center V2 | `components/feature-agent/` | UI + Backend |
+| F066 | Notifications System | `services/notifications/notification-service.ts` | All modes |
+
+### AUTONOMOUS LEARNING ENGINE (C28-L1 to C28-L5)
+
+| ID | Feature | Location | Integration Point |
+|----|---------|----------|-------------------|
+| C28-L1 | Experience Capture | `services/learning/experience-capture.ts` | Phase 8 |
+| C28-L2 | AI Judgment (RLAIF) | `services/learning/ai-judgment.ts` | Phase 8 |
+| C28-L3 | Shadow Model Registry | `services/learning/shadow-model-registry.ts` | Pattern injection |
+| C28-L4 | Pattern Library | `services/learning/pattern-library.ts` | Phase 2 |
+| C28-L4 | Strategy Evolution | `services/learning/strategy-evolution.ts` | All phases |
+| C28-L5 | Evolution Flywheel | `services/learning/evolution-flywheel.ts` | Orchestrator |
+
+### CURSOR 2.1+ PARITY FEATURES
+
+| Feature | Location | Integration Point |
+|---------|----------|-------------------|
+| Streaming Feedback Channel | `services/feedback/streaming-feedback-channel.ts` | Phase 2 continuous |
+| Continuous Verification | `services/verification/continuous-verification.ts` | Background during build |
+| Runtime Debug Context | `services/debug/runtime-debug-context.ts` | Error escalation L2+ |
+| Browser-in-the-Loop | `services/verification/browser-in-loop.ts` | Phase 2 visual |
+| Human Checkpoints | `services/verification/human-checkpoint.ts` | Critical decisions |
+| Multi-Agent Judging | `services/verification/multi-agent-judge.ts` | Parallel results |
+| Error Pattern Library | `services/automation/error-pattern-library.ts` | Level 0 fixes |
+| Predictive Error Prevention | `services/ai/predictive-error-prevention.ts` | Before generation |
+
+### GAP CLOSERS (7 Agents)
+
+| Agent | Location | Integration Point |
+|-------|----------|-------------------|
+| Accessibility Verifier | `services/verification/gap-closers/accessibility-verifier.ts` | Phase 4, 6 |
+| Adversarial Tester | `services/verification/gap-closers/adversarial-tester.ts` | Phase 4, 6 |
+| Cross-Browser Tester | `services/verification/gap-closers/cross-browser-tester.ts` | Phase 4, 6 |
+| Error State Tester | `services/verification/gap-closers/error-state-tester.ts` | Phase 4, 6 |
+| Exploratory Tester | `services/verification/gap-closers/exploratory-tester.ts` | Phase 4, 6 |
+| Performance Verifier | `services/verification/gap-closers/performance-verifier.ts` | Phase 4, 6 |
+| Real Data Enforcer | `services/verification/gap-closers/real-data-enforcer.ts` | Stage 3 |
+
+### VISION CAPTURE & IMPORT
+
+| Feature | Location | Integration Point |
+|---------|----------|-------------------|
+| Vision Capture Service | `services/extension/vision-capture-service.ts` | Extension integration |
+| Vision Capture Orchestrator | `services/vision-capture/capture-orchestrator.ts` | Import flow |
+| Import Controller | `services/fix-my-app/import-controller.ts` | GitHub, ZIP, AI builders |
+| Browser Extractor | `services/fix-my-app/browser-extractor.ts` | DOM/Vision extraction |
+| Chat Parser | `services/fix-my-app/chat-parser.ts` | Extract from chat |
+| Error Archaeologist | `services/fix-my-app/error-archaeologist.ts` | Find buried errors |
+| Credential Collection (Extension) | `browser-extension/src/content/credentials/` | Extension capture |
+
+### PREVIEW & BROWSER AUTOMATION
+
+| Feature | Location | Integration Point |
+|---------|----------|-------------------|
+| Headless Preview Service | `services/preview/headless-preview-service.ts` | Phase 7 |
+| Feature Preview Window | `components/feature-agent/FeaturePreviewWindow.tsx` | "Show Me" |
+| Browser Automation Service | `services/automation/browser-service.ts` | Phase 4, 7 |
+
+### CREDENTIAL SYSTEM
+
+| Feature | Location | Integration Point |
+|---------|----------|-------------------|
+| Credential Vault (AES-256-GCM) | `services/security/credential-vault.ts` | Phase 1 |
+| Credential Collection UI | `components/feature-agent/CredentialsCollectionView.tsx` | Phase 1 |
+| Project Env Vars | `schema.ts` (projectEnvVars) | .env management |
+| Credential Audit Logs | `schema.ts` (credentialAuditLogs) | Security audit |
+
+### KRIPTOENITE SPEED ENHANCEMENTS
+
+| Feature | Location | Integration Point |
+|---------|----------|-------------------|
+| KripToeNite Facade | `services/ai/krip-toe-nite/facade.ts` | Unified entry |
+| KripToeNite Executor | `services/ai/krip-toe-nite/executor.ts` | Fast execution |
+| Intelligent Routing | `services/ai/krip-toe-nite/` | Model selection |
+| Speculative Strategy | `services/ai/krip-toe-nite/` | Parallel attempts |
+| Context Enrichment | `services/ai/krip-toe-nite/facade.ts` | Full context injection |
+
+---
+
+### FEATURE COUNT SUMMARY
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Foundational (F001-F006) | 6 | ✓ Complete |
+| Verification Swarm (F007-F013) | 7 | ✓ Complete |
+| Design System (F014-F015) | 2 | ✓ Complete |
+| Error Handling (F016-F018) | 3 | ✓ Complete |
+| Competitive (F019-F023) | 5 | ✓ Complete |
+| UI Components (F024-F027) | 4 | ✓ Complete |
+| Developer Mode (F028-F045) | 17 | ✓ Complete (F032 deferred) |
+| Advanced Options (F046-F061) | 6 | ✓ Complete (6 pending) |
+| Feature Agents (F065-F066) | 2 | ✓ Complete |
+| Learning Engine (C28-L1-L5) | 6 | ✓ Complete |
+| Cursor 2.1+ Parity | 8 | ✓ Complete |
+| Gap Closers | 7 | ✓ Complete |
+| Vision/Import | 6 | ✓ Complete |
+| Preview/Browser | 3 | ✓ Complete |
+| Credentials | 4 | ✓ Complete |
+| KripToeNite Speed | 5 | ✓ Complete |
+| **TOTAL** | **91** | **All must be preserved** |
 
 ---
 
