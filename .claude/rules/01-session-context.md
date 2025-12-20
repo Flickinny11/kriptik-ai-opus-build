@@ -44,6 +44,36 @@ The AI race moves fast - searching for just "2025" could return info from months
 
 **Rationale**: Tech evolves daily in the AI race. Models, APIs, and capabilities release on near-weekly basis. A year-only search could miss 11 months of updates.
 
+### 2025-12-20: Unified Orchestrator Specification Created
+
+**Major Architecture Decision - Single Unified Orchestrator:**
+
+Created comprehensive specification for merging all orchestrators into one unified system:
+
+**Document**: `.claude/rules/07-unified-orchestrator-spec.md`
+
+**Key Decisions:**
+1. **One Orchestrator** - BuildLoopOrchestrator as foundation + EnhancedBuildLoop features
+2. **8 Phases** - Extended from 6 to include continuous feedback and learning capture
+3. **Component-Based Sandboxing** - Multiple agents per component, not per agent
+4. **30 Features Preserved** - Complete inventory mapped and integrated
+5. **Context Injection Fixed** - projectPath gap identified and specified
+
+**Phase-Based Sandbox Architecture:**
+- Frontend Sandbox (multiple agents work together)
+- Backend Sandbox (multiple agents work together)
+- Database Sandbox (multiple agents work together)
+- API Integrations Sandbox (multiple agents work together)
+- Main Sandbox (all components merge here)
+- Final verification and browser demo
+
+**Implementation Order:**
+1. Fix projectPath context injection gap (quick win)
+2. Merge EnhancedBuildLoop INTO BuildLoop
+3. Add component-based sandboxing
+4. Wire Builder View to unified orchestrator
+5. Update Feature Agent to use unified orchestrator
+
 ### 2025-12-20: Comprehensive NLP-to-Completion Gap Analysis
 
 **Major Analysis - Complete System Audit:**
