@@ -97,3 +97,19 @@ export {
     type DesignScores,
 } from './design-style-agent.js';
 
+// ============================================================================
+// ENHANCED VERIFICATION CAPABILITIES
+// ============================================================================
+
+// Gemini Video Analyzer - Real-time video understanding for browser verification
+export {
+    GeminiVideoAnalyzer,
+    getGeminiVideoAnalyzer,
+    createGeminiVideoAnalyzer,
+    type VideoAnalysisConfig,
+    type VideoAnalysisResult,
+    type UIElement,
+    type Interaction,
+    type VideoFrame,
+} from './gemini-video-analyzer.js';
+

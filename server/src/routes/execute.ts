@@ -28,8 +28,27 @@ import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
+// Rich Context Integration
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    type UnifiedContext,
+} from '../services/ai/unified-context.js';
+import {
+    getPredictiveErrorPrevention,
+    type PredictionResult,
+} from '../services/ai/predictive-error-prevention.js';
+// Advanced Orchestration Integration
+import {
+    createAdvancedOrchestration,
+    shutdownOrchestration,
+    type AdvancedOrchestrationService,
+} from '../services/integration/advanced-orchestration.js';
 
 const router = Router();
+
+// Track active advanced orchestration instances
+const activeOrchestrations = new Map<string, AdvancedOrchestrationService>();
 
 // =============================================================================
 // TYPES
@@ -135,6 +154,47 @@ router.post('/', async (req: Request, res: Response) => {
             enableCheckpoints: options.enableCheckpoints ?? true,
         });
 
+        // Load unified context for rich code generation
+        let enrichedPrompt = prompt;
+        let unifiedContext: UnifiedContext | null = null;
+        let errorPrediction: PredictionResult | null = null;
+
+        try {
+            // Load project context (intent lock, learned patterns, error history, etc.)
+            unifiedContext = await loadUnifiedContext(projectId, {
+                includeIntentLock: true,
+                includeVerificationResults: true,
+                includeLearningPatterns: true,
+                includeErrorEscalation: true,
+                includeAppSoul: true,
+                includeAntiSlop: true,
+            });
+
+            // Get predictive error prevention analysis
+            const errorPrevention = getPredictiveErrorPrevention();
+            errorPrediction = await errorPrevention.predict({
+                projectId,
+                taskType: mode === 'builder' ? 'full_build' : 'code_generation',
+                taskDescription: prompt.slice(0, 500),
+                recentErrors: [],
+            });
+
+            // Enrich prompt with unified context
+            const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
+            const preventionGuidance = errorPrediction.predictions.length > 0
+                ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
+                    `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+                  ).join('\n')}`
+                : '';
+
+            enrichedPrompt = `${contextBlock}${preventionGuidance}\n\n## USER REQUEST:\n${prompt}`;
+
+            console.log(`[Execute] Loaded context: ${unifiedContext.intentLock ? 'Intent Lock' : 'No Intent'}, ${unifiedContext.learnedPatterns?.length || 0} patterns, ${errorPrediction.predictions.length} predicted issues`);
+        } catch (contextError) {
+            // Context loading is non-blocking - continue with original prompt
+            console.warn('[Execute] Context loading failed, proceeding with basic prompt:', contextError);
+        }
+
         // Broadcast execution start
         context.broadcast('execution-started', {
             mode,
@@ -147,18 +207,54 @@ router.post('/', async (req: Request, res: Response) => {
             },
         });
 
-        // Start execution in background based on mode
+        // Initialize advanced orchestration for continuous verification, interrupts, etc.
+        const advancedOrch = createAdvancedOrchestration({
+            projectId,
+            userId,
+            sessionId,
+            enableInterrupts: true,
+            enableContinuousVerification: mode === 'builder', // Only for full builds
+            enableVideoStreaming: options.enableVisualVerification ?? false,
+            enableShadowPatterns: true,
+        });
+
+        activeOrchestrations.set(sessionId, advancedOrch);
+
+        // Forward advanced orchestration events to WebSocket
+        advancedOrch.on('interrupt', (data) => {
+            context.broadcast('interrupt-applied', data);
+        });
+        advancedOrch.on('verification_result', (data) => {
+            context.broadcast('continuous-verification', data);
+        });
+        advancedOrch.on('verification_issue', (data) => {
+            context.broadcast('verification-issue', data);
+        });
+        advancedOrch.on('video_analysis', (data) => {
+            context.broadcast('video-analysis', data);
+        });
+
+        // Start execution in background based on mode (using enriched prompt with context)
         setImmediate(async () => {
             try {
+                // Initialize advanced orchestration with the prompt
+                await advancedOrch.initialize(prompt);
+
+                // Get shadow pattern hints for enhanced routing
+                const routingHints = advancedOrch.getRoutingHints();
+                if (routingHints.successfulApproaches.length > 0) {
+                    context.broadcast('routing-hints', routingHints);
+                }
+
                 switch (mode) {
                     case 'builder':
-                        await executeBuilderMode(context, prompt, options);
+                        await executeBuilderMode(context, enrichedPrompt, options, advancedOrch);
                         break;
                     case 'developer':
-                        await executeDeveloperMode(context, prompt, options);
+                        await executeDeveloperMode(context, enrichedPrompt, options, advancedOrch);
                         break;
                     case 'agents':
-                        await executeAgentsMode(context, prompt, options);
+                        await executeAgentsMode(context, enrichedPrompt, options, advancedOrch);
                         break;
                 }
             } catch (error) {
@@ -166,6 +262,10 @@ router.post('/', async (req: Request, res: Response) => {
                 context.broadcast('execution-error', {
                     error: error instanceof Error ? error.message : 'Unknown error',
                 });
+            } finally {
+                // Cleanup advanced orchestration
+                advancedOrch.shutdown();
+                activeOrchestrations.delete(sessionId);
             }
         });
 
@@ -205,12 +305,18 @@ router.post('/', async (req: Request, res: Response) => {
 async function executeBuilderMode(
     context: ExecutionContext,
     prompt: string,
-    options: ExecuteRequest['options'] = {}
+    options: ExecuteRequest['options'] = {},
+    advancedOrch?: AdvancedOrchestrationService
 ): Promise<void> {
     console.log(`[Execute:Builder] Starting 6-phase build loop`);
 
     context.broadcast('builder-started', {
         phases: ['intent_lock', 'initialization', 'parallel_build', 'integration_check', 'functional_test', 'intent_satisfaction', 'browser_demo'],
+        advancedFeatures: {
+            interrupts: !!advancedOrch,
+            continuousVerification: !!advancedOrch,
+            shadowPatterns: !!advancedOrch,
+        },
     });
 
     try {
@@ -225,10 +331,46 @@ async function executeBuilderMode(
         // Forward build loop events to context
         buildLoop.on('event', (event) => {
             context.broadcast(`builder-${event.type}`, event.data);
+
+            // Update advanced orchestration context on phase changes
+            if (advancedOrch && event.type === 'phase_change') {
+                advancedOrch.updateContext(event.data.phase);
+            }
+
+            // Update files for continuous verification
+            if (advancedOrch && event.type === 'file_update') {
+                const files = new Map<string, string>();
+                if (event.data.files) {
+                    for (const [path, content] of Object.entries(event.data.files)) {
+                        files.set(path, content as string);
+                    }
+                    advancedOrch.updateFiles(files);
+                }
+            }
         });
 
-        // Start the build
-        await buildLoop.start(prompt);
+        // Check for interrupts periodically during build
+        if (advancedOrch) {
+            buildLoop.on('tool_boundary', async () => {
+                const interruptResult = await advancedOrch.checkInterrupts();
+                if (interruptResult.shouldHalt) {
+                    buildLoop.pause();
+                    context.broadcast('builder-halted', {
+                        reason: interruptResult.interrupt?.message,
+                    });
+                } else if (interruptResult.contextToInject) {
+                    context.broadcast('context-injected', {
+                        context: interruptResult.contextToInject,
+                    });
+                }
+            });
+        }
+
+        // Enhance prompt with shadow patterns if available
+        const enhancedPrompt = advancedOrch ? advancedOrch.buildEnhancedPrompt(prompt) : prompt;
+
+        // Start the build with enhanced prompt
+        await buildLoop.start(enhancedPrompt);
 
         context.broadcast('builder-completed', {
             status: buildLoop.getState().status,
@@ -263,15 +405,38 @@ async function executeBuilderMode(
 async function executeDeveloperMode(
     context: ExecutionContext,
     prompt: string,
-    options: ExecuteRequest['options'] = {}
+    options: ExecuteRequest['options'] = {},
+    advancedOrch?: AdvancedOrchestrationService
 ): Promise<void> {
     console.log(`[Execute:Developer] Starting iterative development`);
 
-    context.broadcast('developer-started', {});
+    context.broadcast('developer-started', {
+        advancedFeatures: {
+            interrupts: !!advancedOrch,
+            shadowPatterns: !!advancedOrch,
+        },
+    });
 
     try {
+        // Check for pre-existing interrupts
+        if (advancedOrch) {
+            const interruptResult = await advancedOrch.checkInterrupts();
+            if (interruptResult.shouldHalt) {
+                context.broadcast('developer-halted', {
+                    reason: interruptResult.interrupt?.message,
+                });
+                return;
+            }
+        }
+
+        // Enhance prompt with shadow patterns if available
+        let enhancedPrompt = prompt;
+        if (advancedOrch) {
+            enhancedPrompt = advancedOrch.buildEnhancedPrompt(prompt);
+        }
+
         // Use KTN for code generation
-        const result = await context.ktn.buildFeature(prompt, {
+        const result = await context.ktn.buildFeature(enhancedPrompt, {
             projectId: context.projectId,
             userId: context.userId,
             framework: context.framework,
@@ -285,11 +450,34 @@ async function executeDeveloperMode(
             content: result.content,
         });
 
+        // Update files for verification if available
+        if (advancedOrch && result.content) {
+            const files = new Map<string, string>();
+            // Parse generated content for files (assumes code blocks with file paths)
+            const fileMatches = result.content.matchAll(/```(?:typescript|tsx|jsx|javascript|ts|js)\s*\n\/\/\s*(.+?)\n([\s\S]*?)```/g);
+            for (const match of fileMatches) {
+                const filePath = match[1].trim();
+                const fileContent = match[2];
+                files.set(filePath, fileContent);
+            }
+            if (files.size > 0) {
+                advancedOrch.updateFiles(files);
+            }
+        }
+
         // Run quick verification
         context.broadcast('developer-verifying', {});
 
-        // The verification would happen here with the file contents
-        // For now, we broadcast completion
+        // Check for mid-generation interrupts
+        if (advancedOrch) {
+            const postGenInterrupt = await advancedOrch.checkInterrupts();
+            if (postGenInterrupt.contextToInject) {
+                context.broadcast('context-injected', {
+                    context: postGenInterrupt.contextToInject,
+                });
+            }
+        }
+
         context.broadcast('developer-completed', {
             tokensUsed: result.usage.totalTokens,
             cost: result.usage.estimatedCost,
@@ -309,22 +497,45 @@ async function executeDeveloperMode(
 async function executeAgentsMode(
     context: ExecutionContext,
     prompt: string,
-    options: ExecuteRequest['options'] = {}
+    options: ExecuteRequest['options'] = {},
+    advancedOrch?: AdvancedOrchestrationService
 ): Promise<void> {
     console.log(`[Execute:Agents] Starting multi-agent orchestration`);
 
     context.broadcast('agents-started', {
         hierarchy: ['queens', 'workers'],
+        advancedFeatures: {
+            interrupts: !!advancedOrch,
+            continuousVerification: !!advancedOrch,
+            shadowPatterns: !!advancedOrch,
+        },
     });
 
     try {
+        // Check for pre-existing interrupts
+        if (advancedOrch) {
+            const interruptResult = await advancedOrch.checkInterrupts();
+            if (interruptResult.shouldHalt) {
+                context.broadcast('agents-halted', {
+                    reason: interruptResult.interrupt?.message,
+                });
+                return;
+            }
+        }
+
+        // Enhance prompt with shadow patterns if available
+        let enhancedPrompt = prompt;
+        if (advancedOrch) {
+            enhancedPrompt = advancedOrch.buildEnhancedPrompt(prompt);
+        }
+
         // The AgentOrchestrator is designed for context store usage
         // We'll use it indirectly through the context
         const orchestrator = new AgentOrchestrator();
 
         // Start orchestration via context
         // For now, use KTN for the prompt analysis
-        const analysisResult = await context.ktn.plan(prompt, {
+        const analysisResult = await context.ktn.plan(enhancedPrompt, {
             projectId: context.projectId,
             userId: context.userId,
             framework: context.framework,
@@ -337,6 +548,24 @@ async function executeAgentsMode(
             content: analysisResult.content.substring(0, 500),
         });
 
+        // Check for interrupts between planning and execution
+        if (advancedOrch) {
+            const midInterrupt = await advancedOrch.checkInterrupts();
+            if (midInterrupt.shouldHalt) {
+                context.broadcast('agents-halted', {
+                    reason: midInterrupt.interrupt?.message,
+                    phase: 'post-planning',
+                });
+                return;
+            }
+            if (midInterrupt.contextToInject) {
+                context.broadcast('context-injected', {
+                    context: midInterrupt.contextToInject,
+                    phase: 'post-planning',
+                });
+            }
+        }
+
         // Execute the plan using KTN's buildFeature for each identified task
         const codeResult = await context.ktn.buildFeature(
             `Based on this plan:\n\n${analysisResult.content}\n\nGenerate the code for the first feature.`,
@@ -347,6 +576,20 @@ async function executeAgentsMode(
                 language: context.language,
             }
         );
+
+        // Update files for continuous verification
+        if (advancedOrch && codeResult.content) {
+            const files = new Map<string, string>();
+            const fileMatches = codeResult.content.matchAll(/```(?:typescript|tsx|jsx|javascript|ts|js)\s*\n\/\/\s*(.+?)\n([\s\S]*?)```/g);
+            for (const match of fileMatches) {
+                const filePath = match[1].trim();
+                const fileContent = match[2];
+                files.set(filePath, fileContent);
+            }
+            if (files.size > 0) {
+                advancedOrch.updateFiles(files);
+            }
+        }
 
         context.broadcast('agents-feature-completed', {
             model: codeResult.model,

@@ -122,3 +122,39 @@ export {
     type CodingAgentEvents,
 } from './coding-agent-wrapper.js';
 
+// Unified Context System - Rich context for ALL code generation paths
+export {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    getProviderCodeHints,
+    getRequiredEnvVars,
+    ANTI_SLOP_RULES,
+    PROVIDER_CODE_HINTS,
+    type UnifiedContext,
+    type UnifiedContextOptions,
+    type IntentLockContext,
+    type VerificationSwarmResult,
+    type TournamentResult,
+    type ErrorEscalationEntry,
+    type LearnedPattern,
+    type LearnedStrategy,
+    type BuildPhaseStatus,
+    type AppSoulTemplate,
+    type ProjectAnalysis,
+    type UserPreferences,
+} from './unified-context.js';
+
+// Predictive Error Prevention - Prevent errors before they happen
+export {
+    PredictiveErrorPrevention,
+    getPredictiveErrorPrevention,
+    createPredictiveErrorPrevention,
+    type PredictionConfig,
+    type PredictionContext,
+    type PredictionResult,
+    type ErrorPrediction,
+    type ErrorType,
+    type PreventionStrategy,
+} from './predictive-error-prevention.js';
+

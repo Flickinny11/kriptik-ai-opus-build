@@ -22,6 +22,12 @@ import { ClaudeService, createClaudeService, CLAUDE_MODELS } from '../ai/claude-
 import { getPhaseConfig, OPENROUTER_MODELS } from '../ai/openrouter-client.js';
 import type { Feature, FeatureVerificationStatus } from '../ai/feature-list.js';
 import type { IntentContract, VisualIdentity } from '../ai/intent-lock.js';
+import {
+    getPredictiveErrorPrevention,
+    type PredictiveErrorPrevention,
+    type PredictionResult,
+    type ErrorType,
+} from '../ai/predictive-error-prevention.js';
 
 // =============================================================================
 // TYPES
@@ -244,14 +250,28 @@ export interface SwarmRunContext {
     changeSize: 'small' | 'medium' | 'large';
     lastVerificationMinutesAgo: number;
     previousFailureRate: number;
+    /** Predicted error types from PredictiveErrorPrevention (optional) */
+    predictedErrorTypes?: ErrorType[];
+    /** Confidence score from predictions (0-1) */
+    predictionConfidence?: number;
 }
 
 /**
  * Intelligent Mode Recommendation System
- * Recommends swarm mode based on build context
+ * Recommends swarm mode based on build context AND predicted errors
+ *
+ * ENHANCED: Now uses PredictiveErrorPrevention to recommend more thorough
+ * verification when certain error types are predicted with high confidence.
  */
 export function recommendSwarmMode(context: SwarmRunContext): SwarmMode {
-    const { buildPhase, changeSize, lastVerificationMinutesAgo, previousFailureRate } = context;
+    const {
+        buildPhase,
+        changeSize,
+        lastVerificationMinutesAgo,
+        previousFailureRate,
+        predictedErrorTypes,
+        predictionConfidence,
+    } = context;
 
     // High failure rate? Go paranoid
     if (previousFailureRate > 0.5) {
@@ -261,6 +281,27 @@ export function recommendSwarmMode(context: SwarmRunContext): SwarmMode {
     // Deploying? Production mode mandatory
     if (buildPhase === 'deploying') {
         return 'production';
+    }
+
+    // Check if predicted errors warrant more thorough verification
+    if (predictedErrorTypes && predictedErrorTypes.length > 0 && predictionConfidence) {
+        const highRiskErrorTypes: ErrorType[] = ['security', 'type_mismatch', 'runtime', 'api_misuse'];
+        const hasHighRiskPredictions = predictedErrorTypes.some(t => highRiskErrorTypes.includes(t));
+
+        // High confidence predictions of risky errors = more thorough verification
+        if (hasHighRiskPredictions && predictionConfidence > 0.8) {
+            console.log(
+                `[SwarmMode] Upgrading to thorough mode due to high-confidence predictions: ` +
+                `${predictedErrorTypes.join(', ')}`
+            );
+            return buildPhase === 'deploying' ? 'production' : 'thorough';
+        }
+
+        // Many predicted errors = at least standard
+        if (predictedErrorTypes.length >= 5 && predictionConfidence > 0.6) {
+            console.log(`[SwarmMode] Upgrading to standard mode due to ${predictedErrorTypes.length} predictions`);
+            return buildPhase === 'planning' ? 'standard' : 'thorough';
+        }
     }
 
     // Planning phase - just quick checks
@@ -285,6 +326,45 @@ export function recommendSwarmMode(context: SwarmRunContext): SwarmMode {
 
     // Default
     return 'standard';
+}
+
+/**
+ * Get priority agents based on predicted error types
+ * Returns agents that should run with higher priority/depth
+ */
+export function getPriorityAgentsFromPredictions(predictedErrorTypes: ErrorType[]): VerificationAgentType[] {
+    const priorityAgents: VerificationAgentType[] = [];
+
+    for (const errorType of predictedErrorTypes) {
+        switch (errorType) {
+            case 'typescript':
+            case 'type_mismatch':
+            case 'syntax':
+                priorityAgents.push('error_checker');
+                break;
+            case 'security':
+                priorityAgents.push('security_scanner');
+                break;
+            case 'react_pattern':
+            case 'async_issue':
+            case 'runtime':
+                priorityAgents.push('error_checker', 'code_quality');
+                break;
+            case 'style':
+                priorityAgents.push('visual_verifier', 'design_style');
+                break;
+            case 'import':
+            case 'missing_dependency':
+                priorityAgents.push('error_checker');
+                break;
+            case 'api_misuse':
+                priorityAgents.push('code_quality', 'security_scanner');
+                break;
+        }
+    }
+
+    // Return unique list
+    return [...new Set(priorityAgents)];
 }
 
 /**
@@ -363,6 +443,8 @@ export class VerificationSwarm extends EventEmitter {
     private claudeService: ClaudeService;
     private intent: IntentContract | null = null;
     private intervals: Map<VerificationAgentType, NodeJS.Timeout> = new Map();
+    private errorPrevention: PredictiveErrorPrevention;
+    private lastPredictions: PredictionResult | null = null;
 
     constructor(
         orchestrationRunId: string,
@@ -388,6 +470,56 @@ export class VerificationSwarm extends EventEmitter {
             userId,
             agentType: 'testing',
         });
+        this.errorPrevention = getPredictiveErrorPrevention();
+    }
+
+    /**
+     * Get predicted errors for a feature before verification
+     * This enables smarter, more targeted verification
+     */
+    async getPredictedErrors(feature: Feature): Promise<PredictionResult> {
+        const prediction = await this.errorPrevention.predict({
+            projectId: this.projectId,
+            taskType: 'feature_verification',
+            taskDescription: `Verifying feature: ${feature.name} - ${feature.description || ''}`,
+        });
+
+        this.lastPredictions = prediction;
+
+        if (prediction.predictions.length > 0) {
+            console.log(
+                `[VerificationSwarm] Predicted ${prediction.predictions.length} potential issues ` +
+                `for ${feature.name} (confidence: ${(prediction.confidenceScore * 100).toFixed(0)}%)`
+            );
+        }
+
+        return prediction;
+    }
+
+    /**
+     * Get the recommended swarm mode based on context and predictions
+     */
+    async getRecommendedMode(
+        feature: Feature,
+        context: Omit<SwarmRunContext, 'predictedErrorTypes' | 'predictionConfidence'>
+    ): Promise<{ mode: SwarmMode; priorityAgents: VerificationAgentType[] }> {
+        // Get predictions for this feature
+        const predictions = await this.getPredictedErrors(feature);
+
+        // Extract error types from predictions
+        const predictedErrorTypes = predictions.predictions.map(p => p.type);
+
+        // Get recommended mode with predictions
+        const fullContext: SwarmRunContext = {
+            ...context,
+            predictedErrorTypes,
+            predictionConfidence: predictions.confidenceScore,
+        };
+
+        const mode = recommendSwarmMode(fullContext);
+        const priorityAgents = getPriorityAgentsFromPredictions(predictedErrorTypes);
+
+        return { mode, priorityAgents };
     }
 
     /**

@@ -58,6 +58,43 @@ export interface WorkflowState {
     status: 'planning' | 'approved' | 'deploying' | 'running' | 'paused' | 'failed';
 }
 
+// Advanced Orchestration Types
+export interface VerificationResult {
+    verdict: 'approved' | 'needs_work' | 'blocked' | 'rejected';
+    score: number;
+    checkNumber: number;
+    issueCount?: number;
+    blockers?: Array<{ message: string }>;
+}
+
+export interface VideoAnalysis {
+    timestamp: Date;
+    frameId: string;
+    elements: Array<{
+        id: string;
+        type: string;
+        label: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
+        confidence: number;
+        isInteractive: boolean;
+    }>;
+    suggestions: string[];
+    issues: Array<{ type: 'error' | 'warning' | 'info'; message: string }>;
+}
+
+export interface RoutingHints {
+    preferredModels: string[];
+    avoidPatterns: string[];
+    successfulApproaches: string[];
+}
+
+export interface InterruptApplied {
+    interruptId: string;
+    type: string;
+    action: 'applied' | 'queued' | 'rejected';
+    agentResponse?: string;
+}
+
 export interface ContextState {
     contextId: string | null;
     sessionId: string | null;
@@ -68,6 +105,12 @@ export interface ContextState {
     messages: Message[];
     activeWorkflow: WorkflowState | null;
     totalTokensUsed: number;
+    // Advanced orchestration state
+    verificationResult: VerificationResult | null;
+    videoAnalysis: VideoAnalysis | null;
+    routingHints: RoutingHints | null;
+    lastInterrupt: InterruptApplied | null;
+    injectedContext: string | null;
 }
 
 interface WebSocketMessage {
@@ -91,6 +134,12 @@ export function useContextSync(projectId: string, userId: string) {
         messages: [],
         activeWorkflow: null,
         totalTokensUsed: 0,
+        // Advanced orchestration state
+        verificationResult: null,
+        videoAnalysis: null,
+        routingHints: null,
+        lastInterrupt: null,
+        injectedContext: null,
     });
     
     const wsRef = useRef<WebSocket | null>(null);
@@ -123,14 +172,22 @@ export function useContextSync(projectId: string, userId: string) {
             ws.onopen = () => {
                 setState(prev => ({ ...prev, connected: true }));
                 
-                // Subscribe to all events
+                // Subscribe to all events including advanced orchestration
                 ws.send(JSON.stringify({
                     type: 'subscribe',
                     payload: [
+                        // Standard agent/task/deployment events
                         'agent:started', 'agent:completed', 'agent:error',
                         'task:created', 'task:started', 'task:completed', 'task:failed',
                         'deployment:started', 'deployment:completed', 'deployment:failed',
                         'workflow:approved', 'workflow:started', 'workflow:completed',
+                        // Advanced orchestration events
+                        'interrupt-applied', 'continuous-verification', 'verification-issue',
+                        'video-analysis', 'routing-hints', 'context-injected',
+                        // Builder/Developer/Agents mode events
+                        'builder-started', 'builder-completed', 'builder-halted',
+                        'developer-started', 'developer-completed', 'developer-halted',
+                        'agents-started', 'agents-completed', 'agents-halted',
                     ],
                 }));
             };
@@ -267,6 +324,69 @@ export function useContextSync(projectId: string, userId: string) {
                         };
                     }
                 });
+                break;
+
+            // ================================================================
+            // ADVANCED ORCHESTRATION EVENTS
+            // ================================================================
+
+            case 'continuous-verification':
+            case 'verification-issue':
+                // Verification swarm results
+                setState(prev => ({
+                    ...prev,
+                    verificationResult: {
+                        verdict: message.payload.verdict,
+                        score: message.payload.score,
+                        checkNumber: message.payload.checkNumber,
+                        issueCount: message.payload.issueCount,
+                        blockers: message.payload.blockers,
+                    },
+                }));
+                break;
+
+            case 'video-analysis':
+                // Gemini video analysis results
+                setState(prev => ({
+                    ...prev,
+                    videoAnalysis: {
+                        ...message.payload,
+                        timestamp: new Date(message.payload.timestamp),
+                    },
+                }));
+                break;
+
+            case 'routing-hints':
+                // Shadow pattern routing hints
+                setState(prev => ({
+                    ...prev,
+                    routingHints: {
+                        preferredModels: message.payload.preferredModels || [],
+                        avoidPatterns: message.payload.avoidPatterns || [],
+                        successfulApproaches: message.payload.successfulApproaches || [],
+                    },
+                }));
+                break;
+
+            case 'interrupt-applied':
+                // Soft interrupt was applied
+                setState(prev => ({
+                    ...prev,
+                    lastInterrupt: {
+                        interruptId: message.payload.interruptId,
+                        type: message.payload.type,
+                        action: message.payload.action,
+                        agentResponse: message.payload.agentResponse,
+                    },
+                }));
+                break;
+
+            case 'context-injected':
+                // Context was injected into agent
+                setState(prev => ({
+                    ...prev,
+                    injectedContext: message.payload.context,
+                }));
                 break;
         }
     }, []);

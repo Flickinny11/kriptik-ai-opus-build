@@ -2,11 +2,16 @@
  * Krip-Toe-Nite API Routes
  *
  * API endpoints for the intelligent model orchestration system.
+ *
+ * UNIFIED CONTEXT: These routes now use the KripToeNite Facade which
+ * automatically injects rich context (Intent Lock, learned patterns,
+ * verification results, error prevention) when projectId is provided.
  */
 
 import { Router, type Request, type Response } from 'express';
 import {
     getKripToeNiteService,
+    getKripToeNite,
     getAllModelsForDisplay,
     type GenerationRequest,
 } from '../services/ai/krip-toe-nite/index.js';
@@ -22,10 +27,23 @@ const router = Router();
  *
  * Generate a response using intelligent model orchestration.
  * Streams the response using SSE.
+ *
+ * UNIFIED CONTEXT: When projectId and userId are provided,
+ * automatically injects rich context (Intent Lock, learned patterns,
+ * verification results, error prevention guidance).
  */
 router.post('/generate', async (req: Request, res: Response) => {
     try {
-        const { prompt, systemPrompt, context, maxTokens, temperature } = req.body;
+        const {
+            prompt,
+            systemPrompt,
+            context,
+            maxTokens,
+            temperature,
+            projectId,
+            userId,
+            projectPath,
+        } = req.body;
 
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });
@@ -37,29 +55,61 @@ router.post('/generate', async (req: Request, res: Response) => {
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no');
 
-        const service = getKripToeNiteService();
+        // Use facade for unified context injection when project context is available
+        const hasProjectContext = projectId && userId;
 
-        const request: GenerationRequest = {
-            prompt,
-            systemPrompt,
-            context,
-            maxTokens,
-            temperature,
-            stream: true,
-        };
+        if (hasProjectContext) {
+            // Use the facade which automatically injects unified context + error prevention
+            const facade = getKripToeNite();
 
-        // Stream chunks
-        for await (const chunk of service.generate(request)) {
-            const data = JSON.stringify({
-                type: chunk.type,
-                content: chunk.content,
-                model: chunk.model,
-                strategy: chunk.strategy,
-                timestamp: chunk.timestamp,
-                metadata: chunk.metadata,
-            });
+            for await (const chunk of facade.generateStream(prompt, {
+                projectId,
+                userId,
+                projectPath: projectPath || `/tmp/kriptik-projects/${projectId}`,
+                systemPrompt,
+                maxTokens,
+                temperature,
+                framework: context?.framework,
+                language: context?.language,
+                fileCount: context?.fileCount,
+                currentErrors: context?.currentErrors,
+            })) {
+                const data = JSON.stringify({
+                    type: chunk.type,
+                    content: chunk.content,
+                    model: chunk.model,
+                    strategy: chunk.strategy,
+                    timestamp: chunk.timestamp,
+                    metadata: chunk.metadata,
+                });
 
-            res.write(`data: ${data}\n\n`);
+                res.write(`data: ${data}\n\n`);
+            }
+        } else {
+            // Fallback to raw service for simple requests without project context
+            const service = getKripToeNiteService();
+
+            const request: GenerationRequest = {
+                prompt,
+                systemPrompt,
+                context,
+                maxTokens,
+                temperature,
+                stream: true,
+            };
+
+            for await (const chunk of service.generate(request)) {
+                const data = JSON.stringify({
+                    type: chunk.type,
+                    content: chunk.content,
+                    model: chunk.model,
+                    strategy: chunk.strategy,
+                    timestamp: chunk.timestamp,
+                    metadata: chunk.metadata,
+                });
+
+                res.write(`data: ${data}\n\n`);
+            }
         }
 
         res.write('data: [DONE]\n\n');
@@ -88,31 +138,81 @@ router.post('/generate', async (req: Request, res: Response) => {
  * POST /api/krip-toe-nite/generate/sync
  *
  * Generate a response synchronously (non-streaming).
+ *
+ * UNIFIED CONTEXT: When projectId and userId are provided,
+ * automatically injects rich context (Intent Lock, learned patterns,
+ * verification results, error prevention guidance).
  */
 router.post('/generate/sync', async (req: Request, res: Response) => {
     try {
-        const { prompt, systemPrompt, context, maxTokens, temperature } = req.body;
-
-        if (!prompt) {
-            return res.status(400).json({ error: 'Prompt is required' });
-        }
-
-        const service = getKripToeNiteService();
-
-        const request: GenerationRequest = {
+        const {
             prompt,
             systemPrompt,
             context,
             maxTokens,
             temperature,
-        };
+            projectId,
+            userId,
+            projectPath,
+        } = req.body;
 
-        const response = await service.generateSync(request);
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
 
-        res.json({
-            success: true,
-            response,
-        });
+        // Use facade for unified context injection when project context is available
+        const hasProjectContext = projectId && userId;
+
+        if (hasProjectContext) {
+            // Use the facade which automatically injects unified context + error prevention
+            const facade = getKripToeNite();
+
+            const result = await facade.generate(prompt, {
+                projectId,
+                userId,
+                projectPath: projectPath || `/tmp/kriptik-projects/${projectId}`,
+                systemPrompt,
+                maxTokens,
+                temperature,
+                framework: context?.framework,
+                language: context?.language,
+                fileCount: context?.fileCount,
+                currentErrors: context?.currentErrors,
+            });
+
+            res.json({
+                success: true,
+                response: {
+                    id: result.id,
+                    content: result.content,
+                    model: result.model,
+                    strategy: result.strategy,
+                    usage: result.usage,
+                    latencyMs: result.latencyMs,
+                    wasEnhanced: result.wasEnhanced,
+                    unifiedContextSummary: result.unifiedContextSummary,
+                    errorPrevention: result.errorPrevention,
+                },
+            });
+        } else {
+            // Fallback to raw service for simple requests
+            const service = getKripToeNiteService();
+
+            const request: GenerationRequest = {
+                prompt,
+                systemPrompt,
+                context,
+                maxTokens,
+                temperature,
+            };
+
+            const response = await service.generateSync(request);
+
+            res.json({
+                success: true,
+                response,
+            });
+        }
 
     } catch (error) {
         console.error('[KripToeNite] Sync generation error:', error);
