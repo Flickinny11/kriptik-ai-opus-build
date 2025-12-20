@@ -18,9 +18,12 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 **MANDATORY KNOWLEDGE VERIFICATION**:
 1. **Check today's date** from system prompt (format: YYYY-MM-DD)
 2. **Use WebSearch** when integrating with ANY external service, API, or library
-3. **Search for "[technology] 2025"** or "[library] latest version 2025"
+3. **Search with FULL DATE precision** - not just year!
+   - Use: `"[technology] December 2025"` or `"[library] latest version Dec 2025"`
+   - Even better: `"[technology] released December 20 2025"` for cutting-edge updates
+   - In the AI race, a week is a long time - tech evolves daily
 4. **Never assume** your knowledge of configs, endpoints, or features is current
-5. **Verify model IDs** before using them - they change frequently
+5. **Verify model IDs** before using them - they change frequently (sometimes weekly)
 
 **Example Stale Knowledge Patterns to Avoid**:
 - Using `claude-3-opus` instead of `claude-opus-4-5-20251101`
@@ -39,7 +42,7 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 
 1. **Acknowledge the auto-loaded context** - Confirm you have the session context, gotchas, and architecture loaded.
 
-2. **Check today's date** - Use current year (2025) for all searches. Your knowledge is ~1 year stale.
+2. **Check today's FULL date** - Note the year, month, AND day. Use the full date in searches (e.g., "December 2025" or "Dec 20 2025"). In the AI race, even weeks matter - new models, APIs, and capabilities release constantly.
 
 3. **If working on UI** - Launch browser tools: `~/bin/chrome-dev`
 
@@ -715,23 +718,33 @@ Update memory files when:
 **Before integrating with ANY external technology:**
 
 ```
-[ ] What is today's date? (from system prompt)
+[ ] What is today's FULL date? (YYYY-MM-DD from system prompt)
 [ ] Is my knowledge of this technology current?
-[ ] Have I searched for "[technology] [current year]" updates?
+[ ] Have I searched with FULL DATE precision?
+    - "[technology] [month] [year]" (e.g., "Claude API December 2025")
+    - "[technology] latest [month] [day] [year]" for cutting-edge (e.g., "OpenAI Dec 20 2025")
 [ ] Am I using the latest API version/endpoints?
 [ ] Am I using current model IDs (not deprecated)?
 [ ] Have new features been added I should use?
 [ ] Has the configuration format changed?
+
+WHY FULL DATE MATTERS:
+- AI models release every few weeks (not months)
+- APIs change frequently with new capabilities
+- A "2025" search could return info from January when we're in December
+- We're building the most capable AI platform - we need the NEWEST tools
 ```
 
-**Common Stale Knowledge Areas:**
-- AI model IDs (change every few months)
-- API authentication methods
-- SDK method signatures
-- Configuration file formats
-- Required vs optional parameters
-- Pricing and rate limits
-- Platform capabilities
+**Common Stale Knowledge Areas (change frequency):**
+- AI model IDs (every few WEEKS - not months!)
+- API authentication methods (monthly)
+- SDK method signatures (with each release)
+- Configuration file formats (varies)
+- Required vs optional parameters (with API updates)
+- Pricing and rate limits (frequently)
+- Platform capabilities (constantly expanding)
+
+**AI-Race Reality**: OpenAI, Anthropic, Google, and others release new models, features, and APIs on a near-weekly basis. What you knew last month may already be outdated.
 
 ### During Implementation
 1. After significant code, run build
@@ -998,7 +1011,10 @@ As of 2025-12-19, Claude Code in this project has:
 ### 2. Web Search
 - Use `WebSearch` tool to get current information
 - ALWAYS use for external integrations
-- Search with current year (2025) for latest info
+- **Search with FULL DATE precision** - not just year!
+  - Include month: "Claude API December 2025"
+  - Include day for cutting-edge: "OpenAI latest Dec 20 2025"
+  - Tech evolves daily in the AI race - a week-old search could miss major updates
 
 ### 3. Agent Memory System
 - Memory files in `.claude/rules/` are AUTO-LOADED at session start
@@ -1051,4 +1067,4 @@ This configuration provides feature parity with Cursor 2.2:
 ---
 
 *This document is the source of truth for Claude Code operation within KripTik AI.*
-*Last updated: 2025-12-19*
+*Last updated: 2025-12-20*
