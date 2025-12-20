@@ -411,10 +411,29 @@ export class AdvancedOrchestrationService extends EventEmitter {
 
             console.log(`[AdvancedOrchestration] Started video streaming (${this.config.videoCaptureIntervalMs}ms interval)`);
             this.emit('video_started', { intervalMs: this.config.videoCaptureIntervalMs });
+
+            // Note: Frame capture happens via analyzeVideoFrame() which is called
+            // from external sources (browser automation, puppeteer, etc.)
+            // For fully autonomous capture, we could add a browser connection here,
+            // but for now frames are pushed by the caller.
         } catch (error) {
             console.warn('[AdvancedOrchestration] Video streaming not available:', error);
             this.config.enableVideoStreaming = false;
         }
+    }
+
+    /**
+     * Check if video streaming is active
+     */
+    isVideoStreamingActive(): boolean {
+        return this.videoState.streaming && this.videoAnalyzer !== null;
+    }
+
+    /**
+     * Get video streaming state
+     */
+    getVideoState(): VideoStreamState {
+        return { ...this.videoState };
     }
 
     /**

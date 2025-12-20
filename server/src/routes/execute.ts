@@ -366,8 +366,11 @@ async function executeBuilderMode(
             });
         }
 
-        // Start the build
-        await buildLoop.start(prompt);
+        // Enhance prompt with shadow patterns if available
+        const enhancedPrompt = advancedOrch ? advancedOrch.buildEnhancedPrompt(prompt) : prompt;
+
+        // Start the build with enhanced prompt
+        await buildLoop.start(enhancedPrompt);
 
         context.broadcast('builder-completed', {
             status: buildLoop.getState().status,

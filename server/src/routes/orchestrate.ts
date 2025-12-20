@@ -148,6 +148,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
  */
 router.post('/:projectId/execute', async (req: Request, res: Response) => {
     const { projectId } = req.params;
+    const { userId } = req.body;
 
     const orchestrator = orchestrators.get(projectId);
     if (!orchestrator) {
@@ -164,6 +165,30 @@ router.post('/:projectId/execute', async (req: Request, res: Response) => {
         res.write(`event: ${eventType}\n`);
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
+
+    // Load unified context for rich execution
+    try {
+        const unifiedContext = await loadContextForProject(projectId, userId || 'system');
+        if (unifiedContext) {
+            const contextSummary = formatUnifiedContextSummary(unifiedContext);
+            sendEvent('context-loaded', {
+                summary: contextSummary,
+                patternsCount: unifiedContext.learnedPatterns.length,
+                hasIntentLock: !!unifiedContext.intentLock,
+                strategiesCount: unifiedContext.activeStrategies.length,
+            });
+
+            // Inject context into orchestrator if it supports it
+            if ('setUnifiedContext' in orchestrator && typeof orchestrator.setUnifiedContext === 'function') {
+                (orchestrator as any).setUnifiedContext(unifiedContext);
+            }
+        }
+    } catch (contextError) {
+        sendEvent('context-warning', {
+            message: 'Unified context loading failed, proceeding without enrichment',
+            error: contextError instanceof Error ? contextError.message : 'Unknown error',
+        });
+    }
 
     // Subscribe to orchestrator events
     orchestrator.on('event', (event) => {
