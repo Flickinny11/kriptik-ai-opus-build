@@ -181,6 +181,31 @@ import {
     type PatternApplicationResult,
 } from './error-pattern-library.js';
 
+// ============================================================================
+// REMAINING FEATURE INTEGRATION (Ghost Mode, Soft Interrupt, Credentials)
+// ============================================================================
+import {
+    SoftInterruptManager,
+    getSoftInterruptManager,
+    type ClassifiedInterrupt,
+    type UserInterrupt,
+} from '../soft-interrupt/interrupt-manager.js';
+
+import {
+    CredentialVault,
+    getCredentialVault,
+    type DecryptedCredential,
+} from '../security/credential-vault.js';
+
+import {
+    GhostModeController,
+    getGhostModeController,
+    type GhostSessionConfig,
+    type GhostSessionState,
+    type WakeCondition,
+    type WakeConditionType,
+} from '../ghost-mode/index.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -439,6 +464,24 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // Agent feedback subscriptions
     private agentFeedbackSubscriptions: Map<string, () => void> = new Map();
 
+    // =========================================================================
+    // REMAINING FEATURE SERVICES (Ghost Mode, Soft Interrupt, Credentials)
+    // =========================================================================
+    private ghostModeController: GhostModeController | null = null;
+    private softInterruptManager: SoftInterruptManager | null = null;
+    private credentialVault: CredentialVault | null = null;
+
+    // Ghost Mode state
+    private ghostSessionId: string | null = null;
+    private isGhostModeActive: boolean = false;
+    private wakeConditions: WakeCondition[] = [];
+
+    // Loaded credentials for this build
+    private loadedCredentials: Map<string, DecryptedCredential> = new Map();
+
+    // Pending interrupts to process at tool boundaries
+    private pendingInterrupts: ClassifiedInterrupt[] = [];
+
     constructor(
         projectId: string,
         userId: string,
@@ -542,10 +585,35 @@ export class BuildLoopOrchestrator extends EventEmitter {
             this.multiAgentJudge = getMultiAgentJudge();
         }
 
+        // =====================================================================
+        // INITIALIZE REMAINING FEATURES (Ghost Mode, Soft Interrupt, Credentials)
+        // =====================================================================
+
+        // Ghost Mode Controller - for autonomous background building
+        try {
+            this.ghostModeController = getGhostModeController();
+        } catch (error) {
+            console.warn('[BuildLoop] Ghost mode controller not available:', error);
+        }
+
+        // Soft Interrupt Manager - for mid-execution user input
+        try {
+            this.softInterruptManager = getSoftInterruptManager();
+        } catch (error) {
+            console.warn('[BuildLoop] Soft interrupt manager not available:', error);
+        }
+
+        // Credential Vault - for secure credential storage/retrieval
+        try {
+            this.credentialVault = getCredentialVault();
+        } catch (error) {
+            console.warn('[BuildLoop] Credential vault not available:', error);
+        }
+
         // Note: StreamingFeedbackChannel, ContinuousVerification, and BrowserInLoop
         // are initialized in start() because they need the build to be running
 
-        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ features (mode: ${mode}, path: ${this.projectPath})`);
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -3025,6 +3093,596 @@ Would the user be satisfied with this result?`;
             return [];
         }
         return this.feedbackChannel.getBlockers(this.state.id);
+    }
+
+    // =========================================================================
+    // SOFT INTERRUPT SYSTEM (F046)
+    // Allows mid-execution user input without breaking agent flow
+    // =========================================================================
+
+    // Local storage for interrupt data (not in state)
+    private interruptContext: string[] = [];
+    private courseCorrections: Array<{ message: string; phase: string; timestamp: string }> = [];
+    private intentClarifications: Array<{ message: string; timestamp: string }> = [];
+
+    /**
+     * Submit a user interrupt during build execution
+     * Interrupt will be processed at next tool boundary
+     */
+    async submitInterrupt(message: string, _type?: string): Promise<string | null> {
+        if (!this.softInterruptManager) {
+            console.warn('[BuildLoop] Soft interrupt manager not available');
+            return null;
+        }
+
+        try {
+            // submitInterrupt takes (sessionId, message, agentId?)
+            const interrupt = await this.softInterruptManager.submitInterrupt(
+                this.state.id,
+                message,
+                'build-loop'
+            );
+
+            console.log(`[BuildLoop] Interrupt submitted: ${interrupt.id} (${interrupt.type})`);
+            return interrupt.id;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to submit interrupt:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Check for pending interrupts at tool boundaries
+     * Should be called between agent tool executions
+     */
+    async checkForInterrupts(): Promise<ClassifiedInterrupt[]> {
+        if (!this.softInterruptManager) {
+            return [];
+        }
+
+        try {
+            // getInterruptsAtToolBoundary takes (sessionId, agentId)
+            const pending = await this.softInterruptManager.getInterruptsAtToolBoundary(
+                this.state.id,
+                'build-loop'
+            );
+
+            if (pending.length > 0) {
+                console.log(`[BuildLoop] ${pending.length} pending interrupts to process`);
+                this.pendingInterrupts = pending;
+            }
+
+            return pending;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to check interrupts:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Process a single interrupt - integrate into agent context
+     */
+    async processInterrupt(interrupt: ClassifiedInterrupt): Promise<void> {
+        if (!this.softInterruptManager) {
+            return;
+        }
+
+        try {
+            console.log(`[BuildLoop] Processing interrupt ${interrupt.id}: ${interrupt.type}`);
+
+            switch (interrupt.type) {
+                case 'HALT':
+                    // Pause execution immediately - use awaiting_approval as closest status
+                    this.state.status = 'awaiting_approval';
+                    this.emitEvent('phase_start', {
+                        phase: 'interrupt_halt',
+                        message: 'Execution halted by user interrupt'
+                    });
+                    break;
+
+                case 'CONTEXT_ADD':
+                    // Add context to current agent
+                    await this.mergeInterruptContext(interrupt);
+                    break;
+
+                case 'COURSE_CORRECT':
+                    // Modify current approach
+                    await this.applyCourseCorrection(interrupt);
+                    break;
+
+                case 'QUEUE':
+                    // Queue for later processing
+                    console.log(`[BuildLoop] Queued interrupt: ${interrupt.message.substring(0, 50)}...`);
+                    break;
+
+                case 'CLARIFICATION':
+                    // Add clarification to Intent Lock
+                    await this.addIntentClarification(interrupt);
+                    break;
+
+                case 'BACKTRACK':
+                    // Handle backtrack request
+                    console.log(`[BuildLoop] Backtrack requested: ${interrupt.message.substring(0, 50)}...`);
+                    break;
+
+                case 'URGENT_FIX':
+                    // Handle urgent fix
+                    console.log(`[BuildLoop] Urgent fix: ${interrupt.message.substring(0, 50)}...`);
+                    break;
+
+                default:
+                    console.log(`[BuildLoop] Unhandled interrupt type: ${interrupt.type}`);
+            }
+
+            // Apply the interrupt via the manager (takes interrupt, agentId)
+            await this.softInterruptManager.applyInterrupt(interrupt, 'build-loop');
+        } catch (error) {
+            console.error('[BuildLoop] Failed to process interrupt:', error);
+        }
+    }
+
+    /**
+     * Merge interrupt context into current agent execution
+     */
+    private async mergeInterruptContext(interrupt: ClassifiedInterrupt): Promise<void> {
+        // Emit event for context addition
+        this.emitEvent('phase_start', {
+            phase: 'interrupt_context',
+            message: `Context added: ${interrupt.message.substring(0, 100)}...`
+        });
+
+        // Store in local array for agent consumption
+        this.interruptContext.push(interrupt.message);
+    }
+
+    /**
+     * Apply course correction from interrupt
+     */
+    private async applyCourseCorrection(interrupt: ClassifiedInterrupt): Promise<void> {
+        this.emitEvent('phase_start', {
+            phase: 'interrupt_correction',
+            message: `Course correction: ${interrupt.message.substring(0, 100)}...`
+        });
+
+        // Store correction for current phase to consider
+        this.courseCorrections.push({
+            message: interrupt.message,
+            phase: this.state.currentPhase,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    /**
+     * Add clarification to Intent Lock
+     */
+    private async addIntentClarification(interrupt: ClassifiedInterrupt): Promise<void> {
+        this.emitEvent('phase_start', {
+            phase: 'interrupt_clarification',
+            message: `Intent clarification: ${interrupt.message.substring(0, 100)}...`
+        });
+
+        // Store clarification in local array (doesn't modify locked contract)
+        this.intentClarifications.push({
+            message: interrupt.message,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    /**
+     * Get accumulated interrupt context
+     */
+    getInterruptContext(): string[] {
+        return [...this.interruptContext];
+    }
+
+    /**
+     * Get accumulated course corrections
+     */
+    getCourseCorrections(): Array<{ message: string; phase: string; timestamp: string }> {
+        return [...this.courseCorrections];
+    }
+
+    /**
+     * Get accumulated intent clarifications
+     */
+    getIntentClarifications(): Array<{ message: string; timestamp: string }> {
+        return [...this.intentClarifications];
+    }
+
+    // =========================================================================
+    // CREDENTIAL VAULT SYSTEM (F047)
+    // Secure credential storage and injection for builds
+    // =========================================================================
+
+    /**
+     * Load project credentials for build execution
+     * Called during Phase 1 (Initialization)
+     */
+    async loadProjectCredentials(integrationIds?: string[]): Promise<Map<string, DecryptedCredential>> {
+        if (!this.credentialVault) {
+            console.warn('[BuildLoop] Credential vault not available');
+            return this.loadedCredentials;
+        }
+
+        try {
+            // Get all credentials for this project
+            const credentials = await this.credentialVault.listCredentials(this.state.userId);
+
+            for (const cred of credentials) {
+                // Filter by integration IDs if provided
+                if (integrationIds && integrationIds.length > 0) {
+                    if (!integrationIds.includes(cred.integrationId)) {
+                        continue;
+                    }
+                }
+
+                // Decrypt and store for build use
+                try {
+                    const decrypted = await this.credentialVault.getCredential(cred.id, this.state.userId);
+                    if (decrypted) {
+                        this.loadedCredentials.set(cred.integrationId, decrypted);
+                        console.log(`[BuildLoop] Loaded credential for ${cred.integrationId}`);
+                    }
+                } catch (error) {
+                    console.warn(`[BuildLoop] Failed to decrypt credential ${cred.id}:`, error);
+                }
+            }
+
+            console.log(`[BuildLoop] Loaded ${this.loadedCredentials.size} credentials for build`);
+            return this.loadedCredentials;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to load credentials:', error);
+            return this.loadedCredentials;
+        }
+    }
+
+    /**
+     * Get a specific credential for use in build
+     */
+    getCredential(integrationId: string): DecryptedCredential | undefined {
+        return this.loadedCredentials.get(integrationId);
+    }
+
+    /**
+     * Check if required credentials are available
+     */
+    hasRequiredCredentials(requiredIntegrations: string[]): { available: boolean; missing: string[] } {
+        const missing: string[] = [];
+
+        for (const integration of requiredIntegrations) {
+            if (!this.loadedCredentials.has(integration)) {
+                missing.push(integration);
+            }
+        }
+
+        return {
+            available: missing.length === 0,
+            missing,
+        };
+    }
+
+    /**
+     * Write credentials to .env file for build process
+     */
+    async writeCredentialsToEnv(projectPath: string): Promise<boolean> {
+        if (this.loadedCredentials.size === 0) {
+            console.log('[BuildLoop] No credentials to write to .env');
+            return true;
+        }
+
+        try {
+            const envPath = `${projectPath}/.env`;
+            const envLines: string[] = [];
+
+            // Read existing .env if present
+            try {
+                const fs = await import('fs/promises');
+                const existing = await fs.readFile(envPath, 'utf-8');
+                envLines.push(existing.trim());
+            } catch {
+                // No existing .env
+            }
+
+            // Add credentials
+            envLines.push('');
+            envLines.push('# === Credentials injected by KripTik Build Loop ===');
+
+            for (const [integration, cred] of this.loadedCredentials) {
+                const envKey = this.integrationToEnvKey(integration);
+                // DecryptedCredential has data: CredentialData which is a flexible object
+                const value = cred.data?.apiKey || cred.data?.token || cred.data?.secret || '';
+                envLines.push(`${envKey}=${value}`);
+            }
+
+            // Write .env
+            const fs = await import('fs/promises');
+            await fs.writeFile(envPath, envLines.join('\n'));
+
+            console.log(`[BuildLoop] Wrote ${this.loadedCredentials.size} credentials to ${envPath}`);
+            return true;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to write credentials to .env:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Convert integration ID to environment variable name
+     */
+    private integrationToEnvKey(integrationId: string): string {
+        return integrationId
+            .toUpperCase()
+            .replace(/-/g, '_')
+            .replace(/\./g, '_') + '_API_KEY';
+    }
+
+    /**
+     * Clear loaded credentials (security cleanup)
+     */
+    clearCredentials(): void {
+        this.loadedCredentials.clear();
+        console.log('[BuildLoop] Credentials cleared from memory');
+    }
+
+    // =========================================================================
+    // GHOST MODE SYSTEM (F048)
+    // Autonomous background building when user is away
+    // =========================================================================
+
+    /**
+     * Enable Ghost Mode for autonomous background building
+     */
+    async enableGhostMode(config: {
+        wakeConditions?: WakeCondition[];
+        maxRuntime?: number;
+        maxCredits?: number;
+        autonomyLevel?: 'conservative' | 'moderate' | 'aggressive';
+    }): Promise<string | null> {
+        if (!this.ghostModeController) {
+            console.warn('[BuildLoop] Ghost mode controller not available');
+            return null;
+        }
+
+        try {
+            const ghostConfig: GhostSessionConfig = {
+                sessionId: uuidv4(),
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                tasks: [{
+                    id: this.state.id,
+                    description: 'Complete build loop execution',
+                    priority: 1,
+                    estimatedCredits: config.maxCredits || 100,
+                    status: 'pending',
+                    dependencies: [],
+                }],
+                wakeConditions: config.wakeConditions || [
+                    {
+                        id: uuidv4(),
+                        type: 'completion',
+                        description: 'Build completed',
+                        priority: 'high',
+                        notificationChannels: ['push', 'email'],
+                    },
+                    {
+                        id: uuidv4(),
+                        type: 'critical_error',
+                        description: 'Critical error occurred',
+                        priority: 'high',
+                        notificationChannels: ['push', 'email'],
+                    },
+                ],
+                maxRuntime: config.maxRuntime || 120, // 2 hours default
+                maxCredits: config.maxCredits || 100,
+                checkpointInterval: 15, // Every 15 minutes
+                retryPolicy: {
+                    maxRetries: 3,
+                    backoffMultiplier: 2,
+                    initialDelayMs: 1000,
+                    maxDelayMs: 60000,
+                    retryableErrors: ['timeout', 'rate_limit', 'temporary_failure', 'network_error'],
+                },
+                pauseOnFirstError: config.autonomyLevel === 'conservative',
+                autonomyLevel: config.autonomyLevel || 'moderate',
+            };
+
+            // startSession returns the session ID as a string
+            const sessionId = await this.ghostModeController.startSession(ghostConfig);
+            this.ghostSessionId = sessionId;
+            this.isGhostModeActive = true;
+            this.wakeConditions = ghostConfig.wakeConditions;
+
+            console.log(`[BuildLoop] Ghost mode enabled: ${sessionId}`);
+            this.emitEvent('phase_start', {
+                phase: 'ghost_mode',
+                message: 'Ghost mode enabled - building autonomously'
+            });
+
+            return sessionId;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to enable ghost mode:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Disable Ghost Mode and return to interactive building
+     */
+    async disableGhostMode(): Promise<void> {
+        if (!this.ghostModeController || !this.ghostSessionId) {
+            return;
+        }
+
+        try {
+            await this.ghostModeController.pauseSession(this.ghostSessionId);
+            this.isGhostModeActive = false;
+
+            console.log(`[BuildLoop] Ghost mode disabled: ${this.ghostSessionId}`);
+            this.emitEvent('phase_complete', {
+                phase: 'ghost_mode',
+                message: 'Ghost mode disabled - returning to interactive mode'
+            });
+        } catch (error) {
+            console.error('[BuildLoop] Failed to disable ghost mode:', error);
+        }
+    }
+
+    /**
+     * Check if a wake condition has been triggered
+     */
+    async checkWakeConditions(): Promise<WakeCondition | null> {
+        if (!this.isGhostModeActive || this.wakeConditions.length === 0) {
+            return null;
+        }
+
+        for (const condition of this.wakeConditions) {
+            const triggered = await this.evaluateWakeCondition(condition);
+            if (triggered) {
+                console.log(`[BuildLoop] Wake condition triggered: ${condition.type}`);
+                this.isGhostModeActive = false;
+
+                // Send notification
+                await this.sendWakeNotification(condition);
+
+                return condition;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Evaluate a single wake condition
+     */
+    private async evaluateWakeCondition(condition: WakeCondition): Promise<boolean> {
+        switch (condition.type) {
+            case 'completion':
+                return this.state.status === 'complete';
+
+            case 'error':
+                return this.state.status === 'failed' ||
+                       this.state.errorCount > 0;
+
+            case 'critical_error':
+                // Check if escalation level indicates critical error (level 3+)
+                return this.state.escalationLevel >= 3;
+
+            case 'decision_needed':
+                return this.state.status === 'awaiting_approval' ||
+                       this.pendingInterrupts.some(i => i.type === 'CLARIFICATION');
+
+            case 'cost_threshold':
+                // Cost threshold check not directly in state, using escalation as proxy
+                // In a full implementation, would track credits separately
+                return false; // Disabled until credits tracking is added
+
+            case 'time_elapsed':
+                // Check if time exceeded
+                const elapsed = Date.now() - this.state.startedAt.getTime();
+                const thresholdMs = (condition.threshold || 0) * 60 * 1000;
+                return thresholdMs > 0 && elapsed >= thresholdMs;
+
+            case 'feature_complete':
+                // Check if specific feature is complete
+                // Using phasesCompleted as proxy - feature tracking would need separate mechanism
+                if (condition.featureId) {
+                    // In full implementation, would check feature tracking system
+                    // For now, check if parallel_build phase is complete (where features are built)
+                    return this.state.phasesCompleted.includes('parallel_build');
+                }
+                return false;
+
+            case 'quality_threshold':
+                // Check if quality score dropped below threshold
+                // Note: Verification scores tracked separately during build phases
+                // For now, use error count as quality proxy
+                if (condition.threshold) {
+                    const errorRatio = this.state.errorCount / Math.max(1, this.state.phasesCompleted.length);
+                    return errorRatio > (100 - condition.threshold) / 100;
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Send notification for wake condition
+     */
+    private async sendWakeNotification(condition: WakeCondition): Promise<void> {
+        // Use the notification system
+        const message = `Build wake condition triggered: ${condition.description}`;
+
+        for (const channel of condition.notificationChannels) {
+            try {
+                switch (channel) {
+                    case 'push':
+                        // Would integrate with web-push
+                        console.log(`[BuildLoop] Push notification: ${message}`);
+                        break;
+                    case 'email':
+                        // Would integrate with email service
+                        console.log(`[BuildLoop] Email notification: ${message}`);
+                        break;
+                    case 'slack':
+                    case 'discord':
+                    case 'webhook':
+                        console.log(`[BuildLoop] ${channel} notification: ${message}`);
+                        break;
+                }
+            } catch (error) {
+                console.error(`[BuildLoop] Failed to send ${channel} notification:`, error);
+            }
+        }
+
+        this.emitEvent('phase_complete', {
+            phase: 'wake_notification',
+            message: `Wake notification sent: ${condition.description}`
+        });
+    }
+
+    /**
+     * Get Ghost Mode status
+     */
+    getGhostModeStatus(): {
+        active: boolean;
+        sessionId: string | null;
+        wakeConditions: WakeCondition[];
+    } {
+        return {
+            active: this.isGhostModeActive,
+            sessionId: this.ghostSessionId,
+            wakeConditions: this.wakeConditions,
+        };
+    }
+
+    /**
+     * Record a checkpoint during Ghost Mode execution
+     * Note: GhostModeController handles checkpoints internally via createCheckpoint (private)
+     * This method logs the checkpoint for external tracking
+     */
+    async recordGhostCheckpoint(description: string): Promise<void> {
+        if (!this.ghostModeController || !this.ghostSessionId) {
+            return;
+        }
+
+        try {
+            // Log checkpoint event - GhostModeController manages actual checkpoints internally
+            console.log(`[BuildLoop] Ghost checkpoint: ${description}`);
+            console.log(`[BuildLoop]   Phase: ${this.state.currentPhase}`);
+            console.log(`[BuildLoop]   Phases completed: ${this.state.phasesCompleted.join(', ')}`);
+
+            // Emit event for tracking
+            this.emitEvent('checkpoint_created', {
+                description,
+                phase: this.state.currentPhase,
+                phasesCompleted: this.state.phasesCompleted,
+                ghostSessionId: this.ghostSessionId,
+            });
+        } catch (error) {
+            console.error('[BuildLoop] Failed to record ghost checkpoint:', error);
+        }
     }
 }
 
