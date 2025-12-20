@@ -44,6 +44,119 @@ The AI race moves fast - searching for just "2025" could return info from months
 
 **Rationale**: Tech evolves daily in the AI race. Models, APIs, and capabilities release on near-weekly basis. A year-only search could miss 11 months of updates.
 
+### 2025-12-20: Cursor 2.1+ Features Merged into BuildLoopOrchestrator
+
+**Major Implementation - Unified Orchestrator Complete:**
+
+Merged all Cursor 2.1+ services into the BuildLoopOrchestrator, creating the unified orchestrator:
+
+**Files Changed:**
+- `server/src/services/automation/build-loop.ts` (2674 → 3074 lines, +400)
+
+**7 Services Integrated:**
+1. **StreamingFeedbackChannel** - Real-time verification → builder
+2. **ContinuousVerificationService** - TypeScript, ESLint running continuously
+3. **RuntimeDebugContextService** - Variable states, execution paths for errors
+4. **BrowserInLoopService** - Visual verification during build (not just at end)
+5. **HumanCheckpointService** - Pause for critical fixes
+6. **MultiAgentJudgeService** - Auto-evaluate parallel agent results
+7. **ErrorPatternLibraryService** - Level 0 pre-escalation instant fixes
+
+**Changes Made:**
+- Added imports for all 7 Cursor 2.1+ services
+- Extended BuildLoopConfig with 9 new feature flags
+- Updated BUILD_MODE_CONFIGS for all 4 modes (lightning/standard/tournament/production)
+- Added startCursor21Services() and stopCursor21Services() methods
+- Added handleErrorWithPatternLibrary() for Level 0 fixes
+- Added createHumanCheckpoint() for critical verification
+- Added judgeAgentResults() for multi-agent tournament mode
+- Added runVisualCheck() for manual visual verification
+- Added getCursor21Capabilities() for status reporting
+- Updated abort() to call stopCursor21Services()
+- Extended BuildLoopEvent with new Cursor 2.1+ event types
+
+**Also Fixed:**
+- projectPath now passed to KTN buildFeature calls (lines 853 and 1261)
+- Enables full unified context loading (14 sections) into code generation
+
+**Commits:**
+- `fe74869` - feat: Merge Cursor 2.1+ features into BuildLoopOrchestrator
+- `701cc73` - fix: Add projectPath to KTN buildFeature calls
+- `e4a3b44` - docs: Complete unified orchestrator spec with 91 feature inventory
+
+### 2025-12-20: Unified Orchestrator Specification Created
+
+**Major Architecture Decision - Single Unified Orchestrator:**
+
+Created comprehensive specification for merging all orchestrators into one unified system:
+
+**Document**: `.claude/rules/07-unified-orchestrator-spec.md`
+
+**Key Decisions:**
+1. **One Orchestrator** - BuildLoopOrchestrator as foundation + EnhancedBuildLoop features
+2. **8 Phases** - Extended from 6 to include continuous feedback and learning capture
+3. **Component-Based Sandboxing** - Multiple agents per component, not per agent
+4. **30 Features Preserved** - Complete inventory mapped and integrated
+5. **Context Injection Fixed** - projectPath gap identified and specified
+
+**Phase-Based Sandbox Architecture:**
+- Frontend Sandbox (multiple agents work together)
+- Backend Sandbox (multiple agents work together)
+- Database Sandbox (multiple agents work together)
+- API Integrations Sandbox (multiple agents work together)
+- Main Sandbox (all components merge here)
+- Final verification and browser demo
+
+**Implementation Order:**
+1. Fix projectPath context injection gap (quick win)
+2. Merge EnhancedBuildLoop INTO BuildLoop
+3. Add component-based sandboxing
+4. Wire Builder View to unified orchestrator
+5. Update Feature Agent to use unified orchestrator
+
+### 2025-12-20: Comprehensive NLP-to-Completion Gap Analysis
+
+**Major Analysis - Complete System Audit:**
+
+Performed comprehensive analysis of all systems from NLP input to completion to identify gaps preventing the intended autonomous building experience.
+
+**Key Documents Created:**
+1. `.claude/rules/06-nlp-to-completion-gaps.md` - Complete gap analysis with 18+ identified gaps and priority fix list
+2. Updated CLAUDE.md with "Two Operation Modes" section documenting intended Builder View vs Feature Agent workflows
+
+**Critical Gaps Identified:**
+
+1. **Builder View uses wrong orchestrator** - Uses DevelopmentOrchestrator instead of BuildLoopOrchestrator
+   - Missing: Intent Satisfaction gate (Phase 5)
+   - Missing: Browser Demo (Phase 6)
+   - Missing: Learning Engine integration
+   - Missing: Production options selection and plan approval
+
+2. **Feature Agents work in isolation** - No context sharing between parallel agents
+   - 6-agent limit is UI-only (no server enforcement)
+   - No file locking coordination
+   - No learning transfer between agents
+
+3. **Verification can be bypassed** - Fallback behaviors allow progression despite failures
+   - Visual Verifier returns `passed: true` on crash
+   - Design Style Agent returns `passed: true` on crash
+   - Phase 5 escalation limited to 3 retries
+
+4. **Extension credential capture broken** - Vision extraction endpoint missing
+   - `/api/extension/vision-extract` not implemented
+   - Extension ↔ Feature Agent credential bridge missing
+
+5. **No real-time preview during builds** - Users only see completed features
+   - BrowserInLoopService (706 lines) exists but unused
+   - Sandbox exists but not shown during Phase 2
+
+6. **Context systems fragmented** - Two incompatible architectures
+   - File-based (LoadedContext) used by agents
+   - Database-driven (UnifiedContext) with 14 sources but rarely called
+   - Learning patterns never reach agents
+
+**Priority Fix List:** See `.claude/rules/06-nlp-to-completion-gaps.md` for P0-P3 items
+
 ### 2025-12-19: Gap-Closing Verification Agents for Production Readiness
 
 **Major Addition - 7 Gap-Closing Agents to Close "Last 20% Gap":**
@@ -301,42 +414,60 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 *Set at the start of each session*
 
-### Current Session (2025-12-19)
+### Current Session (2025-12-20)
+- [x] Analyze KripTik gaps from NLP input to completion
+- [x] Create unified orchestrator specification (91 features)
+- [x] Fix projectPath context injection gap
+- [x] Merge Cursor 2.1+ features into BuildLoopOrchestrator
+- [ ] Wire Builder View to unified orchestrator (see next steps below)
+- [ ] Wire Feature Agent to unified orchestrator
+
+### Previous Session (2025-12-19)
 - [x] Set up Chrome DevTools MCP for browser integration
 - [x] Create `~/bin/chrome-dev` launch script
 - [x] Update CLAUDE.md with knowledge currency mandate
-- [x] Update CLAUDE.md with browser integration tools
-- [x] Update memory system documentation with handoff protocol
-- [x] Create browser-integration.md guide
 - [x] Full Cursor 2.2 Parity Enhancement
 - [x] Resolve merge conflicts with main branch
 - [x] Fix memory system - move to .claude/rules/ for auto-loading
-- [x] Add SessionStart hooks for context reminder
-- [x] Add custom icons rule (no Lucide, use src/components/icons/)
-- [x] Add browser element selection workflow
-- [x] Add THINK AHEAD proactive problem prevention
-- [x] Add MAXIMIZE BROWSER USAGE mandate
-- [x] Add NO ORPHANED CODE rule
-- [ ] Test browser MCP integration with running app
 
 ---
 
 ## What Should Happen Next
 
-1. **Restart Claude Code** to pick up:
-   - New MCP configuration from `.mcp.json`
-   - Auto-loaded rules from `.claude/rules/*.md`
-   - SessionStart hooks from `.claude/settings.json`
-2. **Verify auto-loading works** - SessionStart hook should display reminder
-3. **Start the dev server** (`npm run dev`) and navigate to it in the debugging Chrome
-4. **Launch Chrome with debugging**: `~/bin/chrome-dev`
-5. **Test browser integration** by asking Claude to take screenshots, read console, etc.
-6. **Use new slash commands** for autonomous building:
-   - `/implement [feature]` for new features with research
-   - `/design [component]` for UI work
-   - `/verify` after changes
-   - `/build` for build with auto-fix
-7. **Continue building KripTik AI** with full Cursor 2.2 parity!
+### Priority 1: Wire Builder View to Unified Orchestrator
+
+**Current State:** Builder View uses `/api/orchestrate/*` → DevelopmentOrchestrator
+**Target State:** Builder View uses `/api/execute` → BuildLoopOrchestrator
+
+**Two Options:**
+
+**Option A: Update Client (Recommended)**
+1. Modify `src/lib/AgentOrchestrator.ts`:
+   - Change `/api/orchestrate/analyze` → `POST /api/execute` with `mode: 'builder'`
+   - Update event handling to match execute.ts events (builder-started, builder-phase_start, etc.)
+   - Update pause/resume/stop to use `/api/execute/:sessionId/*` routes
+   - Use websocket channel from response for real-time updates
+
+2. Key files:
+   - `src/lib/AgentOrchestrator.ts` (client orchestrator facade)
+   - `src/components/builder/ChatInterface.tsx` (uses AgentOrchestrator)
+   - `server/src/routes/execute.ts` (already uses BuildLoopOrchestrator correctly)
+
+**Option B: Update Server Routes**
+1. Modify `server/src/routes/orchestrate.ts`:
+   - Replace DevelopmentOrchestrator with BuildLoopOrchestrator
+   - Adapt event streaming to match existing client expectations
+
+### Priority 2: Wire Feature Agent (Already Done?)
+
+Check: Feature Agent may already use BuildLoopOrchestrator via `server/src/services/feature-agent/feature-agent-service.ts`
+
+### Priority 3: Fix Remaining P0 Gaps
+
+From `.claude/rules/06-nlp-to-completion-gaps.md`:
+- Implement `/sandbox/:agentId` route for "Show Me" button
+- Add server-side 6-agent limit enforcement
+- Implement `/api/extension/vision-extract` endpoint
 
 ---
 
