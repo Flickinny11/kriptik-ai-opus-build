@@ -26,6 +26,10 @@ import {
     type SwarmRunContext,
     type VerificationAgentType,
 } from '../services/verification/swarm.js';
+import {
+    getStreamingFeedbackChannel,
+    type FeedbackItem,
+} from '../services/feedback/streaming-feedback-channel.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -602,6 +606,167 @@ router.get('/config/:projectId', async (req, res) => {
     };
 
     res.status(200).json({ config });
+});
+
+// ============================================================================
+// STREAMING FEEDBACK ENDPOINT
+// ============================================================================
+
+/**
+ * GET /api/verification/feedback/:buildId/stream
+ *
+ * SSE stream of real-time verification feedback for a build.
+ * This enables the Builder UI to show live verification results
+ * as agents detect issues.
+ *
+ * Events:
+ * - feedback: A new feedback item from verification
+ * - blocker: A blocking issue that must be resolved
+ * - acknowledgment: An agent acknowledged/fixed an issue
+ * - summary: Periodic summary of current state
+ * - heartbeat: Keep-alive
+ */
+router.get('/feedback/:buildId/stream', async (req, res) => {
+    const { buildId } = req.params;
+    const userId = req.headers['x-user-id'] as string;
+
+    if (!buildId) {
+        return res.status(400).json({ error: 'buildId is required' });
+    }
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const feedbackChannel = getStreamingFeedbackChannel();
+
+    // Send initial connection event
+    const sendEvent = (event: string, data: unknown) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    sendEvent('connected', {
+        buildId,
+        timestamp: Date.now(),
+        message: 'Connected to verification feedback stream',
+    });
+
+    // Listen for feedback events
+    const onFeedback = (item: FeedbackItem & { buildId: string }) => {
+        if (item.buildId === buildId) {
+            sendEvent('feedback', {
+                ...item,
+                timestamp: item.timestamp.toISOString(),
+            });
+
+            // Also send as blocker if severity is critical or high
+            if (item.severity === 'critical' || item.severity === 'high') {
+                sendEvent('blocker', {
+                    ...item,
+                    timestamp: item.timestamp.toISOString(),
+                });
+            }
+        }
+    };
+
+    const onAcknowledgment = (ack: { feedbackId: string; buildId: string; action: string }) => {
+        if (ack.buildId === buildId) {
+            sendEvent('acknowledgment', ack);
+        }
+    };
+
+    // Subscribe to events
+    feedbackChannel.on('feedback', onFeedback);
+    feedbackChannel.on('acknowledged', onAcknowledgment);
+
+    // Send periodic summary
+    const summaryInterval = setInterval(() => {
+        const stream = feedbackChannel.getStream(buildId);
+        if (stream) {
+            sendEvent('summary', {
+                totalItems: stream.items.length,
+                blockers: stream.blockers.length,
+                unacknowledged: stream.unacknowledged.length,
+                timestamp: Date.now(),
+            });
+        }
+    }, 10000); // Every 10 seconds
+
+    // Heartbeat
+    const heartbeatInterval = setInterval(() => {
+        res.write(': heartbeat\n\n');
+    }, 30000);
+
+    // Cleanup on disconnect
+    req.on('close', () => {
+        feedbackChannel.off('feedback', onFeedback);
+        feedbackChannel.off('acknowledged', onAcknowledgment);
+        clearInterval(summaryInterval);
+        clearInterval(heartbeatInterval);
+    });
+});
+
+/**
+ * POST /api/verification/feedback/:buildId/create-stream
+ *
+ * Create a feedback stream for a build.
+ * Call this before starting verification to enable real-time feedback.
+ */
+router.post('/feedback/:buildId/create-stream', async (req, res) => {
+    const { buildId } = req.params;
+    const { agentId } = req.body;
+
+    if (!buildId || !agentId) {
+        return res.status(400).json({ error: 'buildId and agentId are required' });
+    }
+
+    const feedbackChannel = getStreamingFeedbackChannel();
+    const stream = feedbackChannel.createStream(buildId, agentId);
+
+    res.status(200).json({
+        success: true,
+        buildId,
+        agentId,
+        startedAt: stream.startedAt.toISOString(),
+    });
+});
+
+/**
+ * POST /api/verification/feedback/:buildId/inject
+ *
+ * Inject feedback into the stream (for testing or manual feedback).
+ */
+router.post('/feedback/:buildId/inject', async (req, res) => {
+    const { buildId } = req.params;
+    const { category, severity, message, file, line, suggestion, autoFixable } = req.body;
+
+    if (!buildId || !category || !severity || !message) {
+        return res.status(400).json({
+            error: 'buildId, category, severity, and message are required',
+        });
+    }
+
+    const feedbackChannel = getStreamingFeedbackChannel();
+
+    const item: Omit<FeedbackItem, 'id' | 'timestamp'> = {
+        category,
+        severity,
+        message,
+        file,
+        line,
+        suggestion,
+        autoFixable: autoFixable ?? false,
+    };
+
+    feedbackChannel.injectFeedback(buildId, item);
+
+    res.status(200).json({
+        success: true,
+        message: 'Feedback injected',
+    });
 });
 
 export default router;

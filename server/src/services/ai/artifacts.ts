@@ -19,6 +19,8 @@
  */
 
 import { eq } from 'drizzle-orm';
+import { mkdir, writeFile, readFile } from 'fs/promises';
+import { dirname, join } from 'path';
 import { db } from '../../db.js';
 import { files } from '../../schema.js';
 import type { IntentContract } from './intent-lock.js';
@@ -154,11 +156,43 @@ export class ArtifactManager {
     private projectId: string;
     private orchestrationRunId: string;
     private userId: string;
+    /** Optional filesystem path for hybrid storage */
+    private projectPath?: string;
+    /** Whether to also sync artifacts to filesystem (default: true when projectPath provided) */
+    private syncToFilesystem: boolean;
 
-    constructor(projectId: string, orchestrationRunId: string, userId: string) {
+    constructor(
+        projectId: string,
+        orchestrationRunId: string,
+        userId: string,
+        options?: {
+            /** Filesystem path to sync artifacts (enables hybrid database + filesystem storage) */
+            projectPath?: string;
+            /** Whether to sync to filesystem (default: true when projectPath provided) */
+            syncToFilesystem?: boolean;
+        }
+    ) {
         this.projectId = projectId;
         this.orchestrationRunId = orchestrationRunId;
         this.userId = userId;
+        this.projectPath = options?.projectPath;
+        this.syncToFilesystem = options?.syncToFilesystem ?? !!options?.projectPath;
+    }
+
+    /**
+     * Set the project path for hybrid filesystem sync
+     * Call this to enable writing artifacts to both database and filesystem
+     */
+    setProjectPath(projectPath: string): void {
+        this.projectPath = projectPath;
+        this.syncToFilesystem = true;
+    }
+
+    /**
+     * Get the current project path
+     */
+    getProjectPath(): string | undefined {
+        return this.projectPath;
     }
 
     // =========================================================================
@@ -335,8 +369,12 @@ Each session records what was completed, current state, and next steps.
 
     /**
      * Save an artifact to the project files
+     *
+     * HYBRID STORAGE: Writes to both database (primary) and filesystem (when projectPath set).
+     * This ensures artifacts are available both for database queries and for agent filesystem access.
      */
     async saveArtifact(path: string, content: string): Promise<void> {
+        // 1. Save to database (primary storage)
         const existing = await db.select()
             .from(files)
             .where(eq(files.projectId, this.projectId))
@@ -363,12 +401,48 @@ Each session records what was completed, current state, and next steps.
                 updatedAt: new Date().toISOString(),
             });
         }
+
+        // 2. Also sync to filesystem for agent access (hybrid storage)
+        if (this.syncToFilesystem && this.projectPath) {
+            try {
+                const fullPath = join(this.projectPath, path);
+                const dir = dirname(fullPath);
+
+                // Ensure directory exists
+                await mkdir(dir, { recursive: true });
+
+                // Write file
+                await writeFile(fullPath, content, 'utf-8');
+
+                console.log(`[Artifacts] Synced to filesystem: ${path}`);
+            } catch (fsError) {
+                // Log but don't fail - database is primary
+                console.warn(`[Artifacts] Failed to sync to filesystem (${path}):`, fsError);
+            }
+        }
     }
 
     /**
      * Get an artifact from project files
+     *
+     * HYBRID STORAGE: Checks filesystem first (faster), falls back to database.
+     * This ensures agents can read artifacts regardless of where they were originally written.
      */
     async getArtifact(path: string): Promise<string | null> {
+        // 1. Try filesystem first (faster, if available)
+        if (this.projectPath) {
+            try {
+                const fullPath = join(this.projectPath, path);
+                const content = await readFile(fullPath, 'utf-8');
+                if (content) {
+                    return content;
+                }
+            } catch {
+                // File doesn't exist on filesystem, fall through to database
+            }
+        }
+
+        // 2. Fall back to database (always available)
         const results = await db.select()
             .from(files)
             .where(eq(files.projectId, this.projectId))
@@ -876,9 +950,15 @@ CONTEXT: Session active, context persisted to artifacts
 export function createArtifactManager(
     projectId: string,
     orchestrationRunId: string,
-    userId: string
+    userId: string,
+    options?: {
+        /** Filesystem path to sync artifacts (enables hybrid database + filesystem storage) */
+        projectPath?: string;
+        /** Whether to sync to filesystem (default: true when projectPath provided) */
+        syncToFilesystem?: boolean;
+    }
 ): ArtifactManager {
-    return new ArtifactManager(projectId, orchestrationRunId, userId);
+    return new ArtifactManager(projectId, orchestrationRunId, userId, options);
 }
 
 /**

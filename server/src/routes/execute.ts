@@ -28,6 +28,16 @@ import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
+// Rich Context Integration
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    type UnifiedContext,
+} from '../services/ai/unified-context.js';
+import {
+    getPredictiveErrorPrevention,
+    type PredictionResult,
+} from '../services/ai/predictive-error-prevention.js';
 
 const router = Router();
 
@@ -135,6 +145,47 @@ router.post('/', async (req: Request, res: Response) => {
             enableCheckpoints: options.enableCheckpoints ?? true,
         });
 
+        // Load unified context for rich code generation
+        let enrichedPrompt = prompt;
+        let unifiedContext: UnifiedContext | null = null;
+        let errorPrediction: PredictionResult | null = null;
+
+        try {
+            // Load project context (intent lock, learned patterns, error history, etc.)
+            unifiedContext = await loadUnifiedContext(projectId, {
+                includeIntentLock: true,
+                includeVerificationResults: true,
+                includeLearningPatterns: true,
+                includeErrorEscalation: true,
+                includeAppSoul: true,
+                includeAntiSlop: true,
+            });
+
+            // Get predictive error prevention analysis
+            const errorPrevention = getPredictiveErrorPrevention();
+            errorPrediction = await errorPrevention.predict({
+                projectId,
+                taskType: mode === 'builder' ? 'full_build' : 'code_generation',
+                taskDescription: prompt.slice(0, 500),
+                recentErrors: [],
+            });
+
+            // Enrich prompt with unified context
+            const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
+            const preventionGuidance = errorPrediction.predictions.length > 0
+                ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
+                    `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+                  ).join('\n')}`
+                : '';
+
+            enrichedPrompt = `${contextBlock}${preventionGuidance}\n\n## USER REQUEST:\n${prompt}`;
+
+            console.log(`[Execute] Loaded context: ${unifiedContext.intentLock ? 'Intent Lock' : 'No Intent'}, ${unifiedContext.learnedPatterns?.length || 0} patterns, ${errorPrediction.predictions.length} predicted issues`);
+        } catch (contextError) {
+            // Context loading is non-blocking - continue with original prompt
+            console.warn('[Execute] Context loading failed, proceeding with basic prompt:', contextError);
+        }
+
         // Broadcast execution start
         context.broadcast('execution-started', {
             mode,
@@ -147,18 +198,18 @@ router.post('/', async (req: Request, res: Response) => {
             },
         });
 
-        // Start execution in background based on mode
+        // Start execution in background based on mode (using enriched prompt with context)
         setImmediate(async () => {
             try {
                 switch (mode) {
                     case 'builder':
-                        await executeBuilderMode(context, prompt, options);
+                        await executeBuilderMode(context, enrichedPrompt, options);
                         break;
                     case 'developer':
-                        await executeDeveloperMode(context, prompt, options);
+                        await executeDeveloperMode(context, enrichedPrompt, options);
                         break;
                     case 'agents':
-                        await executeAgentsMode(context, prompt, options);
+                        await executeAgentsMode(context, enrichedPrompt, options);
                         break;
                 }
             } catch (error) {
