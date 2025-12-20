@@ -46,6 +46,12 @@ import {
     type UnifiedContext,
     type UnifiedContextOptions,
 } from '../unified-context.js';
+import {
+    getPredictiveErrorPrevention,
+    type PredictiveErrorPrevention,
+    type PredictionContext,
+    type PredictionResult,
+} from '../predictive-error-prevention.js';
 
 // =============================================================================
 // TYPES
@@ -89,6 +95,12 @@ export interface KTNResult {
     wasEnhanced: boolean;
     /** The unified context that was loaded and injected (for debugging/logging) */
     unifiedContextSummary?: string;
+    /** Predictive error prevention results (if enabled) */
+    errorPrevention?: {
+        predictionsApplied: number;
+        estimatedIterationsSaved: number;
+        confidenceScore: number;
+    };
 }
 
 export interface StreamingKTNResult {
@@ -119,17 +131,23 @@ export class KripToeNiteFacade {
     private service: KripToeNiteService;
     private classifier: TaskClassifier;
     private router: KripToeNiteRouter;
+    private errorPrevention: PredictiveErrorPrevention;
 
     // Cache for unified contexts to avoid reloading
     private contextCache: Map<string, { context: UnifiedContext; loadedAt: number }> = new Map();
     private contextCacheTTL = 60000; // 1 minute cache
 
+    // Cache for error predictions to avoid re-predicting for same task
+    private predictionCache: Map<string, { result: PredictionResult; loadedAt: number }> = new Map();
+    private predictionCacheTTL = 30000; // 30 second cache
+
     constructor() {
         this.service = getKripToeNiteService();
         this.classifier = getTaskClassifier();
         this.router = getKripToeNiteRouter();
+        this.errorPrevention = getPredictiveErrorPrevention();
 
-        console.log('[KripToeNiteFacade] Initialized with unified context support');
+        console.log('[KripToeNiteFacade] Initialized with unified context + predictive error prevention');
     }
 
     // =========================================================================
@@ -175,26 +193,78 @@ export class KripToeNiteFacade {
     }
 
     /**
-     * Build an enriched system prompt with unified context
+     * Get error predictions for a task
+     * Uses caching to avoid repeated analysis for similar prompts
+     */
+    async getErrorPredictions(
+        projectId: string,
+        taskType: string,
+        taskDescription: string,
+        options?: {
+            targetFiles?: string[];
+            existingCode?: string;
+            dependencies?: string[];
+            recentErrors?: string[];
+        }
+    ): Promise<PredictionResult> {
+        // Create cache key from task signature
+        const cacheKey = `${projectId}:${taskType}:${taskDescription.slice(0, 100)}`;
+        const cached = this.predictionCache.get(cacheKey);
+
+        // Return cached if fresh enough
+        if (cached && Date.now() - cached.loadedAt < this.predictionCacheTTL) {
+            console.log(`[KripToeNiteFacade] Using cached predictions for ${taskType}`);
+            return cached.result;
+        }
+
+        // Get fresh predictions
+        console.log(`[KripToeNiteFacade] Getting error predictions for ${taskType}`);
+        const context: PredictionContext = {
+            projectId,
+            taskType,
+            taskDescription,
+            ...options,
+        };
+
+        const result = await this.errorPrevention.predict(context);
+
+        // Cache it
+        this.predictionCache.set(cacheKey, { result, loadedAt: Date.now() });
+
+        console.log(
+            `[KripToeNiteFacade] Predicted ${result.predictions.length} potential errors, ` +
+            `est. ${result.estimatedIterationsSaved} iterations saved`
+        );
+
+        return result;
+    }
+
+    /**
+     * Build an enriched system prompt with unified context and error prevention
      */
     private buildEnrichedSystemPrompt(
         baseSystemPrompt: string | undefined,
-        unifiedContext: UnifiedContext,
+        unifiedContext: UnifiedContext | undefined,
+        errorPreventionPrompt: string | undefined,
         useFullContext: boolean = true
     ): string {
-        const contextSection = useFullContext
-            ? formatUnifiedContextForCodeGen(unifiedContext)
-            : formatUnifiedContextSummary(unifiedContext);
+        let enrichedPrompt = '# KRIPTIK AI CODE GENERATION CONTEXT\n\n';
 
-        const enrichedPrompt = `# KRIPTIK AI CODE GENERATION CONTEXT
+        // Add unified context if available
+        if (unifiedContext) {
+            const contextSection = useFullContext
+                ? formatUnifiedContextForCodeGen(unifiedContext)
+                : formatUnifiedContextSummary(unifiedContext);
+            enrichedPrompt += contextSection + '\n\n';
+        }
 
-${contextSection}
+        // Add error prevention guidelines if available
+        if (errorPreventionPrompt) {
+            enrichedPrompt += '---\n\n' + errorPreventionPrompt + '\n\n';
+        }
 
----
-
-# YOUR TASK
-
-${baseSystemPrompt || 'Generate high-quality code following the context above.'}`;
+        enrichedPrompt += '---\n\n# YOUR TASK\n\n';
+        enrichedPrompt += baseSystemPrompt || 'Generate high-quality code following the context above.';
 
         return enrichedPrompt;
     }
@@ -233,6 +303,8 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             systemPrompt?: string;
             maxTokens?: number;
             temperature?: number;
+            /** Skip predictive error prevention (for quick checks) */
+            skipErrorPrevention?: boolean;
         } & RequestContext
     ): Promise<KTNResult> {
         const startTime = Date.now();
@@ -258,9 +330,33 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             }
         }
 
-        // Build enriched system prompt if context is available
-        const enrichedSystemPrompt = unifiedContext
-            ? this.buildEnrichedSystemPrompt(options.systemPrompt, unifiedContext, true)
+        // Get predictive error prevention (for code generation tasks)
+        let errorPrevention: PredictionResult | undefined;
+        const shouldPreventErrors = !options.skipErrorPrevention && options.projectId;
+
+        if (shouldPreventErrors) {
+            try {
+                errorPrevention = await this.getErrorPredictions(
+                    options.projectId,
+                    options.taskContext || 'code_generation',
+                    prompt.slice(0, 500), // Use first 500 chars for prediction
+                    {
+                        recentErrors: options.currentErrors,
+                    }
+                );
+            } catch (error) {
+                console.warn('[KripToeNiteFacade] Failed to get error predictions:', error);
+            }
+        }
+
+        // Build enriched system prompt with context AND error prevention
+        const enrichedSystemPrompt = (unifiedContext || errorPrevention)
+            ? this.buildEnrichedSystemPrompt(
+                options.systemPrompt,
+                unifiedContext,
+                errorPrevention?.preventionPrompt,
+                true
+            )
             : options.systemPrompt;
 
         // Build context from options
@@ -307,6 +403,11 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             ttftMs: response.ttftMs,
             wasEnhanced: response.wasEnhanced,
             unifiedContextSummary: contextSummary,
+            errorPrevention: errorPrevention ? {
+                predictionsApplied: errorPrevention.predictions.length,
+                estimatedIterationsSaved: errorPrevention.estimatedIterationsSaved,
+                confidenceScore: errorPrevention.confidenceScore,
+            } : undefined,
         };
     }
 
@@ -328,6 +429,8 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             systemPrompt?: string;
             maxTokens?: number;
             temperature?: number;
+            /** Skip predictive error prevention (for quick checks) */
+            skipErrorPrevention?: boolean;
         } & RequestContext
     ): AsyncGenerator<ExecutionChunk> {
         // Determine if we should inject rich context
@@ -349,9 +452,33 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             }
         }
 
-        // Build enriched system prompt if context is available
-        const enrichedSystemPrompt = unifiedContext
-            ? this.buildEnrichedSystemPrompt(options.systemPrompt, unifiedContext, true)
+        // Get predictive error prevention (for code generation tasks)
+        let errorPrevention: PredictionResult | undefined;
+        const shouldPreventErrors = !options.skipErrorPrevention && options.projectId;
+
+        if (shouldPreventErrors) {
+            try {
+                errorPrevention = await this.getErrorPredictions(
+                    options.projectId,
+                    options.taskContext || 'code_generation',
+                    prompt.slice(0, 500),
+                    {
+                        recentErrors: options.currentErrors,
+                    }
+                );
+            } catch (error) {
+                console.warn('[KripToeNiteFacade] Failed to get error predictions for streaming:', error);
+            }
+        }
+
+        // Build enriched system prompt with context AND error prevention
+        const enrichedSystemPrompt = (unifiedContext || errorPrevention)
+            ? this.buildEnrichedSystemPrompt(
+                options.systemPrompt,
+                unifiedContext,
+                errorPrevention?.preventionPrompt,
+                true
+            )
             : options.systemPrompt;
 
         // Build context from options
@@ -450,6 +577,8 @@ ${baseSystemPrompt || 'Generate high-quality code following the context above.'}
             taskContext: 'Quick verification check. Fast response needed.',
             maxTokens: 2000,
             temperature: 0.2,
+            skipErrorPrevention: true, // Skip for speed
+            injectRichContext: false, // Minimal context for speed
         });
     }
 

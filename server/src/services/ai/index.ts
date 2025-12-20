@@ -145,18 +145,6 @@ export {
     type UserPreferences,
 } from './unified-context.js';
 
-// Intelligent Context Caching - 4x speedup on context loading
-export {
-    IntelligentContextCache,
-    getContextCache,
-    createContextCache,
-    formatScopedContext,
-    detectTaskType,
-    TASK_SCOPES,
-    type ContextCacheConfig,
-    type ContextScope,
-} from './context-cache.js';
-
 // Predictive Error Prevention - Prevent errors before they happen
 export {
     PredictiveErrorPrevention,
