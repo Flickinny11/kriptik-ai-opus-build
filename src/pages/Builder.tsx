@@ -57,6 +57,7 @@ import { DeveloperBar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
 import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
+import { LiveVideoStreamPanel } from '../components/builder/LiveVideoStreamPanel';
 import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
 import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
@@ -662,6 +663,16 @@ export default function Builder() {
                     projectId={projectId || 'new'}
                     isBuilding={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
                     onOpenReport={() => setShowQualityReport(true)}
+                />
+
+                {/* Live Video Stream Panel - Gemini video analysis during builds */}
+                <LiveVideoStreamPanel
+                    projectId={projectId || 'new'}
+                    sessionId={projectId || undefined}
+                    isBuilding={activeDevBarFeatures.includes('feature-agent') || showAgentPanel}
+                    onInteractionSuggested={(interaction) => {
+                        console.log('Video interaction suggested:', interaction);
+                    }}
                 />
 
                 {/* Premium Liquid Glass Header */}

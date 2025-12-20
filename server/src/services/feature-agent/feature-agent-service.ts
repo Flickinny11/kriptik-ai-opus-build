@@ -44,6 +44,18 @@ import { getCredentialVault } from '../security/credential-vault.js';
 import { createVerificationSwarm, type CombinedVerificationResult } from '../verification/index.js';
 import { GhostModeController } from '../ghost-mode/ghost-controller.js';
 import { getNotificationService } from '../notifications/notification-service.js';
+import {
+    ErrorEscalationEngine,
+    createErrorEscalationEngine,
+    type BuildError,
+    type EscalationResult,
+} from '../automation/error-escalation.js';
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+} from '../ai/unified-context.js';
 
 // Enhanced Build Loop with Cursor 2.1+ features
 import {
@@ -97,10 +109,12 @@ type FeatureAgentRuntime = {
     sessionId: string | null;
     developerModeAgentId: string | null;
     providedCredentialKeys: Set<string>;
-    // Enhanced Build Loop integration
+    // Enhanced Build Loop integration (Cursor 2.1+ features)
     enhancedBuildLoop: EnhancedBuildLoopOrchestrator | null;
     buildLoopOrchestrator: BuildLoopOrchestrator | null;
     buildAgentId: string | null;
+    /** Cached unified context for this agent's project */
+    unifiedContext: UnifiedContext | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -210,6 +224,9 @@ export class FeatureAgentService extends EventEmitter {
     private ghost = new GhostModeController();
     private notifications = getNotificationService();
 
+    /** Max escalation attempts before giving up on a feature agent */
+    private static readonly MAX_ESCALATION_ROUNDS = 3;
+
     private emitStream(agentId: string, msg: StreamMessage): void {
         this.emit('feature-agent:stream', { agentId, message: msg });
     }
@@ -235,6 +252,286 @@ export class FeatureAgentService extends EventEmitter {
             }
         }
         return out;
+    }
+
+    /**
+     * Load unified context for a feature agent
+     *
+     * This loads ALL the rich context including:
+     * - Intent Lock (sacred contract)
+     * - Verification swarm results
+     * - Tournament/judge winning patterns
+     * - Learning engine patterns and strategies
+     * - Error escalation history
+     * - Anti-slop rules
+     * - User preferences
+     */
+    private async loadUnifiedContextForAgent(agentId: string): Promise<UnifiedContext | null> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        try {
+            // For now, use the project ID as the project path
+            // In production, this would be resolved to an actual file path
+            const projectPath = `/tmp/kriptik-projects/${rt.config.projectId}`;
+
+            const context = await loadUnifiedContext(
+                rt.config.projectId,
+                rt.config.userId,
+                projectPath,
+                {
+                    includeIntentLock: true,
+                    includeVerificationResults: true,
+                    includeTournamentResults: true,
+                    includeErrorHistory: true,
+                    includeLearningData: true,
+                    includeProjectAnalysis: true,
+                    includeProjectRules: true,
+                    includeUserPreferences: true,
+                }
+            );
+
+            rt.unifiedContext = context;
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Context loaded: ${context.learnedPatterns.length} patterns, ${context.verificationResults.length} verification results`,
+                timestamp: Date.now(),
+            });
+
+            return context;
+        } catch (error) {
+            console.warn(`[FeatureAgent] Failed to load unified context for agent ${agentId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Build an enriched prompt with unified context for code generation
+     */
+    private buildEnrichedPrompt(basePrompt: string, context: UnifiedContext | null): string {
+        if (!context) return basePrompt;
+
+        const contextSection = formatUnifiedContextForCodeGen(context);
+
+        return `# KRIPTIK AI FEATURE AGENT - RICH CONTEXT
+
+${contextSection}
+
+---
+
+# YOUR TASK
+
+${basePrompt}`;
+    }
+
+    /**
+     * Convert verification issues to BuildError objects for escalation
+     */
+    private convertVerificationToBuildErrors(
+        agentId: string,
+        combined: CombinedVerificationResult
+    ): BuildError[] {
+        const errors: BuildError[] = [];
+
+        // Convert blockers first (highest priority)
+        for (const blocker of combined.blockers) {
+            errors.push({
+                id: uuidv4(),
+                featureId: agentId,
+                category: this.mapVerificationToErrorCategory(blocker.type || 'integration_issues'),
+                message: blocker.message,
+                file: blocker.file,
+                line: blocker.line,
+                context: { agent: blocker.agent, severity: blocker.severity },
+                timestamp: new Date(),
+            });
+        }
+
+        // Convert agent results with issues
+        for (const result of combined.results) {
+            if (result.passed) continue;
+
+            for (const issue of result.issues || []) {
+                // Skip duplicates (already in blockers)
+                if (errors.some(e => e.message === issue.message)) continue;
+
+                errors.push({
+                    id: uuidv4(),
+                    featureId: agentId,
+                    category: this.mapAgentToErrorCategory(result.agent),
+                    message: issue.message,
+                    file: issue.file,
+                    line: issue.line,
+                    context: { agent: result.agent, severity: issue.severity },
+                    timestamp: new Date(),
+                });
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * Map verification blocker types to error categories
+     */
+    private mapVerificationToErrorCategory(type: string): BuildError['category'] {
+        switch (type) {
+            case 'error':
+            case 'typescript_error':
+                return 'syntax_error';
+            case 'security':
+                return 'integration_issues';
+            case 'placeholder':
+                return 'undefined_variable';
+            case 'style':
+            case 'design':
+                return 'styling_dependency_load_failure';
+            case 'quality':
+                return 'architectural_review';
+            default:
+                return 'integration_issues';
+        }
+    }
+
+    /**
+     * Map verification agent names to error categories
+     */
+    private mapAgentToErrorCategory(agent: string): BuildError['category'] {
+        switch (agent) {
+            case 'error_checker':
+                return 'syntax_error';
+            case 'code_quality':
+                return 'architectural_review';
+            case 'visual_verifier':
+            case 'design_style':
+                return 'styling_dependency_load_failure';
+            case 'security_scanner':
+                return 'integration_issues';
+            case 'placeholder_eliminator':
+                return 'undefined_variable';
+            default:
+                return 'integration_issues';
+        }
+    }
+
+    /**
+     * Attempt to fix verification failures using the 4-level escalation system
+     * NEVER GIVES UP - escalates through all levels before failing
+     */
+    private async attemptEscalationFix(
+        agentId: string,
+        errors: BuildError[],
+        fileContents: Map<string, string>
+    ): Promise<{ fixed: boolean; filesChanged: Map<string, string> }> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        // Create escalation engine
+        const escalationEngine = createErrorEscalationEngine(
+            agentId, // Use agent ID as orchestration run ID
+            rt.config.projectId,
+            rt.config.userId
+        );
+
+        // Set intent if we have it (needed for Level 4 rebuilds)
+        if (rt.intent?.contract) {
+            escalationEngine.setIntent(rt.intent.contract);
+        }
+
+        // Track file changes
+        const updatedFiles = new Map(fileContents);
+        let allFixed = true;
+
+        // Process each error through escalation
+        for (const error of errors) {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Escalation: Attempting to fix "${error.message.slice(0, 100)}..."`,
+                timestamp: Date.now(),
+                metadata: { errorId: error.id, category: error.category },
+            });
+
+            // Create a feature object for Level 4 rebuilds
+            const feature = {
+                featureId: agentId,
+                description: rt.config.taskPrompt,
+                category: 'feature' as const,
+                priority: 'high' as const,
+                implementationSteps: ['Implement feature as described'],
+                visualRequirements: ['Match app soul and design requirements'],
+            };
+
+            const result: EscalationResult = await escalationEngine.fixError(
+                error,
+                updatedFiles,
+                feature as any
+            );
+
+            if (result.success && result.fix) {
+                // Apply changes to our map
+                for (const change of result.fix.changes) {
+                    if (change.action === 'delete') {
+                        updatedFiles.delete(change.path);
+                    } else if (change.newContent) {
+                        updatedFiles.set(change.path, change.newContent);
+                    }
+                }
+
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: `Escalation: Fixed at Level ${result.level} - ${result.fix.strategy}`,
+                    timestamp: Date.now(),
+                    metadata: { level: result.level, strategy: result.fix.strategy },
+                });
+            } else {
+                allFixed = false;
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: `Escalation: ${result.message}`,
+                    timestamp: Date.now(),
+                    metadata: { level: result.level, escalated: result.escalated },
+                });
+            }
+        }
+
+        return { fixed: allFixed, filesChanged: updatedFiles };
+    }
+
+    /**
+     * Apply file changes from escalation to the database
+     */
+    private async applyFileChanges(
+        projectId: string,
+        changes: Map<string, string>
+    ): Promise<void> {
+        for (const [path, content] of changes) {
+            const existing = await db.select()
+                .from(files)
+                .where(and(eq(files.projectId, projectId), eq(files.path, path)))
+                .limit(1);
+
+            if (existing.length > 0) {
+                await db.update(files)
+                    .set({ content, updatedAt: new Date().toISOString() })
+                    .where(eq(files.id, existing[0].id));
+            } else {
+                // Infer language from file extension
+                const ext = path.split('.').pop() || '';
+                const langMap: Record<string, string> = {
+                    ts: 'typescript', tsx: 'typescript',
+                    js: 'javascript', jsx: 'javascript',
+                    css: 'css', scss: 'scss',
+                    html: 'html', json: 'json',
+                    md: 'markdown', py: 'python',
+                };
+
+                await db.insert(files).values({
+                    projectId,
+                    path,
+                    content,
+                    language: langMap[ext] || 'text',
+                    version: 1,
+                });
+            }
+        }
     }
 
     private setStatus(agentId: string, status: FeatureAgentStatus): void {
@@ -301,17 +598,21 @@ export class FeatureAgentService extends EventEmitter {
             sessionId: null,
             developerModeAgentId: null,
             providedCredentialKeys: new Set(),
-            // Enhanced Build Loop integration
+            // Enhanced Build Loop integration (Cursor 2.1+ features)
             enhancedBuildLoop: null,
             buildLoopOrchestrator: null,
             buildAgentId: null,
+            unifiedContext: null,
         });
 
-        this.emitStream(id, { type: 'thinking', content: 'Intent lock starting.', timestamp: Date.now() });
+        this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
 
-        // Async pipeline: intent -> plan -> credentials/approval gate
+        // Async pipeline: context -> intent -> plan -> credentials/approval gate
         void (async () => {
             try {
+                // Load unified context first - this gives us rich project context
+                await this.loadUnifiedContextForAgent(id);
+
                 const intent = await this.analyzeIntent(id, config.taskPrompt);
                 const plan = await this.generateImplementationPlan(id, intent);
                 agent.implementationPlan = plan;
@@ -595,8 +896,18 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                 'Browser-in-the-Loop',
                 'Human Checkpoints',
                 'Multi-Agent Judging',
-                'Error Pattern Library'
+                'Error Pattern Library',
+                'Unified Context Enrichment'
             ]}
+        });
+
+        // Log unified context status
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: rt.unifiedContext
+                ? `Unified context loaded (${rt.unifiedContext.learnedPatterns.length} patterns, ${rt.unifiedContext.verificationResults.length} verification results)`
+                : 'No unified context available - using base prompt',
+            timestamp: Date.now(),
         });
 
         rt.enhancedBuildLoop = createEnhancedBuildLoop({
@@ -658,7 +969,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             // START THE 6-PHASE BUILD LOOP
             // This is the core execution - runs through all 6 phases
             // =============================================================================
-            const fullPrompt = [
+            const basePrompt = [
                 rt.config.taskPrompt,
                 '',
                 '---',
@@ -672,11 +983,17 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                 JSON.stringify({ phases: plan.phases }, null, 2),
             ].join('\n');
 
+            // CRITICAL: Enrich the prompt with unified context
+            // This includes all learned patterns, verification results, error history,
+            // tournament winners, anti-slop rules, and more
+            const fullPrompt = this.buildEnrichedPrompt(basePrompt, rt.unifiedContext);
+
             // Start the build loop - this runs through all 6 phases
             await rt.buildLoopOrchestrator.start(fullPrompt);
 
             // =============================================================================
             // POST-BUILD: FINAL VERIFICATION AND COMPLETION
+            // NEVER GIVES UP - escalates through all 4 levels before failing
             // =============================================================================
             const buildState = rt.buildLoopOrchestrator.getState();
 
@@ -691,74 +1008,138 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             if (buildState.status === 'complete') {
                 this.setStatus(agentId, 'verifying');
 
-                // Get all project files for verification
-                const fileRows = await db.select().from(files).where(eq(files.projectId, rt.config.projectId));
-                const fileMap = new Map<string, string>();
-                for (const row of fileRows) fileMap.set(row.path, row.content);
+                // Escalation loop - try up to MAX_ESCALATION_ROUNDS times
+                // NEVER GIVES UP - escalates through all 4 levels before failing
+                let escalationRound = 0;
+                let finalCombined: CombinedVerificationResult | null = null;
 
-                // Create feature object for swarm verification
-                const feature = {
-                    id: agentId,
-                    featureId: agentId,
-                    name: rt.config.name,
-                    description: rt.config.taskPrompt,
-                    files: fileRows.map((r) => r.path),
-                    category: 'integration',
-                    priority: 1,
-                    implementationSteps: plan.phases.flatMap(p => p.steps.map(s => s.description)),
-                    visualRequirements: [],
-                    passes: false,
-                    buildAttempts: 1,
-                } as any;
+                while (escalationRound < FeatureAgentService.MAX_ESCALATION_ROUNDS) {
+                    escalationRound++;
 
-                // Run the 6-agent verification swarm
-                const swarm = createVerificationSwarm(orchestrationRunId, rt.config.projectId, rt.config.userId);
-                const combined: CombinedVerificationResult = await swarm.verifyFeature(feature, fileMap);
+                    // Get current file state
+                    const fileRows = await db.select().from(files).where(eq(files.projectId, rt.config.projectId));
+                    const fileMap = new Map<string, string>();
+                    for (const row of fileRows) fileMap.set(row.path, row.content);
 
-                this.emitStream(agentId, {
-                    type: 'verification',
-                    content: `Verification verdict: ${combined.verdict} (score: ${combined.overallScore})`,
-                    timestamp: Date.now(),
-                    metadata: combined as any,
-                });
+                    // Create feature object for swarm verification (with full details)
+                    const feature = {
+                        id: agentId,
+                        featureId: agentId,
+                        name: rt.config.name,
+                        description: rt.config.taskPrompt,
+                        files: fileRows.map((r) => r.path),
+                        category: 'integration',
+                        priority: 1,
+                        implementationSteps: plan.phases.flatMap(p => p.steps.map(s => s.description)),
+                        visualRequirements: [],
+                        passes: false,
+                        buildAttempts: escalationRound,
+                    } as any;
 
-                // Check enhanced build loop for any blocking issues
-                const hasBlockers = rt.enhancedBuildLoop.hasBlockingIssues();
-                const blockers = rt.enhancedBuildLoop.getBlockingIssues();
+                    // Run the 6-agent verification swarm
+                    const swarm = createVerificationSwarm(orchestrationRunId, rt.config.projectId, rt.config.userId);
+                    const combined: CombinedVerificationResult = await swarm.verifyFeature(feature, fileMap);
+                    finalCombined = combined;
 
-                if (hasBlockers) {
                     this.emitStream(agentId, {
-                        type: 'result',
-                        content: `Build has ${blockers.length} blocking issues that need resolution`,
+                        type: 'verification',
+                        content: `Verification (round ${escalationRound}): ${combined.verdict} (score: ${combined.overallScore})`,
                         timestamp: Date.now(),
-                        metadata: { blockers: blockers.map(b => b.message) }
+                        metadata: { ...combined, escalationRound } as any,
                     });
+
+                    // Check enhanced build loop for any blocking issues
+                    const hasBlockers = rt.enhancedBuildLoop?.hasBlockingIssues() ?? false;
+                    const blockers = rt.enhancedBuildLoop?.getBlockingIssues() ?? [];
+
+                    if (hasBlockers) {
+                        this.emitStream(agentId, {
+                            type: 'result',
+                            content: `Build has ${blockers.length} blocking issues that need resolution`,
+                            timestamp: Date.now(),
+                            metadata: { blockers: blockers.map(b => b.message) }
+                        });
+                    }
+
+                    // If approved and no blockers, we're done
+                    if (combined.verdict === 'APPROVED' && !hasBlockers) {
+                        break;
+                    }
+
+                    // If not approved, attempt escalation fix
+                    this.emitStream(agentId, {
+                        type: 'action',
+                        content: `Starting 4-level error escalation (round ${escalationRound}/${FeatureAgentService.MAX_ESCALATION_ROUNDS})...`,
+                        timestamp: Date.now(),
+                    });
+
+                    // Convert verification issues to BuildErrors
+                    const errors = this.convertVerificationToBuildErrors(agentId, combined);
+
+                    if (errors.length === 0 && !hasBlockers) {
+                        // No specific errors to fix, but still failed - can't escalate
+                        this.emitStream(agentId, {
+                            type: 'result',
+                            content: 'Verification failed but no specific errors to escalate',
+                            timestamp: Date.now(),
+                        });
+                        break;
+                    }
+
+                    // Attempt to fix errors through 4-level escalation
+                    const escalationResult = await this.attemptEscalationFix(agentId, errors, fileMap);
+
+                    if (escalationResult.fixed) {
+                        // Apply the fixes to the database
+                        await this.applyFileChanges(rt.config.projectId, escalationResult.filesChanged);
+
+                        this.emitStream(agentId, {
+                            type: 'result',
+                            content: `Escalation fixes applied. Re-running verification...`,
+                            timestamp: Date.now(),
+                        });
+                        // Continue loop to re-verify
+                    } else {
+                        // Escalation couldn't fix all errors
+                        this.emitStream(agentId, {
+                            type: 'result',
+                            content: `Escalation round ${escalationRound} could not fix all errors`,
+                            timestamp: Date.now(),
+                        });
+
+                        // If this was the last round, we're done
+                        if (escalationRound >= FeatureAgentService.MAX_ESCALATION_ROUNDS) {
+                            break;
+                        }
+                    }
                 }
 
-                // Determine final status
-                const isPassing = combined.verdict === 'APPROVED' && !hasBlockers;
+                // Final status based on last verification result
+                const hasBlockers = rt.enhancedBuildLoop?.hasBlockingIssues() ?? false;
+                const isPassing = finalCombined?.verdict === 'APPROVED' && !hasBlockers;
                 rt.config.completedAt = now();
                 this.setStatus(agentId, isPassing ? 'complete' : 'failed');
 
                 // Get capabilities summary for the final report
-                const capabilities = rt.enhancedBuildLoop.getCapabilitiesSummary();
+                const capabilities = rt.enhancedBuildLoop?.getCapabilitiesSummary() ?? {};
 
                 this.emitStream(agentId, {
                     type: 'result',
                     content: isPassing
-                        ? `Feature implementation complete! All 6 phases passed. Score: ${combined.overallScore}`
-                        : `Feature implementation needs work. Verdict: ${combined.verdict}. Score: ${combined.overallScore}`,
+                        ? `Feature implementation complete! All 6 phases passed. Score: ${finalCombined?.overallScore}`
+                        : `Feature implementation needs work. Verdict: ${finalCombined?.verdict}. Score: ${finalCombined?.overallScore}`,
                     timestamp: Date.now(),
                     metadata: {
-                        verdict: combined.verdict,
-                        score: combined.overallScore,
+                        verdict: finalCombined?.verdict,
+                        score: finalCombined?.overallScore,
                         capabilities,
                         phases: buildState.phasesCompleted,
+                        escalationRounds: escalationRound,
                     }
                 });
 
                 // Ghost Mode notifications
-                this.sendGhostModeNotification(rt, combined);
+                this.sendGhostModeNotification(rt, finalCombined);
 
             } else {
                 // Build failed

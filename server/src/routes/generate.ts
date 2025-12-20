@@ -18,6 +18,16 @@ import { getCreditService, calculateCreditsForGeneration } from '../services/bil
 import { getContentAnalyzer } from '../services/moderation/content-analyzer.js';
 import { getUsageService } from '../services/billing/usage-service.js';
 import { getCreditPoolService } from '../services/billing/credit-pool.js';
+// Rich Context Integration
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    type UnifiedContext,
+} from '../services/ai/unified-context.js';
+import {
+    getPredictiveErrorPrevention,
+    type PredictionResult,
+} from '../services/ai/predictive-error-prevention.js';
 
 const router = Router();
 
@@ -130,6 +140,53 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             });
         }
 
+        // Load unified context for rich code generation
+        let unifiedContext: UnifiedContext | null = null;
+        let errorPrediction: PredictionResult | null = null;
+        let enrichedPrompt = prompt;
+
+        try {
+            // Load project context (intent lock, learned patterns, error history, etc.)
+            unifiedContext = await loadUnifiedContext(projectId, {
+                includeIntentLock: true,
+                includeVerificationResults: true,
+                includeLearningPatterns: true,
+                includeErrorEscalation: true,
+                includeAppSoul: true,
+                includeAntiSlop: true,
+            });
+
+            // Get predictive error prevention analysis
+            const errorPrevention = getPredictiveErrorPrevention();
+            errorPrediction = await errorPrevention.predict({
+                projectId,
+                taskType: 'code_generation',
+                taskDescription: prompt.slice(0, 500),
+                recentErrors: [], // Could load from error history if needed
+            });
+
+            // Enrich prompt with unified context
+            const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
+            const preventionGuidance = errorPrediction.predictions.length > 0
+                ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
+                    `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+                  ).join('\n')}`
+                : '';
+
+            enrichedPrompt = `${contextBlock}${preventionGuidance}\n\n## USER REQUEST:\n${prompt}`;
+
+            sendSSE(res, 'log', {
+                id: uuidv4(),
+                agentType: 'context',
+                message: `Loaded unified context: ${unifiedContext.intentLock ? 'Intent Lock' : ''} ${unifiedContext.learnedPatterns?.length || 0} patterns, ${errorPrediction.predictions.length} predicted issues`,
+                type: 'info',
+                timestamp: new Date().toISOString(),
+            });
+        } catch (contextError) {
+            // Context loading is non-blocking - continue with original prompt
+            console.warn('Context loading failed, proceeding with basic prompt:', contextError);
+        }
+
         // Set up SSE headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -177,8 +234,8 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             orchestrator.stop();
         });
 
-        // Run the orchestration
-        const result = await orchestrator.run(prompt);
+        // Run the orchestration with enriched prompt (includes unified context + error prevention)
+        const result = await orchestrator.run(enrichedPrompt);
 
         // Inject design tokens file into generated files
         const designTokens = getDesignTokensFile();

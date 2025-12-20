@@ -13,6 +13,14 @@ import { Router, type Request, type Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getFeatureAgentService } from '../services/feature-agent/index.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
+// Unified Context Integration
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+} from '../services/ai/unified-context.js';
+import {
+    getPredictiveErrorPrevention,
+} from '../services/ai/predictive-error-prevention.js';
 
 const router = Router();
 const requireAuth = authMiddleware;
@@ -42,10 +50,47 @@ router.post('/create', requireAuth, async (req: Request, res: Response) => {
     if (!taskPrompt || typeof taskPrompt !== 'string') return res.status(400).json({ error: 'taskPrompt is required' });
     if (!model || typeof model !== 'string') return res.status(400).json({ error: 'model is required' });
 
+    // Load unified context for rich code generation
+    let enrichedTaskPrompt = taskPrompt;
+    try {
+      const unifiedContext = await loadUnifiedContext(projectId, {
+        includeIntentLock: true,
+        includeVerificationResults: true,
+        includeLearningPatterns: true,
+        includeErrorEscalation: true,
+        includeAppSoul: true,
+        includeAntiSlop: true,
+      });
+
+      // Get predictive error prevention analysis
+      const errorPrevention = getPredictiveErrorPrevention();
+      const errorPrediction = await errorPrevention.predict({
+        projectId,
+        taskType: 'feature_implementation',
+        taskDescription: taskPrompt.slice(0, 500),
+        recentErrors: [],
+      });
+
+      // Enrich prompt with unified context
+      const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
+      const preventionGuidance = errorPrediction.predictions.length > 0
+        ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
+            `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+          ).join('\n')}`
+        : '';
+
+      enrichedTaskPrompt = `${contextBlock}${preventionGuidance}\n\n## FEATURE REQUEST:\n${taskPrompt}`;
+
+      console.log(`[Feature Agent] Loaded context: ${unifiedContext.intentLock ? 'Intent Lock' : 'No Intent'}, ${unifiedContext.learnedPatterns?.length || 0} patterns, ${errorPrediction.predictions.length} predicted issues`);
+    } catch (contextError) {
+      // Context loading is non-blocking - continue with original prompt
+      console.warn('[Feature Agent] Context loading failed, proceeding with basic prompt:', contextError);
+    }
+
     const agent = await featureAgentService.createFeatureAgent({
       projectId,
       userId,
-      taskPrompt,
+      taskPrompt: enrichedTaskPrompt,
       model,
       name: typeof name === 'string' ? name : undefined,
     });
