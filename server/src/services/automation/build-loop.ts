@@ -850,6 +850,7 @@ Include ALL necessary imports and exports.`;
                         {
                             projectId: this.state.projectId,
                             userId: this.state.userId,
+                            projectPath: this.projectPath,
                             framework: 'React',
                             language: 'TypeScript',
                         }
@@ -1257,6 +1258,7 @@ Generate production-ready code for this feature.`;
             const result = await ktn.buildFeature(prompt, {
                 projectId: this.state.projectId,
                 userId: this.state.userId,
+                projectPath: this.projectPath,
                 framework: 'React',
                 language: 'TypeScript',
             });
