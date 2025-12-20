@@ -44,6 +44,49 @@ The AI race moves fast - searching for just "2025" could return info from months
 
 **Rationale**: Tech evolves daily in the AI race. Models, APIs, and capabilities release on near-weekly basis. A year-only search could miss 11 months of updates.
 
+### 2025-12-20: Comprehensive NLP-to-Completion Gap Analysis
+
+**Major Analysis - Complete System Audit:**
+
+Performed comprehensive analysis of all systems from NLP input to completion to identify gaps preventing the intended autonomous building experience.
+
+**Key Documents Created:**
+1. `.claude/rules/06-nlp-to-completion-gaps.md` - Complete gap analysis with 18+ identified gaps and priority fix list
+2. Updated CLAUDE.md with "Two Operation Modes" section documenting intended Builder View vs Feature Agent workflows
+
+**Critical Gaps Identified:**
+
+1. **Builder View uses wrong orchestrator** - Uses DevelopmentOrchestrator instead of BuildLoopOrchestrator
+   - Missing: Intent Satisfaction gate (Phase 5)
+   - Missing: Browser Demo (Phase 6)
+   - Missing: Learning Engine integration
+   - Missing: Production options selection and plan approval
+
+2. **Feature Agents work in isolation** - No context sharing between parallel agents
+   - 6-agent limit is UI-only (no server enforcement)
+   - No file locking coordination
+   - No learning transfer between agents
+
+3. **Verification can be bypassed** - Fallback behaviors allow progression despite failures
+   - Visual Verifier returns `passed: true` on crash
+   - Design Style Agent returns `passed: true` on crash
+   - Phase 5 escalation limited to 3 retries
+
+4. **Extension credential capture broken** - Vision extraction endpoint missing
+   - `/api/extension/vision-extract` not implemented
+   - Extension ↔ Feature Agent credential bridge missing
+
+5. **No real-time preview during builds** - Users only see completed features
+   - BrowserInLoopService (706 lines) exists but unused
+   - Sandbox exists but not shown during Phase 2
+
+6. **Context systems fragmented** - Two incompatible architectures
+   - File-based (LoadedContext) used by agents
+   - Database-driven (UnifiedContext) with 14 sources but rarely called
+   - Learning patterns never reach agents
+
+**Priority Fix List:** See `.claude/rules/06-nlp-to-completion-gaps.md` for P0-P3 items
+
 ### 2025-12-19: Gap-Closing Verification Agents for Production Readiness
 
 **Major Addition - 7 Gap-Closing Agents to Close "Last 20% Gap":**

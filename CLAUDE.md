@@ -181,6 +181,95 @@ When the user selects an element via browser tools:
 
 ---
 
+## TWO OPERATION MODES (CRITICAL UNDERSTANDING)
+
+> **IMPORTANT**: KripTik AI has TWO distinct modes of operation. Understanding these is essential for development.
+
+### Mode 1: Builder View (Full Apps from NLP)
+
+**Access**: Dashboard → Project Card → Builder View OR Dashboard → Large Prompt Box
+
+**Purpose**: Build COMPLETE applications from a single NLP prompt.
+
+**How It SHOULD Work:**
+1. User enters NLP describing the app they want to build
+2. User selects "Multi-Agent Orchestration" or "Kriptoenite" in prompt box
+3. **Intent Lock System** creates immutable Sacred Contract (Opus 4.5, 64K thinking)
+4. User presented with production options to select
+5. User approves implementation plan (or modifies further)
+6. User is asked for env variables - extension helps fetch credentials
+7. Credentials stored in Credential Vault + written to .env
+8. **Full 6-Phase Orchestration** runs:
+   - Phase 0: Intent Lock (Sacred Contract)
+   - Phase 1: Initialization (artifacts, scaffolding)
+   - Phase 2: Parallel Build (3-5 agents with Memory Harness)
+   - Phase 3: Integration Check (orphan scan, dead code)
+   - Phase 4: Functional Test (browser automation as real user)
+   - Phase 5: Intent Satisfaction (CRITICAL GATE - not done until done)
+   - Phase 6: Browser Demo (agent-controlled browser shows working app)
+9. Verification Swarm (6 agents) runs continuously
+10. Speed enhancements + Error Escalation (4 levels, never gives up)
+11. User sees completed working app in agent-controlled browser
+12. User clicks "Take Control" to interact with their app
+
+**Key Characteristics:**
+- Uses Memory Harness system for unlimited context
+- Agents share context/memory via artifact generation
+- Parallel agents communicate live
+- NOT Feature Agents - this is full orchestration
+- Cannot finish until actually done (Intent Satisfaction gate)
+
+### Mode 2: Feature Agent (Features for Existing Apps)
+
+**Access**: Developer Toolbar → Feature Agent Button → Feature Agent UI Popout
+
+**Purpose**: Add features/modifications to EXISTING builds created via Builder View.
+
+**How It SHOULD Work:**
+1. User has already built an app via Builder View
+2. User clicks Feature Agent button on developer toolbar
+3. Feature Agent UI popout opens
+4. User selects model from dropdown
+5. User enters NLP describing the feature
+6. User deploys Feature Agent (up to 6 parallel agents)
+7. **Intent Lock** creates implementation plan for this feature
+8. User approves plan (or modifies further)
+9. User provides any required credentials
+10. **Same 6-Phase Orchestration** runs for the feature
+11. All 6 agents share same context/memory as original app build
+12. Verification Swarm + Error Checking + Testing in sandbox
+13. When done, tile "glows" to show completion
+14. User clicks "Show Me" button
+15. Agent-controlled browser demonstrates the working feature
+16. User clicks to take control
+
+**Key Characteristics:**
+- Up to 6 Feature Agents can run in parallel
+- All agents share context/memory from original build
+- Each agent follows same orchestration loop as Builder View
+- Tiles can be minimized while agents work
+- Agents communicate with each other to avoid conflicts
+- Uses same Memory Harness system
+- 100% production-ready before showing user
+
+### Key Differences
+
+| Aspect | Builder View | Feature Agent |
+|--------|--------------|---------------|
+| **Purpose** | Build complete apps | Add features to existing apps |
+| **Entry Point** | Dashboard/Builder chat | Developer toolbar button |
+| **Parallel Agents** | Orchestrated internally | User deploys up to 6 |
+| **Agent Visibility** | Progress indicator | Tile per agent with SSE streaming |
+| **When "Show Me" Appears** | Phase 6 Browser Demo | When agent tile glows (complete) |
+
+### IMPORTANT: Builder View Should NOT Deploy Feature Agents
+
+The NLP in Builder View should trigger the full multi-agent orchestration with 6-phase build loop. It should NOT deploy Feature Agents. Feature Agents are specifically for adding features to existing builds, not for initial app creation.
+
+**Current Gap**: Builder View uses DevelopmentOrchestrator instead of BuildLoopOrchestrator. See `.claude/rules/06-nlp-to-completion-gaps.md` for full gap analysis.
+
+---
+
 ## SACRED RULES - NEVER VIOLATE
 
 ### NEVER:
