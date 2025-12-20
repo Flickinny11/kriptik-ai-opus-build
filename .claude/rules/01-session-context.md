@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-19)
+## Current State (as of 2025-12-20)
 
 ### Progress Summary
 - **Total Features**: 66 + 7 New Cursor 2.1+ Features
@@ -15,11 +15,61 @@
 ### Build Status
 - **Last Known Build**: PASSING (verified 2025-12-19)
 - **TypeScript Errors**: None
-- **Current Branch**: silly-rosalind (worktree)
+- **Current Branch**: claude/nlp-workflow-gaps-sLWV0
 
 ### Development Environment Enhancement
 - **Browser Integration Configured**: Chrome DevTools MCP enabled
 - **Browser Feedback Loop**: Available via `~/bin/chrome-dev` script
+
+---
+
+## 2025-12-20: NLP-to-Completion Workflow Gap Analysis
+
+### Critical Finding: 15 Gaps Preventing End-to-End NLP Flow
+
+Comprehensive analysis identified gaps that prevent users from entering NLP prompts and getting:
+1. Full 6-phase build orchestration
+2. Live UI preview during build
+3. Working browser demo at completion
+
+### TOP 5 CRITICAL GAPS (P0 Priority)
+
+| Gap | Issue | Impact |
+|-----|-------|--------|
+| **GAP 1** | ChatInterface doesn't create Feature Agents | Users get chat responses, not builds |
+| **GAP 2** | Sandbox URL is placeholder `/sandbox/${agentId}` | Preview window can't connect |
+| **GAP 3** | No API to get sandbox URL | Frontend doesn't know real URL |
+| **GAP 6** | Playwright optional in serverless | Preview disabled in production |
+| **GAP 14** | Files in DB, not filesystem | Sandbox can't serve files |
+
+### What Works vs What Doesn't
+
+**WORKS:**
+- Feature Agent Service (backend) - fully implemented
+- 6-Phase Build Loop - all phases coded
+- FeatureAgentCommandCenter → Feature Agent creation
+- Credential collection and secure storage
+- SSE streaming to tile UI
+
+**DOESN'T WORK:**
+- ChatInterface → Feature Agent (not wired)
+- Sandbox URL delivery to frontend (placeholder)
+- Live preview during build phases 2-5
+- Browser demo in production (Playwright issues)
+- File sync from DB to sandbox filesystem
+
+### Files Affected
+- `src/components/builder/ChatInterface.tsx` - Uses KTN/orchestrator, not Feature Agents
+- `src/components/feature-agent/FeatureAgentTile.tsx:435` - Hardcoded sandbox URL
+- `server/src/services/preview/headless-preview-service.ts` - Mock mode in production
+- `server/src/services/automation/build-loop.ts` - Sandbox only at Phase 6
+
+### Recommended Fix Order
+1. Wire ChatInterface to create Feature Agents (or add "Build" button)
+2. Create `/api/feature-agent/:id/sandbox` endpoint
+3. Stream sandbox URL in Feature Agent events
+4. Create sandbox at Phase 1, not Phase 6
+5. Implement file sync from DB to sandbox filesystem
 
 ---
 
