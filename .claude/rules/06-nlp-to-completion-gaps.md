@@ -453,9 +453,19 @@ What's MISSING:
 ### P0 - CRITICAL (Breaks Core Flow)
 
 1. **Wire Builder View to BuildLoopOrchestrator**
-   - Current: Uses DevelopmentOrchestrator
-   - Fix: Add route from chat → `/api/execute` with 6-phase loop
-   - Impact: Enables Intent Satisfaction gate, Browser Demo, Learning Engine
+   - Current: Uses DevelopmentOrchestrator via `/api/orchestrate/analyze`
+   - Backend Ready: `/api/execute` with `mode: 'builder'` already uses BuildLoopOrchestrator
+   - Fix Required: Update `src/lib/AgentOrchestrator.ts` to call `/api/execute` instead:
+     ```typescript
+     // Change from:
+     const analysisResponse = await fetch(`${API_BASE}/api/orchestrate/analyze`, ...);
+     // To:
+     const response = await fetch(`${API_BASE}/api/execute`, {
+         method: 'POST',
+         body: JSON.stringify({ mode: 'builder', prompt, userId, projectId }),
+     });
+     ```
+   - Impact: Enables Intent Satisfaction gate, Browser Demo, Learning Engine, all 91 features
 
 2. **Implement /sandbox/:agentId route**
    - Current: FeaturePreviewWindow points to non-existent route
@@ -521,9 +531,11 @@ What's MISSING:
 13. **Add production options selection to Builder**
 14. **Implement parallel sub-agent spawning**
 15. **Add real-time preview streaming during build**
-16. **Implement Ghost Mode background execution**
+16. ~~**Implement Ghost Mode background execution**~~ (Integrated into BuildLoopOrchestrator 2025-12-20)
 17. **Persist plan modifications to database**
 18. **Add token usage monitoring**
+19. ~~**Add Soft Interrupt mid-execution input**~~ (Integrated into BuildLoopOrchestrator 2025-12-20)
+20. ~~**Add Credential Vault integration for builds**~~ (Integrated into BuildLoopOrchestrator 2025-12-20)
 
 ---
 
