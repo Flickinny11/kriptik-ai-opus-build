@@ -132,6 +132,55 @@ import type {
     LearnedPattern,
 } from '../learning/types.js';
 
+// ============================================================================
+// CURSOR 2.1+ FEATURE INTEGRATION
+// ============================================================================
+import {
+    StreamingFeedbackChannel,
+    getStreamingFeedbackChannel,
+    type FeedbackItem,
+} from '../feedback/streaming-feedback-channel.js';
+
+import {
+    ContinuousVerificationService,
+    createContinuousVerification,
+    type CheckResult,
+} from '../verification/continuous-verification.js';
+
+import {
+    RuntimeDebugContextService,
+    getRuntimeDebugContext,
+    type DebugSession,
+    type RuntimeError,
+} from '../debug/runtime-debug-context.js';
+
+import {
+    BrowserInLoopService,
+    createBrowserInLoop,
+    type VisualCheck,
+} from '../verification/browser-in-loop.js';
+
+import {
+    HumanCheckpointService,
+    getHumanCheckpointService,
+    type VerificationCheckpoint,
+    type CheckpointResponse,
+} from '../verification/human-checkpoint.js';
+
+import {
+    MultiAgentJudgeService,
+    getMultiAgentJudge,
+    type AgentResult,
+    type JudgmentResult,
+} from '../verification/multi-agent-judge.js';
+
+import {
+    ErrorPatternLibraryService,
+    getErrorPatternLibrary,
+    type PatternMatchResult,
+    type PatternApplicationResult,
+} from './error-pattern-library.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -159,6 +208,19 @@ export interface BuildLoopConfig {
     checkpointIntervalMinutes: number;
     maxBuildDurationMinutes: number;
     enableVisualVerification: boolean;
+
+    // Cursor 2.1+ Feature Flags
+    enableStreamingFeedback: boolean;
+    enableContinuousVerification: boolean;
+    enableRuntimeDebug: boolean;
+    enableBrowserInLoop: boolean;
+    enableHumanCheckpoints: boolean;
+    enableMultiAgentJudging: boolean;
+    enablePatternLibrary: boolean;
+
+    // Cursor 2.1+ Thresholds
+    visualQualityThreshold: number;
+    humanCheckpointEscalationLevel: number;
 }
 
 export interface BuildLoopState {
@@ -201,7 +263,10 @@ export interface BuildLoopEvent {
     type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result'
         | 'error' | 'fix_applied' | 'checkpoint_created' | 'checkpoint_restored'
         | 'stage_complete' | 'build_complete' | 'resumed' | 'intent_created'
-        | 'tasks_decomposed' | 'scaffolding_complete' | 'artifacts_created' | 'git_initialized';
+        | 'tasks_decomposed' | 'scaffolding_complete' | 'artifacts_created' | 'git_initialized'
+        // Cursor 2.1+ events
+        | 'cursor21_pattern_fix' | 'cursor21_checkpoint_waiting' | 'cursor21_checkpoint_responded'
+        | 'cursor21_judgment_complete' | 'cursor21_feedback' | 'cursor21_visual_check';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -220,6 +285,16 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         checkpointIntervalMinutes: 0,
         maxBuildDurationMinutes: 5,
         enableVisualVerification: false,
+        // Cursor 2.1+ - minimal for speed
+        enableStreamingFeedback: false,
+        enableContinuousVerification: false,
+        enableRuntimeDebug: false,
+        enableBrowserInLoop: false,
+        enableHumanCheckpoints: false,
+        enableMultiAgentJudging: false,
+        enablePatternLibrary: true, // Always enable pattern library for quick fixes
+        visualQualityThreshold: 70,
+        humanCheckpointEscalationLevel: 3,
     },
     standard: {
         mode: 'standard',
@@ -229,6 +304,16 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         checkpointIntervalMinutes: 15,
         maxBuildDurationMinutes: 30,
         enableVisualVerification: true,
+        // Cursor 2.1+ - balanced
+        enableStreamingFeedback: true,
+        enableContinuousVerification: true,
+        enableRuntimeDebug: true,
+        enableBrowserInLoop: true,
+        enableHumanCheckpoints: false, // No human checkpoints for standard
+        enableMultiAgentJudging: false,
+        enablePatternLibrary: true,
+        visualQualityThreshold: 85,
+        humanCheckpointEscalationLevel: 2,
     },
     tournament: {
         mode: 'tournament',
@@ -238,6 +323,16 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         checkpointIntervalMinutes: 10,
         maxBuildDurationMinutes: 45,
         enableVisualVerification: true,
+        // Cursor 2.1+ - full features
+        enableStreamingFeedback: true,
+        enableContinuousVerification: true,
+        enableRuntimeDebug: true,
+        enableBrowserInLoop: true,
+        enableHumanCheckpoints: true,
+        enableMultiAgentJudging: true, // Multi-agent judging for tournament
+        enablePatternLibrary: true,
+        visualQualityThreshold: 85,
+        humanCheckpointEscalationLevel: 2,
     },
     production: {
         mode: 'production',
@@ -247,6 +342,16 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         checkpointIntervalMinutes: 10,
         maxBuildDurationMinutes: 120,
         enableVisualVerification: true,
+        // Cursor 2.1+ - maximum quality
+        enableStreamingFeedback: true,
+        enableContinuousVerification: true,
+        enableRuntimeDebug: true,
+        enableBrowserInLoop: true,
+        enableHumanCheckpoints: true,
+        enableMultiAgentJudging: true,
+        enablePatternLibrary: true,
+        visualQualityThreshold: 90, // Higher threshold for production
+        humanCheckpointEscalationLevel: 2,
     },
 };
 
@@ -298,6 +403,41 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private projectPath: string;
     private openRouterClient: ReturnType<typeof getOpenRouterClient>;
     private loadedContext: LoadedContext | null = null;
+
+    // =========================================================================
+    // CURSOR 2.1+ SERVICES
+    // =========================================================================
+    private feedbackChannel: StreamingFeedbackChannel | null = null;
+    private continuousVerification: ContinuousVerificationService | null = null;
+    private runtimeDebug: RuntimeDebugContextService | null = null;
+    private browserInLoop: BrowserInLoopService | null = null;
+    private humanCheckpoint: HumanCheckpointService | null = null;
+    private multiAgentJudge: MultiAgentJudgeService | null = null;
+    private errorPatternLibrary: ErrorPatternLibraryService | null = null;
+
+    // Cursor 2.1+ State Tracking
+    private cursor21State: {
+        feedbackItemsReceived: number;
+        selfCorrectionsMade: number;
+        humanCheckpointsTriggered: number;
+        patternFixesApplied: number;
+        visualChecksRun: number;
+        currentVisualScore: number;
+        lastFeedbackAt: Date | null;
+        lastVisualCheckAt: Date | null;
+    } = {
+        feedbackItemsReceived: 0,
+        selfCorrectionsMade: 0,
+        humanCheckpointsTriggered: 0,
+        patternFixesApplied: 0,
+        visualChecksRun: 0,
+        currentVisualScore: 100,
+        lastFeedbackAt: null,
+        lastVisualCheckAt: null,
+    };
+
+    // Agent feedback subscriptions
+    private agentFeedbackSubscriptions: Map<string, () => void> = new Map();
 
     constructor(
         projectId: string,
@@ -377,7 +517,35 @@ export class BuildLoopOrchestrator extends EventEmitter {
         this.strategyEvolution = getStrategyEvolution();
         this.evolutionFlywheel = getEvolutionFlywheel();
 
-        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine integration (mode: ${mode}, path: ${this.projectPath})`);
+        // =====================================================================
+        // INITIALIZE CURSOR 2.1+ SERVICES
+        // =====================================================================
+        const config = BUILD_MODE_CONFIGS[mode];
+
+        // Always initialize pattern library (used for Level 0 error fixes)
+        if (config.enablePatternLibrary) {
+            this.errorPatternLibrary = getErrorPatternLibrary();
+        }
+
+        // Runtime debug context for error analysis
+        if (config.enableRuntimeDebug) {
+            this.runtimeDebug = getRuntimeDebugContext();
+        }
+
+        // Human checkpoint service for critical fixes
+        if (config.enableHumanCheckpoints) {
+            this.humanCheckpoint = getHumanCheckpointService();
+        }
+
+        // Multi-agent judge for tournament mode
+        if (config.enableMultiAgentJudging) {
+            this.multiAgentJudge = getMultiAgentJudge();
+        }
+
+        // Note: StreamingFeedbackChannel, ContinuousVerification, and BrowserInLoop
+        // are initialized in start() because they need the build to be running
+
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ features (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -410,6 +578,11 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
                 console.log(`[BuildLoop] Learning Engine activated for build ${this.state.id}`);
             }
+
+            // =====================================================================
+            // CURSOR 2.1+: Start runtime services
+            // =====================================================================
+            await this.startCursor21Services();
 
             // Check if we need initialization or can resume
             const hasContext = await hasProjectContext(this.projectPath);
@@ -2353,6 +2526,9 @@ Would the user be satisfied with this result?`;
         this.aborted = true;
         this.state.status = 'failed';
 
+        // Stop Cursor 2.1+ services
+        await this.stopCursor21Services();
+
         // Finalize learning on abort
         if (this.learningEnabled) {
             await this.finalizeLearningSession(false);
@@ -2455,6 +2631,400 @@ Would the user be satisfied with this result?`;
         }
 
         this.state.currentPhase = checkpoint.phase as BuildLoopPhase;
+    }
+
+    // =========================================================================
+    // CURSOR 2.1+ FEATURE METHODS
+    // =========================================================================
+
+    /**
+     * Start Cursor 2.1+ runtime services
+     * Called from start() to initialize streaming/continuous services
+     */
+    private async startCursor21Services(): Promise<void> {
+        const config = this.state.config;
+
+        // Start streaming feedback channel
+        if (config.enableStreamingFeedback) {
+            this.feedbackChannel = getStreamingFeedbackChannel();
+            this.feedbackChannel.createStream(this.state.id, `orchestrator-${this.state.id}`);
+            console.log('[BuildLoop] Cursor 2.1+: Streaming feedback channel started');
+        }
+
+        // Start continuous verification
+        if (config.enableContinuousVerification) {
+            this.continuousVerification = createContinuousVerification({
+                buildId: this.state.id,
+                projectPath: this.projectPath,
+            });
+            this.continuousVerification.start();
+            console.log('[BuildLoop] Cursor 2.1+: Continuous verification started');
+        }
+
+        // Start browser-in-loop (for visual verification during build)
+        if (config.enableBrowserInLoop) {
+            try {
+                this.browserInLoop = createBrowserInLoop({
+                    buildId: this.state.id,
+                    projectPath: this.projectPath,
+                    previewUrl: `http://localhost:3100`, // Default preview port
+                    checkIntervalMs: 30000,
+                    captureOnFileChange: true,
+                    antiSlopThreshold: config.visualQualityThreshold,
+                });
+                await this.browserInLoop.start();
+                console.log('[BuildLoop] Cursor 2.1+: Browser-in-loop started');
+            } catch (error) {
+                console.warn('[BuildLoop] Browser-in-loop failed to start (non-fatal):', error);
+            }
+        }
+    }
+
+    /**
+     * Stop Cursor 2.1+ runtime services
+     * Called during cleanup
+     */
+    private async stopCursor21Services(): Promise<void> {
+        // Stop continuous verification
+        if (this.continuousVerification) {
+            this.continuousVerification.stop();
+            this.continuousVerification = null;
+        }
+
+        // Stop browser-in-loop
+        if (this.browserInLoop) {
+            await this.browserInLoop.stop();
+            this.browserInLoop = null;
+        }
+
+        // Close feedback stream
+        if (this.feedbackChannel) {
+            this.feedbackChannel.closeStream(this.state.id);
+            this.feedbackChannel = null;
+        }
+
+        // Unsubscribe all agents
+        for (const [, unsubscribe] of this.agentFeedbackSubscriptions) {
+            unsubscribe();
+        }
+        this.agentFeedbackSubscriptions.clear();
+
+        // Clean up human checkpoints
+        if (this.humanCheckpoint) {
+            this.humanCheckpoint.cleanup(this.state.id);
+        }
+
+        console.log('[BuildLoop] Cursor 2.1+: Services stopped');
+    }
+
+    /**
+     * Handle error with Level 0 pattern matching before escalation
+     * Returns true if error was handled by pattern library
+     */
+    async handleErrorWithPatternLibrary(
+        errorMessage: string,
+        errorType: string,
+        context: {
+            file?: string;
+            line?: number;
+            code?: string;
+            stack?: string;
+        }
+    ): Promise<{
+        handled: boolean;
+        usedPattern: boolean;
+        patternName?: string;
+        escalationNeeded: boolean;
+        debugSession?: DebugSession;
+    }> {
+        console.log(`[BuildLoop] Cursor 2.1+: Handling error with pattern library...`);
+
+        // Step 1: Try pattern matching (Level 0)
+        if (this.errorPatternLibrary && this.state.config.enablePatternLibrary) {
+            const match = this.errorPatternLibrary.match(
+                errorMessage,
+                errorType,
+                context.file,
+                context.code,
+                context.stack
+            );
+
+            if (match.matched && match.confidence && match.confidence >= 0.7) {
+                console.log(`[BuildLoop] Pattern matched: ${match.patternName} (${(match.confidence * 100).toFixed(1)}% confidence)`);
+
+                // Apply the pattern fix
+                const files = new Map<string, string>();
+                if (context.file && context.code) {
+                    files.set(context.file, context.code);
+                }
+
+                const fixResult = await this.errorPatternLibrary.applyFix(match.patternId!, files, {
+                    file: context.file,
+                    line: context.line,
+                    errorMessage,
+                });
+
+                if (fixResult.success) {
+                    this.cursor21State.patternFixesApplied++;
+                    this.emitEvent('cursor21_pattern_fix', {
+                        patternId: match.patternId,
+                        patternName: match.patternName,
+                        filesModified: fixResult.filesModified,
+                    });
+
+                    return {
+                        handled: true,
+                        usedPattern: true,
+                        patternName: match.patternName,
+                        escalationNeeded: false,
+                    };
+                }
+            }
+        }
+
+        // Step 2: Create runtime debug context for escalation
+        if (this.runtimeDebug && this.state.config.enableRuntimeDebug) {
+            const runtimeError: RuntimeError = {
+                id: uuidv4(),
+                type: errorType,
+                message: errorMessage,
+                stack: context.stack || '',
+                executionTrace: [],
+                variableStates: [],
+                consoleOutput: [],
+                networkRequests: [],
+                timestamp: new Date(),
+            };
+
+            const debugSession = this.runtimeDebug.createDebugSession(this.state.id, runtimeError);
+
+            // Generate hypotheses
+            const codeContext = new Map<string, string>();
+            if (context.file && context.code) {
+                codeContext.set(context.file, context.code);
+            }
+
+            await this.runtimeDebug.generateHypotheses(debugSession, codeContext);
+
+            return {
+                handled: false,
+                usedPattern: false,
+                escalationNeeded: true,
+                debugSession,
+            };
+        }
+
+        // Escalation needed without debug context
+        return {
+            handled: false,
+            usedPattern: false,
+            escalationNeeded: true,
+        };
+    }
+
+    /**
+     * Create a human verification checkpoint for critical fixes
+     */
+    async createHumanCheckpoint(
+        trigger: 'critical_fix' | 'architectural_change' | 'security_fix' | 'escalation_level_2_plus',
+        context: {
+            description: string;
+            affectedFiles: string[];
+            fixSummary: string;
+            confidenceScore: number;
+            escalationLevel?: number;
+        }
+    ): Promise<CheckpointResponse | null> {
+        if (!this.humanCheckpoint || !this.state.config.enableHumanCheckpoints) {
+            return null;
+        }
+
+        // Check if escalation level meets threshold
+        if (context.escalationLevel && context.escalationLevel < this.state.config.humanCheckpointEscalationLevel) {
+            return {
+                checkpointId: 'auto-approved',
+                action: 'approve',
+                note: `Escalation level ${context.escalationLevel} below threshold ${this.state.config.humanCheckpointEscalationLevel}`,
+            };
+        }
+
+        this.cursor21State.humanCheckpointsTriggered++;
+        this.emitEvent('cursor21_checkpoint_waiting', { trigger, description: context.description });
+
+        const response = await this.humanCheckpoint.createCheckpoint(
+            this.state.id,
+            trigger,
+            {
+                ...context,
+                beforeState: 'Error state',
+                afterState: 'Fixed state',
+                verificationSteps: [
+                    'Review the changed files',
+                    'Test the affected functionality',
+                    'Confirm the original issue is resolved',
+                ],
+                expectedOutcome: 'Issue should be resolved without introducing new bugs',
+            }
+        );
+
+        this.emitEvent('cursor21_checkpoint_responded', { response });
+        return response;
+    }
+
+    /**
+     * Judge multiple agent results and get the best one
+     */
+    async judgeAgentResults(
+        taskDescription: string,
+        agentResults: AgentResult[]
+    ): Promise<JudgmentResult | null> {
+        if (!this.multiAgentJudge || !this.state.config.enableMultiAgentJudging) {
+            return null;
+        }
+
+        if (agentResults.length < 2) {
+            console.log(`[BuildLoop] Not enough agents for judging (${agentResults.length})`);
+            return null;
+        }
+
+        console.log(`[BuildLoop] Cursor 2.1+: Judging ${agentResults.length} agent results`);
+
+        const judgment = await this.multiAgentJudge.judge(
+            this.state.id,
+            taskDescription,
+            agentResults
+        );
+
+        this.emitEvent('cursor21_judgment_complete', {
+            winnerId: judgment.recommendation.winnerId,
+            winnerName: judgment.recommendation.winnerName,
+            confidence: judgment.recommendation.confidence,
+        });
+
+        return judgment;
+    }
+
+    /**
+     * Force a visual check
+     */
+    async runVisualCheck(): Promise<VisualCheck | null> {
+        if (!this.browserInLoop) {
+            return null;
+        }
+
+        const check = await this.browserInLoop.runVisualCheck();
+        this.cursor21State.visualChecksRun++;
+        this.cursor21State.lastVisualCheckAt = new Date();
+        this.cursor21State.currentVisualScore = check.score;
+
+        return check;
+    }
+
+    /**
+     * Notify that a file was modified (for continuous verification)
+     */
+    notifyFileModified(filePath: string, content: string): void {
+        // Update project files cache
+        this.projectFiles.set(filePath, content);
+
+        // Notify continuous verification
+        if (this.continuousVerification) {
+            this.continuousVerification.notifyFileModified(filePath, content);
+        }
+
+        // Notify browser-in-loop
+        if (this.browserInLoop) {
+            this.browserInLoop.notifyFileChanged(filePath);
+        }
+    }
+
+    /**
+     * Get debug prompt for escalation
+     */
+    getDebugPromptForEscalation(debugSession: DebugSession): string {
+        if (!this.runtimeDebug) {
+            return '';
+        }
+        return this.runtimeDebug.generateDebugPrompt(debugSession);
+    }
+
+    /**
+     * Check if visual quality is passing
+     */
+    isVisualQualityPassing(): boolean {
+        return this.cursor21State.currentVisualScore >= this.state.config.visualQualityThreshold;
+    }
+
+    /**
+     * Get Cursor 2.1+ capabilities summary
+     */
+    getCursor21Capabilities(): {
+        streamingFeedback: { enabled: boolean; itemsReceived: number };
+        continuousVerification: { enabled: boolean; running: boolean };
+        runtimeDebug: { enabled: boolean };
+        browserInLoop: { enabled: boolean; score: number };
+        humanCheckpoints: { enabled: boolean; triggered: number };
+        multiAgentJudging: { enabled: boolean };
+        patternLibrary: { enabled: boolean; fixesApplied: number };
+    } {
+        return {
+            streamingFeedback: {
+                enabled: this.state.config.enableStreamingFeedback,
+                itemsReceived: this.cursor21State.feedbackItemsReceived,
+            },
+            continuousVerification: {
+                enabled: this.state.config.enableContinuousVerification,
+                running: this.continuousVerification !== null,
+            },
+            runtimeDebug: {
+                enabled: this.state.config.enableRuntimeDebug,
+            },
+            browserInLoop: {
+                enabled: this.state.config.enableBrowserInLoop,
+                score: this.cursor21State.currentVisualScore,
+            },
+            humanCheckpoints: {
+                enabled: this.state.config.enableHumanCheckpoints,
+                triggered: this.cursor21State.humanCheckpointsTriggered,
+            },
+            multiAgentJudging: {
+                enabled: this.state.config.enableMultiAgentJudging,
+            },
+            patternLibrary: {
+                enabled: this.state.config.enablePatternLibrary,
+                fixesApplied: this.cursor21State.patternFixesApplied,
+            },
+        };
+    }
+
+    /**
+     * Get feedback summary
+     */
+    getFeedbackSummary() {
+        if (!this.feedbackChannel) {
+            return null;
+        }
+        return this.feedbackChannel.getSummary(this.state.id);
+    }
+
+    /**
+     * Check if there are blocking issues
+     */
+    hasBlockingIssues(): boolean {
+        if (!this.feedbackChannel) {
+            return false;
+        }
+        return this.feedbackChannel.hasBlockers(this.state.id);
+    }
+
+    /**
+     * Get blocking issues
+     */
+    getBlockingIssues(): FeedbackItem[] {
+        if (!this.feedbackChannel) {
+            return [];
+        }
+        return this.feedbackChannel.getBlockers(this.state.id);
     }
 }
 
