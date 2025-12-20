@@ -4,7 +4,7 @@
 
 ---
 
-## Current State (as of 2025-12-19)
+## Current State (as of 2025-12-20)
 
 ### Progress Summary
 - **Total Features**: 66 + 7 New Cursor 2.1+ Features
@@ -24,6 +24,25 @@
 ---
 
 ## Recent Completions
+
+### 2025-12-20: Knowledge Currency Enhancement - Full Date Precision
+
+**Updated CLAUDE.md to require FULL DATE precision in web searches:**
+
+The AI race moves fast - searching for just "2025" could return info from months ago. Now requires:
+- Use month + year minimum: "Claude API December 2025"
+- Use day for cutting-edge: "OpenAI latest Dec 20 2025"
+- Added "AI-Race Reality" context explaining why this matters
+
+**Files Changed:**
+- `CLAUDE.md` - Updated 5 sections:
+  1. MANDATORY KNOWLEDGE VERIFICATION (search format guidance)
+  2. MANDATORY SESSION START (check full date)
+  3. Knowledge Currency Checklist (expanded with examples)
+  4. Common Stale Knowledge Areas (added change frequencies)
+  5. Enhanced Capabilities - Web Search (full date examples)
+
+**Rationale**: Tech evolves daily in the AI race. Models, APIs, and capabilities release on near-weekly basis. A year-only search could miss 11 months of updates.
 
 ### 2025-12-19: Gap-Closing Verification Agents for Production Readiness
 
@@ -323,7 +342,7 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ## Notes
 
-- Today's date: 2025-12-19
+- Today's date: 2025-12-20
 - Chrome with remote debugging is running on port 9222 (started via `~/bin/chrome-dev`)
 - Current models available:
   - Claude Opus 4.5 (claude-opus-4-5-20251101) - Premium tier
@@ -340,4 +359,4 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ---
 
-*Last updated: 2025-12-19*
+*Last updated: 2025-12-20*
