@@ -25,8 +25,8 @@
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../db/index.js';
-import { errorEscalationHistory, learnedPatterns } from '../../schema.js';
+import { db } from '../../db.js';
+import { errorEscalationHistory, learningPatterns } from '../../schema.js';
 import { eq, desc, and, gte } from 'drizzle-orm';
 
 // ============================================================================
@@ -477,6 +477,7 @@ export class PredictiveErrorPrevention extends EventEmitter {
         try {
             const predictions: ErrorPrediction[] = [];
             const cutoffDate = new Date(Date.now() - this.config.historyWindowMs);
+            const cutoffDateStr = cutoffDate.toISOString();
 
             // Query error escalation history
             const errors = await db
@@ -485,7 +486,7 @@ export class PredictiveErrorPrevention extends EventEmitter {
                 .where(
                     and(
                         eq(errorEscalationHistory.projectId, context.projectId),
-                        gte(errorEscalationHistory.createdAt, cutoffDate)
+                        gte(errorEscalationHistory.createdAt, cutoffDateStr)
                     )
                 )
                 .orderBy(desc(errorEscalationHistory.createdAt))
@@ -525,12 +526,11 @@ export class PredictiveErrorPrevention extends EventEmitter {
             // Also check learned patterns for failures
             const failedPatterns = await db
                 .select()
-                .from(learnedPatterns)
+                .from(learningPatterns)
                 .where(
                     and(
-                        eq(learnedPatterns.projectId, context.projectId),
-                        // @ts-expect-error - successRate is a number
-                        gte(learnedPatterns.failureCount, 3)
+                        eq(learningPatterns.projectId, context.projectId),
+                        gte(learningPatterns.failureCount, 3)
                     )
                 )
                 .limit(10);

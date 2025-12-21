@@ -25,6 +25,34 @@
 
 ## Recent Completions
 
+### 2025-12-20: Build Fixes for Merged PR #28
+
+**Post-Merge Build Fixes:**
+
+Fixed multiple TypeScript errors discovered after PR #28 merge:
+
+**Files Changed:**
+- `server/src/routes/execute.ts` - Fixed loadUnifiedContext call (4 args, not 2), fixed ErrorPrediction property access (type→errorType, prevention.instruction→preventionStrategy.guidance)
+- `server/src/routes/feature-agent.ts` - Same fixes as execute.ts
+- `server/src/routes/generate.ts` - Same fixes as execute.ts
+- `server/src/routes/orchestrate.ts` - Fixed Map.size vs Array.length for activeStrategies
+- `server/src/routes/verification.ts` - Fixed injectFeedback call (4+ args, not 2)
+- `server/src/services/automation/build-loop.ts` - Added pause() and resume() methods, added 'paused' to BuildLoopEvent type
+- `server/src/services/feature-agent/feature-agent-service.ts` - Fixed CombinedVerificationResult handling (blockers are strings, results is object not array)
+- `server/src/services/ai/predictive-error-prevention.ts` - Fixed db import path, renamed learnedPatterns→learningPatterns, fixed date comparison with ISO string
+- `server/src/services/ai/unified-context.ts` - Added null coalescing for wasRebuiltFromIntent
+- `server/src/services/integration/advanced-orchestration.ts` - Renamed learnedPatterns→learningPatterns, learnedStrategies→learningStrategies
+
+**Pre-existing Issues Discovered (Not Fixed This Session):**
+These schema-code mismatches exist in the codebase and need separate attention:
+- predictive-error-prevention.ts: Uses learningPatterns.projectId and failureCount columns that don't exist
+- advanced-orchestration.ts: Uses learningPatterns.patternName, context, status columns that don't exist
+- advanced-orchestration.ts: Duplicate function implementations (lines 435 and 503)
+- gemini-video-analyzer.ts: Missing @google/generative-ai package
+- swarm.ts: Uses Feature.name property that doesn't exist on type
+
+**Status:** PR #28 merged. Build fixes committed. Pre-existing issues documented.
+
 ### 2025-12-20: Knowledge Currency Enhancement - Full Date Precision
 
 **Updated CLAUDE.md to require FULL DATE precision in web searches:**

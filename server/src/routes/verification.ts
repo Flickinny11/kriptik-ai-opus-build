@@ -751,17 +751,12 @@ router.post('/feedback/:buildId/inject', async (req, res) => {
 
     const feedbackChannel = getStreamingFeedbackChannel();
 
-    const item: Omit<FeedbackItem, 'id' | 'timestamp'> = {
-        category,
-        severity,
-        message,
+    feedbackChannel.injectFeedback(buildId, category, severity, message, {
         file,
         line,
         suggestion,
         autoFixable: autoFixable ?? false,
-    };
-
-    feedbackChannel.injectFeedback(buildId, item);
+    });
 
     res.status(200).json({
         success: true,

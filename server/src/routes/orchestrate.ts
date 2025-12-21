@@ -175,7 +175,7 @@ router.post('/:projectId/execute', async (req: Request, res: Response) => {
                 summary: contextSummary,
                 patternsCount: unifiedContext.learnedPatterns.length,
                 hasIntentLock: !!unifiedContext.intentLock,
-                strategiesCount: unifiedContext.activeStrategies.length,
+                strategiesCount: unifiedContext.activeStrategies.size,
             });
 
             // Inject context into orchestrator if it supports it

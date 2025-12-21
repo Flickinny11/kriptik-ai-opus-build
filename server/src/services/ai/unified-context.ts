@@ -622,7 +622,7 @@ async function loadErrorHistory(context: UnifiedContext, projectId: string, limi
             totalAttempts: e.totalAttempts,
             resolved: e.resolved,
             finalFix: e.finalFix,
-            wasRebuiltFromIntent: e.wasRebuiltFromIntent,
+            wasRebuiltFromIntent: e.wasRebuiltFromIntent ?? false,
         }));
 
         // Extract successful fixes for quick reference
