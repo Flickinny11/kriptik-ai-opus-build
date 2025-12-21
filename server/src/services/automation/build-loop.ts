@@ -203,8 +203,22 @@ import {
     type GhostSessionConfig,
     type GhostSessionState,
     type WakeCondition,
-    type WakeConditionType,
-} from '../ghost-mode/index.js';
+} from '../ghost-mode/ghost-controller.js';
+
+// ============================================================================
+// ORPHANED FEATURES INTEGRATION (Image-to-Code, Voice Architect, API Autopilot)
+// ============================================================================
+import {
+    ImageToCodeService,
+    type ImageToCodeRequest,
+    type ImageToCodeResult,
+} from '../ai/image-to-code.js';
+
+import {
+    APIAutopilotService,
+    type APIProfile,
+    type IntegrationResult,
+} from '../api/api-autopilot.js';
 
 // =============================================================================
 // TYPES
@@ -223,7 +237,7 @@ export type BuildLoopPhase =
 
 export type BuildStage = 'frontend' | 'backend' | 'production';
 
-export type BuildMode = 'lightning' | 'standard' | 'tournament' | 'production';
+export type BuildMode = 'lightning' | 'standard' | 'tournament' | 'production' | 'fix';
 
 export interface BuildLoopConfig {
     mode: BuildMode;
@@ -378,6 +392,25 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         visualQualityThreshold: 90, // Higher threshold for production
         humanCheckpointEscalationLevel: 2,
     },
+    fix: {
+        mode: 'fix',
+        maxAgents: 3,
+        enableTournament: false,
+        autoCreateCheckpoints: true,
+        checkpointIntervalMinutes: 15,
+        maxBuildDurationMinutes: 60,
+        enableVisualVerification: true,
+        // Cursor 2.1+ - balanced for fixing imported projects
+        enableStreamingFeedback: true,
+        enableContinuousVerification: true,
+        enableRuntimeDebug: true,
+        enableBrowserInLoop: true,
+        enableHumanCheckpoints: false, // Fix mode runs autonomously
+        enableMultiAgentJudging: false,
+        enablePatternLibrary: true, // Pattern library helps fix common issues
+        visualQualityThreshold: 85,
+        humanCheckpointEscalationLevel: 3,
+    },
 };
 
 // =============================================================================
@@ -481,6 +514,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
     // Pending interrupts to process at tool boundaries
     private pendingInterrupts: ClassifiedInterrupt[] = [];
+
+    // =========================================================================
+    // ORPHANED FEATURES (Image-to-Code, API Autopilot)
+    // =========================================================================
+    private imageToCodeService: ImageToCodeService | null = null;
+    private apiAutopilotService: APIAutopilotService | null = null;
 
     constructor(
         projectId: string,
@@ -610,10 +649,24 @@ export class BuildLoopOrchestrator extends EventEmitter {
             console.warn('[BuildLoop] Credential vault not available:', error);
         }
 
+        // Image-to-Code Service - for converting design images to code
+        try {
+            this.imageToCodeService = new ImageToCodeService();
+        } catch (error) {
+            console.warn('[BuildLoop] Image-to-code service not available:', error);
+        }
+
+        // API Autopilot Service - for automatic API integration
+        try {
+            this.apiAutopilotService = new APIAutopilotService();
+        } catch (error) {
+            console.warn('[BuildLoop] API autopilot service not available:', error);
+        }
+
         // Note: StreamingFeedbackChannel, ContinuousVerification, and BrowserInLoop
         // are initialized in start() because they need the build to be running
 
-        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials (mode: ${mode}, path: ${this.projectPath})`);
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -933,6 +986,14 @@ export class BuildLoopOrchestrator extends EventEmitter {
         }
 
         try {
+            // Load project credentials from vault
+            await this.loadProjectCredentials();
+
+            // Write credentials to .env file for build process
+            if (this.loadedCredentials.size > 0) {
+                await this.writeCredentialsToEnv(this.projectPath);
+            }
+
             // Generate feature list from Intent Contract
             const features = await this.featureManager.generateFromIntent(
                 this.state.intentContract,
@@ -1035,6 +1096,29 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
             // Load context from artifacts
             await codingAgent.startSession();
+
+            // =====================================================================
+            // ORPHANED FEATURES: Process images and API integrations
+            // These run at the start of Phase 2 before task processing
+            // =====================================================================
+
+            // Process image inputs for frontend stage (design-to-code)
+            if (stage === 'frontend' && this.state.intentContract?.rawPrompt) {
+                const imageResult = await this.processImageInputs(
+                    this.state.intentContract.rawPrompt
+                );
+                if (imageResult) {
+                    console.log(`[BuildLoop] Generated ${imageResult.components.length} components from images`);
+                }
+            }
+
+            // Process API integrations for backend stage
+            if (stage === 'backend') {
+                const apiResults = await this.processAPIIntegrations();
+                if (apiResults && apiResults.length > 0) {
+                    console.log(`[BuildLoop] Generated ${apiResults.length} API integrations`);
+                }
+            }
 
             // Get tasks for this stage from task list
             // We'll claim tasks one by one and build them
@@ -3727,6 +3811,137 @@ Would the user be satisfied with this result?`;
         } catch (error) {
             console.error('[BuildLoop] Failed to record ghost checkpoint:', error);
         }
+    }
+
+    // =========================================================================
+    // ORPHANED FEATURES: Image-to-Code and API Autopilot
+    // =========================================================================
+
+    /**
+     * Detect if prompt contains image references and process them
+     * Called during Phase 2 when building UI components
+     */
+    async processImageInputs(prompt: string, imageUrls?: string[]): Promise<ImageToCodeResult | null> {
+        if (!this.imageToCodeService) {
+            console.log('[BuildLoop] Image-to-code service not available');
+            return null;
+        }
+
+        // Check if prompt mentions images, screenshots, designs, mockups, or Figma
+        const hasImageKeywords = /\b(image|screenshot|design|mockup|figma|wireframe|sketch|ui\s+design)\b/i.test(prompt);
+        const hasImageUrls = imageUrls && imageUrls.length > 0;
+
+        if (!hasImageKeywords && !hasImageUrls) {
+            return null;
+        }
+
+        this.emitEvent('phase_start', { phase: 'image_to_code' });
+        console.log('[BuildLoop] Processing image inputs for code generation');
+
+        try {
+            const request: ImageToCodeRequest = {
+                images: imageUrls?.map(url => ({ type: 'url' as const, url })) || [],
+                framework: 'react',
+                styling: 'tailwind',
+                includeResponsive: true,
+                includeAccessibility: true,
+                additionalInstructions: prompt,
+            };
+
+            const result = await this.imageToCodeService.convert(request);
+
+            // Write generated components to disk
+            for (const component of result.components) {
+                const fullPath = `${this.projectPath}/${component.path}`;
+                const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+                const fs = await import('fs/promises');
+                await fs.mkdir(dir, { recursive: true });
+                await fs.writeFile(fullPath, component.code, 'utf-8');
+                console.log(`[BuildLoop] Image-to-code wrote: ${component.path}`);
+            }
+
+            this.emitEvent('phase_complete', {
+                phase: 'image_to_code',
+                components: result.components.length,
+            });
+
+            return result;
+        } catch (error) {
+            console.error('[BuildLoop] Image-to-code failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Detect and process API integrations from Intent Contract
+     * Called during Phase 2 when building backend/API features
+     */
+    async processAPIIntegrations(): Promise<IntegrationResult[] | null> {
+        if (!this.apiAutopilotService) {
+            console.log('[BuildLoop] API autopilot service not available');
+            return null;
+        }
+
+        if (!this.state.intentContract) {
+            return null;
+        }
+
+        // Check if intent contract specifies external APIs
+        const technicalReqs = this.state.intentContract.technicalRequirements || [];
+        const apiMentions = technicalReqs.filter(req =>
+            /\b(api|integration|third-party|external|webhook|oauth|stripe|twilio|sendgrid|firebase|supabase)\b/i.test(req)
+        );
+
+        if (apiMentions.length === 0) {
+            return null;
+        }
+
+        this.emitEvent('phase_start', { phase: 'api_autopilot' });
+        console.log(`[BuildLoop] Processing ${apiMentions.length} API integrations`);
+
+        const results: IntegrationResult[] = [];
+
+        try {
+            for (const apiReq of apiMentions) {
+                // Try to discover and generate integration for each API mention
+                const discoveredApis = await this.apiAutopilotService.discoverFromPrompt(apiReq);
+
+                for (const api of discoveredApis) {
+                    const integration = await this.apiAutopilotService.generateIntegration(
+                        api.id,
+                        this.projectPath
+                    );
+
+                    if (integration) {
+                        results.push(integration);
+                        console.log(`[BuildLoop] Generated API integration for: ${api.name}`);
+                    }
+                }
+            }
+
+            this.emitEvent('phase_complete', {
+                phase: 'api_autopilot',
+                integrations: results.length,
+            });
+
+            return results;
+        } catch (error) {
+            console.error('[BuildLoop] API autopilot failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get capabilities status for orphaned features
+     */
+    getOrphanedFeatureCapabilities(): {
+        imageToCode: boolean;
+        apiAutopilot: boolean;
+    } {
+        return {
+            imageToCode: this.imageToCodeService !== null,
+            apiAutopilot: this.apiAutopilotService !== null,
+        };
     }
 }
 

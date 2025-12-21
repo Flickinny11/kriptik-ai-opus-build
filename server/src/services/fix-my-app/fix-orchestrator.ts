@@ -25,6 +25,10 @@ import {
 import {
   OPENROUTER_MODELS,
 } from '../ai/openrouter-client.js';
+import {
+  createBuildLoopOrchestrator,
+  type BuildLoopOrchestrator,
+} from '../automation/build-loop.js';
 
 // =============================================================================
 // TYPES
@@ -51,6 +55,7 @@ export interface FixMyAppSession {
   errors: CapturedError[];
   intentContract?: IntentContract;
   orchestrationRunId?: string;
+  buildLoop?: BuildLoopOrchestrator;
   startedAt: Date;
   completedAt?: Date;
   error?: string;
@@ -291,7 +296,7 @@ The user has given up on ${session.importSource} and wants KripTik AI to fix the
   }
 
   /**
-   * Start the build loop for the project
+   * Start the build loop for the project using BuildLoopOrchestrator
    */
   private async startBuildLoop(
     session: FixMyAppSession,
@@ -319,9 +324,73 @@ The user has given up on ${session.importSource} and wants KripTik AI to fix the
       .set({ orchestrationRunId: runId })
       .where(eq(buildIntents.id, intentContract.id));
 
-    // The actual build loop would be triggered here
-    // In production, this would call the BuildLoop service
-    // For now, we're setting up the infrastructure
+    // Create BuildLoopOrchestrator with 'fix' mode
+    const buildLoop = createBuildLoopOrchestrator(
+      session.projectId,
+      session.userId,
+      runId,
+      'fix'
+    );
+
+    // Store reference in session
+    session.buildLoop = buildLoop;
+
+    // Subscribe to build loop events for status updates
+    buildLoop.on('phase_start', (event) => {
+      const phase = event.data?.phase || event.data?.stage || 'unknown';
+      this.updateStatus(session.id, 'building', 50 + Math.min(40, session.progress), `Building: ${phase}`);
+    });
+
+    buildLoop.on('phase_complete', (event) => {
+      const phase = event.data?.phase || event.data?.stage || 'unknown';
+      this.updateStatus(session.id, 'building', 50 + Math.min(40, session.progress + 5), `Completed: ${phase}`);
+    });
+
+    buildLoop.on('verification_result', (event) => {
+      if (event.data?.verdict === 'APPROVED') {
+        this.updateStatus(session.id, 'verifying', 95, 'Verification passed');
+      } else {
+        this.updateStatus(session.id, 'verifying', 90, `Verification: ${event.data?.verdict || 'running'}`);
+      }
+    });
+
+    buildLoop.on('build_complete', () => {
+      this.markComplete(session.id);
+    });
+
+    buildLoop.on('error', (event) => {
+      console.error(`[FixOrchestrator] Build error:`, event.data?.error);
+      // Don't immediately fail - let error escalation try to fix it
+    });
+
+    // Build the enhanced prompt for the fix
+    const fixPrompt = `FIX MY APP - ${intentContract.coreValueProp}
+
+ORIGINAL PLATFORM: ${session.importSource}
+ORIGINAL URL: ${session.importUrl}
+
+INTENT CONTRACT:
+${JSON.stringify({
+  appSoul: intentContract.appSoul,
+  coreValueProp: intentContract.coreValueProp,
+  successCriteria: intentContract.successCriteria,
+  userWorkflows: intentContract.userWorkflows,
+  visualIdentity: intentContract.visualIdentity,
+}, null, 2)}
+
+ISSUES TO FIX:
+${session.errors.map(e => `- ${e.type}: ${e.message}`).join('\n') || 'None specified'}
+
+ORIGINAL CONVERSATION CONTEXT:
+${session.chatHistory.slice(-10).map(msg => `[${msg.role.toUpperCase()}]: ${msg.content.slice(0, 500)}`).join('\n\n')}
+
+GOAL: Rebuild this project to match the intent contract, fixing all issues that caused problems on the original platform.`;
+
+    // Start the build loop asynchronously
+    buildLoop.start(fixPrompt).catch(error => {
+      console.error(`[FixOrchestrator] Build loop failed:`, error);
+      this.handleError(session.id, error.message);
+    });
 
     console.log(`[FixOrchestrator] Build loop started: ${runId}`);
     console.log(`[FixOrchestrator] Intent: ${intentContract.coreValueProp}`);
