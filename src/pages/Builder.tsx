@@ -793,7 +793,7 @@ export default function Builder() {
                                             />
                                         </div>
                                     )}
-                                    <ChatInterface intelligenceSettings={intelligenceSettings} />
+                                    <ChatInterface intelligenceSettings={intelligenceSettings} projectId={projectId} />
                                     {activeTab === 'preview' && <ActivityFeed />}
                                 </div>
                             </Panel>

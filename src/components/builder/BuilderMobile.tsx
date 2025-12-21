@@ -254,7 +254,7 @@ export default function BuilderMobile({
                             transition={getTransition(0.25)}
                             className="absolute inset-0"
                         >
-                            <ChatInterface intelligenceSettings={intelligenceSettings} />
+                            <ChatInterface intelligenceSettings={intelligenceSettings} projectId={projectId} />
                         </motion.div>
                     )}
                     {activeView === 'preview' && (
