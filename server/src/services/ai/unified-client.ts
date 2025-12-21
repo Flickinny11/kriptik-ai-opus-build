@@ -90,9 +90,23 @@ export const ANTHROPIC_MODELS = {
 } as const;
 
 export const OPENAI_MODELS = {
-    GPT_5_2_PRO: 'gpt-5.2-pro',
-    GPT_5_2_THINKING: 'gpt-5.2',
-    GPT_5_2_INSTANT: 'gpt-5.2-chat-latest',
+    // GPT-5.2 Series (December 2025) - 400K context, 128K output
+    // Pricing: $1.75/1M input, $14/1M output, 90% cache discount
+    GPT_5_2_PRO: 'gpt-5.2-pro',           // Highest quality, Responses API
+    GPT_5_2_THINKING: 'gpt-5.2',          // Chain-of-thought reasoning
+    GPT_5_2_INSTANT: 'gpt-5.2-chat-latest', // Fast responses
+
+    // GPT-5.2-Codex (Released Dec 18, 2025) - Most advanced agentic coding
+    // 56.4% on SWE-Bench Pro (state-of-the-art), context compaction, long-horizon
+    GPT_5_2_CODEX: 'gpt-5.2-codex',       // Best for complex coding tasks
+    GPT_5_2_CODEX_PRO: 'gpt-5.2-codex-pro', // Codex with enhanced security
+
+    // o3 Series - Latest reasoning models
+    O3: 'o3',                             // Smartest reasoning model
+    O3_PRO: 'o3-pro',                     // Pro tier reasoning
+    O3_MINI: 'o4-mini',                   // Fast, cost-efficient reasoning
+
+    // Legacy models
     GPT_4O: 'gpt-4o',
     GPT_4O_MINI: 'gpt-4o-mini',
 } as const;
@@ -175,19 +189,27 @@ export class UnifiedAIClient {
 
     /**
      * Determine which provider to use for a given model
+     * Routes to native SDKs for best performance and feature access
      */
     getProviderForModel(modelId: string): AIProvider {
-        // Check for Anthropic models
+        // Check for Anthropic models (Claude series)
         if (modelId.startsWith('claude-') || modelId.includes('anthropic/')) {
             return 'anthropic';
         }
 
-        // Check for OpenAI/GPT-5.2 models
-        if (modelId.startsWith('gpt-') || modelId.startsWith('o1-') || modelId.includes('openai/')) {
+        // Check for OpenAI models (GPT-5.x, o-series, codex)
+        if (
+            modelId.startsWith('gpt-') ||
+            modelId.startsWith('o1-') ||
+            modelId.startsWith('o3') ||
+            modelId.startsWith('o4') ||
+            modelId.includes('codex') ||
+            modelId.includes('openai/')
+        ) {
             return 'openai';
         }
 
-        // Check for OpenRouter fallback models
+        // Check for OpenRouter fallback models (Gemini, DeepSeek, Llama, etc.)
         for (const prefix of OPENROUTER_FALLBACK_MODELS) {
             if (modelId.includes(prefix)) {
                 return 'openrouter';

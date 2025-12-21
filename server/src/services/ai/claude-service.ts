@@ -528,16 +528,34 @@ export class ClaudeService {
             requestParams.stop_sequences = stopSequences;
         }
 
-        // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+        // =================================================================
+        // DUAL ARCHITECTURE ROUTING
+        // Route to the correct SDK based on model type
+        // =================================================================
         let parsed: GenerationResponse;
+        const provider = this.unifiedClient.getProviderForModel(model);
 
-        if (this.anthropicClient) {
+        if (provider === 'openai') {
+            // GPT-5.2, o3, Codex models → Use OpenAI SDK directly
+            console.log(`[ClaudeService] Routing ${model} to OpenAI SDK via unified client`);
+            parsed = await this.unifiedClient.generate({
+                model,
+                messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                systemPrompt: systemPromptText,
+                maxTokens,
+                temperature,
+                // GPT-5.2 has native thinking mode
+                thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                stopSequences,
+            });
+        } else if (provider === 'anthropic' && this.anthropicClient) {
+            // Claude models → Use Anthropic SDK directly (best features)
             console.log(`[ClaudeService] Using direct Anthropic SDK for ${model}`);
             const response = await this.anthropicClient.messages.create(requestParams);
             parsed = this.parseResponse(response);
-        } else if (this.useOpenRouterFallback) {
-            // Use unified client with OpenRouter for Claude models
-            console.log(`[ClaudeService] Using OpenRouter fallback for ${model}`);
+        } else if (provider === 'anthropic' && this.useOpenRouterFallback) {
+            // Claude models without API key → Fall back to OpenRouter
+            console.log(`[ClaudeService] Using OpenRouter fallback for Claude model ${model}`);
             const openrouterModel = `anthropic/${model}`;
             parsed = await this.unifiedClient.generate({
                 model: openrouterModel,
@@ -548,8 +566,19 @@ export class ClaudeService {
                 thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
                 stopSequences,
             });
+        } else if (provider === 'openrouter') {
+            // Other models (Gemini, DeepSeek, etc.) → OpenRouter
+            console.log(`[ClaudeService] Using OpenRouter for ${model}`);
+            parsed = await this.unifiedClient.generate({
+                model,
+                messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                systemPrompt: systemPromptText,
+                maxTokens,
+                temperature,
+                stopSequences,
+            });
         } else {
-            throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+            throw new Error(`No AI provider available for model ${model}. Check API keys.`);
         }
 
         // Cache successful generations for future reuse
@@ -655,8 +684,51 @@ export class ClaudeService {
         let stopReason = '';
 
         try {
-            // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
-            if (this.anthropicClient) {
+            // =================================================================
+            // DUAL ARCHITECTURE STREAMING ROUTING
+            // Route to the correct SDK based on model type
+            // =================================================================
+            const provider = this.unifiedClient.getProviderForModel(model);
+            const systemText = typeof systemPrompt === 'string'
+                ? systemPrompt
+                : systemPrompt.map((s: any) => s.text).join('\n');
+
+            if (provider === 'openai') {
+                // GPT-5.2, o3, Codex models → Use OpenAI SDK via unified client
+                console.log(`[ClaudeService] Streaming ${model} via OpenAI SDK`);
+                const result = await this.unifiedClient.generateStream(
+                    {
+                        model,
+                        messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                        systemPrompt: systemText,
+                        maxTokens,
+                        thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                        stopSequences,
+                    },
+                    {
+                        onThinking: (thinking) => {
+                            fullThinking += thinking;
+                            callbacks.onThinking?.(thinking);
+                        },
+                        onText: (text) => {
+                            fullText += text;
+                            callbacks.onText?.(text);
+                        },
+                        onComplete: (res) => {
+                            inputTokens = res.usage.inputTokens;
+                            outputTokens = res.usage.outputTokens;
+                            stopReason = res.stopReason;
+                        },
+                        onError: callbacks.onError,
+                    }
+                );
+                fullText = result.content;
+                fullThinking = result.thinking || '';
+                inputTokens = result.usage.inputTokens;
+                outputTokens = result.usage.outputTokens;
+                stopReason = result.stopReason;
+            } else if (provider === 'anthropic' && this.anthropicClient) {
+                // Claude models → Use direct Anthropic SDK for streaming
                 console.log(`[ClaudeService] Streaming via direct Anthropic SDK for ${model}`);
                 const stream = this.anthropicClient.messages.stream(requestParams);
 
@@ -686,14 +758,10 @@ export class ClaudeService {
                         }
                     }
                 }
-            } else if (this.useOpenRouterFallback) {
-                // Use unified client with OpenRouter for streaming
+            } else if (provider === 'anthropic' && this.useOpenRouterFallback) {
+                // Claude models without API key → Fall back to OpenRouter
                 console.log(`[ClaudeService] Streaming via OpenRouter fallback for ${model}`);
                 const openrouterModel = `anthropic/${model}`;
-
-                const systemText = typeof systemPrompt === 'string'
-                    ? systemPrompt
-                    : systemPrompt.map((s: any) => s.text).join('\n');
 
                 const result = await this.unifiedClient.generateStream(
                     {
@@ -728,7 +796,7 @@ export class ClaudeService {
                 outputTokens = result.usage.outputTokens;
                 stopReason = result.stopReason;
             } else {
-                throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+                throw new Error(`No AI provider available for model ${model}. Check API keys.`);
             }
 
             const response: GenerationResponse = {
@@ -927,20 +995,38 @@ Your entire response must be parseable JSON.`;
             requestParams.temperature = 1;
         }
 
-        // Use direct Anthropic SDK if available, otherwise fall back to OpenRouter
+        // =================================================================
+        // DUAL ARCHITECTURE STRUCTURED OUTPUT ROUTING
+        // Route to the correct SDK based on model type
+        // =================================================================
         let parsed: GenerationResponse;
+        const provider = this.unifiedClient.getProviderForModel(model);
 
-        console.log(`[ClaudeService.generateStructured] Starting request with model=${model}, hasAnthropicClient=${!!this.anthropicClient}, useOpenRouterFallback=${this.useOpenRouterFallback}`);
+        console.log(`[ClaudeService.generateStructured] Starting request with model=${model}, provider=${provider}`);
 
         try {
-            if (this.anthropicClient) {
+            if (provider === 'openai') {
+                // GPT-5.2, o3, Codex models → Use OpenAI SDK via unified client
+                console.log(`[ClaudeService] Structured output via OpenAI SDK for ${model}`);
+                parsed = await this.unifiedClient.generate({
+                    model,
+                    messages: messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' })),
+                    systemPrompt: finalSystemPrompt,
+                    maxTokens,
+                    thinking: useExtendedThinking ? { enabled: true, budgetTokens: thinkingBudgetTokens } : undefined,
+                    structuredOutput: { schema: {}, name: 'structured_response' },
+                });
+                console.log(`[ClaudeService] Got OpenAI response, content_length=${parsed.content.length}`);
+            } else if (provider === 'anthropic' && this.anthropicClient) {
+                // Claude models → Use direct Anthropic SDK
                 console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
                 console.log(`[ClaudeService] Request params:`, JSON.stringify({ model, max_tokens: requestParams.max_tokens, has_thinking: !!requestParams.thinking }));
                 const response = await this.anthropicClient.messages.create(requestParams);
                 console.log(`[ClaudeService] Got Anthropic response, stop_reason=${response.stop_reason}, content_blocks=${response.content.length}`);
                 parsed = this.parseResponse(response);
                 console.log(`[ClaudeService] Parsed response, content_length=${parsed.content.length}`);
-            } else if (this.useOpenRouterFallback) {
+            } else if (provider === 'anthropic' && this.useOpenRouterFallback) {
+                // Claude models without API key → Fall back to OpenRouter
                 console.log(`[ClaudeService] Structured output via OpenRouter fallback for ${model}`);
                 const openrouterModel = `anthropic/${model}`;
                 parsed = await this.unifiedClient.generate({
@@ -953,7 +1039,7 @@ Your entire response must be parseable JSON.`;
                 console.log(`[ClaudeService] Got OpenRouter response, content_length=${parsed.content.length}`);
             } else {
                 console.error('[ClaudeService] No AI provider available!');
-                throw new Error('No AI provider available. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+                throw new Error(`No AI provider available for model ${model}. Check API keys.`);
             }
         } catch (apiError) {
             console.error('[ClaudeService] API call failed:', apiError);
