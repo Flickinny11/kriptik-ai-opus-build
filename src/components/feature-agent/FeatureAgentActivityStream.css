@@ -1,0 +1,359 @@
+/**
+ * Feature Agent Activity Stream Styles
+ * Amber/orange color scheme (#F5A86C) matching feature agent tiles
+ * Compact design for tile integration
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+.faas {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(30, 34, 42, 0.75), rgba(20, 24, 30, 0.85));
+  border: 1px solid rgba(245, 168, 108, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+  font-family: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+  margin-bottom: 10px;
+}
+
+.faas--compact {
+  border-radius: 10px;
+}
+
+.faas__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(245, 168, 108, 0.08);
+  background: linear-gradient(180deg, rgba(245, 168, 108, 0.06), rgba(245, 168, 108, 0.02));
+}
+
+.faas__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f5a86c;
+}
+
+.faas__title svg {
+  opacity: 0.8;
+}
+
+/* Phase Indicator */
+.faas-phase {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(245, 168, 108, 0.15);
+  border: 1px solid rgba(245, 168, 108, 0.25);
+}
+
+.faas-phase__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f5a86c;
+  box-shadow: 0 0 6px rgba(245, 168, 108, 0.6);
+  animation: faas-pulse 1.5s ease-in-out infinite;
+}
+
+.faas-phase__label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5a86c;
+}
+
+@keyframes faas-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+/* Body */
+.faas__body {
+  max-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 168, 108, 0.2) transparent;
+}
+
+.faas--compact .faas__body {
+  max-height: 120px;
+}
+
+.faas__body::-webkit-scrollbar {
+  width: 3px;
+}
+
+.faas__body::-webkit-scrollbar-thumb {
+  background: rgba(245, 168, 108, 0.25);
+  border-radius: 999px;
+}
+
+/* Thinking Section */
+.faas-thinking {
+  margin: 6px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(245, 168, 108, 0.1), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(245, 168, 108, 0.18);
+  overflow: hidden;
+}
+
+.faas-thinking__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.faas-thinking__header:hover {
+  background: rgba(245, 168, 108, 0.08);
+}
+
+.faas-thinking__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5a86c;
+}
+
+.faas-thinking__pulse {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(245, 168, 108, 0.3);
+  animation: faas-thinking-pulse 2s ease-in-out infinite;
+}
+
+@keyframes faas-thinking-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 0.15; transform: scale(1.4); }
+}
+
+.faas-thinking__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #f5a86c;
+}
+
+.faas-thinking__count {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(245, 168, 108, 0.65);
+}
+
+.faas-thinking__count::after {
+  content: ' tokens';
+}
+
+.faas-thinking__chevron {
+  display: flex;
+  color: rgba(245, 168, 108, 0.5);
+}
+
+.faas-thinking__content {
+  overflow: hidden;
+}
+
+.faas-thinking__scroll {
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 168, 108, 0.2) transparent;
+}
+
+.faas-thinking__scroll::-webkit-scrollbar {
+  width: 2px;
+}
+
+.faas-thinking__scroll::-webkit-scrollbar-thumb {
+  background: rgba(245, 168, 108, 0.3);
+  border-radius: 999px;
+}
+
+.faas-thinking__item {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.faas-thinking__item:last-child {
+  border-bottom: none;
+}
+
+.faas-thinking__text {
+  font-size: 10px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+  word-break: break-word;
+}
+
+.faas-thinking__preview {
+  padding: 5px 10px 8px;
+  font-size: 9px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Events List */
+.faas__events {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Individual Event (Compact) */
+.faas-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.12s ease;
+}
+
+.faas-event:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.faas-event__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
+}
+
+/* Event Type Colors - Amber theme */
+.faas-event--file_read .faas-event__icon {
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+}
+
+.faas-event--file_write .faas-event__icon {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.faas-event--file_edit .faas-event__icon {
+  background: rgba(245, 168, 108, 0.15);
+  color: #f5a86c;
+}
+
+.faas-event--tool_call .faas-event__icon {
+  background: rgba(167, 139, 250, 0.12);
+  color: #a78bfa;
+}
+
+.faas-event--status .faas-event__icon {
+  background: rgba(245, 168, 108, 0.15);
+  color: #f5a86c;
+}
+
+.faas-event--verification .faas-event__icon {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+}
+
+.faas-event--error .faas-event__icon {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.faas-event--error {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.18);
+}
+
+.faas-event__content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.faas-event__path {
+  font-size: 10px;
+  font-weight: 500;
+  color: #60a5fa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.faas-event__tool {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a78bfa;
+}
+
+.faas-event__text {
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.faas-event__time {
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.faas__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: rgba(245, 168, 108, 0.4);
+}
+
+.faas__empty svg {
+  opacity: 0.6;
+  animation: faas-empty-pulse 2s ease-in-out infinite;
+}
+
+@keyframes faas-empty-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.9); }
+}
+
+.faas__empty span {
+  font-size: 10px;
+  font-weight: 500;
+}

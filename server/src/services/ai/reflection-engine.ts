@@ -18,10 +18,12 @@ import { createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import { createErrorEscalationEngine, type BuildError, type EscalationResult, type ErrorCategory } from '../automation/error-escalation.js';
 import { createVerificationSwarm, type CombinedVerificationResult, type VerificationResult, type VerificationIssue } from '../verification/swarm.js';
 import { createAntiSlopDetector } from '../verification/anti-slop-detector.js';
+import { createLoopBlocker, type LoopBlocker, type ErrorSignature, type BuildContext } from '../automation/loop-blocker.js';
 import type { Feature, FeatureVerificationStatus, FeatureVerificationScores } from './feature-list.js';
 import type { AppSoulType } from './app-soul.js';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+import { createHash } from 'crypto';
 
 // ============================================================================
 // REFLECTION ENGINE TYPES
@@ -135,15 +137,23 @@ export class InfiniteReflectionEngine extends EventEmitter {
     private errorEscalation: ReturnType<typeof createErrorEscalationEngine>;
     private verificationSwarm: ReturnType<typeof createVerificationSwarm>;
     private antiSlopDetector: ReturnType<typeof createAntiSlopDetector>;
+    private loopBlocker: LoopBlocker;
 
     // Learning storage (in production, would be database-backed)
     private learnings: Map<string, ReflectionLearning> = new Map();
+
+    // Error pattern tracking for loop detection
+    private errorSignatures: Map<string, { count: number; firstSeen: number; lastSeen: number }> = new Map();
+    private readonly REPETITION_THRESHOLD = 3;
+    private buildLogs: string[] = [];
+    private runtimeLogs: string[] = [];
 
     // State
     private isRunning: boolean = false;
     private currentFiles: Map<string, string> = new Map();
     private issues: Map<string, ReflectionIssue> = new Map();
     private cycles: ReflectionCycle[] = [];
+    private isInComprehensiveMode: boolean = false;
 
     constructor(
         projectId: string,
@@ -167,6 +177,201 @@ export class InfiniteReflectionEngine extends EventEmitter {
         this.errorEscalation = createErrorEscalationEngine(buildId, projectId, userId);
         this.verificationSwarm = createVerificationSwarm(buildId, projectId, userId);
         this.antiSlopDetector = createAntiSlopDetector(userId, projectId, appSoul);
+        this.loopBlocker = createLoopBlocker({
+            repetitionThreshold: this.REPETITION_THRESHOLD,
+            maxComprehensiveAttempts: 5,
+        });
+
+        // Set up loop blocker event listeners
+        this.loopBlocker.on('comprehensive_mode_triggered', (data) => {
+            this.isInComprehensiveMode = true;
+            this.emit('loop_detected', data);
+            console.log(`[ReflectionEngine] Loop detected, entering comprehensive analysis mode`);
+        });
+
+        this.loopBlocker.on('comprehensive_analysis_complete', (data) => {
+            this.isInComprehensiveMode = false;
+            this.emit('comprehensive_analysis_complete', data);
+        });
+    }
+
+    /**
+     * Add a build log entry
+     */
+    addBuildLog(log: string): void {
+        this.buildLogs.push(`[${new Date().toISOString()}] ${log}`);
+        // Keep last 500 logs
+        if (this.buildLogs.length > 500) {
+            this.buildLogs = this.buildLogs.slice(-500);
+        }
+    }
+
+    /**
+     * Add a runtime log entry
+     */
+    addRuntimeLog(log: string): void {
+        this.runtimeLogs.push(`[${new Date().toISOString()}] ${log}`);
+        // Keep last 500 logs
+        if (this.runtimeLogs.length > 500) {
+            this.runtimeLogs = this.runtimeLogs.slice(-500);
+        }
+    }
+
+    /**
+     * Generate error signature hash for pattern tracking
+     */
+    private generateErrorSignature(error: ReflectionIssue): string {
+        const key = `${error.type}|${error.description.substring(0, 100)}|${error.location || ''}`;
+        return createHash('sha256').update(key).digest('hex').substring(0, 16);
+    }
+
+    /**
+     * Track error occurrence for pattern detection
+     */
+    private trackErrorPattern(issue: ReflectionIssue): boolean {
+        const signature = this.generateErrorSignature(issue);
+        const now = Date.now();
+
+        const existing = this.errorSignatures.get(signature);
+        if (existing) {
+            existing.count++;
+            existing.lastSeen = now;
+            this.errorSignatures.set(signature, existing);
+
+            if (existing.count >= this.REPETITION_THRESHOLD) {
+                console.log(`[ReflectionEngine] Repetitive error detected (${existing.count}x): ${issue.description.substring(0, 50)}...`);
+                return true;
+            }
+        } else {
+            this.errorSignatures.set(signature, { count: 1, firstSeen: now, lastSeen: now });
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if we're stuck in a loop
+     */
+    isStuckInLoop(): boolean {
+        return this.loopBlocker.isStuckInLoop() || this.isInComprehensiveMode;
+    }
+
+    /**
+     * Check if human escalation is needed
+     */
+    needsHumanEscalation(): boolean {
+        return this.loopBlocker.needsHumanEscalation();
+    }
+
+    /**
+     * Get loop blocker instance
+     */
+    getLoopBlocker(): LoopBlocker {
+        return this.loopBlocker;
+    }
+
+    /**
+     * Record an error to the loop blocker
+     */
+    recordErrorForLoopDetection(error: Error, featureId?: string): void {
+        const context: BuildContext = {
+            buildId: this.buildId,
+            projectId: this.projectId,
+            userId: this.userId,
+            phase: 'reflection',
+            stage: 'quality_improvement',
+            featureId,
+            buildLogs: this.buildLogs,
+            runtimeLogs: this.runtimeLogs,
+        };
+
+        this.loopBlocker.setContext(context);
+        this.loopBlocker.recordError(error, context);
+    }
+
+    /**
+     * Perform comprehensive analysis when stuck in a loop
+     */
+    async performComprehensiveAnalysis(): Promise<{
+        success: boolean;
+        fixes: Array<{ path: string; action: string; content?: string }>;
+        analysis: string;
+    }> {
+        const prompt = this.loopBlocker.getComprehensiveAnalysisPrompt();
+
+        try {
+            const response = await this.claudeService.generate(prompt, {
+                model: CLAUDE_MODELS.OPUS_4_5,
+                maxTokens: 32000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 64000,
+            });
+
+            // Parse the response
+            const jsonMatch = response.content.match(/```json\n([\s\S]*?)\n```/);
+            if (!jsonMatch) {
+                this.loopBlocker.completeComprehensiveAnalysis(false);
+                return {
+                    success: false,
+                    fixes: [],
+                    analysis: 'Failed to parse comprehensive analysis response',
+                };
+            }
+
+            const analysisResult = JSON.parse(jsonMatch[1]);
+
+            // Apply fixes
+            const fixes: Array<{ path: string; action: string; content?: string }> = [];
+            if (analysisResult.fixPlan?.changes) {
+                for (const change of analysisResult.fixPlan.changes) {
+                    if (change.action === 'create' || change.action === 'update') {
+                        this.currentFiles.set(change.path, change.newContent || '');
+                        fixes.push({
+                            path: change.path,
+                            action: change.action,
+                            content: change.newContent,
+                        });
+                    } else if (change.action === 'delete') {
+                        this.currentFiles.delete(change.path);
+                        fixes.push({ path: change.path, action: 'delete' });
+                    }
+                }
+            }
+
+            // Clear error signatures on successful fix
+            if (fixes.length > 0) {
+                this.errorSignatures.clear();
+                this.loopBlocker.completeComprehensiveAnalysis(true);
+
+                this.emit('comprehensive_fix_applied', {
+                    fixes,
+                    rootCause: analysisResult.rootCause,
+                    issues: analysisResult.issues,
+                });
+
+                return {
+                    success: true,
+                    fixes,
+                    analysis: analysisResult.rootCause || 'Comprehensive analysis complete',
+                };
+            }
+
+            this.loopBlocker.completeComprehensiveAnalysis(false);
+            return {
+                success: false,
+                fixes: [],
+                analysis: 'No fixes generated from comprehensive analysis',
+            };
+
+        } catch (error) {
+            console.error('[ReflectionEngine] Comprehensive analysis failed:', error);
+            this.loopBlocker.completeComprehensiveAnalysis(false);
+            return {
+                success: false,
+                fixes: [],
+                analysis: `Comprehensive analysis error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            };
+        }
     }
 
     /**

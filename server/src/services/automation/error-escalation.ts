@@ -767,6 +767,105 @@ Respond with JSON:
             escalationHistory: [...this.state.escalationHistory],
         };
     }
+
+    /**
+     * Check if human escalation is required
+     * Returns true when all 4 levels have been exhausted
+     */
+    needsHumanEscalation(): boolean {
+        const level4Attempts = this.state.attemptsPerLevel.get(4) || 0;
+        return level4Attempts >= this.config.level4MaxAttempts;
+    }
+
+    /**
+     * Get a summary of escalation history for human review
+     */
+    getEscalationSummary(): {
+        totalAttempts: number;
+        levelsExhausted: EscalationLevel[];
+        lastErrorMessage: string;
+        history: Array<{
+            level: EscalationLevel;
+            errorId: string;
+            success: boolean;
+            timestamp: Date;
+        }>;
+    } {
+        const levelsExhausted: EscalationLevel[] = [];
+        for (const level of [1, 2, 3, 4] as EscalationLevel[]) {
+            const attempts = this.state.attemptsPerLevel.get(level) || 0;
+            const maxAttempts = this.getMaxAttempts(level);
+            if (attempts >= maxAttempts) {
+                levelsExhausted.push(level);
+            }
+        }
+
+        const lastEntry = this.state.escalationHistory[this.state.escalationHistory.length - 1];
+        const lastErrorMessage = lastEntry?.errorId || 'Unknown';
+
+        return {
+            totalAttempts: this.state.totalAttempts,
+            levelsExhausted,
+            lastErrorMessage,
+            history: this.state.escalationHistory,
+        };
+    }
+
+    /**
+     * Generate a human-readable escalation report
+     */
+    generateHumanEscalationReport(error: BuildError): string {
+        const summary = this.getEscalationSummary();
+
+        return `
+# HUMAN ESCALATION REQUIRED
+
+The 4-Level Error Escalation System has exhausted all automatic fix attempts.
+
+## Error Details
+- **Error ID**: ${error.id}
+- **Category**: ${error.category}
+- **Message**: ${error.message}
+- **File**: ${error.file || 'Unknown'}
+- **Line**: ${error.line || 'Unknown'}
+
+## Escalation History
+- **Total Attempts**: ${summary.totalAttempts}
+- **Levels Exhausted**: ${summary.levelsExhausted.join(', ') || 'None'}
+
+### Attempt Timeline
+${summary.history.map((h, i) => `${i + 1}. Level ${h.level}: ${h.success ? 'SUCCESS' : 'FAILED'} at ${h.timestamp.toISOString()}`).join('\n')}
+
+## Stack Trace
+\`\`\`
+${error.stack || 'No stack trace available'}
+\`\`\`
+
+## Context
+\`\`\`json
+${JSON.stringify(error.context, null, 2)}
+\`\`\`
+
+## Recommended Actions
+1. Review the error message and stack trace
+2. Check for environmental issues (missing dependencies, configuration)
+3. Review recent code changes that might have caused this issue
+4. Consider reverting to a previous checkpoint if available
+5. Manually fix the issue and resume the build
+`;
+    }
+
+    /**
+     * Emit human escalation event with full context
+     */
+    emitHumanEscalation(error: BuildError): void {
+        const report = this.generateHumanEscalationReport(error);
+        this.emit('human_escalation_required', {
+            error,
+            report,
+            summary: this.getEscalationSummary(),
+        });
+    }
 }
 
 /**

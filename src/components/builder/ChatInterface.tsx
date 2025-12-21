@@ -32,6 +32,9 @@ import { orchestrator } from '../../lib/AgentOrchestrator';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
+import AgentActivityStream from './AgentActivityStream';
+import type { AgentActivityEvent } from '../../types/agent-activity';
+import { parseStreamChunkToEvent } from '../../types/agent-activity';
 import { costEstimator } from '../../lib/CostEstimator';
 import { useCostStore } from '../../store/useCostStore';
 import CostEstimatorModal from '../cost/CostEstimatorModal';
@@ -284,6 +287,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [streamController, setStreamController] = useState<AbortController | null>(null);
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
 
+    // Agent Activity Stream state
+    const [activityEvents, setActivityEvents] = useState<AgentActivityEvent[]>([]);
+    const activityWsRef = useRef<WebSocket | null>(null);
+
     // Auto-scroll to bottom
     useEffect(() => {
         if (scrollRef.current) {
@@ -475,17 +482,28 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 if (data.websocketChannel) {
                     const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${data.websocketChannel}`;
                     const ws = new WebSocket(wsUrl);
+                    activityWsRef.current = ws;
+
+                    // Clear previous activity events on new session
+                    setActivityEvents([]);
 
                     ws.onmessage = (event) => {
                         try {
                             const wsData = JSON.parse(event.data);
                             console.log('[ChatInterface] WS message:', wsData.type);
 
+                            // Parse activity events from WebSocket messages
+                            const activityEvent = parseStreamChunkToEvent(wsData, 'orchestrator');
+                            if (activityEvent) {
+                                setActivityEvents(prev => [...prev.slice(-99), activityEvent]);
+                            }
+
                             // Handle different event types
                             if (wsData.type === 'builder-completed') {
                                 setGlobalStatus('completed');
                                 setIsTyping(false);
                                 ws.close();
+                                activityWsRef.current = null;
                             } else if (wsData.type === 'builder-error' || wsData.type === 'execution-error') {
                                 setGlobalStatus('failed');
                                 setIsTyping(false);
@@ -497,6 +515,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     agentType: 'orchestrator',
                                 }]);
                                 ws.close();
+                                activityWsRef.current = null;
                             } else if (wsData.type?.startsWith('builder-')) {
                                 // Forward phase updates to agent store for AgentProgress
                                 // The AgentTerminal and AgentProgress components will pick these up
@@ -514,6 +533,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
                     ws.onclose = () => {
                         console.log('[ChatInterface] WebSocket closed');
+                        activityWsRef.current = null;
                     };
                 }
             } catch (error) {
@@ -812,6 +832,14 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     </ScrollArea>
                 ) : (
                     <div className="h-full flex flex-col">
+                        {/* Agent Activity Stream - Real-time orchestration events */}
+                        <div className="px-4 pt-4 shrink-0">
+                            <AgentActivityStream
+                                events={activityEvents}
+                                isActive={globalStatus === 'running'}
+                                maxEvents={100}
+                            />
+                        </div>
                         <div
                             className="p-4 shrink-0"
                             style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}

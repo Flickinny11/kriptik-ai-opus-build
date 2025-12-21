@@ -80,6 +80,12 @@ import {
     type Fix,
 } from './error-escalation.js';
 import {
+    LoopBlocker,
+    createLoopBlocker,
+    type BuildContext as LoopBlockerBuildContext,
+    type ErrorSignature,
+} from './loop-blocker.js';
+import {
     VerificationSwarm,
     createVerificationSwarm,
     type CombinedVerificationResult,
@@ -305,10 +311,31 @@ export interface BuildLoopEvent {
         | 'tasks_decomposed' | 'scaffolding_complete' | 'artifacts_created' | 'git_initialized'
         // Cursor 2.1+ events
         | 'cursor21_pattern_fix' | 'cursor21_checkpoint_waiting' | 'cursor21_checkpoint_responded'
-        | 'cursor21_judgment_complete' | 'cursor21_feedback' | 'cursor21_visual_check';
+        | 'cursor21_judgment_complete' | 'cursor21_feedback' | 'cursor21_visual_check'
+        // Agent Activity Stream events (for real-time UI)
+        | 'thinking' | 'file_read' | 'file_write' | 'file_edit' | 'tool_call' | 'status' | 'verification';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
+}
+
+/**
+ * Agent Activity Event - Standardized format for real-time activity stream UI
+ */
+export interface AgentActivityEventData {
+    agentId?: string;
+    agentName?: string;
+    content: string;
+    metadata?: {
+        filePath?: string;
+        toolName?: string;
+        phase?: 'thinking' | 'planning' | 'coding' | 'testing' | 'verifying' | 'integrating' | 'deploying';
+        lineNumbers?: { start: number; end: number };
+        tokenCount?: number;
+        duration?: number;
+        parameters?: Record<string, unknown>;
+        result?: 'success' | 'failure' | 'pending';
+    };
 }
 
 // =============================================================================
@@ -433,6 +460,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private sandboxService: SandboxService | null = null;
     private timeMachine: TimeMachine;
     private checkpointScheduler: CheckpointScheduler;
+    private loopBlocker: LoopBlocker;
 
     // WebSocket sync for real-time updates
     private wsSync: WebSocketSyncService;
@@ -587,6 +615,27 @@ export class BuildLoopOrchestrator extends EventEmitter {
             this.timeMachine,
             BUILD_MODE_CONFIGS[mode].checkpointIntervalMinutes
         );
+
+        // Initialize loop blocker for repetitive error detection
+        this.loopBlocker = createLoopBlocker({
+            repetitionThreshold: 3,
+            maxComprehensiveAttempts: 5,
+            patternWindowMs: 300000, // 5 minutes
+            analysisCooldownMs: 30000, // 30 seconds
+        });
+
+        // Set up loop blocker event listeners
+        this.loopBlocker.on('comprehensive_mode_triggered', (data) => {
+            console.log(`[BuildLoop] Loop detected, entering comprehensive analysis mode (attempt ${data.analysisCount}/${data.maxAttempts})`);
+            this.emitEvent('loop_detected', {
+                triggerError: data.triggerError,
+                analysisCount: data.analysisCount,
+            });
+        });
+
+        this.loopBlocker.on('new_error_signature', (data) => {
+            console.log(`[BuildLoop] New error signature recorded: ${data.signature.errorMessage.substring(0, 50)}...`);
+        });
 
         // Initialize WebSocket sync for real-time updates
         this.wsSync = getWebSocketSyncService();
@@ -2180,9 +2229,69 @@ Would the user be satisfied with this result?`;
     /**
      * Handle errors with 4-level Error Escalation System
      * NEVER GIVES UP - escalates through all 4 levels until resolved
+     * Integrates with LoopBlocker to detect repetitive patterns
      */
     private async handleError(error: Error): Promise<void> {
         console.log(`[BuildLoop] Handling error with 4-level escalation: ${error.message}`);
+
+        // Record error in loop blocker for pattern detection
+        const loopContext: LoopBlockerBuildContext = {
+            buildId: this.state.id,
+            projectId: this.state.projectId,
+            userId: this.state.userId,
+            phase: this.state.currentPhase,
+            stage: this.state.currentStage,
+            filesInvolved: Array.from(this.projectFiles.keys()),
+        };
+        this.loopBlocker.setContext(loopContext);
+        this.loopBlocker.recordError(error, loopContext);
+
+        // Check if we're stuck in a loop - trigger comprehensive analysis
+        if (this.loopBlocker.isStuckInLoop()) {
+            console.log(`[BuildLoop] Detected repetitive error loop, triggering comprehensive analysis`);
+
+            // Check if human escalation is needed
+            if (this.loopBlocker.needsHumanEscalation()) {
+                console.log(`[BuildLoop] Max comprehensive attempts reached, escalating to human`);
+                this.emitEvent('human_escalation_required', {
+                    reason: 'Max comprehensive analysis attempts exhausted',
+                    errorSummary: this.loopBlocker.getStateSummary(),
+                    analysisPrompt: this.loopBlocker.getComprehensiveAnalysisPrompt(),
+                });
+
+                this.state.status = 'failed';
+                this.state.lastError = `Build loop detected - human intervention required after ${this.loopBlocker.getStateSummary().analysisCount} comprehensive analysis attempts`;
+                return;
+            }
+
+            // Perform comprehensive analysis
+            const comprehensiveResult = await this.performLoopComprehensiveAnalysis();
+            if (comprehensiveResult.success) {
+                console.log(`[BuildLoop] Comprehensive analysis succeeded, applying fixes`);
+                this.loopBlocker.completeComprehensiveAnalysis(true);
+
+                // Apply the fixes
+                for (const change of comprehensiveResult.changes) {
+                    if (change.action === 'create' || change.action === 'update') {
+                        this.projectFiles.set(change.path, change.content || '');
+                    } else if (change.action === 'delete') {
+                        this.projectFiles.delete(change.path);
+                    }
+                }
+
+                this.emitEvent('comprehensive_fix_applied', {
+                    analysis: comprehensiveResult.analysis,
+                    changesCount: comprehensiveResult.changes.length,
+                });
+
+                // Reset error state and continue
+                this.state.lastError = null;
+                return;
+            } else {
+                console.log(`[BuildLoop] Comprehensive analysis failed, continuing with standard escalation`);
+                this.loopBlocker.completeComprehensiveAnalysis(false);
+            }
+        }
 
         // Set Intent Contract for Level 4 rebuilds
         if (this.state.intentContract) {
@@ -2317,6 +2426,100 @@ Would the user be satisfied with this result?`;
         }
     }
 
+    /**
+     * Perform comprehensive analysis when stuck in an error loop
+     * Uses the LoopBlocker's comprehensive analysis prompt
+     */
+    private async performLoopComprehensiveAnalysis(): Promise<{
+        success: boolean;
+        analysis: string;
+        changes: Array<{ path: string; action: string; content?: string }>;
+    }> {
+        const prompt = this.loopBlocker.getComprehensiveAnalysisPrompt();
+
+        try {
+            this.emitStatus('Performing comprehensive analysis to break error loop', 'verifying');
+
+            const response = await this.claudeService.generate(prompt, {
+                model: CLAUDE_MODELS.OPUS_4_5,
+                maxTokens: 32000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 64000,
+            });
+
+            // Parse the JSON response
+            const jsonMatch = response.content.match(/```json\n([\s\S]*?)\n```/);
+            if (!jsonMatch) {
+                console.log('[BuildLoop] Failed to parse comprehensive analysis response');
+                return {
+                    success: false,
+                    analysis: 'Failed to parse analysis response',
+                    changes: [],
+                };
+            }
+
+            const analysisResult = JSON.parse(jsonMatch[1]);
+
+            // Extract changes from the fix plan
+            const changes: Array<{ path: string; action: string; content?: string }> = [];
+            if (analysisResult.fixPlan?.changes) {
+                for (const change of analysisResult.fixPlan.changes) {
+                    changes.push({
+                        path: change.path,
+                        action: change.action,
+                        content: change.newContent,
+                    });
+                }
+            }
+
+            if (changes.length === 0) {
+                return {
+                    success: false,
+                    analysis: analysisResult.rootCause || 'No fixes identified',
+                    changes: [],
+                };
+            }
+
+            console.log(`[BuildLoop] Comprehensive analysis identified ${changes.length} file changes`);
+            console.log(`[BuildLoop] Root cause: ${analysisResult.rootCause}`);
+
+            // Log issues found
+            if (analysisResult.issues && Array.isArray(analysisResult.issues)) {
+                for (const issue of analysisResult.issues) {
+                    console.log(`[BuildLoop] Issue: ${issue.type} - ${issue.description}`);
+                }
+            }
+
+            return {
+                success: true,
+                analysis: analysisResult.rootCause || 'Comprehensive analysis complete',
+                changes,
+            };
+
+        } catch (error) {
+            console.error('[BuildLoop] Comprehensive analysis failed:', error);
+            return {
+                success: false,
+                analysis: `Analysis error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                changes: [],
+            };
+        }
+    }
+
+    /**
+     * Get the loop blocker instance for external access
+     */
+    getLoopBlocker(): LoopBlocker {
+        return this.loopBlocker;
+    }
+
+    /**
+     * Reset the loop blocker state (for new build sessions)
+     */
+    resetLoopBlocker(): void {
+        this.loopBlocker.reset();
+    }
+
     private startPhase(phase: BuildLoopPhase): void {
         this.state.currentPhase = phase;
         this.state.currentPhaseStartedAt = new Date();
@@ -2391,6 +2594,127 @@ Would the user be satisfied with this result?`;
         };
         this.emit(type, event);
         this.emit('event', event);
+    }
+
+    /**
+     * Emit standardized activity event for real-time UI streaming
+     * Used by AgentActivityStream and FeatureAgentActivityStream components
+     */
+    private emitActivityEvent(
+        type: 'thinking' | 'file_read' | 'file_write' | 'file_edit' | 'tool_call' | 'status' | 'verification',
+        activityData: AgentActivityEventData
+    ): void {
+        const event: BuildLoopEvent = {
+            type,
+            timestamp: new Date(),
+            buildId: this.state.id,
+            data: {
+                id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                type,
+                agentId: activityData.agentId || this.state.id,
+                agentName: activityData.agentName,
+                content: activityData.content,
+                metadata: activityData.metadata,
+                timestamp: Date.now(),
+            },
+        };
+        this.emit(type, event);
+        this.emit('event', event);
+        this.emit('activity', event); // Additional channel for activity-specific listeners
+    }
+
+    /**
+     * Helper to emit thinking/reasoning tokens
+     */
+    protected emitThinking(content: string, tokenCount?: number): void {
+        this.emitActivityEvent('thinking', {
+            content,
+            agentName: 'Orchestrator',
+            metadata: {
+                phase: this.mapPhaseToActivityPhase(this.state.currentPhase),
+                tokenCount,
+            },
+        });
+    }
+
+    /**
+     * Helper to emit file operation events
+     */
+    protected emitFileOperation(
+        type: 'file_read' | 'file_write' | 'file_edit',
+        filePath: string,
+        content: string,
+        lineNumbers?: { start: number; end: number }
+    ): void {
+        this.emitActivityEvent(type, {
+            content,
+            agentName: 'Coding Agent',
+            metadata: {
+                filePath,
+                lineNumbers,
+                phase: 'coding',
+            },
+        });
+    }
+
+    /**
+     * Helper to emit tool call events
+     */
+    protected emitToolCall(toolName: string, content: string, parameters?: Record<string, unknown>): void {
+        this.emitActivityEvent('tool_call', {
+            content,
+            agentName: 'Orchestrator',
+            metadata: {
+                toolName,
+                parameters,
+                phase: this.mapPhaseToActivityPhase(this.state.currentPhase),
+            },
+        });
+    }
+
+    /**
+     * Helper to emit status updates
+     */
+    protected emitStatus(content: string, phase?: 'thinking' | 'planning' | 'coding' | 'testing' | 'verifying' | 'integrating' | 'deploying'): void {
+        this.emitActivityEvent('status', {
+            content,
+            agentName: 'Build Loop',
+            metadata: {
+                phase: phase || this.mapPhaseToActivityPhase(this.state.currentPhase),
+            },
+        });
+    }
+
+    /**
+     * Helper to emit verification results
+     */
+    protected emitVerificationResult(content: string, result: 'success' | 'failure' | 'pending'): void {
+        this.emitActivityEvent('verification', {
+            content,
+            agentName: 'Verification Swarm',
+            metadata: {
+                phase: 'verifying',
+                result,
+            },
+        });
+    }
+
+    /**
+     * Map build phase to activity phase
+     */
+    private mapPhaseToActivityPhase(phase: BuildLoopPhase): 'thinking' | 'planning' | 'coding' | 'testing' | 'verifying' | 'integrating' | 'deploying' {
+        switch (phase) {
+            case 'intent_lock': return 'thinking';
+            case 'initialization': return 'planning';
+            case 'parallel_build': return 'coding';
+            case 'integration_check': return 'integrating';
+            case 'functional_test': return 'testing';
+            case 'intent_satisfaction': return 'verifying';
+            case 'browser_demo': return 'deploying';
+            case 'complete': return 'deploying';
+            case 'failed': return 'verifying';
+            default: return 'coding';
+        }
     }
 
     // =========================================================================

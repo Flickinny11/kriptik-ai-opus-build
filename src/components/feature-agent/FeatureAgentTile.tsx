@@ -13,6 +13,9 @@ import { ImplementationPlanView, type PhaseModification } from './Implementation
 import { CredentialsCollectionView } from './CredentialsCollectionView';
 import { GhostModeConfig } from './GhostModeConfig';
 import { FeaturePreviewWindow } from './FeaturePreviewWindow';
+import { FeatureAgentActivityStream } from './FeatureAgentActivityStream';
+import type { AgentActivityEvent } from '@/types/agent-activity';
+import { parseStreamChunkToEvent } from '@/types/agent-activity';
 import './feature-agent-tile.css';
 
 interface FeatureAgentTileProps {
@@ -116,6 +119,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
 
   const [showGhostModeConfig, setShowGhostModeConfig] = useState(false);
   const [showPreviewWindow, setShowPreviewWindow] = useState(false);
+  const [activityEvents, setActivityEvents] = useState<AgentActivityEvent[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -206,6 +210,12 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           timestamp: data.timestamp || Date.now(),
           metadata: data.metadata,
         });
+
+        // Parse activity events for the activity stream
+        const activityEvent = parseStreamChunkToEvent(data, agentId);
+        if (activityEvent) {
+          setActivityEvents(prev => [...prev.slice(-49), activityEvent]);
+        }
       } catch {
         // Ignore malformed SSE messages
       }
@@ -359,6 +369,16 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
 
       <div className="fa-tile__body">
         <div className="fa-tile__scroll" ref={scrollRef}>
+          {/* Agent Activity Stream - shows when implementing */}
+          {(tile.status === 'implementing' || tile.status === 'verifying') && (
+            <FeatureAgentActivityStream
+              agentId={agentId}
+              events={activityEvents}
+              isActive={isActive}
+              compact
+            />
+          )}
+
           {tile.status === 'awaiting_plan_approval' && tile.implementationPlan && (
             <ImplementationPlanView
               plan={tile.implementationPlan}
