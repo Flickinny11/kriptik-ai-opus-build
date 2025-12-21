@@ -333,22 +333,25 @@ ${basePrompt}`;
         const errors: BuildError[] = [];
 
         // Convert blockers first (highest priority)
+        // Blockers are strings describing the blocking issue
         for (const blocker of combined.blockers) {
             errors.push({
                 id: uuidv4(),
                 featureId: agentId,
-                category: this.mapVerificationToErrorCategory(blocker.type || 'integration_issues'),
-                message: blocker.message,
-                file: blocker.file,
-                line: blocker.line,
-                context: { agent: blocker.agent, severity: blocker.severity },
+                category: 'integration_issues',
+                message: blocker,
+                file: undefined,
+                line: undefined,
+                context: { severity: 'critical' },
                 timestamp: new Date(),
             });
         }
 
         // Convert agent results with issues
-        for (const result of combined.results) {
-            if (result.passed) continue;
+        // combined.results is an object with named properties, not an array
+        const resultEntries = Object.entries(combined.results) as Array<[string, { passed: boolean; score?: number; issues?: Array<{ message: string; file?: string; line?: number; severity?: string }> } | null]>;
+        for (const [agentName, result] of resultEntries) {
+            if (!result || result.passed) continue;
 
             for (const issue of result.issues || []) {
                 // Skip duplicates (already in blockers)
@@ -357,11 +360,11 @@ ${basePrompt}`;
                 errors.push({
                     id: uuidv4(),
                     featureId: agentId,
-                    category: this.mapAgentToErrorCategory(result.agent),
+                    category: this.mapAgentToErrorCategory(agentName),
                     message: issue.message,
                     file: issue.file,
                     line: issue.line,
-                    context: { agent: result.agent, severity: issue.severity },
+                    context: { agent: agentName, severity: issue.severity },
                     timestamp: new Date(),
                 });
             }

@@ -4,26 +4,65 @@
 
 ---
 
-## Current State (as of 2025-12-20)
+## Current State (as of 2025-12-21)
 
 ### Progress Summary
-- **Total Features**: 66 + 7 New Cursor 2.1+ Features
-- **Completed**: 51 (77%)
-- **Pending**: 15
-- **Current Phase**: Phase 15+ (Advanced Features)
+- **Total Features**: 91 (complete inventory documented)
+- **Infrastructure Complete**: 95%
+- **Critical Wiring Missing**: 5%
+- **Current Phase**: Final integration
 
 ### Build Status
-- **Last Known Build**: PASSING (verified 2025-12-19)
-- **TypeScript Errors**: None
-- **Current Branch**: silly-rosalind (worktree)
+- **TypeScript**: Pre-existing schema-code mismatches in some files
+- **Current Branch**: claude/analyze-kriptik-gaps-TY4it
 
-### Development Environment Enhancement
-- **Browser Integration Configured**: Chrome DevTools MCP enabled
-- **Browser Feedback Loop**: Available via `~/bin/chrome-dev` script
+### 🚨 Critical Gaps Identified (see `.claude/rules/08-critical-gaps-remaining.md`)
+
+**P0 BLOCKERS**:
+1. **Generated code never written to disk** - `fs.writeFile()` missing in worker-agent.ts
+2. **Builder View not wired to backend** - 'orchestrator' selection calls client-side, not `/api/execute`
+
+**P1 HIGH**:
+3. 8+ separate orchestrators instead of one unified BuildLoopOrchestrator
+4. Feature Agents use DevelopmentOrchestrator, not BuildLoopOrchestrator
+5. Fix My App uses separate FixOrchestrator
+
+**P2 MEDIUM**:
+6. Orphaned features (Image-to-Code, Voice Architect, API Autopilot, etc.) not integrated
+7. Credential collection not called during build
+8. Experience capture never instantiated
 
 ---
 
 ## Recent Completions
+
+### 2025-12-20: Build Fixes for Merged PR #28
+
+**Post-Merge Build Fixes:**
+
+Fixed multiple TypeScript errors discovered after PR #28 merge:
+
+**Files Changed:**
+- `server/src/routes/execute.ts` - Fixed loadUnifiedContext call (4 args, not 2), fixed ErrorPrediction property access (type→errorType, prevention.instruction→preventionStrategy.guidance)
+- `server/src/routes/feature-agent.ts` - Same fixes as execute.ts
+- `server/src/routes/generate.ts` - Same fixes as execute.ts
+- `server/src/routes/orchestrate.ts` - Fixed Map.size vs Array.length for activeStrategies
+- `server/src/routes/verification.ts` - Fixed injectFeedback call (4+ args, not 2)
+- `server/src/services/automation/build-loop.ts` - Added pause() and resume() methods, added 'paused' to BuildLoopEvent type
+- `server/src/services/feature-agent/feature-agent-service.ts` - Fixed CombinedVerificationResult handling (blockers are strings, results is object not array)
+- `server/src/services/ai/predictive-error-prevention.ts` - Fixed db import path, renamed learnedPatterns→learningPatterns, fixed date comparison with ISO string
+- `server/src/services/ai/unified-context.ts` - Added null coalescing for wasRebuiltFromIntent
+- `server/src/services/integration/advanced-orchestration.ts` - Renamed learnedPatterns→learningPatterns, learnedStrategies→learningStrategies
+
+**Pre-existing Issues Discovered (Not Fixed This Session):**
+These schema-code mismatches exist in the codebase and need separate attention:
+- predictive-error-prevention.ts: Uses learningPatterns.projectId and failureCount columns that don't exist
+- advanced-orchestration.ts: Uses learningPatterns.patternName, context, status columns that don't exist
+- advanced-orchestration.ts: Duplicate function implementations (lines 435 and 503)
+- gemini-video-analyzer.ts: Missing @google/generative-ai package
+- swarm.ts: Uses Feature.name property that doesn't exist on type
+
+**Status:** PR #28 merged. Build fixes committed. Pre-existing issues documented.
 
 ### 2025-12-20: Knowledge Currency Enhancement - Full Date Precision
 

@@ -53,13 +53,14 @@ router.post('/create', requireAuth, async (req: Request, res: Response) => {
     // Load unified context for rich code generation
     let enrichedTaskPrompt = taskPrompt;
     try {
-      const unifiedContext = await loadUnifiedContext(projectId, {
+      const contextProjectPath = `/tmp/builds/${projectId}`;
+      const unifiedContext = await loadUnifiedContext(projectId, userId, contextProjectPath, {
         includeIntentLock: true,
         includeVerificationResults: true,
-        includeLearningPatterns: true,
-        includeErrorEscalation: true,
-        includeAppSoul: true,
-        includeAntiSlop: true,
+        includeLearningData: true,
+        includeErrorHistory: true,
+        includeProjectAnalysis: true,
+        includeUserPreferences: true,
       });
 
       // Get predictive error prevention analysis
@@ -75,7 +76,7 @@ router.post('/create', requireAuth, async (req: Request, res: Response) => {
       const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
       const preventionGuidance = errorPrediction.predictions.length > 0
         ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
-            `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+            `- [${p.type.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.prevention.instruction}`
           ).join('\n')}`
         : '';
 

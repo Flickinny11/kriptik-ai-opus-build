@@ -287,7 +287,7 @@ export interface BuildLoopState {
 export interface BuildLoopEvent {
     type: 'phase_start' | 'phase_complete' | 'feature_complete' | 'verification_result'
         | 'error' | 'fix_applied' | 'checkpoint_created' | 'checkpoint_restored'
-        | 'stage_complete' | 'build_complete' | 'resumed' | 'intent_created'
+        | 'stage_complete' | 'build_complete' | 'paused' | 'resumed' | 'intent_created'
         | 'tasks_decomposed' | 'scaffolding_complete' | 'artifacts_created' | 'git_initialized'
         // Cursor 2.1+ events
         | 'cursor21_pattern_fix' | 'cursor21_checkpoint_waiting' | 'cursor21_checkpoint_responded'
@@ -2600,6 +2600,32 @@ Would the user be satisfied with this result?`;
         // Finalize learning on abort
         if (this.learningEnabled) {
             await this.finalizeLearningSession(false);
+        }
+    }
+
+    /**
+     * Pause the build loop execution
+     * Used by Soft Interrupt system to halt execution when needed
+     */
+    pause(): void {
+        if (this.state.status === 'running') {
+            this.state.status = 'awaiting_approval';
+            this.emitEvent('paused', {
+                phase: this.state.currentPhase,
+                reason: 'user_interrupt',
+            });
+        }
+    }
+
+    /**
+     * Resume the build loop from paused state
+     */
+    resume(): void {
+        if (this.state.status === 'awaiting_approval') {
+            this.state.status = 'running';
+            this.emitEvent('resumed', {
+                phase: this.state.currentPhase,
+            });
         }
     }
 

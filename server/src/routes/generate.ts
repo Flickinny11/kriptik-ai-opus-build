@@ -147,13 +147,14 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
 
         try {
             // Load project context (intent lock, learned patterns, error history, etc.)
-            unifiedContext = await loadUnifiedContext(projectId, {
+            const contextProjectPath = `/tmp/builds/${projectId}`;
+            unifiedContext = await loadUnifiedContext(projectId, userId, contextProjectPath, {
                 includeIntentLock: true,
                 includeVerificationResults: true,
-                includeLearningPatterns: true,
-                includeErrorEscalation: true,
-                includeAppSoul: true,
-                includeAntiSlop: true,
+                includeLearningData: true,
+                includeErrorHistory: true,
+                includeProjectAnalysis: true,
+                includeUserPreferences: true,
             });
 
             // Get predictive error prevention analysis
@@ -169,7 +170,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
             const contextBlock = formatUnifiedContextForCodeGen(unifiedContext);
             const preventionGuidance = errorPrediction.predictions.length > 0
                 ? `\n\n## PREDICTED ISSUES TO PREVENT:\n${errorPrediction.predictions.map(p =>
-                    `- [${p.errorType.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.preventionStrategy.guidance}`
+                    `- [${p.type.toUpperCase()}] ${p.description} (${Math.round(p.confidence * 100)}% likely)\n  Prevention: ${p.prevention.instruction}`
                   ).join('\n')}`
                 : '';
 

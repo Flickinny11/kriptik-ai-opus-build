@@ -29,7 +29,7 @@ import {
     type VideoAnalysisResult,
 } from '../verification/gemini-video-analyzer.js';
 import { db } from '../../db.js';
-import { learnedPatterns, learnedStrategies } from '../../schema.js';
+import { learningPatterns, learningStrategies } from '../../schema.js';
 import { desc, eq, and, gte } from 'drizzle-orm';
 
 // =============================================================================
@@ -516,19 +516,19 @@ export class AdvancedOrchestrationService extends EventEmitter {
             // Load top performing patterns
             const patterns = await db
                 .select({
-                    id: learnedPatterns.id,
-                    name: learnedPatterns.patternName,
-                    context: learnedPatterns.context,
-                    successRate: learnedPatterns.successRate,
+                    id: learningPatterns.id,
+                    name: learningPatterns.patternName,
+                    context: learningPatterns.context,
+                    successRate: learningPatterns.successRate,
                 })
-                .from(learnedPatterns)
+                .from(learningPatterns)
                 .where(
                     and(
-                        gte(learnedPatterns.successRate, 0.7), // Only patterns with 70%+ success
-                        eq(learnedPatterns.status, 'active')
+                        gte(learningPatterns.successRate, 0.7), // Only patterns with 70%+ success
+                        eq(learningPatterns.status, 'active')
                     )
                 )
-                .orderBy(desc(learnedPatterns.successRate))
+                .orderBy(desc(learningPatterns.successRate))
                 .limit(20);
 
             this.shadowPatterns.patterns = patterns.map(p => ({
@@ -541,13 +541,13 @@ export class AdvancedOrchestrationService extends EventEmitter {
             // Load active strategies
             const strategies = await db
                 .select({
-                    id: learnedStrategies.id,
-                    domain: learnedStrategies.domain,
-                    parameters: learnedStrategies.parameters,
+                    id: learningStrategies.id,
+                    domain: learningStrategies.domain,
+                    parameters: learningStrategies.parameters,
                 })
-                .from(learnedStrategies)
-                .where(eq(learnedStrategies.status, 'active'))
-                .orderBy(desc(learnedStrategies.successRate))
+                .from(learningStrategies)
+                .where(eq(learningStrategies.status, 'active'))
+                .orderBy(desc(learningStrategies.successRate))
                 .limit(10);
 
             this.shadowPatterns.strategies = strategies.map(s => ({
