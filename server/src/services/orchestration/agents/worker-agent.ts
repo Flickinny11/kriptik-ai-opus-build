@@ -15,6 +15,8 @@
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import {
     Task,
     Artifact,
@@ -170,6 +172,27 @@ export class WorkerAgent extends EventEmitter {
             // Record file changes in memory harness
             for (const artifact of artifacts) {
                 codingAgent.recordFileChange(artifact.path, 'create');
+            }
+
+            // CRITICAL: Write artifacts to disk
+            // This was the missing piece - artifacts existed in memory but were never written
+            for (const artifact of artifacts) {
+                try {
+                    const fullPath = path.join(this.projectPath, artifact.path);
+                    const dir = path.dirname(fullPath);
+
+                    // Create directory if it doesn't exist
+                    await fs.mkdir(dir, { recursive: true });
+
+                    // Write the file content
+                    await fs.writeFile(fullPath, artifact.content, 'utf-8');
+
+                    this.log(`Wrote file: ${artifact.path}`);
+                } catch (writeError) {
+                    this.log(`Failed to write ${artifact.path}: ${(writeError as Error).message}`);
+                    // Don't fail the whole task - log and continue
+                    // The file might already exist or have permission issues
+                }
             }
 
             // Test in sandbox if available

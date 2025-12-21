@@ -1142,6 +1142,24 @@ Include ALL necessary imports and exports.`;
                     }
                 }
 
+                // CRITICAL: Write files to disk
+                // This ensures AI-generated code actually exists on filesystem
+                const fsModule = await import('fs/promises');
+                const pathModule = await import('path');
+                for (const file of files) {
+                    if (file.content) {
+                        try {
+                            const fullPath = pathModule.join(this.projectPath, file.path);
+                            const dir = pathModule.dirname(fullPath);
+                            await fsModule.mkdir(dir, { recursive: true });
+                            await fsModule.writeFile(fullPath, file.content, 'utf-8');
+                            console.log(`[BuildLoop] Wrote file: ${file.path}`);
+                        } catch (writeError) {
+                            console.error(`[BuildLoop] Failed to write ${file.path}:`, writeError);
+                        }
+                    }
+                }
+
                 // Complete task (updates artifacts, commits to git)
                 const taskResult: TaskResult = await codingAgent.completeTask({
                     summary: `Built: ${task.description}`,
