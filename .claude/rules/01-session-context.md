@@ -4,18 +4,19 @@
 
 ---
 
-## Current State (as of 2025-12-21 Session 3)
+## Current State (as of 2025-12-21 Session 4)
 
 ### Progress Summary
 - **Total Features**: 91 (complete inventory documented)
 - **Infrastructure Complete**: 99%
 - **Critical Wiring**: P0-P2 ALL FIXED
-- **Current Phase**: Complete
+- **Implementation Plan**: Created for remaining features
+- **Current Phase**: Ready for Cursor 2.2 Implementation
 
 ### Build Status
 - **TypeScript**: ✅ PASSING (npm run build succeeds)
 - **Current Branch**: claude/analyze-kriptik-gaps-TY4it
-- **Commits This Session**: 4 (1d81e26, f040d16, 2b2fd9f, 3781abd)
+- **Commits This Session**: 5 (1d81e26, f040d16, 2b2fd9f, 3781abd, 0f264cf)
 
 ### ✅ ALL P0-P2 BLOCKERS FIXED
 
@@ -57,6 +58,38 @@
 ---
 
 ## Recent Completions
+
+### 2025-12-21 Session 4: Implementation Plan for Claude Code Extension
+
+**Created comprehensive implementation plan for remaining features:**
+
+**Document**: `.claude/implementation-plan-dec21.md`
+
+**Purpose**: Prompts for Claude Code Extension in Cursor 2.2 to implement remaining features.
+
+**Analysis Results - Features Already Implemented (No Action Needed):**
+| Feature | Status |
+|---------|--------|
+| Show Me / Merge buttons | COMPLETE |
+| Ghost Mode tabs | COMPLETE |
+| Production Features UI | COMPLETE |
+| Env Variables UI | COMPLETE |
+| Implementation Plan approval | COMPLETE |
+| Sandbox-to-main merge | COMPLETE |
+| Research Agent | COMPLETE |
+| Multi-orchestration Context | COMPLETE |
+| Speed Dial (4 modes) | COMPLETE |
+
+**7 Prompts Created for Remaining Features:**
+1. **P1: Agent Activity Stream** (HIGH effort) - Streaming consciousness visualization
+2. **P2: Enhanced Loop Blocker** (MEDIUM effort) - Pattern detection for stuck loops
+3. **P3: Token/Context Overflow** (MEDIUM effort) - Dynamic agent spawning
+4. **P4: Gemini 3 Video @ 2fps** (MEDIUM effort) - Upgrade from Gemini 2.0 Flash
+5. **P5: Voice Narration** (HIGH effort) - TTS during agent demo
+6. **P6: Extension Credential Capture** (MEDIUM effort) - Complete vision extraction
+7. **P7: Live Preview AI Overlay** (LOW effort) - Cursor/interaction visualization
+
+**Commits**: 0f264cf - docs: Add comprehensive implementation plan for remaining features
 
 ### 2025-12-20: Build Fixes for Merged PR #28
 
@@ -475,12 +508,19 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 *Set at the start of each session*
 
-### Current Session (2025-12-21 Session 2)
+### Current Session (2025-12-21 Session 4)
+- [x] Analyze codebase against user's comprehensive vision document
+- [x] Identify what exists vs what needs implementation
+- [x] Create detailed implementation plan with 7 prompts for Claude Code Extension
+- [x] Commit and push implementation plan to GitHub (0f264cf)
+- [x] Update session context with completion status
+
+### Previous Session (2025-12-21 Session 2/3)
 - [x] Implement P0 fix: fs.writeFile for generated code
 - [x] Implement P0 fix: Wire Builder View to backend /api/execute
 - [x] Verify FeatureAgentService uses BuildLoopOrchestrator (it does!)
-- [ ] Add mode: 'fix' to BuildLoopOrchestrator for Fix My App
-- [ ] Wire orphaned features (P2)
+- [x] Add mode: 'fix' to BuildLoopOrchestrator for Fix My App
+- [x] Wire orphaned features (P2)
 
 ### Previous Session (2025-12-21 Session 1)
 - [x] Analyze KripTik gaps from NLP input to completion
@@ -502,36 +542,36 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ## What Should Happen Next
 
-### ✅ COMPLETED: Priority 1 - Builder View Wiring
+### ✅ ALL P0-P2 COMPLETE
 
-**Status**: DONE (commit f040d16)
+All critical wiring and integration issues have been resolved:
+- P0: Code written to disk ✅
+- P0: Builder View wired to backend ✅
+- P1: Fix My App uses BuildLoopOrchestrator ✅
+- P2: Orphaned features integrated ✅
+- P2: Credentials loaded in build flow ✅
+- P2: Experience capture verified ✅
 
-Builder View now calls `/api/execute` with `mode: 'builder'` when user selects "Multi-Agent" mode. The ChatInterface.tsx:
-- Calls POST /api/execute with proper payload
-- Connects to WebSocket for real-time updates
-- Falls back to client-side orchestrator if backend fails
+### USE IMPLEMENTATION PLAN FOR REMAINING FEATURES
 
-### ✅ COMPLETED: Priority 2 - Feature Agent Verification
+**Document**: `.claude/implementation-plan-dec21.md`
 
-**Status**: VERIFIED - Already uses BuildLoopOrchestrator
+Execute prompts in Cursor 2.2 with Claude Code Extension in this order:
 
-FeatureAgentService.startImplementation() (lines 937-995) uses:
-- `EnhancedBuildLoopOrchestrator` for Cursor 2.1+ features
-- `BuildLoopOrchestrator` for the full 6-phase build loop
+1. **P1: Agent Activity Stream** - Most user-visible, high impact
+2. **P2: Enhanced Loop Blocker** - Critical for autonomous operation
+3. **P3: Token/Context Overflow** - Enables longer builds
+4. **P4: Gemini 3 @ 2fps** - Required for P5 and P6
+5. **P5: Voice Narration** - After Gemini 3 is working
+6. **P6: Extension Credential Capture** - After Gemini 3 is working
+7. **P7: Live Preview AI Overlay** - Polish/enhancement
 
-### REMAINING: Priority 3 - Fix My App Integration
-
-Add `mode: 'fix'` to BuildLoopOrchestrator that:
-1. Imports project (from ZIP, GitHub, other AI builder)
-2. Analyzes chat history to determine original intent
-3. Creates Intent Lock from inferred intent
-4. Runs 6-phase build to complete/fix the app
-
-### REMAINING: Priority 4 - P2 Integration
-
-1. Wire orphaned features (Voice Architect, Image-to-Code, etc.)
-2. Add credential loading to Phase 1
-3. Instantiate experience capture after builds
+After each prompt:
+```bash
+npm run build
+git add -A && git commit -m "feat: [description]"
+git push -u origin [branch]
+```
 
 ---
 
