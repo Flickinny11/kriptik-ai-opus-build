@@ -75,12 +75,31 @@ export const ANTHROPIC_MODELS = {
 /**
  * GPT-5.2 models accessed via direct OpenAI SDK
  * Full features: 400K context, 128K output, native thinking mode
- * Released December 11, 2025
+ *
+ * December 2025 Model Release:
+ * - GPT-5.2 (Dec 11): Base models with 400K context, $1.75/$14 per 1M
+ * - GPT-5.2-Codex (Dec 18): SOTA agentic coding, 56.4% SWE-Bench Pro
+ *
+ * Pricing: 90% cache discount available
  */
 export const OPENAI_MODELS = {
+    // GPT-5.2 Series - General Purpose
     GPT_5_2_PRO: 'gpt-5.2-pro',           // Most accurate, $21/$168 per 1M tokens
     GPT_5_2_THINKING: 'gpt-5.2',          // Structured thinking, $1.75/$14 per 1M tokens
     GPT_5_2_INSTANT: 'gpt-5.2-chat-latest', // Fastest, for writing/info seeking
+
+    // GPT-5.2-Codex Series - SOTA Agentic Coding (Released Dec 18, 2025)
+    // 56.4% on SWE-Bench Pro (state-of-the-art)
+    // Features: context compaction, long-horizon work, enhanced security
+    GPT_5_2_CODEX: 'gpt-5.2-codex',       // Best for complex coding tasks
+    GPT_5_2_CODEX_PRO: 'gpt-5.2-codex-pro', // Pro tier with enhanced security
+
+    // o3 Series - Latest Reasoning Models
+    O3: 'o3',                             // Smartest reasoning model
+    O3_PRO: 'o3-pro',                     // Pro tier reasoning
+    O4_MINI: 'o4-mini',                   // Fast, cost-efficient reasoning
+
+    // Legacy models
     GPT_4O: 'gpt-4o',
     GPT_4O_MINI: 'gpt-4o-mini',
 } as const;
@@ -206,7 +225,19 @@ export interface PhaseConfig {
     ensembleModel?: string;
 }
 
+/**
+ * PHASE CONFIGURATIONS - December 2025 Optimal Settings
+ *
+ * DUAL ANCHOR ARCHITECTURE:
+ * - Claude Opus 4.5: Critical thinking, intent satisfaction, complex reasoning
+ * - GPT-5.2-Codex: State-of-the-art agentic coding (56.4% SWE-Bench Pro)
+ *
+ * Thinking budgets optimized for each phase's complexity.
+ */
 export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
+    // =========================================================================
+    // PHASE 0: INTENT LOCK - Sacred Contract Creation
+    // =========================================================================
     'intent_lock': {
         model: ANTHROPIC_MODELS.OPUS_4_5,
         provider: 'anthropic',
@@ -215,46 +246,100 @@ export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
         description: 'Sacred Contract creation - maximum reasoning with Opus 4.5',
         verificationModel: OPENAI_MODELS.GPT_5_2_PRO,
     },
+
+    // =========================================================================
+    // PHASE 1: INITIALIZATION - Artifact & Scaffolding Setup
+    // =========================================================================
     'initialization': {
-        model: ANTHROPIC_MODELS.OPUS_4_5,
-        provider: 'anthropic',
-        effort: 'medium',
-        thinkingBudget: 32000,
-        description: 'Artifact setup - good reasoning',
-    },
-    'build_orchestrator': {
-        model: OPENAI_MODELS.GPT_5_2_THINKING,
+        model: OPENAI_MODELS.GPT_5_2_CODEX,  // Codex excels at long-horizon setup
         provider: 'openai',
-        thinkingBudget: 16000,
-        description: 'Coordination - GPT-5.2 excels at structured planning',
+        thinkingBudget: 32000,
+        description: 'Artifact setup - GPT-5.2-Codex for structured scaffolding',
+        verificationModel: ANTHROPIC_MODELS.SONNET_4_5,
+    },
+
+    // =========================================================================
+    // PHASE 2: PARALLEL BUILD - Feature Construction
+    // =========================================================================
+    'build_orchestrator': {
+        model: OPENAI_MODELS.GPT_5_2_CODEX,  // Best for agentic coordination
+        provider: 'openai',
+        thinkingBudget: 24000,
+        description: 'Build coordination - GPT-5.2-Codex context compaction',
     },
     'build_agent': {
-        model: ANTHROPIC_MODELS.SONNET_4_5,
+        model: OPENAI_MODELS.GPT_5_2_CODEX,  // 56.4% SWE-Bench Pro - SOTA coding
+        provider: 'openai',
+        thinkingBudget: 32000,
+        description: 'Feature building - GPT-5.2-Codex for complex code',
+        validationModel: ANTHROPIC_MODELS.SONNET_4_5,
+    },
+    'build_agent_complex': {
+        model: ANTHROPIC_MODELS.OPUS_4_5,  // For architecture-level changes
         provider: 'anthropic',
-        effort: 'medium',
+        effort: 'high',
+        thinkingBudget: 64000,
+        description: 'Complex features - Opus 4.5 for architectural decisions',
+        verificationModel: OPENAI_MODELS.GPT_5_2_CODEX_PRO,
+    },
+
+    // =========================================================================
+    // PHASE 3: INTEGRATION CHECK - Orphan & Dead Code Scan
+    // =========================================================================
+    'integration_check': {
+        model: OPENAI_MODELS.GPT_5_2_CODEX,
+        provider: 'openai',
         thinkingBudget: 16000,
-        description: 'Feature building - Sonnet 4.5 for coding',
-        validationModel: OPENAI_MODELS.GPT_5_2_THINKING,
+        description: 'Integration scanning - Codex for code analysis',
     },
     'error_check': {
         model: OPENAI_MODELS.GPT_5_2_THINKING,
         provider: 'openai',
-        thinkingBudget: 8000,
+        thinkingBudget: 16000,
         description: 'Error checking - GPT-5.2 pattern recognition',
     },
-    'visual_verify': {
-        model: ANTHROPIC_MODELS.SONNET_4_5,
-        provider: 'anthropic',
-        effort: 'high',
-        thinkingBudget: 32000,
-        description: 'Visual verification - Claude vision + deep analysis',
+
+    // =========================================================================
+    // PHASE 4: FUNCTIONAL TEST - Browser Automation
+    // =========================================================================
+    'functional_test': {
+        model: OPENAI_MODELS.GPT_5_2_CODEX,  // Best for agentic browser control
+        provider: 'openai',
+        thinkingBudget: 24000,
+        description: 'Browser testing - Codex for agentic automation',
     },
+
+    // =========================================================================
+    // PHASE 5: INTENT SATISFACTION - Critical Gate
+    // =========================================================================
     'intent_satisfaction': {
         model: ANTHROPIC_MODELS.OPUS_4_5,
         provider: 'anthropic',
         effort: 'high',
         thinkingBudget: 64000,
         description: 'Critical gate - Opus 4.5 maximum reasoning',
+        verificationModel: OPENAI_MODELS.GPT_5_2_PRO,  // Double-check with GPT
+    },
+
+    // =========================================================================
+    // PHASE 6: BROWSER DEMO - User Presentation
+    // =========================================================================
+    'browser_demo': {
+        model: OPENAI_MODELS.GPT_5_2_CODEX,
+        provider: 'openai',
+        thinkingBudget: 16000,
+        description: 'Demo orchestration - Codex for agentic browser control',
+    },
+
+    // =========================================================================
+    // VERIFICATION & QUALITY
+    // =========================================================================
+    'visual_verify': {
+        model: ANTHROPIC_MODELS.SONNET_4_5,
+        provider: 'anthropic',
+        effort: 'high',
+        thinkingBudget: 32000,
+        description: 'Visual verification - Claude vision + deep analysis',
     },
     'tournament_judge': {
         model: ANTHROPIC_MODELS.OPUS_4_5,
@@ -264,6 +349,10 @@ export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
         description: 'Best-of-breed selection - ensemble judging',
         ensembleModel: OPENAI_MODELS.GPT_5_2_PRO,
     },
+
+    // =========================================================================
+    // FAST / SIMPLE OPERATIONS
+    // =========================================================================
     'simple_check': {
         model: ANTHROPIC_MODELS.HAIKU_3_5,
         provider: 'anthropic',
@@ -276,6 +365,40 @@ export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
         provider: 'openai',
         thinkingBudget: 0,
         description: 'Fast generation - GPT-5.2 Instant for speed',
+    },
+
+    // =========================================================================
+    // ERROR ESCALATION LEVELS
+    // =========================================================================
+    'error_level_1': {
+        model: ANTHROPIC_MODELS.SONNET_4_5,
+        provider: 'anthropic',
+        effort: 'medium',
+        thinkingBudget: 16000,
+        description: 'Level 1 fix - syntax, imports, types',
+    },
+    'error_level_2': {
+        model: OPENAI_MODELS.GPT_5_2_CODEX,
+        provider: 'openai',
+        thinkingBudget: 32000,
+        description: 'Level 2 fix - architecture, dependencies',
+    },
+    'error_level_3': {
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
+        effort: 'high',
+        thinkingBudget: 64000,
+        description: 'Level 3 fix - component rewrite',
+        validationModel: OPENAI_MODELS.GPT_5_2_CODEX_PRO,
+    },
+    'error_level_4': {
+        model: ANTHROPIC_MODELS.OPUS_4_5,
+        provider: 'anthropic',
+        effort: 'high',
+        thinkingBudget: 64000,
+        description: 'Level 4 fix - full feature rebuild from Intent',
+        verificationModel: OPENAI_MODELS.GPT_5_2_CODEX_PRO,
+        ensembleModel: OPENAI_MODELS.GPT_5_2_PRO,
     },
 };
 
