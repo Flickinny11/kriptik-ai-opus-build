@@ -48,12 +48,15 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 
 **Memory Files (AUTO-LOADED via .claude/rules/):**
 ```
+.claude/rules/00-NEXT-SESSION-START-HERE.md - START HERE! Current goal & next steps
 .claude/rules/01-session-context.md  - Recent work, current goals
 .claude/rules/02-gotchas.md          - Known issues to avoid
 .claude/rules/03-browser-integration.md - Browser tools guide
 .claude/rules/04-architecture.md     - System dependencies
 .claude/rules/05-pending-items.md    - Deferred items
 ```
+
+**CRITICAL**: File `00-NEXT-SESSION-START-HERE.md` tells you exactly what to do next. Read it first!
 
 **Legacy locations (for reference):**
 ```
@@ -70,12 +73,31 @@ Claude's training data has a cutoff approximately 1 year behind today's date. In
 **Before ending work on any task:**
 
 1. Run `npm run build` - Must pass
-2. Update `.claude/rules/01-session-context.md` with what was done
-3. Update `.claude/memory/implementation_log.md` with implementation details
-4. Add any new gotchas to `.claude/rules/02-gotchas.md`
-5. Run the Completion Checklist (see below)
+2. **UPDATE** `.claude/rules/00-NEXT-SESSION-START-HERE.md` - Mark what you completed, what's next
+3. **UPDATE** `.claude/rules/01-session-context.md` with what was done
+4. **UPDATE** `.claude/memory/implementation_log.md` with implementation details
+5. Add any new gotchas to `.claude/rules/02-gotchas.md`
+6. Run the Completion Checklist (see below)
+7. **COMMIT & PUSH** all memory file changes
 
-**IMPORTANT**: The rules/ files are auto-loaded by the next session. If you don't update them, the next agent loses context!
+**CRITICAL**: The rules/ files are auto-loaded by the next session. If you don't update them, the next agent starts blind and repeats mistakes!
+
+**Memory File Update Template:**
+```markdown
+## [Date] Session [N]
+
+### Completed
+- [What you finished]
+
+### In Progress
+- [Anything left incomplete]
+
+### Next Steps
+- [What the next agent should do]
+
+### Issues Found
+- [Any problems discovered]
+```
 
 ---
 
