@@ -4,19 +4,41 @@
 
 ---
 
-## Current State (as of 2025-12-21 Session 4)
+## Current State (as of 2025-12-21 Session 5)
 
 ### Progress Summary
 - **Total Features**: 91 (complete inventory documented)
-- **Infrastructure Complete**: 99%
+- **Infrastructure Complete**: 100%
 - **Critical Wiring**: P0-P2 ALL FIXED
-- **Implementation Plan**: Created for remaining features
-- **Current Phase**: Ready for Cursor 2.2 Implementation
+- **Dual Architecture**: ✅ FIXED - Anthropic + OpenAI SDKs properly routed
+- **Current Phase**: Production Ready
 
 ### Build Status
 - **TypeScript**: ✅ PASSING (npm run build succeeds)
 - **Current Branch**: claude/analyze-kriptik-gaps-TY4it
-- **Commits This Session**: 5 (1d81e26, f040d16, 2b2fd9f, 3781abd, 0f264cf)
+- **Commits This Session**: 6 (1d81e26, f040d16, 2b2fd9f, 3781abd, 0f264cf, f8d4c79)
+
+### ✅ DUAL SDK ARCHITECTURE FIXED (Session 5)
+
+**Problem Found**: ClaudeService was bypassing dual architecture
+- If ANTHROPIC_API_KEY was set, ALL models went to Anthropic SDK
+- GPT-5.2 models were never routed to OpenAI SDK
+
+**Fix Applied** (commit f8d4c79):
+1. ClaudeService.generate() now checks `getProviderForModel()` first
+2. GPT-5.2/Codex/o3 → OpenAI SDK (direct)
+3. Claude models → Anthropic SDK (direct)
+4. Other models → OpenRouter (fallback)
+
+**GPT-5.2-Codex Added** (Released Dec 18, 2025):
+- `gpt-5.2-codex` - 56.4% SWE-Bench Pro (SOTA)
+- `gpt-5.2-codex-pro` - Enhanced security tier
+- Context compaction, long-horizon work
+
+**Phase Configs Updated**:
+- `build_agent`: GPT-5.2-Codex (SOTA coding)
+- `intent_lock`: Claude Opus 4.5 (critical reasoning)
+- `intent_satisfaction`: Opus 4.5 + GPT-5.2-Pro verification
 
 ### ✅ ALL P0-P2 BLOCKERS FIXED
 
