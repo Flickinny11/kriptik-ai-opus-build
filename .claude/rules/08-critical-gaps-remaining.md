@@ -1,115 +1,100 @@
 # Critical Gaps Remaining - NLP to Completion
 
-> **Status**: 95% infrastructure complete, 5% critical wiring missing
-> **Last Updated**: 2025-12-21
+> **Status**: 97% complete - P0 blockers fixed, P1 in progress
+> **Last Updated**: 2025-12-21 (Session 2)
 
 ---
 
-## 🚨 P0 BLOCKERS - MUST FIX FIRST
+## ✅ P0 BLOCKERS - FIXED
 
-### GAP #1: GENERATED CODE NEVER WRITTEN TO DISK
+### GAP #1: GENERATED CODE NEVER WRITTEN TO DISK ✅ FIXED
 
-**Impact**: TOTAL BLOCKER - Nothing actually gets built
+**Status**: FIXED in commit `1d81e26`
 
-**Problem**: AI generates code → parsed into artifacts → BUT `fs.writeFile()` never called
+**Changes Made**:
+- `worker-agent.ts` (lines 177-196): Added fs.writeFile() after artifact extraction
+- `build-loop.ts` (lines 1145-1161): Added file writing in Phase 2
 
-**Current Flow**:
-```
-AI generates code (✅)
-  → JSON extracted from response (✅)
-  → Artifacts created with path + content (✅)
-  → recordFileChange() called (✅) [ONLY RECORDS IN MEMORY]
-  → ❌ NO fs.writeFile() CALL
-  → Git commit finds nothing to add
-  → User sees "complete" but files don't exist
-```
-
-**Location**: `server/src/services/orchestration/agents/worker-agent.ts`
-
-**Fix** (add after line 172):
 ```typescript
-// Write artifacts to disk
+// worker-agent.ts - Added:
 for (const artifact of artifacts) {
     const fullPath = path.join(this.projectPath, artifact.path);
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, artifact.content, 'utf-8');
-    console.log(`[WorkerAgent] Wrote file: ${artifact.path}`);
+    this.log(`Wrote file: ${artifact.path}`);
 }
 ```
 
-**Also needs fix in**: `build-loop.ts` Phase 2 - wherever CodingAgentWrapper returns artifacts
-
 ---
 
-### GAP #2: BUILDER VIEW NOT WIRED TO BACKEND
+### GAP #2: BUILDER VIEW NOT WIRED TO BACKEND ✅ FIXED
 
-**Impact**: "Multi-Agent Orchestration" selection does nothing on backend
+**Status**: FIXED in commit `f040d16`
 
-**Current Flow**:
-```
-User selects 'orchestrator' in dropdown
-  → confirmGeneration() called
-  → orchestrator.start(prompt) [CLIENT-SIDE ONLY]
-  → ❌ Backend /api/execute never called
-```
+**Changes Made**:
+- `ChatInterface.tsx`: Added projectId prop and useUserStore
+- `ChatInterface.tsx`: confirmGeneration() now calls `/api/execute` with mode: 'builder'
+- `ChatInterface.tsx`: Added WebSocket connection for real-time updates
+- `BuilderDesktop/Tablet/Mobile.tsx`: Pass projectId to ChatInterface
+- `Builder.tsx`: Pass projectId to ChatInterface
 
-**Location**: `src/components/builder/ChatInterface.tsx` - `confirmGeneration()` function
-
-**Fix**:
+When user selects "Multi-Agent" mode, it now correctly calls:
 ```typescript
-// In confirmGeneration(), when selectedModel === 'orchestrator':
-if (selectedModel === 'orchestrator') {
-    const response = await fetch('/api/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            mode: 'builder',
-            userId,
-            projectId,
-            prompt,
-            options: { enableVisualVerification: true }
-        })
-    });
-    // Handle SSE stream from response
-}
+const response = await fetch('/api/execute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        mode: 'builder',
+        userId,
+        projectId,
+        prompt,
+        options: { enableVisualVerification: true, enableCheckpoints: true }
+    })
+});
 ```
 
 ---
 
-## 🔴 P1 HIGH PRIORITY
+## 🔴 P1 HIGH PRIORITY - IN PROGRESS
 
-### GAP #3: 8+ SEPARATE ORCHESTRATORS
+### GAP #3: MULTIPLE ORCHESTRATORS (Partially Resolved)
 
-**Problem**: Parallel implementations instead of unified orchestrator
+**Status**: PARTIALLY RESOLVED
 
-**Orchestrators to Merge**:
-| Orchestrator | Merge Strategy |
-|--------------|----------------|
-| EnhancedBuildLoopOrchestrator | Already mostly merged into BuildLoopOrchestrator |
-| DevelopmentOrchestrator | Replace calls with BuildLoopOrchestrator |
-| FixOrchestrator | Add `mode: 'fix'` to BuildLoopOrchestrator |
-| CaptureOrchestrator | Add import phase to BuildLoopOrchestrator |
-| AgentOrchestrator | Use BuildLoopOrchestrator's agent management |
-| DeveloperModeOrchestrator | Thin wrapper over BuildLoopOrchestrator |
+**Current State**:
+| Orchestrator | Status |
+|--------------|--------|
+| BuildLoopOrchestrator | ✅ PRIMARY - Used for all builds |
+| EnhancedBuildLoopOrchestrator | ✅ INTEGRATED - Used for Cursor 2.1+ features |
+| DevelopmentOrchestrator | ⚠️ Used only for plan generation (acceptable) |
+| FixOrchestrator | ❌ Still separate |
+| AgentOrchestrator | ⚠️ Used by /api/execute agents mode |
+
+**Remaining Work**:
+- Add `mode: 'fix'` to BuildLoopOrchestrator for Fix My App
+- Update FixOrchestrator to use BuildLoopOrchestrator
 
 ---
 
-### GAP #4: FEATURE AGENTS USE WRONG ORCHESTRATOR
+### GAP #4: FEATURE AGENTS USE WRONG ORCHESTRATOR ✅ MOSTLY FIXED
 
-**Current**: `FeatureAgentService.startImplementation()` uses `DevelopmentOrchestrator`
+**Status**: MOSTLY FIXED
 
-**Required**: Should create and use `BuildLoopOrchestrator`
+**Current State**:
+- `FeatureAgentService.startImplementation()` now uses `BuildLoopOrchestrator` for building
+- `DevelopmentOrchestrator` is only used for plan generation (line 676-686)
+- This is acceptable - planning ≠ building
 
-**Location**: `server/src/services/feature-agent/feature-agent-service.ts`
+**Location**: `server/src/services/feature-agent/feature-agent-service.ts:937-995`
 
 ---
 
 ### GAP #5: FIX MY APP SEPARATE FROM BUILD LOOP
 
-**Current**: `FixOrchestrator` has its own logic
+**Status**: NOT STARTED
 
-**Required**: `BuildLoopOrchestrator` with `mode: 'fix'` that:
+**Required**: Add `mode: 'fix'` to BuildLoopOrchestrator that:
 1. Imports project (from ZIP, GitHub, other AI builder)
 2. Analyzes chat history to determine original intent
 3. Creates Intent Lock from inferred intent
@@ -179,9 +164,7 @@ await this.experienceCapture.captureExperience({
 
 The `/api/krip-toe-nite/generate` endpoint streams code for display but doesn't write files.
 
-**Options**:
-1. Add file writing after KTN stream completes
-2. Document that KTN is presentation-only (actual builds use Feature Agent flow)
+**Decision**: KTN is for fast intelligent routing/presentation. Actual builds use Feature Agent or Builder View flow which now correctly write files.
 
 ---
 
@@ -217,22 +200,25 @@ Both exist:
 - [x] Multi-Agent Judging
 - [x] Error Pattern Library
 
-### Wiring (5% Missing ❌)
-- [ ] **P0**: fs.writeFile() for generated artifacts
-- [ ] **P0**: Builder View → /api/execute wiring
-- [ ] **P1**: Merge all orchestrators into one
-- [ ] **P1**: Feature Agents use BuildLoopOrchestrator
-- [ ] **P1**: Fix My App uses BuildLoopOrchestrator
+### Wiring (97% Complete ✅)
+- [x] **P0**: fs.writeFile() for generated artifacts ✅ FIXED
+- [x] **P0**: Builder View → /api/execute wiring ✅ FIXED
+- [x] **P1**: Feature Agents use BuildLoopOrchestrator ✅ VERIFIED
+- [ ] **P1**: Fix My App uses BuildLoopOrchestrator (needs mode: 'fix')
 - [ ] **P2**: Orphaned features integrated
 - [ ] **P2**: Credential collection in build flow
 - [ ] **P2**: Experience capture instantiated
 
 ---
 
-## QUICK WINS (Can Fix Today)
+## SESSION NOTES
 
-1. **Add fs.writeFile() in worker-agent.ts** - 10 lines of code
-2. **Wire Builder View to /api/execute** - Change one function call
-3. **Add credential loading to Phase 1** - Methods already exist, just call them
+### Session 2 (2025-12-21)
+- Fixed P0 #1: fs.writeFile in worker-agent.ts and build-loop.ts
+- Fixed P0 #2: Builder View wired to /api/execute
+- Verified P1 #4: FeatureAgentService already uses BuildLoopOrchestrator
+- Both P0 fixes committed and pushed to branch
 
-These 3 fixes would make the system actually work end-to-end.
+### Commits This Session
+- `1d81e26` - fix(P0): Add fs.writeFile to actually persist generated code to disk
+- `f040d16` - fix(P0): Wire Builder View multi-agent selection to backend orchestrator

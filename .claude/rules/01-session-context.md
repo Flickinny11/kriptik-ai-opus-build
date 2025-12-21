@@ -4,33 +4,43 @@
 
 ---
 
-## Current State (as of 2025-12-21)
+## Current State (as of 2025-12-21 Session 2)
 
 ### Progress Summary
 - **Total Features**: 91 (complete inventory documented)
-- **Infrastructure Complete**: 95%
-- **Critical Wiring Missing**: 5%
+- **Infrastructure Complete**: 97%
+- **Critical Wiring**: P0 FIXED, P1 IN PROGRESS
 - **Current Phase**: Final integration
 
 ### Build Status
-- **TypeScript**: Pre-existing schema-code mismatches in some files
+- **TypeScript**: ✅ PASSING (npm run build succeeds)
 - **Current Branch**: claude/analyze-kriptik-gaps-TY4it
+- **Commits This Session**: 2 (1d81e26, f040d16)
 
-### 🚨 Critical Gaps Identified (see `.claude/rules/08-critical-gaps-remaining.md`)
+### ✅ P0 BLOCKERS FIXED
 
-**P0 BLOCKERS**:
-1. **Generated code never written to disk** - `fs.writeFile()` missing in worker-agent.ts
-2. **Builder View not wired to backend** - 'orchestrator' selection calls client-side, not `/api/execute`
+1. **Generated code now written to disk** ✅ FIXED (commit 1d81e26)
+   - Added fs.writeFile() to worker-agent.ts (lines 177-196)
+   - Added fs.writeFile() to build-loop.ts (lines 1145-1161)
 
-**P1 HIGH**:
-3. 8+ separate orchestrators instead of one unified BuildLoopOrchestrator
-4. Feature Agents use DevelopmentOrchestrator, not BuildLoopOrchestrator
-5. Fix My App uses separate FixOrchestrator
+2. **Builder View now wired to backend** ✅ FIXED (commit f040d16)
+   - ChatInterface.tsx now calls `/api/execute` with mode: 'builder'
+   - Added projectId prop and WebSocket connection for real-time updates
+   - Falls back to client-side orchestrator if backend fails
 
-**P2 MEDIUM**:
-6. Orphaned features (Image-to-Code, Voice Architect, API Autopilot, etc.) not integrated
-7. Credential collection not called during build
-8. Experience capture never instantiated
+### P1 HIGH PRIORITY - IN PROGRESS
+
+3. **Multiple orchestrators partially resolved**
+   - BuildLoopOrchestrator is PRIMARY for all builds ✅
+   - FeatureAgentService uses BuildLoopOrchestrator for building ✅
+   - DevelopmentOrchestrator still used for plan generation (acceptable)
+   - Fix My App still uses separate FixOrchestrator
+
+### P2 MEDIUM - PENDING
+
+4. Orphaned features not integrated
+5. Credential collection not called during build
+6. Experience capture never instantiated
 
 ---
 
@@ -453,13 +463,20 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 *Set at the start of each session*
 
-### Current Session (2025-12-20)
+### Current Session (2025-12-21 Session 2)
+- [x] Implement P0 fix: fs.writeFile for generated code
+- [x] Implement P0 fix: Wire Builder View to backend /api/execute
+- [x] Verify FeatureAgentService uses BuildLoopOrchestrator (it does!)
+- [ ] Add mode: 'fix' to BuildLoopOrchestrator for Fix My App
+- [ ] Wire orphaned features (P2)
+
+### Previous Session (2025-12-21 Session 1)
 - [x] Analyze KripTik gaps from NLP input to completion
 - [x] Create unified orchestrator specification (91 features)
 - [x] Fix projectPath context injection gap
 - [x] Merge Cursor 2.1+ features into BuildLoopOrchestrator
-- [ ] Wire Builder View to unified orchestrator (see next steps below)
-- [ ] Wire Feature Agent to unified orchestrator
+- [x] Create `.claude/rules/08-critical-gaps-remaining.md`
+- [x] Create `.claude/rules/09-master-orchestrator-spec.md`
 
 ### Previous Session (2025-12-19)
 - [x] Set up Chrome DevTools MCP for browser integration
@@ -473,40 +490,36 @@ Implemented 7 new services to match/exceed Cursor 2.1's capabilities:
 
 ## What Should Happen Next
 
-### Priority 1: Wire Builder View to Unified Orchestrator
+### ✅ COMPLETED: Priority 1 - Builder View Wiring
 
-**Current State:** Builder View uses `/api/orchestrate/*` → DevelopmentOrchestrator
-**Target State:** Builder View uses `/api/execute` → BuildLoopOrchestrator
+**Status**: DONE (commit f040d16)
 
-**Two Options:**
+Builder View now calls `/api/execute` with `mode: 'builder'` when user selects "Multi-Agent" mode. The ChatInterface.tsx:
+- Calls POST /api/execute with proper payload
+- Connects to WebSocket for real-time updates
+- Falls back to client-side orchestrator if backend fails
 
-**Option A: Update Client (Recommended)**
-1. Modify `src/lib/AgentOrchestrator.ts`:
-   - Change `/api/orchestrate/analyze` → `POST /api/execute` with `mode: 'builder'`
-   - Update event handling to match execute.ts events (builder-started, builder-phase_start, etc.)
-   - Update pause/resume/stop to use `/api/execute/:sessionId/*` routes
-   - Use websocket channel from response for real-time updates
+### ✅ COMPLETED: Priority 2 - Feature Agent Verification
 
-2. Key files:
-   - `src/lib/AgentOrchestrator.ts` (client orchestrator facade)
-   - `src/components/builder/ChatInterface.tsx` (uses AgentOrchestrator)
-   - `server/src/routes/execute.ts` (already uses BuildLoopOrchestrator correctly)
+**Status**: VERIFIED - Already uses BuildLoopOrchestrator
 
-**Option B: Update Server Routes**
-1. Modify `server/src/routes/orchestrate.ts`:
-   - Replace DevelopmentOrchestrator with BuildLoopOrchestrator
-   - Adapt event streaming to match existing client expectations
+FeatureAgentService.startImplementation() (lines 937-995) uses:
+- `EnhancedBuildLoopOrchestrator` for Cursor 2.1+ features
+- `BuildLoopOrchestrator` for the full 6-phase build loop
 
-### Priority 2: Wire Feature Agent (Already Done?)
+### REMAINING: Priority 3 - Fix My App Integration
 
-Check: Feature Agent may already use BuildLoopOrchestrator via `server/src/services/feature-agent/feature-agent-service.ts`
+Add `mode: 'fix'` to BuildLoopOrchestrator that:
+1. Imports project (from ZIP, GitHub, other AI builder)
+2. Analyzes chat history to determine original intent
+3. Creates Intent Lock from inferred intent
+4. Runs 6-phase build to complete/fix the app
 
-### Priority 3: Fix Remaining P0 Gaps
+### REMAINING: Priority 4 - P2 Integration
 
-From `.claude/rules/06-nlp-to-completion-gaps.md`:
-- Implement `/sandbox/:agentId` route for "Show Me" button
-- Add server-side 6-agent limit enforcement
-- Implement `/api/extension/vision-extract` endpoint
+1. Wire orphaned features (Voice Architect, Image-to-Code, etc.)
+2. Add credential loading to Phase 1
+3. Instantiate experience capture after builds
 
 ---
 
@@ -529,4 +542,4 @@ From `.claude/rules/06-nlp-to-completion-gaps.md`:
 
 ---
 
-*Last updated: 2025-12-20*
+*Last updated: 2025-12-21 (Session 2)*
