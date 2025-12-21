@@ -208,7 +208,7 @@ export default function BuilderDesktop({
                                 className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                 style={liquidGlassPanel}
                             >
-                                <ChatInterface intelligenceSettings={intelligenceSettings} />
+                                <ChatInterface intelligenceSettings={intelligenceSettings} projectId={projectId} />
                                 {activeTab === 'preview' && <ActivityFeed />}
                             </div>
                         </Panel>

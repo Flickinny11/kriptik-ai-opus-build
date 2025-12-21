@@ -217,7 +217,7 @@ export default function BuilderTablet({
                                 className="h-full flex flex-col m-2 mr-1 rounded-2xl overflow-hidden"
                                 style={liquidGlassPanel}
                             >
-                                <ChatInterface intelligenceSettings={intelligenceSettings} />
+                                <ChatInterface intelligenceSettings={intelligenceSettings} projectId={projectId} />
                             </div>
                         </Panel>
 

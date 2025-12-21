@@ -39,9 +39,11 @@ import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
+import { useUserStore } from '../../store/useUserStore';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
+    projectId?: string;
 }
 
 interface Message {
@@ -262,14 +264,15 @@ function SuggestionCard({
     );
 }
 
-export default function ChatInterface({ intelligenceSettings }: ChatInterfaceProps) {
+export default function ChatInterface({ intelligenceSettings, projectId }: ChatInterfaceProps) {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const { globalStatus } = useAgentStore();
+    const { globalStatus, setGlobalStatus } = useAgentStore();
     const { setEstimate, resetSessionCost } = useCostStore();
+    const { user } = useUserStore();
 
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
@@ -417,18 +420,118 @@ export default function ChatInterface({ intelligenceSettings }: ChatInterfacePro
 
             handleKtnStream(prompt);
         } else {
-            // Use multi-agent orchestrator
+            // Use multi-agent orchestrator via backend /api/execute
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: 'Starting multi-agent orchestration...',
+                content: 'Starting multi-agent orchestration via BuildLoopOrchestrator...',
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             };
             setMessages(prev => [...prev, systemMessage]);
 
-            await orchestrator.start(prompt);
-            setIsTyping(false);
+            try {
+                // Get user ID (required by backend)
+                const userId = user?.id || 'anonymous';
+
+                // Call the unified /api/execute endpoint with mode: 'builder'
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'builder',
+                        userId,
+                        projectId: projectId || `project-${Date.now()}`,
+                        prompt,
+                        options: {
+                            enableVisualVerification: true,
+                            enableCheckpoints: true,
+                        },
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to start orchestration');
+                }
+
+                const data = await response.json();
+                console.log('[ChatInterface] Orchestration started:', data);
+
+                // Update status to running
+                setGlobalStatus('running');
+
+                // Add system message with session info
+                const sessionMessage: Message = {
+                    id: `msg-${Date.now() + 2}`,
+                    role: 'system',
+                    content: `Build session started (${data.sessionId}). Analysis: ${data.initialAnalysis?.taskType || 'Unknown'} - ${data.initialAnalysis?.strategy || 'auto'}`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                };
+                setMessages(prev => [...prev, sessionMessage]);
+
+                // Connect to WebSocket for real-time updates
+                if (data.websocketChannel) {
+                    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${data.websocketChannel}`;
+                    const ws = new WebSocket(wsUrl);
+
+                    ws.onmessage = (event) => {
+                        try {
+                            const wsData = JSON.parse(event.data);
+                            console.log('[ChatInterface] WS message:', wsData.type);
+
+                            // Handle different event types
+                            if (wsData.type === 'builder-completed') {
+                                setGlobalStatus('completed');
+                                setIsTyping(false);
+                                ws.close();
+                            } else if (wsData.type === 'builder-error' || wsData.type === 'execution-error') {
+                                setGlobalStatus('failed');
+                                setIsTyping(false);
+                                setMessages(prev => [...prev, {
+                                    id: `msg-${Date.now()}`,
+                                    role: 'system',
+                                    content: `Error: ${wsData.data?.error || 'Unknown error'}`,
+                                    timestamp: new Date(),
+                                    agentType: 'orchestrator',
+                                }]);
+                                ws.close();
+                            } else if (wsData.type?.startsWith('builder-')) {
+                                // Forward phase updates to agent store for AgentProgress
+                                // The AgentTerminal and AgentProgress components will pick these up
+                            }
+                        } catch (e) {
+                            console.error('[ChatInterface] WS parse error:', e);
+                        }
+                    };
+
+                    ws.onerror = (error) => {
+                        console.error('[ChatInterface] WebSocket error:', error);
+                        // Fall back to client-side orchestrator if WebSocket fails
+                        orchestrator.start(prompt);
+                    };
+
+                    ws.onclose = () => {
+                        console.log('[ChatInterface] WebSocket closed');
+                    };
+                }
+            } catch (error) {
+                console.error('[ChatInterface] Failed to start orchestration:', error);
+
+                // Add error message
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Failed to connect to backend orchestrator: ${error instanceof Error ? error.message : 'Unknown error'}. Falling back to client-side...`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+
+                // Fall back to client-side orchestrator
+                await orchestrator.start(prompt);
+                setIsTyping(false);
+            }
         }
     };
 
