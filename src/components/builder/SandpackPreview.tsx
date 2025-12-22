@@ -2,10 +2,11 @@
  * Sandpack Preview Component - Liquid Glass Design
  *
  * Live preview of the generated code using Sandpack
- * with premium liquid glass styling
+ * with premium liquid glass styling.
+ * Includes "Show Me" demo button for AI voice narration.
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     SandpackPreview as SandpackPreviewBase,
     SandpackConsole,
@@ -13,6 +14,8 @@ import {
 } from '@codesandbox/sandpack-react';
 import { RefreshIcon, type IconProps } from '../ui/icons';
 import { useEditorStore } from '../../store/useEditorStore';
+import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOverlay';
+import { apiClient } from '@/lib/api-client';
 
 // Temporary icon components for icons not in custom icon set
 const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
@@ -64,6 +67,13 @@ const Maximize2Icon: React.FC<IconProps> = ({ size = 24, className }) => (
         <polyline points="9 21 3 21 3 15"/>
         <line x1="21" y1="3" x2="14" y2="10"/>
         <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+);
+
+const PlayCircleIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="10"/>
+        <polygon points="10 8 16 12 10 16" fill="currentColor"/>
     </svg>
 );
 
@@ -198,8 +208,12 @@ export default function SandpackPreviewWindow() {
     const [viewport, setViewport] = useState<ViewportSize>('desktop');
     const [showConsole, setShowConsole] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isDemoActive, setIsDemoActive] = useState(false);
+    const [demoSegments, setDemoSegments] = useState<NarrationPlaybackSegment[]>([]);
+    const [isLoadingDemo, setIsLoadingDemo] = useState(false);
     const { isSelectionMode, toggleSelectionMode } = useEditorStore();
     const { sandpack } = useSandpack();
+    const previewContainerRef = useRef<HTMLDivElement>(null);
 
     const handleRefresh = () => {
         sandpack.runSandpack();
@@ -207,6 +221,40 @@ export default function SandpackPreviewWindow() {
 
     const handleOpenExternal = () => {
         window.open('about:blank', '_blank');
+    };
+
+    // Start "Show Me" demo with voice narration
+    const handleShowMeDemo = async () => {
+        setIsLoadingDemo(true);
+        try {
+            interface DemoResponse {
+                success: boolean;
+                segments?: NarrationPlaybackSegment[];
+            }
+            const response = await apiClient.post<DemoResponse>('/api/preview/demo', {
+                type: 'sandbox_demo',
+                viewport,
+            });
+
+            if (response.data.success && response.data.segments) {
+                setDemoSegments(response.data.segments);
+                setIsDemoActive(true);
+            }
+        } catch (error) {
+            console.error('Failed to start demo:', error);
+        } finally {
+            setIsLoadingDemo(false);
+        }
+    };
+
+    // Handle demo take control
+    const handleDemoTakeControl = () => {
+        setIsDemoActive(false);
+    };
+
+    // Handle demo complete
+    const handleDemoComplete = () => {
+        setIsDemoActive(false);
     };
 
     return (
@@ -304,6 +352,29 @@ export default function SandpackPreviewWindow() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Show Me Demo Button */}
+                    <button
+                        onClick={handleShowMeDemo}
+                        disabled={isLoadingDemo || isDemoActive}
+                        title="Start AI Voice Demo"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-300"
+                        style={{
+                            background: isDemoActive
+                                ? 'linear-gradient(145deg, rgba(16,185,129,0.2) 0%, rgba(16,185,129,0.1) 100%)'
+                                : 'linear-gradient(145deg, rgba(255,180,150,0.5) 0%, rgba(255,160,130,0.4) 100%)',
+                            boxShadow: `0 2px 8px ${isDemoActive ? 'rgba(16,185,129,0.2)' : 'rgba(255,140,100,0.2)'}`,
+                            border: `1px solid ${isDemoActive ? 'rgba(16,185,129,0.3)' : 'rgba(255,200,170,0.5)'}`,
+                            color: isDemoActive ? '#059669' : '#c25a00',
+                            fontSize: 13,
+                            fontWeight: 500,
+                            cursor: isLoadingDemo ? 'wait' : 'pointer',
+                            opacity: isLoadingDemo ? 0.7 : 1,
+                        }}
+                    >
+                        <PlayCircleIcon size={16} />
+                        <span>{isLoadingDemo ? 'Loading...' : isDemoActive ? 'Demo Active' : 'Show Me'}</span>
+                    </button>
+
                     <GlassIconButton
                         icon={MousePointer2Icon}
                         isActive={isSelectionMode}
@@ -337,11 +408,23 @@ export default function SandpackPreviewWindow() {
 
             {/* Preview Container - Liquid Glass Frame */}
             <div
-                className="flex-1 p-4 flex items-start justify-center overflow-auto"
+                ref={previewContainerRef}
+                className="flex-1 p-4 flex items-start justify-center overflow-auto relative"
                 style={{
                     background: 'linear-gradient(180deg, rgba(200,195,190,0.3) 0%, rgba(180,175,170,0.2) 100%)',
                 }}
             >
+                {/* Voice Narration Demo Overlay */}
+                {isDemoActive && demoSegments.length > 0 && (
+                    <AgentDemoOverlay
+                        isActive={isDemoActive}
+                        segments={demoSegments}
+                        onTakeControl={handleDemoTakeControl}
+                        onComplete={handleDemoComplete}
+                        containerRef={previewContainerRef}
+                        showTranscript={true}
+                    />
+                )}
                 {/* Device Frame */}
                 <div
                     className={`transition-all duration-500 ${viewport === 'desktop' ? 'w-full h-full' : 'h-[600px]'}`}

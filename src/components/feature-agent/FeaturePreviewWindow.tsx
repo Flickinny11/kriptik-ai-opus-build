@@ -3,6 +3,7 @@
  *
  * Large modal/popout window for viewing feature agent output in browser.
  * Supports AI demonstration mode with cursor overlay and user takeover.
+ * Integrates voice narration for guided demonstrations.
  *
  * Uses custom SVG icons - NO lucide-react, NO emojis.
  * Glass styling matching existing panels.
@@ -11,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
+import { AgentDemoOverlay, type NarrationPlaybackSegment } from '../builder/AgentDemoOverlay';
 import './feature-preview-window.css';
 
 export interface PreviewEvent {
@@ -69,6 +71,14 @@ function IconCursor() {
     );
 }
 
+function IconVoice() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2v14M5 5v8M13 5v8M2 7v4M16 7v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+    );
+}
+
 export function FeaturePreviewWindow({
     agentId,
     featureName,
@@ -83,6 +93,9 @@ export function FeaturePreviewWindow({
     const [narration, setNarration] = useState<string>('');
     const [showAcceptConfirm, setShowAcceptConfirm] = useState(false);
     const [isAccepting, setIsAccepting] = useState(false);
+    const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(true);
+    const [narrationSegments, setNarrationSegments] = useState<NarrationPlaybackSegment[]>([]);
+    const [isVoiceNarrating, setIsVoiceNarrating] = useState(false);
 
     const eventSourceRef = useRef<EventSource | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
@@ -133,6 +146,25 @@ export function FeaturePreviewWindow({
 
                     // Start AI demo
                     await apiClient.post(`/api/preview/${encodeURIComponent(data.session.id)}/ai-demo`, {});
+
+                    // Fetch voice narration if enabled
+                    if (voiceNarrationEnabled) {
+                        try {
+                            interface NarrationResponse {
+                                success: boolean;
+                                segments?: NarrationPlaybackSegment[];
+                            }
+                            const narrationResponse = await apiClient.get<NarrationResponse>(
+                                `/api/preview/${encodeURIComponent(data.session.id)}/narration`
+                            );
+                            if (narrationResponse.data.success && narrationResponse.data.segments) {
+                                setNarrationSegments(narrationResponse.data.segments);
+                                setIsVoiceNarrating(true);
+                            }
+                        } catch (narrationError) {
+                            console.warn('Voice narration unavailable:', narrationError);
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Failed to start preview:', error);
@@ -195,9 +227,24 @@ export function FeaturePreviewWindow({
         try {
             await apiClient.post(`/api/preview/${encodeURIComponent(sessionId)}/takeover`, {});
             setStatus('user_control');
+            setIsVoiceNarrating(false);
             setNarration('You now have control. Interact with the preview to verify the feature.');
         } catch (error) {
             console.error('Failed to takeover:', error);
+        }
+    };
+
+    // Handle voice narration complete
+    const handleNarrationComplete = () => {
+        setIsVoiceNarrating(false);
+        setNarration('Demo complete! You can now take control or accept the feature.');
+    };
+
+    // Toggle voice narration
+    const toggleVoiceNarration = () => {
+        setVoiceNarrationEnabled(!voiceNarrationEnabled);
+        if (voiceNarrationEnabled) {
+            setIsVoiceNarrating(false);
         }
     };
 
@@ -254,14 +301,23 @@ export function FeaturePreviewWindow({
                         <span className="fpw__title">Feature Preview: "{featureName}"</span>
                         <span className={`fpw__status fpw__status--${status}`}>
                             {status === 'loading' && 'Starting...'}
-                            {status === 'ai_demo' && 'AI Demonstrating'}
+                            {status === 'ai_demo' && (isVoiceNarrating ? 'Voice Demo Active' : 'AI Demonstrating')}
                             {status === 'user_control' && 'You\'re in Control'}
                             {status === 'ended' && 'Preview Ended'}
                         </span>
                     </div>
-                    <button className="fpw__close" onClick={handleClose}>
-                        <IconClose />
-                    </button>
+                    <div className="fpw__header-right">
+                        <button
+                            className={`fpw__btn-icon ${voiceNarrationEnabled ? 'fpw__btn-icon--active' : ''}`}
+                            onClick={toggleVoiceNarration}
+                            title={voiceNarrationEnabled ? 'Disable Voice Narration' : 'Enable Voice Narration'}
+                        >
+                            <IconVoice />
+                        </button>
+                        <button className="fpw__close" onClick={handleClose}>
+                            <IconClose />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Preview Area */}
@@ -290,7 +346,7 @@ export function FeaturePreviewWindow({
                                 className="fpw__screenshot"
                             />
                             {/* AI Cursor Overlay */}
-                            {status === 'ai_demo' && (
+                            {status === 'ai_demo' && !isVoiceNarrating && (
                                 <motion.div
                                     className="fpw__cursor"
                                     animate={{ x: cursorPosition.x, y: cursorPosition.y }}
@@ -299,6 +355,17 @@ export function FeaturePreviewWindow({
                                     <IconCursor />
                                     <div className="fpw__cursor-trail" />
                                 </motion.div>
+                            )}
+                            {/* Voice Narration Overlay */}
+                            {isVoiceNarrating && narrationSegments.length > 0 && (
+                                <AgentDemoOverlay
+                                    isActive={isVoiceNarrating}
+                                    segments={narrationSegments}
+                                    onTakeControl={handleTakeover}
+                                    onComplete={handleNarrationComplete}
+                                    containerRef={previewRef as React.RefObject<HTMLElement>}
+                                    showTranscript={true}
+                                />
                             )}
                         </div>
                     ) : (
