@@ -1,11 +1,17 @@
 /**
- * Orchestration API Routes
+ * @deprecated These routes are deprecated. Use /api/execute instead.
+ *
+ * Orchestration API Routes (LEGACY)
  *
  * Endpoints for the Development Orchestrator to:
  * - Process project requests
  * - Execute plans
  * - Stream events to frontend
  * - Manage agent status
+ *
+ * DEPRECATION NOTICE: All new code should use /api/execute which routes to
+ * BuildLoopOrchestrator with full production features (LATTICE, BrowserInLoop,
+ * Learning Engine, Verification Swarm).
  *
  * UNIFIED CONTEXT: All code generation routes now automatically
  * load and inject rich context including:
@@ -30,6 +36,13 @@ import {
 } from '../services/ai/unified-context.js';
 
 const router = Router();
+
+// DEPRECATION: Add warning header to all routes in this file
+router.use((_req: Request, res: Response, next) => {
+    console.warn('[DEPRECATED] /api/orchestrate/* routes are deprecated. Use /api/execute instead.');
+    res.setHeader('X-Deprecated', 'Use /api/execute instead');
+    next();
+});
 
 // Store active orchestrators per project
 const orchestrators = new Map<string, DevelopmentOrchestrator>();

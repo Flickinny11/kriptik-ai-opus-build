@@ -1,5 +1,14 @@
 /**
- * Development Orchestrator
+ * @deprecated Use BuildLoopOrchestrator from automation/build-loop.ts instead.
+ * This orchestrator is maintained only for backward compatibility.
+ * All new code should use BuildLoopOrchestrator which provides:
+ * - LATTICE parallel cell building
+ * - Browser-in-loop visual verification
+ * - Learning Engine pattern injection
+ * - Verification Swarm (6-agent verification)
+ * - Full Intent Lock enforcement
+ *
+ * Development Orchestrator (LEGACY)
  *
  * The master orchestrator that:
  * 1. Understands natural language project requirements
@@ -52,6 +61,9 @@ export interface ProjectRequest {
     constraints?: Partial<ProjectAnalysis['constraints']>;
 }
 
+/**
+ * @deprecated Use BuildLoopOrchestrator from automation/build-loop.ts instead.
+ */
 export class DevelopmentOrchestrator extends EventEmitter {
     private config: OrchestratorConfig;
     private claudeService: ClaudeService;

@@ -21,6 +21,10 @@ import {
 import {
     getPredictiveErrorPrevention,
 } from '../services/ai/predictive-error-prevention.js';
+// Database imports for agent limit enforcement
+import { db } from '../db.js';
+import { developerModeAgents } from '../schema.js';
+import { eq, inArray, and } from 'drizzle-orm';
 
 const router = Router();
 const requireAuth = authMiddleware;
@@ -49,6 +53,22 @@ router.post('/create', requireAuth, async (req: Request, res: Response) => {
     if (!projectId || typeof projectId !== 'string') return res.status(400).json({ error: 'projectId is required' });
     if (!taskPrompt || typeof taskPrompt !== 'string') return res.status(400).json({ error: 'taskPrompt is required' });
     if (!model || typeof model !== 'string') return res.status(400).json({ error: 'model is required' });
+
+    // Enforce server-side 6-agent limit
+    const activeAgents = await db.select()
+      .from(developerModeAgents)
+      .where(and(
+        eq(developerModeAgents.userId, userId),
+        inArray(developerModeAgents.status, ['pending', 'running', 'building', 'verifying', 'idle'])
+      ));
+
+    if (activeAgents.length >= 6) {
+      return res.status(429).json({
+        error: 'Maximum 6 concurrent agents allowed',
+        activeCount: activeAgents.length,
+        suggestion: 'Wait for an agent to complete or cancel one'
+      });
+    }
 
     // Load unified context for rich code generation
     let enrichedTaskPrompt = taskPrompt;

@@ -321,12 +321,18 @@ async function executeBuilderMode(
     });
 
     try {
-        // Create build loop orchestrator
+        // Create build loop orchestrator with FULL production mode
+        // 'production' mode enables all advanced features:
+        // - LATTICE parallel cell building
+        // - Browser-in-loop visual verification
+        // - Learning Engine pattern injection
+        // - Verification Swarm (6-agent verification)
+        // - Full parallelism with 6 max agents
         const buildLoop = new BuildLoopOrchestrator(
             context.projectId,
             context.userId,
             context.orchestrationRunId,
-            'standard'
+            'production' // Use full production mode - enables LATTICE, BrowserInLoop, Learning, VerificationSwarm
         );
 
         // Forward build loop events to context

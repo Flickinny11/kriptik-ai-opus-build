@@ -1,5 +1,13 @@
 /**
- * Agent Orchestrator - PRODUCTION CLIENT
+ * @deprecated This client-side orchestrator is deprecated.
+ * All builds now go through /api/execute -> BuildLoopOrchestrator on the server.
+ * The ChatInterface.tsx no longer uses this; it calls /api/execute directly.
+ *
+ * This file is maintained only for backward compatibility and will be removed
+ * in a future release. Do not add new features here.
+ *
+ * Original purpose:
+ * Agent Orchestrator - PRODUCTION CLIENT (LEGACY)
  *
  * This connects to the REAL backend orchestrator that:
  * 1. Calls Claude 4.5 via Helicone for AI generation
@@ -60,12 +68,17 @@ export interface ExecutionPlan {
     status: string;
 }
 
+/**
+ * @deprecated Use /api/execute endpoint instead. This class is maintained only for backward compatibility.
+ */
 export class AgentOrchestrator {
     private isPaused: boolean = false;
     private shouldStop: boolean = false;
     private currentProjectId: string | null = null;
 
-    constructor() {}
+    constructor() {
+        console.warn('[DEPRECATED] AgentOrchestrator is deprecated. Use /api/execute endpoint instead.');
+    }
 
     /**
      * Start the orchestration process

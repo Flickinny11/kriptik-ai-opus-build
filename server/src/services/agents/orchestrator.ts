@@ -1,5 +1,14 @@
 /**
- * Multi-Agent Orchestrator
+ * @deprecated Use BuildLoopOrchestrator from automation/build-loop.ts instead.
+ * This orchestrator is maintained only for backward compatibility.
+ * All new code should use BuildLoopOrchestrator which provides:
+ * - LATTICE parallel cell building
+ * - Browser-in-loop visual verification
+ * - Learning Engine pattern injection
+ * - Verification Swarm (6-agent verification)
+ * - Full Intent Lock enforcement
+ *
+ * Multi-Agent Orchestrator (LEGACY)
  *
  * Coordinates multiple specialized AI agents working concurrently.
  * Manages task distribution, agent lifecycle, and result aggregation.
@@ -163,6 +172,9 @@ Always provide both diagnosis and solution.`,
 // ORCHESTRATOR
 // ============================================================================
 
+/**
+ * @deprecated Use BuildLoopOrchestrator from automation/build-loop.ts instead.
+ */
 export class AgentOrchestrator extends EventEmitter {
     private client: Anthropic | null = null;
     private contextStore: ContextStore;
