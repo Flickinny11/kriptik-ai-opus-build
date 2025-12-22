@@ -27,6 +27,10 @@ import {
   type ChatMessage as FixChatMessage,
   type CapturedError,
 } from '../services/fix-my-app/fix-orchestrator.js';
+import {
+  getVisionCaptureService,
+  type VisionCredentialExtractionResult,
+} from '../services/extension/vision-capture-service.js';
 
 const router = Router();
 
@@ -812,6 +816,126 @@ router.get('/status', optionalAuthMiddleware, async (req: Request, res: Response
         userId: req.user?.id || null,
         timestamp: new Date().toISOString(),
     });
+});
+
+// ============================================================================
+// VISION CREDENTIAL EXTRACTION (Gemini 3 @ 2fps)
+// ============================================================================
+
+/**
+ * POST /api/extension/vision-extract
+ * Extract credentials from a screenshot using Gemini 3 Pro @ 2fps
+ *
+ * This endpoint receives screenshots from the browser extension and uses
+ * Gemini 3 vision to intelligently locate and extract credentials from
+ * any platform without relying on brittle CSS selectors.
+ *
+ * Security:
+ * - Credentials are NEVER logged
+ * - Response is encrypted in transit (HTTPS)
+ * - Memory cleared after processing
+ */
+router.post('/vision-extract', async (req: Request, res: Response) => {
+    const startTime = Date.now();
+
+    try {
+        // Validate extension token
+        const authHeader = req.headers.authorization;
+        const extAuth = await validateExtensionToken(authHeader);
+
+        if (!extAuth) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid or expired extension token',
+            });
+        }
+
+        const {
+            screenshot,
+            targetCredentials,
+            currentUrl,
+            pageTitle,
+            pageText,
+            attempt,
+            fps,
+            frameInterval,
+        } = req.body;
+
+        // Validate required fields
+        if (!screenshot) {
+            return res.status(400).json({
+                success: false,
+                error: 'Screenshot is required',
+            });
+        }
+
+        if (!targetCredentials || !Array.isArray(targetCredentials) || targetCredentials.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Target credentials array is required',
+            });
+        }
+
+        // Log request (without sensitive data)
+        console.log(`[VisionExtract] Request from user ${extAuth.userId}:`, {
+            platform: new URL(currentUrl || 'https://unknown').hostname,
+            targetCredentials: targetCredentials,
+            attempt: attempt || 1,
+            fps: fps || 2,
+            frameInterval: frameInterval || 500,
+            screenshotSize: screenshot.length,
+        });
+
+        // Get vision capture service
+        const visionService = getVisionCaptureService();
+
+        // Perform credential extraction with Gemini 3
+        const result = await visionService.extractCredentialsFromScreenshot({
+            screenshotBase64: screenshot,
+            targetCredentials,
+            currentUrl: currentUrl || '',
+            pageTitle: pageTitle || '',
+            pageText: pageText || '',
+            attempt: attempt || 1,
+        });
+
+        // Calculate response time
+        const responseTime = Date.now() - startTime;
+
+        // Log success (without credentials)
+        console.log(`[VisionExtract] Completed in ${responseTime}ms:`, {
+            success: result.success,
+            credentialsFound: result.credentials ? Object.keys(result.credentials).length : 0,
+            action: result.action,
+            hasClickTarget: !!result.clickSelector || !!result.clickText,
+            hasNavigateTo: !!result.navigateTo,
+        });
+
+        // Return result (credentials are in result.credentials if found)
+        return res.json({
+            success: result.success,
+            credentials: result.credentials || {},
+            action: result.action || 'continue',
+            navigateTo: result.navigateTo,
+            clickSelector: result.clickSelector,
+            clickText: result.clickText,
+            scrollDirection: result.scrollDirection,
+            message: result.message,
+            confidence: result.confidence || 0,
+            fieldLocations: result.fieldLocations || {},
+            responseTime,
+        });
+
+    } catch (error) {
+        console.error('[VisionExtract] Error:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Vision extraction failed',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            action: 'continue', // Tell extension to retry
+        });
+    }
 });
 
 // ============================================================================

@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState, useCallback } from 'react';
 import {
     RefreshIcon,
     SmartphoneIcon,
@@ -8,9 +9,77 @@ import {
 import { Button } from '../ui/button';
 import { useEditorStore } from '../../store/useEditorStore';
 import { cn } from '../../lib/utils';
+import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 
 export default function PreviewWindow() {
-    const { isSelectionMode, toggleSelectionMode, setSelectedElement } = useEditorStore();
+    const {
+        isSelectionMode,
+        toggleSelectionMode,
+        setSelectedElement,
+        isBuilding,
+        buildPhase,
+        currentBuildFile,
+    } = useEditorStore();
+
+    // AI Overlay state
+    const [isAIActive, setIsAIActive] = useState(false);
+    const [agentPhase, setAgentPhase] = useState<AgentPhase>('idle');
+    const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const eventSourceRef = useRef<EventSource | null>(null);
+
+    // Sync with store build state
+    useEffect(() => {
+        if (isBuilding) {
+            setIsAIActive(true);
+            setAgentPhase(buildPhase as AgentPhase);
+        } else if (buildPhase === 'complete') {
+            setAgentPhase('complete');
+            const timeout = setTimeout(() => {
+                setIsAIActive(false);
+                setAgentPhase('idle');
+            }, 2000);
+            return () => clearTimeout(timeout);
+        } else if (buildPhase === 'error') {
+            setAgentPhase('error');
+            const timeout = setTimeout(() => {
+                setIsAIActive(false);
+                setAgentPhase('idle');
+            }, 3000);
+            return () => clearTimeout(timeout);
+        }
+    }, [isBuilding, buildPhase]);
+
+    // Handle agent events from SSE
+    const handleAgentEvent = useCallback((event: AgentEvent) => {
+        if (event.type === 'status_change' && event.data?.status) {
+            setAgentPhase(event.data.status);
+            setIsAIActive(event.data.status !== 'idle');
+        } else if (event.type === 'cursor_move' && event.data) {
+            if (event.data.cursorX !== undefined && event.data.cursorY !== undefined) {
+                setCursorPosition({ x: event.data.cursorX, y: event.data.cursorY });
+            }
+        }
+    }, []);
+
+    // Connect to agent event stream
+    useEffect(() => {
+        try {
+            const eventSource = new EventSource('/api/agent/activity-stream');
+            eventSource.onmessage = (event) => {
+                try {
+                    const agentEvent: AgentEvent = JSON.parse(event.data);
+                    handleAgentEvent(agentEvent);
+                } catch {}
+            };
+            eventSource.onerror = () => eventSource.close();
+            eventSourceRef.current = eventSource;
+        } catch {}
+
+        return () => {
+            eventSourceRef.current?.close();
+        };
+    }, [handleAgentEvent]);
 
     const handleElementClick = (e: React.MouseEvent) => {
         if (!isSelectionMode) return;
@@ -63,7 +132,18 @@ export default function PreviewWindow() {
                     </Button>
                 </div>
             </div>
-            <div className="flex-1 bg-muted/50 p-8 flex items-center justify-center overflow-hidden">
+            <div ref={containerRef} className="flex-1 bg-muted/50 p-8 flex items-center justify-center overflow-hidden relative">
+                {/* AI Interaction Overlay */}
+                <AIInteractionOverlay
+                    isActive={isAIActive}
+                    agentPhase={agentPhase}
+                    currentFile={currentBuildFile || undefined}
+                    cursorPosition={cursorPosition}
+                    showCursor={agentPhase === 'coding' || agentPhase === 'thinking'}
+                    showStatus={true}
+                    showFileIndicator={!!currentBuildFile}
+                />
+
                 <div className="w-full h-full bg-white rounded-lg shadow-2xl overflow-hidden border border-border relative">
                     {/* Simulated App Content for Selection Demo */}
                     <div

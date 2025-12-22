@@ -21,6 +21,11 @@ interface EditorState {
         componentName: string;
     } | null;
 
+    // Build state for AI overlay
+    isBuilding: boolean;
+    buildPhase: 'idle' | 'coding' | 'building' | 'testing' | 'verifying' | 'complete' | 'error';
+    currentBuildFile: string | null;
+
     // Actions
     setActiveFile: (file: string | null) => void;
     setCursorPosition: (position: { lineNumber: number; column: number } | null) => void;
@@ -28,7 +33,13 @@ interface EditorState {
     setSelectionMode: (active: boolean) => void;
     toggleSplitView: () => void;
     setSelectedElement: (element: { file: string; line: number; componentName: string } | null) => void;
-    
+
+    // Build actions
+    startBuild: () => void;
+    endBuild: (success?: boolean) => void;
+    setBuildPhase: (phase: EditorState['buildPhase']) => void;
+    setCurrentBuildFile: (file: string | null) => void;
+
     // File operations
     addFile: (file: ProjectFile) => void;
     updateFile: (id: string, content: string) => void;
@@ -45,12 +56,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     splitView: false,
     selectedElement: null,
 
+    // Build state
+    isBuilding: false,
+    buildPhase: 'idle',
+    currentBuildFile: null,
+
     setActiveFile: (file) => set({ activeFile: file }),
     setCursorPosition: (position) => set({ cursorPosition: position }),
     toggleSelectionMode: () => set((state) => ({ isSelectionMode: !state.isSelectionMode })),
     setSelectionMode: (active) => set({ isSelectionMode: active }),
     toggleSplitView: () => set((state) => ({ splitView: !state.splitView })),
     setSelectedElement: (element) => set({ selectedElement: element }),
+
+    // Build actions
+    startBuild: () => set({ isBuilding: true, buildPhase: 'building' }),
+    endBuild: (success = true) => set({
+        isBuilding: false,
+        buildPhase: success ? 'complete' : 'error',
+        currentBuildFile: null,
+    }),
+    setBuildPhase: (phase) => set({ buildPhase: phase }),
+    setCurrentBuildFile: (file) => set({ currentBuildFile: file }),
     
     addFile: (file) => set((state) => {
         // Check if file already exists at path

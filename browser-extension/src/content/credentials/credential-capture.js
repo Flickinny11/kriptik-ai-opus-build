@@ -39,6 +39,21 @@ const CredentialCapture = {
     isSending: false,
   },
 
+  // Error recovery configuration
+  errorRecovery: {
+    maxRetries: 3,              // Maximum retry attempts per API call
+    retryDelayMs: 1000,         // Base delay between retries
+    backoffMultiplier: 2,       // Exponential backoff multiplier
+    consecutiveFailures: 0,     // Track consecutive failures
+    maxConsecutiveFailures: 5,  // Fallback to manual after this many
+  },
+
+  // Security: sensitive data handling
+  security: {
+    credentialsCaptured: false,
+    memoryCleared: false,
+  },
+
   /**
    * Initialize credential capture from URL parameters or message
    * Called when extension detects it was opened for credential capture
@@ -282,10 +297,19 @@ const CredentialCapture = {
           for (const [key, value] of Object.entries(response.credentials)) {
             if (value && value.trim()) {
               this.capturedCredentials[key] = value;
+              // SECURITY: Don't log actual credential values
               this.addLog(`Captured: ${key}`);
               this.updateCredentialStatus(key, 'captured');
             }
           }
+        }
+
+        // Handle manual input fallback (after too many failures)
+        if (response.action === 'manual_input') {
+          this.addLog('Switching to manual input mode');
+          this.updateStatus('manual', 'Please enter credentials manually');
+          this.showManualInputFallback();
+          return; // Exit extraction loop
         }
 
         // Handle navigation or click instructions
@@ -385,29 +409,66 @@ const CredentialCapture = {
   },
 
   /**
-   * Send screenshot to KripTik backend for AI analysis
+   * Send screenshot to KripTik backend for AI analysis with error recovery
+   * Implements 3 retries with exponential backoff, then fallback to manual input
    */
   async sendToVisionAPI(data) {
-    try {
-      const response = await fetch(`${this.apiEndpoint}/api/extension/vision-extract`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.sessionToken}`
-        },
-        body: JSON.stringify(data)
-      });
+    let lastError = null;
 
-      if (!response.ok) {
-        console.error('[CredentialCapture] Vision API error:', response.status);
-        return null;
+    for (let retry = 0; retry <= this.errorRecovery.maxRetries; retry++) {
+      try {
+        // Calculate backoff delay for retries
+        if (retry > 0) {
+          const delay = this.errorRecovery.retryDelayMs *
+            Math.pow(this.errorRecovery.backoffMultiplier, retry - 1);
+          this.addLog(`Retry ${retry}/${this.errorRecovery.maxRetries} after ${delay}ms...`);
+          await this.wait(delay);
+        }
+
+        const response = await fetch(`${this.apiEndpoint}/api/extension/vision-extract`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.sessionToken}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          lastError = new Error(`API error: ${response.status}`);
+          console.error('[CredentialCapture] Vision API error:', response.status);
+          continue; // Retry
+        }
+
+        const result = await response.json();
+
+        // Reset consecutive failures on success
+        this.errorRecovery.consecutiveFailures = 0;
+
+        return result;
+
+      } catch (error) {
+        lastError = error;
+        console.error('[CredentialCapture] Vision API request failed:', error);
+        // Continue to retry
       }
-
-      return await response.json();
-    } catch (error) {
-      console.error('[CredentialCapture] Vision API request failed:', error);
-      return null;
     }
+
+    // All retries exhausted
+    this.errorRecovery.consecutiveFailures++;
+    console.error('[CredentialCapture] All retries exhausted:', lastError);
+
+    // Check if we should fallback to manual input
+    if (this.errorRecovery.consecutiveFailures >= this.errorRecovery.maxConsecutiveFailures) {
+      this.addLog('Too many failures - switching to manual input mode');
+      return {
+        success: false,
+        action: 'manual_input',
+        message: 'Automatic extraction failed. Please enter credentials manually.',
+      };
+    }
+
+    return null;
   },
 
   /**
@@ -473,6 +534,7 @@ const CredentialCapture = {
 
   /**
    * Send captured credentials back to KripTik
+   * Security: Clears credentials from memory after successful send
    */
   async sendCredentialsToKripTik() {
     const capturedCount = Object.keys(this.capturedCredentials).length;
@@ -485,10 +547,10 @@ const CredentialCapture = {
     }
 
     this.updateStatus('complete', `Captured ${capturedCount}/${targetCount} credentials`);
-    this.addLog('Sending credentials to KripTik AI...');
+    this.addLog('Sending credentials to KripTik AI vault...');
 
     try {
-      // Send to KripTik backend
+      // Send to KripTik backend (credentials are encrypted in transit via HTTPS)
       const response = await fetch(`${this.apiEndpoint}/api/extension/credentials`, {
         method: 'POST',
         headers: {
@@ -508,18 +570,24 @@ const CredentialCapture = {
         throw new Error(`API error: ${response.status}`);
       }
 
-      // Notify the KripTik tab
+      // Mark as successfully captured before clearing
+      this.security.credentialsCaptured = true;
+
+      // Notify the KripTik tab (send only credential keys, not values for security)
       chrome.runtime.sendMessage({
         type: 'CREDENTIALS_CAPTURED',
-        credentials: this.capturedCredentials,
+        capturedKeys: Object.keys(this.capturedCredentials),
         originTabId: this.kriptikTabId
       });
 
+      // SECURITY: Clear credentials from memory immediately after successful send
+      this.clearCredentialsFromMemory();
+
       // Show success
       if (capturedCount === targetCount) {
-        this.showSuccess('All credentials captured! Returning to KripTik AI...');
+        this.showSuccess('All credentials captured securely! Returning to KripTik AI...');
       } else {
-        this.showSuccess(`Captured ${capturedCount} of ${targetCount} credentials. Returning to KripTik AI...`);
+        this.showSuccess(`Captured ${capturedCount} of ${targetCount} credentials securely. Returning to KripTik AI...`);
       }
 
       // Close window after delay
@@ -528,9 +596,36 @@ const CredentialCapture = {
       }, 2500);
 
     } catch (error) {
+      // SECURITY: Clear credentials even on error (don't leave in memory)
+      this.clearCredentialsFromMemory();
+
       console.error('[CredentialCapture] Send credentials error:', error);
       this.showError(`Failed to send credentials: ${error.message}`);
     }
+  },
+
+  /**
+   * SECURITY: Clear all credentials from memory
+   * Called after sending to vault or on error
+   */
+  clearCredentialsFromMemory() {
+    // Overwrite credential values with empty strings before clearing
+    for (const key of Object.keys(this.capturedCredentials)) {
+      this.capturedCredentials[key] = '';
+    }
+    this.capturedCredentials = {};
+
+    // Clear session token
+    this.sessionToken = '';
+    this.sessionToken = null;
+
+    // Clear frame buffer (may contain screenshots with visible credentials)
+    this.frameBuffer.frames = [];
+
+    // Mark as cleared
+    this.security.memoryCleared = true;
+
+    console.log('[CredentialCapture] Credentials cleared from memory');
   },
 
   /**
@@ -910,6 +1005,197 @@ const CredentialCapture = {
     msg.className = `kc-message ${type}`;
     msg.textContent = message;
     this.overlay?.appendChild(msg);
+  },
+
+  /**
+   * Show manual input fallback UI
+   * Called when automatic extraction fails after max retries
+   */
+  showManualInputFallback() {
+    const remaining = this.targetCredentials.filter(c => !this.capturedCredentials[c]);
+
+    if (remaining.length === 0) {
+      // All credentials already captured
+      this.sendCredentialsToKripTik();
+      return;
+    }
+
+    // Create manual input form
+    const form = document.createElement('div');
+    form.className = 'kc-manual-form';
+    form.innerHTML = `
+      <div class="kc-manual-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v4M12 17h.01M12 3l9.5 16.5H2.5L12 3z"/>
+        </svg>
+        <span>Manual Input Required</span>
+      </div>
+      <p class="kc-manual-desc">
+        Automatic extraction couldn't find all credentials. Please enter them manually below.
+      </p>
+      <div class="kc-manual-fields">
+        ${remaining.map(cred => `
+          <div class="kc-manual-field">
+            <label for="kc-input-${cred}">${cred}</label>
+            <input
+              type="password"
+              id="kc-input-${cred}"
+              data-credential="${cred}"
+              placeholder="Enter ${cred}"
+              autocomplete="off"
+            />
+            <button class="kc-toggle-visibility" data-for="kc-input-${cred}" title="Toggle visibility">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="kc-manual-actions">
+        <button class="kc-btn kc-btn-submit" id="kc-manual-submit">Submit Credentials</button>
+      </div>
+    `;
+
+    // Add manual form styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .kc-manual-form {
+        margin-top: 16px;
+        padding: 16px;
+        background: rgba(255, 200, 100, 0.1);
+        border: 1px solid rgba(255, 200, 100, 0.2);
+        border-radius: 12px;
+      }
+      .kc-manual-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        color: #fbbf24;
+        font-weight: 600;
+      }
+      .kc-manual-desc {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 16px;
+      }
+      .kc-manual-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .kc-manual-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        position: relative;
+      }
+      .kc-manual-field label {
+        font-size: 11px;
+        font-family: 'SF Mono', Monaco, monospace;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .kc-manual-field input {
+        padding: 10px 36px 10px 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 12px;
+      }
+      .kc-manual-field input:focus {
+        outline: none;
+        border-color: #ff9966;
+      }
+      .kc-toggle-visibility {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        padding: 4px;
+      }
+      .kc-toggle-visibility:hover {
+        color: #fff;
+      }
+      .kc-manual-actions {
+        margin-top: 16px;
+      }
+      .kc-btn-submit {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #ff9966, #ff7733);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .kc-btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 153, 102, 0.3);
+      }
+      .kc-btn-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+    `;
+    form.appendChild(style);
+
+    // Replace credentials panel with form
+    const credentialsPanel = document.getElementById('kc-credentials');
+    if (credentialsPanel) {
+      credentialsPanel.replaceWith(form);
+    } else {
+      this.overlay?.querySelector('.kc-panel')?.appendChild(form);
+    }
+
+    // Bind toggle visibility buttons
+    form.querySelectorAll('.kc-toggle-visibility').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inputId = btn.getAttribute('data-for');
+        const input = document.getElementById(inputId);
+        if (input) {
+          input.type = input.type === 'password' ? 'text' : 'password';
+        }
+      });
+    });
+
+    // Bind submit button
+    document.getElementById('kc-manual-submit')?.addEventListener('click', () => {
+      this.submitManualCredentials(remaining);
+    });
+  },
+
+  /**
+   * Submit manually entered credentials
+   */
+  async submitManualCredentials(credentialNames) {
+    const submitBtn = document.getElementById('kc-manual-submit');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+    }
+
+    // Collect values from inputs
+    for (const credName of credentialNames) {
+      const input = document.getElementById(`kc-input-${credName}`);
+      if (input && input.value.trim()) {
+        this.capturedCredentials[credName] = input.value.trim();
+        // SECURITY: Clear input after reading
+        input.value = '';
+      }
+    }
+
+    // Send to KripTik
+    await this.sendCredentialsToKripTik();
   },
 
   /**

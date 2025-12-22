@@ -6,7 +6,7 @@
  * Includes "Show Me" demo button for AI voice narration.
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
     SandpackPreview as SandpackPreviewBase,
     SandpackConsole,
@@ -15,6 +15,7 @@ import {
 import { RefreshIcon, type IconProps } from '../ui/icons';
 import { useEditorStore } from '../../store/useEditorStore';
 import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOverlay';
+import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 import { apiClient } from '@/lib/api-client';
 
 // Temporary icon components for icons not in custom icon set
@@ -211,9 +212,119 @@ export default function SandpackPreviewWindow() {
     const [isDemoActive, setIsDemoActive] = useState(false);
     const [demoSegments, setDemoSegments] = useState<NarrationPlaybackSegment[]>([]);
     const [isLoadingDemo, setIsLoadingDemo] = useState(false);
-    const { isSelectionMode, toggleSelectionMode } = useEditorStore();
+
+    // AI Interaction Overlay state
+    const [isAIActive, setIsAIActive] = useState(false);
+    const [agentPhase, setAgentPhase] = useState<AgentPhase>('idle');
+    const [currentFile, setCurrentFile] = useState<string | undefined>();
+    const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>();
+
+    const { isSelectionMode, toggleSelectionMode, isBuilding } = useEditorStore();
     const { sandpack } = useSandpack();
     const previewContainerRef = useRef<HTMLDivElement>(null);
+    const eventSourceRef = useRef<EventSource | null>(null);
+
+    // Subscribe to build events for AI overlay
+    useEffect(() => {
+        // Activate overlay when building
+        if (isBuilding) {
+            setIsAIActive(true);
+            setAgentPhase('building');
+        } else if (isAIActive && agentPhase === 'building') {
+            // Build complete
+            setAgentPhase('complete');
+            // Clear after 2 seconds
+            const timeout = setTimeout(() => {
+                setIsAIActive(false);
+                setAgentPhase('idle');
+                setCurrentFile(undefined);
+                setCursorPosition(undefined);
+            }, 2000);
+            return () => clearTimeout(timeout);
+        }
+    }, [isBuilding, isAIActive, agentPhase]);
+
+    // Handle AI agent events (from SSE or message bus)
+    const handleAgentEvent = useCallback((event: AgentEvent) => {
+        switch (event.type) {
+            case 'status_change':
+                if (event.data?.status) {
+                    setAgentPhase(event.data.status);
+                    setIsAIActive(event.data.status !== 'idle' && event.data.status !== 'complete');
+                }
+                break;
+
+            case 'file_read':
+            case 'file_write':
+                if (event.data?.filePath) {
+                    setCurrentFile(event.data.filePath);
+                    setAgentPhase(event.type === 'file_write' ? 'coding' : 'thinking');
+                    setIsAIActive(true);
+                }
+                break;
+
+            case 'cursor_move':
+                if (event.data?.cursorX !== undefined && event.data?.cursorY !== undefined) {
+                    setCursorPosition({ x: event.data.cursorX, y: event.data.cursorY });
+                }
+                break;
+
+            case 'verification':
+                setAgentPhase('verifying');
+                setIsAIActive(true);
+                break;
+
+            case 'build_start':
+                setAgentPhase('building');
+                setIsAIActive(true);
+                break;
+
+            case 'build_complete':
+                setAgentPhase(event.data?.success ? 'complete' : 'error');
+                // Auto-hide after completion
+                setTimeout(() => {
+                    setIsAIActive(false);
+                    setAgentPhase('idle');
+                }, 2500);
+                break;
+        }
+    }, []);
+
+    // Connect to agent event stream (if available)
+    useEffect(() => {
+        // Try to connect to the agent activity stream
+        const connectToAgentStream = () => {
+            try {
+                const eventSource = new EventSource('/api/agent/activity-stream');
+
+                eventSource.onmessage = (event) => {
+                    try {
+                        const agentEvent: AgentEvent = JSON.parse(event.data);
+                        handleAgentEvent(agentEvent);
+                    } catch (e) {
+                        console.debug('[AIOverlay] Failed to parse event:', e);
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    // Silent error - stream may not be available
+                    eventSource.close();
+                };
+
+                eventSourceRef.current = eventSource;
+            } catch (e) {
+                // SSE not available, overlay will rely on manual triggers
+            }
+        };
+
+        connectToAgentStream();
+
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+        };
+    }, [handleAgentEvent]);
 
     const handleRefresh = () => {
         sandpack.runSandpack();
@@ -414,6 +525,17 @@ export default function SandpackPreviewWindow() {
                     background: 'linear-gradient(180deg, rgba(200,195,190,0.3) 0%, rgba(180,175,170,0.2) 100%)',
                 }}
             >
+                {/* AI Interaction Overlay */}
+                <AIInteractionOverlay
+                    isActive={isAIActive}
+                    agentPhase={agentPhase}
+                    currentFile={currentFile}
+                    cursorPosition={cursorPosition}
+                    showCursor={agentPhase === 'coding' || agentPhase === 'thinking'}
+                    showStatus={true}
+                    showFileIndicator={!!currentFile}
+                />
+
                 {/* Voice Narration Demo Overlay */}
                 {isDemoActive && demoSegments.length > 0 && (
                     <AgentDemoOverlay
