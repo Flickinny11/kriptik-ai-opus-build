@@ -19,6 +19,10 @@ export interface FeatureAgentConfig {
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
+  /** Speed enhancements for build loop (LATTICE parallel building, speculative pre-computation) */
+  speedEnhancements?: ('lattice' | 'burst' | 'cached' | 'speculative')[];
+  /** LATTICE speedup multiplier achieved (vs sequential build) */
+  latticeSpeedup?: number;
 }
 
 export type FeatureAgentStatus =

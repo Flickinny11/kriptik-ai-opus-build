@@ -51,3 +51,15 @@ export {
     type LatticeOrchestratorConfig,
     type LatticeOrchestratorEvents,
 } from './lattice-orchestrator.js';
+
+// ============================================================================
+// PRECOMPUTE ENGINE (Phase 5)
+// ============================================================================
+
+export {
+    PrecomputeEngine,
+    createPrecomputeEngine,
+    type PrecomputedCellStatus,
+    type PrecomputeSession,
+    type PrecomputeEngineConfig,
+} from './precompute-engine.js';

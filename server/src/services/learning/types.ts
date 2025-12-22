@@ -31,7 +31,8 @@ export type DecisionType =
     | 'motion_implementation'
     | 'placeholder_resolution'
     | 'model_selection'
-    | 'strategy_selection';
+    | 'strategy_selection'
+    | 'lattice_cell_build';
 
 // =============================================================================
 // DECISION TRACE

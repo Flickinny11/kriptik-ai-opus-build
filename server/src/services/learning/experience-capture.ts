@@ -387,6 +387,168 @@ export class ExperienceCaptureService extends EventEmitter {
     }
 
     // =========================================================================
+    // LATTICE EXPERIENCE CAPTURE
+    // =========================================================================
+
+    /**
+     * Capture LATTICE cell build experiences for learning
+     *
+     * Records the results of each cell build, including the patterns used,
+     * quality scores, and build times. This data feeds into the learning
+     * engine to improve future cell building.
+     */
+    async captureLatticeExperience(
+        blueprintId: string,
+        cellResults: Map<string, {
+            cellId: string;
+            cellName: string;
+            cellType: string;
+            complexity: string;
+            success: boolean;
+            qualityScore: number;
+            buildTime: number;
+            files: Array<{ path: string; content: string }>;
+            interfaceCompliance: { inputsValid: boolean; outputsValid: boolean; errors: string[] };
+            patternsUsed?: string[];
+            approach?: string;
+        }>
+    ): Promise<void> {
+        if (!this.config.enableDecisionCapture) {
+            return;
+        }
+
+        console.log(`[ExperienceCapture] Capturing LATTICE experience for blueprint: ${blueprintId} with ${cellResults.size} cells`);
+
+        for (const [cellId, result] of cellResults) {
+            try {
+                // Capture each cell build as a decision trace
+                const decisionContext: DecisionContext = {
+                    intentSnippet: `LATTICE cell: ${result.cellName} (${result.cellType})`,
+                    previousAttempts: 0,
+                    buildPhase: 'build',
+                    relatedFiles: result.files.map(f => f.path),
+                };
+
+                const decisionMade: DecisionMade = {
+                    chosenOption: result.approach || `Build ${result.cellType} cell: ${result.cellName}`,
+                    rejectedOptions: [],
+                    reasoning: `LATTICE parallel build: ${result.complexity} complexity cell`,
+                    confidence: result.qualityScore / 100,
+                };
+
+                const traceId = await this.captureDecision(
+                    'build',
+                    'lattice_cell_build',
+                    decisionContext,
+                    decisionMade
+                );
+
+                // Record the outcome immediately since we have the results
+                const outcome: DecisionOutcome = {
+                    immediateResult: result.success ? 'success' : 'failure',
+                    verificationScores: {
+                        quality: result.qualityScore,
+                        inputsValid: result.interfaceCompliance.inputsValid ? 100 : 0,
+                        outputsValid: result.interfaceCompliance.outputsValid ? 100 : 0,
+                    },
+                    requiredFixes: result.interfaceCompliance.errors.length,
+                    finalInProduction: result.success,
+                };
+
+                await this.recordDecisionOutcome(traceId, outcome);
+
+                // Capture code artifacts for each file
+                for (const file of result.files) {
+                    if (result.success && file.content.length > 0) {
+                        await this.captureCodeChange(
+                            file.path,
+                            file.content,
+                            'initial',
+                            `lattice-${cellId}`
+                        );
+                    }
+                }
+
+                this.emit('lattice_cell_captured', {
+                    blueprintId,
+                    cellId,
+                    cellType: result.cellType,
+                    success: result.success,
+                    qualityScore: result.qualityScore,
+                    buildTime: result.buildTime,
+                });
+
+            } catch (error) {
+                console.error(`[ExperienceCapture] Failed to capture LATTICE cell ${cellId}:`, error);
+            }
+        }
+
+        console.log(`[ExperienceCapture] Captured ${cellResults.size} LATTICE cell experiences`);
+    }
+
+    /**
+     * Capture a complete LATTICE blueprint execution
+     */
+    async captureLatticeBlueprint(
+        blueprintId: string,
+        appName: string,
+        totalCells: number,
+        successfulCells: number,
+        failedCells: number,
+        averageQualityScore: number,
+        speedup: number,
+        totalBuildTime: number
+    ): Promise<string> {
+        const decisionContext: DecisionContext = {
+            intentSnippet: `LATTICE blueprint: ${appName}`,
+            previousAttempts: 0,
+            buildPhase: 'build',
+        };
+
+        const decisionMade: DecisionMade = {
+            chosenOption: `LATTICE parallel build with ${totalCells} cells`,
+            rejectedOptions: ['Sequential build', 'Traditional task-based build'],
+            reasoning: `Used LATTICE parallel building for ${speedup.toFixed(1)}x speedup`,
+            confidence: averageQualityScore / 100,
+        };
+
+        const traceId = await this.captureDecision(
+            'build',
+            'lattice_cell_build',
+            decisionContext,
+            decisionMade
+        );
+
+        const outcome: DecisionOutcome = {
+            immediateResult: failedCells === 0 ? 'success' : failedCells < successfulCells ? 'partial' : 'failure',
+            verificationScores: {
+                quality: averageQualityScore,
+                successRate: (successfulCells / totalCells) * 100,
+                speedup: speedup * 10, // Normalize to 0-100 scale (10x speedup = 100)
+            },
+            requiredFixes: failedCells,
+            finalInProduction: failedCells === 0,
+        };
+
+        await this.recordDecisionOutcome(traceId, outcome);
+
+        this.emit('lattice_blueprint_captured', {
+            blueprintId,
+            appName,
+            totalCells,
+            successfulCells,
+            failedCells,
+            averageQualityScore,
+            speedup,
+            totalBuildTime,
+        });
+
+        console.log(`[ExperienceCapture] Captured LATTICE blueprint: ${appName} (${successfulCells}/${totalCells} cells, ${speedup.toFixed(1)}x speedup)`);
+
+        return traceId;
+    }
+
+    // =========================================================================
     // QUERY METHODS
     // =========================================================================
 

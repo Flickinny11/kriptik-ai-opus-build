@@ -604,6 +604,8 @@ ${basePrompt}`;
             createdAt,
             startedAt: null,
             completedAt: null,
+            // Enable LATTICE parallel building and speculative pre-computation by default
+            speedEnhancements: ['lattice', 'speculative'],
         };
 
         this.agents.set(id, {
