@@ -73,6 +73,13 @@ import {
     type BuildMode,
 } from '../automation/build-loop.js';
 
+// Git Branch Manager for actual merge operations
+import {
+    GitBranchManager,
+    createGitBranchManager,
+    type MergeResult as GitMergeResult,
+} from '../developer-mode/git-branch-manager.js';
+
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
     content: string;
@@ -115,6 +122,10 @@ type FeatureAgentRuntime = {
     buildAgentId: string | null;
     /** Cached unified context for this agent's project */
     unifiedContext: UnifiedContext | null;
+    /** Git Branch Manager for merge operations */
+    gitBranchManager: GitBranchManager | null;
+    /** The branch name created for this feature agent */
+    branchName: string | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -606,6 +617,8 @@ ${basePrompt}`;
             buildLoopOrchestrator: null,
             buildAgentId: null,
             unifiedContext: null,
+            gitBranchManager: null,
+            branchName: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -885,6 +898,39 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
         const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
+        const worktreesBasePath = `/tmp/worktrees/${rt.config.projectId}`;
+
+        // =============================================================================
+        // INITIALIZE GIT BRANCH MANAGER FOR MERGE OPERATIONS
+        // =============================================================================
+        try {
+            rt.gitBranchManager = createGitBranchManager({
+                projectPath,
+                worktreesBasePath,
+                defaultBranch: 'main',
+            });
+            await rt.gitBranchManager.initialize();
+
+            // Create a feature branch for this agent
+            const branchName = `feature/${rt.config.name.toLowerCase().replace(/\s+/g, '-')}-${agentId.slice(0, 8)}`;
+            const { branch } = await rt.gitBranchManager.createAgentBranch(agentId, branchName);
+            rt.branchName = branch;
+
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Git branch created: ${branch}`,
+                timestamp: Date.now(),
+                metadata: { branch, worktreePath: rt.gitBranchManager.getAgentWorktreePath(agentId) }
+            });
+        } catch (gitError) {
+            // Git initialization is optional - continue without it
+            console.warn(`[FeatureAgent] Git branch manager initialization failed for ${agentId}:`, gitError);
+            this.emitStream(agentId, {
+                type: 'thinking',
+                content: 'Git branch management unavailable - changes will be applied directly',
+                timestamp: Date.now(),
+            });
+        }
 
         // =============================================================================
         // INITIALIZE ENHANCED BUILD LOOP (Cursor 2.1+ Features)
@@ -1484,17 +1530,13 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         this.emitStream(agentId, { type: 'status', content: 'Feature Agent stopped.', timestamp: Date.now() });
     }
 
-    async acceptAndMerge(agentId: string): Promise<MergeResult> {
+    async acceptAndMerge(agentId: string, targetBranch?: string): Promise<MergeResult> {
         const rt = this.getRuntimeOrThrow(agentId);
         if (!rt.sessionId) throw new Error('No session for merge');
 
-        // For the new architecture, merge is handled via the build loop's checkpoint system
-        // The feature was built directly into the project files during execution
-        // This method now confirms acceptance and creates a merge record
-
         const mergeId = uuidv4();
 
-        // If there's an enhanced build loop, get the final state
+        // Verify build state before merge
         if (rt.enhancedBuildLoop) {
             const state = rt.enhancedBuildLoop.getState();
 
@@ -1510,7 +1552,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             }
         }
 
-        // If there's a build loop orchestrator, get the final verification status
+        // Verify build loop status
         if (rt.buildLoopOrchestrator) {
             const buildState = rt.buildLoopOrchestrator.getState();
 
@@ -1519,14 +1561,97 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             }
         }
 
-        this.emitStream(agentId, {
-            type: 'result',
-            content: 'Feature accepted and merged successfully.',
-            timestamp: Date.now(),
-            metadata: { mergeId, status: 'merged' }
-        });
+        // =============================================================================
+        // PERFORM THE ACTUAL GIT MERGE VIA GitBranchManager
+        // =============================================================================
+        if (rt.gitBranchManager && rt.branchName) {
+            this.emitStream(agentId, {
+                type: 'action',
+                content: `Merging feature branch ${rt.branchName} into ${targetBranch || 'main'}...`,
+                timestamp: Date.now(),
+                metadata: { sourceBranch: rt.branchName, targetBranch: targetBranch || 'main' }
+            });
 
-        return { mergeId, status: 'merged' };
+            try {
+                // First commit any pending changes
+                const worktreeStatus = await rt.gitBranchManager.getWorktreeStatus(agentId);
+                if (worktreeStatus?.hasChanges) {
+                    const commitMessage = `feat(${rt.config.name}): Implementation complete\n\nFeature Agent ID: ${agentId}\nTask: ${rt.config.taskPrompt.slice(0, 200)}`;
+                    await rt.gitBranchManager.commitChanges(agentId, commitMessage);
+
+                    this.emitStream(agentId, {
+                        type: 'action',
+                        content: 'Committed pending changes before merge',
+                        timestamp: Date.now(),
+                    });
+                }
+
+                // Perform the merge using squash strategy
+                const mergeResult: GitMergeResult = await rt.gitBranchManager.mergeBranch(
+                    agentId,
+                    targetBranch || 'main',
+                    'squash'
+                );
+
+                if (!mergeResult.success) {
+                    // Handle merge conflicts
+                    this.emitStream(agentId, {
+                        type: 'result',
+                        content: `Merge conflicts detected in ${mergeResult.conflicts.length} files: ${mergeResult.conflicts.join(', ')}`,
+                        timestamp: Date.now(),
+                        metadata: { conflicts: mergeResult.conflicts }
+                    });
+
+                    throw new Error(`Merge conflicts: ${mergeResult.message}`);
+                }
+
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: `Successfully merged ${mergeResult.mergedFiles.length} files from ${rt.branchName} into ${targetBranch || 'main'}`,
+                    timestamp: Date.now(),
+                    metadata: {
+                        mergeId,
+                        status: 'merged',
+                        mergedFiles: mergeResult.mergedFiles,
+                        branch: rt.branchName
+                    }
+                });
+
+                // Clean up the worktree after successful merge
+                await rt.gitBranchManager.cleanupAgentWorktree(agentId, true).catch((e) => {
+                    console.warn(`[FeatureAgent] Failed to cleanup worktree after merge:`, e);
+                });
+
+                return { mergeId, status: 'merged' };
+            } catch (mergeError) {
+                const errorMessage = mergeError instanceof Error ? mergeError.message : String(mergeError);
+                this.emitStream(agentId, {
+                    type: 'result',
+                    content: `Merge failed: ${errorMessage}`,
+                    timestamp: Date.now(),
+                    metadata: { error: errorMessage }
+                });
+                throw new Error(`Git merge failed: ${errorMessage}`);
+            }
+        } else {
+            // No GitBranchManager - files were applied directly, just confirm acceptance
+            this.emitStream(agentId, {
+                type: 'result',
+                content: 'Feature accepted. Changes were applied directly (no git branch isolation available).',
+                timestamp: Date.now(),
+                metadata: { mergeId, status: 'approved', directApply: true }
+            });
+
+            return { mergeId, status: 'approved' };
+        }
+    }
+
+    /**
+     * Merge a feature agent's branch into the target branch
+     * This is the primary method called by the preview accept endpoint
+     */
+    async mergeFeature(agentId: string, targetBranch?: string): Promise<MergeResult> {
+        return this.acceptAndMerge(agentId, targetBranch);
     }
 
     async *streamFeatureAgent(agentId: string): AsyncGenerator<StreamMessage> {

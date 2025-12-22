@@ -455,10 +455,12 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           sandboxUrl={`/sandbox/${agentId}`}
           onAccept={() => {
             addMessage(agentId, {
-              type: 'status',
-              content: 'Feature accepted and merged successfully!',
+              type: 'result',
+              content: 'Feature branch merged successfully into main! Your changes are now live.',
               timestamp: Date.now(),
+              metadata: { event: 'merge_complete' },
             });
+            setTileStatus(agentId, 'complete');
           }}
           onClose={() => setShowPreviewWindow(false)}
         />

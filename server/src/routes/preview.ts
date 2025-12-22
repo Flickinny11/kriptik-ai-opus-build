@@ -6,11 +6,12 @@
  * - Stream preview events via SSE
  * - AI demonstration mode
  * - User takeover
- * - Accept feature
+ * - Accept feature and merge via GitBranchManager
  */
 
 import { Router, type Request, type Response } from 'express';
 import { previewService, type PreviewEvent } from '../services/preview/headless-preview-service.js';
+import { getFeatureAgentService } from '../services/feature-agent/feature-agent-service.js';
 
 const router = Router();
 
@@ -149,11 +150,12 @@ router.post('/:sessionId/takeover', async (req: Request, res: Response) => {
 
 /**
  * POST /api/preview/:sessionId/accept
- * User accepts the feature (triggers merge flow)
+ * User accepts the feature and triggers the actual merge via GitBranchManager
  */
 router.post('/:sessionId/accept', async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+        const { targetBranch } = req.body as { targetBranch?: string };
 
         const session = previewService.getSession(sessionId);
         if (!session) {
@@ -163,21 +165,60 @@ router.post('/:sessionId/accept', async (req: Request, res: Response) => {
             });
         }
 
-        // End the preview session
+        const featureAgentId = session.featureAgentId;
+
+        // Get the feature agent service and trigger the actual merge
+        const featureAgentService = getFeatureAgentService();
+
+        // Verify the agent exists
+        const agentConfig = featureAgentService.getAgentConfig(featureAgentId);
+        if (!agentConfig) {
+            // End preview and return success (agent may have been cleaned up)
+            await previewService.endPreview(sessionId);
+            return res.json({
+                success: true,
+                accepted: true,
+                featureAgentId,
+                message: 'Feature accepted. Agent no longer active - changes may have been applied directly.',
+                merged: false,
+            });
+        }
+
+        // Perform the actual merge via GitBranchManager
+        const mergeResult = await featureAgentService.mergeFeature(featureAgentId, targetBranch);
+
+        // End the preview session after successful merge
         await previewService.endPreview(sessionId);
 
-        // Return acceptance info - actual merge handled by feature agent
         res.json({
             success: true,
             accepted: true,
-            featureAgentId: session.featureAgentId,
-            message: 'Feature accepted. Merge will be triggered.',
+            featureAgentId,
+            mergeId: mergeResult.mergeId,
+            mergeStatus: mergeResult.status,
+            message: mergeResult.status === 'merged'
+                ? 'Feature accepted and merged successfully into the target branch.'
+                : 'Feature accepted. Changes were applied directly.',
+            merged: mergeResult.status === 'merged',
         });
     } catch (error) {
         console.error('Error accepting feature:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // Check if it's a merge conflict
+        if (errorMessage.includes('conflict')) {
+            return res.status(409).json({
+                success: false,
+                error: 'Merge conflicts detected',
+                details: errorMessage,
+                needsManualResolution: true,
+            });
+        }
+
         res.status(500).json({
             success: false,
-            error: 'Failed to accept feature',
+            error: 'Failed to accept and merge feature',
+            details: errorMessage,
         });
     }
 });

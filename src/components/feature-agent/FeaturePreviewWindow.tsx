@@ -248,17 +248,56 @@ export function FeaturePreviewWindow({
         }
     };
 
-    // Handle feature acceptance
+    // Handle feature acceptance and merge
     const handleAccept = async () => {
         if (!sessionId) return;
         setIsAccepting(true);
+        setNarration('Merging feature into target branch...');
+
         try {
-            await apiClient.post(`/api/preview/${encodeURIComponent(sessionId)}/accept`, {});
-            onAccept();
-            onClose();
-        } catch (error) {
+            interface AcceptResponse {
+                success: boolean;
+                accepted: boolean;
+                featureAgentId: string;
+                mergeId?: string;
+                mergeStatus?: 'approved' | 'merged';
+                message: string;
+                merged: boolean;
+                error?: string;
+                details?: string;
+                needsManualResolution?: boolean;
+            }
+
+            const response = await apiClient.post<AcceptResponse>(
+                `/api/preview/${encodeURIComponent(sessionId)}/accept`,
+                { targetBranch: 'main' }
+            );
+
+            if (response.data.success) {
+                // Show success message based on merge result
+                if (response.data.merged) {
+                    setNarration(`Merge successful. ${response.data.message}`);
+                } else {
+                    setNarration(response.data.message);
+                }
+
+                // Brief delay to show success message before closing
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                onAccept();
+                onClose();
+            } else {
+                throw new Error(response.data.error || 'Merge failed');
+            }
+        } catch (error: any) {
             console.error('Failed to accept feature:', error);
-            setNarration('Failed to accept feature. Please try again.');
+
+            // Check for merge conflicts
+            if (error.response?.status === 409) {
+                setNarration('Merge conflicts detected. Manual resolution required.');
+            } else {
+                const errorMessage = error.response?.data?.details || error.message || 'Unknown error';
+                setNarration(`Merge failed: ${errorMessage}`);
+            }
         } finally {
             setIsAccepting(false);
             setShowAcceptConfirm(false);
