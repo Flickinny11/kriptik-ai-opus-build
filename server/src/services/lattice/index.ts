@@ -37,3 +37,17 @@ export {
     type CellBuildContext,
     type CellBuilderConfig,
 } from './cell-builder.js';
+
+// ============================================================================
+// LATTICE ORCHESTRATOR (Phase 2.2)
+// ============================================================================
+
+export {
+    LatticeOrchestrator,
+    createLatticeOrchestrator,
+    type LatticeProgress,
+    type LatticeResult,
+    type LatticeBuildContext,
+    type LatticeOrchestratorConfig,
+    type LatticeOrchestratorEvents,
+} from './lattice-orchestrator.js';
