@@ -60,6 +60,12 @@ import {
     createCodingAgentWrapper,
     type CodingAgentWrapper,
 } from '../ai/coding-agent-wrapper.js';
+import {
+    getContextOverflowManager,
+    type ContextOverflowManager,
+    type ContextStatus,
+    type AgentHandoff,
+} from './context-overflow.js';
 
 // ============================================================================
 // AGENT EXECUTORS
@@ -168,10 +174,42 @@ export class AgentOrchestrator extends EventEmitter {
     private loadedContexts: Map<string, LoadedContext> = new Map();
     private projectPaths: Map<string, string> = new Map();
 
+    // Context Overflow Management
+    private contextOverflowManager: ContextOverflowManager;
+    private agentIdMap: Map<string, string> = new Map(); // contextId -> agentId
+
     constructor() {
         super();
         this.contextStore = getContextStore();
+        this.contextOverflowManager = getContextOverflowManager();
         this.initializeClient();
+        this.setupContextOverflowHandlers();
+    }
+
+    /**
+     * Set up event handlers for context overflow management
+     */
+    private setupContextOverflowHandlers(): void {
+        this.contextOverflowManager.on('context_warning', ({ agentId, status }: { agentId: string; status: ContextStatus }) => {
+            console.log(`[AgentOrchestrator] Context warning for ${agentId}: ${status.usagePercent}% used`);
+            this.emit('context:warning', { agentId, status });
+        });
+
+        this.contextOverflowManager.on('context_critical', ({ agentId, status }: { agentId: string; status: ContextStatus }) => {
+            console.log(`[AgentOrchestrator] Context critical for ${agentId}: ${status.usagePercent}% used`);
+            this.emit('context:critical', { agentId, status });
+        });
+
+        this.contextOverflowManager.on('handoff_initiated', (handoff: AgentHandoff) => {
+            console.log(`[AgentOrchestrator] Handoff initiated: ${handoff.fromAgentId} -> ${handoff.toAgentId}`);
+            this.emit('context:handoff', handoff);
+        });
+
+        this.contextOverflowManager.on('handoff_acknowledged', (handoff: AgentHandoff) => {
+            console.log(`[AgentOrchestrator] Handoff acknowledged: ${handoff.toAgentId}`);
+            // Terminate old agent
+            this.contextOverflowManager.terminateAgent(handoff.fromAgentId);
+        });
     }
 
     /**
@@ -231,6 +269,17 @@ export class AgentOrchestrator extends EventEmitter {
             context.userId
         );
         this.artifactManagers.set(contextId, artifactManager);
+
+        // Register orchestrator agent with context overflow manager
+        const orchestratorAgentId = `orchestrator-${contextId.substring(0, 8)}`;
+        this.agentIdMap.set(contextId, orchestratorAgentId);
+        this.contextOverflowManager.registerAgent(
+            orchestratorAgentId,
+            'planning', // Use planning as orchestrator type
+            context.projectId,
+            context.userId,
+            context.sessionId
+        );
 
         // Write orchestration start to progress log
         await artifactManager.appendProgressEntry({
@@ -483,10 +532,12 @@ Coordinate with other agents using the shared artifact system.
      * Run an agent task using OpenRouter with phase-based model selection
      * All calls route through openrouter.ai/api/v1 with December 2025 beta features
      *
-     * NOW WITH MEMORY HARNESS:
+     * NOW WITH MEMORY HARNESS + CONTEXT OVERFLOW MANAGEMENT:
      * - Uses CodingAgentWrapper for context-aware execution
      * - Updates artifacts on task completion
      * - Commits changes to git
+     * - Checks context usage before AI calls
+     * - Triggers handoff if context is approaching limit
      */
     private async runAgentTask(
         agentType: AgentType,
@@ -504,6 +555,33 @@ Coordinate with other agents using the shared artifact system.
                 duration: 100,
                 tokensUsed: 0,
             };
+        }
+
+        // Get current agent ID for this context
+        const currentAgentId = this.agentIdMap.get(context.id);
+
+        // Check context usage before AI call
+        if (currentAgentId) {
+            const contextStatus = this.contextOverflowManager.checkContextUsage(currentAgentId);
+
+            // Check if handoff is needed (at task boundary = good checkpoint)
+            if (this.contextOverflowManager.shouldTriggerHandoff(currentAgentId, true, false)) {
+                console.log(`[AgentOrchestrator] Context overflow detected, initiating handoff before task: ${task.title}`);
+
+                // Initiate handoff
+                const handoff = await this.contextOverflowManager.initiateHandoff(
+                    currentAgentId,
+                    contextStatus.handoffRequired ? 'context_overflow' : 'checkpoint'
+                );
+
+                // Update agent ID map to new agent
+                this.agentIdMap.set(context.id, handoff.toAgentId);
+
+                // Acknowledge handoff (new agent is ready)
+                this.contextOverflowManager.acknowledgeHandoff(handoff.id);
+
+                console.log(`[AgentOrchestrator] Handoff complete, continuing with new agent: ${handoff.toAgentId}`);
+            }
         }
 
         // Get memory harness resources
@@ -602,6 +680,23 @@ Execute this task according to your role. Provide complete, production-ready out
                 });
             }
 
+            // Update token count in context overflow manager
+            const activeAgentId = this.agentIdMap.get(context.id);
+            if (activeAgentId) {
+                this.contextOverflowManager.addTokens(activeAgentId, ktnResult.usage.totalTokens);
+                this.contextOverflowManager.completeTask(activeAgentId, task.id);
+
+                // Record file modifications
+                for (const filePath of filesModified) {
+                    this.contextOverflowManager.recordFileModification(
+                        activeAgentId,
+                        filePath,
+                        'create',
+                        `Created by ${agentType} agent`
+                    );
+                }
+            }
+
             return {
                 taskId: task.id,
                 success: true,
@@ -630,6 +725,17 @@ Execute this task according to your role. Provide complete, production-ready out
                     blockers: [(error as Error).message],
                     nextSteps: ['Retry or escalate'],
                 });
+            }
+
+            // Record error in context overflow manager
+            const activeAgentId = this.agentIdMap.get(context.id);
+            if (activeAgentId) {
+                this.contextOverflowManager.recordError(
+                    activeAgentId,
+                    error as Error,
+                    'Task execution failed',
+                    false
+                );
             }
 
             await codingAgent.endSession();

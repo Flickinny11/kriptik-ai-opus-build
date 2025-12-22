@@ -86,6 +86,13 @@ import {
     type ErrorSignature,
 } from './loop-blocker.js';
 import {
+    getContextOverflowManager,
+    type ContextOverflowManager,
+    type ContextStatus,
+    type AgentHandoff,
+    type BuildContextSummary,
+} from '../agents/context-overflow.js';
+import {
     VerificationSwarm,
     createVerificationSwarm,
     type CombinedVerificationResult,
@@ -461,6 +468,8 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private timeMachine: TimeMachine;
     private checkpointScheduler: CheckpointScheduler;
     private loopBlocker: LoopBlocker;
+    private contextOverflowManager: ContextOverflowManager;
+    private buildLoopAgentId: string;
 
     // WebSocket sync for real-time updates
     private wsSync: WebSocketSyncService;
@@ -636,6 +645,20 @@ export class BuildLoopOrchestrator extends EventEmitter {
         this.loopBlocker.on('new_error_signature', (data) => {
             console.log(`[BuildLoop] New error signature recorded: ${data.signature.errorMessage.substring(0, 50)}...`);
         });
+
+        // Initialize context overflow manager and register build loop agent
+        this.contextOverflowManager = getContextOverflowManager();
+        this.buildLoopAgentId = `build-loop-${this.state.id.substring(0, 8)}`;
+        this.contextOverflowManager.registerAgent(
+            this.buildLoopAgentId,
+            'planning',
+            projectId,
+            userId,
+            orchestrationRunId
+        );
+
+        // Set up context overflow event handlers
+        this.setupContextOverflowHandlers();
 
         // Initialize WebSocket sync for real-time updates
         this.wsSync = getWebSocketSyncService();
@@ -1100,6 +1123,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
     /**
      * Execute a complete stage (Frontend/Backend/Production)
      * Each stage runs through Phases 2-6
+     * Includes context overflow checks at phase boundaries
      */
     private async executeStage(stage: BuildStage): Promise<void> {
         this.emitEvent('phase_start', { stage });
@@ -1107,14 +1131,26 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // Phase 2: Parallel Build
         await this.executePhase2_ParallelBuild(stage);
 
+        // Check context at phase boundary
+        await this.checkContextAndHandoffIfNeeded(true);
+
         // Phase 3: Integration Check
         await this.executePhase3_IntegrationCheck();
+
+        // Check context at phase boundary
+        await this.checkContextAndHandoffIfNeeded(true);
 
         // Phase 4: Functional Test
         await this.executePhase4_FunctionalTest();
 
+        // Check context at phase boundary
+        await this.checkContextAndHandoffIfNeeded(true);
+
         // Phase 5: Intent Satisfaction
         await this.executePhase5_IntentSatisfaction();
+
+        // Check context at phase boundary
+        await this.checkContextAndHandoffIfNeeded(true);
 
         // Phase 6: Browser Demo (for production stage only, or all if configured)
         if (stage === 'production' || this.state.config.mode === 'production') {
@@ -2518,6 +2554,103 @@ Would the user be satisfied with this result?`;
      */
     resetLoopBlocker(): void {
         this.loopBlocker.reset();
+    }
+
+    /**
+     * Set up context overflow event handlers
+     * Manages seamless agent handoff when context window approaches limits
+     */
+    private setupContextOverflowHandlers(): void {
+        this.contextOverflowManager.on('context_warning', ({ agentId, status }: { agentId: string; status: ContextStatus }) => {
+            console.log(`[BuildLoop] Context warning: ${status.usagePercent}% used (${status.currentTokens}/${status.maxTokens} tokens)`);
+            this.emitEvent('status', {
+                message: `Context usage at ${status.usagePercent}% - preparing for potential handoff`,
+                phase: 'context_management',
+            });
+        });
+
+        this.contextOverflowManager.on('context_critical', ({ agentId, status }: { agentId: string; status: ContextStatus }) => {
+            console.log(`[BuildLoop] Context critical: ${status.usagePercent}% used - handoff imminent`);
+            this.emitEvent('status', {
+                message: `Context usage critical at ${status.usagePercent}% - initiating handoff`,
+                phase: 'context_management',
+            });
+        });
+
+        this.contextOverflowManager.on('handoff_initiated', (handoff: AgentHandoff) => {
+            console.log(`[BuildLoop] Context handoff initiated: ${handoff.fromAgentId} -> ${handoff.toAgentId}`);
+            console.log(`[BuildLoop] Compressed context from ${handoff.contextSnapshot.originalTokens} to ${handoff.contextSnapshot.compressedTokens} tokens (${Math.round(handoff.contextSnapshot.compressionRatio * 100)}%)`);
+
+            // Update build loop agent ID if it's our agent that was handed off
+            if (handoff.fromAgentId === this.buildLoopAgentId) {
+                this.buildLoopAgentId = handoff.toAgentId;
+            }
+
+            this.emitEvent('status', {
+                message: `Agent handoff complete - context preserved and compressed`,
+                phase: 'context_management',
+                handoff: {
+                    from: handoff.fromAgentId,
+                    to: handoff.toAgentId,
+                    compressionRatio: handoff.contextSnapshot.compressionRatio,
+                },
+            });
+        });
+
+        this.contextOverflowManager.on('context_restored', ({ agentId, compressed }) => {
+            console.log(`[BuildLoop] Context restored for ${agentId} from compressed snapshot`);
+        });
+    }
+
+    /**
+     * Check context usage and trigger handoff if needed
+     * Called at phase boundaries for optimal handoff timing
+     */
+    private async checkContextAndHandoffIfNeeded(atPhaseBoundary: boolean = false): Promise<void> {
+        const status = this.contextOverflowManager.checkContextUsage(this.buildLoopAgentId);
+
+        // Check if handoff should be triggered
+        if (this.contextOverflowManager.shouldTriggerHandoff(this.buildLoopAgentId, true, atPhaseBoundary)) {
+            console.log(`[BuildLoop] Triggering context handoff at ${atPhaseBoundary ? 'phase boundary' : 'checkpoint'}`);
+
+            // Update build context before handoff
+            this.contextOverflowManager.updateBuildContext(this.buildLoopAgentId, {
+                phase: this.state.currentPhase,
+                stage: this.state.currentStage,
+                stageProgress: this.state.stageProgress,
+                completedPhases: this.state.phasesCompleted,
+                featuresCompleted: this.state.featureSummary?.passed || 0,
+                featuresTotal: this.state.featureSummary?.total || 0,
+                errorCount: this.state.errorCount,
+                escalationLevel: this.state.escalationLevel,
+            });
+
+            // Initiate handoff
+            const handoff = await this.contextOverflowManager.initiateHandoff(
+                this.buildLoopAgentId,
+                atPhaseBoundary ? 'phase_boundary' : 'checkpoint'
+            );
+
+            // Update to new agent ID
+            this.buildLoopAgentId = handoff.toAgentId;
+
+            // Acknowledge handoff
+            this.contextOverflowManager.acknowledgeHandoff(handoff.id);
+        }
+    }
+
+    /**
+     * Update context usage after AI calls
+     */
+    private updateContextUsage(tokensUsed: number): void {
+        this.contextOverflowManager.addTokens(this.buildLoopAgentId, tokensUsed);
+    }
+
+    /**
+     * Get context overflow manager for external access
+     */
+    getContextOverflowManager(): ContextOverflowManager {
+        return this.contextOverflowManager;
     }
 
     private startPhase(phase: BuildLoopPhase): void {

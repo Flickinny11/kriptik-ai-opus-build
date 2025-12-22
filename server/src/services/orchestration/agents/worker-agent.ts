@@ -50,6 +50,12 @@ import {
     createArtifactManager,
     type ArtifactManager,
 } from '../../ai/artifacts.js';
+// Context Overflow Management
+import {
+    getContextOverflowManager,
+    type ContextOverflowManager,
+    type ContextStatus,
+} from '../../agents/context-overflow.js';
 
 export class WorkerAgent extends EventEmitter {
     private id: AgentId;
@@ -69,6 +75,10 @@ export class WorkerAgent extends EventEmitter {
     private userId: string;
     private orchestrationRunId: string;
     private artifactManager: ArtifactManager | null = null;
+
+    // Context Overflow Management
+    private contextOverflowManager: ContextOverflowManager;
+    private workerAgentId: string;
 
     constructor(
         id: AgentId,
@@ -111,12 +121,24 @@ export class WorkerAgent extends EventEmitter {
             // Sandbox creation is optional
         }
 
+        // Initialize context overflow manager and register worker agent
+        this.contextOverflowManager = getContextOverflowManager();
+        this.workerAgentId = `worker-${type}-${id.substring(0, 8)}`;
+        this.contextOverflowManager.registerAgent(
+            this.workerAgentId,
+            type,
+            this.projectId,
+            this.userId,
+            this.orchestrationRunId
+        );
+
         console.log(`[WorkerAgent] ${type} initialized via OpenRouter (phase: ${phase})`);
     }
 
     /**
      * Execute a task using CodingAgentWrapper for memory harness integration
      * Uses Error Escalation for automatic retry on failures
+     * Includes context overflow checking before task execution
      */
     async execute(task: Task): Promise<Artifact[]> {
         if (this.busy) {
@@ -125,6 +147,19 @@ export class WorkerAgent extends EventEmitter {
 
         this.busy = true;
         this.log(`Starting task: ${task.name}`);
+
+        // Check context usage before starting task
+        await this.checkContextAndHandoffIfNeeded();
+
+        // Update current task in context manager
+        this.contextOverflowManager.updateCurrentTask(this.workerAgentId, {
+            taskId: task.id,
+            description: task.name,
+            type: task.type || 'unknown',
+            status: 'in_progress',
+            progress: 0,
+            currentStep: 'Starting task execution',
+        });
 
         // Create CodingAgentWrapper for this task
         const codingAgent = createCodingAgentWrapper({
@@ -209,6 +244,19 @@ export class WorkerAgent extends EventEmitter {
 
             await codingAgent.endSession();
 
+            // Update context overflow manager with task completion
+            this.contextOverflowManager.completeTask(this.workerAgentId, task.id);
+
+            // Record file modifications in context manager
+            for (const artifact of artifacts) {
+                this.contextOverflowManager.recordFileModification(
+                    this.workerAgentId,
+                    artifact.path,
+                    'create',
+                    `Created by ${this.type} worker`
+                );
+            }
+
             // Broadcast task complete
             wsSync.broadcast(contextId, 'worker-task-completed', {
                 workerId: this.id,
@@ -225,6 +273,14 @@ export class WorkerAgent extends EventEmitter {
             // Record failure in memory harness
             await codingAgent.blockTask((error as Error).message, ['Retry or escalate']);
             await codingAgent.endSession();
+
+            // Record error in context overflow manager
+            this.contextOverflowManager.recordError(
+                this.workerAgentId,
+                error as Error,
+                'Task execution failed, escalating',
+                false
+            );
 
             // Use Error Escalation for automatic retry
             if (!this.errorEscalation) {
@@ -720,6 +776,40 @@ Generate security report with remediation steps.`,
         const timestamp = new Date().toISOString();
         console.log(`[${timestamp}] [${this.type.toUpperCase()}] ${message}`);
         this.emit('log', { agent: this.type, message, timestamp });
+    }
+
+    /**
+     * Check context usage and trigger handoff if needed
+     * Called before task execution for optimal handoff timing
+     */
+    private async checkContextAndHandoffIfNeeded(): Promise<void> {
+        const status = this.contextOverflowManager.checkContextUsage(this.workerAgentId);
+
+        // Check if handoff should be triggered (at task boundary = good checkpoint)
+        if (this.contextOverflowManager.shouldTriggerHandoff(this.workerAgentId, true, false)) {
+            this.log(`Context overflow detected (${status.usagePercent}% used), initiating handoff`);
+
+            // Initiate handoff
+            const handoff = await this.contextOverflowManager.initiateHandoff(
+                this.workerAgentId,
+                status.handoffRequired ? 'context_overflow' : 'checkpoint'
+            );
+
+            // Update to new agent ID
+            this.workerAgentId = handoff.toAgentId;
+
+            // Acknowledge handoff (new agent is ready)
+            this.contextOverflowManager.acknowledgeHandoff(handoff.id);
+
+            this.log(`Handoff complete, continuing with new agent: ${handoff.toAgentId}`);
+        }
+    }
+
+    /**
+     * Get context overflow manager for external access
+     */
+    getContextOverflowManager(): ContextOverflowManager {
+        return this.contextOverflowManager;
     }
 }
 
