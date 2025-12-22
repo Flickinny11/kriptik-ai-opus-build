@@ -11,7 +11,7 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { getGitHubAuthService, getGitHubRepoService } from '../services/github/index.js';
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 const authService = getGitHubAuthService();
@@ -44,7 +44,7 @@ router.get('/status', (_req: Request, res: Response) => {
  * GET /api/github/connection
  * Get user's GitHub connection status
  */
-router.get('/connection', requireAuth, async (req: Request, res: Response) => {
+router.get('/connection', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -81,7 +81,7 @@ router.get('/connection', requireAuth, async (req: Request, res: Response) => {
  * GET /api/github/auth/url
  * Generate OAuth authorization URL
  */
-router.get('/auth/url', requireAuth, (req: Request, res: Response) => {
+router.get('/auth/url', authMiddleware, (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -170,7 +170,7 @@ router.get('/auth/callback', async (req: Request, res: Response) => {
  * DELETE /api/github/connection
  * Disconnect GitHub account
  */
-router.delete('/connection', requireAuth, async (req: Request, res: Response) => {
+router.delete('/connection', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -192,7 +192,7 @@ router.delete('/connection', requireAuth, async (req: Request, res: Response) =>
  * GET /api/github/repos
  * List user's GitHub repositories
  */
-router.get('/repos', requireAuth, async (req: Request, res: Response) => {
+router.get('/repos', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -222,7 +222,7 @@ router.get('/repos', requireAuth, async (req: Request, res: Response) => {
  * POST /api/github/repos
  * Create a new GitHub repository
  */
-router.post('/repos', requireAuth, async (req: Request, res: Response) => {
+router.post('/repos', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -266,7 +266,7 @@ router.post('/repos', requireAuth, async (req: Request, res: Response) => {
  * POST /api/github/repos/link
  * Link an existing GitHub repository to a project
  */
-router.post('/repos/link', requireAuth, async (req: Request, res: Response) => {
+router.post('/repos/link', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -315,7 +315,7 @@ router.post('/repos/link', requireAuth, async (req: Request, res: Response) => {
  * DELETE /api/github/repos/link/:projectId
  * Unlink a GitHub repository from a project
  */
-router.delete('/repos/link/:projectId', requireAuth, async (req: Request, res: Response) => {
+router.delete('/repos/link/:projectId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -339,7 +339,7 @@ router.delete('/repos/link/:projectId', requireAuth, async (req: Request, res: R
  * GET /api/github/repos/project/:projectId
  * Get linked repository for a project
  */
-router.get('/repos/project/:projectId', requireAuth, async (req: Request, res: Response) => {
+router.get('/repos/project/:projectId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;
@@ -378,7 +378,7 @@ router.get('/repos/project/:projectId', requireAuth, async (req: Request, res: R
  * POST /api/github/push
  * Push project files to GitHub
  */
-router.post('/push', requireAuth, async (req: Request, res: Response) => {
+router.post('/push', authMiddleware, async (req: Request, res: Response) => {
     try {
         const authReq = req as AuthenticatedRequest;
         const userId = authReq.user?.id;

@@ -294,7 +294,8 @@ export function recommendSwarmMode(context: SwarmRunContext): SwarmMode {
                 `[SwarmMode] Upgrading to thorough mode due to high-confidence predictions: ` +
                 `${predictedErrorTypes.join(', ')}`
             );
-            return buildPhase === 'deploying' ? 'production' : 'thorough';
+            // Note: 'deploying' case already returned 'production' above
+            return 'thorough';
         }
 
         // Many predicted errors = at least standard
@@ -481,7 +482,7 @@ export class VerificationSwarm extends EventEmitter {
         const prediction = await this.errorPrevention.predict({
             projectId: this.projectId,
             taskType: 'feature_verification',
-            taskDescription: `Verifying feature: ${feature.name} - ${feature.description || ''}`,
+            taskDescription: `Verifying feature: ${feature.featureId} - ${feature.description || ''}`,
         });
 
         this.lastPredictions = prediction;
@@ -489,7 +490,7 @@ export class VerificationSwarm extends EventEmitter {
         if (prediction.predictions.length > 0) {
             console.log(
                 `[VerificationSwarm] Predicted ${prediction.predictions.length} potential issues ` +
-                `for ${feature.name} (confidence: ${(prediction.confidenceScore * 100).toFixed(0)}%)`
+                `for ${feature.featureId} (confidence: ${(prediction.confidenceScore * 100).toFixed(0)}%)`
             );
         }
 

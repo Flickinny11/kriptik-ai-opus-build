@@ -27,28 +27,40 @@ function getCookieValue(cookieHeader: string | undefined, name: string): string 
     return undefined;
 }
 
+// User type for authenticated requests
+export interface AuthUser {
+    id: string;
+    email: string;
+    name?: string | null;
+    image?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// Session type for authenticated requests
+export interface AuthSession {
+    id: string;
+    userId: string;
+    token: string;
+    expiresAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 // Extend Express Request type to include user
 declare global {
     namespace Express {
         interface Request {
-            user?: {
-                id: string;
-                email: string;
-                name?: string | null;
-                image?: string | null;
-                createdAt: Date;
-                updatedAt: Date;
-            };
-            session?: {
-                id: string;
-                userId: string;
-                token: string;
-                expiresAt: Date;
-                createdAt: Date;
-                updatedAt: Date;
-            };
+            user?: AuthUser;
+            session?: AuthSession;
         }
     }
+}
+
+// Type alias for authenticated requests (request with user guaranteed)
+export interface AuthenticatedRequest extends Request {
+    user: AuthUser;
+    session?: AuthSession;
 }
 
 /**

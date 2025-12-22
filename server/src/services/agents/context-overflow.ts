@@ -680,7 +680,7 @@ Keep the summary under 500 words.`;
 
         try {
             const response = await this.claudeService.generate(summaryPrompt, {
-                model: CLAUDE_MODELS.HAIKU,
+                model: CLAUDE_MODELS.HAIKU_3_5,
                 maxTokens: 1000,
             });
 
