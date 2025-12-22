@@ -56,6 +56,7 @@ import {
     type ContextOverflowManager,
     type ContextStatus,
 } from '../../agents/context-overflow.js';
+import { type AgentType as SimpleAgentType } from '../../agents/types.js';
 
 export class WorkerAgent extends EventEmitter {
     private id: AgentId;
@@ -122,17 +123,53 @@ export class WorkerAgent extends EventEmitter {
         }
 
         // Initialize context overflow manager and register worker agent
+        // Map orchestration AgentType to simpler context-overflow AgentType
         this.contextOverflowManager = getContextOverflowManager();
         this.workerAgentId = `worker-${type}-${id.substring(0, 8)}`;
+        const simpleAgentType = this.mapToSimpleAgentType(type);
         this.contextOverflowManager.registerAgent(
             this.workerAgentId,
-            type,
+            simpleAgentType,
             this.projectId,
             this.userId,
             this.orchestrationRunId
         );
 
         console.log(`[WorkerAgent] ${type} initialized via OpenRouter (phase: ${phase})`);
+    }
+
+    /**
+     * Map orchestration AgentType to simpler context-overflow AgentType
+     */
+    private mapToSimpleAgentType(orchType: AgentType): SimpleAgentType {
+        const typeMapping: Record<AgentType, SimpleAgentType> = {
+            // Queen agents map to planning/review
+            'infrastructure_queen': 'planning',
+            'development_queen': 'coding',
+            'design_queen': 'review',
+            'quality_queen': 'testing',
+            // Infrastructure workers
+            'vpc_architect': 'deployment',
+            'database_engineer': 'coding',
+            'security_specialist': 'review',
+            'deploy_master': 'deployment',
+            // Development workers
+            'api_engineer': 'coding',
+            'frontend_engineer': 'coding',
+            'auth_specialist': 'coding',
+            'integration_engineer': 'integration',
+            // Design workers
+            'ui_architect': 'coding',
+            'motion_designer': 'coding',
+            'responsive_engineer': 'coding',
+            'a11y_specialist': 'review',
+            // Quality workers
+            'test_engineer': 'testing',
+            'e2e_tester': 'testing',
+            'code_reviewer': 'review',
+            'security_auditor': 'review',
+        };
+        return typeMapping[orchType] || 'coding';
     }
 
     /**

@@ -158,7 +158,7 @@ export class VoiceNarrationService extends EventEmitter {
         this.claudeService = createClaudeService({
             projectId: 'voice-narration',
             userId: 'system',
-            agentType: 'narration',
+            agentType: 'generation', // Using generation type for content creation
         });
 
         this.elevenlabsApiKey = process.env.ELEVENLABS_API_KEY || '';

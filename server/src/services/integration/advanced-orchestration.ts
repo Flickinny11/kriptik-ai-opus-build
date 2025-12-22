@@ -430,13 +430,6 @@ export class AdvancedOrchestrationService extends EventEmitter {
     }
 
     /**
-     * Get video streaming state
-     */
-    getVideoState(): VideoStreamState {
-        return { ...this.videoState };
-    }
-
-    /**
      * Stop video streaming
      */
     private stopVideoStreaming(): void {
@@ -464,21 +457,27 @@ export class AdvancedOrchestrationService extends EventEmitter {
         this.videoState.frameCount++;
 
         try {
+            // Convert base64 to Buffer for VideoFrame.data
+            const frameBuffer = Buffer.from(frameData.base64, 'base64');
             const result = await this.videoAnalyzer.analyzeFrames([{
                 timestamp: frameData.timestamp,
-                imageData: frameData.base64,
+                data: frameBuffer,
                 width: frameData.width,
                 height: frameData.height,
             }]);
 
             this.videoState.lastAnalysis = result;
 
-            // Track detected issues
-            if (result.issues && result.issues.length > 0) {
-                for (const issue of result.issues) {
-                    if (!this.videoState.issuesDetected.includes(issue)) {
-                        this.videoState.issuesDetected.push(issue);
-                    }
+            // Track detected issues from errors, designViolations, and accessibilityIssues
+            const allIssues = [
+                ...result.errors.map(e => e.message),
+                ...result.designViolations.map(d => d.description),
+                ...result.accessibilityIssues.map(a => a.description),
+            ];
+
+            for (const issue of allIssues) {
+                if (!this.videoState.issuesDetected.includes(issue)) {
+                    this.videoState.issuesDetected.push(issue);
                 }
             }
 
@@ -486,7 +485,9 @@ export class AdvancedOrchestrationService extends EventEmitter {
             this.emit('video_analysis', {
                 frameNumber: this.videoState.frameCount,
                 score: result.overallScore,
-                issues: result.issues,
+                errors: result.errors.length,
+                designViolations: result.designViolations.length,
+                accessibilityIssues: result.accessibilityIssues.length,
                 uiElements: result.uiElements?.length || 0,
             });
 
@@ -513,20 +514,17 @@ export class AdvancedOrchestrationService extends EventEmitter {
      */
     private async loadShadowPatterns(): Promise<void> {
         try {
-            // Load top performing patterns
+            // Load top performing patterns (successRate is 0-100)
             const patterns = await db
                 .select({
                     id: learningPatterns.id,
-                    name: learningPatterns.patternName,
-                    context: learningPatterns.context,
+                    name: learningPatterns.name,
+                    category: learningPatterns.category,
                     successRate: learningPatterns.successRate,
                 })
                 .from(learningPatterns)
                 .where(
-                    and(
-                        gte(learningPatterns.successRate, 0.7), // Only patterns with 70%+ success
-                        eq(learningPatterns.status, 'active')
-                    )
+                    gte(learningPatterns.successRate, 70) // Only patterns with 70%+ success
                 )
                 .orderBy(desc(learningPatterns.successRate))
                 .limit(20);
@@ -534,7 +532,7 @@ export class AdvancedOrchestrationService extends EventEmitter {
             this.shadowPatterns.patterns = patterns.map(p => ({
                 id: p.id,
                 name: p.name,
-                context: p.context as string,
+                context: p.category, // Use category as context
                 successRate: p.successRate || 0,
             }));
 
@@ -543,17 +541,23 @@ export class AdvancedOrchestrationService extends EventEmitter {
                 .select({
                     id: learningStrategies.id,
                     domain: learningStrategies.domain,
-                    parameters: learningStrategies.parameters,
+                    name: learningStrategies.name,
+                    description: learningStrategies.description,
+                    contextsEffective: learningStrategies.contextsEffective,
                 })
                 .from(learningStrategies)
-                .where(eq(learningStrategies.status, 'active'))
+                .where(eq(learningStrategies.isActive, true))
                 .orderBy(desc(learningStrategies.successRate))
                 .limit(10);
 
             this.shadowPatterns.strategies = strategies.map(s => ({
                 id: s.id,
                 domain: s.domain,
-                parameters: (s.parameters as Record<string, unknown>) || {},
+                parameters: {
+                    name: s.name,
+                    description: s.description,
+                    contextsEffective: s.contextsEffective || [],
+                },
             }));
 
             console.log(`[AdvancedOrchestration] Loaded ${this.shadowPatterns.patterns.length} patterns, ${this.shadowPatterns.strategies.length} strategies`);

@@ -27,7 +27,7 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../db.js';
 import { errorEscalationHistory, learningPatterns } from '../../schema.js';
-import { eq, desc, and, gte } from 'drizzle-orm';
+import { eq, desc, and, gte, lte } from 'drizzle-orm';
 
 // ============================================================================
 // TYPES
@@ -523,32 +523,30 @@ export class PredictiveErrorPrevention extends EventEmitter {
                 }
             }
 
-            // Also check learned patterns for failures
+            // Also check learned patterns for failures (successRate < 50% indicates problematic patterns)
             const failedPatterns = await db
                 .select()
                 .from(learningPatterns)
                 .where(
-                    and(
-                        eq(learningPatterns.projectId, context.projectId),
-                        gte(learningPatterns.failureCount, 3)
-                    )
+                    lte(learningPatterns.successRate, 50)
                 )
                 .limit(10);
 
             for (const pattern of failedPatterns) {
-                if (pattern.failureCount && pattern.failureCount >= 3) {
+                const failureRate = 100 - (pattern.successRate || 100);
+                if (failureRate >= 50) {
                     predictions.push({
                         id: `failed-pattern-${pattern.id}`,
                         type: 'api_misuse',
-                        pattern: pattern.patternKey,
-                        description: `Pattern "${pattern.patternKey}" has failed ${pattern.failureCount} times`,
+                        pattern: pattern.patternId,
+                        description: `Pattern "${pattern.patternId}" has ${failureRate}% failure rate`,
                         confidence: 0.85,
                         prevention: {
                             type: 'warning',
-                            instruction: `AVOID this pattern: ${pattern.patternKey}. It has consistently failed.`,
+                            instruction: `AVOID this pattern: ${pattern.patternId}. It has consistently failed.`,
                             priority: 'should',
                         },
-                        historicalOccurrences: pattern.failureCount,
+                        historicalOccurrences: pattern.usageCount || 0,
                     });
                 }
             }

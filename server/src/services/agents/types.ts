@@ -10,7 +10,7 @@
 // AGENT TYPES
 // ============================================================================
 
-export type AgentType = 
+export type AgentType =
     | 'planning'      // Creates and updates implementation plans
     | 'coding'        // Generates and modifies code
     | 'testing'       // Runs tests and validates code

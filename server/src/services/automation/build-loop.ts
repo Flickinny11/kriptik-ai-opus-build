@@ -244,7 +244,7 @@ import {
 import {
     APIAutopilotService,
     type APIProfile,
-    type IntegrationResult,
+    type GeneratedAPICode,
 } from '../api/api-autopilot.js';
 
 // =============================================================================
@@ -346,6 +346,8 @@ export interface BuildLoopEvent {
         // Cursor 2.1+ events
         | 'cursor21_pattern_fix' | 'cursor21_checkpoint_waiting' | 'cursor21_checkpoint_responded'
         | 'cursor21_judgment_complete' | 'cursor21_feedback' | 'cursor21_visual_check'
+        // Loop blocker and escalation events
+        | 'loop_detected' | 'human_escalation_required' | 'comprehensive_fix_applied'
         // Agent Activity Stream events (for real-time UI)
         | 'thinking' | 'file_read' | 'file_write' | 'file_edit' | 'tool_call' | 'status' | 'verification';
     timestamp: Date;
@@ -1249,9 +1251,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
             // =====================================================================
 
             // Process image inputs for frontend stage (design-to-code)
-            if (stage === 'frontend' && this.state.intentContract?.rawPrompt) {
+            if (stage === 'frontend' && this.state.intentContract?.originalPrompt) {
                 const imageResult = await this.processImageInputs(
-                    this.state.intentContract.rawPrompt
+                    this.state.intentContract.originalPrompt
                 );
                 if (imageResult) {
                     console.log(`[BuildLoop] Generated ${imageResult.components.length} components from images`);
@@ -4679,7 +4681,7 @@ Would the user be satisfied with this result?`;
      * Detect and process API integrations from Intent Contract
      * Called during Phase 2 when building backend/API features
      */
-    async processAPIIntegrations(): Promise<IntegrationResult[] | null> {
+    async processAPIIntegrations(): Promise<GeneratedAPICode[] | null> {
         if (!this.apiAutopilotService) {
             console.log('[BuildLoop] API autopilot service not available');
             return null;
@@ -4689,36 +4691,40 @@ Would the user be satisfied with this result?`;
             return null;
         }
 
-        // Check if intent contract specifies external APIs
-        const technicalReqs = this.state.intentContract.technicalRequirements || [];
-        const apiMentions = technicalReqs.filter(req =>
-            /\b(api|integration|third-party|external|webhook|oauth|stripe|twilio|sendgrid|firebase|supabase)\b/i.test(req)
-        );
+        // Check if intent contract specifies external APIs via originalPrompt or success criteria
+        const promptText = this.state.intentContract.originalPrompt || '';
+        const criteriaText = this.state.intentContract.successCriteria.map(c => c.description).join(' ');
+        const combinedText = `${promptText} ${criteriaText}`;
 
-        if (apiMentions.length === 0) {
+        const apiKeywords = /\b(api|integration|third-party|external|webhook|oauth|stripe|twilio|sendgrid|firebase|supabase)\b/i;
+
+        if (!apiKeywords.test(combinedText)) {
             return null;
         }
 
         this.emitEvent('phase_start', { phase: 'api_autopilot' });
-        console.log(`[BuildLoop] Processing ${apiMentions.length} API integrations`);
+        console.log(`[BuildLoop] Processing API integrations from prompt`);
 
-        const results: IntegrationResult[] = [];
+        const results: GeneratedAPICode[] = [];
 
         try {
-            for (const apiReq of apiMentions) {
-                // Try to discover and generate integration for each API mention
-                const discoveredApis = await this.apiAutopilotService.discoverFromPrompt(apiReq);
+            // Try to discover APIs from common providers mentioned in the prompt
+            const providers = ['stripe', 'twilio', 'sendgrid', 'firebase', 'supabase'];
+            const mentionedProviders = providers.filter(p =>
+                new RegExp(`\\b${p}\\b`, 'i').test(combinedText)
+            );
 
-                for (const api of discoveredApis) {
-                    const integration = await this.apiAutopilotService.generateIntegration(
-                        api.id,
-                        this.projectPath
-                    );
+            for (const provider of mentionedProviders) {
+                try {
+                    const profile = await this.apiAutopilotService.createProfileFromCatalog(provider);
+                    const integration = await this.apiAutopilotService.generateIntegrationCode(profile);
 
                     if (integration) {
                         results.push(integration);
-                        console.log(`[BuildLoop] Generated API integration for: ${api.name}`);
+                        console.log(`[BuildLoop] Generated API integration for: ${provider}`);
                     }
+                } catch (err) {
+                    console.warn(`[BuildLoop] Could not generate integration for ${provider}:`, err);
                 }
             }
 
