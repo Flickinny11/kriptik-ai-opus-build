@@ -50,6 +50,16 @@ import {
     getPhaseConfig,
 } from './openrouter-client.js';
 
+// SESSION 3: Context Sync Service for real-time agent collaboration
+import {
+    ContextSyncService,
+    getContextSyncService,
+    type ContextUpdate as SyncContextUpdate,
+    type DiscoveryData,
+    type SolutionData,
+    type ErrorData,
+} from '../agents/context-sync-service.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -141,6 +151,9 @@ export class CodingAgentWrapper extends EventEmitter {
     private wsSync: WebSocketSyncService;
     private pendingContextUpdates: ContextUpdate[] = [];
     private contextSubscriptionId: string | null = null;
+    // SESSION 3: Context Sync Service for agent collaboration
+    private contextSync: ContextSyncService | null = null;
+    private contextSyncUnsubscribe: (() => void) | null = null;
 
     constructor(config: CodingAgentConfig) {
         super();
@@ -910,21 +923,58 @@ ${contextSummary}
     }
 
     // =========================================================================
-    // SESSION 2: REAL-TIME CONTEXT UPDATES
+    // SESSION 2 + 3: REAL-TIME CONTEXT UPDATES
     // =========================================================================
 
     /**
-     * SESSION 2: Subscribe to real-time context updates from other agents
+     * SESSION 2/3: Subscribe to real-time context updates from other agents
      * This enables "fingers of the same hand" awareness between parallel agents
+     * SESSION 3: Now uses ContextSyncService for direct agent-to-agent communication
      */
     private subscribeToContextUpdates(): void {
         // Generate unique subscription ID for this agent
         this.contextSubscriptionId = `${this.config.projectId}-${this.config.agentId}`;
 
-        // Subscribe to local EventEmitter updates (managed by parent orchestrator)
-        // Note: The orchestrator emits these events to its child agents
+        // SESSION 3: Subscribe to ContextSyncService for real-time updates
+        if (this.contextSync) {
+            this.contextSyncUnsubscribe = this.contextSync.subscribe(
+                this.config.agentId!,
+                (update: SyncContextUpdate) => {
+                    // Convert SyncContextUpdate to local ContextUpdate format
+                    const localUpdate: ContextUpdate = {
+                        type: this.mapSyncUpdateType(update.type),
+                        data: update.data,
+                        fromAgentId: update.agentId,
+                        timestamp: update.timestamp
+                    };
+                    this.pendingContextUpdates.push(localUpdate);
+                    console.log(`[CodingAgentWrapper] Received context update from ${update.agentId}: ${update.type}`);
+                }
+            );
+            console.log(`[CodingAgentWrapper] Subscribed to ContextSyncService for ${this.config.agentId}`);
+        }
+
         console.log(`[CodingAgentWrapper] Context updates subscription ID: ${this.contextSubscriptionId}`);
-        console.log(`[CodingAgentWrapper] Ready to receive context updates via parent orchestrator`);
+        console.log(`[CodingAgentWrapper] Ready to receive context updates via ContextSyncService`);
+    }
+
+    /**
+     * SESSION 3: Map ContextSyncService update types to local format
+     */
+    private mapSyncUpdateType(type: SyncContextUpdate['type']): ContextUpdate['type'] {
+        switch (type) {
+            case 'discovery':
+            case 'solution':
+                return 'agent:completed';
+            case 'file-change':
+                return 'file:modified';
+            case 'error':
+                return 'error:resolved';
+            case 'pattern':
+                return 'pattern:learned';
+            default:
+                return 'agent:completed';
+        }
     }
 
     /**
@@ -1011,10 +1061,19 @@ Apply them to ensure high-quality code. Avoid patterns that have caused errors b
     }
 
     /**
-     * SESSION 2: Broadcast file modification to other agents
-     * Emits locally for parent orchestrator to distribute
+     * SESSION 2/3: Broadcast file modification to other agents
+     * SESSION 3: Now uses ContextSyncService for direct broadcasting
      */
     private broadcastFileModification(filePath: string, action: string): void {
+        // SESSION 3: Use ContextSyncService for real-time broadcasting
+        if (this.contextSync) {
+            this.contextSync.notifyFileChange(
+                this.config.agentId!,
+                filePath,
+                action as 'create' | 'modify' | 'delete'
+            );
+        }
+
         // Emit locally - parent orchestrator can distribute to other agents
         this.emit('file:modified', {
             agentId: this.config.agentId,
@@ -1025,16 +1084,103 @@ Apply them to ensure high-quality code. Avoid patterns that have caused errors b
     }
 
     /**
-     * SESSION 2: Notify completion to other agents
-     * Emits locally for parent orchestrator to distribute
+     * SESSION 2/3: Notify completion to other agents
+     * SESSION 3: Now uses ContextSyncService for direct broadcasting
      */
     private broadcastTaskComplete(summary: string): void {
+        // SESSION 3: Share discovery via ContextSyncService
+        if (this.contextSync) {
+            this.contextSync.shareDiscovery(this.config.agentId!, {
+                summary: `Task completed: ${summary}`,
+                details: {
+                    agentType: this.config.agentType,
+                    filesModified: Array.from(this.filesModified),
+                    filesCreated: Array.from(this.filesCreated),
+                }
+            });
+        }
+
         // Emit locally - parent orchestrator can distribute to other agents
         this.emit('agent:completed', {
             agentId: this.config.agentId,
             summary,
             timestamp: Date.now()
         });
+    }
+
+    // =========================================================================
+    // SESSION 3: CONTEXT SYNC SERVICE METHODS
+    // =========================================================================
+
+    /**
+     * SESSION 3: Set the ContextSyncService instance (called by parent orchestrator)
+     */
+    setContextSync(contextSync: ContextSyncService): void {
+        this.contextSync = contextSync;
+        // Register this agent with the context sync service
+        this.contextSync.registerAgent(this.config.agentId!, this.config.agentType);
+        console.log(`[CodingAgentWrapper] Connected to ContextSyncService for ${this.config.agentId}`);
+    }
+
+    /**
+     * SESSION 3: Share a discovery with other agents
+     */
+    shareDiscovery(discovery: DiscoveryData): void {
+        if (this.contextSync) {
+            this.contextSync.shareDiscovery(this.config.agentId!, discovery);
+        }
+    }
+
+    /**
+     * SESSION 3: Share a solution with other agents
+     */
+    shareSolution(problemType: string, solution: SolutionData): void {
+        if (this.contextSync) {
+            this.contextSync.shareSolution(this.config.agentId!, problemType, solution);
+        }
+    }
+
+    /**
+     * SESSION 3: Report an error to other agents
+     */
+    reportError(error: ErrorData): void {
+        if (this.contextSync) {
+            this.contextSync.reportError(this.config.agentId!, error);
+        }
+    }
+
+    /**
+     * SESSION 3: Check if a file is locked by another agent
+     */
+    isFileLocked(filePath: string): { locked: boolean; byAgent?: string } {
+        if (this.contextSync) {
+            return this.contextSync.isFileLocked(filePath, this.config.agentId!);
+        }
+        return { locked: false };
+    }
+
+    /**
+     * SESSION 3: Get shared context for task execution
+     */
+    getSharedContext(taskDescription: string, relevantFiles: string[]): string {
+        if (this.contextSync) {
+            return this.contextSync.getContextForTask(this.config.agentId!, taskDescription, relevantFiles);
+        }
+        return '';
+    }
+
+    /**
+     * SESSION 3: Cleanup context sync subscription
+     */
+    cleanupContextSync(): void {
+        if (this.contextSyncUnsubscribe) {
+            this.contextSyncUnsubscribe();
+            this.contextSyncUnsubscribe = null;
+        }
+        if (this.contextSync) {
+            this.contextSync.unregisterAgent(this.config.agentId!);
+            this.contextSync = null;
+        }
     }
 }
 

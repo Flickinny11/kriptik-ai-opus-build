@@ -119,6 +119,18 @@ import {
 } from '../agents/websocket-sync.js';
 
 // ============================================================================
+// SESSION 3: CONTEXT SYNC SERVICE (Real-time context sharing between agents)
+// ============================================================================
+import {
+    ContextSyncService,
+    getContextSyncService,
+    type ContextUpdate,
+    type DiscoveryData,
+    type SolutionData,
+    type ErrorData,
+} from '../agents/context-sync-service.js';
+
+// ============================================================================
 // LATTICE INTEGRATION (Parallel Cell Building)
 // ============================================================================
 import {
@@ -503,6 +515,11 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // WebSocket sync for real-time updates
     private wsSync: WebSocketSyncService;
 
+    // =========================================================================
+    // SESSION 3: CONTEXT SYNC SERVICE (Real-time agent context sharing)
+    // =========================================================================
+    private contextSync: ContextSyncService | null = null;
+
     // File contents cache for verification
     private projectFiles: Map<string, string> = new Map();
 
@@ -802,6 +819,41 @@ export class BuildLoopOrchestrator extends EventEmitter {
             }
 
             // =====================================================================
+            // SESSION 3: Initialize Context Sync Service for agent collaboration
+            // =====================================================================
+            this.contextSync = getContextSyncService(this.state.id, this.state.projectId);
+            this.contextSync.registerAgent(this.buildLoopAgentId, 'Build Loop Orchestrator');
+
+            // Wire solution sharing to Learning Engine
+            this.contextSync.on('solution-found', async ({ problemType, solution, agentId }) => {
+                if (this.learningEnabled && this.experienceCapture) {
+                    try {
+                        // Capture the solution as a learned pattern using proper interface
+                        await this.experienceCapture.captureDecision(
+                            'build', // BuildPhase
+                            'error_recovery', // DecisionType - solutions are typically error recovery
+                            {
+                                intentSnippet: `Solution for: ${problemType}`,
+                                previousAttempts: 0,
+                                thinkingTrace: `Agent ${agentId} discovered solution`,
+                            },
+                            {
+                                chosenOption: solution.summary,
+                                rejectedOptions: [],
+                                reasoning: `Agent ${agentId} discovered solution: ${solution.summary}`,
+                                confidence: 0.9, // High confidence for agent-discovered solutions
+                            }
+                        );
+                        console.log(`[BuildLoop] Learning Engine captured solution for ${problemType}`);
+                    } catch (err) {
+                        console.warn(`[BuildLoop] Failed to capture solution in learning engine:`, err);
+                    }
+                }
+            });
+
+            console.log(`[BuildLoop] Context Sync Service activated for build ${this.state.id}`);
+
+            // =====================================================================
             // CURSOR 2.1+: Start runtime services
             // =====================================================================
             await this.startCursor21Services();
@@ -836,7 +888,17 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 this.state.status = 'complete';
                 this.state.completedAt = new Date();
 
-                // Final progress entry
+                // SESSION 3: Get context sync stats for build summary
+                const contextStats = this.contextSync?.getStats() || {
+                    discoveries: 0,
+                    solutions: 0,
+                    errors: 0,
+                    filesModified: 0,
+                    activeAgents: 0,
+                    patterns: 0,
+                };
+
+                // Final progress entry with context sharing stats
                 await this.artifactManager.appendProgressEntry({
                     agentId: 'build-loop',
                     agentType: 'orchestrator',
@@ -844,6 +906,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     completed: [
                         `Completed all ${stages.length} stages`,
                         `${this.state.featureSummary?.total || 0} features built`,
+                        `${contextStats.discoveries} discoveries shared between agents`,
+                        `${contextStats.solutions} solutions captured for reuse`,
+                        `${contextStats.patterns} patterns learned`,
                     ],
                     filesModified: [],
                     nextSteps: ['Review completed application', 'Deploy to production'],
@@ -860,6 +925,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     duration: this.state.completedAt.getTime() - this.state.startedAt.getTime(),
                     stages: stages.length,
                     features: this.state.featureSummary?.total || 0,
+                    contextStats, // SESSION 3: Include context sharing stats
                 });
             }
         } catch (error) {
@@ -3715,7 +3781,81 @@ Would the user be satisfied with this result?`;
             this.humanCheckpoint.cleanup(this.state.id);
         }
 
+        // SESSION 3: Clean up context sync service
+        if (this.contextSync) {
+            this.contextSync.unregisterAgent(this.buildLoopAgentId);
+            this.contextSync.cleanup();
+            this.contextSync = null;
+        }
+
         console.log('[BuildLoop] Cursor 2.1+: Services stopped');
+    }
+
+    // =========================================================================
+    // SESSION 3: CONTEXT SHARING METHODS
+    // =========================================================================
+
+    /**
+     * Share a discovery with all parallel agents
+     */
+    shareDiscoveryWithAgents(discovery: DiscoveryData): void {
+        if (this.contextSync) {
+            this.contextSync.shareDiscovery(this.buildLoopAgentId, discovery);
+        }
+    }
+
+    /**
+     * Share a solution with all parallel agents
+     */
+    shareSolutionWithAgents(problemType: string, solution: SolutionData): void {
+        if (this.contextSync) {
+            this.contextSync.shareSolution(this.buildLoopAgentId, problemType, solution);
+        }
+    }
+
+    /**
+     * Report an error to all parallel agents
+     */
+    reportErrorToAgents(error: ErrorData): void {
+        if (this.contextSync) {
+            this.contextSync.reportError(this.buildLoopAgentId, error);
+        }
+    }
+
+    /**
+     * Notify file change to all parallel agents
+     */
+    notifyFileChangeToAgents(filePath: string, action: 'create' | 'modify' | 'delete'): void {
+        if (this.contextSync) {
+            this.contextSync.notifyFileChange(this.buildLoopAgentId, filePath, action);
+        }
+    }
+
+    /**
+     * Check if a file is locked by another agent
+     */
+    isFileLockedByOtherAgent(filePath: string): { locked: boolean; byAgent?: string } {
+        if (this.contextSync) {
+            return this.contextSync.isFileLocked(filePath, this.buildLoopAgentId);
+        }
+        return { locked: false };
+    }
+
+    /**
+     * Get shared context for task execution
+     */
+    getSharedContextForTask(taskDescription: string, relevantFiles: string[]): string {
+        if (this.contextSync) {
+            return this.contextSync.getContextForTask(this.buildLoopAgentId, taskDescription, relevantFiles);
+        }
+        return '';
+    }
+
+    /**
+     * Get the ContextSyncService instance (for agent wrappers)
+     */
+    getContextSync(): ContextSyncService | null {
+        return this.contextSync;
     }
 
     /**
