@@ -117,6 +117,20 @@ import {
     getWebSocketSyncService,
     type WebSocketSyncService,
 } from '../agents/websocket-sync.js';
+
+// ============================================================================
+// LATTICE INTEGRATION (Parallel Cell Building)
+// ============================================================================
+import {
+    createIntentCrystallizer,
+    createLatticeOrchestrator,
+    type IntentContract as LatticeIntentContract,
+    type LatticeBlueprint,
+    type LatticeProgress,
+    type LatticeResult,
+    type VisualIdentity as LatticeVisualIdentity,
+} from '../lattice/index.js';
+
 // ============================================================================
 // AUTONOMOUS LEARNING ENGINE INTEGRATION (Component 28)
 // ============================================================================
@@ -273,6 +287,9 @@ export interface BuildLoopConfig {
     // Cursor 2.1+ Thresholds
     visualQualityThreshold: number;
     humanCheckpointEscalationLevel: number;
+
+    // Speed Enhancements (LATTICE)
+    speedEnhancements?: ('lattice' | 'burst' | 'cached')[];
 }
 
 export interface BuildLoopState {
@@ -309,6 +326,10 @@ export interface BuildLoopState {
     // Checkpoints
     lastCheckpointId: string | null;
     checkpointCount: number;
+
+    // LATTICE Speed Enhancements
+    latticeSpeedup?: number;
+    latticeBlueprint?: LatticeBlueprint;
 }
 
 export interface BuildLoopEvent {
@@ -1163,12 +1184,42 @@ export class BuildLoopOrchestrator extends EventEmitter {
     /**
      * Phase 2: PARALLEL BUILD - Build features with multiple agents
      *
-     * Now uses CodingAgentWrapper for context loading and artifact updates
+     * Now uses CodingAgentWrapper for context loading and artifact updates.
+     * Optionally uses LATTICE for parallel cell building (enabled via speedEnhancements).
      */
     private async executePhase2_ParallelBuild(stage: BuildStage): Promise<void> {
         this.startPhase('parallel_build');
 
         try {
+            // =====================================================================
+            // LATTICE INTEGRATION: Use parallel cell building if enabled
+            // =====================================================================
+            const useLattice = this.state.config.speedEnhancements?.includes('lattice');
+
+            if (useLattice && this.state.intentContract) {
+                console.log('[BuildLoop] LATTICE mode enabled - using parallel cell building');
+
+                const latticeResult = await this.executeLatticeBuild(stage);
+
+                if (latticeResult.success) {
+                    // LATTICE completed successfully - skip traditional task-based building
+                    this.state.latticeSpeedup = latticeResult.speedup;
+                    console.log(`[BuildLoop] LATTICE build complete: ${latticeResult.speedup.toFixed(1)}x speedup`);
+
+                    // Mark phase complete and return
+                    this.completePhase('parallel_build');
+                    return;
+                } else {
+                    // LATTICE failed - fall back to traditional building
+                    console.warn('[BuildLoop] LATTICE build failed, falling back to traditional build');
+                    console.warn(`[BuildLoop] LATTICE errors: ${latticeResult.errors.join(', ')}`);
+                }
+            }
+
+            // =====================================================================
+            // TRADITIONAL BUILD: Task-based feature building
+            // =====================================================================
+
             // Create coding agent wrapper for this phase
             const codingAgent = createCodingAgentWrapper({
                 projectId: this.state.projectId,
@@ -1387,6 +1438,190 @@ Include ALL necessary imports and exports.`;
         } catch (error) {
             throw new Error(`Parallel Build failed: ${(error as Error).message}`);
         }
+    }
+
+    /**
+     * Execute LATTICE parallel cell building
+     *
+     * Transforms the intent contract into a lattice blueprint and builds
+     * all cells in parallel based on dependency graph.
+     */
+    private async executeLatticeBuild(stage: BuildStage): Promise<LatticeResult> {
+        const intentContract = this.state.intentContract;
+        if (!intentContract) {
+            return {
+                buildId: '',
+                success: false,
+                files: [],
+                buildTime: 0,
+                speedup: 0,
+                cellResults: new Map(),
+                failedCells: [],
+                totalCells: 0,
+                successfulCells: 0,
+                averageQualityScore: 0,
+                errors: ['No intent contract available'],
+            };
+        }
+
+        console.log(`[BuildLoop] Starting LATTICE build for stage: ${stage}`);
+
+        // Create intent crystallizer to transform intent into lattice blueprint
+        const crystallizer = createIntentCrystallizer(
+            this.state.projectId,
+            this.state.userId
+        );
+
+        // Build the lattice intent contract from the existing intent contract
+        const appSoulString = intentContract.appSoul || 'utility';
+        const latticeIntent: LatticeIntentContract = {
+            id: intentContract.id,
+            appName: intentContract.appType || 'Application',
+            appSoul: appSoulString,
+            description: intentContract.coreValueProp || intentContract.originalPrompt || '',
+            features: intentContract.successCriteria?.map(c => c.description) || [],
+            requirements: intentContract.antiPatterns || [],
+            technicalStack: {
+                framework: 'React',
+                styling: 'Tailwind CSS',
+                database: 'SQLite',
+                auth: 'JWT',
+            },
+            visualIdentity: this.convertToLatticeVisualIdentity(intentContract.visualIdentity),
+            successCriteria: intentContract.successCriteria?.map(c => c.description) || [],
+        };
+
+        // Crystallize the intent into a lattice blueprint
+        const blueprint = await crystallizer.crystallize(latticeIntent);
+        this.state.latticeBlueprint = blueprint;
+
+        console.log(`[BuildLoop] LATTICE blueprint created: ${blueprint.cells.length} cells, ${blueprint.parallelGroups.length} parallel groups`);
+
+        // Create lattice orchestrator
+        const orchestrator = createLatticeOrchestrator({
+            projectId: this.state.projectId,
+            userId: this.state.userId,
+            maxRetries: 3,
+            burstConcurrency: 3,
+            enableBurstMode: true,
+            minQualityScore: 85,
+        });
+
+        // Subscribe to progress events
+        orchestrator.on('progress', (progress: LatticeProgress) => {
+            this.emitEvent('status', {
+                phase: 'parallel_build',
+                message: `LATTICE: ${progress.completedCells}/${progress.totalCells} cells complete (${progress.percentComplete}%)`,
+                progress: progress.percentComplete,
+                lattice: {
+                    completedCells: progress.completedCells,
+                    totalCells: progress.totalCells,
+                    inProgressCells: progress.inProgressCells,
+                    failedCells: progress.failedCellIds,
+                    speedMultiplier: progress.speedMultiplier,
+                },
+            });
+        });
+
+        orchestrator.on('cellComplete', (event: { cellId: string; success: boolean; result: any }) => {
+            this.emitEvent('feature_complete', {
+                type: 'lattice_cell',
+                cellId: event.cellId,
+                success: event.success,
+                qualityScore: event.result?.qualityScore || 0,
+                filesCreated: event.result?.files?.length || 0,
+            });
+        });
+
+        // Build the lattice
+        const result = await orchestrator.build(blueprint, {
+            appSoul: appSoulString,
+            appSoulType: appSoulString as any,
+            visualIdentity: blueprint.visualIdentity,
+            projectPath: this.projectPath,
+            framework: 'React',
+            styling: 'Tailwind CSS',
+        });
+
+        // Write generated files to disk
+        if (result.success) {
+            const fsModule = await import('fs/promises');
+            const pathModule = await import('path');
+
+            for (const file of result.files) {
+                try {
+                    const fullPath = pathModule.join(this.projectPath, file.path);
+                    const dir = pathModule.dirname(fullPath);
+                    await fsModule.mkdir(dir, { recursive: true });
+                    await fsModule.writeFile(fullPath, file.content, 'utf-8');
+                    console.log(`[BuildLoop] LATTICE wrote file: ${file.path}`);
+
+                    // Track in project files map
+                    this.projectFiles.set(file.path, file.content);
+                } catch (writeError) {
+                    console.error(`[BuildLoop] Failed to write LATTICE file ${file.path}:`, writeError);
+                }
+            }
+
+            console.log(`[BuildLoop] LATTICE wrote ${result.files.length} files`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Convert existing visual identity to LATTICE format
+     */
+    private convertToLatticeVisualIdentity(visualIdentity: any): LatticeVisualIdentity {
+        if (!visualIdentity) {
+            // Default visual identity
+            return {
+                colorPalette: {
+                    primary: 'amber-500',
+                    secondary: 'slate-700',
+                    accent: 'orange-500',
+                    background: '#0a0a0f',
+                    surface: 'slate-900/50',
+                    text: {
+                        primary: 'white',
+                        secondary: 'slate-300',
+                        muted: 'slate-500',
+                    },
+                },
+                typography: {
+                    headingFont: 'Plus Jakarta Sans',
+                    bodyFont: 'Inter',
+                    monoFont: 'JetBrains Mono',
+                },
+                depth: 'high',
+                motion: 'smooth',
+                borderRadius: 'rounded',
+            };
+        }
+
+        // Map existing visual identity to LATTICE format
+        return {
+            colorPalette: {
+                primary: visualIdentity.colorPalette?.primary || visualIdentity.primaryColor || 'amber-500',
+                secondary: visualIdentity.colorPalette?.secondary || visualIdentity.secondaryColor || 'slate-700',
+                accent: visualIdentity.colorPalette?.accent || visualIdentity.accentColor || 'orange-500',
+                background: visualIdentity.colorPalette?.background || '#0a0a0f',
+                surface: visualIdentity.colorPalette?.surface || 'slate-900/50',
+                text: {
+                    primary: visualIdentity.colorPalette?.text?.primary || 'white',
+                    secondary: visualIdentity.colorPalette?.text?.secondary || 'slate-300',
+                    muted: visualIdentity.colorPalette?.text?.muted || 'slate-500',
+                },
+            },
+            typography: {
+                headingFont: visualIdentity.typography?.headingFont || visualIdentity.fontFamily || 'Plus Jakarta Sans',
+                bodyFont: visualIdentity.typography?.bodyFont || 'Inter',
+                monoFont: visualIdentity.typography?.monoFont || 'JetBrains Mono',
+            },
+            depth: visualIdentity.depth || 'high',
+            motion: visualIdentity.motionPhilosophy || visualIdentity.motion || 'smooth',
+            borderRadius: visualIdentity.borderRadius || 'rounded',
+        };
     }
 
     /**
