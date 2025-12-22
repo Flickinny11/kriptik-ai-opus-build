@@ -25,6 +25,36 @@ import {
     createCellBuilder,
 } from './cell-builder.js';
 import type { AppSoulType } from '../ai/app-soul.js';
+// SESSION 2: Import WebSocket sync for real-time context sharing between cells
+import {
+    getWebSocketSyncService,
+    type WebSocketSyncService,
+} from '../agents/websocket-sync.js';
+// SESSION 2: Import UnifiedContext for rich shared context
+import {
+    loadUnifiedContext,
+    type UnifiedContext,
+} from '../ai/unified-context.js';
+
+/**
+ * SESSION 2: Shared build context passed between parallel cells
+ */
+export interface SharedBuildContext {
+    unifiedContext: UnifiedContext | null;
+    fileModifications: Map<string, { cellId: string; content: string; timestamp: number }>;
+    completedCellSummaries: Map<string, string>;
+    errorHistory: Array<{ cellId: string; error: string; timestamp: number }>;
+}
+
+/**
+ * SESSION 2: File modification notification
+ */
+export interface FileModification {
+    path: string;
+    content: string;
+    cellId: string;
+    timestamp: number;
+}
 
 // ============================================================================
 // TYPES
@@ -138,6 +168,11 @@ export class LatticeOrchestrator extends EventEmitter {
         inProgress: Set<string>;
     } | null = null;
 
+    // SESSION 2: Shared context for parallel cell awareness
+    private wsSync: WebSocketSyncService;
+    private sharedContext: SharedBuildContext;
+    private activeCellBuilders: Map<string, { notify: (mod: FileModification) => void }> = new Map();
+
     constructor(config?: Partial<LatticeOrchestratorConfig>) {
         super();
         this.config = { ...DEFAULT_CONFIG, ...config };
@@ -149,10 +184,22 @@ export class LatticeOrchestrator extends EventEmitter {
             projectId: this.config.projectId,
             userId: this.config.userId,
         });
+
+        // SESSION 2: Initialize WebSocket sync for real-time context sharing
+        this.wsSync = getWebSocketSyncService();
+
+        // SESSION 2: Initialize shared context
+        this.sharedContext = {
+            unifiedContext: null,
+            fileModifications: new Map(),
+            completedCellSummaries: new Map(),
+            errorHistory: [],
+        };
     }
 
     /**
      * Build an entire lattice blueprint
+     * SESSION 2: Now loads and shares UnifiedContext between all parallel cells
      */
     async build(
         blueprint: LatticeBlueprint,
@@ -169,6 +216,31 @@ export class LatticeOrchestrator extends EventEmitter {
             startTime,
             inProgress: new Set(),
         };
+
+        // SESSION 2: Load unified context for shared awareness between cells
+        try {
+            if (context.projectPath) {
+                this.sharedContext.unifiedContext = await loadUnifiedContext(
+                    this.config.projectId,
+                    this.config.userId,
+                    context.projectPath,
+                    {
+                        includeIntentLock: true,
+                        includeLearningData: true,
+                        includeErrorHistory: true,
+                        includeVerificationResults: true,
+                    }
+                );
+                console.log(`[LatticeOrchestrator] Loaded unified context: ${this.sharedContext.unifiedContext.learnedPatterns.length} patterns`);
+            }
+        } catch (error) {
+            console.warn('[LatticeOrchestrator] Failed to load unified context (non-fatal):', error);
+        }
+
+        // Reset shared context for new build
+        this.sharedContext.fileModifications.clear();
+        this.sharedContext.completedCellSummaries.clear();
+        this.sharedContext.errorHistory = [];
 
         this.emit('buildStart', { buildId, blueprint });
 
@@ -196,6 +268,7 @@ export class LatticeOrchestrator extends EventEmitter {
                 }
 
                 // Build cell context with completed dependencies
+                // SESSION 2: Now includes sharedContext for real-time awareness
                 const buildContext: CellBuildContext = {
                     appSoul: context.appSoul,
                     appSoulType: context.appSoulType,
@@ -743,6 +816,88 @@ export class LatticeOrchestrator extends EventEmitter {
      */
     getConfig(): LatticeOrchestratorConfig {
         return { ...this.config };
+    }
+
+    // =========================================================================
+    // SESSION 2: SHARED CONTEXT METHODS
+    // =========================================================================
+
+    /**
+     * SESSION 2: Broadcast file modification to all other active cell builders
+     * This enables real-time awareness between parallel cells
+     */
+    private broadcastFileModification(cellId: string, file: FileModification): void {
+        // Record in shared context
+        this.sharedContext.fileModifications.set(file.path, {
+            cellId,
+            content: file.content,
+            timestamp: file.timestamp,
+        });
+
+        // Notify all other active cell builders
+        this.activeCellBuilders.forEach((builder, id) => {
+            if (id !== cellId) {
+                builder.notify(file);
+            }
+        });
+
+        // Emit for UI updates
+        this.emit('file-modified', { cellId, file });
+
+        // Broadcast via WebSocket for external listeners
+        this.wsSync.sendPhaseChange(
+            this.config.projectId,
+            `cell:${cellId}:file:modified`,
+            0,
+            `File modified: ${file.path}`
+        );
+    }
+
+    /**
+     * SESSION 2: Register a cell builder for file modification notifications
+     */
+    registerCellBuilder(cellId: string, notifyFn: (mod: FileModification) => void): void {
+        this.activeCellBuilders.set(cellId, { notify: notifyFn });
+    }
+
+    /**
+     * SESSION 2: Unregister a cell builder
+     */
+    unregisterCellBuilder(cellId: string): void {
+        this.activeCellBuilders.delete(cellId);
+    }
+
+    /**
+     * SESSION 2: Get shared context for injection into cell prompts
+     */
+    getSharedContext(): SharedBuildContext {
+        return this.sharedContext;
+    }
+
+    /**
+     * SESSION 2: Record cell completion in shared context
+     */
+    recordCellCompletion(cellId: string, summary: string): void {
+        this.sharedContext.completedCellSummaries.set(cellId, summary);
+
+        // Broadcast via WebSocket
+        this.wsSync.sendPhaseChange(
+            this.config.projectId,
+            `cell:${cellId}:completed`,
+            100,
+            `Completed: ${summary.substring(0, 50)}`
+        );
+    }
+
+    /**
+     * SESSION 2: Record cell error in shared context
+     */
+    recordCellError(cellId: string, error: string): void {
+        this.sharedContext.errorHistory.push({
+            cellId,
+            error,
+            timestamp: Date.now(),
+        });
     }
 }
 

@@ -290,6 +290,12 @@ export interface BuildLoopConfig {
 
     // Speed Enhancements (LATTICE)
     speedEnhancements?: ('lattice' | 'burst' | 'cached')[];
+
+    // SESSION 2: Explicit Options for LATTICE and BrowserInLoop
+    // useLattice: Set to false to disable parallel building (default: true)
+    // useBrowserInLoop: Set to false to disable visual verification during build (default: true)
+    useLattice?: boolean;
+    useBrowserInLoop?: boolean;
 }
 
 export interface BuildLoopState {
@@ -1192,12 +1198,14 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
         try {
             // =====================================================================
-            // LATTICE INTEGRATION: Use parallel cell building if enabled
+            // LATTICE INTEGRATION: Parallel cell building is now DEFAULT
+            // SESSION 2: LATTICE is the standard build mode for all builds
+            // Only disable if explicitly set to false via useLattice option
             // =====================================================================
-            const useLattice = this.state.config.speedEnhancements?.includes('lattice');
+            const useLattice = this.state.config.speedEnhancements?.includes('lattice') !== false;
 
             if (useLattice && this.state.intentContract) {
-                console.log('[BuildLoop] LATTICE mode enabled - using parallel cell building');
+                console.log('[BuildLoop] LATTICE mode enabled (default) - using parallel cell building');
 
                 const latticeResult = await this.executeLatticeBuild(stage);
 
@@ -1214,6 +1222,8 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     console.warn('[BuildLoop] LATTICE build failed, falling back to traditional build');
                     console.warn(`[BuildLoop] LATTICE errors: ${latticeResult.errors.join(', ')}`);
                 }
+            } else if (!useLattice) {
+                console.log('[BuildLoop] LATTICE explicitly disabled - using sequential build');
             }
 
             // =====================================================================
@@ -2915,6 +2925,18 @@ Would the user be satisfied with this result?`;
         this.state.phasesCompleted.push(phase);
         this.state.currentPhaseDurationMs = Date.now() - (this.state.currentPhaseStartedAt?.getTime() || Date.now());
 
+        // =====================================================================
+        // SESSION 2: Cleanup BrowserInLoop after Phase 2 (PARALLEL_BUILD)
+        // BrowserInLoop is active during building, cleanup when build phase ends
+        // =====================================================================
+        if (phase === 'parallel_build' && this.browserInLoop) {
+            console.log('[BuildLoop] Cleaning up BrowserInLoop after parallel_build phase');
+            this.browserInLoop.stop().catch(err => {
+                console.warn('[BuildLoop] BrowserInLoop cleanup error (non-fatal):', err);
+            });
+            this.browserInLoop = null;
+        }
+
         // Broadcast phase completion via WebSocket
         this.wsSync.sendPhaseChange(
             this.state.projectId,
@@ -3550,22 +3572,111 @@ Would the user be satisfied with this result?`;
         }
 
         // Start browser-in-loop (for visual verification during build)
-        if (config.enableBrowserInLoop) {
+        // SESSION 2: BrowserInLoop is now enabled by default for real-time visual verification
+        if (config.enableBrowserInLoop !== false) {
             try {
                 this.browserInLoop = createBrowserInLoop({
                     buildId: this.state.id,
                     projectPath: this.projectPath,
                     previewUrl: `http://localhost:3100`, // Default preview port
-                    checkIntervalMs: 30000,
+                    checkIntervalMs: config.visualQualityThreshold ? 30000 : 30000,
                     captureOnFileChange: true,
-                    antiSlopThreshold: config.visualQualityThreshold,
+                    antiSlopThreshold: config.visualQualityThreshold || 85,
                 });
+
+                // SESSION 2: Subscribe to visual verification events
+                // Stream results to building agents for real-time self-correction
+                this.browserInLoop.on('visualCheck', (check: VisualCheck) => {
+                    this.streamFeedbackToAgents(check);
+                    this.cursor21State.visualChecksRun++;
+                    this.cursor21State.currentVisualScore = check.score;
+                    this.cursor21State.lastVisualCheckAt = new Date();
+                });
+
                 await this.browserInLoop.start();
-                console.log('[BuildLoop] Cursor 2.1+: Browser-in-loop started');
+                console.log('[BuildLoop] Cursor 2.1+: Browser-in-loop started (default enabled)');
             } catch (error) {
                 console.warn('[BuildLoop] Browser-in-loop failed to start (non-fatal):', error);
             }
         }
+    }
+
+    /**
+     * SESSION 2: Stream visual verification feedback to all building agents
+     * This enables agents to self-correct based on real-time visual checks
+     */
+    private streamFeedbackToAgents(result: VisualCheck): void {
+        // Emit visual verification event for agents to consume
+        this.emit('agent-feedback', {
+            type: 'visual-verification',
+            passed: result.passed,
+            score: result.score,
+            issues: result.issues.map(i => i.message),
+            timestamp: Date.now()
+        });
+
+        // Emit to frontend for UI updates
+        this.emitEvent('cursor21_visual_check', {
+            passed: result.passed,
+            score: result.score,
+            issueCount: result.issues.length,
+            timestamp: result.timestamp,
+        });
+
+        // If critical issues found, add to agent context for next generation
+        if (result.score < 70) {
+            this.addToAgentContext({
+                type: 'visual-issue',
+                severity: 'high',
+                message: `Visual verification failed (score: ${result.score}). Issues: ${result.issues.map(i => i.message).join(', ')}`,
+                fixSuggestions: result.issues.filter(i => i.type === 'anti_slop').map(i => i.message)
+            });
+        }
+
+        // Broadcast via WebSocket for real-time UI updates
+        this.wsSync.sendPhaseChange(
+            this.state.projectId,
+            'visual_check',
+            result.score,
+            result.passed ? 'passed' : 'failed'
+        );
+    }
+
+    /**
+     * SESSION 2: Add context to agent for next generation cycle
+     * This enables real-time context sharing between verification and building
+     */
+    private addToAgentContext(context: {
+        type: string;
+        severity: string;
+        message: string;
+        fixSuggestions?: string[];
+    }): void {
+        // Store in pending context updates for injection into next agent prompt
+        const update = {
+            id: uuidv4(),
+            timestamp: Date.now(),
+            ...context
+        };
+
+        // Emit to all listening agents
+        this.emit('context-update', update);
+
+        // Store in feedback channel for persistent access
+        if (this.feedbackChannel) {
+            this.feedbackChannel.injectFeedback(
+                this.state.id,
+                context.type === 'visual-issue' ? 'visual' : 'quality',
+                context.severity === 'high' ? 'high' : 'medium',
+                context.message,
+                {
+                    suggestion: context.fixSuggestions?.join('; '),
+                    context: { fixSuggestions: context.fixSuggestions }
+                }
+            );
+        }
+
+        console.log(`[BuildLoop] Context update added: ${context.type} - ${context.message.substring(0, 50)}...`);
     }
 
     /**

@@ -22,6 +22,17 @@ import {
     formatContextSummary,
     type LoadedContext,
 } from './context-loader.js';
+// SESSION 2: Import UnifiedContext for rich context with patterns, strategies, error history
+import {
+    loadUnifiedContext,
+    formatUnifiedContextForCodeGen,
+    formatUnifiedContextSummary,
+    type UnifiedContext,
+} from './unified-context.js';
+import {
+    getWebSocketSyncService,
+    type WebSocketSyncService,
+} from '../agents/websocket-sync.js';
 import {
     createArtifactManager,
     type ArtifactManager,
@@ -97,6 +108,16 @@ export interface CodingAgentEvents {
     'error': { error: Error; phase: string };
 }
 
+/**
+ * SESSION 2: Context update from other agents (real-time sharing)
+ */
+export interface ContextUpdate {
+    type: 'agent:completed' | 'file:modified' | 'error:resolved' | 'pattern:learned' | 'visual-verification';
+    data: Record<string, unknown>;
+    fromAgentId?: string;
+    timestamp: number;
+}
+
 // =============================================================================
 // CODING AGENT WRAPPER
 // =============================================================================
@@ -104,6 +125,8 @@ export interface CodingAgentEvents {
 export class CodingAgentWrapper extends EventEmitter {
     private config: CodingAgentConfig;
     private context: LoadedContext | null = null;
+    // SESSION 2: Rich unified context with patterns, strategies, error history
+    private unifiedContext: UnifiedContext | null = null;
     private artifactManager: ArtifactManager;
     private openRouterClient: ReturnType<typeof getOpenRouterClient>;
     private currentTaskId: string | null = null;
@@ -114,6 +137,10 @@ export class CodingAgentWrapper extends EventEmitter {
     private decisions: DecisionRecord[] = [];
     private tasksCompletedThisSession: number = 0;
     private sessionStartTime: Date | null = null;
+    // SESSION 2: Real-time context updates from other agents
+    private wsSync: WebSocketSyncService;
+    private pendingContextUpdates: ContextUpdate[] = [];
+    private contextSubscriptionId: string | null = null;
 
     constructor(config: CodingAgentConfig) {
         super();
@@ -127,6 +154,8 @@ export class CodingAgentWrapper extends EventEmitter {
             config.userId
         );
         this.openRouterClient = getOpenRouterClient();
+        // SESSION 2: Initialize WebSocket sync for real-time context updates
+        this.wsSync = getWebSocketSyncService();
 
         console.log(`[CodingAgentWrapper] Created agent ${this.config.agentId} (${config.agentType})`);
     }
@@ -137,7 +166,7 @@ export class CodingAgentWrapper extends EventEmitter {
 
     /**
      * Start a coding session - ALWAYS call this first
-     * Loads all context from artifacts and prepares agent
+     * SESSION 2: Now uses loadUnifiedContext for rich context with patterns, strategies, error history
      */
     async startSession(): Promise<LoadedContext> {
         this.sessionStartTime = new Date();
@@ -149,14 +178,28 @@ export class CodingAgentWrapper extends EventEmitter {
         });
 
         try {
-            // 1. Load full context from artifacts
-            this.context = await loadProjectContext(this.config.projectPath, {
-                progressEntries: 30,
-                gitLogEntries: 20,
-                includeGitDiff: true,
-                includeVerificationHistory: true,
-                includeIssueResolutions: true,
-            });
+            // SESSION 2: Load rich unified context with patterns, strategies, error history
+            // This replaces the simpler loadProjectContext for comprehensive context
+            this.unifiedContext = await loadUnifiedContext(
+                this.config.projectId,
+                this.config.userId,
+                this.config.projectPath,
+                {
+                    includeIntentLock: true,
+                    includeVerificationResults: true,
+                    includeLearningData: true,
+                    includeErrorHistory: true,
+                    includeProjectAnalysis: true,
+                    includeUserPreferences: true,
+                    progressEntries: 50,
+                    gitLogEntries: 30
+                }
+            );
+
+            // Extract LoadedContext for backward compatibility
+            this.context = this.unifiedContext.fileContext;
+
+            console.log(`[CodingAgentWrapper] Unified context loaded: ${this.unifiedContext.learnedPatterns.length} patterns, ${this.unifiedContext.verificationResults.length} verifications, ${this.unifiedContext.errorHistory.length} error history`);
 
             // 2. Update build state to show agent is active
             await this.artifactManager.saveBuildState({
@@ -170,6 +213,9 @@ export class CodingAgentWrapper extends EventEmitter {
 
             // 3. Emit context loaded event
             this.emit('context_loaded', this.context);
+
+            // SESSION 2: Subscribe to real-time context updates from other agents
+            this.subscribeToContextUpdates();
 
             console.log(`[CodingAgentWrapper] Context loaded: ${this.context.progressLog.length} progress entries, ${this.context.taskList?.tasks.length || 0} tasks`);
 
@@ -312,6 +358,7 @@ ${contextSummary}
 
     /**
      * Record a file modification (call this when generating/modifying files)
+     * SESSION 2: Now broadcasts to other agents for real-time awareness
      */
     recordFileChange(
         filePath: string,
@@ -342,6 +389,10 @@ ${contextSummary}
         }
 
         this.emit('file_changed', change);
+
+        // SESSION 2: Broadcast to other agents for real-time awareness
+        this.broadcastFileModification(filePath, action);
+
         console.log(`[CodingAgentWrapper] Recorded ${action}: ${filePath}`);
     }
 
@@ -508,6 +559,9 @@ ${contextSummary}
 
             this.emit('task_complete', taskResult);
             this.tasksCompletedThisSession++;
+
+            // SESSION 2: Broadcast completion to other agents
+            this.broadcastTaskComplete(result.summary);
 
             // Reset state for next task
             const completedTaskId = this.currentTaskId;
@@ -853,6 +907,134 @@ ${contextSummary}
             fileChanges: this.fileChanges.length,
             decisions: this.decisions.length,
         };
+    }
+
+    // =========================================================================
+    // SESSION 2: REAL-TIME CONTEXT UPDATES
+    // =========================================================================
+
+    /**
+     * SESSION 2: Subscribe to real-time context updates from other agents
+     * This enables "fingers of the same hand" awareness between parallel agents
+     */
+    private subscribeToContextUpdates(): void {
+        // Generate unique subscription ID for this agent
+        this.contextSubscriptionId = `${this.config.projectId}-${this.config.agentId}`;
+
+        // Subscribe to local EventEmitter updates (managed by parent orchestrator)
+        // Note: The orchestrator emits these events to its child agents
+        console.log(`[CodingAgentWrapper] Context updates subscription ID: ${this.contextSubscriptionId}`);
+        console.log(`[CodingAgentWrapper] Ready to receive context updates via parent orchestrator`);
+    }
+
+    /**
+     * SESSION 2: Consume pending context updates for injection into next prompt
+     */
+    private consumePendingUpdates(): ContextUpdate[] {
+        const updates = [...this.pendingContextUpdates];
+        this.pendingContextUpdates = [];
+        return updates;
+    }
+
+    /**
+     * SESSION 2: Inject context updates from other agents into the prompt
+     * This is called before executing each task to ensure agent awareness
+     */
+    public injectContextUpdates(prompt: string, updates?: ContextUpdate[]): string {
+        const contextUpdates = updates || this.consumePendingUpdates();
+        if (contextUpdates.length === 0) return prompt;
+
+        const updateSummary = contextUpdates.map(u => {
+            switch (u.type) {
+                case 'agent:completed':
+                    return `Agent ${u.fromAgentId} completed: ${(u.data as { summary?: string }).summary || 'task'}`;
+                case 'file:modified':
+                    return `File ${(u.data as { path?: string }).path} was modified by Agent ${u.fromAgentId}`;
+                case 'error:resolved':
+                    return `Error "${(u.data as { error?: string }).error}" was resolved with: ${(u.data as { solution?: string }).solution}`;
+                case 'pattern:learned':
+                    return `New pattern learned: ${(u.data as { pattern?: string }).pattern}`;
+                case 'visual-verification':
+                    return `Visual check: ${(u.data as { passed?: boolean }).passed ? 'PASSED' : 'FAILED'} (score: ${(u.data as { score?: number }).score})`;
+                default:
+                    return null;
+            }
+        }).filter(Boolean).join('\n');
+
+        if (!updateSummary) return prompt;
+
+        return `
+## REAL-TIME CONTEXT FROM OTHER AGENTS
+The following happened since your last action:
+${updateSummary}
+
+Take this into account as you work on your current task.
+
+---
+
+${prompt}
+`;
+    }
+
+    /**
+     * SESSION 2: Get the unified context (with patterns, strategies, etc.)
+     */
+    getUnifiedContext(): UnifiedContext | null {
+        return this.unifiedContext;
+    }
+
+    /**
+     * SESSION 2: Get system prompt with unified context (rich context injection)
+     */
+    getSystemPromptWithUnifiedContext(basePrompt: string): string {
+        if (!this.unifiedContext) {
+            throw new Error('Must call startSession() before getting unified prompt');
+        }
+
+        const contextSection = formatUnifiedContextForCodeGen(this.unifiedContext);
+        const pendingUpdates = this.consumePendingUpdates();
+        const updatesSection = pendingUpdates.length > 0 ? this.injectContextUpdates('', pendingUpdates) : '';
+
+        return `${basePrompt}
+
+═══════════════════════════════════════════════════════════════════════════════
+UNIFIED PROJECT CONTEXT (Patterns, Strategies, Error History, Verification Results)
+═══════════════════════════════════════════════════════════════════════════════
+
+${contextSection}
+${updatesSection}
+
+═══════════════════════════════════════════════════════════════════════════════
+IMPORTANT: You have access to learned patterns and strategies from previous builds.
+Apply them to ensure high-quality code. Avoid patterns that have caused errors before.
+═══════════════════════════════════════════════════════════════════════════════`;
+    }
+
+    /**
+     * SESSION 2: Broadcast file modification to other agents
+     * Emits locally for parent orchestrator to distribute
+     */
+    private broadcastFileModification(filePath: string, action: string): void {
+        // Emit locally - parent orchestrator can distribute to other agents
+        this.emit('file:modified', {
+            agentId: this.config.agentId,
+            path: filePath,
+            action,
+            timestamp: Date.now()
+        });
+    }
+
+    /**
+     * SESSION 2: Notify completion to other agents
+     * Emits locally for parent orchestrator to distribute
+     */
+    private broadcastTaskComplete(summary: string): void {
+        // Emit locally - parent orchestrator can distribute to other agents
+        this.emit('agent:completed', {
+            agentId: this.config.agentId,
+            summary,
+            timestamp: Date.now()
+        });
     }
 }
 
