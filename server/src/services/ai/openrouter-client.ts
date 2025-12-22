@@ -128,9 +128,11 @@ export const OPENROUTER_MODELS = {
     GPT_4O: 'openai/gpt-4o',
     GPT_4O_MINI: 'openai/gpt-4o-mini',
 
-    // Gemini 3 Flash Preview - Dec 2025 (best for vision/video, configurable thinking)
+    // Gemini 3 Pro - Dec 2025 (best for complex video understanding)
+    GEMINI_3_PRO: 'google/gemini-3-pro-preview',
+    // Gemini 3 Flash - Dec 2025 (fast, cost-effective vision/video)
     GEMINI_3_FLASH: 'google/gemini-3-flash-preview',
-    // Gemini 2.0 Flash - Affordable vision/multimodal
+    // Gemini 2.0 Flash - Legacy fallback
     GEMINI_2_FLASH: 'google/gemini-2.0-flash-001',
     GEMINI_2_FLASH_LITE: 'google/gemini-2.0-flash-lite-001',
 

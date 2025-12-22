@@ -1,7 +1,12 @@
 /**
- * Credential Capture System
+ * Credential Capture System - Gemini 3 Vision @ 2fps
  * Uses AI vision to extract credentials from any platform
  * Handles varied UIs without brittle CSS selectors
+ *
+ * December 2025 Update:
+ * - 2fps frame streaming (500ms intervals)
+ * - Frame buffering for smooth transmission
+ * - Gemini 3 Pro/Flash backend integration
  */
 
 const CredentialCapture = {
@@ -18,6 +23,21 @@ const CredentialCapture = {
   attempts: 0,
   maxAttempts: 15,
   loginCheckInterval: null,
+
+  // 2fps streaming configuration
+  frameConfig: {
+    fps: 2,
+    intervalMs: 500, // 2fps = 500ms per frame
+    bufferSize: 4,   // Queue up to 4 frames
+    quality: 80,     // JPEG quality
+  },
+
+  // Frame buffer for smooth 2fps streaming
+  frameBuffer: {
+    frames: [],
+    lastSentAt: 0,
+    isSending: false,
+  },
 
   /**
    * Initialize credential capture from URL parameters or message
@@ -158,10 +178,60 @@ const CredentialCapture = {
   },
 
   /**
-   * Main extraction using AI vision
+   * Add frame to buffer with 2fps rate limiting
+   */
+  async bufferFrame(screenshot) {
+    const now = Date.now();
+
+    // Add to buffer
+    this.frameBuffer.frames.push({
+      data: screenshot,
+      timestamp: now,
+      sent: false,
+    });
+
+    // Trim buffer to max size
+    while (this.frameBuffer.frames.length > this.frameConfig.bufferSize) {
+      this.frameBuffer.frames.shift();
+    }
+
+    // Check if enough time has passed since last send (2fps = 500ms)
+    if (now - this.frameBuffer.lastSentAt < this.frameConfig.intervalMs) {
+      return null; // Buffered, will send on next interval
+    }
+
+    // Send oldest unsent frame
+    const frameToSend = this.frameBuffer.frames.find(f => !f.sent);
+    if (!frameToSend) {
+      return null;
+    }
+
+    frameToSend.sent = true;
+    this.frameBuffer.lastSentAt = now;
+
+    // Clean up sent frames
+    this.frameBuffer.frames = this.frameBuffer.frames.filter(f => !f.sent);
+
+    return frameToSend.data;
+  },
+
+  /**
+   * Reset frame buffer for new session
+   */
+  resetFrameBuffer() {
+    this.frameBuffer.frames = [];
+    this.frameBuffer.lastSentAt = 0;
+    this.frameBuffer.isSending = false;
+  },
+
+  /**
+   * Main extraction using AI vision @ 2fps
    */
   async extractCredentialsWithVision() {
-    this.updateStatus('extracting', 'Analyzing page with AI vision...');
+    this.updateStatus('extracting', 'Analyzing page with Gemini 3 @ 2fps...');
+
+    // Reset frame buffer for this session
+    this.resetFrameBuffer();
 
     while (
       Object.keys(this.capturedCredentials).length < this.targetCredentials.length &&
@@ -169,7 +239,7 @@ const CredentialCapture = {
       this.isCapturing
     ) {
       this.attempts++;
-      this.addLog(`Extraction attempt ${this.attempts}/${this.maxAttempts}`);
+      this.addLog(`Extraction attempt ${this.attempts}/${this.maxAttempts} @ 2fps`);
 
       try {
         // Take screenshot of current page
@@ -177,23 +247,33 @@ const CredentialCapture = {
 
         if (!screenshot) {
           this.addLog('Failed to capture screenshot');
-          await this.wait(1000);
+          await this.wait(this.frameConfig.intervalMs);
           continue;
         }
 
-        // Send to KripTik backend for AI analysis
+        // Buffer frame for 2fps rate limiting
+        const frameToSend = await this.bufferFrame(screenshot);
+        if (!frameToSend) {
+          // Frame buffered, wait for next interval
+          await this.wait(this.frameConfig.intervalMs / 2);
+          continue;
+        }
+
+        // Send to KripTik backend for Gemini 3 analysis
         const response = await this.sendToVisionAPI({
-          screenshot: screenshot,
+          screenshot: frameToSend,
           targetCredentials: this.targetCredentials.filter(c => !this.capturedCredentials[c]),
           currentUrl: window.location.href,
           pageTitle: document.title,
           pageText: this.getVisibleText(),
-          attempt: this.attempts
+          attempt: this.attempts,
+          fps: this.frameConfig.fps,
+          frameInterval: this.frameConfig.intervalMs,
         });
 
         if (!response) {
           this.addLog('No response from vision API');
-          await this.wait(2000);
+          await this.wait(this.frameConfig.intervalMs * 2);
           continue;
         }
 
@@ -212,20 +292,20 @@ const CredentialCapture = {
         if (response.action === 'navigate' && response.navigateTo) {
           this.addLog(`Navigating to: ${response.navigateTo}`);
           await this.navigateToUrl(response.navigateTo);
-          await this.wait(3000);
+          await this.wait(this.frameConfig.intervalMs * 6); // 3 seconds at 2fps
           continue;
         }
 
         if (response.action === 'click' && (response.clickSelector || response.clickText)) {
           this.addLog(`Clicking: ${response.clickText || response.clickSelector}`);
           await this.executeClickAction(response.clickSelector, response.clickText);
-          await this.wait(2000);
+          await this.wait(this.frameConfig.intervalMs * 4); // 2 seconds at 2fps
           continue;
         }
 
         if (response.action === 'scroll') {
           await this.scrollPage(response.scrollDirection || 'down');
-          await this.wait(1000);
+          await this.wait(this.frameConfig.intervalMs * 2); // 1 second at 2fps
           continue;
         }
 
@@ -235,13 +315,13 @@ const CredentialCapture = {
           break;
         }
 
-        // Small delay between attempts
-        await this.wait(1500);
+        // Wait for next frame interval (2fps = 500ms)
+        await this.wait(this.frameConfig.intervalMs);
 
       } catch (error) {
         console.error('[CredentialCapture] Extraction error:', error);
         this.addLog(`Error: ${error.message}`);
-        await this.wait(2000);
+        await this.wait(this.frameConfig.intervalMs * 2);
       }
     }
 

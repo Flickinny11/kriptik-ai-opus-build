@@ -1,13 +1,13 @@
 /**
- * Vision Capture Service - Live Video Streaming Analysis
+ * Vision Capture Service - Live Video Streaming Analysis @ 2fps
  *
- * Uses Gemini Live API for real-time streaming video analysis.
- * This is NOT screenshot-by-screenshot - it's continuous video monitoring.
+ * Uses Gemini 3 Pro Live API for real-time streaming video analysis.
+ * This is NOT screenshot-by-screenshot - it's continuous video monitoring at 2fps.
  *
  * How it works:
  * 1. Opens the page with user's session cookies via Playwright
- * 2. Establishes a WebSocket connection to Gemini Live API
- * 3. Continuously streams video frames (1-5 FPS) as we scroll
+ * 2. Establishes a WebSocket connection to Gemini 3 Pro Live API
+ * 3. Continuously streams video frames at 2fps (500ms intervals) as we scroll
  * 4. The AI sees the page in real-time and guides the capture:
  *    - Tells us where to scroll
  *    - Identifies chat messages, errors, file trees
@@ -16,13 +16,13 @@
  * 5. Auto-imports to KripTik when capture completes
  *
  * Requires: GOOGLE_AI_API_KEY environment variable for Live API access
- * Fallback: Uses OpenRouter with enhanced vision if Google AI key not set
+ * Fallback: Uses OpenRouter with Gemini 3 Flash if Google AI key not set
  *
- * Model: gemini-2.0-flash-live-001 (Live API GA, Dec 2025)
- * - Real-time bidirectional streaming
- * - Video processing at 1-60 FPS
- * - WebSocket-based session
- * - Supports system instructions and function calling
+ * December 2025 Update:
+ * - Model: gemini-3-pro-live-001 (Gemini 3 Pro Live API)
+ * - Frame rate: 2fps (500ms intervals) for optimal balance
+ * - Frame buffering for smooth transmission
+ * - Fallback: Gemini 3 Flash via OpenRouter
  *
  * This is the ONLY capture method - there is no "non-vision" alternative.
  */
@@ -77,30 +77,60 @@ type Page = import('playwright').Page;
 type BrowserContext = import('playwright').BrowserContext;
 
 // =============================================================================
-// CONFIGURATION
+// GEMINI 3 CONFIGURATION @ 2FPS
 // =============================================================================
 
-// Live API configuration for complex video analysis
+/**
+ * Gemini 3 model identifiers for Live API streaming
+ */
+const GEMINI_3_LIVE_MODELS = {
+    // Gemini 3 Pro - Best for complex video understanding
+    PRO: 'gemini-3-pro-live-001',
+    // Gemini 3 Flash - Fast, cost-effective
+    FLASH: 'gemini-3-flash-live-001',
+    // Legacy fallback
+    LEGACY: 'gemini-2.0-flash-live-001',
+} as const;
+
+// Live API configuration for 2fps video streaming
 const LIVE_API_CONFIG = {
-    // Live API model - GA December 2025
-    model: 'gemini-2.0-flash-live-001',
-    // Frames per second for video streaming (1-60 supported)
+    // Live API model - Gemini 3 Pro (December 2025)
+    model: GEMINI_3_LIVE_MODELS.PRO,
+    // Frames per second: 2fps for optimal balance of quality and cost
     fps: 2,
+    // Frame interval in milliseconds (2fps = 500ms)
+    frameIntervalMs: 500,
     // Maximum session duration (Live API default is 10 min, we extend via reconnection)
     maxSessionDurationMs: 8 * 60 * 1000, // 8 minutes to allow buffer before 10 min limit
     // Viewport for capture
     viewport: { width: 1920, height: 1080 },
+    // Enable frame buffering for smooth 2fps streaming
+    enableFrameBuffer: true,
+    // Frame buffer size (number of frames to queue)
+    frameBufferSize: 4,
 };
 
 // OpenRouter fallback configuration (if no Google AI key)
 const OPENROUTER_FALLBACK_CONFIG = {
     model: OPENROUTER_MODELS.GEMINI_3_FLASH,
-    // HIGH thinking for complex analysis (not 'low')
+    // HIGH thinking for complex analysis
     thinkingLevel: 'high' as const,
     // Large token limit for comprehensive extraction
     maxTokens: 32768,
     temperature: 0.2,
+    // 2fps capture interval for fallback mode
+    captureIntervalMs: 500,
 };
+
+/**
+ * Frame buffer for smooth 2fps streaming
+ */
+interface FrameBuffer {
+    frames: Array<{ data: string; timestamp: number; sent: boolean }>;
+    maxSize: number;
+    lastSentAt: number;
+    intervalMs: number;
+}
 
 // System instructions for the Live API vision agent
 const VISION_AGENT_INSTRUCTIONS = `You are an AI vision agent for KripTik AI's project import system.
@@ -333,6 +363,7 @@ class VisionCaptureService {
     private googleApiKey: string;
     private openRouterApiKey: string;
     private useLiveApi: boolean;
+    private frameBuffer: FrameBuffer | null = null;
 
     constructor() {
         this.googleApiKey = process.env.GOOGLE_AI_API_KEY || '';
@@ -346,9 +377,27 @@ class VisionCaptureService {
         }
 
         if (this.useLiveApi) {
-            console.log('[VisionCapture] Using Gemini Live API for streaming video analysis');
+            console.log('[VisionCapture] Using Gemini 3 Pro Live API @ 2fps:', {
+                model: LIVE_API_CONFIG.model,
+                fps: LIVE_API_CONFIG.fps,
+                frameIntervalMs: LIVE_API_CONFIG.frameIntervalMs,
+                enableFrameBuffer: LIVE_API_CONFIG.enableFrameBuffer,
+            });
         } else {
-            console.log('[VisionCapture] Using OpenRouter fallback (no GOOGLE_AI_API_KEY)');
+            console.log('[VisionCapture] Using OpenRouter fallback with Gemini 3 Flash @ 2fps:', {
+                model: OPENROUTER_FALLBACK_CONFIG.model,
+                captureIntervalMs: OPENROUTER_FALLBACK_CONFIG.captureIntervalMs,
+            });
+        }
+
+        // Initialize frame buffer if enabled
+        if (LIVE_API_CONFIG.enableFrameBuffer) {
+            this.frameBuffer = {
+                frames: [],
+                maxSize: LIVE_API_CONFIG.frameBufferSize,
+                lastSentAt: 0,
+                intervalMs: LIVE_API_CONFIG.frameIntervalMs,
+            };
         }
     }
 
@@ -433,7 +482,76 @@ class VisionCaptureService {
     // =========================================================================
 
     /**
-     * Run capture using Gemini Live API with real-time video streaming
+     * Send frame with buffering for smooth 2fps streaming
+     */
+    private async sendFrameWithBuffer(
+        liveSession: any,
+        base64Frame: string,
+        timestamp: number
+    ): Promise<boolean> {
+        const now = Date.now();
+
+        if (this.frameBuffer) {
+            // Add to buffer
+            this.frameBuffer.frames.push({
+                data: base64Frame,
+                timestamp,
+                sent: false,
+            });
+
+            // Trim buffer to max size
+            while (this.frameBuffer.frames.length > this.frameBuffer.maxSize) {
+                this.frameBuffer.frames.shift();
+            }
+
+            // Check if enough time has passed since last send (2fps = 500ms)
+            if (now - this.frameBuffer.lastSentAt < this.frameBuffer.intervalMs) {
+                return true; // Buffered, will send on next interval
+            }
+
+            // Send oldest unsent frame
+            const frameToSend = this.frameBuffer.frames.find(f => !f.sent);
+            if (!frameToSend) {
+                return true;
+            }
+
+            try {
+                await liveSession.sendRealtimeInput({
+                    media: {
+                        mimeType: 'image/jpeg',
+                        data: frameToSend.data,
+                    },
+                });
+
+                frameToSend.sent = true;
+                this.frameBuffer.lastSentAt = now;
+
+                // Clean up sent frames
+                this.frameBuffer.frames = this.frameBuffer.frames.filter(f => !f.sent);
+                return true;
+            } catch (error) {
+                console.error('[VisionCapture] Failed to send buffered frame:', error);
+                return false;
+            }
+        }
+
+        // Direct send without buffering
+        try {
+            await liveSession.sendRealtimeInput({
+                media: {
+                    mimeType: 'image/jpeg',
+                    data: base64Frame,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.error('[VisionCapture] Failed to send frame:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Run capture using Gemini 3 Pro Live API with real-time 2fps video streaming
      * This provides continuous video analysis as we scroll through the page
      */
     private async runLiveApiCapture(
@@ -442,7 +560,7 @@ class VisionCaptureService {
         options: VisionCaptureOptions
     ): Promise<void> {
         const {
-            captureInterval = 500, // 2 FPS default
+            captureInterval = LIVE_API_CONFIG.frameIntervalMs, // 500ms = 2fps
             timeout = 300000,      // 5 minutes
             includeFileTree = true,
             includeErrors = true,
@@ -514,8 +632,8 @@ class VisionCaptureService {
 
             await page.waitForTimeout(2000);
 
-            // Initialize Google GenAI and Live API
-            this.updateProgress(session, 'connecting', 'Connecting to Gemini Live API...', 25);
+            // Initialize Google GenAI and Gemini 3 Pro Live API
+            this.updateProgress(session, 'connecting', 'Connecting to Gemini 3 Pro Live API @ 2fps...', 25);
 
             const ai = new GenAI!({ apiKey: this.googleApiKey });
 
@@ -525,7 +643,9 @@ class VisionCaptureService {
             let consecutiveNoNewContent = 0;
             const maxNoNewContent = 5; // Stop after 5 frames with no new content
 
-            // Connect to Live API
+            // Connect to Gemini 3 Pro Live API
+            console.log(`[VisionCapture] Connecting to ${LIVE_API_CONFIG.model} @ ${LIVE_API_CONFIG.fps}fps`);
+
             liveSession = await ai.live.connect({
                 model: LIVE_API_CONFIG.model,
                 config: {
@@ -534,7 +654,7 @@ class VisionCaptureService {
                 },
                 callbacks: {
                     onopen: () => {
-                        console.log('[VisionCapture] Live API connected');
+                        console.log(`[VisionCapture] Gemini 3 Pro Live API connected @ ${LIVE_API_CONFIG.fps}fps`);
                     },
                     onmessage: (message: any) => {
                         // Handle text responses from the AI
@@ -563,9 +683,15 @@ class VisionCaptureService {
                 },
             });
 
-            this.updateProgress(session, 'streaming', 'Streaming video to AI...', 30);
+            this.updateProgress(session, 'streaming', 'Streaming video to Gemini 3 @ 2fps...', 30);
 
-            // Main capture loop - continuously stream frames and follow AI instructions
+            // Reset frame buffer for this session
+            if (this.frameBuffer) {
+                this.frameBuffer.frames = [];
+                this.frameBuffer.lastSentAt = 0;
+            }
+
+            // Main capture loop - continuously stream frames at 2fps and follow AI instructions
             while (session.status === 'running' && !chatComplete) {
                 // Check timeout
                 if (Date.now() - startTime > timeout) {
@@ -582,15 +708,10 @@ class VisionCaptureService {
                 const base64Frame = screenshotBuffer.toString('base64');
                 frameCount++;
 
-                // Send frame to Live API
-                await liveSession.sendRealtimeInput({
-                    media: {
-                        mimeType: 'image/jpeg',
-                        data: base64Frame,
-                    },
-                });
+                // Send frame to Live API with buffering for smooth 2fps
+                await this.sendFrameWithBuffer(liveSession, base64Frame, Date.now());
 
-                // Wait for AI to process
+                // Wait for next frame interval (2fps = 500ms)
                 await new Promise(resolve => setTimeout(resolve, captureInterval));
 
                 // Process AI response
@@ -819,7 +940,7 @@ class VisionCaptureService {
     // =========================================================================
 
     /**
-     * Fallback capture using OpenRouter with enhanced vision analysis
+     * Fallback capture using OpenRouter with Gemini 3 Flash @ 2fps
      * Uses higher thinking levels and token limits for thorough extraction
      */
     private async runOpenRouterCapture(
@@ -828,7 +949,7 @@ class VisionCaptureService {
         options: VisionCaptureOptions
     ): Promise<void> {
         const {
-            captureInterval = 1500,
+            captureInterval = OPENROUTER_FALLBACK_CONFIG.captureIntervalMs, // 500ms = 2fps
             timeout = 300000,
             maxApiCalls = 100,
             includeFileTree = true,
