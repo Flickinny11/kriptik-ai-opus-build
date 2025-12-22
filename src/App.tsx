@@ -22,6 +22,7 @@ const DesignRoom = lazy(() => import('./pages/DesignRoom'));
 const CredentialVault = lazy(() => import('./pages/CredentialVault'));
 const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
 const MyAccount = lazy(() => import('./pages/MyAccount'));
+const GitHubCallback = lazy(() => import('./pages/GitHubCallback'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -128,6 +129,13 @@ function App() {
                     <Route path="/fix-my-app" element={
                         <PageErrorBoundary>
                             <FixMyApp />
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/auth/github/callback" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <GitHubCallback />
+                            </Suspense>
                         </PageErrorBoundary>
                     } />
                 </Route>

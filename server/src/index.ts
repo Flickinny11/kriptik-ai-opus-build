@@ -747,6 +747,10 @@ app.use("/api/autopilot", requireCredits(10), apiAutopilotRouter);
 import adaptiveUIRouter from './routes/adaptive-ui.js';
 app.use("/api/adaptive", adaptiveUIRouter); // No credits - analytics should be free
 
+// GitHub Integration - OAuth and repository management
+import githubRouter from './routes/github.js';
+app.use("/api/github", githubRouter);
+
 // Context Bridge - Codebase import and analysis
 import contextBridgeRouter from './routes/context-bridge.js';
 app.use("/api/context", requireCredits(25), contextBridgeRouter);

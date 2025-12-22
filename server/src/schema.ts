@@ -2379,3 +2379,41 @@ export const contentFlags = sqliteTable('content_flags', {
     userAcknowledged: integer('user_acknowledged', { mode: 'boolean' }).default(false),
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// GITHUB INTEGRATION - OAuth and Repository Connections
+// =============================================================================
+
+/**
+ * GitHub Connections - User OAuth connections to GitHub
+ * Access tokens are encrypted at rest using the credential vault
+ */
+export const githubConnections = sqliteTable('github_connections', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+    githubId: text('github_id').notNull(),
+    githubUsername: text('github_username').notNull(),
+    accessToken: text('access_token').notNull(), // Encrypted via credential vault
+    refreshToken: text('refresh_token'), // Encrypted via credential vault
+    scope: text('scope'),
+    avatarUrl: text('avatar_url'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Project GitHub Repos - Links projects to GitHub repositories
+ */
+export const projectGithubRepos = sqliteTable('project_github_repos', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').notNull().references(() => projects.id),
+    repoOwner: text('repo_owner').notNull(),
+    repoName: text('repo_name').notNull(),
+    defaultBranch: text('default_branch').default('main'),
+    isPrivate: integer('is_private', { mode: 'boolean' }).default(true),
+    repoUrl: text('repo_url'),
+    lastPushedAt: text('last_pushed_at'),
+    lastPushCommitSha: text('last_push_commit_sha'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
