@@ -21,9 +21,10 @@ import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import { HandDrawnArrow } from '../components/ui/HandDrawnArrow';
 import { LearningSettingsSection } from '../components/settings/LearningSettingsSection';
 import { DeveloperSettingsSection } from '../components/settings/DeveloperSettingsSection';
+import { GitHubConnect } from '../components/settings/GitHubConnect';
 import { useUserStore } from '../store/useUserStore';
 
-type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'developer' | 'privacy' | 'usage' | 'learning';
+type TabId = 'profile' | 'billing' | 'payment' | 'notifications' | 'ai' | 'developer' | 'privacy' | 'usage' | 'learning' | 'integrations';
 
 interface UserSettings {
     spendingLimit: number | null;
@@ -88,6 +89,7 @@ const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ size?:
     { id: 'profile', label: 'Profile', icon: StatusIcons.UserIcon },
     { id: 'billing', label: 'Billing & Credits', icon: StatusIcons.WalletIcon },
     { id: 'payment', label: 'Payment Methods', icon: StatusIcons.CreditCardIcon },
+    { id: 'integrations', label: 'Integrations', icon: StatusIcons.PlugIcon },
     { id: 'notifications', label: 'Notifications', icon: StatusIcons.BellIcon },
     { id: 'ai', label: 'AI Preferences', icon: StatusIcons.BrainIcon },
     { id: 'developer', label: 'Developer Options', icon: StatusIcons.SettingsIcon, badge: 'Advanced' },
@@ -771,6 +773,19 @@ export default function SettingsPage() {
                             {activeTab === 'learning' && (
                                 <div className="glass-panel p-6">
                                     <LearningSettingsSection />
+                                </div>
+                            )}
+
+                            {/* Integrations Tab */}
+                            {activeTab === 'integrations' && (
+                                <div className="space-y-6">
+                                    <div className="glass-panel p-6">
+                                        <h2 className="text-xl font-semibold mb-6" style={{ color: '#1a1a1a' }}>Integrations</h2>
+                                        <p className="mb-6" style={{ color: '#666' }}>
+                                            Connect your accounts to push projects directly to your repositories and integrate with other services.
+                                        </p>
+                                        <GitHubConnect />
+                                    </div>
                                 </div>
                             )}
                         </motion.div>

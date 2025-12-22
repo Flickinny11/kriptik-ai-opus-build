@@ -33,6 +33,8 @@ import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
 import AgentActivityStream from './AgentActivityStream';
+import { LatticeProgress } from './LatticeProgress';
+import { useLatticeStore } from '../../store/useLatticeStore';
 import type { AgentActivityEvent } from '../../types/agent-activity';
 import { parseStreamChunkToEvent } from '../../types/agent-activity';
 import { costEstimator } from '../../lib/CostEstimator';
@@ -216,6 +218,22 @@ function MessageCard({
             }}
         >
             {children}
+        </div>
+    );
+}
+
+// LATTICE Progress Wrapper - Shows LATTICE visualization when blueprint is active
+function LatticeProgressWrapper() {
+    const { blueprint } = useLatticeStore();
+
+    if (!blueprint) return null;
+
+    return (
+        <div
+            className="px-4 py-3 shrink-0"
+            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+        >
+            <LatticeProgress compact={false} showDetails={true} />
         </div>
     );
 }
@@ -846,6 +864,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         >
                             <AgentProgress />
                         </div>
+                        {/* LATTICE Progress Visualization - shown when LATTICE blueprint is active */}
+                        <LatticeProgressWrapper />
                         <div
                             className="flex-1 overflow-hidden min-h-0 m-2 rounded-xl"
                             style={{
