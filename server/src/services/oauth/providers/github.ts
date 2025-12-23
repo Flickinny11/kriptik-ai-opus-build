@@ -76,12 +76,11 @@ export class GitHubOAuthProvider implements OAuthProvider {
     }
 
     /**
-     * GitHub doesn't support refresh tokens in standard OAuth flow
-     * This is a placeholder that throws an error
+     * GitHub OAuth does not support refresh tokens in the standard OAuth flow.
+     * GitHub App installations can use refresh tokens, but OAuth apps require re-authorization.
+     * This method intentionally throws to enforce re-authorization.
      */
-    async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
-        // GitHub App installations support refresh tokens, but OAuth apps don't
-        // For OAuth apps, users need to re-authorize
+    async refreshAccessToken(_refreshToken: string): Promise<OAuthTokens> {
         throw new Error('GitHub OAuth tokens cannot be refreshed. User must re-authorize.');
     }
 

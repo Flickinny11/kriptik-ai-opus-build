@@ -5,6 +5,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { createSign } from 'crypto';
 import {
     CloudProviderInterface,
     DeploymentConfig,
@@ -87,8 +88,9 @@ export class GCPProvider implements CloudProviderInterface {
 
     /**
      * Create JWT for service account authentication
+     * Uses RS256 signing with the service account's private key
      */
-    private createJWT(key: any): string {
+    private createJWT(key: { client_email: string; private_key: string }): string {
         const now = Math.floor(Date.now() / 1000);
         const header = { alg: 'RS256', typ: 'JWT' };
         const payload = {
@@ -100,13 +102,18 @@ export class GCPProvider implements CloudProviderInterface {
             exp: now + 3600,
         };
 
-        // Note: In production, use a proper JWT library with RS256 signing
-        // This is a placeholder - the actual implementation would use crypto
+        // Base64URL encode header and payload
         const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+        const unsignedToken = `${base64Header}.${base64Payload}`;
 
-        // For now, return a placeholder - in production, sign with private key
-        return `${base64Header}.${base64Payload}.signature`;
+        // Sign with RS256 using the service account's private key
+        const sign = createSign('RSA-SHA256');
+        sign.update(unsignedToken);
+        sign.end();
+        const signature = sign.sign(key.private_key, 'base64url');
+
+        return `${unsignedToken}.${signature}`;
     }
 
     /**
