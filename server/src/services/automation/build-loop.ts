@@ -3409,26 +3409,13 @@ Pass Rate: ${this.state.featureSummary?.passRate || 0}%
 Would the user be satisfied with this result?`;
     }
 
-    private async handleIntentNotSatisfied(result: {
-        satisfied: boolean;
-        missingCriteria: string[];
-        recommendations: string[];
-    }): Promise<void> {
-        // Log the issue
-        this.state.errorCount++;
-        this.state.lastError = `Intent not satisfied: ${result.missingCriteria.join(', ')}`;
-
-        // Loop back to Phase 2 if not at max attempts
-        if (this.state.escalationLevel < 3) {
-            this.state.escalationLevel++;
-            await this.executePhase2_ParallelBuild(this.state.currentStage);
-            await this.executePhase3_IntegrationCheck();
-            await this.executePhase4_FunctionalTest();
-            await this.executePhase5_IntentSatisfaction();
-        } else {
-            throw new Error('Maximum escalation attempts reached');
-        }
-    }
+    // SESSION 6: REMOVED handleIntentNotSatisfied - old 3-retry limit
+    // Phase 5 now uses while(true) infinite loop with cost ceiling
+    // The only limits are:
+    // 1. $50 cost ceiling (user can approve to continue)
+    // 2. 5 consecutive errors (auto-continues after 60s)
+    // 3. User abort
+    // This ensures KripTik AI "never gives up" on intent satisfaction
 
     private async generateStyleGuide(): Promise<void> {
         if (!this.state.intentContract) return;

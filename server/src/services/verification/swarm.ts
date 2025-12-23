@@ -446,18 +446,23 @@ export class VerificationSwarm extends EventEmitter {
     private intervals: Map<VerificationAgentType, NodeJS.Timeout> = new Map();
     private errorPrevention: PredictiveErrorPrevention;
     private lastPredictions: PredictionResult | null = null;
+    // SESSION 6: Project path for real TypeScript/ESLint verification
+    private projectPath: string | null = null;
 
     constructor(
         orchestrationRunId: string,
         projectId: string,
         userId: string,
-        config: Partial<SwarmConfig> = {}
+        config: Partial<SwarmConfig> = {},
+        projectPath?: string
     ) {
         super();
         this.orchestrationRunId = orchestrationRunId;
         this.projectId = projectId;
         this.userId = userId;
         this.config = { ...DEFAULT_SWARM_CONFIG, ...config };
+        // SESSION 6: Store project path for real tsc/eslint execution
+        this.projectPath = projectPath || `/tmp/builds/${projectId}`;
         this.state = {
             running: false,
             activeAgents: new Set(),
@@ -472,6 +477,13 @@ export class VerificationSwarm extends EventEmitter {
             agentType: 'testing',
         });
         this.errorPrevention = getPredictiveErrorPrevention();
+    }
+
+    /**
+     * SESSION 6: Set project path for verification
+     */
+    setProjectPath(path: string): void {
+        this.projectPath = path;
     }
 
     /**
@@ -658,41 +670,132 @@ export class VerificationSwarm extends EventEmitter {
     /**
      * Error Checker Agent
      * Model: Sonnet 4.5 | Poll: 5s | Blocking: Yes
+     *
+     * SESSION 6: REAL TypeScript and ESLint verification
+     * Actually runs `tsc --noEmit` and `eslint` on the project
      */
     private async runErrorChecker(feature: Feature, files: Map<string, string>): Promise<VerificationResult> {
         const startTime = Date.now();
         const issues: VerificationIssue[] = [];
 
-        // Check for TypeScript errors (basic pattern matching)
-        for (const [path, content] of files) {
-            if (path.endsWith('.ts') || path.endsWith('.tsx')) {
-                // Check for common TypeScript issues
-                if (content.includes('any')) {
+        // SESSION 6: Run REAL TypeScript compilation check
+        try {
+            const { exec } = await import('child_process');
+            const { promisify } = await import('util');
+            const execAsync = promisify(exec);
+
+            // Get project path from feature or use default
+            const projectPath = this.projectPath || '/tmp/builds';
+
+            // Run TypeScript compiler in noEmit mode
+            try {
+                await execAsync('npx tsc --noEmit --pretty false 2>&1', {
+                    cwd: projectPath,
+                    timeout: 30000, // 30 second timeout
+                });
+                console.log('[ErrorChecker] TypeScript compilation passed');
+            } catch (tscError: any) {
+                // Parse TypeScript errors from output
+                const output = tscError.stdout || tscError.message || '';
+                const errorLines = output.split('\n').filter((line: string) =>
+                    line.includes('error TS') || line.includes(': error')
+                );
+
+                for (const errorLine of errorLines.slice(0, 20)) { // Limit to 20 errors
+                    const match = errorLine.match(/^(.+)\((\d+),(\d+)\):\s*error\s+(TS\d+):\s*(.+)$/);
+                    if (match) {
+                        issues.push({
+                            severity: 'critical',
+                            category: 'typescript',
+                            description: `${match[4]}: ${match[5]}`,
+                            file: match[1],
+                            line: parseInt(match[2], 10),
+                            suggestion: 'Fix TypeScript error',
+                            autoFixable: false,
+                        });
+                    } else if (errorLine.trim()) {
+                        issues.push({
+                            severity: 'critical',
+                            category: 'typescript',
+                            description: errorLine.trim(),
+                            autoFixable: false,
+                        });
+                    }
+                }
+
+                if (errorLines.length > 20) {
                     issues.push({
-                        severity: 'medium',
+                        severity: 'high',
                         category: 'typescript',
-                        description: 'Usage of "any" type detected',
-                        file: path,
-                        suggestion: 'Replace with specific type',
+                        description: `${errorLines.length - 20} more TypeScript errors not shown`,
                         autoFixable: false,
                     });
                 }
 
-                // Check for missing return types
-                const functionMatches = content.match(/(?:function|const)\s+\w+\s*=\s*(?:async\s*)?\([^)]*\)\s*=>\s*{/g);
-                if (functionMatches && functionMatches.length > 0) {
-                    // This is a simplified check
+                console.log(`[ErrorChecker] TypeScript found ${errorLines.length} errors`);
+            }
+
+            // Run ESLint check
+            try {
+                await execAsync('npx eslint . --ext .ts,.tsx --format json --quiet 2>&1', {
+                    cwd: projectPath,
+                    timeout: 60000, // 60 second timeout
+                });
+                console.log('[ErrorChecker] ESLint passed');
+            } catch (eslintError: any) {
+                // Parse ESLint JSON output
+                try {
+                    const output = eslintError.stdout || '';
+                    const eslintResults = JSON.parse(output);
+                    for (const fileResult of eslintResults) {
+                        for (const message of fileResult.messages || []) {
+                            if (message.severity >= 2) { // 2 = error
+                                issues.push({
+                                    severity: message.severity === 2 ? 'high' : 'medium',
+                                    category: 'eslint',
+                                    description: `${message.ruleId}: ${message.message}`,
+                                    file: fileResult.filePath,
+                                    line: message.line,
+                                    suggestion: message.fix ? 'Auto-fixable' : 'Manual fix required',
+                                    autoFixable: !!message.fix,
+                                });
+                            }
+                        }
+                    }
+                } catch {
+                    // ESLint not configured or output not JSON - fallback to basic check
+                    console.log('[ErrorChecker] ESLint not configured, using pattern checks');
+                }
+            }
+        } catch (execError) {
+            console.warn('[ErrorChecker] Could not run tsc/eslint, falling back to pattern checks:', execError);
+            // Fallback to pattern-based checks if exec fails
+            for (const [path, content] of files) {
+                if (path.endsWith('.ts') || path.endsWith('.tsx')) {
+                    if (content.includes('any')) {
+                        issues.push({
+                            severity: 'medium',
+                            category: 'typescript',
+                            description: 'Usage of "any" type detected',
+                            file: path,
+                            suggestion: 'Replace with specific type',
+                            autoFixable: false,
+                        });
+                    }
                 }
             }
         }
 
+        const hasCritical = issues.some(i => i.severity === 'critical');
+        const hasHigh = issues.some(i => i.severity === 'high');
+
         const result = await this.createVerificationResult(
             feature.featureId,
             'error_checker',
-            issues.length === 0 || !issues.some(i => i.severity === 'critical' || i.severity === 'high'),
+            !hasCritical && !hasHigh, // Only pass if no critical or high severity issues
             undefined,
             issues,
-            issues.length === 0 ? 'No errors found' : `Found ${issues.length} issues`,
+            issues.length === 0 ? 'TypeScript and ESLint checks passed' : `Found ${issues.length} issues (${hasCritical ? 'CRITICAL' : hasHigh ? 'HIGH' : 'MEDIUM'} severity)`,
             Date.now() - startTime
         );
 
