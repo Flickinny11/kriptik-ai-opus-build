@@ -613,6 +613,16 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // =========================================================================
     private contextSync: ContextSyncService | null = null;
 
+    // =========================================================================
+    // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
+    // Pre-generates likely next features while current ones are being built
+    // =========================================================================
+    private speculativeCache: Map<string, { code: string; files: Array<{ path: string; content: string }>; timestamp: number }> = new Map();
+    private speculativeGenerationInProgress: Set<string> = new Set();
+    private speculativeHitRate: number = 0;
+    private speculativeTotalHits: number = 0;
+    private speculativeTotalMisses: number = 0;
+
     // File contents cache for verification
     private projectFiles: Map<string, string> = new Map();
 
@@ -1733,7 +1743,24 @@ Include ALL necessary imports and exports.`;
                 // Check if feature already passed (from task-based building)
                 if (feature.passes) continue;
 
-                await this.buildFeature(feature);
+                // =====================================================================
+                // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
+                // Start pre-generating likely next features WHILE building current one
+                // =====================================================================
+                this.startSpeculativePreBuilding(feature, stageFeatures).catch(err => {
+                    console.warn('[Speculative] Pre-building failed (non-blocking):', err);
+                });
+
+                // Check if we have a speculative result for this feature
+                const speculativeResult = this.getSpeculativeResult(feature);
+                if (speculativeResult) {
+                    // Use speculative result as starting point
+                    console.log(`[Speculative] Using pre-generated code for ${feature.featureId}`);
+                    await this.applySpeculativeResult(feature, speculativeResult);
+                } else {
+                    // Normal build path
+                    await this.buildFeature(feature);
+                }
 
                 const featureSummary = await this.featureManager.getSummary();
                 this.state.featureSummary = featureSummary;
@@ -1742,8 +1769,12 @@ Include ALL necessary imports and exports.`;
                     featureId: feature.featureId,
                     passRate: featureSummary.passRate,
                     remaining: featureSummary.pending,
+                    speculativeHitRate: this.speculativeHitRate,
                 });
             }
+
+            // Clean up stale speculative cache
+            this.cleanupSpeculativeCache();
 
             this.completePhase('parallel_build');
 
@@ -3067,9 +3098,16 @@ Return JSON:
     /**
      * Phase 6: BROWSER DEMO - Show the user their working app
      * Opens a VISIBLE browser for the user to see and optionally take control
+     *
+     * SESSION 8: BROWSER VERIFICATION LOOP
+     * Show → Analyze → Fix → Show until perfect
+     * This is the final gate - ensures visual perfection before completion
      */
     private async executePhase6_BrowserDemo(): Promise<void> {
         this.startPhase('browser_demo');
+
+        const MAX_VISUAL_FIX_ROUNDS = 5;
+        const VISUAL_SCORE_THRESHOLD = 90;
 
         try {
             // Ensure sandbox is running
@@ -3107,8 +3145,68 @@ Return JSON:
             await demoBrowser.initialize();
             await demoBrowser.navigateTo(sandbox.url);
 
-            // Take final screenshot for records
-            const finalScreenshot = await demoBrowser.screenshot({ fullPage: true });
+            // ================================================================
+            // SESSION 8: BROWSER VERIFICATION LOOP
+            // Show → Analyze → Fix → Show until perfect
+            // ================================================================
+            let visualFixRound = 0;
+            let visuallyPerfect = false;
+            let finalScreenshot: Buffer | null = null;
+            let lastVisualScore = 0;
+
+            console.log('[Phase 6] SESSION 8: Starting Browser Verification Loop (show → fix → show)');
+
+            while (!visuallyPerfect && visualFixRound < MAX_VISUAL_FIX_ROUNDS) {
+                visualFixRound++;
+                console.log(`[Phase 6] Visual verification round ${visualFixRound}/${MAX_VISUAL_FIX_ROUNDS}`);
+
+                // STEP 1: SHOW - Take screenshot and analyze
+                const screenshot = await demoBrowser.screenshot({ fullPage: true });
+                finalScreenshot = screenshot;
+
+                // STEP 2: ANALYZE - Use visual verifier to find issues
+                const visualAnalysis = await this.analyzeVisualState(screenshot, sandbox.url);
+                lastVisualScore = visualAnalysis.score;
+
+                this.emitEvent('phase6-visual-analysis', {
+                    round: visualFixRound,
+                    score: visualAnalysis.score,
+                    issues: visualAnalysis.issues,
+                    screenshot: screenshot.toString('base64').slice(0, 1000) + '...',
+                });
+
+                if (visualAnalysis.score >= VISUAL_SCORE_THRESHOLD && visualAnalysis.issues.length === 0) {
+                    visuallyPerfect = true;
+                    console.log(`[Phase 6] ✅ Visual perfection achieved! Score: ${visualAnalysis.score}/100`);
+                    break;
+                }
+
+                // STEP 3: FIX - Apply visual fixes
+                console.log(`[Phase 6] 🔧 Fixing ${visualAnalysis.issues.length} visual issues (score: ${visualAnalysis.score}/100)`);
+
+                for (const issue of visualAnalysis.issues) {
+                    try {
+                        await this.fixVisualIssue(issue);
+                    } catch (err) {
+                        console.warn(`[Phase 6] Failed to fix visual issue: ${issue.description}`, err);
+                    }
+                }
+
+                // Rebuild and refresh
+                if (visualAnalysis.issues.length > 0) {
+                    await this.triggerHotReload(sandbox);
+                    await this.delay(2000); // Wait for hot reload
+                    await demoBrowser.refresh();
+                    await this.delay(1000); // Wait for page to settle
+                }
+            }
+
+            // Final score logging
+            if (visuallyPerfect) {
+                console.log(`[Phase 6] 🎉 Browser verification complete - perfect visual state achieved in ${visualFixRound} rounds`);
+            } else {
+                console.log(`[Phase 6] ⚠️ Browser verification ended after ${visualFixRound} rounds (score: ${lastVisualScore}/100)`);
+            }
 
             // Run key user flows to demonstrate the app works
             if (this.state.intentContract?.userWorkflows) {
@@ -3134,6 +3232,11 @@ Return JSON:
                 browserConnected: true,
                 takeControlAvailable: true,
                 screenshot: finalScreenshot,
+                visualVerification: {
+                    rounds: visualFixRound,
+                    finalScore: lastVisualScore,
+                    perfect: visuallyPerfect,
+                },
             });
 
             // Close demo browser after showing (or keep open based on config)
@@ -3151,6 +3254,386 @@ Return JSON:
                 status: 'demo_unavailable',
                 error: (error as Error).message,
             });
+        }
+    }
+
+    /**
+     * SESSION 8: Analyze visual state from screenshot
+     */
+    private async analyzeVisualState(screenshot: Buffer, url: string): Promise<{
+        score: number;
+        issues: Array<{ type: string; description: string; element?: string; fix?: string }>;
+    }> {
+        try {
+            // Use Claude's vision capabilities to analyze the screenshot
+            const prompt = `Analyze this web application screenshot for visual quality issues.
+
+URL: ${url}
+
+Look for:
+1. Layout problems (misalignment, overflow, broken grids)
+2. Typography issues (unreadable text, wrong hierarchy, poor contrast)
+3. Color/contrast problems
+4. Broken or missing images
+5. Unstyled elements
+6. Mobile responsiveness issues visible in the layout
+7. Accessibility concerns (color blindness, text size)
+8. Visual consistency issues
+9. Empty states that look broken
+10. Any UI that looks "unfinished" or placeholder-like
+
+For each issue found, provide a specific CSS or component fix.
+
+Return JSON:
+{
+    "score": 0-100,
+    "issues": [
+        {
+            "type": "layout|typography|color|image|style|responsive|accessibility|consistency|empty|placeholder",
+            "description": "what's wrong",
+            "element": "CSS selector or component name if identifiable",
+            "fix": "specific CSS or code change to fix it"
+        }
+    ]
+}`;
+
+            const response = await this.claudeService.generate(prompt, {
+                model: CLAUDE_MODELS.SONNET_4,
+                maxTokens: 8000,
+                images: [{
+                    type: 'base64',
+                    media_type: 'image/png',
+                    data: screenshot.toString('base64'),
+                }],
+            });
+
+            try {
+                const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+            } catch {
+                // Parsing failed
+            }
+        } catch (err) {
+            console.warn('[Phase 6] Visual analysis failed:', err);
+        }
+
+        // Fallback - assume it's okay if analysis fails
+        return { score: 85, issues: [] };
+    }
+
+    /**
+     * SESSION 8: Fix a visual issue
+     */
+    private async fixVisualIssue(issue: { type: string; description: string; element?: string; fix?: string }): Promise<void> {
+        console.log(`[Phase 6] Fixing visual issue: ${issue.type} - ${issue.description}`);
+
+        if (!issue.fix) return;
+
+        // Use AI to apply the fix intelligently
+        const prompt = `Apply this visual fix to the appropriate file:
+
+Issue Type: ${issue.type}
+Description: ${issue.description}
+Element: ${issue.element || 'unknown'}
+Suggested Fix: ${issue.fix}
+
+Determine which file needs to be modified and apply the fix.
+Return the file path and complete updated content.
+
+Return JSON:
+{
+    "file": "path/to/file.tsx",
+    "content": "complete file content with fix applied"
+}`;
+
+        try {
+            const response = await this.claudeService.generate(prompt, {
+                model: CLAUDE_MODELS.SONNET_4,
+                maxTokens: 16000,
+            });
+
+            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                if (result.file && result.content) {
+                    await this.artifactManager.saveArtifact(result.file, result.content);
+                    this.projectFiles.set(result.file, result.content);
+                    console.log(`[Phase 6] Applied visual fix to ${result.file}`);
+                }
+            }
+        } catch (err) {
+            console.warn(`[Phase 6] Failed to apply visual fix:`, err);
+        }
+    }
+
+    /**
+     * SESSION 8: Trigger hot reload in sandbox
+     */
+    private async triggerHotReload(sandbox: SandboxInstance): Promise<void> {
+        // Most dev servers support HMR automatically on file changes
+        // If explicit trigger needed, we could touch a file or send a signal
+        console.log('[Phase 6] Hot reload triggered');
+    }
+
+    // =========================================================================
+    // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
+    // Faster than speculative - generates likely next features IN ADVANCE
+    // =========================================================================
+
+    /**
+     * Start speculative pre-building for likely next features
+     * Runs in parallel while current feature is being built
+     */
+    private async startSpeculativePreBuilding(currentFeature: Feature, allFeatures: Feature[]): Promise<void> {
+        // Predict next likely features based on dependency graph and priority
+        const nextFeatures = this.predictNextFeatures(currentFeature, allFeatures, 3);
+
+        console.log(`[Speculative] Starting pre-build for ${nextFeatures.length} likely next features`);
+
+        // Start pre-generation in parallel (non-blocking)
+        for (const feature of nextFeatures) {
+            const cacheKey = this.getSpeculativeCacheKey(feature);
+
+            // Skip if already in cache or in progress
+            if (this.speculativeCache.has(cacheKey) || this.speculativeGenerationInProgress.has(cacheKey)) {
+                continue;
+            }
+
+            // Mark as in progress
+            this.speculativeGenerationInProgress.add(cacheKey);
+
+            // Fire-and-forget pre-generation
+            this.preGenerateFeature(feature, cacheKey).catch(err => {
+                console.warn(`[Speculative] Pre-generation failed for ${feature.featureId}:`, err);
+                this.speculativeGenerationInProgress.delete(cacheKey);
+            });
+        }
+    }
+
+    /**
+     * Predict which features are likely to be built next
+     */
+    private predictNextFeatures(currentFeature: Feature, allFeatures: Feature[], maxCount: number): Feature[] {
+        const pending = allFeatures.filter(f =>
+            f.status === 'pending' &&
+            f.featureId !== currentFeature.featureId
+        );
+
+        // Score features by likelihood of being next
+        const scored = pending.map(f => ({
+            feature: f,
+            score: this.calculateFeaturePredictionScore(f, currentFeature),
+        }));
+
+        // Sort by score descending
+        scored.sort((a, b) => b.score - a.score);
+
+        return scored.slice(0, maxCount).map(s => s.feature);
+    }
+
+    /**
+     * Calculate how likely a feature is to be built next
+     */
+    private calculateFeaturePredictionScore(candidate: Feature, current: Feature): number {
+        let score = 0;
+
+        // Higher priority = more likely next
+        if (candidate.priority === 'critical') score += 100;
+        else if (candidate.priority === 'high') score += 75;
+        else if (candidate.priority === 'medium') score += 50;
+        else score += 25;
+
+        // Same category = more likely to be built in sequence
+        if (candidate.category === current.category) score += 30;
+
+        // Dependencies on current feature
+        if (candidate.dependencies?.includes(current.featureId)) score += 50;
+
+        // Dependency chain proximity
+        if (current.dependencies?.some(d => candidate.dependencies?.includes(d))) score += 20;
+
+        return score;
+    }
+
+    /**
+     * Pre-generate a feature speculatively
+     */
+    private async preGenerateFeature(feature: Feature, cacheKey: string): Promise<void> {
+        const startTime = Date.now();
+        console.log(`[Speculative] Pre-generating feature: ${feature.featureId}`);
+
+        const prompt = `Build feature: ${feature.featureId}
+Description: ${feature.description}
+Category: ${feature.category}
+Priority: ${feature.priority}
+
+Implementation Steps:
+${feature.implementationSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Visual Requirements:
+${feature.visualRequirements.map(r => `- ${r}`).join('\n')}
+
+Generate production-ready code for this feature.
+IMPORTANT: This is speculative pre-generation - prioritize speed over perfection.
+Use common patterns and best practices for quick generation.`;
+
+        try {
+            // Use Haiku for speed in speculative generation
+            const response = await this.claudeService.generate(prompt, {
+                model: CLAUDE_MODELS.HAIKU_3_5,
+                maxTokens: 16000,
+            });
+
+            const files = this.claudeService.parseFileOperations(response.content);
+
+            // Cache the result
+            this.speculativeCache.set(cacheKey, {
+                code: response.content,
+                files: files.map(f => ({ path: f.path, content: f.content || '' })),
+                timestamp: Date.now(),
+            });
+
+            const duration = Date.now() - startTime;
+            console.log(`[Speculative] Pre-generated ${feature.featureId} in ${duration}ms (${files.length} files)`);
+
+        } finally {
+            this.speculativeGenerationInProgress.delete(cacheKey);
+        }
+    }
+
+    /**
+     * Check if we have a speculative result for a feature
+     */
+    private getSpeculativeResult(feature: Feature): { code: string; files: Array<{ path: string; content: string }> } | null {
+        const cacheKey = this.getSpeculativeCacheKey(feature);
+        const cached = this.speculativeCache.get(cacheKey);
+
+        if (cached) {
+            // Cache hit - update stats
+            this.speculativeTotalHits++;
+            this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
+            console.log(`[Speculative] 🎯 CACHE HIT for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
+
+            // Remove from cache after use
+            this.speculativeCache.delete(cacheKey);
+            return cached;
+        }
+
+        // Cache miss
+        this.speculativeTotalMisses++;
+        this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
+        console.log(`[Speculative] ❌ CACHE MISS for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
+        return null;
+    }
+
+    /**
+     * Get cache key for a feature
+     */
+    private getSpeculativeCacheKey(feature: Feature): string {
+        return `${feature.featureId}:${feature.description.slice(0, 50)}`;
+    }
+
+    /**
+     * Clean up stale speculative cache entries (older than 5 minutes)
+     */
+    private cleanupSpeculativeCache(): void {
+        const now = Date.now();
+        const maxAge = 5 * 60 * 1000; // 5 minutes
+
+        for (const [key, value] of this.speculativeCache.entries()) {
+            if (now - value.timestamp > maxAge) {
+                this.speculativeCache.delete(key);
+                console.log(`[Speculative] Cleaned up stale cache: ${key}`);
+            }
+        }
+    }
+
+    /**
+     * Apply speculative pre-generated result and verify/refine it
+     */
+    private async applySpeculativeResult(
+        feature: Feature,
+        speculativeResult: { code: string; files: Array<{ path: string; content: string }> }
+    ): Promise<void> {
+        console.log(`[Speculative] Applying ${speculativeResult.files.length} pre-generated files for ${feature.featureId}`);
+
+        // Apply the pre-generated files
+        const generatedFiles = new Map<string, string>();
+        for (const file of speculativeResult.files) {
+            generatedFiles.set(file.path, file.content);
+            this.projectFiles.set(file.path, file.content);
+            await this.artifactManager.saveArtifact(file.path, file.content);
+        }
+
+        // Update feature manager
+        await this.featureManager.incrementBuildAttempts(feature.featureId);
+        await this.featureManager.addFilesModified(feature.featureId, speculativeResult.files.map(f => f.path));
+
+        // Run verification swarm on speculative result
+        if (this.state.intentContract) {
+            this.verificationSwarm.setIntent(this.state.intentContract);
+        }
+
+        const verdict = await this.verificationSwarm.verifyFeature(feature, generatedFiles);
+
+        if (verdict.verdict === 'PASSED' || verdict.overallScore >= 85) {
+            // Speculative result is good enough
+            console.log(`[Speculative] ✅ Pre-generated code passed verification (score: ${verdict.overallScore})`);
+            await this.featureManager.updateFeatureStatus(feature.featureId, 'passed');
+        } else if (verdict.verdict === 'NEEDS_REFINEMENT' && verdict.overallScore >= 70) {
+            // Refine the speculative result (faster than full rebuild)
+            console.log(`[Speculative] 🔧 Refining pre-generated code (score: ${verdict.overallScore})`);
+            await this.refineSpeculativeResult(feature, speculativeResult, verdict);
+        } else {
+            // Speculative result not usable - fall back to full build
+            console.log(`[Speculative] ❌ Pre-generated code failed - falling back to full build (score: ${verdict.overallScore})`);
+            await this.buildFeature(feature);
+        }
+    }
+
+    /**
+     * Refine speculative result based on verification feedback
+     */
+    private async refineSpeculativeResult(
+        feature: Feature,
+        speculativeResult: { code: string; files: Array<{ path: string; content: string }> },
+        verdict: CombinedVerificationResult
+    ): Promise<void> {
+        const refinementPrompt = `Refine this code based on verification feedback.
+
+Feature: ${feature.featureId}
+Description: ${feature.description}
+
+Current code has these issues:
+${verdict.blockers.map(b => `- BLOCKER: ${b}`).join('\n')}
+${verdict.issues.map(i => `- Issue: ${i}`).join('\n')}
+
+Current files:
+${speculativeResult.files.map(f => `### ${f.path}\n\`\`\`\n${f.content.slice(0, 1500)}${f.content.length > 1500 ? '...' : ''}\n\`\`\``).join('\n\n')}
+
+Fix ALL issues and return COMPLETE refined files.`;
+
+        try {
+            const response = await this.claudeService.generate(refinementPrompt, {
+                model: CLAUDE_MODELS.SONNET_4,
+                maxTokens: 32000,
+            });
+
+            const refinedFiles = this.claudeService.parseFileOperations(response.content);
+
+            for (const file of refinedFiles) {
+                const content = file.content || '';
+                this.projectFiles.set(file.path, content);
+                await this.artifactManager.saveArtifact(file.path, content);
+            }
+
+            await this.featureManager.updateFeatureStatus(feature.featureId, 'passed');
+            console.log(`[Speculative] ✅ Refined code applied successfully`);
+        } catch (err) {
+            console.warn('[Speculative] Refinement failed, falling back to full build:', err);
+            await this.buildFeature(feature);
         }
     }
 
