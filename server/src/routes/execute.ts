@@ -339,6 +339,18 @@ async function executeBuilderMode(
         buildLoop.on('event', (event) => {
             context.broadcast(`builder-${event.type}`, event.data);
 
+            // SESSION 4: Also broadcast live preview events without prefix for direct handling
+            const livePreviewEvents = [
+                'sandbox-ready',
+                'file-modified',
+                'visual-verification',
+                'agent-progress',
+                'build-error'
+            ];
+            if (livePreviewEvents.includes(event.type)) {
+                context.broadcast(event.type, event.data);
+            }
+
             // Update advanced orchestration context on phase changes
             if (advancedOrch && event.type === 'phase_change') {
                 advancedOrch.updateContext(event.data.phase);

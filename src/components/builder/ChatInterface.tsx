@@ -309,6 +309,31 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [activityEvents, setActivityEvents] = useState<AgentActivityEvent[]>([]);
     const activityWsRef = useRef<WebSocket | null>(null);
 
+    // SESSION 4: Live Preview state
+    // These are populated by WebSocket events and available for BuilderLayout integration
+    const [sandboxUrl, setSandboxUrl] = useState<string | null>(null);
+    const [lastModifiedFile, setLastModifiedFile] = useState<string | undefined>(undefined);
+    const [visualVerification, setVisualVerification] = useState<{
+        passed: boolean;
+        score: number;
+        issues: string[];
+    } | undefined>(undefined);
+    const [parallelAgents, setParallelAgents] = useState<Array<{
+        agentId: string;
+        agentName: string;
+        events: Array<{ type: string; message: string; timestamp: number }>;
+        currentPhase: string;
+        progress: number;
+    }>>([]);
+
+    // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
+    console.debug('[ChatInterface] Live preview state:', {
+        sandboxUrl: sandboxUrl ? 'available' : 'null',
+        lastModifiedFile,
+        visualVerification: visualVerification ? 'available' : 'null',
+        parallelAgentsCount: parallelAgents.length
+    });
+
     // Auto-scroll to bottom
     useEffect(() => {
         if (scrollRef.current) {
@@ -521,27 +546,102 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     setActivityEvents(prev => [...prev.slice(-99), activityEvent]);
                                 }
 
-                                // Handle different event types
-                                if (wsData.type === 'builder-completed') {
-                                    setGlobalStatus('completed');
-                                    setIsTyping(false);
-                                    ws.close();
-                                    activityWsRef.current = null;
-                                } else if (wsData.type === 'builder-error' || wsData.type === 'execution-error') {
-                                    setGlobalStatus('failed');
-                                    setIsTyping(false);
-                                    setMessages(prev => [...prev, {
-                                        id: `msg-${Date.now()}`,
-                                        role: 'system',
-                                        content: `Error: ${wsData.data?.error || 'Unknown error'}`,
-                                        timestamp: new Date(),
-                                        agentType: 'orchestrator',
-                                    }]);
-                                    ws.close();
-                                    activityWsRef.current = null;
-                                } else if (wsData.type?.startsWith('builder-')) {
-                                    // Forward phase updates to agent store for AgentProgress
-                                    // The AgentTerminal and AgentProgress components will pick these up
+                                // SESSION 4: Handle live preview event types
+                                switch (wsData.type) {
+                                    case 'sandbox-ready':
+                                        setSandboxUrl(wsData.data?.sandboxUrl || wsData.sandboxUrl);
+                                        break;
+
+                                    case 'file-modified':
+                                        setLastModifiedFile(wsData.data?.filePath || wsData.filePath);
+                                        // Clear after 2 seconds
+                                        setTimeout(() => setLastModifiedFile(undefined), 2000);
+                                        // Add to agent events
+                                        setParallelAgents(prev => prev.map(a =>
+                                            a.agentId === wsData.data?.agentId ? {
+                                                ...a,
+                                                events: [...a.events, {
+                                                    type: 'file-modified',
+                                                    message: `Modified ${wsData.data?.filePath?.split('/').pop() || 'file'}`,
+                                                    timestamp: Date.now()
+                                                }]
+                                            } : a
+                                        ));
+                                        break;
+
+                                    case 'visual-verification':
+                                        setVisualVerification({
+                                            passed: wsData.data?.passed || wsData.passed || false,
+                                            score: wsData.data?.score || wsData.score || 0,
+                                            issues: wsData.data?.issues || wsData.issues || []
+                                        });
+                                        break;
+
+                                    case 'agent-progress':
+                                        setParallelAgents(prev => {
+                                            const existing = prev.find(a => a.agentId === wsData.data?.agentId);
+                                            if (existing) {
+                                                return prev.map(a => a.agentId === wsData.data?.agentId ? {
+                                                    ...a,
+                                                    currentPhase: wsData.data?.phase || a.currentPhase,
+                                                    progress: wsData.data?.progress || a.progress,
+                                                    events: [...a.events, {
+                                                        type: 'progress',
+                                                        message: wsData.data?.currentTask || 'Working...',
+                                                        timestamp: Date.now()
+                                                    }].slice(-50)
+                                                } : a);
+                                            }
+                                            return [...prev, {
+                                                agentId: wsData.data?.agentId || `agent-${prev.length + 1}`,
+                                                agentName: wsData.data?.agentName || `Agent ${prev.length + 1}`,
+                                                events: [],
+                                                currentPhase: wsData.data?.phase || 'initializing',
+                                                progress: wsData.data?.progress || 0
+                                            }];
+                                        });
+                                        break;
+
+                                    case 'build-error':
+                                        setParallelAgents(prev => prev.map(a =>
+                                            a.agentId === wsData.data?.agentId ? {
+                                                ...a,
+                                                events: [...a.events, {
+                                                    type: 'error',
+                                                    message: wsData.data?.error || 'Error occurred',
+                                                    timestamp: Date.now()
+                                                }]
+                                            } : a
+                                        ));
+                                        break;
+
+                                    case 'builder-completed':
+                                        setGlobalStatus('completed');
+                                        setIsTyping(false);
+                                        ws.close();
+                                        activityWsRef.current = null;
+                                        break;
+
+                                    case 'builder-error':
+                                    case 'execution-error':
+                                        setGlobalStatus('failed');
+                                        setIsTyping(false);
+                                        setMessages(prev => [...prev, {
+                                            id: `msg-${Date.now()}`,
+                                            role: 'system',
+                                            content: `Error: ${wsData.data?.error || 'Unknown error'}`,
+                                            timestamp: new Date(),
+                                            agentType: 'orchestrator',
+                                        }]);
+                                        ws.close();
+                                        activityWsRef.current = null;
+                                        break;
+
+                                    default:
+                                        if (wsData.type?.startsWith('builder-')) {
+                                            // Forward phase updates to agent store for AgentProgress
+                                            // The AgentTerminal and AgentProgress components will pick these up
+                                        }
                                 }
                             } catch (e) {
                                 console.error('[ChatInterface] WS parse error:', e);

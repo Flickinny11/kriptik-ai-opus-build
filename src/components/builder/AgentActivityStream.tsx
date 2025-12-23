@@ -247,6 +247,164 @@ function PhaseIndicator({ phase }: { phase: AgentActivityPhase | null }) {
   );
 }
 
+// =============================================================================
+// SESSION 4: PARALLEL AGENT ACTIVITY TYPES
+// =============================================================================
+
+export interface AgentEvent {
+  type: string;
+  message: string;
+  timestamp: number;
+}
+
+export interface ParallelAgentActivity {
+  agentId: string;
+  agentName: string;
+  events: AgentEvent[];
+  currentPhase: string;
+  progress: number;
+}
+
+function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+function getEventColor(type: string): string {
+  switch (type) {
+    case 'file-created': return 'text-green-400';
+    case 'file-modified': return 'text-blue-400';
+    case 'error': return 'text-red-400';
+    case 'warning': return 'text-yellow-400';
+    case 'thinking': return 'text-purple-400';
+    case 'verification': return 'text-cyan-400';
+    case 'progress': return 'text-gray-400';
+    default: return 'text-gray-400';
+  }
+}
+
+// =============================================================================
+// SESSION 4: PARALLEL AGENT ACTIVITY STREAM COMPONENT
+// =============================================================================
+
+/**
+ * Displays activity from multiple parallel agents in collapsible sections
+ */
+export function ParallelAgentActivityStream({
+  agents,
+  showThinking: _showThinking = true // Reserved for future thinking event filtering
+}: {
+  agents: ParallelAgentActivity[];
+  showThinking?: boolean;
+}) {
+  void _showThinking; // Suppress unused warning
+  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+
+  const toggleAgent = (agentId: string) => {
+    const next = new Set(expandedAgents);
+    if (next.has(agentId)) {
+      next.delete(agentId);
+    } else {
+      next.add(agentId);
+    }
+    setExpandedAgents(next);
+  };
+
+  if (agents.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-4 text-gray-500 text-sm">
+        <ActivityIcon size={16} className="mr-2" />
+        <span>No agent activity yet</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 p-2">
+      {agents.map((agent) => (
+        <motion.div
+          key={agent.agentId}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800 rounded-lg overflow-hidden"
+        >
+          {/* Agent Header */}
+          <div
+            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-750 transition-colors"
+            onClick={() => toggleAgent(agent.agentId)}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                agent.progress >= 100 ? 'bg-green-500' :
+                agent.progress > 0 ? 'bg-amber-500 animate-pulse' :
+                'bg-gray-500'
+              }`} />
+              <span className="font-medium text-gray-200 text-sm">{agent.agentName}</span>
+              <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-700 rounded">
+                {agent.currentPhase}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Progress Bar */}
+              <div className="w-20 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${agent.progress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <span className="text-xs text-gray-400 w-8 text-right">{agent.progress}%</span>
+              <motion.span
+                animate={{ rotate: expandedAgents.has(agent.agentId) ? 180 : 0 }}
+                className="text-gray-500"
+              >
+                <ChevronDownIcon size={14} />
+              </motion.span>
+            </div>
+          </div>
+
+          {/* Expanded Activity */}
+          <AnimatePresence>
+            {expandedAgents.has(agent.agentId) && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="px-3 pb-2 space-y-1 border-t border-gray-700"
+              >
+                {agent.events.length === 0 ? (
+                  <div className="text-xs text-gray-500 py-2">No activity yet</div>
+                ) : (
+                  agent.events.slice(-15).map((event, i) => (
+                    <div key={i} className="text-xs flex items-start gap-2 py-0.5">
+                      <span className="text-gray-600 w-16 shrink-0 font-mono">
+                        {formatTime(event.timestamp)}
+                      </span>
+                      <span className={getEventColor(event.type)}>
+                        {event.message}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// ORIGINAL AGENT ACTIVITY STREAM COMPONENT
+// =============================================================================
+
 export default function AgentActivityStream({
   streamUrl,
   events: externalEvents,

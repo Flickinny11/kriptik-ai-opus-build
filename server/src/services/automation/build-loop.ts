@@ -361,7 +361,9 @@ export interface BuildLoopEvent {
         // Loop blocker and escalation events
         | 'loop_detected' | 'human_escalation_required' | 'comprehensive_fix_applied'
         // Agent Activity Stream events (for real-time UI)
-        | 'thinking' | 'file_read' | 'file_write' | 'file_edit' | 'tool_call' | 'status' | 'verification';
+        | 'thinking' | 'file_read' | 'file_write' | 'file_edit' | 'tool_call' | 'status' | 'verification'
+        // SESSION 4: Live Preview events
+        | 'sandbox-ready' | 'file-modified' | 'visual-verification' | 'agent-progress' | 'build-error';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -3824,11 +3826,20 @@ Would the user be satisfied with this result?`;
 
     /**
      * Notify file change to all parallel agents
+     * SESSION 4: Also emits to WebSocket for live preview updates
      */
     notifyFileChangeToAgents(filePath: string, action: 'create' | 'modify' | 'delete'): void {
         if (this.contextSync) {
             this.contextSync.notifyFileChange(this.buildLoopAgentId, filePath, action);
         }
+
+        // SESSION 4: Emit file-modified event for live preview HMR indicator
+        this.emitEvent('file-modified', {
+            agentId: this.buildLoopAgentId,
+            filePath,
+            action,
+            timestamp: Date.now()
+        });
     }
 
     /**
