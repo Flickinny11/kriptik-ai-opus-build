@@ -568,6 +568,7 @@ import speedDialRouter from './routes/speed-dial.js';
 import tournamentRouter from './routes/tournament.js';
 import reflectionRouter from './routes/reflection.js';
 import previewRouter from './routes/preview.js';
+import visualEditorRouter from './routes/visual-editor.js';
 import { importRouter } from './routes/import.js';
 
 // Core functionality
@@ -722,6 +723,9 @@ import('playwright').then(() => {
     console.log('[Preview] Playwright not installed - running in mock mode');
 });
 app.use("/api/preview", previewRouter);
+
+// Visual Editor - AI Element Redesign (FLUX.2 Pro + GPT-4o + Claude Opus 4.5)
+app.use("/api/visual-editor", requireCredits(75), visualEditorRouter);
 
 // Clone Mode - Video to Code (analyze screen recordings)
 import cloneModeRouter from './routes/clone-mode.js';

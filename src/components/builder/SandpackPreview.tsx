@@ -4,6 +4,7 @@
  * Live preview of the generated code using Sandpack
  * with premium liquid glass styling.
  * Includes "Show Me" demo button for AI voice narration.
+ * Includes Visual Editor for AI Element Redesign.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -16,7 +17,10 @@ import { RefreshIcon, type IconProps } from '../ui/icons';
 import { useEditorStore } from '../../store/useEditorStore';
 import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOverlay';
 import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
+import { VisualEditorOverlay } from './VisualEditorOverlay';
 import { apiClient } from '@/lib/api-client';
+import { useProjectStore } from '../../store/useProjectStore';
+import { useUserStore } from '../../store/useUserStore';
 
 // Temporary icon components for icons not in custom icon set
 const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
@@ -75,6 +79,20 @@ const PlayCircleIcon: React.FC<IconProps> = ({ size = 24, className }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <circle cx="12" cy="12" r="10"/>
         <polygon points="10 8 16 12 10 16" fill="currentColor"/>
+    </svg>
+);
+
+const WandSparklesIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M15 4V2"/>
+        <path d="M15 16v-2"/>
+        <path d="M8 9h2"/>
+        <path d="M20 9h2"/>
+        <path d="M17.8 11.8L19 13"/>
+        <path d="M17.8 6.2L19 5"/>
+        <path d="M3 21l9-9"/>
+        <path d="M12.2 6.2L11 5"/>
+        <path d="M5 19l.5 1.5L7 21l-1.5.5L5 23l-.5-1.5L3 21l1.5-.5z" fill="currentColor" stroke="none"/>
     </svg>
 );
 
@@ -219,7 +237,12 @@ export default function SandpackPreviewWindow() {
     const [currentFile, setCurrentFile] = useState<string | undefined>();
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>();
 
+    // Visual Editor state
+    const [isVisualEditorActive, setIsVisualEditorActive] = useState(false);
+
     const { isSelectionMode, toggleSelectionMode, isBuilding } = useEditorStore();
+    const { currentProject } = useProjectStore();
+    const { user } = useUserStore();
     const { sandpack } = useSandpack();
     const previewContainerRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -464,6 +487,29 @@ export default function SandpackPreviewWindow() {
 
                 <div className="flex items-center gap-2">
                     {/* Show Me Demo Button */}
+                    {/* Visual Editor Button */}
+                    <button
+                        onClick={() => setIsVisualEditorActive(!isVisualEditorActive)}
+                        title="AI Visual Editor - Redesign any element with AI"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-300"
+                        style={{
+                            background: isVisualEditorActive
+                                ? 'linear-gradient(145deg, rgba(168,85,247,0.25) 0%, rgba(168,85,247,0.15) 100%)'
+                                : 'linear-gradient(145deg, rgba(245,168,108,0.5) 0%, rgba(230,150,90,0.4) 100%)',
+                            boxShadow: isVisualEditorActive
+                                ? '0 2px 8px rgba(168,85,247,0.25), inset 0 0 12px rgba(168,85,247,0.1)'
+                                : '0 2px 8px rgba(245,168,108,0.25)',
+                            border: `1px solid ${isVisualEditorActive ? 'rgba(168,85,247,0.4)' : 'rgba(255,200,170,0.5)'}`,
+                            color: isVisualEditorActive ? '#9333ea' : '#c25a00',
+                            fontSize: 13,
+                            fontWeight: 600,
+                        }}
+                    >
+                        <WandSparklesIcon size={16} />
+                        <span>{isVisualEditorActive ? 'Editing' : 'Edit UI'}</span>
+                    </button>
+
+                    {/* Show Me Demo Button */}
                     <button
                         onClick={handleShowMeDemo}
                         disabled={isLoadingDemo || isDemoActive}
@@ -534,6 +580,14 @@ export default function SandpackPreviewWindow() {
                     showCursor={agentPhase === 'coding' || agentPhase === 'thinking'}
                     showStatus={true}
                     showFileIndicator={!!currentFile}
+                />
+
+                {/* Visual Editor Overlay - AI Element Redesign */}
+                <VisualEditorOverlay
+                    isActive={isVisualEditorActive}
+                    onClose={() => setIsVisualEditorActive(false)}
+                    projectId={currentProject?.id || ''}
+                    userId={user?.id || ''}
                 />
 
                 {/* Voice Narration Demo Overlay */}
