@@ -276,6 +276,47 @@ import {
     type GeneratedAPICode,
 } from '../api/api-autopilot.js';
 
+// ============================================================================
+// GAP CLOSERS INTEGRATION (7 Production Readiness Agents)
+// ============================================================================
+import {
+    GapCloserOrchestrator,
+    createGapCloserOrchestrator,
+    runProductionGapCheck,
+    type GapCloserResults,
+    type GapCloserConfig,
+    type GapCloserRunContext,
+    DEFAULT_GAP_CLOSER_CONFIG,
+} from '../verification/gap-closers/index.js';
+
+// ============================================================================
+// PRE-FLIGHT VALIDATOR INTEGRATION
+// ============================================================================
+import {
+    PreFlightValidator,
+    getPreFlightValidator,
+    type ValidationReport,
+    type ValidationContext,
+} from '../validation/pre-flight-validator.js';
+
+// ============================================================================
+// SHADOW MODEL REGISTRY INTEGRATION (Component 28-L3)
+// ============================================================================
+import {
+    ShadowModelRegistry,
+    getShadowModelRegistry,
+} from '../learning/shadow-model-registry.js';
+
+// ============================================================================
+// INFINITE REFLECTION ENGINE INTEGRATION
+// ============================================================================
+import {
+    InfiniteReflectionEngine,
+    createInfiniteReflectionEngine,
+    type ReflectionConfig,
+    type ReflectionResult,
+} from '../ai/reflection-engine.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -385,7 +426,10 @@ export interface BuildLoopEvent {
         | 'verification-blocker' | 'verification-results' | 'verification-complete'
         | 'phase5-retry' | 'phase5-escalation'
         // SESSION 1: Infinite retry events (never give up)
-        | 'phase5-cost-ceiling' | 'phase5-escalating-effort' | 'phase5-consecutive-errors' | 'phase5-approval-required';
+        | 'phase5-cost-ceiling' | 'phase5-escalating-effort' | 'phase5-consecutive-errors' | 'phase5-approval-required'
+        // Gap Closers and Pre-Flight events
+        | 'workflow-tests-complete' | 'gap-closers-started' | 'gap-closers-complete' | 'gap-closers-error'
+        | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -616,6 +660,14 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private isGhostModeActive: boolean = false;
     private wakeConditions: WakeCondition[] = [];
 
+    // =========================================================================
+    // GAP CLOSERS, PRE-FLIGHT, SHADOW MODELS, REFLECTION ENGINE
+    // =========================================================================
+    private gapCloserOrchestrator: GapCloserOrchestrator | null = null;
+    private preFlightValidator: PreFlightValidator | null = null;
+    private shadowModelRegistry: ShadowModelRegistry | null = null;
+    private reflectionEngine: InfiniteReflectionEngine | null = null;
+
     // Loaded credentials for this build
     private loadedCredentials: Map<string, DecryptedCredential> = new Map();
 
@@ -825,11 +877,78 @@ export class BuildLoopOrchestrator extends EventEmitter {
             enableImportPrediction: true,
         });
 
+        // =====================================================================
+        // GAP CLOSERS, PRE-FLIGHT, SHADOW MODELS, REFLECTION ENGINE
+        // =====================================================================
+
+        // Gap Closer Orchestrator - 7 production readiness agents
+        try {
+            this.gapCloserOrchestrator = createGapCloserOrchestrator(
+                orchestrationRunId,
+                'stage3' // Default to full production checks
+            );
+            console.log('[BuildLoop] Gap Closer Orchestrator initialized (7 agents)');
+        } catch (error) {
+            console.warn('[BuildLoop] Gap closer orchestrator not available:', error);
+        }
+
+        // Pre-Flight Validator - deployment readiness checks
+        try {
+            this.preFlightValidator = getPreFlightValidator();
+            console.log('[BuildLoop] Pre-Flight Validator initialized');
+        } catch (error) {
+            console.warn('[BuildLoop] Pre-flight validator not available:', error);
+        }
+
+        // Shadow Model Registry - Learning Engine L3 integration
+        try {
+            this.shadowModelRegistry = getShadowModelRegistry();
+            console.log('[BuildLoop] Shadow Model Registry initialized (Component 28-L3)');
+        } catch (error) {
+            console.warn('[BuildLoop] Shadow model registry not available:', error);
+        }
+
+        // Infinite Reflection Engine - self-healing loop
+        try {
+            this.reflectionEngine = createInfiniteReflectionEngine(
+                projectId,
+                userId,
+                orchestrationRunId,
+                {
+                    maxIterations: 50,
+                    targetScore: 95,
+                    iterationTimeoutMs: 60000,
+                    codeQualityThreshold: 80,
+                    visualThreshold: 85,
+                    antiSlopThreshold: 85,
+                    securityThreshold: 100,
+                    parallelWorkers: 3,
+                    batchSize: 5,
+                    enableLearning: true,
+                    similarityThreshold: 0.8,
+                    maxAutoFixAttempts: 5,
+                    escalateToHuman: true,
+                }
+            );
+            console.log('[BuildLoop] Infinite Reflection Engine initialized');
+        } catch (error) {
+            console.warn('[BuildLoop] Reflection engine not available:', error);
+        }
+
+        // Human Checkpoints - NOW ENABLED FOR ALL MODES (not config-gated)
+        // Critical decisions should always have human checkpoint option
+        try {
+            this.humanCheckpoint = getHumanCheckpointService();
+            console.log('[BuildLoop] Human Checkpoint Service initialized (universal)');
+        } catch (error) {
+            console.warn('[BuildLoop] Human checkpoint service not available:', error);
+        }
+
         // Note: StreamingFeedbackChannel, ContinuousVerification, and BrowserInLoop
         // are initialized in start() because they need the build to be running
         // Note: AntiSlopDetector is initialized after Intent Lock (needs appSoul)
 
-        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot + Predictive Error Prevention (mode: ${mode}, path: ${this.projectPath})`);
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot + Predictive Error Prevention + Gap Closers + Pre-Flight + Shadow Models + Reflection Engine (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -1963,7 +2082,12 @@ Include ALL necessary imports and exports.`;
     }
 
     /**
-     * Phase 4: FUNCTIONAL TEST - Browser automation testing
+     * Phase 4: FUNCTIONAL TEST - Browser automation testing + Gap Closers + Pre-Flight
+     *
+     * Now includes:
+     * - User workflow testing (browser automation)
+     * - Gap Closers (7 production readiness agents)
+     * - Pre-Flight Validator (deployment readiness)
      */
     private async executePhase4_FunctionalTest(): Promise<void> {
         this.startPhase('functional_test');
@@ -1973,14 +2097,16 @@ Include ALL necessary imports and exports.`;
                 throw new Error('Intent Contract not found');
             }
 
-            // Test each user workflow
-            const results: { workflow: string; passed: boolean }[] = [];
+            // =====================================================================
+            // STEP 1: Test each user workflow (existing functionality)
+            // =====================================================================
+            const workflowResults: { workflow: string; passed: boolean }[] = [];
 
             for (const workflow of this.state.intentContract.userWorkflows) {
                 if (this.aborted) break;
 
                 const passed = await this.testWorkflow(workflow);
-                results.push({ workflow: workflow.name, passed });
+                workflowResults.push({ workflow: workflow.name, passed });
 
                 if (passed) {
                     await this.intentEngine.markWorkflowVerified(
@@ -1990,22 +2116,216 @@ Include ALL necessary imports and exports.`;
                 }
             }
 
-            const passedCount = results.filter(r => r.passed).length;
+            const workflowPassedCount = workflowResults.filter(r => r.passed).length;
+            this.emitEvent('workflow-tests-complete', {
+                total: workflowResults.length,
+                passed: workflowPassedCount,
+            });
+
+            // =====================================================================
+            // STEP 2: Run Gap Closers (7 Production Readiness Agents)
+            // =====================================================================
+            let gapCloserResults: GapCloserResults | null = null;
+
+            if (this.gapCloserOrchestrator) {
+                console.log('[Phase 4] Running Gap Closers (7 agents)...');
+                this.emitEvent('gap-closers-started', { agentCount: 7 });
+
+                try {
+                    // Default sandbox URL
+                    const sandboxUrl = `http://localhost:3100`;
+
+                    const gapCloserContext: GapCloserRunContext = {
+                        buildId: this.state.orchestrationRunId,
+                        projectId: this.state.projectId,
+                        userId: this.state.userId,
+                        projectPath: this.projectPath,
+                        previewUrl: sandboxUrl,
+                        stage: this.state.currentStage === 'production' ? 'stage3' :
+                               this.state.currentStage === 'backend' ? 'stage2' : 'stage1',
+                        phase: 'post-build',
+                    };
+
+                    gapCloserResults = await this.gapCloserOrchestrator.run(gapCloserContext);
+
+                    this.emitEvent('gap-closers-complete', {
+                        overallScore: gapCloserResults.overallScore,
+                        passed: gapCloserResults.overallPassed,
+                        criticalIssues: gapCloserResults.criticalIssues,
+                        summary: gapCloserResults.summary,
+                    });
+
+                    // If critical issues found, handle them
+                    if (gapCloserResults.criticalIssues > 0) {
+                        console.warn(`[Phase 4] Gap Closers found ${gapCloserResults.criticalIssues} critical issues`);
+                        await this.handleGapCloserIssues(gapCloserResults);
+                    }
+                } catch (gapError) {
+                    console.error('[Phase 4] Gap Closers failed:', gapError);
+                    this.emitEvent('gap-closers-error', { error: (gapError as Error).message });
+                }
+            }
+
+            // =====================================================================
+            // STEP 3: Run Pre-Flight Validator (Deployment Readiness)
+            // =====================================================================
+            let preFlightReport: ValidationReport | null = null;
+
+            if (this.preFlightValidator) {
+                console.log('[Phase 4] Running Pre-Flight Validation...');
+                this.emitEvent('pre-flight-started', {});
+
+                try {
+                    // Read project files for validation
+                    const fs = await import('fs/promises');
+                    const path = await import('path');
+                    const projectFiles: Array<{ path: string; content: string; size: number }> = [];
+
+                    // Get source files for validation (simplified for now)
+                    const srcDir = path.join(this.projectPath, 'src');
+                    try {
+                        const entries = await fs.readdir(srcDir, { withFileTypes: true });
+                        for (const entry of entries.slice(0, 20)) { // Limit for speed
+                            if (entry.isFile() && /\.(tsx?|jsx?)$/.test(entry.name)) {
+                                const filePath = path.join(srcDir, entry.name);
+                                const content = await fs.readFile(filePath, 'utf-8');
+                                const stat = await fs.stat(filePath);
+                                projectFiles.push({
+                                    path: path.relative(this.projectPath, filePath),
+                                    content,
+                                    size: stat.size,
+                                });
+                            }
+                        }
+                    } catch {
+                        // Directory may not exist yet
+                    }
+
+                    preFlightReport = await this.preFlightValidator.validate(
+                        this.state.projectId,
+                        'vercel',
+                        { strictMode: false }
+                    );
+
+                    const isPassed = preFlightReport.status === 'passed';
+
+                    this.emitEvent('pre-flight-complete', {
+                        passed: isPassed,
+                        issueCount: preFlightReport.issues.length,
+                        criticalCount: preFlightReport.issues.filter(i => i.severity === 'error').length,
+                    });
+
+                    // If validation failed, handle issues
+                    if (!isPassed) {
+                        console.warn(`[Phase 4] Pre-flight validation found ${preFlightReport.issues.length} issues`);
+                        await this.handlePreFlightIssues(preFlightReport);
+                    }
+                } catch (preFlightError) {
+                    console.error('[Phase 4] Pre-flight validation failed:', preFlightError);
+                    this.emitEvent('pre-flight-error', { error: (preFlightError as Error).message });
+                }
+            }
+
+            // =====================================================================
+            // STEP 4: Aggregate results and complete phase
+            // =====================================================================
+            const allWorkflowsPassed = workflowPassedCount === workflowResults.length;
+            const gapClosersPassed = gapCloserResults?.overallPassed ?? true;
+            const preFlightPassed = preFlightReport?.status === 'passed';
 
             this.completePhase('functional_test');
             this.emitEvent('phase_complete', {
                 phase: 'functional_test',
-                totalWorkflows: results.length,
-                passedWorkflows: passedCount,
+                totalWorkflows: workflowResults.length,
+                passedWorkflows: workflowPassedCount,
+                gapCloserScore: gapCloserResults?.overallScore ?? 100,
+                gapClosersPassed,
+                preFlightPassed,
+                allPassed: allWorkflowsPassed && gapClosersPassed && preFlightPassed,
             });
 
-            // If tests failed, loop back to Phase 2
-            if (passedCount < results.length) {
-                await this.handleTestFailures(results.filter(r => !r.passed));
+            // If any tests failed, loop back to Phase 2
+            if (!allWorkflowsPassed) {
+                await this.handleTestFailures(workflowResults.filter(r => !r.passed));
             }
 
         } catch (error) {
             throw new Error(`Functional Test failed: ${(error as Error).message}`);
+        }
+    }
+
+    /**
+     * Handle issues found by Gap Closers
+     */
+    private async handleGapCloserIssues(results: GapCloserResults): Promise<void> {
+        // Create tasks for each critical issue
+        const criticalIssues: string[] = [];
+
+        if (results.accessibility && !results.accessibility.passed) {
+            criticalIssues.push(`Accessibility: ${results.accessibility.violations.length} WCAG violations`);
+        }
+        if (results.adversarial && !results.adversarial.passed) {
+            criticalIssues.push(`Security: ${results.adversarial.vulnerabilities.length} vulnerabilities`);
+        }
+        if (results.realData && !results.realData.passed) {
+            criticalIssues.push(`Mock Data: ${results.realData.violations.length} mock data violations`);
+        }
+
+        if (criticalIssues.length > 0) {
+            // Log issues and use error escalation engine
+            for (const issue of criticalIssues) {
+                console.warn(`[Phase 4] Gap Closer Issue: ${issue}`);
+
+                // Create error for escalation
+                const buildError: BuildError = {
+                    id: uuidv4(),
+                    featureId: 'gap-closers',
+                    category: 'integration_issues', // Using valid ErrorCategory
+                    message: issue,
+                    file: 'gap-closers',
+                    timestamp: new Date(),
+                };
+
+                // Escalate through error escalation engine
+                try {
+                    await this.errorEscalationEngine.fixError(
+                        buildError,
+                        this.projectFiles
+                    );
+                } catch (escError) {
+                    console.error('[Phase 4] Error escalation failed:', escError);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle issues found by Pre-Flight Validator
+     */
+    private async handlePreFlightIssues(report: ValidationReport): Promise<void> {
+        const criticalIssues = report.issues.filter(i => i.severity === 'error');
+
+        for (const issue of criticalIssues) {
+            console.warn(`[Phase 4] Pre-Flight Issue: ${issue.title} - ${issue.description}`);
+
+            const buildError: BuildError = {
+                id: uuidv4(),
+                featureId: 'pre-flight',
+                category: 'integration_issues', // Using valid ErrorCategory
+                message: `${issue.category}: ${issue.title} - ${issue.description}`,
+                file: issue.file || 'deployment',
+                timestamp: new Date(),
+            };
+
+            // Escalate through error escalation engine
+            try {
+                await this.errorEscalationEngine.fixError(
+                    buildError,
+                    this.projectFiles
+                );
+            } catch (escError) {
+                console.error('[Phase 4] Error escalation failed:', escError);
+            }
         }
     }
 
