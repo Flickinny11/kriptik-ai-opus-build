@@ -2393,37 +2393,43 @@ Include ALL necessary imports and exports.`;
         }
 
         // =====================================================================
-        // SESSION 1: INFINITE RETRIES with exponential backoff and cost ceiling
-        // KripTik AI NEVER gives up - it keeps trying until the app is DONE
+        // SESSION 7: ENHANCED LOOP PREVENTION PROTOCOL
+        // 3-Retry Quick Fix → Deep Analysis → Comprehensive Fix → Verify
+        // KripTik AI NEVER gives up - it gets SMARTER with each attempt
         // =====================================================================
         const MAX_COST_USD = 50.0; // Cost ceiling to prevent runaway spending
-        const INITIAL_DELAY_MS = 5000; // 5 seconds
-        const MAX_DELAY_MS = 300000; // 5 minutes max between attempts
-        const BACKOFF_MULTIPLIER = 1.5;
+        const QUICK_FIX_ATTEMPTS = 3; // Try quick fixes 3 times before deep analysis
+        const INITIAL_DELAY_MS = 1000; // 1 second (faster start)
+        const MAX_DELAY_MS = 60000; // 1 minute max between attempts (reduced from 5 min)
+        const BACKOFF_MULTIPLIER = 1.3; // Gentler backoff
 
-        let attempts = 0;
+        let totalAttempts = 0;
+        let quickFixAttempts = 0;
+        let deepAnalysisRounds = 0;
         let currentDelay = INITIAL_DELAY_MS;
         let totalEstimatedCost = 0;
         let consecutiveErrors = 0;
-        const MAX_CONSECUTIVE_ERRORS = 5; // Pause and escalate if 5 errors in a row
+        const MAX_CONSECUTIVE_ERRORS = 3; // Reduced - trigger deep analysis faster
+        let errorHistory: Array<{ criteria: string[]; timestamp: Date; fixes: string[] }> = [];
 
-        // Infinite loop - only exits when all criteria are met or cost ceiling reached
+        // Infinite loop - only exits when all criteria are met
         while (true) {
-            attempts++;
-            console.log(`[Phase 5] Intent satisfaction check, attempt ${attempts} (cost: ~$${totalEstimatedCost.toFixed(2)}/${MAX_COST_USD})`);
+            totalAttempts++;
+            quickFixAttempts++;
+            console.log(`[Phase 5] Attempt ${totalAttempts} (quick: ${quickFixAttempts}/3, deep rounds: ${deepAnalysisRounds}, cost: ~$${totalEstimatedCost.toFixed(2)})`);
 
             // Check cost ceiling
             if (totalEstimatedCost >= MAX_COST_USD) {
-                console.warn(`[Phase 5] Cost ceiling reached ($${totalEstimatedCost.toFixed(2)}). Pausing for human review.`);
+                console.warn(`[Phase 5] Cost ceiling reached ($${totalEstimatedCost.toFixed(2)}). Pausing for user approval.`);
                 this.emitEvent('phase5-cost-ceiling', {
-                    attempts,
+                    attempts: totalAttempts,
                     totalCost: totalEstimatedCost,
                     maxCost: MAX_COST_USD,
+                    deepAnalysisRounds,
+                    errorHistory: errorHistory.slice(-5), // Last 5 errors for context
                 });
-                // Don't throw - pause and wait for user decision
-                await this.handlePhase5CostCeiling(attempts, totalEstimatedCost);
-                // User approved continuation - reset cost tracking
-                totalEstimatedCost = 0;
+                await this.handlePhase5CostCeiling(totalAttempts, totalEstimatedCost);
+                totalEstimatedCost = 0; // Reset after approval
             }
 
             // Check if build was aborted
@@ -2433,24 +2439,20 @@ Include ALL necessary imports and exports.`;
 
             try {
                 // ================================================================
-                // Run FULL verification swarm (strict mode)
+                // PARALLEL VERIFICATION: Run all checks simultaneously for speed
                 // ================================================================
                 const verificationResult = await this.runFullVerificationCheck();
-                totalEstimatedCost += 0.05; // Estimate ~$0.05 per verification cycle
+                totalEstimatedCost += 0.05;
 
-                // Emit results for UI
                 this.emitEvent('verification-complete', verificationResult);
-
-                // Reset consecutive errors on successful check
                 consecutiveErrors = 0;
 
-                // ================================================================
                 // Evaluate ALL 8 criteria
-                // ================================================================
                 const criteriaMet = this.evaluatePhase5Criteria(verificationResult);
 
                 if (criteriaMet.allMet) {
-                    console.log(`[Phase 5] Intent satisfaction achieved! All 8 criteria passed after ${attempts} attempts.`);
+                    console.log(`[Phase 5] ✅ Intent satisfaction achieved! All criteria passed.`);
+                    console.log(`[Phase 5] Stats: ${totalAttempts} attempts, ${deepAnalysisRounds} deep analyses, ~$${totalEstimatedCost.toFixed(2)} cost`);
 
                     // Mark all criteria as passed
                     for (const criterion of this.state.intentContract.successCriteria) {
@@ -2464,49 +2466,227 @@ Include ALL necessary imports and exports.`;
                     this.emitEvent('phase_complete', {
                         phase: 'intent_satisfaction',
                         satisfied: true,
-                        attempts,
+                        attempts: totalAttempts,
+                        deepAnalysisRounds,
                         verificationScore: verificationResult.overallScore,
                         totalCost: totalEstimatedCost,
                     });
-                    return; // SUCCESS - exit the infinite loop
+                    return; // SUCCESS
                 }
 
-                // Log what's not met
-                console.log('[Phase 5] Criteria not met:', criteriaMet.failedCriteria);
+                // Track error history for pattern detection
+                errorHistory.push({
+                    criteria: criteriaMet.failedCriteria,
+                    timestamp: new Date(),
+                    fixes: [],
+                });
 
-                // Escalate to fix remaining issues
-                await this.escalatePhase5Issues(criteriaMet.failedCriteria, attempts);
-                totalEstimatedCost += 0.10; // Estimate ~$0.10 per escalation fix
+                // ================================================================
+                // SESSION 7: 3-RETRY + DEEP ANALYSIS PROTOCOL
+                // ================================================================
+                if (quickFixAttempts >= QUICK_FIX_ATTEMPTS) {
+                    // Quick fixes exhausted - trigger DEEP ANALYSIS
+                    console.log(`[Phase 5] 🔍 Quick fixes exhausted (${QUICK_FIX_ATTEMPTS} attempts). Initiating DEEP ANALYSIS...`);
+                    deepAnalysisRounds++;
 
-                // Apply exponential backoff (with cap)
+                    this.emitEvent('phase5-deep-analysis-started', {
+                        round: deepAnalysisRounds,
+                        failedCriteria: criteriaMet.failedCriteria,
+                        errorHistory: errorHistory.slice(-10),
+                    });
+
+                    // DEEP ANALYSIS: Step back and comprehensively analyze
+                    const deepAnalysisResult = await this.performDeepErrorAnalysis(
+                        criteriaMet.failedCriteria,
+                        errorHistory,
+                        verificationResult
+                    );
+                    totalEstimatedCost += 0.50; // Deep analysis costs more but is worth it
+
+                    // Apply deep analysis fixes
+                    await this.applyDeepAnalysisFixes(deepAnalysisResult);
+                    totalEstimatedCost += 0.30;
+
+                    // Reset quick fix counter after deep analysis
+                    quickFixAttempts = 0;
+                    currentDelay = INITIAL_DELAY_MS; // Reset delay after deep analysis
+
+                    this.emitEvent('phase5-deep-analysis-complete', {
+                        round: deepAnalysisRounds,
+                        fixes: deepAnalysisResult.fixes.length,
+                        rootCauses: deepAnalysisResult.rootCauses,
+                    });
+                } else {
+                    // Quick fix attempt
+                    console.log(`[Phase 5] ⚡ Quick fix attempt ${quickFixAttempts}/${QUICK_FIX_ATTEMPTS}`);
+                    await this.escalatePhase5Issues(criteriaMet.failedCriteria, totalAttempts);
+                    totalEstimatedCost += 0.10;
+                }
+
+                // Minimal delay between attempts (speed optimization)
                 await this.delay(currentDelay);
                 currentDelay = Math.min(currentDelay * BACKOFF_MULTIPLIER, MAX_DELAY_MS);
-
-                // After many attempts, increase effort level
-                if (attempts % 10 === 0) {
-                    console.log(`[Phase 5] ${attempts} attempts - increasing effort level`);
-                    this.emitEvent('phase5-escalating-effort', { attempts });
-                }
 
             } catch (error) {
-                console.error(`[Phase 5] Attempt ${attempts} failed:`, error);
+                console.error(`[Phase 5] ❌ Attempt ${totalAttempts} failed:`, error);
                 consecutiveErrors++;
 
-                // If too many consecutive errors, pause and escalate
                 if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-                    console.error(`[Phase 5] ${consecutiveErrors} consecutive errors - escalating to human review`);
-                    this.emitEvent('phase5-consecutive-errors', {
-                        attempts,
-                        consecutiveErrors,
-                        lastError: (error as Error).message,
-                    });
-                    await this.handlePhase5ConsecutiveErrors(consecutiveErrors, error as Error);
-                    consecutiveErrors = 0; // Reset after handling
+                    // Trigger deep analysis on consecutive errors
+                    console.log(`[Phase 5] 🔍 ${consecutiveErrors} consecutive errors - triggering deep analysis`);
+                    deepAnalysisRounds++;
+                    quickFixAttempts = 0;
+
+                    const errorAnalysis = await this.performDeepErrorAnalysis(
+                        [(error as Error).message],
+                        errorHistory,
+                        null
+                    );
+                    await this.applyDeepAnalysisFixes(errorAnalysis);
+                    totalEstimatedCost += 0.80;
+                    consecutiveErrors = 0;
                 }
 
-                // Apply backoff even on error
                 await this.delay(currentDelay);
                 currentDelay = Math.min(currentDelay * BACKOFF_MULTIPLIER, MAX_DELAY_MS);
+            }
+        }
+    }
+
+    /**
+     * SESSION 7: DEEP ERROR ANALYSIS
+     * Comprehensively analyze all errors, the app, and determine root causes
+     */
+    private async performDeepErrorAnalysis(
+        failedCriteria: string[],
+        errorHistory: Array<{ criteria: string[]; timestamp: Date; fixes: string[] }>,
+        verificationResult: any
+    ): Promise<{
+        rootCauses: string[];
+        fixes: Array<{ file: string; description: string; code: string }>;
+        patterns: string[];
+        confidence: number;
+    }> {
+        console.log('[Phase 5] 🔍 Performing DEEP ERROR ANALYSIS with Opus 4.5...');
+
+        // Collect all relevant context
+        const allFiles = await this.artifactManager.getAllArtifacts();
+        const errorPatterns = this.analyzeErrorPatterns(errorHistory);
+
+        const prompt = `You are a senior software architect performing ROOT CAUSE ANALYSIS.
+
+## CURRENT FAILURES
+${failedCriteria.map(c => `- ${c}`).join('\n')}
+
+## ERROR HISTORY (last 10 attempts)
+${errorHistory.slice(-10).map((e, i) => `Attempt ${i + 1}: ${e.criteria.join(', ')}`).join('\n')}
+
+## DETECTED PATTERNS
+${errorPatterns.join('\n')}
+
+## PROJECT FILES
+${Array.from(allFiles.entries()).slice(0, 20).map(([path, content]) =>
+    `### ${path}\n\`\`\`\n${content.slice(0, 1000)}${content.length > 1000 ? '...' : ''}\n\`\`\``
+).join('\n\n')}
+
+## VERIFICATION RESULTS
+${verificationResult ? JSON.stringify(verificationResult, null, 2).slice(0, 2000) : 'Not available'}
+
+## YOUR TASK
+1. Identify the ROOT CAUSES of these failures (not symptoms)
+2. Determine if there are INTERCONNECTED issues
+3. Provide COMPREHENSIVE fixes that address root causes
+4. Think about what the ORIGINAL INTENT was and ensure fixes align
+
+Return JSON:
+{
+    "rootCauses": ["list of actual root causes, not symptoms"],
+    "patterns": ["recurring patterns detected"],
+    "fixes": [
+        {
+            "file": "path/to/file.ts",
+            "description": "what this fix does and why",
+            "code": "complete corrected code for this file"
+        }
+    ],
+    "confidence": 0.95,
+    "reasoning": "explanation of your analysis"
+}`;
+
+        const response = await this.claudeService.generate(prompt, {
+            model: CLAUDE_MODELS.OPUS_4_5,
+            maxTokens: 64000,
+            useExtendedThinking: true,
+            thinkingBudgetTokens: 32000,
+            effort: 'high',
+        });
+
+        try {
+            const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+        } catch {
+            console.warn('[Phase 5] Failed to parse deep analysis response');
+        }
+
+        return {
+            rootCauses: failedCriteria,
+            fixes: [],
+            patterns: [],
+            confidence: 0.5,
+        };
+    }
+
+    /**
+     * Analyze error patterns to detect recurring issues
+     */
+    private analyzeErrorPatterns(errorHistory: Array<{ criteria: string[]; timestamp: Date; fixes: string[] }>): string[] {
+        const patterns: string[] = [];
+        const criteriaCount = new Map<string, number>();
+
+        for (const entry of errorHistory) {
+            for (const criteria of entry.criteria) {
+                criteriaCount.set(criteria, (criteriaCount.get(criteria) || 0) + 1);
+            }
+        }
+
+        // Identify recurring issues (appeared 3+ times)
+        for (const [criteria, count] of criteriaCount.entries()) {
+            if (count >= 3) {
+                patterns.push(`RECURRING (${count}x): ${criteria}`);
+            }
+        }
+
+        return patterns;
+    }
+
+    /**
+     * Apply fixes from deep analysis
+     */
+    private async applyDeepAnalysisFixes(analysis: {
+        rootCauses: string[];
+        fixes: Array<{ file: string; description: string; code: string }>;
+        patterns: string[];
+        confidence: number;
+    }): Promise<void> {
+        console.log(`[Phase 5] 🔧 Applying ${analysis.fixes.length} deep analysis fixes (confidence: ${(analysis.confidence * 100).toFixed(0)}%)`);
+
+        for (const fix of analysis.fixes) {
+            try {
+                console.log(`[Phase 5] Applying fix to ${fix.file}: ${fix.description}`);
+                await this.artifactManager.saveArtifact(fix.file, fix.code);
+
+                // Notify context sync
+                if (this.contextSync) {
+                    this.contextSync.shareSolution('phase5-deep-analysis', fix.file, {
+                        summary: fix.description,
+                        code: fix.code.slice(0, 500),
+                        relevantFiles: [fix.file],
+                    });
+                }
+            } catch (error) {
+                console.error(`[Phase 5] Failed to apply fix to ${fix.file}:`, error);
             }
         }
     }
