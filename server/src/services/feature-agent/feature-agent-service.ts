@@ -57,6 +57,16 @@ import {
     type UnifiedContext,
 } from '../ai/unified-context.js';
 
+// SESSION 5: Context Sync Service for real-time sharing between parallel Feature Agents
+import {
+    ContextSyncService,
+    getContextSyncService,
+    type ContextUpdate,
+    type DiscoveryData,
+    type SolutionData,
+    type ErrorData,
+} from '../agents/context-sync-service.js';
+
 // Enhanced Build Loop with Cursor 2.1+ features
 import {
     EnhancedBuildLoopOrchestrator,
@@ -126,6 +136,11 @@ type FeatureAgentRuntime = {
     gitBranchManager: GitBranchManager | null;
     /** The branch name created for this feature agent */
     branchName: string | null;
+    // SESSION 5: Context Sync Service for real-time sharing with parallel agents
+    /** Context sync service for real-time collaboration */
+    contextSyncService: ContextSyncService | null;
+    /** Unsubscribe function for context updates */
+    contextSyncUnsubscribe: (() => void) | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -553,6 +568,18 @@ ${basePrompt}`;
         rt.config.status = status;
         this.emitStream(agentId, { type: 'status', content: `Status: ${status}`, timestamp: Date.now(), metadata: { status } });
 
+        // SESSION 5: Cleanup Context Sync when agent completes or fails
+        if (status === 'complete' || status === 'failed') {
+            if (rt.contextSyncUnsubscribe) {
+                rt.contextSyncUnsubscribe();
+                rt.contextSyncUnsubscribe = null;
+            }
+            if (rt.contextSyncService) {
+                rt.contextSyncService.unregisterAgent(agentId);
+                rt.contextSyncService.updateAgentStatus(agentId, status === 'complete' ? 'completed' : 'error');
+            }
+        }
+
         // Ghost Mode notifications: decision needed when awaiting plan approval/credentials
         const gm = rt.config.ghostModeConfig;
         if (gm?.enabled && (status === 'awaiting_plan_approval' || status === 'awaiting_credentials')) {
@@ -586,6 +613,69 @@ ${basePrompt}`;
         return out.length > 0 ? out : ['push'];
     }
 
+    // =========================================================================
+    // SESSION 5: CONTEXT SHARING METHODS
+    // Share discoveries, solutions, errors with other parallel agents
+    // =========================================================================
+
+    /**
+     * Share a discovery with other parallel agents
+     * Call this when an agent learns something useful (e.g., API patterns, config locations)
+     */
+    shareDiscovery(agentId: string, summary: string, details: Record<string, unknown>, relevantFiles?: string[]): void {
+        const rt = this.agents.get(agentId);
+        if (!rt?.contextSyncService) return;
+
+        rt.contextSyncService.shareDiscovery(agentId, {
+            summary,
+            details,
+            relevantFiles,
+            confidence: 0.9,
+        });
+    }
+
+    /**
+     * Share a solution to a problem with other parallel agents
+     * Call this when an agent solves a common issue (e.g., TypeScript error, import issue)
+     */
+    shareSolution(agentId: string, problemType: string, solution: { summary: string; code?: string; pattern?: string; relevantFiles?: string[] }): void {
+        const rt = this.agents.get(agentId);
+        if (!rt?.contextSyncService) return;
+
+        rt.contextSyncService.shareSolution(agentId, problemType, solution);
+    }
+
+    /**
+     * Report an error to other parallel agents
+     * Call this when an agent encounters an error so others can avoid it
+     */
+    reportError(agentId: string, error: { message: string; file?: string; line?: number; attemptedFix?: string; severity?: 'low' | 'medium' | 'high' | 'critical' }): void {
+        const rt = this.agents.get(agentId);
+        if (!rt?.contextSyncService) return;
+
+        rt.contextSyncService.reportError(agentId, error);
+    }
+
+    /**
+     * Notify that a file is being modified (to prevent conflicts)
+     */
+    notifyFileChange(agentId: string, filePath: string, action: 'create' | 'modify' | 'delete'): void {
+        const rt = this.agents.get(agentId);
+        if (!rt?.contextSyncService) return;
+
+        rt.contextSyncService.notifyFileChange(agentId, filePath, action);
+    }
+
+    /**
+     * Get context from other agents for use in prompts
+     */
+    getSharedContext(agentId: string, taskDescription: string, relevantFiles: string[] = []): string {
+        const rt = this.agents.get(agentId);
+        if (!rt?.contextSyncService) return '';
+
+        return rt.contextSyncService.getContextForTask(agentId, taskDescription, relevantFiles);
+    }
+
     async createFeatureAgent(config: CreateFeatureAgentRequest): Promise<FeatureAgentConfig> {
         const id = uuidv4();
         const createdAt = now();
@@ -608,6 +698,22 @@ ${basePrompt}`;
             speedEnhancements: ['lattice', 'speculative'],
         };
 
+        // SESSION 5: Initialize Context Sync Service for real-time collaboration
+        // Uses project ID as the build ID for consistent grouping across feature agents
+        const contextSync = getContextSyncService(config.projectId, config.projectId);
+        contextSync.registerAgent(id, config.taskPrompt.substring(0, 100));
+
+        // Subscribe to updates from other parallel agents
+        const unsubscribe = contextSync.subscribe(id, (update: ContextUpdate) => {
+            // Broadcast relevant updates to this agent's UI
+            this.emitStream(id, {
+                type: 'status',
+                content: `[Other Agent] ${update.data.summary}`,
+                timestamp: update.timestamp,
+                metadata: { type: update.type, agentId: update.agentId },
+            });
+        });
+
         this.agents.set(id, {
             config: agent,
             intent: null,
@@ -621,6 +727,9 @@ ${basePrompt}`;
             unifiedContext: null,
             gitBranchManager: null,
             branchName: null,
+            // SESSION 5: Context Sync for parallel agent collaboration
+            contextSyncService: contextSync,
+            contextSyncUnsubscribe: unsubscribe,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });

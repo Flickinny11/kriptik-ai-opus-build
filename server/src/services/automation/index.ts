@@ -62,6 +62,8 @@ export {
     type BuildLoopConfig,
     type BuildLoopState,
     type BuildLoopEvent,
+    // SESSION 5: Runtime options for autonomous mode control
+    type BuildLoopOptions,
 } from './build-loop.js';
 
 // =============================================================================

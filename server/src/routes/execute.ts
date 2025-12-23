@@ -68,6 +68,10 @@ interface ExecuteRequest {
         forceStrategy?: string;
         enableVisualVerification?: boolean;
         enableCheckpoints?: boolean;
+        // SESSION 5: Human In The Loop toggle
+        // When true, enables human checkpoints at key decision points
+        // When false (default), runs fully autonomous
+        humanInTheLoop?: boolean;
     };
 }
 
@@ -328,11 +332,19 @@ async function executeBuilderMode(
         // - Learning Engine pattern injection
         // - Verification Swarm (6-agent verification)
         // - Full parallelism with 6 max agents
+        //
+        // SESSION 5: Human In The Loop toggle
+        // - humanInTheLoop: false (default) = Fully autonomous builds
+        // - humanInTheLoop: true = Pause at key decision points for user approval
         const buildLoop = new BuildLoopOrchestrator(
             context.projectId,
             context.userId,
             context.orchestrationRunId,
-            'production' // Use full production mode - enables LATTICE, BrowserInLoop, Learning, VerificationSwarm
+            'production', // Use full production mode - enables LATTICE, BrowserInLoop, Learning, VerificationSwarm
+            {
+                humanInTheLoop: options?.humanInTheLoop ?? false,
+                projectPath: context.projectPath,
+            }
         );
 
         // Forward build loop events to context

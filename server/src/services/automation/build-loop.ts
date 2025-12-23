@@ -368,6 +368,26 @@ export interface BuildLoopConfig {
     useBrowserInLoop?: boolean;
 }
 
+/**
+ * SESSION 5: Runtime Options for BuildLoopOrchestrator
+ * Allows UI to override default config settings at runtime.
+ *
+ * Human In The Loop Mode:
+ * - By default, KripTik AI builds autonomously without human checkpoints
+ * - User can click "Human in the Loop" button in UI to enable checkpoints
+ * - When enabled, build will pause at key decision points for user approval
+ */
+export interface BuildLoopOptions {
+    /** Enable human checkpoints (default: false - autonomous mode) */
+    humanInTheLoop?: boolean;
+    /** Custom project path (optional) */
+    projectPath?: string;
+    /** Override max agents (optional) */
+    maxAgents?: number;
+    /** Override build timeout in minutes (optional) */
+    maxBuildDurationMinutes?: number;
+}
+
 export interface BuildLoopState {
     id: string;
     projectId: string;
@@ -510,7 +530,9 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         enableContinuousVerification: true,
         enableRuntimeDebug: true,
         enableBrowserInLoop: true,
-        enableHumanCheckpoints: true,
+        // SESSION 5: Human checkpoints OFF by default - autonomous builds
+        // User must explicitly click "Human in the Loop" button to enable
+        enableHumanCheckpoints: false,
         enableMultiAgentJudging: true, // Multi-agent judging for tournament
         enablePatternLibrary: true,
         visualQualityThreshold: 85,
@@ -529,7 +551,10 @@ const BUILD_MODE_CONFIGS: Record<BuildMode, BuildLoopConfig> = {
         enableContinuousVerification: true,
         enableRuntimeDebug: true,
         enableBrowserInLoop: true,
-        enableHumanCheckpoints: true,
+        // SESSION 5: Human checkpoints OFF by default - autonomous builds
+        // KripTik AI closes the last 20% gap - no human intervention needed
+        // User must explicitly click "Human in the Loop" button to enable
+        enableHumanCheckpoints: false,
         enableMultiAgentJudging: true,
         enablePatternLibrary: true,
         visualQualityThreshold: 90, // Higher threshold for production
@@ -691,19 +716,32 @@ export class BuildLoopOrchestrator extends EventEmitter {
         userId: string,
         orchestrationRunId: string,
         mode: BuildMode = 'standard',
-        projectPath?: string
+        options?: BuildLoopOptions
     ) {
         super();
 
         // Set project path (default to temp builds directory)
-        this.projectPath = projectPath || `/tmp/builds/${projectId}`;
+        this.projectPath = options?.projectPath || `/tmp/builds/${projectId}`;
+
+        // SESSION 5: Apply runtime options to config
+        // Human In The Loop: OFF by default (autonomous mode)
+        // Only enabled when user explicitly clicks "Human in the Loop" button
+        const baseConfig = BUILD_MODE_CONFIGS[mode];
+        const effectiveConfig: BuildLoopConfig = {
+            ...baseConfig,
+            // Apply human-in-the-loop override if specified
+            enableHumanCheckpoints: options?.humanInTheLoop ?? baseConfig.enableHumanCheckpoints,
+            // Apply other optional overrides
+            maxAgents: options?.maxAgents ?? baseConfig.maxAgents,
+            maxBuildDurationMinutes: options?.maxBuildDurationMinutes ?? baseConfig.maxBuildDurationMinutes,
+        };
 
         this.state = {
             id: uuidv4(),
             projectId,
             userId,
             orchestrationRunId,
-            config: BUILD_MODE_CONFIGS[mode],
+            config: effectiveConfig,
             currentPhase: 'intent_lock',
             currentStage: 'frontend',
             stageProgress: 0,
@@ -5877,24 +5915,35 @@ Would the user be satisfied with this result?`;
 
 /**
  * Create a BuildLoopOrchestrator instance
+ *
+ * SESSION 5: Now accepts BuildLoopOptions for runtime configuration
+ * - humanInTheLoop: Enable human checkpoints (default: false for autonomous mode)
+ * - projectPath: Custom project path
+ * - maxAgents: Override max parallel agents
+ * - maxBuildDurationMinutes: Override build timeout
  */
 export function createBuildLoopOrchestrator(
     projectId: string,
     userId: string,
     orchestrationRunId: string,
-    mode: BuildMode = 'standard'
+    mode: BuildMode = 'standard',
+    options?: BuildLoopOptions
 ): BuildLoopOrchestrator {
-    return new BuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode);
+    return new BuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode, options);
 }
 
 /**
  * Start a new build loop
+ *
+ * SESSION 5: Now accepts BuildLoopOptions for runtime configuration
+ * - humanInTheLoop: Enable human checkpoints (default: false for autonomous mode)
  */
 export async function startBuildLoop(
     prompt: string,
     projectId: string,
     userId: string,
-    mode: BuildMode = 'standard'
+    mode: BuildMode = 'standard',
+    options?: BuildLoopOptions
 ): Promise<BuildLoopOrchestrator> {
     const orchestrationRunId = uuidv4();
 
@@ -5904,13 +5953,13 @@ export async function startBuildLoop(
         projectId,
         userId,
         prompt,
-        plan: { prompt, mode },
+        plan: { prompt, mode, humanInTheLoop: options?.humanInTheLoop ?? false },
         status: 'running',
         artifacts: {},
         startedAt: new Date().toISOString(),
     });
 
-    const orchestrator = createBuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode);
+    const orchestrator = createBuildLoopOrchestrator(projectId, userId, orchestrationRunId, mode, options);
 
     // Start in background
     orchestrator.start(prompt).catch(error => {
