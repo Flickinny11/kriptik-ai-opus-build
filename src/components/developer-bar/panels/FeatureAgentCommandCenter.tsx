@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import { useFeatureAgentTileStore } from '@/store/useFeatureAgentTileStore';
 import { useFeatureAgentStore, type RunningAgent, type GhostModeAgentConfig } from '@/store/feature-agent-store';
+import TournamentModeToggle from '../../builder/TournamentModeToggle';
 import './AgentsCommandCenter.css';
 
 // Custom SVG Icons (no lucide-react)
@@ -676,6 +677,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [ghostConfig, setGhostConfig] = useState<GhostModeAgentConfig | null>(null);
   const [ghostModeEnabled, setGhostModeEnabled] = useState(false);
+  const [tournamentModeEnabled, setTournamentModeEnabled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const openTile = useFeatureAgentTileStore((s) => s.openTile);
 
@@ -778,6 +780,7 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
           taskPrompt: taskPrompt.trim(),
           model: mapUiModelToDeveloperModeModel(selectedModel),
           ghostModeConfig: ghostModeEnabled ? ghostConfig || undefined : undefined,
+          enableTournamentMode: tournamentModeEnabled, // Enable tournament mode if toggled
         }
       );
       const realAgentId = created.agent?.id as string;
@@ -1090,6 +1093,15 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                         </motion.div>
                       )}
                     </AnimatePresence>
+                  </div>
+
+                  {/* Tournament Mode Toggle */}
+                  <div className="acc-v2__tournament-row">
+                    <TournamentModeToggle
+                      enabled={tournamentModeEnabled}
+                      onChange={setTournamentModeEnabled}
+                      disabled={isDeploying}
+                    />
                   </div>
 
                   {/* Prompt Input */}

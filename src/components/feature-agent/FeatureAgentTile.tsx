@@ -16,6 +16,7 @@ import { FeaturePreviewWindow } from './FeaturePreviewWindow';
 import { FeatureAgentActivityStream } from './FeatureAgentActivityStream';
 import type { AgentActivityEvent } from '@/types/agent-activity';
 import { parseStreamChunkToEvent } from '@/types/agent-activity';
+import TournamentStreamResults, { type TournamentStreamData } from '../builder/TournamentStreamResults';
 import './feature-agent-tile.css';
 
 interface FeatureAgentTileProps {
@@ -120,6 +121,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
   const [showGhostModeConfig, setShowGhostModeConfig] = useState(false);
   const [showPreviewWindow, setShowPreviewWindow] = useState(false);
   const [activityEvents, setActivityEvents] = useState<AgentActivityEvent[]>([]);
+  const [tournamentData, setTournamentData] = useState<TournamentStreamData | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -159,8 +161,63 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
 
     es.onmessage = (evt) => {
       try {
-        const data = JSON.parse(evt.data) as StreamMessage;
-        if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
+        const rawData = JSON.parse(evt.data);
+        if (!rawData || typeof rawData !== 'object' || typeof rawData.type !== 'string') return;
+
+        // Handle tournament events separately (they use different type strings)
+        const eventType = rawData.type as string;
+        if (eventType === 'tournament-started') {
+          const meta = (rawData.metadata || {}) as Record<string, unknown>;
+          setTournamentData({
+            tournamentId: (meta.tournamentId as string) || `t-${Date.now()}`,
+            featureDescription: (meta.featureDescription as string) || 'Feature build',
+            phase: 'init',
+            competitors: (meta.competitors as TournamentStreamData['competitors']) || [],
+            judges: (meta.judges as TournamentStreamData['judges']) || [],
+            startTime: Date.now(),
+          });
+          return;
+        } else if (eventType === 'tournament-competitor-update') {
+          const meta = (rawData.metadata || {}) as Record<string, unknown>;
+          setTournamentData(prev => {
+            if (!prev) return prev;
+            const update = meta.update as Partial<TournamentStreamData['competitors'][0]> || {};
+            const competitors = prev.competitors.map(c =>
+              c.id === meta.competitorId ? { ...c, ...update } : c
+            );
+            const phase = (meta.phase as TournamentStreamData['phase']) || prev.phase;
+            return { ...prev, competitors, phase };
+          });
+          return;
+        } else if (eventType === 'tournament-judge-update') {
+          const meta = (rawData.metadata || {}) as Record<string, unknown>;
+          setTournamentData(prev => {
+            if (!prev) return prev;
+            const update = meta.update as Partial<TournamentStreamData['judges'][0]> || {};
+            const judges = prev.judges.map(j =>
+              j.id === meta.judgeId ? { ...j, ...update } : j
+            );
+            const phase = (meta.phase as TournamentStreamData['phase']) || prev.phase;
+            return { ...prev, judges, phase };
+          });
+          return;
+        } else if (eventType === 'tournament-complete') {
+          const meta = (rawData.metadata || {}) as Record<string, unknown>;
+          setTournamentData(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              phase: 'complete' as const,
+              winner: meta.winner as TournamentStreamData['winner'],
+              endTime: Date.now(),
+            };
+          });
+          return;
+        }
+
+        // Regular stream messages
+        const data = rawData as StreamMessage;
+        if (typeof data.type !== 'string') return;
 
         // Lightweight state inference from stream messages
         if (data.type === 'status') {
@@ -369,6 +426,19 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
 
       <div className="fa-tile__body">
         <div className="fa-tile__scroll" ref={scrollRef}>
+          {/* Tournament Mode Results - shows when tournament is active */}
+          {tournamentData && (
+            <div className="fa-tile__tournament">
+              <TournamentStreamResults
+                data={tournamentData}
+                onSelectWinner={(files) => {
+                  console.log('[FeatureAgentTile] Tournament winner files:', Object.keys(files));
+                  setTournamentData(null);
+                }}
+              />
+            </div>
+          )}
+
           {/* Agent Activity Stream - shows when implementing */}
           {(tile.status === 'implementing' || tile.status === 'verifying') && (
             <FeatureAgentActivityStream
