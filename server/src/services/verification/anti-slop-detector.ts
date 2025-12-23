@@ -748,6 +748,141 @@ Respond with ONLY a number 0-100. No explanation.`;
     private hasLayoutContent(content: string): boolean {
         return /className="[^"]*(?:flex|grid|p-|m-|gap-)/.test(content);
     }
+
+    // =========================================================================
+    // SESSION 5: QUICK ANTI-SLOP CHECK FOR CONTINUOUS VERIFICATION
+    // =========================================================================
+
+    /**
+     * SESSION 5: Fast anti-slop check for continuous verification during builds
+     * Uses instant-fail pattern matching (no AI calls) for speed
+     */
+    async quickAntiSlopCheck(sandboxPath: string): Promise<QuickAntiSlopResult> {
+        const instantFails: string[] = [];
+        const warnings: string[] = [];
+        const affectedFiles: string[] = [];
+
+        // SESSION 5: Instant-fail patterns (fast regex)
+        const instantFailPatterns = [
+            { pattern: /from-purple-\d+\s+to-pink-\d+/g, message: 'Purple-to-pink gradient (AI slop)' },
+            { pattern: /from-blue-\d+\s+to-purple-\d+/g, message: 'Blue-to-purple gradient (AI slop)' },
+            { pattern: /[\u{1F300}-\u{1F9FF}]/gu, message: 'Emoji in production code' },
+            { pattern: /lorem ipsum/gi, message: 'Lorem ipsum placeholder' },
+            { pattern: /font-sans(?!\s*,)/g, message: 'Generic font-sans without override' },
+            { pattern: /TODO:/gi, message: 'TODO comment detected' },
+            { pattern: /FIXME:/gi, message: 'FIXME comment detected' },
+            { pattern: /placeholder/gi, message: 'Placeholder text detected' },
+        ];
+
+        // Warning patterns (not instant fail but need attention)
+        const warningPatterns = [
+            { pattern: /gray-[345]00/g, message: 'Generic gray colors' },
+            { pattern: /text-gray-500/g, message: 'Generic gray text' },
+            { pattern: /shadow-(?:sm|md|lg)(?!\s*shadow-)/g, message: 'Shadow without color tint' },
+        ];
+
+        try {
+            const fs = await import('fs/promises');
+            const path = await import('path');
+
+            // Get relevant files to check
+            const filesToCheck = await this.getRelevantFiles(sandboxPath, fs, path);
+
+            for (const file of filesToCheck) {
+                try {
+                    const content = await fs.readFile(file, 'utf-8');
+
+                    // Check instant-fail patterns
+                    for (const { pattern, message } of instantFailPatterns) {
+                        if (pattern.test(content)) {
+                            instantFails.push(`${file}: ${message}`);
+                            if (!affectedFiles.includes(file)) {
+                                affectedFiles.push(file);
+                            }
+                        }
+                        // Reset regex lastIndex for global patterns
+                        pattern.lastIndex = 0;
+                    }
+
+                    // Check warning patterns
+                    for (const { pattern, message } of warningPatterns) {
+                        if (pattern.test(content)) {
+                            warnings.push(`${file}: ${message}`);
+                            if (!affectedFiles.includes(file)) {
+                                affectedFiles.push(file);
+                            }
+                        }
+                        pattern.lastIndex = 0;
+                    }
+                } catch {
+                    // Skip files that can't be read
+                }
+            }
+        } catch (error) {
+            console.error('[AntiSlopDetector] quickAntiSlopCheck error:', error);
+        }
+
+        return {
+            passed: instantFails.length === 0,
+            score: instantFails.length === 0 ? 100 : 0,
+            instantFails,
+            warnings,
+            affectedFiles,
+            isBlocker: instantFails.length > 0,
+        };
+    }
+
+    /**
+     * SESSION 5: Get relevant files for anti-slop checking
+     */
+    private async getRelevantFiles(
+        sandboxPath: string,
+        fs: typeof import('fs/promises'),
+        path: typeof import('path')
+    ): Promise<string[]> {
+        const relevantFiles: string[] = [];
+        const uiExtensions = ['.tsx', '.jsx', '.css', '.scss'];
+
+        try {
+            const scanDir = async (dir: string) => {
+                const entries = await fs.readdir(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry.name);
+
+                    // Skip node_modules, .git, dist, build
+                    if (entry.isDirectory()) {
+                        if (!['node_modules', '.git', 'dist', 'build', '.next'].includes(entry.name)) {
+                            await scanDir(fullPath);
+                        }
+                    } else if (entry.isFile()) {
+                        const ext = path.extname(entry.name).toLowerCase();
+                        if (uiExtensions.includes(ext)) {
+                            relevantFiles.push(fullPath);
+                        }
+                    }
+                }
+            };
+
+            await scanDir(sandboxPath);
+        } catch (error) {
+            console.error('[AntiSlopDetector] getRelevantFiles error:', error);
+        }
+
+        return relevantFiles;
+    }
+}
+
+// ============================================================================
+// SESSION 5: QUICK ANTI-SLOP RESULT TYPE
+// ============================================================================
+
+export interface QuickAntiSlopResult {
+    passed: boolean;
+    score: number;
+    instantFails: string[];
+    warnings: string[];
+    affectedFiles: string[];
+    isBlocker: boolean;
 }
 
 // ============================================================================

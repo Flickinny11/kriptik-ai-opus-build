@@ -155,6 +155,16 @@ export class CodingAgentWrapper extends EventEmitter {
     private contextSync: ContextSyncService | null = null;
     private contextSyncUnsubscribe: (() => void) | null = null;
 
+    // =========================================================================
+    // SESSION 5: Pending verification issues for self-correction
+    // =========================================================================
+    private pendingVerificationIssues: Array<{
+        timestamp: number;
+        score: number;
+        issues: string[];
+        affectedFiles: string[];
+    }> = [];
+
     constructor(config: CodingAgentConfig) {
         super();
         this.config = {
@@ -1024,6 +1034,95 @@ Take this into account as you work on your current task.
 
 ${prompt}
 `;
+    }
+
+    // =========================================================================
+    // SESSION 5: VERIFICATION FEEDBACK INJECTION FOR SELF-CORRECTION
+    // =========================================================================
+
+    /**
+     * SESSION 5: Receive verification results from build loop
+     * Called by build loop when verification finds issues
+     */
+    public receiveVerificationResults(results: {
+        passed: boolean;
+        score: number;
+        issues: string[];
+        affectedFiles: string[];
+    }): void {
+        if (!results.passed) {
+            this.pendingVerificationIssues.push({
+                timestamp: Date.now(),
+                score: results.score,
+                issues: results.issues,
+                affectedFiles: results.affectedFiles,
+            });
+            console.log(`[CodingAgentWrapper] Received verification issues (score: ${results.score}, ${results.issues.length} issues)`);
+        }
+    }
+
+    /**
+     * SESSION 5: Inject verification feedback into prompt for self-correction
+     * Agents receive this feedback before generating code so they can fix issues proactively
+     */
+    public injectVerificationFeedback(prompt: string): string {
+        if (this.pendingVerificationIssues.length === 0) {
+            return prompt;
+        }
+
+        // Get most recent issues (last 3)
+        const recentIssues = this.pendingVerificationIssues.slice(-3);
+        const issuesSummary = recentIssues.map(v =>
+            `- Score: ${v.score}/100, Issues: ${v.issues.join(', ')}`
+        ).join('\n');
+
+        // Collect affected files
+        const allAffectedFiles = [...new Set(recentIssues.flatMap(v => v.affectedFiles))];
+
+        const injectedPrompt = `
+## ⚠️ VERIFICATION FEEDBACK (Fix these as you work)
+
+Recent verification checks found issues that need to be addressed:
+${issuesSummary}
+
+Files with issues: ${allAffectedFiles.length > 0 ? allAffectedFiles.join(', ') : 'Various files'}
+
+**IMPORTANT:** Please address these issues as part of your current task.
+- Fix any placeholder content (TODO, FIXME, lorem ipsum, etc.)
+- Address any security vulnerabilities
+- Resolve any TypeScript errors
+- Ensure code quality standards are met
+
+---
+
+${prompt}
+`;
+
+        // Clear processed issues
+        this.pendingVerificationIssues = [];
+
+        return injectedPrompt;
+    }
+
+    /**
+     * SESSION 5: Get system prompt with all context AND verification feedback
+     * This is the recommended method for getting prompts during active builds
+     */
+    public getFullContextPrompt(basePrompt: string): string {
+        if (!this.context) {
+            throw new Error('Must call startSession() before getting prompt');
+        }
+
+        // Start with context-aware prompt
+        let prompt = this.getSystemPromptWithContext(basePrompt);
+
+        // Inject any pending context updates from other agents
+        prompt = this.injectContextUpdates(prompt);
+
+        // Inject verification feedback for self-correction
+        prompt = this.injectVerificationFeedback(prompt);
+
+        return prompt;
     }
 
     /**
