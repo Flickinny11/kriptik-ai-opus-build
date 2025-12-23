@@ -45,6 +45,8 @@ import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
 import { useUserStore } from '../../store/useUserStore';
+import TournamentModeToggle from './TournamentModeToggle';
+import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
@@ -326,12 +328,17 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         progress: number;
     }>>([]);
 
+    // Tournament Mode state
+    const [tournamentEnabled, setTournamentEnabled] = useState(false);
+    const [tournamentData, setTournamentData] = useState<TournamentStreamData | null>(null);
+
     // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
     console.debug('[ChatInterface] Live preview state:', {
         sandboxUrl: sandboxUrl ? 'available' : 'null',
         lastModifiedFile,
         visualVerification: visualVerification ? 'available' : 'null',
-        parallelAgentsCount: parallelAgents.length
+        parallelAgentsCount: parallelAgents.length,
+        tournamentEnabled,
     });
 
     // Auto-scroll to bottom
@@ -501,6 +508,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             options: {
                                 enableVisualVerification: true,
                                 enableCheckpoints: true,
+                                enableTournamentMode: tournamentEnabled, // Enable tournament mode if toggled
                             },
                         }),
                     });
@@ -635,6 +643,54 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                         }]);
                                         ws.close();
                                         activityWsRef.current = null;
+                                        break;
+
+                                    // Tournament Mode events
+                                    case 'tournament-started':
+                                        setTournamentData({
+                                            tournamentId: wsData.data?.tournamentId || `t-${Date.now()}`,
+                                            featureDescription: wsData.data?.featureDescription || 'Feature build',
+                                            phase: 'init',
+                                            competitors: wsData.data?.competitors || [],
+                                            judges: wsData.data?.judges || [],
+                                            startTime: Date.now(),
+                                        });
+                                        break;
+
+                                    case 'tournament-competitor-update':
+                                        setTournamentData(prev => {
+                                            if (!prev) return prev;
+                                            const competitors = prev.competitors.map(c =>
+                                                c.id === wsData.data?.competitorId
+                                                    ? { ...c, ...wsData.data.update }
+                                                    : c
+                                            );
+                                            return { ...prev, competitors, phase: wsData.data?.phase || prev.phase };
+                                        });
+                                        break;
+
+                                    case 'tournament-judge-update':
+                                        setTournamentData(prev => {
+                                            if (!prev) return prev;
+                                            const judges = prev.judges.map(j =>
+                                                j.id === wsData.data?.judgeId
+                                                    ? { ...j, ...wsData.data.update }
+                                                    : j
+                                            );
+                                            return { ...prev, judges, phase: wsData.data?.phase || prev.phase };
+                                        });
+                                        break;
+
+                                    case 'tournament-complete':
+                                        setTournamentData(prev => {
+                                            if (!prev) return prev;
+                                            return {
+                                                ...prev,
+                                                phase: 'complete',
+                                                winner: wsData.data?.winner,
+                                                endTime: Date.now(),
+                                            };
+                                        });
                                         break;
 
                                     default:
@@ -989,6 +1045,19 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     </ScrollArea>
                 ) : (
                     <div className="h-full flex flex-col">
+                        {/* Tournament Mode Results - Show when tournament is active */}
+                        {tournamentData && (
+                            <div className="px-4 pt-4 shrink-0">
+                                <TournamentStreamResults
+                                    data={tournamentData}
+                                    onSelectWinner={(files) => {
+                                        console.log('[ChatInterface] Tournament winner files:', Object.keys(files));
+                                        setTournamentData(null);
+                                    }}
+                                />
+                            </div>
+                        )}
+
                         {/* Agent Activity Stream - Real-time orchestration events */}
                         <div className="px-4 pt-4 shrink-0">
                             <AgentActivityStream
@@ -1037,64 +1106,77 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 className="p-4 shrink-0"
                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
             >
-                {/* Model Selector */}
-                <div className="mb-3 relative">
-                    <button
-                        onClick={() => setShowModelDropdown(!showModelDropdown)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:bg-white/50"
-                        style={{
-                            background: 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)',
-                            border: '1px solid rgba(0,0,0,0.08)',
-                        }}
-                    >
-                        {CHAT_MODELS.find(m => m.id === selectedModel)?.icon}
-                        <span className="font-medium" style={{ color: '#1a1a1a' }}>
-                            {CHAT_MODELS.find(m => m.id === selectedModel)?.name}
-                        </span>
-                        <ChevronDownIcon size={12} className="text-gray-500" />
-                    </button>
+                {/* Model Selector and Tournament Toggle */}
+                <div className="mb-3 flex items-center justify-between">
+                    {/* Model Selector */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowModelDropdown(!showModelDropdown)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:bg-white/50"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                            }}
+                        >
+                            {CHAT_MODELS.find(m => m.id === selectedModel)?.icon}
+                            <span className="font-medium" style={{ color: '#1a1a1a' }}>
+                                {CHAT_MODELS.find(m => m.id === selectedModel)?.name}
+                            </span>
+                            <ChevronDownIcon size={12} className="text-gray-500" />
+                        </button>
 
-                    <AnimatePresence>
-                        {showModelDropdown && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                className="absolute bottom-full mb-2 left-0 z-50 rounded-xl p-1 min-w-[200px]"
-                                style={{
-                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)',
-                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
-                                    backdropFilter: 'blur(20px)',
-                                }}
-                            >
-                                {CHAT_MODELS.map((model) => (
-                                    <button
-                                        key={model.id}
-                                        onClick={() => {
-                                            setSelectedModel(model.id);
-                                            setShowModelDropdown(false);
-                                        }}
-                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                                            selectedModel === model.id ? 'bg-orange-50' : 'hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        {model.icon}
-                                        <div className="text-left">
-                                            <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                                                {model.name}
+                        <AnimatePresence>
+                            {showModelDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    className="absolute bottom-full mb-2 left-0 z-50 rounded-xl p-1 min-w-[200px]"
+                                    style={{
+                                        background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
+                                        backdropFilter: 'blur(20px)',
+                                    }}
+                                >
+                                    {CHAT_MODELS.map((model) => (
+                                        <button
+                                            key={model.id}
+                                            onClick={() => {
+                                                setSelectedModel(model.id);
+                                                setShowModelDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                                                selectedModel === model.id ? 'bg-orange-50' : 'hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {model.icon}
+                                            <div className="text-left">
+                                                <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
+                                                    {model.name}
+                                                </div>
+                                                <div className="text-[10px]" style={{ color: '#666' }}>
+                                                    {model.description}
+                                                </div>
                                             </div>
-                                            <div className="text-[10px]" style={{ color: '#666' }}>
-                                                {model.description}
-                                            </div>
-                                        </div>
-                                        {selectedModel === model.id && (
-                                            <div className="ml-auto w-2 h-2 rounded-full bg-orange-500" />
-                                        )}
-                                    </button>
-                                ))}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                            {selectedModel === model.id && (
+                                                <div className="ml-auto w-2 h-2 rounded-full bg-orange-500" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Tournament Mode Toggle - Only show for Multi-Agent model */}
+                    {selectedModel === 'orchestrator' && (
+                        <TournamentModeToggle
+                            enabled={tournamentEnabled}
+                            onChange={setTournamentEnabled}
+                            disabled={globalStatus !== 'idle'}
+                            compact
+                        />
+                    )}
                 </div>
 
                 {/* Glass Input Container */}
