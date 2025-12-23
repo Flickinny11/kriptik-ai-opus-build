@@ -452,7 +452,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
         <FeaturePreviewWindow
           agentId={agentId}
           featureName={headerMeta.name}
-          sandboxUrl={`/sandbox/${agentId}`}
+          sandboxUrl={`http://localhost:3100`}
           onAccept={() => {
             addMessage(agentId, {
               type: 'result',

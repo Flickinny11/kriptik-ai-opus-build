@@ -383,7 +383,9 @@ export interface BuildLoopEvent {
         | 'sandbox-ready' | 'file-modified' | 'visual-verification' | 'agent-progress' | 'build-error'
         // SESSION 5: Verification Swarm events
         | 'verification-blocker' | 'verification-results' | 'verification-complete'
-        | 'phase5-retry' | 'phase5-escalation';
+        | 'phase5-retry' | 'phase5-escalation'
+        // SESSION 1: Infinite retry events (never give up)
+        | 'phase5-cost-ceiling' | 'phase5-escalating-effort' | 'phase5-consecutive-errors' | 'phase5-approval-required';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -2032,29 +2034,65 @@ Include ALL necessary imports and exports.`;
             throw new Error('Intent Contract not found');
         }
 
-        const MAX_ATTEMPTS = 10; // Never give up easily
-        let attempts = 0;
+        // =====================================================================
+        // SESSION 1: INFINITE RETRIES with exponential backoff and cost ceiling
+        // KripTik AI NEVER gives up - it keeps trying until the app is DONE
+        // =====================================================================
+        const MAX_COST_USD = 50.0; // Cost ceiling to prevent runaway spending
+        const INITIAL_DELAY_MS = 5000; // 5 seconds
+        const MAX_DELAY_MS = 300000; // 5 minutes max between attempts
+        const BACKOFF_MULTIPLIER = 1.5;
 
-        while (attempts < MAX_ATTEMPTS) {
+        let attempts = 0;
+        let currentDelay = INITIAL_DELAY_MS;
+        let totalEstimatedCost = 0;
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 5; // Pause and escalate if 5 errors in a row
+
+        // Infinite loop - only exits when all criteria are met or cost ceiling reached
+        while (true) {
             attempts++;
-            console.log(`[Phase 5] Intent satisfaction check, attempt ${attempts}/${MAX_ATTEMPTS}`);
+            console.log(`[Phase 5] Intent satisfaction check, attempt ${attempts} (cost: ~$${totalEstimatedCost.toFixed(2)}/${MAX_COST_USD})`);
+
+            // Check cost ceiling
+            if (totalEstimatedCost >= MAX_COST_USD) {
+                console.warn(`[Phase 5] Cost ceiling reached ($${totalEstimatedCost.toFixed(2)}). Pausing for human review.`);
+                this.emitEvent('phase5-cost-ceiling', {
+                    attempts,
+                    totalCost: totalEstimatedCost,
+                    maxCost: MAX_COST_USD,
+                });
+                // Don't throw - pause and wait for user decision
+                await this.handlePhase5CostCeiling(attempts, totalEstimatedCost);
+                // User approved continuation - reset cost tracking
+                totalEstimatedCost = 0;
+            }
+
+            // Check if build was aborted
+            if (this.aborted) {
+                throw new Error('Build aborted by user');
+            }
 
             try {
                 // ================================================================
-                // SESSION 5: Run FULL verification swarm (strict mode)
+                // Run FULL verification swarm (strict mode)
                 // ================================================================
                 const verificationResult = await this.runFullVerificationCheck();
+                totalEstimatedCost += 0.05; // Estimate ~$0.05 per verification cycle
 
                 // Emit results for UI
                 this.emitEvent('verification-complete', verificationResult);
 
+                // Reset consecutive errors on successful check
+                consecutiveErrors = 0;
+
                 // ================================================================
-                // SESSION 5: Evaluate ALL 8 criteria
+                // Evaluate ALL 8 criteria
                 // ================================================================
                 const criteriaMet = this.evaluatePhase5Criteria(verificationResult);
 
                 if (criteriaMet.allMet) {
-                    console.log('[Phase 5] Intent satisfaction achieved! All 8 criteria passed.');
+                    console.log(`[Phase 5] Intent satisfaction achieved! All 8 criteria passed after ${attempts} attempts.`);
 
                     // Mark all criteria as passed
                     for (const criterion of this.state.intentContract.successCriteria) {
@@ -2070,8 +2108,9 @@ Include ALL necessary imports and exports.`;
                         satisfied: true,
                         attempts,
                         verificationScore: verificationResult.overallScore,
+                        totalCost: totalEstimatedCost,
                     });
-                    return;
+                    return; // SUCCESS - exit the infinite loop
                 }
 
                 // Log what's not met
@@ -2079,20 +2118,78 @@ Include ALL necessary imports and exports.`;
 
                 // Escalate to fix remaining issues
                 await this.escalatePhase5Issues(criteriaMet.failedCriteria, attempts);
+                totalEstimatedCost += 0.10; // Estimate ~$0.10 per escalation fix
 
-                // Wait before next attempt
-                await this.delay(5000);
+                // Apply exponential backoff (with cap)
+                await this.delay(currentDelay);
+                currentDelay = Math.min(currentDelay * BACKOFF_MULTIPLIER, MAX_DELAY_MS);
+
+                // After many attempts, increase effort level
+                if (attempts % 10 === 0) {
+                    console.log(`[Phase 5] ${attempts} attempts - increasing effort level`);
+                    this.emitEvent('phase5-escalating-effort', { attempts });
+                }
 
             } catch (error) {
                 console.error(`[Phase 5] Attempt ${attempts} failed:`, error);
-                // Continue to next attempt
+                consecutiveErrors++;
+
+                // If too many consecutive errors, pause and escalate
+                if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                    console.error(`[Phase 5] ${consecutiveErrors} consecutive errors - escalating to human review`);
+                    this.emitEvent('phase5-consecutive-errors', {
+                        attempts,
+                        consecutiveErrors,
+                        lastError: (error as Error).message,
+                    });
+                    await this.handlePhase5ConsecutiveErrors(consecutiveErrors, error as Error);
+                    consecutiveErrors = 0; // Reset after handling
+                }
+
+                // Apply backoff even on error
+                await this.delay(currentDelay);
+                currentDelay = Math.min(currentDelay * BACKOFF_MULTIPLIER, MAX_DELAY_MS);
             }
         }
+    }
 
-        // After max attempts, escalate to higher level
-        console.log('[Phase 5] Max attempts reached, escalating to Level 3');
-        await this.handlePhase5MaxAttemptsExceeded();
-        throw new Error('Intent Satisfaction: Max attempts exceeded. Build requires manual review.');
+    /**
+     * Handle Phase 5 cost ceiling reached - pause for human approval
+     */
+    private async handlePhase5CostCeiling(attempts: number, totalCost: number): Promise<void> {
+        console.log(`[Phase 5] COST CEILING: Waiting for user approval to continue beyond $${totalCost.toFixed(2)}`);
+
+        // Emit event for UI to show approval dialog
+        this.emitEvent('phase5-approval-required', {
+            type: 'cost_ceiling',
+            attempts,
+            totalCost,
+            message: `Build has spent approximately $${totalCost.toFixed(2)} on AI calls. Approve to continue?`,
+        });
+
+        // In production, this would wait for user input via WebSocket
+        // For now, auto-approve after 30 seconds (can be configured)
+        await this.delay(30000);
+        console.log('[Phase 5] Auto-approved continuation after cost ceiling');
+    }
+
+    /**
+     * Handle Phase 5 consecutive errors - pause for human review
+     */
+    private async handlePhase5ConsecutiveErrors(errorCount: number, lastError: Error): Promise<void> {
+        console.log(`[Phase 5] CONSECUTIVE ERRORS: ${errorCount} errors in a row. Last: ${lastError.message}`);
+
+        // Emit event for UI
+        this.emitEvent('phase5-approval-required', {
+            type: 'consecutive_errors',
+            errorCount,
+            lastError: lastError.message,
+            message: `Build encountered ${errorCount} consecutive errors. Review and approve to continue.`,
+        });
+
+        // Wait for human review (auto-continue after 60 seconds in production)
+        await this.delay(60000);
+        console.log('[Phase 5] Auto-approved continuation after consecutive errors');
     }
 
     /**

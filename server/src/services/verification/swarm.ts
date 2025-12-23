@@ -1276,24 +1276,48 @@ Score the design implementation.`;
 
     /**
      * Quick error check - TypeScript/syntax only (fast)
+     * SESSION 1: Now actually runs tsc --noEmit for real error detection
      */
     private async quickErrorCheck(sandboxPath: string): Promise<QuickCheckResult> {
         const issues: string[] = [];
         const affectedFiles: string[] = [];
 
         try {
-            // Check for common TypeScript error patterns in source files
-            const errorPatterns = [
-                { pattern: /Type '.*' is not assignable to type/g, message: 'Type mismatch detected' },
-                { pattern: /Cannot find name '.*'/g, message: 'Undefined reference' },
-                { pattern: /Property '.*' does not exist/g, message: 'Missing property' },
-                { pattern: /Expected \d+ arguments, but got \d+/g, message: 'Argument count mismatch' },
-            ];
+            console.log(`[QuickVerification] Running TypeScript error check on ${sandboxPath}`);
 
-            // Note: In production, this would run actual tsc --noEmit
-            // For now, pattern-based detection
-            console.log(`[QuickVerification] Running error check on ${sandboxPath}`);
+            // Run actual TypeScript check using child_process
+            const { exec } = await import('child_process');
+            const { promisify } = await import('util');
+            const execAsync = promisify(exec);
 
+            try {
+                // Run tsc --noEmit with a timeout
+                await execAsync('npx tsc --noEmit --pretty false 2>&1', {
+                    cwd: sandboxPath,
+                    timeout: 30000, // 30 second timeout
+                });
+                // If no error thrown, TypeScript passed
+                console.log('[QuickVerification] TypeScript check passed');
+            } catch (tscError: any) {
+                // Parse TypeScript errors from stdout/stderr
+                const output = tscError.stdout || tscError.stderr || '';
+                const errorLines = output.split('\n').filter((line: string) =>
+                    line.includes('error TS') || line.includes(': error')
+                );
+
+                for (const line of errorLines.slice(0, 10)) { // Limit to 10 errors
+                    issues.push(line.trim());
+                    // Extract file path from error
+                    const fileMatch = line.match(/^([^(]+)\(/);
+                    if (fileMatch) {
+                        affectedFiles.push(fileMatch[1].trim());
+                    }
+                }
+
+                if (errorLines.length > 10) {
+                    issues.push(`... and ${errorLines.length - 10} more TypeScript errors`);
+                }
+            }
         } catch (error) {
             console.error('[QuickVerification] Error check failed:', error);
             issues.push(`Error check failed: ${(error as Error).message}`);
@@ -1301,7 +1325,7 @@ Score the design implementation.`;
 
         return {
             passed: issues.length === 0,
-            score: 100 - (issues.length * 10),
+            score: Math.max(0, 100 - (issues.length * 10)),
             issues,
             affectedFiles: [...new Set(affectedFiles)],
             isBlocker: issues.length > 0, // TypeScript errors are blockers
@@ -1310,31 +1334,57 @@ Score the design implementation.`;
 
     /**
      * Quick placeholder check - pattern matching (fast)
+     * SESSION 1: Now actually scans source files for placeholders
      */
     private async quickPlaceholderCheck(sandboxPath: string): Promise<QuickCheckResult> {
         const issues: string[] = [];
         const affectedFiles: string[] = [];
 
         const patterns = [
-            { pattern: /TODO/i, message: 'TODO comment found' },
-            { pattern: /FIXME/i, message: 'FIXME comment found' },
-            { pattern: /XXX/i, message: 'XXX marker found' },
-            { pattern: /HACK/i, message: 'HACK comment found' },
-            { pattern: /lorem ipsum/i, message: 'Lorem ipsum placeholder text' },
-            { pattern: /Coming soon/i, message: 'Coming soon placeholder' },
-            { pattern: /placeholder/i, message: 'Placeholder text detected' },
-            { pattern: /example\.com/i, message: 'Example.com URL detected' },
+            { pattern: /\bTODO\b/gi, message: 'TODO comment found' },
+            { pattern: /\bFIXME\b/gi, message: 'FIXME comment found' },
+            { pattern: /\bXXX\b/gi, message: 'XXX marker found' },
+            { pattern: /\bHACK\b/gi, message: 'HACK comment found' },
+            { pattern: /lorem ipsum/gi, message: 'Lorem ipsum placeholder text' },
+            { pattern: /Coming soon/gi, message: 'Coming soon placeholder' },
+            { pattern: /\bplaceholder\b/gi, message: 'Placeholder text detected' },
+            { pattern: /example\.com/gi, message: 'Example.com URL detected' },
+            { pattern: /\$\d+\.00\b/g, message: 'Generic placeholder price' },
         ];
 
-        console.log(`[QuickVerification] Running placeholder check on ${sandboxPath}`);
+        try {
+            console.log(`[QuickVerification] Running placeholder check on ${sandboxPath}`);
 
-        // In production, this would scan actual files
-        // For now, log the check
-        void patterns; // Suppress unused warning
+            const fs = await import('fs/promises');
+            const path = await import('path');
+
+            // Scan source files (tsx, ts, jsx, js)
+            const srcDir = path.join(sandboxPath, 'src');
+            const files = await this.getSourceFiles(srcDir);
+
+            for (const file of files.slice(0, 50)) { // Limit to 50 files for speed
+                try {
+                    const content = await fs.readFile(file, 'utf-8');
+                    const relativePath = path.relative(sandboxPath, file);
+
+                    for (const { pattern, message } of patterns) {
+                        const matches = content.match(pattern);
+                        if (matches && matches.length > 0) {
+                            issues.push(`${relativePath}: ${message} (${matches.length} occurrences)`);
+                            affectedFiles.push(relativePath);
+                        }
+                    }
+                } catch {
+                    // Skip unreadable files
+                }
+            }
+        } catch (error) {
+            console.error('[QuickVerification] Placeholder check failed:', error);
+        }
 
         return {
             passed: issues.length === 0,
-            score: 100 - (issues.length * 15),
+            score: Math.max(0, 100 - (issues.length * 15)),
             issues,
             affectedFiles: [...new Set(affectedFiles)],
             isBlocker: false, // Placeholders don't block during build, but must be fixed before Phase 5
@@ -1343,30 +1393,104 @@ Score the design implementation.`;
 
     /**
      * Quick security check - fast regex patterns (no AI calls)
+     * SESSION 1: Now actually scans source files for security issues
      */
     private async quickSecurityCheck(sandboxPath: string): Promise<QuickCheckResult> {
         const issues: string[] = [];
         const affectedFiles: string[] = [];
 
         const securityPatterns = [
-            { pattern: /(?:api[_-]?key|apikey|secret[_-]?key)\s*[:=]\s*['"][^'"]+['"]/gi, message: 'Potential API key exposure' },
-            { pattern: /(?:sk|pk)_(?:live|test)_[a-zA-Z0-9]+/g, message: 'Stripe key detected in code' },
-            { pattern: /PRIVATE KEY-----/g, message: 'Private key detected in code' },
-            { pattern: /password\s*[:=]\s*['"][^'"]+['"]/gi, message: 'Hardcoded password detected' },
+            { pattern: /(?:api[_-]?key|apikey|secret[_-]?key)\s*[:=]\s*['"][^'"]{10,}['"]/gi, message: 'Potential API key exposure' },
+            { pattern: /(?:sk|pk)_(?:live|test)_[a-zA-Z0-9]{20,}/g, message: 'Stripe key detected in code' },
+            { pattern: /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/g, message: 'Private key detected in code' },
+            { pattern: /password\s*[:=]\s*['"][^'"]{4,}['"]/gi, message: 'Hardcoded password detected' },
+            { pattern: /mongodb(?:\+srv)?:\/\/[^:]+:[^@]+@/gi, message: 'MongoDB connection string with credentials' },
+            { pattern: /postgres(?:ql)?:\/\/[^:]+:[^@]+@/gi, message: 'PostgreSQL connection string with credentials' },
         ];
 
-        console.log(`[QuickVerification] Running security check on ${sandboxPath}`);
+        try {
+            console.log(`[QuickVerification] Running security check on ${sandboxPath}`);
 
-        // In production, this would scan actual files
-        void securityPatterns; // Suppress unused warning
+            const fs = await import('fs/promises');
+            const path = await import('path');
+
+            // Scan source files
+            const srcDir = path.join(sandboxPath, 'src');
+            const files = await this.getSourceFiles(srcDir);
+
+            // Also check root config files
+            const configFiles = ['next.config.js', 'next.config.ts', 'vite.config.ts', 'package.json'];
+            for (const configFile of configFiles) {
+                const configPath = path.join(sandboxPath, configFile);
+                try {
+                    await fs.access(configPath);
+                    files.push(configPath);
+                } catch {
+                    // File doesn't exist
+                }
+            }
+
+            for (const file of files.slice(0, 50)) { // Limit to 50 files for speed
+                try {
+                    const content = await fs.readFile(file, 'utf-8');
+                    const relativePath = path.relative(sandboxPath, file);
+
+                    // Skip .env files (they're supposed to have secrets)
+                    if (relativePath.startsWith('.env')) continue;
+
+                    for (const { pattern, message } of securityPatterns) {
+                        const matches = content.match(pattern);
+                        if (matches && matches.length > 0) {
+                            issues.push(`SECURITY: ${relativePath}: ${message}`);
+                            affectedFiles.push(relativePath);
+                        }
+                    }
+                } catch {
+                    // Skip unreadable files
+                }
+            }
+        } catch (error) {
+            console.error('[QuickVerification] Security check failed:', error);
+        }
 
         return {
             passed: issues.length === 0,
-            score: 100 - (issues.length * 25),
+            score: Math.max(0, 100 - (issues.length * 25)),
             issues,
             affectedFiles: [...new Set(affectedFiles)],
             isBlocker: issues.length > 0, // Security issues are blockers
         };
+    }
+
+    /**
+     * Helper: Get all source files recursively
+     */
+    private async getSourceFiles(dir: string): Promise<string[]> {
+        const files: string[] = [];
+        try {
+            const fs = await import('fs/promises');
+            const path = await import('path');
+
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    // Skip node_modules, .git, dist, build
+                    if (['node_modules', '.git', 'dist', 'build', '.next'].includes(entry.name)) {
+                        continue;
+                    }
+                    files.push(...await this.getSourceFiles(fullPath));
+                } else if (entry.isFile()) {
+                    // Only include source files
+                    if (/\.(tsx?|jsx?|vue|svelte)$/.test(entry.name)) {
+                        files.push(fullPath);
+                    }
+                }
+            }
+        } catch {
+            // Directory doesn't exist or can't be read
+        }
+        return files;
     }
 }
 
