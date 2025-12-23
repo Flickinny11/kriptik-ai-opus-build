@@ -222,6 +222,22 @@ import {
 } from './error-pattern-library.js';
 
 // ============================================================================
+// SOPHISTICATED SYSTEMS INTEGRATION (Session 1: Wire Up)
+// ============================================================================
+import {
+    PredictiveErrorPrevention,
+    getPredictiveErrorPrevention,
+    type PredictionResult,
+    type PredictionContext,
+} from '../ai/predictive-error-prevention.js';
+
+import {
+    AntiSlopDetector,
+    createAntiSlopDetector,
+    type AntiSlopScore,
+} from '../verification/anti-slop-detector.js';
+
+// ============================================================================
 // REMAINING FEATURE INTEGRATION (Ghost Mode, Soft Interrupt, Credentials)
 // ============================================================================
 import {
@@ -610,6 +626,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private imageToCodeService: ImageToCodeService | null = null;
     private apiAutopilotService: APIAutopilotService | null = null;
 
+    // =========================================================================
+    // SESSION 1: SOPHISTICATED SYSTEMS (Wire Up Existing)
+    // =========================================================================
+    private predictiveErrorPrevention: PredictiveErrorPrevention;
+    private antiSlopDetector: AntiSlopDetector | null = null;
+
     constructor(
         projectId: string,
         userId: string,
@@ -787,10 +809,25 @@ export class BuildLoopOrchestrator extends EventEmitter {
             console.warn('[BuildLoop] API autopilot service not available:', error);
         }
 
+        // =====================================================================
+        // SESSION 1: WIRE UP SOPHISTICATED SYSTEMS
+        // =====================================================================
+
+        // Predictive Error Prevention - Prevents errors BEFORE they happen
+        // Inject prevention prompts into ALL code generation
+        this.predictiveErrorPrevention = getPredictiveErrorPrevention({
+            minConfidence: 0.7,
+            maxPredictions: 10,
+            enableHistoricalPatterns: true,
+            enableStaticAnalysis: true,
+            enableImportPrediction: true,
+        });
+
         // Note: StreamingFeedbackChannel, ContinuousVerification, and BrowserInLoop
         // are initialized in start() because they need the build to be running
+        // Note: AntiSlopDetector is initialized after Intent Lock (needs appSoul)
 
-        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot (mode: ${mode}, path: ${this.projectPath})`);
+        console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot + Predictive Error Prevention (mode: ${mode}, path: ${this.projectPath})`);
     }
 
     /**
@@ -1379,6 +1416,26 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     }
                 }
 
+                // =====================================================================
+                // SESSION 1: PREDICTIVE ERROR PREVENTION
+                // Prevent errors BEFORE they happen by injecting prevention prompts
+                // =====================================================================
+                let preventionContext = '';
+                try {
+                    const prediction = await this.predictiveErrorPrevention.predict({
+                        projectId: this.state.projectId,
+                        taskType: task.category,
+                        taskDescription: task.description,
+                        dependencies: ['react', 'typescript', 'tailwindcss'],
+                    });
+                    if (prediction.preventionPrompt) {
+                        preventionContext = `\n\n${prediction.preventionPrompt}`;
+                        console.log(`[BuildLoop] SESSION 1: Injected predictive error prevention (${prediction.predictions.length} rules, ~${prediction.estimatedIterationsSaved} iterations saved)`);
+                    }
+                } catch (err) {
+                    console.warn('[BuildLoop] Predictive error prevention failed (non-fatal):', err);
+                }
+
                 // Get system prompt with full context injected
                 const basePrompt = `You are a senior software engineer building production-ready code.
 You are working on a ${this.state.intentContract?.appType || 'web'} application.
@@ -1386,7 +1443,7 @@ You are working on a ${this.state.intentContract?.appType || 'web'} application.
 TASK: ${task.description}
 CATEGORY: ${task.category}
 PRIORITY: ${task.priority}
-${patternContext}
+${patternContext}${preventionContext}
 
 Generate complete, production-ready code for this task.
 Follow the existing style guide and patterns.
@@ -2041,6 +2098,7 @@ Include ALL necessary imports and exports.`;
     /**
      * SESSION 5: Run full verification check using swarm
      * Uses runQuickChecks for fast verification (no full Feature object needed)
+     * SESSION 1: Now includes real AntiSlopDetector for design quality verification
      */
     private async runFullVerificationCheck(): Promise<{
         overallScore: number;
@@ -2049,7 +2107,7 @@ Include ALL necessary imports and exports.`;
         security: { vulnerabilities: string[] };
         placeholders: { found: string[] };
         visual: { score: number };
-        antiSlop: { score: number };
+        antiSlop: { score: number; violations?: string[] };
         intentMatch: { passed: boolean; failedCriteria: string[] };
         functional: { allPassed: boolean; failedWorkflows: string[] };
     }> {
@@ -2065,14 +2123,53 @@ Include ALL necessary imports and exports.`;
             checkTypes: ['errors', 'placeholders', 'security'],
         });
 
+        // =====================================================================
+        // SESSION 1: Run FULL Anti-Slop Detection (7-dimension design scoring)
+        // This uses the sophisticated existing AntiSlopDetector
+        // =====================================================================
+        let antiSlopScore = 100;
+        let antiSlopViolations: string[] = [];
+        try {
+            // Initialize AntiSlopDetector if not already done
+            if (!this.antiSlopDetector && this.state.intentContract) {
+                const appSoulType = this.state.intentContract.appSoul as any;
+                this.antiSlopDetector = createAntiSlopDetector(
+                    this.state.userId,
+                    this.state.projectId,
+                    appSoulType
+                );
+                console.log('[Phase 5] SESSION 1: AntiSlopDetector initialized with soul:', appSoulType);
+            }
+
+            if (this.antiSlopDetector) {
+                // Collect UI component files for anti-slop analysis (returns Map<string, string>)
+                const uiFilesMap = await this.collectUIFilesForAntiSlop();
+
+                if (uiFilesMap.size > 0) {
+                    const antiSlopResult = await this.antiSlopDetector.analyze(uiFilesMap);
+                    antiSlopScore = antiSlopResult.overall;
+                    antiSlopViolations = antiSlopResult.violations.map(v =>
+                        `${v.rule}: ${v.description} in ${v.location}`
+                    );
+                    console.log(`[Phase 5] SESSION 1: Anti-Slop score: ${antiSlopScore}/100, ${antiSlopResult.violations.length} violations`);
+                }
+            }
+        } catch (err) {
+            console.warn('[Phase 5] Anti-slop detection failed (using fallback):', err);
+            antiSlopScore = quickResult.passed ? 100 : 70;
+        }
+
         // Check intent criteria (using AI judgment)
         const intentMatch = await this.checkIntentCriteria();
 
         // Check functional workflows
         const functional = await this.checkFunctionalWorkflows();
 
-        // Calculate overall score based on quick check results
-        const overallScore = quickResult.passed ? 100 : Math.max(0, quickResult.score);
+        // Calculate overall score based on quick check results and anti-slop
+        const overallScore = Math.min(
+            quickResult.passed ? 100 : Math.max(0, quickResult.score),
+            antiSlopScore
+        );
 
         // Map quick check issues to specific categories
         const errorIssues = quickResult.issues.filter(i => i.includes('TypeScript') || i.includes('error'));
@@ -2101,11 +2198,59 @@ Include ALL necessary imports and exports.`;
                 score: quickResult.passed ? 100 : 70,
             },
             antiSlop: {
-                score: quickResult.passed ? 100 : 70,
+                score: antiSlopScore,
+                violations: antiSlopViolations,
             },
             intentMatch,
             functional,
         };
+    }
+
+    /**
+     * SESSION 1: Collect UI component files for Anti-Slop analysis
+     * Returns Map<filePath, content> as required by AntiSlopDetector.analyze()
+     */
+    private async collectUIFilesForAntiSlop(): Promise<Map<string, string>> {
+        const uiFilesMap = new Map<string, string>();
+
+        try {
+            const fsModule = await import('fs/promises');
+            const pathModule = await import('path');
+
+            // Collect from projectFiles map first (most up-to-date)
+            for (const [filePath, content] of this.projectFiles) {
+                if (filePath.endsWith('.tsx') &&
+                    (filePath.includes('/components/') ||
+                     filePath.includes('/app/') ||
+                     filePath.includes('/pages/'))) {
+                    uiFilesMap.set(filePath, content);
+                }
+            }
+
+            // If no files in map, try reading from disk
+            if (uiFilesMap.size === 0) {
+                const componentsDir = pathModule.join(this.projectPath, 'src/components');
+                try {
+                    const exists = await fsModule.access(componentsDir).then(() => true).catch(() => false);
+                    if (exists) {
+                        const files = await fsModule.readdir(componentsDir, { recursive: true });
+                        for (const file of files) {
+                            if (typeof file === 'string' && file.endsWith('.tsx')) {
+                                const fullPath = pathModule.join(componentsDir, file);
+                                const content = await fsModule.readFile(fullPath, 'utf-8');
+                                uiFilesMap.set(`src/components/${file}`, content);
+                            }
+                        }
+                    }
+                } catch {
+                    // Directory doesn't exist, that's okay
+                }
+            }
+        } catch (err) {
+            console.warn('[Phase 5] Failed to collect UI files for anti-slop:', err);
+        }
+
+        return uiFilesMap;
     }
 
     /**
