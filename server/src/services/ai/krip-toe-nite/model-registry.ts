@@ -82,14 +82,18 @@ export const GEMINI_MODELS = {
 } as const;
 
 // =============================================================================
-// MODEL DEFINITIONS - VERIFIED DECEMBER 16, 2025
+// MODEL DEFINITIONS - VERIFIED DECEMBER 22, 2025
+// Based on: https://blog.typingmind.com/gpt-5-2-vs-claude-opus-4-5-vs-gemini-3-pro/
 // =============================================================================
 
 export const KTN_MODELS: Record<string, KTNModelConfig> = {
     // =========================================================================
     // ANTHROPIC CLAUDE MODELS - Direct SDK
+    // December 2025: Opus 4.5 leads SWE-bench (80.9%), Terminal-bench (59.3%)
+    // Best for deep coding, token-efficient, explains process
     // =========================================================================
 
+    // Claude Opus 4.5 - CODING LEADER: SWE-bench 80.9%, Terminal-bench 59.3%
     'claude-opus-4.5': {
         id: 'claude-opus-4.5',
         directModelId: DIRECT_ANTHROPIC_MODELS.OPUS_4_5,
@@ -98,15 +102,17 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         tier: 'intelligence',
         avgTtftMs: 1200,
         avgTpsMs: 15,
-        costPer1MInput: 15.00,
-        costPer1MOutput: 75.00,
+        costPer1MInput: 5.00,   // CORRECTED: $5/1M input (not $15)
+        costPer1MOutput: 25.00, // CORRECTED: $25/1M output (not $75)
         maxContext: 200000,
         maxOutput: 64000,
-        strengths: ['best-coding', 'complex-reasoning', 'agentic', 'architecture', 'intent-lock'],
+        // December 2025: Coding leader, token-efficient, explains process, multi-file expert
+        strengths: ['swe-bench-leader', 'terminal-bench-leader', 'deep-coding', 'token-efficient', 'multi-file', 'agentic', 'explains-process'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
+    // Claude Sonnet 4.5 - Great balance of speed and quality for coding
     'claude-sonnet-4.5': {
         id: 'claude-sonnet-4.5',
         directModelId: DIRECT_ANTHROPIC_MODELS.SONNET_4_5,
@@ -119,7 +125,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 15.00,
         maxContext: 1000000,
         maxOutput: 64000,
-        strengths: ['coding', 'real-world-agents', 'state-of-the-art', 'balanced', '1M-context'],
+        strengths: ['coding', 'real-world-agents', 'balanced', '1M-context', 'cost-effective-quality'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -179,6 +185,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
     // OPENAI GPT-5.2 MODELS - Direct SDK (December 2025)
     // =========================================================================
 
+    // GPT-5.2 Pro - Highest quality but expensive ($21/$168)
     'gpt-5.2-pro': {
         id: 'gpt-5.2-pro',
         directModelId: DIRECT_OPENAI_MODELS.GPT_5_2_PRO,
@@ -187,15 +194,16 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         tier: 'intelligence',
         avgTtftMs: 1500,
         avgTpsMs: 8,
-        costPer1MInput: 1.75,
-        costPer1MOutput: 14.00,
+        costPer1MInput: 21.00,   // CORRECTED: Pro tier is expensive
+        costPer1MOutput: 168.00, // CORRECTED: Pro tier output cost
         maxContext: 400000,
         maxOutput: 128000,
-        strengths: ['max-reasoning', 'xhigh-effort', 'science', 'math', 'professional'],
+        strengths: ['arc-agi-sota', 'max-reasoning', 'science', 'math-100%', 'professional'],
         supportsVision: true,
         supportsStreaming: true,
     },
 
+    // GPT-5.2 Thinking - BEST VALUE: ARC-AGI leader (52.9%), AIME 100%, balanced production
     'gpt-5.2': {
         id: 'gpt-5.2',
         directModelId: DIRECT_OPENAI_MODELS.GPT_5_2,
@@ -208,7 +216,8 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 14.00,
         maxContext: 400000,
         maxOutput: 128000,
-        strengths: ['reasoning', 'coding', 'tool-calling', 'professional'],
+        // December 2025: GPT-5.2 leads ARC-AGI-2 (52.9%), AIME 2025 (100%), best balanced choice
+        strengths: ['arc-agi-leader', 'aime-100%', 'abstract-reasoning', 'math', 'balanced-production', 'tool-calling'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -270,8 +279,9 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
     },
 
     // =========================================================================
-    // o3/o4 REASONING MODELS - Smartest Ever (December 2025)
-    // o3 crossed 90% on ARC-AGI-1 (Verified) - breakthrough reasoning
+    // o3/o4 REASONING MODELS (December 2025)
+    // NOTE: o3 had 80% price drop (June 2025) - now $2/$8 per 1M tokens
+    // GPT-5.2 leads ARC-AGI (52.9-54.2%), o3 is for deliberate multi-step reasoning
     // =========================================================================
 
     'o3': {
@@ -282,11 +292,11 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         tier: 'intelligence',
         avgTtftMs: 2000,
         avgTpsMs: 6,
-        costPer1MInput: 10.00,
-        costPer1MOutput: 40.00,
+        costPer1MInput: 2.00,   // UPDATED: 80% price drop from $10
+        costPer1MOutput: 8.00,  // UPDATED: 80% price drop from $40
         maxContext: 200000,
         maxOutput: 100000,
-        strengths: ['reasoning', 'math', 'science', 'agentic', 'arc-agi-sota', 'visual-reasoning'],
+        strengths: ['deliberate-reasoning', 'multi-hop-logic', 'tool-use', 'planning'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -303,7 +313,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 80.00,
         maxContext: 200000,
         maxOutput: 100000,
-        strengths: ['max-reasoning', 'hard-problems', 'consistency', 'science', 'research'],
+        strengths: ['max-reasoning', 'hard-problems', 'consistency', 'research'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -320,7 +330,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 4.40,
         maxContext: 200000,
         maxOutput: 100000,
-        strengths: ['fast-reasoning', 'math', 'coding', 'cost-efficient', 'aime-sota'],
+        strengths: ['fast-reasoning', 'math', 'coding', 'cost-efficient'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -403,8 +413,11 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 
     // =========================================================================
     // GOOGLE GEMINI MODELS - OpenRouter only (no direct SDK)
+    // December 2025: Best multimodal, extreme context, cost-efficient
+    // Gemini Flash is 6x cheaper than Opus, great for high-volume
     // =========================================================================
 
+    // Gemini 3 Pro - Strong reasoning, Humanity's Last Exam leader (41%)
     'gemini-3-pro': {
         id: 'gemini-3-pro',
         openRouterId: GEMINI_MODELS.GEMINI_3_PRO,
@@ -416,7 +429,26 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 10.00,
         maxContext: 1000000,
         maxOutput: 16384,
-        strengths: ['reasoning', 'agentic', 'coding', 'adaptive-thinking', '1M-context'],
+        // December 2025: Leads Humanity's Last Exam (41%), strong multimodal
+        strengths: ['humanitys-last-exam-leader', 'multimodal-best', 'reasoning', '1M-context', 'research'],
+        supportsVision: true,
+        supportsStreaming: true,
+    },
+
+    // Gemini 3 Flash - COST LEADER: $0.50/1M input, 6x cheaper than Opus
+    'gemini-3-flash': {
+        id: 'gemini-3-flash',
+        openRouterId: 'google/gemini-3-flash',
+        name: 'Gemini 3 Flash',
+        tier: 'speed',
+        avgTtftMs: 150,
+        avgTpsMs: 20,
+        costPer1MInput: 0.50,   // 6x cheaper than Opus ($3)
+        costPer1MOutput: 2.00,
+        maxContext: 1000000,
+        maxOutput: 16384,
+        // December 2025: SWE-bench 78%, fast, cost-efficient, best value
+        strengths: ['cost-leader', 'swe-bench-78%', 'fast', '1M-context', 'multimodal', 'best-value'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -432,7 +464,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 0.30,
         maxContext: 1000000,
         maxOutput: 8192,
-        strengths: ['ultra-fast', 'cheap', 'reasoning', '1M-context'],
+        strengths: ['ultra-fast', 'ultra-cheap', 'reasoning', '1M-context'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -448,7 +480,7 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
         costPer1MOutput: 0.10,
         maxContext: 1000000,
         maxOutput: 8192,
-        strengths: ['fastest', 'cheapest', 'simple-tasks'],
+        strengths: ['fastest', 'cheapest', 'simple-tasks', 'high-volume'],
         supportsVision: true,
         supportsStreaming: true,
     },
@@ -606,35 +638,34 @@ export const KTN_MODELS: Record<string, KTNModelConfig> = {
 // TIER PREFERENCES - Ordered by preference for each tier
 // =============================================================================
 
+// TIER PREFERENCES - VERIFIED DECEMBER 22, 2025
+// Based on actual benchmarks and cost analysis
 export const TIER_PREFERENCES: Record<ModelTier, string[]> = {
     speed: [
-        'claude-haiku-4.5',     // Best quality per cost for fast tasks
-        'o4-mini',              // NEW: Fast reasoning, AIME SOTA
-        'gemini-2.5-flash',     // Ultra-fast, 1M context
-        'gpt-4o-mini',          // OpenAI fast option
+        'gemini-3-flash',       // BEST VALUE: 78% SWE-bench, 6x cheaper than Opus
+        'gemini-2.5-flash',     // Ultra-fast, 1M context, $0.075/1M
+        'claude-haiku-4.5',     // Quality per cost for fast tasks
+        'gemini-2.5-flash-lite', // Cheapest ($0.02/1M)
         'gpt-5.2-chat',         // GPT-5.2 Instant
+        'gpt-4o-mini',          // OpenAI fast option
         'deepseek-v3',          // Excellent value
-        'grok-4.1-fast',        // 2M context, #1 tool-calling
-        'gemini-2.5-flash-lite', // Cheapest option
+        'grok-4.1-fast',        // 2M context, tool-calling
     ],
     intelligence: [
-        'o3',                   // NEW: Smartest reasoning model (90% ARC-AGI)
-        'claude-opus-4.5',      // Best for intent lock and complex reasoning
-        'o3-pro',               // NEW: Pro tier max reasoning
-        'gpt-5.2-pro',          // OpenAI best standard model
-        'claude-sonnet-4.5',    // Great balance of speed and quality
-        'gpt-5.2',              // GPT-5.2 Thinking
-        'grok-4.1',             // #1 on LMArena, 2M context
-        'gemini-3-pro',         // Google flagship
-        'gpt-4o',               // Reliable multimodal
+        'gpt-5.2',              // ARC-AGI-2 leader (52.9%), AIME 100%, best balanced
+        'claude-opus-4.5',      // SWE-bench leader (80.9%), coding expert
+        'gemini-3-pro',         // Humanity's Last Exam leader (41%), multimodal
+        'claude-sonnet-4.5',    // Great balance, 1M context
+        'grok-4.1',             // 2M context, strong overall
+        'o3',                   // Deliberate reasoning ($2/$8 after 80% drop)
         'mistral-large-3',      // Open-source flagship
         'llama-4-maverick',     // Meta flagship
+        'gpt-4o',               // Reliable multimodal
     ],
     specialist: [
-        'gpt-5.2-codex',        // NEW: 56.4% SWE-Bench Pro SOTA
-        'gpt-5.2-codex-pro',    // NEW: Codex with security/audit
-        'gpt-5.1-codex-max',    // 5hr autonomous coding
-        'deepseek-r1',          // Reasoning specialist
+        'claude-opus-4.5',      // SWE-bench 80.9%, Terminal-bench 59.3% LEADER
+        'gpt-5.2-codex',        // Agentic coding specialist
+        'deepseek-r1',          // Reasoning specialist, cost-effective
         'qwen3-coder',          // MoE code specialist
         'codestral-2508',       // Fast code generation
     ],
@@ -642,68 +673,87 @@ export const TIER_PREFERENCES: Record<ModelTier, string[]> = {
 
 // =============================================================================
 // STRATEGY MODELS - Task-based model selection
+// VERIFIED DECEMBER 22, 2025 based on actual benchmarks:
+// - Abstract Reasoning: GPT-5.2 leads (52.9-54.2% ARC-AGI-2)
+// - Coding: Claude Opus 4.5 leads (80.9% SWE-bench, 59.3% Terminal-bench)
+// - Cost Efficiency: Gemini 3 Flash (6x cheaper than Opus)
+// - Multimodal/Context: Gemini 3 Pro (1M context, Humanity's Last Exam leader)
 // =============================================================================
 
 export const STRATEGY_MODELS = {
     // Trivial: Single fastest model (formatting, typos)
     trivial: {
-        primary: 'claude-haiku-4.5',
-        fallback: 'gemini-2.5-flash-lite',
+        primary: 'gemini-2.5-flash-lite', // Cheapest ($0.02/1M)
+        fallback: 'claude-haiku-4.5',
     },
 
     // Simple: Fast model, good quality (basic components, simple edits)
     simple: {
-        primary: 'claude-haiku-4.5',
-        fallback: 'o4-mini',              // NEW: Fast reasoning
+        primary: 'gemini-3-flash',        // Cost-efficient, SWE-bench 78%
+        fallback: 'claude-haiku-4.5',
     },
 
     // Medium: Speculative execution - fast + smart (feature implementation)
     medium: {
-        fast: 'o4-mini',                  // NEW: Fast reasoning (AIME SOTA)
-        smart: 'claude-sonnet-4.5',
-        fallback: 'gpt-5.2-codex',        // NEW: SWE-Bench SOTA
+        fast: 'gemini-3-flash',           // Best value for volume
+        smart: 'claude-sonnet-4.5',       // Quality when needed
+        fallback: 'gpt-5.2',              // Balanced fallback
     },
 
     // Complex: Intelligence tier primary (architecture, multi-file)
     complex: {
-        primary: 'claude-opus-4.5',
-        reasoning: 'o3',                  // NEW: Use o3 for complex reasoning
-        fallback: 'gpt-5.2-pro',
+        primary: 'claude-opus-4.5',       // SWE-bench leader, multi-file expert
+        reasoning: 'gpt-5.2',             // ARC-AGI leader for abstract reasoning
+        fallback: 'gemini-3-pro',
     },
 
     // Expert: Best available with deep reasoning (intent lock, critical decisions)
     expert: {
-        primary: 'o3',                    // NEW: Smartest reasoning (90% ARC-AGI)
-        validation: 'claude-opus-4.5',    // Cross-validate with Opus
-        fallback: 'o3-pro',               // NEW: Pro tier if needed
+        primary: 'gpt-5.2',               // ARC-AGI-2 leader (52.9%), AIME 100%
+        validation: 'claude-opus-4.5',    // Cross-validate with coding leader
+        fallback: 'gemini-3-pro',         // Humanity's Last Exam leader
     },
 
-    // Autonomous coding: Specialized for long-running agentic coding (December 2025)
+    // Autonomous coding: Specialized for long-running agentic coding
     autonomous: {
-        primary: 'gpt-5.2-codex',         // NEW: 56.4% SWE-Bench Pro SOTA
-        validation: 'claude-opus-4.5',    // Validate at checkpoints
-        fallback: 'gpt-5.2-codex-pro',    // NEW: Enterprise security
+        primary: 'claude-opus-4.5',       // SWE-bench 80.9%, Terminal-bench 59.3%
+        validation: 'gpt-5.2',            // Abstract reasoning validation
+        fallback: 'gpt-5.2-codex',        // Specialized agentic coding
     },
 
     // Intent Lock: Maximum quality for sacred contracts
     intentLock: {
-        primary: 'claude-opus-4.5',       // Best for nuanced understanding
-        reasoning: 'o3',                  // NEW: Add o3 for deep reasoning
-        fallback: 'gpt-5.2-pro',
+        primary: 'claude-opus-4.5',       // Best for nuanced understanding, explains process
+        reasoning: 'gpt-5.2',             // Abstract reasoning for contract validation
+        fallback: 'gemini-3-pro',
     },
 
     // Deep Analysis: Root cause analysis, comprehensive fixes
     deepAnalysis: {
-        primary: 'o3-pro',                // NEW: Max reasoning with more compute
-        fallback: 'o3',
-        validation: 'claude-opus-4.5',
+        primary: 'gpt-5.2',               // ARC-AGI leader, best abstract reasoning
+        fallback: 'claude-opus-4.5',      // Deep coding analysis
+        multimodal: 'gemini-3-pro',       // For visual/document analysis
     },
 
     // Coding: Feature building, bug fixes, refactoring
     coding: {
-        primary: 'gpt-5.2-codex',         // NEW: State-of-the-art agentic coding
-        fast: 'o4-mini',                  // NEW: Fast reasoning for simple fixes
+        primary: 'claude-opus-4.5',       // SWE-bench 80.9% LEADER
+        fast: 'gemini-3-flash',           // Cost-efficient for simple fixes
         fallback: 'claude-sonnet-4.5',
+    },
+
+    // Cost-Optimized: High volume, budget-conscious
+    costOptimized: {
+        primary: 'gemini-3-flash',        // 6x cheaper than Opus, still 78% SWE-bench
+        fallback: 'gemini-2.5-flash',     // Ultra-cheap
+        quality: 'claude-sonnet-4.5',     // When quality matters
+    },
+
+    // Multimodal: Images, video, complex documents
+    multimodal: {
+        primary: 'gemini-3-pro',          // Best multimodal, 1M context
+        fallback: 'gpt-5.2',              // Strong multimodal backup
+        fast: 'gemini-3-flash',           // Fast multimodal
     },
 };
 
