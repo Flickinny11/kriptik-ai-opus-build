@@ -880,7 +880,7 @@ export default function ImportProjectModal({
                             </div>
                         )}
 
-                        {/* Complete Step */}
+                        {/* Complete Step - P2-2: Add direct Builder navigation option */}
                         {step === 'complete' && (
                             <div className="py-12 space-y-6">
                                 <div className="flex flex-col items-center gap-4">
@@ -899,31 +899,47 @@ export default function ImportProjectModal({
                                             Import Complete!
                                         </p>
                                         <p className="text-sm mt-1" style={{ color: '#666' }}>
-                                            {projectName || 'Your project'} is ready to be fixed
+                                            {projectName || 'Your project'} is ready
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleClose}
-                                        className="glass-button flex-1 justify-center py-3"
-                                        style={{ color: '#1a1a1a' }}
-                                    >
-                                        Close
-                                    </button>
+                                <div className="space-y-3">
+                                    {/* Primary action: Open in Builder */}
                                     <button
                                         onClick={() => {
                                             handleClose();
                                             if (projectId) {
-                                                navigate(`/fix-my-app?projectId=${projectId}`);
+                                                navigate(`/builder/${projectId}`);
                                             }
                                         }}
-                                        className="glass-button glass-button--glow flex-1 justify-center py-3"
+                                        className="glass-button glass-button--glow w-full justify-center py-3"
                                         style={{ color: '#1a1a1a' }}
                                     >
-                                        <span>Open in Fix My App</span>
+                                        <span>Open in Builder</span>
                                         <IconArrowRight size={18} />
                                     </button>
+                                    {/* Secondary actions */}
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => {
+                                                handleClose();
+                                                if (projectId) {
+                                                    navigate(`/fix-my-app?projectId=${projectId}`);
+                                                }
+                                            }}
+                                            className="glass-button flex-1 justify-center py-2.5 text-sm"
+                                            style={{ color: '#1a1a1a' }}
+                                        >
+                                            <span>Fix My App</span>
+                                        </button>
+                                        <button
+                                            onClick={handleClose}
+                                            className="glass-button flex-1 justify-center py-2.5 text-sm"
+                                            style={{ color: '#666' }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

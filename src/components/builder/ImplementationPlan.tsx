@@ -41,9 +41,33 @@ interface PlanPhase {
     customValue?: string;
 }
 
+// Pre-generated plan from backend (when available)
+interface PreGeneratedPlan {
+    intentSummary: string;
+    phases: Array<{
+        id: string;
+        title: string;
+        description: string;
+        icon: string;
+        type: 'frontend' | 'backend';
+        steps: Array<{
+            id: string;
+            description: string;
+            type: string;
+            estimatedTokens: number;
+        }>;
+        order: number;
+        approved: boolean;
+    }>;
+    estimatedTokenUsage: number;
+    estimatedCostUSD: number;
+    parallelAgentsNeeded: number;
+}
+
 interface ImplementationPlanProps {
-    prompt: string;
-    onApprove: (plan: PlanPhase[]) => void;
+    prompt?: string;
+    plan?: PreGeneratedPlan;
+    onApprove: (plan: PlanPhase[] | unknown[]) => void;
     onCancel: () => void;
 }
 
@@ -239,15 +263,44 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 // Main implementation plan component
-export function ImplementationPlan({ prompt, onApprove, onCancel }: ImplementationPlanProps) {
-    const [isLoading, setIsLoading] = useState(true);
+export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, onCancel }: ImplementationPlanProps) {
+    const [isLoading, setIsLoading] = useState(!preGeneratedPlan);
     const [thinkingStage, setThinkingStage] = useState('Analyzing your prompt');
     const [phases, setPhases] = useState<PlanPhase[]>([]);
     const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
     const [_error, setError] = useState<string | null>(null);
 
-    // Fetch AI-generated implementation plan from API
+    // Convert pre-generated plan to PlanPhase format if provided
+    useEffect(() => {
+        if (preGeneratedPlan) {
+            const convertedPhases: PlanPhase[] = preGeneratedPlan.phases.map((phase) => ({
+                id: phase.id,
+                title: phase.title,
+                description: phase.description,
+                icon: ICON_MAP[phase.icon] || CodeIcon,
+                type: phase.type,
+                options: phase.steps.map((step) => ({
+                    id: step.id,
+                    label: step.description,
+                    description: `~${step.estimatedTokens} tokens`,
+                    recommended: true,
+                })),
+                selectedOption: phase.steps[0]?.id,
+            }));
+            setPhases(convertedPhases);
+            setIsLoading(false);
+            if (convertedPhases.length > 0) {
+                setExpandedPhase(convertedPhases[0].id);
+            }
+        }
+    }, [preGeneratedPlan]);
+
+    // Fetch AI-generated implementation plan from API (only if no pre-generated plan)
     const fetchPlan = useCallback(async () => {
+        if (preGeneratedPlan || !prompt) {
+            return; // Don't fetch if we already have a plan
+        }
+
         setIsLoading(true);
         setError(null);
 
@@ -458,7 +511,7 @@ export function ImplementationPlan({ prompt, onApprove, onCancel }: Implementati
                     <AlertCircleIcon size={20} className="flex-shrink-0 mt-0.5" />
                     <div>
                         <p className="text-sm text-slate-300">
-                            Based on your prompt: <span className="text-white font-medium">"{prompt.slice(0, 100)}..."</span>
+                            Based on your prompt: <span className="text-white font-medium">"{prompt?.slice(0, 100) || preGeneratedPlan?.intentSummary || 'Your request'}..."</span>
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
                             We've pre-selected recommended options. Customize below or approve to start building.

@@ -47,6 +47,59 @@ import { type IntelligenceSettings } from './IntelligenceToggles';
 import { useUserStore } from '../../store/useUserStore';
 import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
+import { ImplementationPlan } from './ImplementationPlan';
+import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
+import {
+    useProductionStackStore,
+    AUTH_PROVIDERS,
+    DATABASE_PROVIDERS,
+    STORAGE_PROVIDERS,
+    PAYMENT_PROVIDERS,
+    EMAIL_PROVIDERS,
+} from '../../store/useProductionStackStore';
+
+// Types for plan approval workflow
+interface BuildPlan {
+    intentSummary: string;
+    phases: PlanPhase[];
+    estimatedTokenUsage: number;
+    estimatedCostUSD: number;
+    parallelAgentsNeeded: number;
+    frontendFirst: boolean;
+    backendFirst: boolean;
+    parallelFrontendBackend: boolean;
+}
+
+interface PlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    type: 'frontend' | 'backend';
+    steps: PlanStep[];
+    order: number;
+    approved: boolean;
+}
+
+interface PlanStep {
+    id: string;
+    description: string;
+    type: 'code' | 'config' | 'test' | 'deploy';
+    estimatedTokens: number;
+}
+
+interface RequiredCredential {
+    id: string;
+    name: string;
+    description: string;
+    envVariableName: string;
+    platformName: string;
+    platformUrl: string;
+    required: boolean;
+    value: string | null;
+}
+
+type BuildWorkflowPhase = 'idle' | 'generating_plan' | 'awaiting_plan_approval' | 'configuring_stack' | 'awaiting_credentials' | 'building' | 'complete';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
@@ -297,6 +350,14 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const { setEstimate, resetSessionCost } = useCostStore();
     const { user } = useUserStore();
 
+    // Production Stack Wizard integration
+    const {
+        isWizardOpen,
+        currentStack,
+        openWizard,
+        getRequiredEnvVars,
+    } = useProductionStackStore();
+
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
     const [showBreakdown, setShowBreakdown] = useState(false);
@@ -332,6 +393,13 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [tournamentEnabled, setTournamentEnabled] = useState(false);
     const [tournamentData, setTournamentData] = useState<TournamentStreamData | null>(null);
 
+    // Build Workflow state (P0: Plan approval + Credentials collection like Feature Agent)
+    const [buildWorkflowPhase, setBuildWorkflowPhase] = useState<BuildWorkflowPhase>('idle');
+    const [currentPlan, setCurrentPlan] = useState<BuildPlan | null>(null);
+    const [requiredCredentials, setRequiredCredentials] = useState<RequiredCredential[]>([]);
+    const [buildSessionId, setBuildSessionId] = useState<string | null>(null);
+    const [_buildProjectId, setBuildProjectId] = useState<string | null>(null);
+
     // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
     console.debug('[ChatInterface] Live preview state:', {
         sandboxUrl: sandboxUrl ? 'available' : 'null',
@@ -362,6 +430,78 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
         }
     }, [input]);
+
+    // P0-3: Watch for ProductionStackWizard completion
+    // When wizard closes with configured stack, build credentials from stack selection
+    useEffect(() => {
+        if (buildWorkflowPhase === 'configuring_stack' && !isWizardOpen && currentStack?.isConfigured) {
+            console.log('[ChatInterface] Stack configured, building credentials from selection:', currentStack);
+
+            // Build credentials from the selected stack providers
+            const stackCredentials: RequiredCredential[] = [];
+
+            // Helper to add credentials from a provider
+            const addProviderCredentials = (
+                providerType: string,
+                providerId: string,
+                providers: Record<string, { name: string; envVars: string[]; docsUrl: string }>,
+                platformName: string
+            ) => {
+                if (providerId && providerId !== 'none') {
+                    const provider = providers[providerId];
+                    if (provider?.envVars?.length > 0) {
+                        provider.envVars.forEach(envVar => {
+                            // Check if we already have this credential from plan detection
+                            const existing = requiredCredentials.find(c => c.envVariableName === envVar);
+                            if (!existing) {
+                                stackCredentials.push({
+                                    id: `stack-${envVar}`,
+                                    name: envVar.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+                                    description: `${providerType} credential for ${provider.name}`,
+                                    envVariableName: envVar,
+                                    platformName: platformName,
+                                    platformUrl: provider.docsUrl,
+                                    required: true,
+                                    value: null,
+                                });
+                            }
+                        });
+                    }
+                }
+            };
+
+            // Add credentials for each selected provider
+            addProviderCredentials('Authentication', currentStack.authProvider, AUTH_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Auth Provider');
+            addProviderCredentials('Database', currentStack.databaseProvider, DATABASE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Database');
+            addProviderCredentials('Storage', currentStack.storageProvider, STORAGE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Storage');
+            addProviderCredentials('Payments', currentStack.paymentProvider, PAYMENT_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Payments');
+            addProviderCredentials('Email', currentStack.emailProvider, EMAIL_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Email');
+
+            // Merge plan-detected credentials with stack credentials
+            const mergedCredentials = [...requiredCredentials];
+            stackCredentials.forEach(stackCred => {
+                if (!mergedCredentials.find(c => c.envVariableName === stackCred.envVariableName)) {
+                    mergedCredentials.push(stackCred);
+                }
+            });
+
+            setRequiredCredentials(mergedCredentials);
+            setBuildWorkflowPhase('awaiting_credentials');
+
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: `Production stack configured! ${mergedCredentials.length > 0 ? `Please provide ${mergedCredentials.length} credential${mergedCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+
+            // If no credentials needed, start the build
+            if (mergedCredentials.length === 0) {
+                handleCredentialsSubmit({});
+            }
+        }
+    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials, getRequiredEnvVars]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -477,282 +617,375 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             handleKtnStream(prompt);
         } else {
-            // Use multi-agent orchestrator via backend /api/execute
+            // P0: Use new plan-first workflow for multi-agent orchestration
+            // Step 1: Generate plan and detect credentials
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: 'Starting multi-agent orchestration via BuildLoopOrchestrator...',
+                content: 'Analyzing your request and generating implementation plan...',
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             };
             setMessages(prev => [...prev, systemMessage]);
+            setBuildWorkflowPhase('generating_plan');
 
-            // Retry configuration for /api/execute calls
-            const MAX_RETRIES = 3;
-            const RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff: 2s, 4s, 8s
+            try {
+                const userId = user?.id || 'anonymous';
+                const response = await fetch('/api/execute/plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        projectId: projectId || `project-${Date.now()}`,
+                        prompt,
+                    }),
+                });
 
-            const executeWithRetry = async (attempt: number = 0): Promise<void> => {
-                try {
-                    // Get user ID (required by backend)
-                    const userId = user?.id || 'anonymous';
-
-                    // Call the unified /api/execute endpoint with mode: 'builder'
-                    const response = await fetch('/api/execute', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            mode: 'builder',
-                            userId,
-                            projectId: projectId || `project-${Date.now()}`,
-                            prompt,
-                            options: {
-                                enableVisualVerification: true,
-                                enableCheckpoints: true,
-                                enableTournamentMode: tournamentEnabled, // Enable tournament mode if toggled
-                            },
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to start orchestration');
-                    }
-
-                    const data = await response.json();
-                    console.log('[ChatInterface] Orchestration started:', data);
-
-                    // Update status to running
-                    setGlobalStatus('running');
-
-                    // Add system message with session info
-                    const sessionMessage: Message = {
-                        id: `msg-${Date.now() + 2}`,
-                        role: 'system',
-                        content: `Build session started (${data.sessionId}). Analysis: ${data.initialAnalysis?.taskType || 'Unknown'} - ${data.initialAnalysis?.strategy || 'auto'}`,
-                        timestamp: new Date(),
-                        agentType: 'orchestrator',
-                    };
-                    setMessages(prev => [...prev, sessionMessage]);
-
-                    // Connect to WebSocket for real-time updates
-                    if (data.websocketChannel) {
-                        const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${data.websocketChannel}`;
-                        const ws = new WebSocket(wsUrl);
-                        activityWsRef.current = ws;
-
-                        // Clear previous activity events on new session
-                        setActivityEvents([]);
-
-                        ws.onmessage = (event) => {
-                            try {
-                                const wsData = JSON.parse(event.data);
-                                console.log('[ChatInterface] WS message:', wsData.type);
-
-                                // Parse activity events from WebSocket messages
-                                const activityEvent = parseStreamChunkToEvent(wsData, 'orchestrator');
-                                if (activityEvent) {
-                                    setActivityEvents(prev => [...prev.slice(-99), activityEvent]);
-                                }
-
-                                // SESSION 4: Handle live preview event types
-                                switch (wsData.type) {
-                                    case 'sandbox-ready':
-                                        setSandboxUrl(wsData.data?.sandboxUrl || wsData.sandboxUrl);
-                                        break;
-
-                                    case 'file-modified':
-                                        setLastModifiedFile(wsData.data?.filePath || wsData.filePath);
-                                        // Clear after 2 seconds
-                                        setTimeout(() => setLastModifiedFile(undefined), 2000);
-                                        // Add to agent events
-                                        setParallelAgents(prev => prev.map(a =>
-                                            a.agentId === wsData.data?.agentId ? {
-                                                ...a,
-                                                events: [...a.events, {
-                                                    type: 'file-modified',
-                                                    message: `Modified ${wsData.data?.filePath?.split('/').pop() || 'file'}`,
-                                                    timestamp: Date.now()
-                                                }]
-                                            } : a
-                                        ));
-                                        break;
-
-                                    case 'visual-verification':
-                                        setVisualVerification({
-                                            passed: wsData.data?.passed || wsData.passed || false,
-                                            score: wsData.data?.score || wsData.score || 0,
-                                            issues: wsData.data?.issues || wsData.issues || []
-                                        });
-                                        break;
-
-                                    case 'agent-progress':
-                                        setParallelAgents(prev => {
-                                            const existing = prev.find(a => a.agentId === wsData.data?.agentId);
-                                            if (existing) {
-                                                return prev.map(a => a.agentId === wsData.data?.agentId ? {
-                                                    ...a,
-                                                    currentPhase: wsData.data?.phase || a.currentPhase,
-                                                    progress: wsData.data?.progress || a.progress,
-                                                    events: [...a.events, {
-                                                        type: 'progress',
-                                                        message: wsData.data?.currentTask || 'Working...',
-                                                        timestamp: Date.now()
-                                                    }].slice(-50)
-                                                } : a);
-                                            }
-                                            return [...prev, {
-                                                agentId: wsData.data?.agentId || `agent-${prev.length + 1}`,
-                                                agentName: wsData.data?.agentName || `Agent ${prev.length + 1}`,
-                                                events: [],
-                                                currentPhase: wsData.data?.phase || 'initializing',
-                                                progress: wsData.data?.progress || 0
-                                            }];
-                                        });
-                                        break;
-
-                                    case 'build-error':
-                                        setParallelAgents(prev => prev.map(a =>
-                                            a.agentId === wsData.data?.agentId ? {
-                                                ...a,
-                                                events: [...a.events, {
-                                                    type: 'error',
-                                                    message: wsData.data?.error || 'Error occurred',
-                                                    timestamp: Date.now()
-                                                }]
-                                            } : a
-                                        ));
-                                        break;
-
-                                    case 'builder-completed':
-                                        setGlobalStatus('completed');
-                                        setIsTyping(false);
-                                        ws.close();
-                                        activityWsRef.current = null;
-                                        break;
-
-                                    case 'builder-error':
-                                    case 'execution-error':
-                                        setGlobalStatus('failed');
-                                        setIsTyping(false);
-                                        setMessages(prev => [...prev, {
-                                            id: `msg-${Date.now()}`,
-                                            role: 'system',
-                                            content: `Error: ${wsData.data?.error || 'Unknown error'}`,
-                                            timestamp: new Date(),
-                                            agentType: 'orchestrator',
-                                        }]);
-                                        ws.close();
-                                        activityWsRef.current = null;
-                                        break;
-
-                                    // Tournament Mode events
-                                    case 'tournament-started':
-                                        setTournamentData({
-                                            tournamentId: wsData.data?.tournamentId || `t-${Date.now()}`,
-                                            featureDescription: wsData.data?.featureDescription || 'Feature build',
-                                            phase: 'init',
-                                            competitors: wsData.data?.competitors || [],
-                                            judges: wsData.data?.judges || [],
-                                            startTime: Date.now(),
-                                        });
-                                        break;
-
-                                    case 'tournament-competitor-update':
-                                        setTournamentData(prev => {
-                                            if (!prev) return prev;
-                                            const competitors = prev.competitors.map(c =>
-                                                c.id === wsData.data?.competitorId
-                                                    ? { ...c, ...wsData.data.update }
-                                                    : c
-                                            );
-                                            return { ...prev, competitors, phase: wsData.data?.phase || prev.phase };
-                                        });
-                                        break;
-
-                                    case 'tournament-judge-update':
-                                        setTournamentData(prev => {
-                                            if (!prev) return prev;
-                                            const judges = prev.judges.map(j =>
-                                                j.id === wsData.data?.judgeId
-                                                    ? { ...j, ...wsData.data.update }
-                                                    : j
-                                            );
-                                            return { ...prev, judges, phase: wsData.data?.phase || prev.phase };
-                                        });
-                                        break;
-
-                                    case 'tournament-complete':
-                                        setTournamentData(prev => {
-                                            if (!prev) return prev;
-                                            return {
-                                                ...prev,
-                                                phase: 'complete',
-                                                winner: wsData.data?.winner,
-                                                endTime: Date.now(),
-                                            };
-                                        });
-                                        break;
-
-                                    default:
-                                        if (wsData.type?.startsWith('builder-')) {
-                                            // Forward phase updates to agent store for AgentProgress
-                                            // The AgentTerminal and AgentProgress components will pick these up
-                                        }
-                                }
-                            } catch (e) {
-                                console.error('[ChatInterface] WS parse error:', e);
-                            }
-                        };
-
-                        ws.onerror = (error) => {
-                            console.error('[ChatInterface] WebSocket error:', error);
-                            // WebSocket connection failed - show error but don't fall back to legacy
-                            setMessages(prev => [...prev, {
-                                id: `msg-${Date.now()}`,
-                                role: 'system',
-                                content: 'WebSocket connection lost. Build is still running on the server. Refresh to reconnect.',
-                                timestamp: new Date(),
-                                agentType: 'orchestrator',
-                            }]);
-                        };
-
-                        ws.onclose = () => {
-                            console.log('[ChatInterface] WebSocket closed');
-                            activityWsRef.current = null;
-                        };
-                    }
-                } catch (error) {
-                    console.error(`[ChatInterface] Orchestration attempt ${attempt + 1} failed:`, error);
-
-                    if (attempt < MAX_RETRIES - 1) {
-                        // Retry with exponential backoff
-                        const delay = RETRY_DELAYS[attempt];
-                        setMessages(prev => [...prev, {
-                            id: `msg-retry-${Date.now()}`,
-                            role: 'system',
-                            content: `Connection failed. Retrying in ${delay / 1000}s... (attempt ${attempt + 2}/${MAX_RETRIES})`,
-                            timestamp: new Date(),
-                            agentType: 'orchestrator',
-                        }]);
-
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        return executeWithRetry(attempt + 1);
-                    }
-
-                    // Final failure - show user-friendly error with option to retry
-                    setGlobalStatus('failed');
-                    setIsTyping(false);
-                    setMessages(prev => [...prev, {
-                        id: `msg-${Date.now()}`,
-                        role: 'system',
-                        content: `Failed to connect to BuildLoopOrchestrator after ${MAX_RETRIES} attempts: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your connection and try again.`,
-                        timestamp: new Date(),
-                        agentType: 'orchestrator',
-                    }]);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to generate plan');
                 }
-            };
 
-            await executeWithRetry();
+                const data = await response.json();
+                console.log('[ChatInterface] Plan generated:', data);
+
+                // Store plan data and show plan approval UI
+                setCurrentPlan(data.plan);
+                // Ensure credentials have value property initialized to null
+                const credsWithValue = (data.requiredCredentials || []).map((c: Omit<RequiredCredential, 'value'>) => ({
+                    ...c,
+                    value: null,
+                }));
+                setRequiredCredentials(credsWithValue);
+                setBuildSessionId(data.sessionId);
+                setBuildProjectId(data.projectId);
+                setBuildWorkflowPhase('awaiting_plan_approval');
+                setIsTyping(false);
+
+                // Add system message indicating plan is ready
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Implementation plan ready! ${data.plan.phases.length} phases identified. ${data.requiredCredentials?.length > 0 ? `${data.requiredCredentials.length} credentials required.` : ''} Please review and approve to continue.`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+
+            } catch (error) {
+                console.error('[ChatInterface] Plan generation failed:', error);
+                setBuildWorkflowPhase('idle');
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Failed to generate plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+            }
+        }
+    };
+
+    // Handler for plan approval - opens ProductionStackWizard before credentials
+    const handlePlanApproval = async (approvedPhases: unknown[]) => {
+        if (!buildSessionId) return;
+
+        // First, call the approve endpoint to lock in the plan
+        setIsTyping(true);
+
+        try {
+            const response = await fetch(`/api/execute/plan/${buildSessionId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    approvedPhases: approvedPhases,
+                }),
+            });
+
+            const data = await response.json();
+            console.log('[ChatInterface] Plan approval response:', data);
+
+            // P0-3: After plan approval, open ProductionStackWizard for stack configuration
+            // The wizard will help user select auth, database, storage, payments, email, hosting
+            const currentProjectId = projectId || data.projectId || `project-${Date.now()}`;
+            setBuildWorkflowPhase('configuring_stack');
+            setIsTyping(false);
+
+            // Store the pending credentials from the plan (we'll merge with stack selection)
+            if (data.requiredCredentials?.length > 0) {
+                const credsWithValue = data.requiredCredentials.map((c: Omit<RequiredCredential, 'value'>) => ({
+                    ...c,
+                    value: null,
+                }));
+                setRequiredCredentials(credsWithValue);
+            }
+
+            // Open the ProductionStackWizard
+            openWizard(currentProjectId, currentStack);
+
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: 'Plan approved! Now configure your production stack - select your auth, database, storage, payments, email, and hosting providers.',
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+
+        } catch (error) {
+            console.error('[ChatInterface] Plan approval failed:', error);
+            setBuildWorkflowPhase('awaiting_plan_approval');
+            setIsTyping(false);
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: `Failed to approve plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+        }
+    };
+
+    // Handler for plan cancellation
+    const handlePlanCancel = () => {
+        setBuildWorkflowPhase('idle');
+        setCurrentPlan(null);
+        setRequiredCredentials([]);
+        setBuildSessionId(null);
+        setBuildProjectId(null);
+        setMessages(prev => [...prev, {
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: 'Build cancelled. You can start a new request anytime.',
+            timestamp: new Date(),
+            agentType: 'orchestrator',
+        }]);
+    };
+
+    // Handler for credentials submission
+    const handleCredentialsSubmit = async (credentials: Record<string, string>) => {
+        if (!buildSessionId) return;
+
+        setIsTyping(true);
+
+        try {
+            const response = await fetch(`/api/execute/plan/${buildSessionId}/credentials`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credentials }),
+            });
+
+            const data = await response.json();
+            console.log('[ChatInterface] Credentials submission response:', data);
+
+            if (data.status === 'building') {
+                startBuildWithWebSocket(data.websocketChannel, data.projectId);
+            }
+
+        } catch (error) {
+            console.error('[ChatInterface] Credentials submission failed:', error);
+            setIsTyping(false);
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: `Failed to submit credentials: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+        }
+    };
+
+    // Start build with WebSocket connection
+    const startBuildWithWebSocket = (websocketChannel: string, _newProjectId: string) => {
+        setBuildWorkflowPhase('building');
+        setGlobalStatus('running');
+        setCurrentPlan(null);
+        setRequiredCredentials([]);
+
+        setMessages(prev => [...prev, {
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: 'Build started! All 6 phases will execute autonomously. You can close this browser and return later - the build will continue.',
+            timestamp: new Date(),
+            agentType: 'orchestrator',
+        }]);
+
+        // Connect to WebSocket for real-time updates (existing logic)
+        const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${websocketChannel}`;
+        const ws = new WebSocket(wsUrl);
+        activityWsRef.current = ws;
+        setActivityEvents([]);
+
+        ws.onmessage = (event) => {
+            try {
+                const wsData = JSON.parse(event.data);
+                console.log('[ChatInterface] WS message:', wsData.type);
+
+                const activityEvent = parseStreamChunkToEvent(wsData, 'orchestrator');
+                if (activityEvent) {
+                    setActivityEvents(prev => [...prev.slice(-99), activityEvent]);
+                }
+
+                // Handle all the WebSocket event types
+                handleWebSocketEvent(wsData, ws);
+            } catch (e) {
+                console.error('[ChatInterface] WS parse error:', e);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('[ChatInterface] WebSocket error:', error);
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: 'WebSocket connection lost. Build is still running on the server. Refresh to reconnect.',
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+        };
+
+        ws.onclose = () => {
+            console.log('[ChatInterface] WebSocket closed');
+            activityWsRef.current = null;
+        };
+    };
+
+    // Handle WebSocket events
+    const handleWebSocketEvent = (wsData: { type: string; data?: Record<string, unknown>; [key: string]: unknown }, ws: WebSocket) => {
+        switch (wsData.type) {
+            case 'sandbox-ready':
+                setSandboxUrl((wsData.data?.sandboxUrl || wsData.sandboxUrl) as string);
+                break;
+
+            case 'file-modified':
+                setLastModifiedFile((wsData.data?.filePath || wsData.filePath) as string);
+                setTimeout(() => setLastModifiedFile(undefined), 2000);
+                setParallelAgents(prev => prev.map(a =>
+                    a.agentId === wsData.data?.agentId ? {
+                        ...a,
+                        events: [...a.events, {
+                            type: 'file-modified',
+                            message: `Modified ${((wsData.data?.filePath as string) || '').split('/').pop() || 'file'}`,
+                            timestamp: Date.now()
+                        }]
+                    } : a
+                ));
+                break;
+
+            case 'visual-verification':
+                setVisualVerification({
+                    passed: (wsData.data?.passed || wsData.passed) as boolean || false,
+                    score: (wsData.data?.score || wsData.score) as number || 0,
+                    issues: (wsData.data?.issues || wsData.issues) as string[] || []
+                });
+                break;
+
+            case 'agent-progress':
+                setParallelAgents(prev => {
+                    const existing = prev.find(a => a.agentId === wsData.data?.agentId);
+                    if (existing) {
+                        return prev.map(a => a.agentId === wsData.data?.agentId ? {
+                            ...a,
+                            currentPhase: (wsData.data?.phase as string) || a.currentPhase,
+                            progress: (wsData.data?.progress as number) || a.progress,
+                            events: [...a.events, {
+                                type: 'progress',
+                                message: (wsData.data?.currentTask as string) || 'Working...',
+                                timestamp: Date.now()
+                            }].slice(-50)
+                        } : a);
+                    }
+                    return [...prev, {
+                        agentId: (wsData.data?.agentId as string) || `agent-${prev.length + 1}`,
+                        agentName: (wsData.data?.agentName as string) || `Agent ${prev.length + 1}`,
+                        events: [],
+                        currentPhase: (wsData.data?.phase as string) || 'initializing',
+                        progress: (wsData.data?.progress as number) || 0
+                    }];
+                });
+                break;
+
+            case 'build-error':
+                setParallelAgents(prev => prev.map(a =>
+                    a.agentId === wsData.data?.agentId ? {
+                        ...a,
+                        events: [...a.events, {
+                            type: 'error',
+                            message: (wsData.data?.error as string) || 'Error occurred',
+                            timestamp: Date.now()
+                        }]
+                    } : a
+                ));
+                break;
+
+            case 'builder-completed':
+                setGlobalStatus('completed');
+                setBuildWorkflowPhase('complete');
+                setIsTyping(false);
+                ws.close();
+                activityWsRef.current = null;
+                break;
+
+            case 'builder-error':
+            case 'execution-error':
+                setGlobalStatus('failed');
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Error: ${wsData.data?.error || 'Unknown error'}`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+                ws.close();
+                activityWsRef.current = null;
+                break;
+
+            case 'tournament-started':
+                setTournamentData({
+                    tournamentId: (wsData.data?.tournamentId as string) || `t-${Date.now()}`,
+                    featureDescription: (wsData.data?.featureDescription as string) || 'Feature build',
+                    phase: 'init',
+                    competitors: (wsData.data?.competitors as TournamentStreamData['competitors']) || [],
+                    judges: (wsData.data?.judges as TournamentStreamData['judges']) || [],
+                    startTime: Date.now(),
+                });
+                break;
+
+            case 'tournament-competitor-update':
+                setTournamentData(prev => {
+                    if (!prev) return prev;
+                    const competitors = prev.competitors.map(c =>
+                        c.id === wsData.data?.competitorId
+                            ? { ...c, ...(wsData.data?.update as object) }
+                            : c
+                    );
+                    return { ...prev, competitors, phase: (wsData.data?.phase as TournamentStreamData['phase']) || prev.phase };
+                });
+                break;
+
+            case 'tournament-judge-update':
+                setTournamentData(prev => {
+                    if (!prev) return prev;
+                    const judges = prev.judges.map(j =>
+                        j.id === wsData.data?.judgeId
+                            ? { ...j, ...(wsData.data?.update as object) }
+                            : j
+                    );
+                    return { ...prev, judges, phase: (wsData.data?.phase as TournamentStreamData['phase']) || prev.phase };
+                });
+                break;
+
+            case 'tournament-complete':
+                setTournamentData(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        phase: 'complete',
+                        winner: wsData.data?.winner as TournamentStreamData['winner'],
+                        endTime: Date.now(),
+                    };
+                });
+                break;
         }
     };
 
@@ -868,7 +1101,92 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative min-h-0">
-                {globalStatus === 'idle' ? (
+                {/* Plan Approval View - P0: Show implementation plan for user approval */}
+                {buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan && (
+                    <div className="h-full overflow-auto p-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                        >
+                            <div className="text-center mb-6">
+                                <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                    Review Implementation Plan
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {currentPlan.phases.length} phases, ~{Math.round(currentPlan.estimatedCostUSD * 100) / 100} USD estimated
+                                </p>
+                            </div>
+                            <ImplementationPlan
+                                plan={currentPlan}
+                                onApprove={handlePlanApproval}
+                                onCancel={handlePlanCancel}
+                            />
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Stack Configuration View - P0-3: Show while ProductionStackWizard is open */}
+                {buildWorkflowPhase === 'configuring_stack' && (
+                    <div className="h-full overflow-auto p-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col items-center justify-center h-full"
+                        >
+                            <div
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(200,255,100,0.3) 0%, rgba(180,230,80,0.2) 100%)',
+                                    boxShadow: `0 8px 24px rgba(200, 255, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(200, 255, 100, 0.4)`,
+                                }}
+                            >
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                >
+                                    <LoadingIcon size={28} style={{ color: '#7cb342' }} />
+                                </motion.div>
+                            </div>
+                            <h3
+                                className="text-lg font-semibold mb-2"
+                                style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
+                            >
+                                Configure Production Stack
+                            </h3>
+                            <p className="text-sm text-center max-w-sm" style={{ color: '#666' }}>
+                                Select your authentication, database, storage, payments, email, and hosting providers in the wizard.
+                            </p>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Credentials Collection View - P0: Collect required API credentials */}
+                {buildWorkflowPhase === 'awaiting_credentials' && requiredCredentials.length > 0 && (
+                    <div className="h-full overflow-auto p-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                        >
+                            <div className="text-center mb-6">
+                                <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                    Provide Credentials
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {requiredCredentials.length} credential{requiredCredentials.length > 1 ? 's' : ''} required for your integrations
+                                </p>
+                            </div>
+                            <CredentialsCollectionView
+                                credentials={requiredCredentials}
+                                onCredentialsSubmit={handleCredentialsSubmit}
+                            />
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Default idle state with messages and suggestions */}
+                {(globalStatus === 'idle' || buildWorkflowPhase === 'generating_plan') && buildWorkflowPhase !== 'awaiting_plan_approval' && buildWorkflowPhase !== 'configuring_stack' && buildWorkflowPhase !== 'awaiting_credentials' ? (
                     <ScrollArea className="h-full" ref={scrollRef}>
                         <div className="p-4 space-y-4">
                             {/* Empty state with suggestions */}
