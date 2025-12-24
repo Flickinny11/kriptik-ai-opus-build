@@ -44,6 +44,8 @@ import {
     shutdownOrchestration,
     type AdvancedOrchestrationService,
 } from '../services/integration/advanced-orchestration.js';
+// P1-2: Notification Service for credential requests and build status
+import { getNotificationService } from '../services/notifications/notification-service.js';
 
 const router = Router();
 
@@ -1238,6 +1240,28 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
         if (pendingBuild.requiredCredentials.length > 0 && !credentials) {
             pendingBuild.status = 'awaiting_credentials';
             pendingBuilds.set(sessionId, pendingBuild);
+
+            // P1-2: Create notification for credential request
+            const notificationService = getNotificationService();
+            await notificationService.sendNotification(
+                pendingBuild.userId,
+                ['push', 'email'],
+                {
+                    type: 'credentials_needed',
+                    title: 'Credentials Required',
+                    message: `Your build "${pendingBuild.plan.intentSummary?.slice(0, 50) || 'Your app'}..." needs ${pendingBuild.requiredCredentials.length} credential${pendingBuild.requiredCredentials.length > 1 ? 's' : ''} to continue. Build is paused until credentials are provided.`,
+                    featureAgentId: sessionId,
+                    featureAgentName: 'Build Orchestrator',
+                    actionUrl: `/builder/${pendingBuild.projectId}?resumeBuild=${sessionId}`,
+                    metadata: {
+                        projectId: pendingBuild.projectId,
+                        sessionId,
+                        requiredCredentials: pendingBuild.requiredCredentials.map(c => c.name),
+                        buildPaused: true,
+                    },
+                }
+            );
+
             return res.json({
                 success: true,
                 status: 'awaiting_credentials',
@@ -1353,6 +1377,26 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
         pendingBuild.status = 'building';
         pendingBuilds.set(sessionId, pendingBuild);
 
+        // P1-2: Create notification that build is resuming
+        const notificationService = getNotificationService();
+        await notificationService.sendNotification(
+            pendingBuild.userId,
+            ['push'],
+            {
+                type: 'build_resumed',
+                title: 'Build Resumed',
+                message: `Credentials received! Your build "${pendingBuild.plan.intentSummary?.slice(0, 40) || 'Your app'}..." is now running.`,
+                featureAgentId: sessionId,
+                featureAgentName: 'Build Orchestrator',
+                actionUrl: `/builder/${pendingBuild.projectId}`,
+                metadata: {
+                    projectId: pendingBuild.projectId,
+                    sessionId,
+                    credentialsProvided: Object.keys(credentials).length,
+                },
+            }
+        );
+
         // Start the actual build
         const context = getOrCreateContext({
             mode: 'builder',
@@ -1392,6 +1436,26 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
                 pendingBuild.status = 'complete';
                 pendingBuilds.set(sessionId, pendingBuild);
+
+                // P1-2: Create notification for build completion (via credentials flow)
+                const notifService = getNotificationService();
+                await notifService.sendNotification(
+                    pendingBuild.userId,
+                    ['push', 'email'],
+                    {
+                        type: 'build_complete',
+                        title: 'Build Complete!',
+                        message: `Your app "${pendingBuild.plan.intentSummary?.slice(0, 40) || 'Your app'}..." is ready. Click to see it in action!`,
+                        featureAgentId: sessionId,
+                        featureAgentName: 'Build Orchestrator',
+                        actionUrl: `/builder/${pendingBuild.projectId}?showDemo=true`,
+                        metadata: {
+                            projectId: pendingBuild.projectId,
+                            sessionId,
+                            buildComplete: true,
+                        },
+                    }
+                );
 
                 context.broadcast('builder-completed', {
                     status: 'complete',
