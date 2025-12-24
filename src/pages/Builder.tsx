@@ -46,7 +46,7 @@ import { qualityScanner } from '../lib/QualityScanner';
 import { useEditorStore } from '../store/useEditorStore';
 import { useDeploymentStore } from '../store/useDeploymentStore';
 import { useIntegrationStore } from '../store/useIntegrationStore';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 // Mode toggle removed - Builder is now the only view
 // BuilderAgentsToggle, DeveloperModeView, and AgentModeSidebar imports removed
 import { GhostModePanel } from '../components/builder/GhostModePanel';
@@ -361,6 +361,11 @@ function GlassButton({
 export default function Builder() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // P1-3: Handle showDemo and resumeBuild query params from notifications
+    const showDemoParam = searchParams.get('showDemo') === 'true';
+    const resumeBuildSession = searchParams.get('resumeBuild');
 
     // Responsive layout detection
     const { isMobile, isTablet, isTouchDevice } = useResponsiveLayout();
@@ -420,6 +425,32 @@ export default function Builder() {
             });
         }
     }, [projectId, loadStack]);
+
+    // P1-3: Handle showDemo param - automatically switch to preview mode
+    useEffect(() => {
+        if (showDemoParam) {
+            console.log('[Builder] showDemo=true detected, switching to preview mode');
+            setActiveTab('preview');
+            // Clear the param after handling to avoid re-triggering
+            setSearchParams((prev) => {
+                prev.delete('showDemo');
+                return prev;
+            });
+        }
+    }, [showDemoParam, setSearchParams]);
+
+    // P1-3: Handle resumeBuild param - rejoin an active build session
+    useEffect(() => {
+        if (resumeBuildSession) {
+            console.log('[Builder] resumeBuild session detected:', resumeBuildSession);
+            // The chat interface will pick up the active build via the /api/execute/active endpoint
+            // Clear the param after handling
+            setSearchParams((prev) => {
+                prev.delete('resumeBuild');
+                return prev;
+            });
+        }
+    }, [resumeBuildSession, setSearchParams]);
 
     // Automatically switch to code view when an element is selected
     useEffect(() => {
