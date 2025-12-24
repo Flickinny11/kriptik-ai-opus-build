@@ -979,7 +979,7 @@ export default function FixMyApp() {
         }
     };
 
-    // Start fix
+    // Start fix - P1-1: Route through BuildLoopOrchestrator for production/tournament modes
     const startFix = async () => {
         if (!session || !selectedStrategy) return;
 
@@ -987,7 +987,7 @@ export default function FixMyApp() {
         setProgress(0);
         setLogs([]);
 
-        // Connect to SSE stream
+        // Connect to SSE stream for real-time updates
         eventSourceRef.current = new EventSource(
             `/api/fix-my-app/${session.sessionId}/stream`
         );
@@ -1001,21 +1001,38 @@ export default function FixMyApp() {
             eventSourceRef.current?.close();
             toast({
                 title: 'Connection Lost',
-                description: 'Lost connection to fix stream',
+                description: 'Lost connection to fix stream. Build may still be running - check back later.',
                 variant: 'destructive',
             });
         };
 
-        // Start the fix with preferences and mode
+        // P1-1: Use orchestrated endpoint for production/tournament modes (full 6-phase build loop)
+        // This routes through BuildLoopOrchestrator with Intent Satisfaction gate
+        const useOrchestrator = fixMode === 'production' || fixMode === 'tournament';
+        const endpoint = useOrchestrator
+            ? `/api/fix-my-app/${session.sessionId}/fix-orchestrated`
+            : `/api/fix-my-app/${session.sessionId}/fix`;
+
         try {
-            await apiClient.post(`/api/fix-my-app/${session.sessionId}/fix`, {
+            const response = await apiClient.post(endpoint, {
                 strategy: selectedStrategy,
                 preferences: {
                     uiPreference,
                     additionalInstructions: additionalInstructions || undefined,
                 },
-                mode: fixMode,  // Speed Dial mode (lightning, standard, tournament, production)
+                mode: fixMode,
+                credentials: {}, // TODO: Collect credentials if needed
             });
+
+            if (useOrchestrator && response.data) {
+                const data = response.data as { websocketChannel?: string; projectId?: string };
+                setLogs(prev => [
+                    ...prev,
+                    `Using full 6-Phase BuildLoopOrchestrator`,
+                    `WebSocket channel: ${data.websocketChannel || 'N/A'}`,
+                    `Project ID: ${data.projectId || 'N/A'}`,
+                ]);
+            }
         } catch (error) {
             toast({
                 title: 'Fix Failed',

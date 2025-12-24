@@ -3,9 +3,13 @@
  *
  * Endpoints for the "Fix My App" feature - importing and fixing
  * broken apps from other AI builders.
+ *
+ * P1-1: Now supports routing through BuildLoopOrchestrator for
+ * full 6-phase build loop with Intent Satisfaction gate.
  */
 
 import { Router, Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import {
     createImportController,
     ImportController,
@@ -15,6 +19,8 @@ import {
     createContextStore,
     BrowserExtractorService,
 } from '../services/fix-my-app/index.js';
+import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
+import { createExecutionContext, type ExecutionContext } from '../services/core/index.js';
 
 const router = Router();
 
@@ -32,6 +38,13 @@ router.get('/sources', (req: Request, res: Response) => {
 // Store active controllers for SSE streaming
 const controllers = new Map<string, ImportController>();
 const browserSessions = new Map<string, BrowserExtractorService>();
+
+// P1-1: Store active BuildLoopOrchestrator contexts for WebSocket connections
+const buildContexts = new Map<string, {
+    context: ExecutionContext;
+    orchestrator: BuildLoopOrchestrator;
+    websocketChannel: string;
+}>();
 
 /**
  * POST /api/fix-my-app/init
@@ -278,8 +291,151 @@ router.post('/:sessionId/preferences', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/fix-my-app/:sessionId/fix-orchestrated
+ * P1-1: Start fix process using full 6-Phase BuildLoopOrchestrator
+ *
+ * This routes Fix My App through the same orchestration as Builder View:
+ * - Phase 0: Intent Lock (Sacred Contract from analyzed intent)
+ * - Phase 1: Initialization (artifacts, scaffolding)
+ * - Phase 2: Parallel Build (3-5 agents with Memory Harness)
+ * - Phase 3: Integration Check (orphan scan, dead code)
+ * - Phase 4: Functional Test (browser automation)
+ * - Phase 5: Intent Satisfaction (CRITICAL GATE)
+ * - Phase 6: Browser Demo (show working app)
+ */
+router.post('/:sessionId/fix-orchestrated', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const controller = controllers.get(sessionId);
+        if (!controller) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = controller.getSession();
+        if (!session.projectId) {
+            return res.status(400).json({ error: 'Project not created yet. Please upload files first.' });
+        }
+
+        const { credentials, mode } = req.body;
+
+        // Build prompt from analyzed intent
+        const intentSummary = session.context?.processed?.intentSummary;
+        if (!intentSummary) {
+            return res.status(400).json({ error: 'Analysis not complete. Please run analysis first.' });
+        }
+
+        // Create a comprehensive prompt from the analyzed intent
+        const prompt = `FIX MY APP - Imported from ${session.source}
+
+CORE PURPOSE: ${intentSummary.corePurpose}
+
+PRIMARY FEATURES TO FIX:
+${intentSummary.primaryFeatures?.map((f: { name: string; description: string; status: string }) => `- ${f.name}: ${f.description} (Status: ${f.status})`).join('\n') || 'None identified'}
+
+SECONDARY FEATURES:
+${intentSummary.secondaryFeatures?.map((f: { name: string; description: string; status: string }) => `- ${f.name}: ${f.description} (Status: ${f.status})`).join('\n') || 'None identified'}
+
+USER FRUSTRATION POINTS:
+${intentSummary.frustrationPoints?.map((p: { issue: string; userQuote: string }) => `- ${p.issue}: "${p.userQuote}"`).join('\n') || 'None identified'}
+
+${session.preferences?.uiPreference ? `UI PREFERENCE: ${session.preferences.uiPreference}` : ''}
+${session.preferences?.additionalInstructions ? `ADDITIONAL INSTRUCTIONS: ${session.preferences.additionalInstructions}` : ''}
+
+STRATEGY: ${session.selectedStrategy?.approach || 'repair'}
+ESTIMATED TIME: ${session.selectedStrategy?.estimatedTimeMinutes || 30} minutes`;
+
+        // Create execution context
+        const orchestrationRunId = uuidv4();
+        const context = await createExecutionContext(
+            userId,
+            session.projectId,
+            prompt,
+            {
+                mode: mode || 'standard',
+                enableLattice: true,
+                enableBrowserInLoop: true,
+                enableVerificationSwarm: true,
+                enableVisualVerification: true,
+                enableCheckpoints: true,
+                // Pass imported files context
+                importedFrom: session.source,
+            }
+        );
+
+        // Store credentials if provided
+        if (credentials) {
+            (context as unknown as { credentials: Record<string, string> }).credentials = credentials;
+        }
+
+        const websocketChannel = `/api/fix-my-app/${sessionId}/ws/${orchestrationRunId}`;
+
+        // Create and start BuildLoopOrchestrator
+        const buildLoop = new BuildLoopOrchestrator(
+            context.projectId,
+            context.userId,
+            context.orchestrationRunId,
+            'production', // Use full production mode
+            {
+                humanInTheLoop: false,
+                projectPath: context.projectPath,
+                credentials: credentials,
+            }
+        );
+
+        // Store context for WebSocket connection
+        buildContexts.set(sessionId, {
+            context,
+            orchestrator: buildLoop,
+            websocketChannel,
+        });
+
+        // Start build in background
+        setImmediate(async () => {
+            try {
+                controller.emit('log', 'Starting 6-Phase BuildLoopOrchestrator...');
+                controller.emit('progress', { stage: 'initializing', progress: 5 });
+
+                await buildLoop.execute(
+                    prompt,
+                    undefined, // Let orchestrator create Intent Lock from our prompt
+                    context as unknown as ExecutionContext
+                );
+
+                controller.emit('progress', { stage: 'complete', progress: 100 });
+                controller.emit('complete', {
+                    projectId: session.projectId,
+                    success: true,
+                });
+            } catch (error) {
+                console.error('[Fix My App Orchestrated] Build failed:', error);
+                controller.emit('error', {
+                    message: error instanceof Error ? error.message : 'Build failed',
+                });
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Orchestrated fix started with full 6-Phase build loop',
+            websocketChannel,
+            projectId: session.projectId,
+            orchestrationRunId,
+        });
+    } catch (error) {
+        console.error('[Fix My App Orchestrated] Error:', error);
+        res.status(500).json({ error: 'Failed to start orchestrated fix' });
+    }
+});
+
+/**
  * POST /api/fix-my-app/:sessionId/fix
- * Start the fix process
+ * Start the fix process (legacy - uses EnhancedFixExecutor)
  */
 router.post('/:sessionId/fix', async (req: Request, res: Response) => {
     try {
