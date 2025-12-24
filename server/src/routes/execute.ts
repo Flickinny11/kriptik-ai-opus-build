@@ -1500,6 +1500,7 @@ router.get('/active', (req: Request, res: Response) => {
         return res.status(400).json({ success: false, error: 'userId query parameter required' });
     }
 
+    // P3: Enhanced active builds response for rejoin capability
     const activeBuilds: Array<{
         sessionId: string;
         projectId: string;
@@ -1507,10 +1508,14 @@ router.get('/active', (req: Request, res: Response) => {
         prompt: string;
         createdAt: Date;
         websocketChannel: string;
+        requiredCredentials?: RequiredCredential[];
+        intentSummary?: string;
     }> = [];
 
+    // P3: Include all active builds (building, awaiting_credentials, awaiting_plan_approval)
+    // This allows users to rejoin builds after browser closes
     for (const [sessionId, build] of pendingBuilds.entries()) {
-        if (build.userId === userId && build.status === 'building') {
+        if (build.userId === userId && ['building', 'awaiting_credentials', 'awaiting_plan_approval'].includes(build.status)) {
             activeBuilds.push({
                 sessionId,
                 projectId: build.projectId,
@@ -1518,6 +1523,9 @@ router.get('/active', (req: Request, res: Response) => {
                 prompt: build.prompt.slice(0, 100) + (build.prompt.length > 100 ? '...' : ''),
                 createdAt: build.createdAt,
                 websocketChannel: `/ws/context?contextId=${build.projectId}&userId=${build.userId}`,
+                // P3: Include additional info for rejoin
+                requiredCredentials: build.status === 'awaiting_credentials' ? build.requiredCredentials : undefined,
+                intentSummary: build.plan?.intentSummary,
             });
         }
     }
