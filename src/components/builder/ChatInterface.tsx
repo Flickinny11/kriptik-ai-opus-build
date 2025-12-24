@@ -49,6 +49,14 @@ import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
 import { ImplementationPlan } from './ImplementationPlan';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
+import {
+    useProductionStackStore,
+    AUTH_PROVIDERS,
+    DATABASE_PROVIDERS,
+    STORAGE_PROVIDERS,
+    PAYMENT_PROVIDERS,
+    EMAIL_PROVIDERS,
+} from '../../store/useProductionStackStore';
 
 // Types for plan approval workflow
 interface BuildPlan {
@@ -91,7 +99,7 @@ interface RequiredCredential {
     value: string | null;
 }
 
-type BuildWorkflowPhase = 'idle' | 'generating_plan' | 'awaiting_plan_approval' | 'awaiting_credentials' | 'building' | 'complete';
+type BuildWorkflowPhase = 'idle' | 'generating_plan' | 'awaiting_plan_approval' | 'configuring_stack' | 'awaiting_credentials' | 'building' | 'complete';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
@@ -342,6 +350,14 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const { setEstimate, resetSessionCost } = useCostStore();
     const { user } = useUserStore();
 
+    // Production Stack Wizard integration
+    const {
+        isWizardOpen,
+        currentStack,
+        openWizard,
+        getRequiredEnvVars,
+    } = useProductionStackStore();
+
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
     const [showBreakdown, setShowBreakdown] = useState(false);
@@ -414,6 +430,78 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
         }
     }, [input]);
+
+    // P0-3: Watch for ProductionStackWizard completion
+    // When wizard closes with configured stack, build credentials from stack selection
+    useEffect(() => {
+        if (buildWorkflowPhase === 'configuring_stack' && !isWizardOpen && currentStack?.isConfigured) {
+            console.log('[ChatInterface] Stack configured, building credentials from selection:', currentStack);
+
+            // Build credentials from the selected stack providers
+            const stackCredentials: RequiredCredential[] = [];
+
+            // Helper to add credentials from a provider
+            const addProviderCredentials = (
+                providerType: string,
+                providerId: string,
+                providers: Record<string, { name: string; envVars: string[]; docsUrl: string }>,
+                platformName: string
+            ) => {
+                if (providerId && providerId !== 'none') {
+                    const provider = providers[providerId];
+                    if (provider?.envVars?.length > 0) {
+                        provider.envVars.forEach(envVar => {
+                            // Check if we already have this credential from plan detection
+                            const existing = requiredCredentials.find(c => c.envVariableName === envVar);
+                            if (!existing) {
+                                stackCredentials.push({
+                                    id: `stack-${envVar}`,
+                                    name: envVar.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+                                    description: `${providerType} credential for ${provider.name}`,
+                                    envVariableName: envVar,
+                                    platformName: platformName,
+                                    platformUrl: provider.docsUrl,
+                                    required: true,
+                                    value: null,
+                                });
+                            }
+                        });
+                    }
+                }
+            };
+
+            // Add credentials for each selected provider
+            addProviderCredentials('Authentication', currentStack.authProvider, AUTH_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Auth Provider');
+            addProviderCredentials('Database', currentStack.databaseProvider, DATABASE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Database');
+            addProviderCredentials('Storage', currentStack.storageProvider, STORAGE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Storage');
+            addProviderCredentials('Payments', currentStack.paymentProvider, PAYMENT_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Payments');
+            addProviderCredentials('Email', currentStack.emailProvider, EMAIL_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Email');
+
+            // Merge plan-detected credentials with stack credentials
+            const mergedCredentials = [...requiredCredentials];
+            stackCredentials.forEach(stackCred => {
+                if (!mergedCredentials.find(c => c.envVariableName === stackCred.envVariableName)) {
+                    mergedCredentials.push(stackCred);
+                }
+            });
+
+            setRequiredCredentials(mergedCredentials);
+            setBuildWorkflowPhase('awaiting_credentials');
+
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: `Production stack configured! ${mergedCredentials.length > 0 ? `Please provide ${mergedCredentials.length} credential${mergedCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
+
+            // If no credentials needed, start the build
+            if (mergedCredentials.length === 0) {
+                handleCredentialsSubmit({});
+            }
+        }
+    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials, getRequiredEnvVars]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -598,11 +686,11 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         }
     };
 
-    // Handler for plan approval
+    // Handler for plan approval - opens ProductionStackWizard before credentials
     const handlePlanApproval = async (approvedPhases: unknown[]) => {
         if (!buildSessionId) return;
 
-        setBuildWorkflowPhase('awaiting_credentials');
+        // First, call the approve endpoint to lock in the plan
         setIsTyping(true);
 
         try {
@@ -617,25 +705,31 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             const data = await response.json();
             console.log('[ChatInterface] Plan approval response:', data);
 
-            if (data.status === 'awaiting_credentials' && data.requiredCredentials?.length > 0) {
-                // Need to collect credentials - ensure value property exists
+            // P0-3: After plan approval, open ProductionStackWizard for stack configuration
+            // The wizard will help user select auth, database, storage, payments, email, hosting
+            const currentProjectId = projectId || data.projectId || `project-${Date.now()}`;
+            setBuildWorkflowPhase('configuring_stack');
+            setIsTyping(false);
+
+            // Store the pending credentials from the plan (we'll merge with stack selection)
+            if (data.requiredCredentials?.length > 0) {
                 const credsWithValue = data.requiredCredentials.map((c: Omit<RequiredCredential, 'value'>) => ({
                     ...c,
                     value: null,
                 }));
                 setRequiredCredentials(credsWithValue);
-                setIsTyping(false);
-                setMessages(prev => [...prev, {
-                    id: `msg-${Date.now()}`,
-                    role: 'system',
-                    content: 'Plan approved! Please provide the required credentials to continue.',
-                    timestamp: new Date(),
-                    agentType: 'orchestrator',
-                }]);
-            } else if (data.status === 'building') {
-                // No credentials needed, build started
-                startBuildWithWebSocket(data.websocketChannel, data.projectId);
             }
+
+            // Open the ProductionStackWizard
+            openWizard(currentProjectId, currentStack);
+
+            setMessages(prev => [...prev, {
+                id: `msg-${Date.now()}`,
+                role: 'system',
+                content: 'Plan approved! Now configure your production stack - select your auth, database, storage, payments, email, and hosting providers.',
+                timestamp: new Date(),
+                agentType: 'orchestrator',
+            }]);
 
         } catch (error) {
             console.error('[ChatInterface] Plan approval failed:', error);
@@ -1032,6 +1126,41 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     </div>
                 )}
 
+                {/* Stack Configuration View - P0-3: Show while ProductionStackWizard is open */}
+                {buildWorkflowPhase === 'configuring_stack' && (
+                    <div className="h-full overflow-auto p-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col items-center justify-center h-full"
+                        >
+                            <div
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(200,255,100,0.3) 0%, rgba(180,230,80,0.2) 100%)',
+                                    boxShadow: `0 8px 24px rgba(200, 255, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(200, 255, 100, 0.4)`,
+                                }}
+                            >
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                >
+                                    <LoadingIcon size={28} style={{ color: '#7cb342' }} />
+                                </motion.div>
+                            </div>
+                            <h3
+                                className="text-lg font-semibold mb-2"
+                                style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
+                            >
+                                Configure Production Stack
+                            </h3>
+                            <p className="text-sm text-center max-w-sm" style={{ color: '#666' }}>
+                                Select your authentication, database, storage, payments, email, and hosting providers in the wizard.
+                            </p>
+                        </motion.div>
+                    </div>
+                )}
+
                 {/* Credentials Collection View - P0: Collect required API credentials */}
                 {buildWorkflowPhase === 'awaiting_credentials' && requiredCredentials.length > 0 && (
                     <div className="h-full overflow-auto p-4">
@@ -1057,7 +1186,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 )}
 
                 {/* Default idle state with messages and suggestions */}
-                {(globalStatus === 'idle' || buildWorkflowPhase === 'generating_plan') && buildWorkflowPhase !== 'awaiting_plan_approval' && buildWorkflowPhase !== 'awaiting_credentials' ? (
+                {(globalStatus === 'idle' || buildWorkflowPhase === 'generating_plan') && buildWorkflowPhase !== 'awaiting_plan_approval' && buildWorkflowPhase !== 'configuring_stack' && buildWorkflowPhase !== 'awaiting_credentials' ? (
                     <ScrollArea className="h-full" ref={scrollRef}>
                         <div className="p-4 space-y-4">
                             {/* Empty state with suggestions */}
