@@ -860,5 +860,633 @@ router.get('/modes', (_req: Request, res: Response) => {
     });
 });
 
+// =============================================================================
+// PLAN APPROVAL WORKFLOW (P0 - Builder View Parity with Feature Agent)
+// =============================================================================
+
+// In-memory store for pending builds awaiting plan approval or credentials
+// In production, this would be in a database for persistence across restarts
+interface PendingBuild {
+    sessionId: string;
+    projectId: string;
+    userId: string;
+    prompt: string;
+    plan: BuildPlan;
+    requiredCredentials: RequiredCredential[];
+    createdAt: Date;
+    status: 'awaiting_plan_approval' | 'awaiting_credentials' | 'building' | 'complete' | 'failed';
+    approvedPlan?: BuildPlan;
+    credentials?: Record<string, string>;
+}
+
+interface BuildPlan {
+    intentSummary: string;
+    phases: PlanPhase[];
+    estimatedTokenUsage: number;
+    estimatedCostUSD: number;
+    parallelAgentsNeeded: number;
+    frontendFirst: boolean;
+    backendFirst: boolean;
+    parallelFrontendBackend: boolean;
+}
+
+interface PlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    type: 'frontend' | 'backend';
+    steps: PlanStep[];
+    order: number;
+    approved: boolean;
+}
+
+interface PlanStep {
+    id: string;
+    description: string;
+    type: 'code' | 'config' | 'test' | 'deploy';
+    estimatedTokens: number;
+}
+
+interface RequiredCredential {
+    id: string;
+    name: string;
+    description: string;
+    envVariableName: string;
+    platformName: string;
+    platformUrl: string;
+    required: boolean;
+}
+
+const pendingBuilds = new Map<string, PendingBuild>();
+
+// Credential detection patterns
+const CREDENTIAL_PATTERNS: Record<string, { name: string; envVar: string; platform: string; url: string }[]> = {
+    stripe: [
+        { name: 'Stripe Secret Key', envVar: 'STRIPE_SECRET_KEY', platform: 'Stripe', url: 'https://dashboard.stripe.com/apikeys' },
+        { name: 'Stripe Publishable Key', envVar: 'STRIPE_PUBLISHABLE_KEY', platform: 'Stripe', url: 'https://dashboard.stripe.com/apikeys' },
+    ],
+    openai: [
+        { name: 'OpenAI API Key', envVar: 'OPENAI_API_KEY', platform: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
+    ],
+    anthropic: [
+        { name: 'Anthropic API Key', envVar: 'ANTHROPIC_API_KEY', platform: 'Anthropic', url: 'https://console.anthropic.com/settings/keys' },
+    ],
+    supabase: [
+        { name: 'Supabase URL', envVar: 'SUPABASE_URL', platform: 'Supabase', url: 'https://app.supabase.com/project/_/settings/api' },
+        { name: 'Supabase Anon Key', envVar: 'SUPABASE_ANON_KEY', platform: 'Supabase', url: 'https://app.supabase.com/project/_/settings/api' },
+    ],
+    firebase: [
+        { name: 'Firebase API Key', envVar: 'FIREBASE_API_KEY', platform: 'Firebase', url: 'https://console.firebase.google.com/project/_/settings/general' },
+    ],
+    github: [
+        { name: 'GitHub Token', envVar: 'GITHUB_TOKEN', platform: 'GitHub', url: 'https://github.com/settings/tokens' },
+    ],
+    aws: [
+        { name: 'AWS Access Key ID', envVar: 'AWS_ACCESS_KEY_ID', platform: 'AWS', url: 'https://console.aws.amazon.com/iam/home#/security_credentials' },
+        { name: 'AWS Secret Access Key', envVar: 'AWS_SECRET_ACCESS_KEY', platform: 'AWS', url: 'https://console.aws.amazon.com/iam/home#/security_credentials' },
+    ],
+    sendgrid: [
+        { name: 'SendGrid API Key', envVar: 'SENDGRID_API_KEY', platform: 'SendGrid', url: 'https://app.sendgrid.com/settings/api_keys' },
+    ],
+    twilio: [
+        { name: 'Twilio Account SID', envVar: 'TWILIO_ACCOUNT_SID', platform: 'Twilio', url: 'https://console.twilio.com/' },
+        { name: 'Twilio Auth Token', envVar: 'TWILIO_AUTH_TOKEN', platform: 'Twilio', url: 'https://console.twilio.com/' },
+    ],
+    clerk: [
+        { name: 'Clerk Publishable Key', envVar: 'CLERK_PUBLISHABLE_KEY', platform: 'Clerk', url: 'https://dashboard.clerk.com/' },
+        { name: 'Clerk Secret Key', envVar: 'CLERK_SECRET_KEY', platform: 'Clerk', url: 'https://dashboard.clerk.com/' },
+    ],
+    auth0: [
+        { name: 'Auth0 Domain', envVar: 'AUTH0_DOMAIN', platform: 'Auth0', url: 'https://manage.auth0.com/' },
+        { name: 'Auth0 Client ID', envVar: 'AUTH0_CLIENT_ID', platform: 'Auth0', url: 'https://manage.auth0.com/' },
+    ],
+    resend: [
+        { name: 'Resend API Key', envVar: 'RESEND_API_KEY', platform: 'Resend', url: 'https://resend.com/api-keys' },
+    ],
+    openrouter: [
+        { name: 'OpenRouter API Key', envVar: 'OPENROUTER_API_KEY', platform: 'OpenRouter', url: 'https://openrouter.ai/keys' },
+    ],
+};
+
+/**
+ * Detect required credentials from prompt
+ */
+function detectRequiredCredentials(prompt: string): RequiredCredential[] {
+    const credentials: RequiredCredential[] = [];
+    const promptLower = prompt.toLowerCase();
+    const seenEnvVars = new Set<string>();
+
+    for (const [keyword, creds] of Object.entries(CREDENTIAL_PATTERNS)) {
+        if (promptLower.includes(keyword)) {
+            for (const cred of creds) {
+                if (!seenEnvVars.has(cred.envVar)) {
+                    seenEnvVars.add(cred.envVar);
+                    credentials.push({
+                        id: `cred-${uuidv4().slice(0, 8)}`,
+                        name: cred.name,
+                        description: `Required for ${cred.platform} integration`,
+                        envVariableName: cred.envVar,
+                        platformName: cred.platform,
+                        platformUrl: cred.url,
+                        required: true,
+                    });
+                }
+            }
+        }
+    }
+
+    // Additional pattern matching for common integrations
+    const additionalPatterns = [
+        { pattern: /payment|checkout|subscription|billing/i, service: 'stripe' },
+        { pattern: /ai|gpt|claude|llm|chat.*bot/i, service: 'openai' },
+        { pattern: /email|newsletter|notification/i, service: 'sendgrid' },
+        { pattern: /sms|text.*message|phone/i, service: 'twilio' },
+        { pattern: /auth|login|signup|user.*account/i, service: 'clerk' },
+        { pattern: /database|realtime|backend.*as.*service/i, service: 'supabase' },
+        { pattern: /cloud.*storage|s3|file.*upload/i, service: 'aws' },
+    ];
+
+    for (const { pattern, service } of additionalPatterns) {
+        if (pattern.test(prompt) && CREDENTIAL_PATTERNS[service]) {
+            for (const cred of CREDENTIAL_PATTERNS[service]) {
+                if (!seenEnvVars.has(cred.envVar)) {
+                    seenEnvVars.add(cred.envVar);
+                    credentials.push({
+                        id: `cred-${uuidv4().slice(0, 8)}`,
+                        name: cred.name,
+                        description: `Required for ${cred.platform} integration`,
+                        envVariableName: cred.envVar,
+                        platformName: cred.platform,
+                        platformUrl: cred.url,
+                        required: true,
+                    });
+                }
+            }
+        }
+    }
+
+    return credentials;
+}
+
+/**
+ * Generate implementation plan from prompt using AI
+ */
+async function generateBuildPlan(prompt: string, projectId: string, userId: string): Promise<BuildPlan> {
+    const ktn = getKripToeNite();
+    const analysis = ktn.analyzePrompt(prompt, { projectId, userId, framework: 'react', language: 'typescript' });
+
+    // Generate phases based on analysis
+    const phases: PlanPhase[] = [];
+    let order = 0;
+
+    // Frontend phases
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'UI Framework & Styling',
+        description: 'Set up React with Tailwind CSS and premium component library',
+        icon: 'Code',
+        type: 'frontend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Initialize React project with Vite', type: 'code', estimatedTokens: 2000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Configure Tailwind CSS with custom theme', type: 'config', estimatedTokens: 1500 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Set up Radix UI component library', type: 'code', estimatedTokens: 3000 },
+        ],
+    });
+
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'Core Components',
+        description: 'Build reusable UI components following design system',
+        icon: 'Palette',
+        type: 'frontend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Create layout components (Header, Sidebar, Footer)', type: 'code', estimatedTokens: 4000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Build form components with validation', type: 'code', estimatedTokens: 3500 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Implement data display components', type: 'code', estimatedTokens: 3000 },
+        ],
+    });
+
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'Page Routes & Navigation',
+        description: 'Set up routing and main application pages',
+        icon: 'Zap',
+        type: 'frontend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Configure React Router with protected routes', type: 'code', estimatedTokens: 2500 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Build main application pages', type: 'code', estimatedTokens: 8000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Add page transitions and loading states', type: 'code', estimatedTokens: 2000 },
+        ],
+    });
+
+    // Backend phases
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'Database & ORM',
+        description: 'Set up Turso SQLite with Drizzle ORM',
+        icon: 'Database',
+        type: 'backend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Configure Turso connection', type: 'config', estimatedTokens: 1000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Define database schema with Drizzle', type: 'code', estimatedTokens: 4000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Create migration scripts', type: 'code', estimatedTokens: 1500 },
+        ],
+    });
+
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'API Routes & Services',
+        description: 'Build Express API with authentication',
+        icon: 'Server',
+        type: 'backend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Set up Express with middleware', type: 'code', estimatedTokens: 2000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Create CRUD API endpoints', type: 'code', estimatedTokens: 6000 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Implement authentication with Better Auth', type: 'code', estimatedTokens: 4000 },
+        ],
+    });
+
+    phases.push({
+        id: `phase-${uuidv4().slice(0, 8)}`,
+        title: 'Deployment Configuration',
+        description: 'Configure Vercel deployment with environment setup',
+        icon: 'Shield',
+        type: 'backend',
+        order: order++,
+        approved: false,
+        steps: [
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Create Vercel configuration', type: 'config', estimatedTokens: 800 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Set up environment variables', type: 'config', estimatedTokens: 500 },
+            { id: `step-${uuidv4().slice(0, 8)}`, description: 'Configure build and deploy scripts', type: 'config', estimatedTokens: 600 },
+        ],
+    });
+
+    // Calculate totals
+    const totalTokens = phases.reduce((sum, phase) =>
+        sum + phase.steps.reduce((stepSum, step) => stepSum + step.estimatedTokens, 0), 0
+    );
+
+    return {
+        intentSummary: `Building: ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}`,
+        phases,
+        estimatedTokenUsage: totalTokens,
+        estimatedCostUSD: (totalTokens / 1000) * 0.015, // Approximate cost
+        parallelAgentsNeeded: Math.min(5, Math.ceil(phases.length / 2)),
+        frontendFirst: true,
+        backendFirst: false,
+        parallelFrontendBackend: analysis.analysis.complexity === 'medium',
+    };
+}
+
+/**
+ * POST /api/execute/plan
+ *
+ * Generate implementation plan and detect required credentials.
+ * This is the first step in the multi-step build workflow.
+ */
+router.post('/plan', async (req: Request, res: Response) => {
+    try {
+        const { userId, projectId = `project-${uuidv4().slice(0, 8)}`, prompt } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ success: false, error: 'userId is required' });
+        }
+        if (!prompt) {
+            return res.status(400).json({ success: false, error: 'prompt is required' });
+        }
+
+        const sessionId = uuidv4();
+        console.log(`[Execute:Plan] Generating plan for session ${sessionId}`);
+
+        // Generate the implementation plan
+        const plan = await generateBuildPlan(prompt, projectId, userId);
+
+        // Detect required credentials
+        const requiredCredentials = detectRequiredCredentials(prompt);
+
+        // Store the pending build
+        const pendingBuild: PendingBuild = {
+            sessionId,
+            projectId,
+            userId,
+            prompt,
+            plan,
+            requiredCredentials,
+            createdAt: new Date(),
+            status: 'awaiting_plan_approval',
+        };
+        pendingBuilds.set(sessionId, pendingBuild);
+
+        res.json({
+            success: true,
+            sessionId,
+            projectId,
+            plan,
+            requiredCredentials,
+        });
+
+    } catch (error) {
+        console.error('[Execute:Plan] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/execute/plan/:sessionId/approve
+ *
+ * Approve the plan and optionally provide credentials, then start the build.
+ */
+router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const { approvedPhases, credentials } = req.body;
+
+        const pendingBuild = pendingBuilds.get(sessionId);
+        if (!pendingBuild) {
+            return res.status(404).json({ success: false, error: 'Session not found' });
+        }
+
+        // Update phase approvals
+        if (approvedPhases && Array.isArray(approvedPhases)) {
+            for (const phase of pendingBuild.plan.phases) {
+                phase.approved = approvedPhases.includes(phase.id);
+            }
+        } else {
+            // Approve all phases if not specified
+            for (const phase of pendingBuild.plan.phases) {
+                phase.approved = true;
+            }
+        }
+
+        pendingBuild.approvedPlan = pendingBuild.plan;
+
+        // Check if credentials are required but not provided
+        if (pendingBuild.requiredCredentials.length > 0 && !credentials) {
+            pendingBuild.status = 'awaiting_credentials';
+            pendingBuilds.set(sessionId, pendingBuild);
+            return res.json({
+                success: true,
+                status: 'awaiting_credentials',
+                requiredCredentials: pendingBuild.requiredCredentials,
+            });
+        }
+
+        // Store credentials if provided
+        if (credentials) {
+            pendingBuild.credentials = credentials;
+        }
+
+        pendingBuild.status = 'building';
+        pendingBuilds.set(sessionId, pendingBuild);
+
+        // Start the actual build in the background
+        const context = getOrCreateContext({
+            mode: 'builder',
+            projectId: pendingBuild.projectId,
+            userId: pendingBuild.userId,
+            sessionId,
+            framework: 'react',
+            language: 'typescript',
+            enableVisualVerification: true,
+            enableCheckpoints: true,
+        });
+
+        // Store credentials in context for the build
+        if (pendingBuild.credentials) {
+            (context as unknown as { credentials: Record<string, string> }).credentials = pendingBuild.credentials;
+        }
+
+        // Start build in background
+        setImmediate(async () => {
+            try {
+                const buildLoop = new BuildLoopOrchestrator(
+                    context.projectId,
+                    context.userId,
+                    context.orchestrationRunId,
+                    'production',
+                    {
+                        humanInTheLoop: false,
+                        projectPath: context.projectPath,
+                        approvedPlan: pendingBuild.approvedPlan,
+                        credentials: pendingBuild.credentials,
+                    }
+                );
+
+                buildLoop.on('event', (event) => {
+                    context.broadcast(`builder-${event.type}`, event.data);
+                });
+
+                await buildLoop.start(pendingBuild.prompt);
+
+                pendingBuild.status = 'complete';
+                pendingBuilds.set(sessionId, pendingBuild);
+
+                context.broadcast('builder-completed', {
+                    status: 'complete',
+                    projectId: pendingBuild.projectId,
+                });
+
+            } catch (error) {
+                console.error(`[Execute:Plan:Approve] Build failed:`, error);
+                pendingBuild.status = 'failed';
+                pendingBuilds.set(sessionId, pendingBuild);
+                context.broadcast('builder-error', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
+        });
+
+        res.json({
+            success: true,
+            status: 'building',
+            projectId: pendingBuild.projectId,
+            websocketChannel: `/ws/context?contextId=${pendingBuild.projectId}&userId=${pendingBuild.userId}`,
+        });
+
+    } catch (error) {
+        console.error('[Execute:Plan:Approve] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/execute/plan/:sessionId/credentials
+ *
+ * Submit credentials for a pending build and start the build.
+ */
+router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const { credentials } = req.body;
+
+        const pendingBuild = pendingBuilds.get(sessionId);
+        if (!pendingBuild) {
+            return res.status(404).json({ success: false, error: 'Session not found' });
+        }
+
+        if (pendingBuild.status !== 'awaiting_credentials') {
+            return res.status(400).json({
+                success: false,
+                error: `Build is not awaiting credentials. Current status: ${pendingBuild.status}`,
+            });
+        }
+
+        // Store credentials
+        pendingBuild.credentials = credentials;
+        pendingBuild.status = 'building';
+        pendingBuilds.set(sessionId, pendingBuild);
+
+        // Start the actual build
+        const context = getOrCreateContext({
+            mode: 'builder',
+            projectId: pendingBuild.projectId,
+            userId: pendingBuild.userId,
+            sessionId,
+            framework: 'react',
+            language: 'typescript',
+            enableVisualVerification: true,
+            enableCheckpoints: true,
+        });
+
+        // Store credentials in context
+        (context as unknown as { credentials: Record<string, string> }).credentials = credentials;
+
+        // Start build in background
+        setImmediate(async () => {
+            try {
+                const buildLoop = new BuildLoopOrchestrator(
+                    context.projectId,
+                    context.userId,
+                    context.orchestrationRunId,
+                    'production',
+                    {
+                        humanInTheLoop: false,
+                        projectPath: context.projectPath,
+                        approvedPlan: pendingBuild.approvedPlan,
+                        credentials: pendingBuild.credentials,
+                    }
+                );
+
+                buildLoop.on('event', (event) => {
+                    context.broadcast(`builder-${event.type}`, event.data);
+                });
+
+                await buildLoop.start(pendingBuild.prompt);
+
+                pendingBuild.status = 'complete';
+                pendingBuilds.set(sessionId, pendingBuild);
+
+                context.broadcast('builder-completed', {
+                    status: 'complete',
+                    projectId: pendingBuild.projectId,
+                });
+
+            } catch (error) {
+                console.error(`[Execute:Credentials] Build failed:`, error);
+                pendingBuild.status = 'failed';
+                pendingBuilds.set(sessionId, pendingBuild);
+                context.broadcast('builder-error', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
+        });
+
+        res.json({
+            success: true,
+            status: 'building',
+            projectId: pendingBuild.projectId,
+            websocketChannel: `/ws/context?contextId=${pendingBuild.projectId}&userId=${pendingBuild.userId}`,
+        });
+
+    } catch (error) {
+        console.error('[Execute:Credentials] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/execute/active
+ *
+ * Get all active builds for a user (for rejoin capability).
+ */
+router.get('/active', (req: Request, res: Response) => {
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+        return res.status(400).json({ success: false, error: 'userId query parameter required' });
+    }
+
+    const activeBuilds: Array<{
+        sessionId: string;
+        projectId: string;
+        status: string;
+        prompt: string;
+        createdAt: Date;
+        websocketChannel: string;
+    }> = [];
+
+    for (const [sessionId, build] of pendingBuilds.entries()) {
+        if (build.userId === userId && build.status === 'building') {
+            activeBuilds.push({
+                sessionId,
+                projectId: build.projectId,
+                status: build.status,
+                prompt: build.prompt.slice(0, 100) + (build.prompt.length > 100 ? '...' : ''),
+                createdAt: build.createdAt,
+                websocketChannel: `/ws/context?contextId=${build.projectId}&userId=${build.userId}`,
+            });
+        }
+    }
+
+    res.json({
+        success: true,
+        activeBuilds,
+    });
+});
+
+/**
+ * GET /api/execute/plan/:sessionId
+ *
+ * Get the status of a pending build.
+ */
+router.get('/plan/:sessionId', (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    const pendingBuild = pendingBuilds.get(sessionId);
+    if (!pendingBuild) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+    }
+
+    res.json({
+        success: true,
+        sessionId,
+        projectId: pendingBuild.projectId,
+        status: pendingBuild.status,
+        plan: pendingBuild.plan,
+        requiredCredentials: pendingBuild.requiredCredentials,
+        createdAt: pendingBuild.createdAt,
+    });
+});
+
 export default router;
 
