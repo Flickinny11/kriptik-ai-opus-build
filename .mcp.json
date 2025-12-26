@@ -20,13 +20,108 @@
     },
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/loganbaird/.claude-worktrees/Krip-Tik-AI-Trial/silly-rosalind"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${PROJECT_PATH}"],
       "description": "Enhanced file operations with watch capabilities"
     },
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"],
       "description": "Persistent memory across sessions"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-playwright@latest"],
+      "description": "Cross-browser automation with AI test generation, self-healing selectors, and accessibility tree navigation"
+    },
+    "runpod": {
+      "command": "npx",
+      "args": ["-y", "@runpod/runpod-mcp@latest"],
+      "env": {
+        "RUNPOD_API_KEY": "${RUNPOD_API_KEY}"
+      },
+      "description": "RunPod GPU cloud management - pods, serverless endpoints, templates, and volumes"
+    },
+    "aws-core": {
+      "command": "uvx",
+      "args": ["awslabs.core-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      },
+      "description": "AWS Cloud Control API for 1,200+ AWS resources via natural language"
+    },
+    "aws-ecs": {
+      "command": "uvx",
+      "args": ["awslabs.ecs-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      },
+      "description": "Amazon ECS container deployments with Fargate, load balancing, and auto-scaling"
+    },
+    "aws-serverless": {
+      "command": "uvx",
+      "args": ["awslabs.serverless-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      },
+      "description": "AWS Lambda, API Gateway, DynamoDB serverless deployments and architecture"
+    },
+    "aws-iac": {
+      "command": "uvx",
+      "args": ["awslabs.cdk-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}"
+      },
+      "description": "AWS CDK and CloudFormation infrastructure as code assistance"
+    },
+    "aws-iam-autopilot": {
+      "command": "uvx",
+      "args": ["awslabs.iam-policy-autopilot@latest"],
+      "description": "IAM Policy Autopilot for least-privilege policy generation from application code"
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+      },
+      "description": "Slack messaging, channel management, and notifications"
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-mcp-server@latest"],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${FIGMA_TOKEN}"
+      },
+      "description": "Figma design access for Clone Mode and design import"
+    },
+    "stripe": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-stripe"],
+      "env": {
+        "STRIPE_API_KEY": "${STRIPE_SECRET_KEY}"
+      },
+      "description": "Stripe payment operations, subscriptions, and billing management"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "description": "PostgreSQL database operations, queries, and schema management"
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "context7-mcp-server@latest"],
+      "description": "Up-to-date, version-specific library documentation for accurate AI code generation"
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "description": "Enhanced reasoning through structured step-by-step thinking"
     }
   }
 }
