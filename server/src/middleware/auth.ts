@@ -155,6 +155,31 @@ export async function optionalAuthMiddleware(
 type SessionValidationParams = { token?: string; cookieHeader?: string; origin?: string };
 
 /**
+ * Safely convert a value to a Date object.
+ * Handles: Date objects, ISO strings, timestamps (numbers), or other string formats.
+ */
+function toDate(value: unknown): Date {
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return new Date(value);
+    if (typeof value === 'string') {
+        // Try parsing as ISO string or any date string
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) return parsed;
+    }
+    // Fallback to current date (shouldn't happen but prevents crashes)
+    console.warn('[Auth] Failed to parse date value:', value);
+    return new Date();
+}
+
+/**
+ * Safely convert a date-like value to milliseconds timestamp.
+ */
+function toTimestamp(value: unknown): number {
+    const date = toDate(value);
+    return date.getTime();
+}
+
+/**
  * Validate session using Redis cache first (fast path),
  * then fall back to better-auth database lookup (slow path).
  * This reduces database load significantly for authenticated requests.
@@ -176,16 +201,16 @@ async function validateSession(params: SessionValidationParams): Promise<{
                         email: cached.user.email,
                         name: cached.user.name,
                         image: cached.user.image,
-                        createdAt: new Date(cached.user.createdAt),
-                        updatedAt: new Date(cached.user.updatedAt),
+                        createdAt: toDate(cached.user.createdAt),
+                        updatedAt: toDate(cached.user.updatedAt),
                     },
                     session: {
                         id: cached.session.id,
                         userId: cached.session.userId,
                         token: cached.session.token,
-                        expiresAt: new Date(cached.session.expiresAt),
-                        createdAt: new Date(cached.session.createdAt),
-                        updatedAt: new Date(cached.session.updatedAt),
+                        expiresAt: toDate(cached.session.expiresAt),
+                        createdAt: toDate(cached.session.createdAt),
+                        updatedAt: toDate(cached.session.updatedAt),
                     },
                 };
             }
@@ -209,9 +234,9 @@ async function validateSession(params: SessionValidationParams): Promise<{
                 id: response.session.id,
                 userId: response.session.userId,
                 token: response.session.token,
-                expiresAt: response.session.expiresAt.getTime(),
-                createdAt: response.session.createdAt.getTime(),
-                updatedAt: response.session.updatedAt.getTime(),
+                expiresAt: toTimestamp(response.session.expiresAt),
+                createdAt: toTimestamp(response.session.createdAt),
+                updatedAt: toTimestamp(response.session.updatedAt),
             };
 
             const userData: UserData = {
@@ -219,8 +244,8 @@ async function validateSession(params: SessionValidationParams): Promise<{
                 email: response.user.email,
                 name: response.user.name,
                 image: response.user.image,
-                createdAt: response.user.createdAt.getTime(),
-                updatedAt: response.user.updatedAt.getTime(),
+                createdAt: toTimestamp(response.user.createdAt),
+                updatedAt: toTimestamp(response.user.updatedAt),
             };
 
             // Non-blocking cache write
@@ -235,16 +260,16 @@ async function validateSession(params: SessionValidationParams): Promise<{
                 email: response.user.email,
                 name: response.user.name,
                 image: response.user.image,
-                createdAt: response.user.createdAt,
-                updatedAt: response.user.updatedAt,
+                createdAt: toDate(response.user.createdAt),
+                updatedAt: toDate(response.user.updatedAt),
             },
             session: {
                 id: response.session.id,
                 userId: response.session.userId,
                 token: response.session.token,
-                expiresAt: response.session.expiresAt,
-                createdAt: response.session.createdAt,
-                updatedAt: response.session.updatedAt,
+                expiresAt: toDate(response.session.expiresAt),
+                createdAt: toDate(response.session.createdAt),
+                updatedAt: toDate(response.session.updatedAt),
             },
         };
     } catch (error) {

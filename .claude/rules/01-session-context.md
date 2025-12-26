@@ -4,7 +4,25 @@
 
 ---
 
-## Current State (as of 2025-12-22 Session 7)
+## Current State (as of 2025-12-26)
+
+### Latest Fix: Authentication Date Handling
+
+**Problem**: Auth was broken - both social (Google/GitHub) and credential auth failing.
+
+**Root Cause**: Better Auth returns date fields (expiresAt, createdAt, updatedAt) as strings from SQLite text columns, but middleware was calling `.getTime()` expecting Date objects.
+
+**Fix Applied**: Added `toDate()` and `toTimestamp()` helper functions in `server/src/middleware/auth.ts` to handle both string and Date formats.
+
+**Files Changed**:
+- `server/src/middleware/auth.ts` - Added defensive date conversion
+- `server/src/auth.ts` - Enhanced logging for diagnostics
+
+**Note**: Cannot change schema column types (Turso limitation per AD001). The schema uses `text` columns for dates, which is why Better Auth returns strings.
+
+---
+
+## Previous State (as of 2025-12-22 Session 7)
 
 ### Progress Summary
 - **Total Features**: 91 (complete inventory documented)
