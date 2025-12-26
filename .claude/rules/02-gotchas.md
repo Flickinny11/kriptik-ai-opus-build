@@ -57,11 +57,37 @@ ALTER TABLE users ADD COLUMN credits_v2 INTEGER;
 
 **Files**: `server/src/auth.ts`
 
+### Better Auth Date Handling (CRITICAL)
+**Problem**: Better Auth with Drizzle adapter stores dates as text strings in SQLite, but the middleware and session service expect Date objects with `.getTime()` method.
+
+**Symptoms**:
+- Auth silently fails with "TypeError: response.session.expiresAt.getTime is not a function"
+- Sessions fail to cache or validate properly
+- Social and email auth both affected
+
+**Solution**: Use defensive date handling functions in middleware:
+```typescript
+function toDate(value: unknown): Date {
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return new Date(value);
+    if (typeof value === 'string') {
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date(); // fallback
+}
+```
+
+**Fixed In**: `server/src/middleware/auth.ts` - Added `toDate()` and `toTimestamp()` helper functions.
+
+**Note**: Cannot change schema column types (Turso limitation per AD001). Schema uses `text` for date fields which Better Auth returns as strings, not Date objects.
+
 ### CORS Configuration
 **Problem**: CORS must allow specific patterns for Vercel deployments.
 
 **Allowed Patterns**:
-- `https://kriptik-ai-opus-build.vercel.app` (production)
+- `https://kriptik.app` (production custom domain)
+- `https://kriptik-ai-opus-build.vercel.app` (production Vercel)
 - `https://kriptik-ai-opus-build-*.vercel.app` (preview)
 - `http://localhost:*` (development)
 - Custom domains via `FRONTEND_URL` env
@@ -202,5 +228,5 @@ eventSource.onmessage = (event) => {
 
 ---
 
-*Last updated: 2025-12-14*
+*Last updated: 2025-12-26*
 *Add new gotchas as discovered*

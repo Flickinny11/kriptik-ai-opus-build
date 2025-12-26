@@ -187,6 +187,13 @@ console.log('[Auth] Initializing Better Auth...');
 console.log('[Auth] BETTER_AUTH_SECRET set:', !!process.env.BETTER_AUTH_SECRET);
 console.log('[Auth] BETTER_AUTH_URL:', process.env.BETTER_AUTH_URL);
 console.log('[Auth] FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('[Auth] Backend URL resolved to:', backendUrl);
+console.log('[Auth] Frontend URL resolved to:', frontendUrl);
+
+// Validate critical configuration
+if (!process.env.BETTER_AUTH_SECRET) {
+    console.error('[Auth] CRITICAL: BETTER_AUTH_SECRET is not set! Auth will fail.');
+}
 
 // Check tables on startup (non-blocking)
 ensureAuthTables().catch(console.error);
