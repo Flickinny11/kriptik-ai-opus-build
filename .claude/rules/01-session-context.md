@@ -6,19 +6,44 @@
 
 ## Current State (as of 2025-12-26)
 
-### Latest Fix: Authentication Date Handling
+### AUTH SYSTEM NOW LOCKED - IMMUTABLE SPECIFICATION
 
-**Problem**: Auth was broken - both social (Google/GitHub) and credential auth failing.
+**CRITICAL**: Auth has been comprehensively fixed and is now LOCKED. See:
+- `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` - Full specification
+- CLAUDE.md "AUTHENTICATION SYSTEM - IMMUTABLE LOCK" section
 
-**Root Cause**: Better Auth returns date fields (expiresAt, createdAt, updatedAt) as strings from SQLite text columns, but middleware was calling `.getTime()` expecting Date objects.
+**DO NOT MODIFY AUTH FILES** without explicit user approval.
 
-**Fix Applied**: Added `toDate()` and `toTimestamp()` helper functions in `server/src/middleware/auth.ts` to handle both string and Date formats.
+### Auth Fixes Applied (2025-12-26):
+
+**Problem 1: Table Name Mapping**
+- Better Auth expects `user`, `session`, `account`, `verification`
+- KripTik uses `users` (plural), `session`, `account`, `verification`
+- **Fix**: Added `modelName` configuration for each table
+
+**Problem 2: Date Type Mismatch**
+- SQLite TEXT columns return strings, not Date objects
+- Middleware was calling `.getTime()` expecting Date objects
+- **Fix**: Added `toDate()` and `toTimestamp()` helper functions
+
+**Problem 3: Schema Mapping**
+- Drizzle adapter needs explicit schema mapping
+- **Fix**: Added schema mapping in drizzle adapter config
 
 **Files Changed**:
-- `server/src/middleware/auth.ts` - Added defensive date conversion
-- `server/src/auth.ts` - Enhanced logging for diagnostics
+- `server/src/auth.ts` - Added modelName config, fixed schema mapping
+- `server/src/middleware/auth.ts` - Added date conversion helpers
+- `CLAUDE.md` - Added AUTH IMMUTABLE LOCK section
+- `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` - Created full spec
 
-**Note**: Cannot change schema column types (Turso limitation per AD001). The schema uses `text` columns for dates, which is why Better Auth returns strings.
+### Why Auth Kept Breaking
+
+AI prompts modifying the codebase inadvertently changed auth-related code because:
+1. They didn't know the exact table names (`users` vs `user`)
+2. They tried to "improve" configurations
+3. They didn't understand Better Auth + Drizzle + SQLite requirements
+
+**Solution**: Created immutable specification and added to SACRED RULES.
 
 ---
 
