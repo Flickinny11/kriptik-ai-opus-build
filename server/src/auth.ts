@@ -201,14 +201,26 @@ ensureAuthTables().catch(console.error);
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "sqlite", // Turso uses SQLite protocol
+        // Map Better Auth expected table names to our Drizzle schema tables
+        // This is required because our SQL tables have different names than Better Auth defaults
         schema: {
-            // Map Better Auth expected names to our schema
-            user: schema.users,
-            session: schema.sessions,
-            account: schema.accounts,
-            verification: schema.verifications,
+            user: schema.users,         // Maps 'user' -> 'users' table
+            session: schema.sessions,   // Maps 'session' -> 'session' table
+            account: schema.accounts,   // Maps 'account' -> 'account' table
+            verification: schema.verifications, // Maps 'verification' -> 'verification' table
         },
     }),
+
+    // Tell Better Auth the actual SQL table names (critical for correct queries)
+    user: {
+        modelName: "users", // SQL table is 'users' (plural)
+    },
+    account: {
+        modelName: "account", // SQL table is 'account' (singular)
+    },
+    verification: {
+        modelName: "verification", // SQL table is 'verification' (singular)
+    },
 
     // Base path for auth routes
     basePath: "/api/auth",
@@ -228,12 +240,12 @@ export const auth = betterAuth({
         requireEmailVerification: false,
     },
 
-
     // Social providers (only those with credentials)
     socialProviders,
 
-    // Session configuration
+    // Session configuration (includes modelName for SQL table mapping)
     session: {
+        modelName: "session", // SQL table is 'session' (singular)
         expiresIn: 60 * 60 * 24 * 7, // 7 days
         updateAge: 60 * 60 * 24, // Update session every 24 hours
         cookieCache: {

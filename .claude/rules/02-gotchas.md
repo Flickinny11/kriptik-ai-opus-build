@@ -82,6 +82,37 @@ function toDate(value: unknown): Date {
 
 **Note**: Cannot change schema column types (Turso limitation per AD001). Schema uses `text` for date fields which Better Auth returns as strings, not Date objects.
 
+### Better Auth Drizzle Adapter Table Mapping (CRITICAL)
+**Problem**: Better Auth expects table names like `user`, `session`, `account`, `verification` but KripTik uses `users` (plural), `session`, `account`, `verification`.
+
+**Symptoms**:
+- Auth silently fails or throws "table not found" errors
+- User creation fails after OAuth callback
+- Session creation fails
+
+**Solution**: Configure BOTH schema mapping in drizzle adapter AND modelName in auth config:
+```typescript
+export const auth = betterAuth({
+    database: drizzleAdapter(db, {
+        provider: "sqlite",
+        schema: {
+            user: schema.users,         // Maps 'user' -> 'users' table
+            session: schema.sessions,   // Maps 'session' -> 'session' table
+            account: schema.accounts,   // Maps 'account' -> 'account' table
+            verification: schema.verifications,
+        },
+    }),
+    user: { modelName: "users" },
+    session: { modelName: "session" },
+    account: { modelName: "account" },
+    verification: { modelName: "verification" },
+});
+```
+
+**Fixed In**: `server/src/auth.ts`
+
+**Reference**: [Better Auth Drizzle Adapter Docs](https://www.better-auth.com/docs/adapters/drizzle)
+
 ### CORS Configuration
 **Problem**: CORS must allow specific patterns for Vercel deployments.
 
