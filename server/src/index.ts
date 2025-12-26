@@ -418,6 +418,61 @@ import { auth, testDatabaseConnection, ensureAuthTables } from './auth.js';
 // Frontend URL for redirects after auth
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
 
+// Auth diagnostic endpoint - helps debug auth configuration issues
+app.get("/api/auth/debug", async (req, res) => {
+    try {
+        // Test database connection and get table list
+        const dbResult = await testDatabaseConnection();
+
+        // Check required env vars (without exposing secrets)
+        const envCheck = {
+            BETTER_AUTH_SECRET: !!process.env.BETTER_AUTH_SECRET ? 'SET' : 'MISSING',
+            BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || 'NOT SET (using fallback)',
+            FRONTEND_URL: process.env.FRONTEND_URL || 'NOT SET (using fallback)',
+            BACKEND_URL: process.env.BACKEND_URL || 'NOT SET',
+            TURSO_DATABASE_URL: !!process.env.TURSO_DATABASE_URL ? 'SET' : 'MISSING',
+            TURSO_AUTH_TOKEN: !!process.env.TURSO_AUTH_TOKEN ? 'SET' : 'MISSING',
+            GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET',
+            GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'NOT SET',
+            GITHUB_CLIENT_ID: !!process.env.GITHUB_CLIENT_ID ? 'SET' : 'NOT SET',
+            GITHUB_CLIENT_SECRET: !!process.env.GITHUB_CLIENT_SECRET ? 'SET' : 'NOT SET',
+            NODE_ENV: process.env.NODE_ENV || 'NOT SET',
+            VERCEL: process.env.VERCEL || 'NOT SET',
+        };
+
+        // Check for required auth tables
+        const requiredTables = ['users', 'session', 'account', 'verification'];
+        const tablesExist = requiredTables.map(t => ({
+            table: t,
+            exists: dbResult.tables.includes(t)
+        }));
+        const allTablesExist = tablesExist.every(t => t.exists);
+
+        res.json({
+            status: dbResult.connected && allTablesExist ? 'ok' : 'issues_detected',
+            database: {
+                connected: dbResult.connected,
+                error: dbResult.error || null,
+                allTables: dbResult.tables,
+                authTables: tablesExist,
+                allAuthTablesExist: allTablesExist,
+            },
+            environment: envCheck,
+            urls: {
+                frontend: FRONTEND_URL,
+                backend: process.env.BETTER_AUTH_URL || process.env.BACKEND_URL || 'using default',
+            },
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString(),
+        });
+    }
+});
+
 // Custom middleware to handle OAuth callback redirect
 // This intercepts the response from Better Auth and ensures proper redirect
 app.use("/api/auth/callback", (req, res, next) => {

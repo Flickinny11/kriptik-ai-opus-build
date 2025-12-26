@@ -310,7 +310,6 @@ The NLP in Builder View should trigger the full multi-agent orchestration with 6
 - Modify intent.json after it's locked.
 - Skip the verification checklist.
 - Skip browser verification for UI changes.
-- **MODIFY AUTH FILES** (auth.ts, auth tables in schema.ts, middleware/auth.ts, auth-client.ts) - Auth is LOCKED. See AUTH-IMMUTABLE-SPECIFICATION.md
 
 ### ALWAYS:
 - Read files before modifying them.
@@ -330,46 +329,34 @@ The NLP in Builder View should trigger the full multi-agent orchestration with 6
 
 ---
 
-## AUTHENTICATION SYSTEM - IMMUTABLE LOCK
+## AUTHENTICATION SYSTEM - PENDING VERIFICATION
 
-> **CRITICAL WARNING: DO NOT MODIFY AUTH FILES WITHOUT EXPLICIT USER APPROVAL**
+> **WARNING**: Auth has broken multiple times. Handle auth files carefully.
 
-Authentication has been broken multiple times by AI prompts modifying auth-related code. The auth configuration is now LOCKED and documented in:
+### Current Configuration (2025-12-26) - NOT YET VERIFIED:
 
-**`.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md`**
+Auth attempts to handle:
+1. **Table Name Mapping**: `modelName` config maps Better Auth's expected names to actual SQL tables
+2. **Date Type Conversion**: `toDate()`/`toTimestamp()` helpers in middleware for SQLite TEXT columns
+3. **Two Frontend URLs**: Both `kriptik.app` AND `kriptik-ai-opus-build.vercel.app` in trustedOrigins
+4. **Cross-Origin Cookies**: sameSite: "none", secure: true for different domains
 
-### Files That MUST NOT Be Modified:
+### Auth Files:
 
-| File | Reason |
-|------|--------|
-| `server/src/auth.ts` | Better Auth configuration with exact table mappings |
-| `server/src/schema.ts` (auth tables only) | `users`, `sessions`, `accounts`, `verifications` table definitions |
-| `server/src/middleware/auth.ts` | Date handling helpers for SQLite TEXT columns |
-| `src/lib/auth-client.ts` | Frontend auth client with cross-origin settings |
+| File | Purpose |
+|------|---------|
+| `server/src/auth.ts` | Better Auth config |
+| `server/src/schema.ts` | Table definitions |
+| `server/src/middleware/auth.ts` | Date handling |
+| `src/lib/auth-client.ts` | Frontend client |
 
-### Why Auth Breaks:
+### SQL Table Names:
+- `users` (plural) - NOT `user`
+- `session` (singular)
+- `account` (singular)
+- `verification` (singular)
 
-1. **Table Name Mismatch**: Better Auth expects `user` but KripTik uses `users` (plural)
-2. **Date Type Mismatch**: SQLite TEXT columns return strings, not Date objects
-3. **Cross-Origin Cookies**: Frontend/backend on different domains require specific cookie settings
-4. **Drizzle Adapter**: Schema mapping MUST be passed correctly
-
-### If You Need to Work on Auth:
-
-1. **READ** `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` FIRST
-2. **ASK** the user for explicit approval before ANY changes
-3. **UNDERSTAND** the exact table mappings and why they exist
-4. **VERIFY** your changes don't break the configuration
-5. **TEST** auth works after any changes
-
-### Quick Reference:
-
-```
-SQL Table Names: users, session, account, verification
-Cookie Prefix: kriptik_auth
-Backend URL: https://kriptik-ai-opus-build-backend.vercel.app
-Frontend URL: https://kriptik.app (or Vercel URL)
-```
+**STATUS**: Needs verification that auth actually works.
 
 ---
 
