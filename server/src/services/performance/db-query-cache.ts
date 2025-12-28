@@ -15,6 +15,7 @@
 
 import { createHash } from 'crypto';
 import { getRedis, CacheTTL } from '../infrastructure/redis.js';
+import { registerMemoryCleanup } from '../infrastructure/memory-manager.js';
 
 // ============================================================================
 // TYPES
@@ -385,6 +386,18 @@ class DatabaseQueryCache {
     }
 
     /**
+     * Aggressively clear in-process cache to relieve memory pressure.
+     * Returns an observed heap delta (best-effort; GC timing is runtime-dependent).
+     */
+    clearLocalCache(): number {
+        const before = process.memoryUsage().heapUsed;
+        this.localCache.clear();
+        this.revalidating.clear();
+        const after = process.memoryUsage().heapUsed;
+        return Math.max(0, before - after);
+    }
+
+    /**
      * Get cache statistics
      */
     getStats(): {
@@ -435,6 +448,12 @@ let dbQueryCache: DatabaseQueryCache | null = null;
 export function getDBQueryCache(): DatabaseQueryCache {
     if (!dbQueryCache) {
         dbQueryCache = new DatabaseQueryCache();
+
+        // Register memory pressure cleanup hook (serverless-safe)
+        // Clears only the in-process cache; does not touch Redis.
+        registerMemoryCleanup('db_query_cache_local', 20, async () => {
+            return dbQueryCache!.clearLocalCache();
+        });
     }
     return dbQueryCache;
 }

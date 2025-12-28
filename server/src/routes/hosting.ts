@@ -19,6 +19,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2024-11-20.acacia' as Stripe.LatestApiVersion,
 });
 
+function getRequestUserId(req: Request): string | undefined {
+    const headerUserId = req.headers['x-user-id'] as string | undefined;
+    return req.user?.id || headerUserId;
+}
+
 // =============================================================================
 // PROJECT ANALYSIS
 // =============================================================================
@@ -29,7 +34,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  */
 router.post('/analyze/:projectId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -89,7 +94,7 @@ router.post('/analyze/:projectId', async (req: Request, res: Response) => {
  */
 router.post('/deploy', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -154,7 +159,7 @@ router.post('/deploy', async (req: Request, res: Response) => {
  */
 router.post('/redeploy/:deploymentId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -197,7 +202,7 @@ router.post('/redeploy/:deploymentId', async (req: Request, res: Response) => {
  */
 router.get('/deployments', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -220,7 +225,7 @@ router.get('/deployments', async (req: Request, res: Response) => {
  */
 router.get('/deployments/:projectId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -253,7 +258,7 @@ router.get('/deployments/:projectId', async (req: Request, res: Response) => {
  */
 router.get('/status/:deploymentId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -320,7 +325,7 @@ router.get('/domains/search', async (req: Request, res: Response) => {
  */
 router.post('/domains/checkout', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -355,7 +360,7 @@ router.post('/domains/checkout', async (req: Request, res: Response) => {
  */
 router.get('/domains', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -374,7 +379,7 @@ router.get('/domains', async (req: Request, res: Response) => {
  */
 router.post('/domains/:domainId/connect', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -414,7 +419,7 @@ router.post('/domains/:domainId/connect', async (req: Request, res: Response) =>
  */
 router.post('/domains/:domainId/transfer', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }

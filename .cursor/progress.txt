@@ -5054,3 +5054,28 @@ CURRENT STATE:
 ✅ No auto-flip on regular project cards
 ✅ Polling completely disabled when no Fix My App projects
 ✅ Dashboard should remain stable
+
+═══ [2025-12-28T19:30:00Z] ═══
+COMPLETED: Fixed production runtime errors from missing DB tables + auth date parsing + hosting deployments + memory alert spam
+FILES MODIFIED:
+- server/src/services/infrastructure/db-schema.ts
+- server/src/index.ts
+- server/src/middleware/auth.ts
+- server/src/routes/hosting.ts
+- server/src/services/infrastructure/monitoring-service.ts
+- server/src/services/performance/db-query-cache.ts
+CURRENT STATE:
+- Frontend: `npm run build` ✅
+- Backend: `cd server && npm run build` ✅
+- Placeholders/TODOs/mock data added in fixes: ✅ none
+NEXT:
+- Confirm on production logs that:
+  - UnifiedContext loads user prefs / project rules / project analysis without "no such table" errors
+  - /api/hosting/deployments no longer returns 500
+  - Memory alerts are deduped (max 1 per level per 5 min)
+CONTEXT:
+- Root cause: production Turso schema missing runtime tables referenced by UnifiedContext + Hosting.
+- Fix: added idempotent schema ensure at server startup that creates critical tables via CREATE TABLE/INDEX IF NOT EXISTS (safe under Vercel concurrency).
+- Auth: improved date parsing to accept numeric timestamp strings (including floats like "1766892908363.0").
+- Hosting: switched auth lookup to prefer session user (req.user.id) while preserving legacy x-user-id compatibility.
+- Monitoring: added dedupeKey support so variable-value alerts (memory %) respect cooldown; added memory cleanup hook to clear in-process DB query cache under pressure.

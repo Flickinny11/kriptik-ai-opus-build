@@ -162,8 +162,19 @@ function toDate(value: unknown): Date {
     if (value instanceof Date) return value;
     if (typeof value === 'number') return new Date(value);
     if (typeof value === 'string') {
+        const trimmed = value.trim();
+
+        // Handle numeric timestamps serialized as strings (including floats like "1766892908363.0")
+        // Better Auth + SQLite can return values that look like numbers even when stored as TEXT.
+        if (/^\d+(\.\d+)?$/.test(trimmed)) {
+            const asNumber = Number(trimmed);
+            if (Number.isFinite(asNumber)) {
+                return new Date(asNumber);
+            }
+        }
+
         // Try parsing as ISO string or any date string
-        const parsed = new Date(value);
+        const parsed = new Date(trimmed);
         if (!isNaN(parsed.getTime())) return parsed;
     }
     // Fallback to current date (shouldn't happen but prevents crashes)

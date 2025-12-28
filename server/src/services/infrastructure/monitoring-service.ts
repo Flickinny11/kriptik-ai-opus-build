@@ -389,10 +389,20 @@ class MonitoringService {
 
             if (heapPercent > this.config.thresholds.memoryCritical || pressureLevel === 'critical') {
                 status = 'unhealthy';
-                alerts.push(this.createAlert('critical', 'memory', `Memory pressure critical: ${heapPercent.toFixed(1)}%`));
+                alerts.push(this.createAlert(
+                    'critical',
+                    'memory',
+                    `Memory pressure critical: ${heapPercent.toFixed(1)}%`,
+                    'memory:critical'
+                ));
             } else if (heapPercent > this.config.thresholds.memoryWarning || pressureLevel === 'warning') {
                 status = 'degraded';
-                alerts.push(this.createAlert('warning', 'memory', `High memory usage: ${heapPercent.toFixed(1)}%`));
+                alerts.push(this.createAlert(
+                    'warning',
+                    'memory',
+                    `High memory usage: ${heapPercent.toFixed(1)}%`,
+                    'memory:warning'
+                ));
             }
 
             return {
@@ -734,8 +744,15 @@ class MonitoringService {
     // ALERTS
     // ========================================================================
 
-    private createAlert(level: 'warning' | 'critical', component: string, message: string): Alert {
-        const alertKey = `${component}:${message}`;
+    private createAlert(
+        level: 'warning' | 'critical',
+        component: string,
+        message: string,
+        dedupeKey?: string
+    ): Alert {
+        // IMPORTANT: For alerts that include a variable value (e.g. percentages),
+        // pass a stable dedupeKey so cooldown works and logs don't spam.
+        const alertKey = dedupeKey ?? `${component}:${message}`;
         const now = Date.now();
 
         // Check cooldown

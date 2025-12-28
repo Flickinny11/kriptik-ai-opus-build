@@ -9,6 +9,7 @@ import { closeJobQueues } from './services/infrastructure/job-queue.js';
 import { initializeWorkers } from './workers/index.js';
 import { healthRouter } from './routes/health.js';
 import { startMonitoring, stopMonitoring } from './services/infrastructure/monitoring-service.js';
+import { ensureDatabaseSchema } from './services/infrastructure/db-schema.js';
 import { createRequestLogger, errorLogger } from './middleware/request-logger.js';
 import cronRouter from './routes/cron.js';
 import monitoringRouter from './routes/monitoring.js';
@@ -34,6 +35,20 @@ const initializeInfrastructure = async () => {
     console.log('[Infrastructure] Initializing production services...');
 
     try {
+        // Ensure critical DB tables exist (UnifiedContext, Developer Mode settings, Hosting)
+        // This is safe on Vercel: all statements are CREATE ... IF NOT EXISTS
+        try {
+            const schemaResult = await ensureDatabaseSchema();
+            if (schemaResult.createdTables.length > 0) {
+                console.log('[Infrastructure] Database schema updated (created tables):', schemaResult.createdTables.join(', '));
+            } else {
+                console.log('[Infrastructure] Database schema OK (no missing critical tables)');
+            }
+        } catch (error) {
+            // Don't crash the server on schema ensure errors, but log loudly
+            console.error('[Infrastructure] Database schema ensure failed:', error);
+        }
+
         // Check Redis connection
         const redisHealth = await checkRedisHealth();
         if (redisHealth.connected) {
