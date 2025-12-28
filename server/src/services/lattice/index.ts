@@ -63,3 +63,17 @@ export {
     type PrecomputeSession,
     type PrecomputeEngineConfig,
 } from './precompute-engine.js';
+
+// ============================================================================
+// BUILDING BLOCKS REGISTRY (Phase 3)
+// ============================================================================
+
+export {
+    BlockRegistry,
+    getBlockRegistry,
+    resetBlockRegistry,
+    CORE_BLOCKS,
+    type BuildingBlock,
+    type BlockRenderResult,
+    type BlockMatchScore,
+} from './block-registry.js';
