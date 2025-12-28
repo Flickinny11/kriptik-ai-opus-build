@@ -8,6 +8,9 @@
 
 import { create } from 'zustand';
 
+// API URL for backend requests
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 // Provider type definitions
 export type AuthProvider = 'clerk' | 'better-auth' | 'nextauth' | 'supabase-auth' | 'auth0' | 'firebase-auth' | 'none';
 export type DatabaseProvider = 'supabase' | 'planetscale' | 'turso' | 'neon' | 'mongodb' | 'firebase' | 'prisma-postgres' | 'none';
@@ -673,7 +676,7 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
     loadStack: async (projectId) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`/api/production-stack/${projectId}`, {
+            const response = await fetch(`${API_URL}/api/production-stack/${projectId}`, {
                 credentials: 'include',
             });
 
@@ -703,7 +706,7 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
 
         set({ isSaving: true, error: null });
         try {
-            const response = await fetch('/api/production-stack', {
+            const response = await fetch(`${API_URL}/api/production-stack`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

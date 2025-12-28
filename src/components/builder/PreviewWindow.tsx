@@ -11,6 +11,9 @@ import { useEditorStore } from '../../store/useEditorStore';
 import { cn } from '../../lib/utils';
 import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 
+// API URL for backend requests
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 export default function PreviewWindow() {
     const {
         isSelectionMode,
@@ -65,7 +68,7 @@ export default function PreviewWindow() {
     // Connect to agent event stream
     useEffect(() => {
         try {
-            const eventSource = new EventSource('/api/agent/activity-stream');
+            const eventSource = new EventSource(`${API_URL}/api/agent/activity-stream`);
             eventSource.onmessage = (event) => {
                 try {
                     const agentEvent: AgentEvent = JSON.parse(event.data);

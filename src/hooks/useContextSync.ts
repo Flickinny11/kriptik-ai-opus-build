@@ -8,6 +8,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
+// API URL for backend requests
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -150,9 +153,10 @@ export function useContextSync(projectId: string, userId: string) {
     const connect = useCallback(async () => {
         // First, create or get context via API
         try {
-            const response = await fetch('/api/agents/context', {
+            const response = await fetch(`${API_URL}/api/agents/context`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ projectId }),
             });
             
@@ -164,8 +168,9 @@ export function useContextSync(projectId: string, userId: string) {
             
             setState(prev => ({ ...prev, contextId, sessionId }));
             
-            // Connect WebSocket
-            const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/context?contextId=${contextId}&userId=${userId}`;
+            // Connect WebSocket - use API host for backend WebSocket connection
+            const apiHost = API_URL.replace('https://', '').replace('http://', '');
+            const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiHost}/ws/context?contextId=${contextId}&userId=${userId}`;
             
             const ws = new WebSocket(wsUrl);
             
@@ -448,8 +453,9 @@ export function useContextSync(projectId: string, userId: string) {
         if (!state.contextId) return;
         
         try {
-            await fetch(`/api/agents/context/${state.contextId}/orchestration/start`, {
+            await fetch(`${API_URL}/api/agents/context/${state.contextId}/orchestration/start`, {
                 method: 'POST',
+                credentials: 'include',
             });
             toast({
                 title: 'Orchestration Started',
@@ -469,8 +475,9 @@ export function useContextSync(projectId: string, userId: string) {
         if (!state.contextId) return;
         
         try {
-            await fetch(`/api/agents/context/${state.contextId}/orchestration/stop`, {
+            await fetch(`${API_URL}/api/agents/context/${state.contextId}/orchestration/stop`, {
                 method: 'POST',
+                credentials: 'include',
             });
             toast({
                 title: 'Orchestration Stopped',

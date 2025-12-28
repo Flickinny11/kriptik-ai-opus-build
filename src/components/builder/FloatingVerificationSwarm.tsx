@@ -17,6 +17,9 @@ import AgentConfigSlider, { type AgentConfig } from './AgentConfigSlider';
 import BugHuntTab from './BugHuntTab';
 import './FloatingVerificationSwarm.css';
 
+// API URL for backend requests
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
   <svg viewBox="0 0 28 28" fill="none" className="floating-swarm__logo-icon">
@@ -184,7 +187,7 @@ export function FloatingVerificationSwarm({
     setAgents(prev => prev.map(a => ({ ...a, status: 'running' as const })));
 
     try {
-      const response = await fetch(`/api/quality/${projectId}/report`);
+      const response = await fetch(`${API_URL}/api/quality/${projectId}/report`);
 
       if (response.ok) {
         const data: QualityCheckResponse = await response.json();

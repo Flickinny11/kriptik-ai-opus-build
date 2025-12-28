@@ -18,6 +18,9 @@ import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOver
 import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 import { apiClient } from '@/lib/api-client';
 
+// API URL for backend requests
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 // Temporary icon components for icons not in custom icon set
 const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -295,7 +298,7 @@ export default function SandpackPreviewWindow() {
         // Try to connect to the agent activity stream
         const connectToAgentStream = () => {
             try {
-                const eventSource = new EventSource('/api/agent/activity-stream');
+                const eventSource = new EventSource(`${API_URL}/api/agent/activity-stream`);
 
                 eventSource.onmessage = (event) => {
                     try {
