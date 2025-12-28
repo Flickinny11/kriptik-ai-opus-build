@@ -271,8 +271,9 @@ export const auth = betterAuth({
 
     // Advanced configuration
     advanced: {
-        // Use secure cookies in production (adds __Secure- prefix)
-        useSecureCookies: isProd,
+        // DISABLED: useSecureCookies adds __Secure- prefix which can cause issues in some browsers
+        // The Secure flag is already set via defaultCookieAttributes below
+        useSecureCookies: false,
         
         // CRITICAL: Enable cross-subdomain cookies for api.kriptik.app <-> kriptik.app
         // This tells Better Auth to set cookies on the parent domain
