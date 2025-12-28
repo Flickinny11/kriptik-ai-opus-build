@@ -210,6 +210,36 @@ export const DEFAULT_CONTEXT_EDITS: ContextEditRule[] = [
 export type AIProvider = 'anthropic' | 'openai' | 'openrouter';
 
 /**
+ * ULTRATHINK MODE TIERS - December 2025 Claude Code Enhancement
+ *
+ * Thinking budget tiers that map to reasoning depth:
+ * - 'think' (8K): Basic reasoning for simple tasks
+ * - 'think_hard' (16K): Moderate reasoning for code generation
+ * - 'think_harder' (32K): Deep reasoning for complex features
+ * - 'ultrathink' (64K+): Maximum reasoning for critical decisions
+ *
+ * These tiers are automatically applied based on phase complexity.
+ */
+export type ThinkingTier = 'think' | 'think_hard' | 'think_harder' | 'ultrathink';
+
+export const THINKING_TIER_BUDGETS: Record<ThinkingTier, number> = {
+    'think': 8000,
+    'think_hard': 16000,
+    'think_harder': 32000,
+    'ultrathink': 64000,
+};
+
+/**
+ * Get thinking tier from budget
+ */
+export function getThinkingTier(budget: number): ThinkingTier {
+    if (budget >= 64000) return 'ultrathink';
+    if (budget >= 32000) return 'think_harder';
+    if (budget >= 16000) return 'think_hard';
+    return 'think';
+}
+
+/**
  * Model/effort configuration per build phase
  * Dual-SDK architecture: Anthropic + OpenAI direct access
  */
@@ -218,6 +248,8 @@ export interface PhaseConfig {
     provider: AIProvider;
     effort?: EffortLevel;
     thinkingBudget: number;
+    /** Thinking tier - automatically derived from thinkingBudget */
+    thinkingTier?: ThinkingTier;
     description: string;
     /** Optional secondary model for verification */
     verificationModel?: string;
@@ -405,10 +437,32 @@ export const PHASE_CONFIGS: Record<string, PhaseConfig> = {
 };
 
 /**
- * Get phase configuration
+ * Get phase configuration with auto-derived thinking tier
  */
 export function getPhaseConfig(phase: string): PhaseConfig {
-    return PHASE_CONFIGS[phase] || PHASE_CONFIGS['build_agent'];
+    const config = PHASE_CONFIGS[phase] || PHASE_CONFIGS['build_agent'];
+    // Auto-derive thinking tier if not explicitly set
+    if (!config.thinkingTier) {
+        return {
+            ...config,
+            thinkingTier: getThinkingTier(config.thinkingBudget),
+        };
+    }
+    return config;
+}
+
+/**
+ * Get the optimal thinking tier for a task complexity level
+ * Used for dynamic tier selection based on task analysis
+ */
+export function getOptimalThinkingTier(taskComplexity: 'simple' | 'moderate' | 'complex' | 'critical'): ThinkingTier {
+    switch (taskComplexity) {
+        case 'simple': return 'think';
+        case 'moderate': return 'think_hard';
+        case 'complex': return 'think_harder';
+        case 'critical': return 'ultrathink';
+        default: return 'think_hard';
+    }
 }
 
 // =============================================================================
