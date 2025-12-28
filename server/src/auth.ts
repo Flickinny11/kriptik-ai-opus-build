@@ -271,27 +271,20 @@ export const auth = betterAuth({
 
     // Advanced configuration
     advanced: {
-        // Use secure cookies in production (required for SameSite=None)
-        useSecureCookies: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
-        // Cross-subdomain cookies (api.kriptik.app <-> kriptik.app)
-        // CRITICAL: Must specify domain explicitly for cookies to work across subdomains
-        crossSubDomainCookies: {
-            enabled: isKriptikSameSite,
-            domain: isKriptikSameSite ? '.kriptik.app' : undefined,
-        },
+        // Use secure cookies in production
+        useSecureCookies: isProd,
         // Cookie settings
         cookiePrefix: "kriptik_auth",
-        // Default cookie options (mobile/embedded compatible)
+        // Default cookie options - simplified approach for cross-subdomain auth
+        // CRITICAL: domain must be set to parent domain for api.kriptik.app -> kriptik.app
         defaultCookieAttributes: {
-            // For same-site (api.kriptik.app), we prefer Lax to avoid third-party cookie heuristics.
-            // For cross-site (Vercel preview domains), we must use None + Secure.
-            sameSite: cookieSameSite,
-            secure: true,
+            sameSite: 'lax' as const,
+            secure: isProd,
             httpOnly: true,
             path: "/",
-            // CRITICAL: Domain must be set for cross-subdomain cookies to work
-            domain: isKriptikSameSite ? '.kriptik.app' : undefined,
-            // maxAge for better mobile compatibility
+            // Set domain to parent domain so cookies work across subdomains
+            // This is the key fix for api.kriptik.app <-> kriptik.app
+            ...(isProd && { domain: 'kriptik.app' }),
             maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
         },
     },

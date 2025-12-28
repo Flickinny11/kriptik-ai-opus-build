@@ -493,6 +493,7 @@ app.get("/api/debug/auth-test", async (req, res) => {
     console.log('[Auth Test] Running diagnostics...');
 
     const dbTest = await testDatabaseConnection();
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
 
     const diagnostics = {
         timestamp: new Date().toISOString(),
@@ -503,16 +504,61 @@ app.get("/api/debug/auth-test", async (req, res) => {
             frontendUrl: process.env.FRONTEND_URL,
             googleClientIdSet: !!process.env.GOOGLE_CLIENT_ID,
             githubClientIdSet: !!process.env.GITHUB_CLIENT_ID,
+            isProd,
+            cookieDomain: isProd ? 'kriptik.app' : 'localhost',
         },
         cookies: {
             received: req.headers.cookie || 'none',
         },
         origin: req.headers.origin || 'none',
+        host: req.headers.host || 'none',
     };
 
     console.log('[Auth Test] Diagnostics:', JSON.stringify(diagnostics, null, 2));
 
     res.json(diagnostics);
+});
+
+// Cookie test endpoint - sets a test cookie and returns cookie info
+app.get("/api/debug/cookie-test", (req, res) => {
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    const testCookieName = 'kriptik_test_cookie';
+    const testCookieValue = `test_${Date.now()}`;
+    
+    // Set a test cookie with the same settings as auth cookies
+    const cookieOptions: string[] = [
+        `${testCookieName}=${testCookieValue}`,
+        'Path=/',
+        `Max-Age=${60 * 60}`, // 1 hour
+        'HttpOnly',
+    ];
+    
+    if (isProd) {
+        cookieOptions.push('Secure');
+        cookieOptions.push('SameSite=Lax');
+        cookieOptions.push('Domain=kriptik.app');
+    } else {
+        cookieOptions.push('SameSite=Lax');
+    }
+    
+    res.setHeader('Set-Cookie', cookieOptions.join('; '));
+    
+    res.json({
+        message: 'Test cookie set',
+        cookieSet: {
+            name: testCookieName,
+            value: testCookieValue,
+            domain: isProd ? 'kriptik.app' : 'localhost',
+            secure: isProd,
+            sameSite: 'Lax',
+        },
+        cookiesReceived: req.headers.cookie || 'none',
+        headers: {
+            host: req.headers.host,
+            origin: req.headers.origin,
+        },
+        isProd,
+    });
 });
 
 // =============================================================================
