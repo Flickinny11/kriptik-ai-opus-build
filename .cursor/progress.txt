@@ -1,3 +1,50 @@
+═══ [2025-12-28 BUILDER ORCHESTRATION FIX] ═══
+COMPLETED: Fixed Builder chat bypassing orchestration flow
+
+ROOT CAUSE ANALYSIS:
+- When Krip-Toe-Nite model was selected (default), the ChatInterface.tsx
+  would bypass the entire orchestration flow and stream raw AI output directly
+- The intended flow (Intent Lock → Plan Approval → Credentials → Build Loop)
+  only executed when "Multi-Agent" model was explicitly selected
+- This caused the user to see raw code streaming instead of the orchestration UI
+
+SOLUTION IMPLEMENTED:
+1. Added `isBuildRequest()` function to detect if a prompt is a build request vs a quick question
+2. Build requests (containing keywords like "build", "create", "dashboard", etc.) now ALWAYS
+   go through the full orchestration flow regardless of model selection
+3. Only quick Q&A questions (starting with "what is", "how does", etc.) use KTN direct streaming
+4. Updated system message to show "🔒 Intent Lock → Generating implementation plan..."
+
+FILES MODIFIED:
+- src/components/builder/ChatInterface.tsx
+  - Added isBuildRequest() detection function (lines 588-624)
+  - Modified confirmGeneration() to route based on request type
+  - Updated placeholder text to indicate full orchestration
+
+ORCHESTRATION FLOW NOW WORKING:
+1. User enters prompt → isBuildRequest() detects it's a build request
+2. System calls /api/execute/plan to generate implementation plan
+3. Plan Approval UI shows for user to review/modify phases
+4. ProductionStackWizard opens for stack configuration
+5. Credentials Collection UI appears for required API keys
+6. Build Loop starts with WebSocket connection for real-time updates
+7. Chat shows orchestration progress/thoughts, NOT raw code
+
+FEATURE AGENTS (Developer Bar):
+- Feature Agent button in Developer Bar → opens FeatureAgentCommandCenter
+- Select model, enter task prompt, click Deploy
+- Creates Feature Agent via /api/developer-mode/feature-agent
+- Opens FeatureAgentTile popout with SSE streaming for progress
+- Same orchestration flow: Intent Lock → Plan → Credentials → Build → Verify → Merge
+
+CURRENT STATE:
+✅ Frontend builds successfully
+✅ Backend builds successfully
+✅ Changes committed and pushed to main
+✅ Vercel deployment in progress
+
+NEXT: Vercel deployment will take ~2 minutes to complete
+
 ═══ [2025-12-09 DEVELOPER BAR PANELS] ═══
 COMPLETED: Premium Agents Command Center Panel
 

@@ -44,6 +44,9 @@ import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
+
+// Backend API URL - use environment variable for proper cross-domain communication
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 import { useUserStore } from '../../store/useUserStore';
 import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
@@ -604,21 +607,21 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             'what is', 'how does', 'explain', 'why', 'can you tell me',
             'difference between', 'help me understand', 'documentation',
         ];
-        
+
         // Check if it's a quick question first
         for (const keyword of questionKeywords) {
             if (promptLower.startsWith(keyword)) {
                 return false; // It's a question, use KTN direct
             }
         }
-        
+
         // Check if it's a build request
         for (const keyword of buildKeywords) {
             if (promptLower.includes(keyword)) {
                 return true; // It's a build request
             }
         }
-        
+
         // Default: if prompt is longer than 50 chars, assume it's a build request
         return prompt.length > 50;
     };
@@ -662,7 +665,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             // BUILD REQUEST: Use full plan-first orchestration workflow
             // This ensures Intent Lock → Plan Approval → Credentials → Build Loop
             console.log('[ChatInterface] Build request detected - using full orchestration flow');
-            
+
             // Step 1: Generate plan and detect credentials
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
@@ -676,9 +679,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             try {
                 const userId = user?.id || 'anonymous';
-                const response = await fetch('/api/execute/plan', {
+                const response = await fetch(`${API_URL}/api/execute/plan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Include cookies for auth
                     body: JSON.stringify({
                         userId,
                         projectId: projectId || `project-${Date.now()}`,
@@ -739,9 +743,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setIsTyping(true);
 
         try {
-            const response = await fetch(`/api/execute/plan/${buildSessionId}/approve`, {
+            const response = await fetch(`${API_URL}/api/execute/plan/${buildSessionId}/approve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // Include cookies for auth
                 body: JSON.stringify({
                     approvedPhases: approvedPhases,
                 }),
@@ -813,9 +818,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setIsTyping(true);
 
         try {
-            const response = await fetch(`/api/execute/plan/${buildSessionId}/credentials`, {
+            const response = await fetch(`${API_URL}/api/execute/plan/${buildSessionId}/credentials`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // Include cookies for auth
                 body: JSON.stringify({ credentials }),
             });
 
