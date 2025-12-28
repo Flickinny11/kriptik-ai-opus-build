@@ -74,7 +74,7 @@ const THOUGHTS = [
 
 /**
  * Premium 3D Flip Card for Fix My App
- * 
+ *
  * Design inspired by Remotion.dev landing page:
  * - 3D monitor/screen appearance with visible edges
  * - Dark screen material resembling a display
@@ -207,7 +207,7 @@ export function FixMyAppFlipCard({
 
                             {/* Scrolling code */}
                             <div className="code-viewport" ref={codeRef}>
-                                <div 
+                                <div
                                     className="code-content"
                                     style={{ transform: `translateY(-${scrollOffset}px)` }}
                                 >
@@ -227,7 +227,7 @@ export function FixMyAppFlipCard({
 
                             {/* Progress bar at bottom */}
                             <div className="progress-container">
-                                <div 
+                                <div
                                     className="progress-bar"
                                     style={{ width: `${fixingProgress}%` }}
                                 />
@@ -279,8 +279,8 @@ export function FixMyAppFlipCard({
                                 {/* Neural activity visualization */}
                                 <div className="neural-activity">
                                     {Array.from({ length: 20 }).map((_, i) => (
-                                        <div 
-                                            key={i} 
+                                        <div
+                                            key={i}
                                             className="neural-bar"
                                             style={{
                                                 animationDelay: `${i * 0.1}s`,
@@ -301,7 +301,7 @@ export function FixMyAppFlipCard({
                                 {/* Phase progress dots */}
                                 <div className="phase-dots">
                                     {Array.from({ length: totalPhases }).map((_, i) => (
-                                        <div 
+                                        <div
                                             key={i}
                                             className={`phase-dot ${i < orchestrationPhase ? 'complete' : ''} ${i === orchestrationPhase - 1 ? 'active' : ''}`}
                                         />

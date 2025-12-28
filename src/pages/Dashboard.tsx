@@ -17,11 +17,9 @@ import ImportProjectModal, { type ImportType } from '../components/dashboard/Imp
 import { FixMyAppIntro } from '../components/fix-my-app/FixMyAppIntro';
 import { ImageToCodeResult } from '@/lib/api-client';
 import {
-    ClockIcon,
     SettingsIcon,
     ChevronDownIcon,
     LoadingIcon,
-    MoreHorizontalIcon,
     CreditCardIcon,
     LogOutIcon,
 } from '../components/ui/icons';
@@ -43,6 +41,7 @@ import { ProjectCard3D } from '../components/ui/ProjectCard3D';
 import { FixMyAppFlipCard } from '../components/ui/FixMyAppFlipCard';
 import '../components/ui/premium-buttons/Premium3DButtons.css';
 import '../components/ui/FixMyAppFlipCard.css';
+import '../components/ui/ProjectCard3D.css';
 import '../styles/realistic-glass.css';
 
 // Figma Logo SVG (from Simple Icons)
@@ -445,53 +444,24 @@ const ProjectThumbnail = memo(function ProjectThumbnail({ project }: { project: 
         );
     }
 
-    // Regular project card (premium 3D glass tile)
-    // Map fixingStatus to status for the card badge
+    // Regular project card (premium 3D flip card with dark monitor styling)
+    // All info is displayed on the card itself now
     const cardStatus = project.fixingStatus === 'completed' ? 'fixed' : 'active';
 
     return (
         <div className="group" style={{ marginBottom: '24px' }}>
-            {/* 3D Glass Card for regular projects */}
+            {/* Premium 3D Flip Card for regular projects */}
             <ProjectCard3D
                 onClick={() => navigate(`/builder/${project.id}`)}
                 thumbnail={project.thumbnail}
                 projectName={project.name}
+                framework={frameworks}
+                lastModified={lastModified}
                 status={cardStatus}
+                description={project.description}
+                linesOfCode={project.linesOfCode}
+                components={project.components}
             />
-
-            {/* Project Info */}
-            <div className="mt-3 px-1">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                        <h3 className="font-semibold truncate text-sm" style={{ color: '#1a1a1a' }}>{project.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                            <ClockIcon size={12} />
-                            <span className="text-xs" style={{ color: '#666' }}>Modified {lastModified}</span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
-                        style={{ color: '#666' }}
-                    >
-                        <MoreHorizontalIcon size={16} />
-                    </button>
-                </div>
-                <div className="flex gap-2 mt-2">
-                    <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}>
-                        {frameworks}
-                    </span>
-                    {project.fixingStatus === 'completed' ? (
-                        <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
-                            Fixed
-                        </span>
-                    ) : (
-                        <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
-                            Active
-                        </span>
-                    )}
-                </div>
-            </div>
         </div>
     );
 }, (prevProps, nextProps) => {
