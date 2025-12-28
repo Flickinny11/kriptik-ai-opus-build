@@ -61,8 +61,8 @@ export async function testAuthConnection(): Promise<{
 export const signInWithGoogle = async () => {
     // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
-
-    console.log('[Auth] Starting Google sign-in...', {
+    
+    console.log('[Auth] Starting Google sign-in...', { 
         isMobile: isMobile(),
         apiUrl: API_URL,
         callbackURL,
@@ -70,23 +70,16 @@ export const signInWithGoogle = async () => {
 
     try {
         // Use Better Auth's built-in social sign-in
+        // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'google',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
-
-        console.log('[Auth] Google sign-in result:', result);
-
-        // Better Auth returns { url, redirect: true } for OAuth flows
-        // In embedded browsers (Cursor, mobile webviews), automatic navigation may not work
-        // so we explicitly navigate to the OAuth URL
-        if (result?.data?.url && result?.data?.redirect) {
-            console.log('[Auth] Redirecting to OAuth URL:', result.data.url);
-            window.location.href = result.data.url;
-            return;
-        }
-
-        // Handle error response
+        
+        console.log('[Auth] Google sign-in initiated:', result);
+        
+        // Better Auth handles the redirect, so we shouldn't reach here normally
+        // If we do, it means something went wrong
         if (result?.error) {
             throw new Error(result.error.message || 'Google sign-in failed');
         }
@@ -99,8 +92,8 @@ export const signInWithGoogle = async () => {
 export const signInWithGitHub = async () => {
     // Use full frontend URL for callback to ensure redirect goes to frontend, not backend
     const callbackURL = `${FRONTEND_URL}/dashboard`;
-
-    console.log('[Auth] Starting GitHub sign-in...', {
+    
+    console.log('[Auth] Starting GitHub sign-in...', { 
         isMobile: isMobile(),
         apiUrl: API_URL,
         callbackURL,
@@ -108,23 +101,15 @@ export const signInWithGitHub = async () => {
 
     try {
         // Use Better Auth's built-in social sign-in
+        // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'github',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
-
-        console.log('[Auth] GitHub sign-in result:', result);
-
-        // Better Auth returns { url, redirect: true } for OAuth flows
-        // In embedded browsers (Cursor, mobile webviews), automatic navigation may not work
-        // so we explicitly navigate to the OAuth URL
-        if (result?.data?.url && result?.data?.redirect) {
-            console.log('[Auth] Redirecting to OAuth URL:', result.data.url);
-            window.location.href = result.data.url;
-            return;
-        }
-
-        // Handle error response
+        
+        console.log('[Auth] GitHub sign-in initiated:', result);
+        
+        // Better Auth handles the redirect, so we shouldn't reach here normally
         if (result?.error) {
             throw new Error(result.error.message || 'GitHub sign-in failed');
         }
