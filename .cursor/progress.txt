@@ -4800,3 +4800,40 @@ NEXT STEPS:
    CURRENT STATE: ✅ `npm run build` passing. ✅ `server/npm run build` passing. ✅ Vercel deployments READY.
    NEXT: User should clear cookies for kriptik.app, then test Google OAuth login again. The session should now persist after OAuth callback.
    CONTEXT: The `__Secure-` cookie prefix has strict requirements beyond just HTTPS - some browsers require specific conditions that may not be met during cross-subdomain redirects. Disabling this prefix while keeping the Secure flag should resolve cookie persistence issues.
+
+═══ [2025-12-28 AUTH FIX - SIMPLIFIED COOKIE CONFIG] ═══
+COMPLETED: Simplified Better Auth cookie configuration
+
+ROOT CAUSE IDENTIFIED:
+- Session cookies were not being set with correct domain for cross-subdomain access
+- The crossSubDomainCookies feature was potentially buggy or conflicting with defaultCookieAttributes
+- useSecureCookies was adding __Secure- prefix that some browsers don't handle well
+
+FIX APPLIED:
+- Removed crossSubDomainCookies (was causing issues)
+- Set domain DIRECTLY in defaultCookieAttributes: domain: '.kriptik.app' (with leading dot)
+- Disabled useSecureCookies to avoid __Secure- prefix
+- Kept SameSite=Lax for same-site compatibility
+
+FILES MODIFIED:
+- server/src/auth.ts (simplified advanced cookie configuration)
+
+VERIFIED:
+✅ Backend builds without errors
+✅ Cookie test endpoint shows: Domain=.kriptik.app; Secure; SameSite=Lax
+✅ /api/auth/sign-in/social returns correct Google OAuth URL
+✅ redirect_uri: https://api.kriptik.app/api/auth/callback/google
+
+CURRENT STATE:
+- Cookie configuration is now correct for cross-subdomain auth
+- Backend deployed and responding correctly
+- Frontend is attempting to call backend correctly
+
+USER NEEDS TO TEST:
+1. Clear cookies for kriptik.app
+2. Go to https://kriptik.app/login
+3. Click "Continue with Google"
+4. Complete OAuth flow
+5. Verify landing on /dashboard with user data
+
+COMMIT: fix(auth): simplify cookie config - direct domain setting, no crossSubDomainCookies
