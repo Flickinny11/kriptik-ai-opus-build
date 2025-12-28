@@ -4909,3 +4909,41 @@ FILES MODIFIED:
 COMMIT: feat(dashboard): premium 3D flip cards for Fix My App projects
 PUSHED TO: main branch
 NEXT: Monitor Vercel build
+
+═══ [2025-12-28 FIX MY APP CARD IMPROVEMENTS] ═══
+COMPLETED: Fixed dashboard refresh issues and improved 3D flip card styling
+
+CHANGES MADE:
+1. Fixed flip card only showing for active Fix My App projects
+   - Added strict check: only show flip card for 'analyzing', 'creating_intent', 'building', 'verifying' statuses
+   - Regular projects now correctly show ProjectCard3D instead of flip card
+
+2. Fixed dashboard refresh loop
+   - Added React.memo() to ProjectThumbnail with custom comparison
+   - Only re-renders when key properties (id, name, fixingStatus, fixingProgress, etc.) change
+   - Prevents full dashboard re-renders when polling for Fix My App updates
+
+3. Enhanced 3D perspective with dramatic angle and skew
+   - Card now tilted: rotateY(-15deg) rotateX(8deg) skewY(-2deg)
+   - Added visible 3D edge depth via box-shadow (6px edges)
+   - Enhanced hover effects with scale and shadow lift
+   - Skewed ground shadow to match card angle
+
+4. Fixed flip timing to 4s code / 15s status
+   - Front (scrolling code) displays for 4 seconds
+   - Back (AI consciousness/status) displays for 15 seconds
+   - Total cycle: 19 seconds
+
+FILES MODIFIED:
+- src/pages/Dashboard.tsx (memo, strict isBeingFixed check)
+- src/components/ui/FixMyAppFlipCard.tsx (timing fix, removed unused prop)
+- src/components/ui/FixMyAppFlipCard.css (dramatic 3D angle, skew, edges)
+
+CURRENT STATE:
+✅ Build compiles successfully
+✅ Flip card only appears for actively fixing projects
+✅ Dashboard doesn't unnecessarily re-render all cards
+✅ 3D perspective with dramatic skew/angle
+✅ Correct timing: 4s code, 15s status
+
+NEXT: Test in browser to verify improvements

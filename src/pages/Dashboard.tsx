@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useUserStore } from '../store/useUserStore';
@@ -400,16 +400,21 @@ function MenuButton({ icon: Icon, label, danger = false }: { icon: React.Compone
     );
 }
 
+// Valid "in-progress" fixing statuses - ONLY these show the flip card
+const ACTIVE_FIXING_STATUSES = ['analyzing', 'creating_intent', 'building', 'verifying'];
+
 // Project thumbnail card - Uses different cards based on fix status
-function ProjectThumbnail({ project }: { project: any }) {
+// Memoized to prevent unnecessary re-renders when other projects update
+const ProjectThumbnail = memo(function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const frameworks = project.framework || 'React';
 
     // Check if project is being fixed (active Fix My App workflow)
-    const isBeingFixed = project.fixingStatus &&
-        !['completed', 'failed', null].includes(project.fixingStatus);
+    // STRICT CHECK: Only show flip card for explicitly active statuses
+    const isBeingFixed = typeof project.fixingStatus === 'string' &&
+        ACTIVE_FIXING_STATUSES.includes(project.fixingStatus);
 
     // Use the premium 3D flip card for projects in Fix My App workflow
     if (isBeingFixed) {
@@ -489,7 +494,20 @@ function ProjectThumbnail({ project }: { project: any }) {
             </div>
         </div>
     );
-}
+}, (prevProps, nextProps) => {
+    // Custom comparison - only re-render if key project properties changed
+    const prev = prevProps.project;
+    const next = nextProps.project;
+    return (
+        prev.id === next.id &&
+        prev.name === next.name &&
+        prev.fixingStatus === next.fixingStatus &&
+        prev.fixingProgress === next.fixingProgress &&
+        prev.currentThought === next.currentThought &&
+        prev.currentPhase === next.currentPhase &&
+        prev.updatedAt === next.updatedAt
+    );
+});
 
 // Main dashboard component
 export default function Dashboard() {

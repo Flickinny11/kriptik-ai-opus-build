@@ -13,7 +13,6 @@ interface FixMyAppFlipCardProps {
     totalPhases?: number;
     hasProblems?: boolean;
     problemDescription?: string;
-    codePreview?: string;
 }
 
 // Simulated code that scrolls
@@ -133,12 +132,29 @@ export function FixMyAppFlipCard({
         return () => clearInterval(typeInterval);
     }, [thoughtIndex, currentThought]);
 
-    // Auto-flip between front and back
+    // Auto-flip between front (code) and back (status)
+    // Front (code): 4 seconds, Back (status): 15 seconds
     useEffect(() => {
-        const flipInterval = setInterval(() => {
-            setIsFlipped(prev => !prev);
-        }, 8000);
-        return () => clearInterval(flipInterval);
+        const flipToBack = () => {
+            setIsFlipped(true);
+            // After 15 seconds on back, flip to front
+            setTimeout(() => {
+                setIsFlipped(false);
+            }, 15000);
+        };
+
+        // Initial flip after 4 seconds
+        const initialTimeout = setTimeout(flipToBack, 4000);
+
+        // Set up recurring cycle: 4s front + 15s back = 19s total
+        const cycleInterval = setInterval(() => {
+            flipToBack();
+        }, 19000);
+
+        return () => {
+            clearTimeout(initialTimeout);
+            clearInterval(cycleInterval);
+        };
     }, []);
 
     const getPhaseLabel = () => {

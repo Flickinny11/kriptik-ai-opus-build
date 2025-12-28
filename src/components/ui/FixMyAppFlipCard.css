@@ -4,33 +4,42 @@
    ============================================================================= */
 
 .fix-card-container {
-    perspective: 1500px;
+    perspective: 1200px;
     cursor: pointer;
     width: 100%;
     aspect-ratio: 4/3;
     position: relative;
+    /* Add padding for the skewed card to not clip */
+    padding: 15px 20px;
+    margin: -15px -20px;
 }
 
-/* 3D Card with flip animation */
+/* 3D Card with flip animation - DRAMATIC ANGLE & SKEW */
 .fix-card {
     width: 100%;
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
-    transform: rotateY(-5deg) rotateX(5deg);
+    transition: transform 1s cubic-bezier(0.4, 0.2, 0.2, 1);
+    /* Dramatic angle: tilted like a display in a showroom */
+    transform: rotateY(-15deg) rotateX(8deg) skewY(-2deg);
+    /* Add depth illusion */
+    transform-origin: center center;
 }
 
 .fix-card-container:hover .fix-card {
-    transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+    transform: rotateY(-8deg) rotateX(4deg) skewY(-1deg) scale(1.04);
+    /* Subtle lift effect on hover */
+    filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.35));
 }
 
 .fix-card.flipped {
-    transform: rotateY(180deg) rotateX(0deg);
+    transform: rotateY(165deg) rotateX(8deg) skewY(2deg);
 }
 
 .fix-card-container:hover .fix-card.flipped {
-    transform: rotateY(180deg) rotateX(0deg) scale(1.02);
+    transform: rotateY(172deg) rotateX(4deg) skewY(1deg) scale(1.04);
+    filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.35));
 }
 
 /* Card faces */
@@ -65,17 +74,35 @@
     padding: 8px;
     box-shadow:
         /* Outer glow */
-        0 0 60px rgba(249, 115, 22, 0.15),
-        /* Depth shadow */
-        0 30px 60px rgba(0, 0, 0, 0.4),
-        0 15px 30px rgba(0, 0, 0, 0.3),
+        0 0 60px rgba(249, 115, 22, 0.2),
+        /* Depth shadow - more dramatic */
+        0 40px 80px rgba(0, 0, 0, 0.5),
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 10px 20px rgba(0, 0, 0, 0.3),
         /* Edge highlights */
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        /* 3D edge */
-        0 4px 0 #0a0a0c,
-        0 8px 0 #050507;
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+        /* 3D edges - thicker for visible depth */
+        6px 0 0 #0a0a0c,
+        6px 6px 0 #050507,
+        0 6px 0 #0a0a0c,
+        /* Right edge highlight for 3D effect */
+        inset -2px 0 0 rgba(255, 255, 255, 0.03);
     position: relative;
+}
+
+/* Right edge - 3D depth panel */
+.monitor-frame::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    right: -8px;
+    width: 8px;
+    background: linear-gradient(90deg, #0d0d10 0%, #05050a 100%);
+    border-radius: 0 4px 4px 0;
+    transform: rotateY(90deg) translateX(-4px);
+    transform-origin: left center;
 }
 
 /* Bezel shine effect */
@@ -512,16 +539,20 @@
 
 .card-shadow {
     position: absolute;
-    left: 10%;
-    right: 10%;
-    bottom: -15px;
-    height: 30px;
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, transparent 70%);
-    filter: blur(10px);
-    transition: all 0.4s ease;
+    /* Offset to match the skewed card */
+    left: 5%;
+    right: 15%;
+    bottom: -20px;
+    height: 40px;
+    background: radial-gradient(ellipse 80% 100% at 40% 50%, rgba(0, 0, 0, 0.4) 0%, transparent 60%);
+    filter: blur(15px);
+    transition: all 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    /* Skew the shadow to match card angle */
+    transform: skewX(-10deg);
 }
 
 .fix-card-container:hover .card-shadow {
-    bottom: -25px;
-    opacity: 0.5;
+    bottom: -30px;
+    opacity: 0.6;
+    transform: skewX(-8deg) scaleX(1.05);
 }
