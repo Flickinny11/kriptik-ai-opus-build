@@ -15,7 +15,6 @@ import {
     LoadingIcon,
     ArrowRightIcon,
     ImageIcon,
-    ChevronDownIcon
 } from '../../components/ui/icons';
 import {
     OrchestratorIcon,
@@ -120,28 +119,9 @@ interface Message {
     strategy?: string;
 }
 
-// Available models for the chat
-type ChatModel = 'krip-toe-nite' | 'orchestrator';
-
-const CHAT_MODELS: Array<{
-    id: ChatModel;
-    name: string;
-    description: string;
-    icon: React.ReactNode;
-}> = [
-    {
-        id: 'krip-toe-nite',
-        name: 'Krip-Toe-Nite',
-        description: 'Ultra-fast intelligent routing',
-        icon: <KripTikNiteLogo size={18} />,
-    },
-    {
-        id: 'orchestrator',
-        name: 'Multi-Agent',
-        description: 'Full orchestrated build',
-        icon: <OrchestratorIcon size={18} />,
-    },
-];
+// Removed model selector - unified orchestration flow
+// All build requests go through full 6-phase orchestration
+// Quick questions use KTN for fast responses automatically
 
 const suggestions = [
     "Build a dashboard with analytics charts",
@@ -365,9 +345,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
     const [showBreakdown, setShowBreakdown] = useState(false);
 
-    // KTN State
-    const [selectedModel, setSelectedModel] = useState<ChatModel>('krip-toe-nite');
-    const [showModelDropdown, setShowModelDropdown] = useState(false);
+    // KTN State (used for quick questions only, builds use full orchestration)
     const [streamController, setStreamController] = useState<AbortController | null>(null);
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
 
@@ -645,12 +623,12 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setPendingPrompt(null);
         setIsTyping(true);
 
-        // CRITICAL: Build requests ALWAYS go through full orchestration flow
-        // Only use KTN direct streaming for quick questions/help
+        // CRITICAL: Build requests ALWAYS go through full 6-Phase orchestration flow
+        // Only use KTN for quick questions (e.g., "what is React?", "explain hooks")
         const shouldUseOrchestration = isBuildRequest(prompt);
 
-        if (selectedModel === 'krip-toe-nite' && !shouldUseOrchestration) {
-            // Quick question - use KTN for fast response
+        if (!shouldUseOrchestration) {
+            // Quick question - use KTN for ultra-fast response
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
@@ -1117,11 +1095,30 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     </div>
                     <div>
                         <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                            Build Assistant
+                            {buildWorkflowPhase === 'idle' ? 'Build Orchestrator' :
+                             buildWorkflowPhase === 'generating_plan' ? 'Generating Plan...' :
+                             buildWorkflowPhase === 'awaiting_plan_approval' ? 'Intent Lock' :
+                             buildWorkflowPhase === 'configuring_stack' ? 'Stack Configuration' :
+                             buildWorkflowPhase === 'awaiting_credentials' ? 'Credentials Required' :
+                             buildWorkflowPhase === 'building' ? 'Building...' :
+                             buildWorkflowPhase === 'complete' ? 'Build Complete' : 'Build Orchestrator'}
                         </h2>
-                        <p className="text-xs" style={{ color: globalStatus === 'running' ? '#c25a00' : '#666' }}>
-                            {globalStatus === 'running' ? 'Building...' :
-                             globalStatus === 'paused' ? 'Paused' : 'Ready to create'}
+                        <p className="text-xs" style={{ 
+                            color: buildWorkflowPhase === 'building' ? '#c25a00' : 
+                                   buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
+                                   buildWorkflowPhase === 'complete' ? '#059669' :
+                                   globalStatus === 'running' ? '#c25a00' : '#666' 
+                        }}>
+                            {buildWorkflowPhase === 'idle' ? (
+                                globalStatus === 'running' ? 'Agents working...' :
+                                globalStatus === 'paused' ? 'Paused' : 
+                                'Enter your vision, we handle the rest'
+                            ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing requirements...' :
+                            buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review and approve plan' :
+                            buildWorkflowPhase === 'configuring_stack' ? 'Select production stack' :
+                            buildWorkflowPhase === 'awaiting_credentials' ? 'Provide API keys' :
+                            buildWorkflowPhase === 'building' ? '6-Phase Orchestration Active' :
+                            buildWorkflowPhase === 'complete' ? 'Ready for demo' : 'Ready'}
                         </p>
                     </div>
                 </div>
@@ -1342,7 +1339,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                 ))}
                             </AnimatePresence>
 
-                            {/* Typing indicator with KTN stats */}
+                            {/* Typing indicator - KTN (yellow) for quick questions, Orchestrator (amber) for builds */}
                             {isTyping && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
@@ -1352,15 +1349,15 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     <div
                                         className="w-8 h-8 rounded-lg flex items-center justify-center"
                                         style={{
-                                            background: selectedModel === 'krip-toe-nite'
+                                            background: streamController 
                                                 ? 'linear-gradient(145deg, rgba(250,204,21,0.6) 0%, rgba(234,179,8,0.45) 100%)'
-                                                : 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
-                                            boxShadow: selectedModel === 'krip-toe-nite'
+                                                : 'linear-gradient(145deg, rgba(255,180,120,0.6) 0%, rgba(255,160,100,0.45) 100%)',
+                                            boxShadow: streamController 
                                                 ? `0 2px 8px rgba(234, 179, 8, 0.25)`
                                                 : `0 2px 8px rgba(255, 140, 100, 0.15)`,
                                         }}
                                     >
-                                        {selectedModel === 'krip-toe-nite' ? (
+                                        {streamController ? (
                                             <KripTikNiteLogo size={18} animated />
                                         ) : (
                                             <LoadingIcon size={16} className="animate-spin" style={{ color: '#92400e' }} />
@@ -1369,17 +1366,17 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     <MessageCard>
                                         <div className="flex items-center gap-2">
                                             <div className="flex gap-1.5 py-1">
-                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '0ms' }} />
-                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '150ms' }} />
-                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: selectedModel === 'krip-toe-nite' ? '#eab308' : '#c25a00', animationDelay: '300ms' }} />
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: streamController ? '#eab308' : '#c25a00', animationDelay: '0ms' }} />
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: streamController ? '#eab308' : '#c25a00', animationDelay: '150ms' }} />
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: streamController ? '#eab308' : '#c25a00', animationDelay: '300ms' }} />
                                             </div>
-                                            {selectedModel === 'krip-toe-nite' && ktnStats?.ttftMs && (
+                                            {streamController && ktnStats?.ttftMs && (
                                                 <span className="text-xs text-yellow-600 font-medium">
-                                                    ⚡ {ktnStats.ttftMs}ms
+                                                    {ktnStats.ttftMs}ms
                                                 </span>
                                             )}
                                         </div>
-                                        {selectedModel === 'krip-toe-nite' && streamController && (
+                                        {streamController && (
                                             <button
                                                 onClick={handleStopKtn}
                                                 className="text-xs text-red-500 hover:text-red-600 mt-1"
@@ -1391,8 +1388,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                 </motion.div>
                             )}
 
-                            {/* KTN Stats banner after completion */}
-                            {ktnStats && !isTyping && selectedModel === 'krip-toe-nite' && (
+                            {/* KTN Stats banner after completion - only shown for quick questions */}
+                            {ktnStats && !isTyping && !streamController && buildWorkflowPhase === 'idle' && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -1477,75 +1474,54 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             >
                 {/* Model Selector and Tournament Toggle */}
                 <div className="mb-3 flex items-center justify-between">
-                    {/* Model Selector */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowModelDropdown(!showModelDropdown)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:bg-white/50"
+                    {/* Workflow Phase Indicator - Unified orchestration flow */}
+                    <div className="flex items-center gap-2">
+                        <div 
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
                             style={{
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)',
+                                background: buildWorkflowPhase === 'idle' 
+                                    ? 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)'
+                                    : buildWorkflowPhase === 'building' 
+                                        ? 'linear-gradient(145deg, rgba(255,180,120,0.4) 0%, rgba(255,160,100,0.25) 100%)'
+                                        : buildWorkflowPhase === 'awaiting_plan_approval'
+                                            ? 'linear-gradient(145deg, rgba(5,150,105,0.25) 0%, rgba(16,185,129,0.15) 100%)'
+                                            : 'linear-gradient(145deg, rgba(234,179,8,0.3) 0%, rgba(250,204,21,0.2) 100%)',
                                 border: '1px solid rgba(0,0,0,0.08)',
+                                boxShadow: buildWorkflowPhase !== 'idle' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                             }}
                         >
-                            {CHAT_MODELS.find(m => m.id === selectedModel)?.icon}
+                            <OrchestratorIcon size={16} />
                             <span className="font-medium" style={{ color: '#1a1a1a' }}>
-                                {CHAT_MODELS.find(m => m.id === selectedModel)?.name}
+                                {buildWorkflowPhase === 'idle' ? 'Auto-Orchestration' :
+                                 buildWorkflowPhase === 'generating_plan' ? 'Analyzing...' :
+                                 buildWorkflowPhase === 'awaiting_plan_approval' ? 'Intent Locked' :
+                                 buildWorkflowPhase === 'configuring_stack' ? 'Configure Stack' :
+                                 buildWorkflowPhase === 'awaiting_credentials' ? 'Credentials' :
+                                 buildWorkflowPhase === 'building' ? 'Building' :
+                                 buildWorkflowPhase === 'complete' ? 'Complete' : 'Ready'}
                             </span>
-                            <ChevronDownIcon size={12} className="text-gray-500" />
-                        </button>
-
-                        <AnimatePresence>
-                            {showModelDropdown && (
+                            {buildWorkflowPhase !== 'idle' && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: -8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    className="absolute bottom-full mb-2 left-0 z-50 rounded-xl p-1 min-w-[200px]"
-                                    style={{
-                                        background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)',
-                                        boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
-                                        backdropFilter: 'blur(20px)',
+                                    animate={{ rotate: buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' ? 360 : 0 }}
+                                    transition={{ duration: 2, repeat: buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' ? Infinity : 0, ease: 'linear' }}
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ 
+                                        background: buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
+                                                    buildWorkflowPhase === 'building' ? '#c25a00' :
+                                                    buildWorkflowPhase === 'complete' ? '#059669' : '#eab308'
                                     }}
-                                >
-                                    {CHAT_MODELS.map((model) => (
-                                        <button
-                                            key={model.id}
-                                            onClick={() => {
-                                                setSelectedModel(model.id);
-                                                setShowModelDropdown(false);
-                                            }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                                                selectedModel === model.id ? 'bg-orange-50' : 'hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {model.icon}
-                                            <div className="text-left">
-                                                <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                                                    {model.name}
-                                                </div>
-                                                <div className="text-[10px]" style={{ color: '#666' }}>
-                                                    {model.description}
-                                                </div>
-                                            </div>
-                                            {selectedModel === model.id && (
-                                                <div className="ml-auto w-2 h-2 rounded-full bg-orange-500" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </motion.div>
+                                />
                             )}
-                        </AnimatePresence>
-                    </div>
+                        </div>
 
-                    {/* Tournament Mode Toggle - Only show for Multi-Agent model */}
-                    {selectedModel === 'orchestrator' && (
+                        {/* Tournament Mode Toggle - Always visible for quality builds */}
                         <TournamentModeToggle
                             enabled={tournamentEnabled}
                             onChange={setTournamentEnabled}
-                            disabled={globalStatus !== 'idle'}
+                            disabled={globalStatus !== 'idle' || buildWorkflowPhase !== 'idle'}
                             compact
                         />
-                    )}
+                    </div>
                 </div>
 
                 {/* Glass Input Container */}
@@ -1577,7 +1553,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         <div className="flex-1">
                             <textarea
                                 ref={inputRef}
-                                placeholder="Describe what you want to build... (full orchestration)"
+                                placeholder="Describe your vision... we'll build it production-ready"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
@@ -1620,15 +1596,11 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     className="flex items-center justify-center gap-4 mt-3 text-[10px]"
                     style={{ color: '#999' }}
                 >
-                    <span>Press Enter to send</span>
+                    <span>Enter to send</span>
                     <span style={{ color: '#ccc' }}>•</span>
                     <span>Shift+Enter for new line</span>
-                    {selectedModel === 'krip-toe-nite' && (
-                        <>
-                            <span style={{ color: '#ccc' }}>•</span>
-                            <span className="text-yellow-600">⚡ Krip-Toe-Nite</span>
-                        </>
-                    )}
+                    <span style={{ color: '#ccc' }}>•</span>
+                    <span style={{ color: '#888' }}>6-Phase Orchestration</span>
                 </div>
             </div>
         </div>
