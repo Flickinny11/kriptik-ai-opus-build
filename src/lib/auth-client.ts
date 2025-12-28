@@ -70,16 +70,23 @@ export const signInWithGoogle = async () => {
 
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'google',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
 
-        console.log('[Auth] Google sign-in initiated:', result);
+        console.log('[Auth] Google sign-in result:', result);
 
-        // Better Auth handles the redirect, so we shouldn't reach here normally
-        // If we do, it means something went wrong
+        // Better Auth returns { url, redirect: true } for OAuth flows
+        // In embedded browsers (Cursor, mobile webviews), automatic navigation may not work
+        // so we explicitly navigate to the OAuth URL
+        if (result?.data?.url && result?.data?.redirect) {
+            console.log('[Auth] Redirecting to OAuth URL:', result.data.url);
+            window.location.href = result.data.url;
+            return;
+        }
+
+        // Handle error response
         if (result?.error) {
             throw new Error(result.error.message || 'Google sign-in failed');
         }
@@ -101,15 +108,23 @@ export const signInWithGitHub = async () => {
 
     try {
         // Use Better Auth's built-in social sign-in
-        // This handles the OAuth flow and redirects automatically
         const result = await authClient.signIn.social({
             provider: 'github',
             callbackURL, // Use full URL to ensure redirect to frontend
         });
 
-        console.log('[Auth] GitHub sign-in initiated:', result);
+        console.log('[Auth] GitHub sign-in result:', result);
 
-        // Better Auth handles the redirect, so we shouldn't reach here normally
+        // Better Auth returns { url, redirect: true } for OAuth flows
+        // In embedded browsers (Cursor, mobile webviews), automatic navigation may not work
+        // so we explicitly navigate to the OAuth URL
+        if (result?.data?.url && result?.data?.redirect) {
+            console.log('[Auth] Redirecting to OAuth URL:', result.data.url);
+            window.location.href = result.data.url;
+            return;
+        }
+
+        // Handle error response
         if (result?.error) {
             throw new Error(result.error.message || 'GitHub sign-in failed');
         }
