@@ -1,0 +1,384 @@
+/* =============================================================================
+   Premium 3D Tile Card for Regular Projects
+   ============================================================================= */
+
+.project-tile-container {
+    position: relative;
+    cursor: pointer;
+    width: 100%;
+    aspect-ratio: 4/3;
+}
+
+/* Main 3D Card */
+.project-tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #1a1a1f 0%, #0f0f12 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transform-style: preserve-3d;
+    will-change: transform;
+
+    /* Base shadows */
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        0 -1px 0 rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.project-tile-container:hover .project-tile {
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08),
+        0 -1px 0 rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* Shine effect that follows mouse */
+.tile-shine {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 50%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.project-tile-container:hover .tile-shine {
+    opacity: 1;
+}
+
+/* =============================================================================
+   Tile Content
+   ============================================================================= */
+
+.tile-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+/* Thumbnail / Visual Area */
+.tile-thumbnail {
+    height: 55%;
+    position: relative;
+    overflow: hidden;
+}
+
+.tile-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.project-tile-container:hover .tile-thumbnail img {
+    transform: scale(1.05);
+}
+
+/* Default gradient for projects without thumbnail */
+.tile-gradient {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.gradient-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    animation: orb-float 8s ease-in-out infinite;
+}
+
+.orb-1 {
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, transparent 70%);
+    top: -20%;
+    left: -10%;
+    animation-delay: 0s;
+}
+
+.orb-2 {
+    width: 50%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(251, 146, 60, 0.3) 0%, transparent 70%);
+    bottom: -30%;
+    right: -10%;
+    animation-delay: -3s;
+}
+
+.orb-3 {
+    width: 40%;
+    height: 50%;
+    background: radial-gradient(circle, rgba(234, 88, 12, 0.25) 0%, transparent 70%);
+    top: 30%;
+    right: 20%;
+    animation-delay: -5s;
+}
+
+@keyframes orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(10px, -10px) scale(1.1); }
+    66% { transform: translate(-5px, 5px) scale(0.95); }
+}
+
+/* Status Badge */
+.status-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--status-color, #6b7280);
+    box-shadow: 0 0 8px var(--status-color, #6b7280);
+}
+
+/* =============================================================================
+   Info Section
+   ============================================================================= */
+
+.tile-info {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+.tile-title {
+    margin: 0 0 6px 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tile-description {
+    margin: 0 0 12px 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Tech stack pills */
+.tech-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: auto;
+}
+
+.tech-pill {
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+}
+
+.tech-pill.more {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}
+
+.project-tile-container:hover .tech-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Footer */
+.tile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: auto;
+}
+
+.last-updated {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.open-cta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #f97316;
+    transition: all 0.2s ease;
+}
+
+.open-cta svg {
+    transition: transform 0.2s ease;
+}
+
+.project-tile-container:hover .open-cta svg {
+    transform: translateX(4px);
+}
+
+/* =============================================================================
+   3D Edge Highlights
+   ============================================================================= */
+
+.tile-edge {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tile-edge.top {
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+}
+
+.tile-edge.bottom {
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+}
+
+.tile-edge.left {
+    left: 0;
+    top: 10%;
+    bottom: 10%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.tile-edge.right {
+    right: 0;
+    top: 10%;
+    bottom: 10%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.project-tile-container:hover .tile-edge {
+    opacity: 1;
+}
+
+/* =============================================================================
+   Layered Shadows
+   ============================================================================= */
+
+.tile-shadow {
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.shadow-1 {
+    bottom: -4px;
+    height: 20px;
+    filter: blur(8px);
+    opacity: 0.6;
+}
+
+.shadow-2 {
+    bottom: -8px;
+    left: 10%;
+    right: 10%;
+    height: 20px;
+    filter: blur(16px);
+    opacity: 0.4;
+}
+
+.shadow-3 {
+    bottom: -12px;
+    left: 15%;
+    right: 15%;
+    height: 20px;
+    filter: blur(24px);
+    opacity: 0.2;
+}
+
+.project-tile-container:hover .shadow-1 {
+    bottom: -8px;
+    opacity: 0.8;
+}
+
+.project-tile-container:hover .shadow-2 {
+    bottom: -14px;
+    opacity: 0.5;
+}
+
+.project-tile-container:hover .shadow-3 {
+    bottom: -20px;
+    opacity: 0.3;
+}
+
+/* =============================================================================
+   Responsive
+   ============================================================================= */
+
+@media (max-width: 640px) {
+    .tile-title {
+        font-size: 14px;
+    }
+
+    .tile-description {
+        font-size: 11px;
+    }
+
+    .tile-info {
+        padding: 12px;
+    }
+}

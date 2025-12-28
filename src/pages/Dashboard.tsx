@@ -40,7 +40,9 @@ import {
 } from '../components/ui/AbstractIcons';
 import { GenerateButton3D } from '../components/ui/GenerateButton3D';
 import { ProjectCard3D } from '../components/ui/ProjectCard3D';
+import { FixMyAppFlipCard } from '../components/ui/FixMyAppFlipCard';
 import '../components/ui/premium-buttons/Premium3DButtons.css';
+import '../components/ui/FixMyAppFlipCard.css';
 import '../styles/realistic-glass.css';
 
 // Figma Logo SVG (from Simple Icons)
@@ -398,27 +400,57 @@ function MenuButton({ icon: Icon, label, danger = false }: { icon: React.Compone
     );
 }
 
-// Project thumbnail card - 3D Glass Card
+// Project thumbnail card - Uses different cards based on fix status
 function ProjectThumbnail({ project }: { project: any }) {
     const navigate = useNavigate();
 
     const lastModified = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'Today';
     const frameworks = project.framework || 'React';
 
-    // Check if project is being fixed
+    // Check if project is being fixed (active Fix My App workflow)
     const isBeingFixed = project.fixingStatus &&
         !['completed', 'failed', null].includes(project.fixingStatus);
 
+    // Use the premium 3D flip card for projects in Fix My App workflow
+    if (isBeingFixed) {
+        return (
+            <div className="group" style={{ marginBottom: '24px' }}>
+                <FixMyAppCard3D
+                    onClick={() => navigate(`/builder/${project.id}`)}
+                    projectName={project.name}
+                    fixingStatus={project.fixingStatus}
+                    fixingProgress={project.fixingProgress || 0}
+                    importSource={project.importSource}
+                    currentPhase={project.currentPhase}
+                    currentTask={project.currentTask}
+                    thoughts={project.thoughts}
+                    errors={project.errors}
+                />
+                {/* Minimal info below the flip card */}
+                <div className="mt-3 px-1">
+                    <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}>
+                            {frameworks}
+                        </span>
+                        <span className="text-xs" style={{ color: '#666' }}>Modified {lastModified}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Regular project card (premium 3D glass tile)
+    // Map fixingStatus to status for the card badge
+    const cardStatus = project.fixingStatus === 'completed' ? 'fixed' : 'active';
+
     return (
         <div className="group" style={{ marginBottom: '24px' }}>
-            {/* 3D Glass Card with Fix My App status */}
+            {/* 3D Glass Card for regular projects */}
             <ProjectCard3D
                 onClick={() => navigate(`/builder/${project.id}`)}
                 thumbnail={project.thumbnail}
                 projectName={project.name}
-                fixingStatus={project.fixingStatus}
-                fixingProgress={project.fixingProgress}
-                importSource={project.importSource}
+                status={cardStatus}
             />
 
             {/* Project Info */}
@@ -443,12 +475,7 @@ function ProjectThumbnail({ project }: { project: any }) {
                     <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#404040' }}>
                         {frameworks}
                     </span>
-                    {isBeingFixed ? (
-                        <span className="px-2 py-0.5 text-[10px] rounded-full flex items-center gap-1" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            Being Fixed
-                        </span>
-                    ) : project.fixingStatus === 'completed' ? (
+                    {project.fixingStatus === 'completed' ? (
                         <span className="px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
                             Fixed
                         </span>
@@ -503,22 +530,36 @@ export default function Dashboard() {
         }
     }, [isAuthenticated, user?.id, fetchProjects]);
 
-    // Poll for projects being fixed (every 5 seconds when there are active fixes)
+    // Track which projects are being fixed (for selective polling)
+    const fixingProjectIds = useRef<Set<string>>(new Set());
+    
+    // Update the set of projects being fixed WITHOUT causing re-renders
     useEffect(() => {
-        // Check if any projects are being fixed
-        const hasProjectsBeingFixed = projects.some(p =>
-            p.fixingStatus && !['completed', 'failed', null].includes(p.fixingStatus)
-        );
+        const newFixingIds = new Set<string>();
+        projects.forEach(p => {
+            if (p.fixingStatus && !['completed', 'failed', null].includes(p.fixingStatus)) {
+                newFixingIds.add(p.id);
+            }
+        });
+        fixingProjectIds.current = newFixingIds;
+    }, [projects]);
 
-        if (!hasProjectsBeingFixed || !isAuthenticated) return;
+    // Poll ONLY for projects being fixed (every 5 seconds)
+    // This effect only runs once on mount and sets up a stable interval
+    useEffect(() => {
+        if (!isAuthenticated) return;
 
-        console.log('[Dashboard] Polling for Fix My App progress...');
         const pollInterval = setInterval(() => {
-            fetchProjects();
+            // Only poll if there are projects being fixed
+            if (fixingProjectIds.current.size > 0) {
+                console.log('[Dashboard] Polling for Fix My App progress...', 
+                    Array.from(fixingProjectIds.current));
+                fetchProjects();
+            }
         }, 5000); // Poll every 5 seconds
 
         return () => clearInterval(pollInterval);
-    }, [projects, isAuthenticated, fetchProjects]);
+    }, [isAuthenticated, fetchProjects]);
 
     useEffect(() => {
         if (!hasCompletedOnboarding) {

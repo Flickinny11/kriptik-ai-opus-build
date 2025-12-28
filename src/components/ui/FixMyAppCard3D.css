@@ -1,0 +1,535 @@
+/* ============================================================================
+   FIX MY APP 3D FLIP CARD
+   Premium monitor-style card with scrolling code and AI consciousness
+   ============================================================================ */
+
+.fix-card-container {
+    perspective: 1500px;
+    width: 100%;
+    aspect-ratio: 4/3;
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+
+.fix-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fix-card.flipped {
+    transform: rotateY(180deg);
+}
+
+.fix-card.hovered:not(.flipped) {
+    transform: rotateX(-5deg) rotateY(5deg) translateY(-8px);
+}
+
+.fix-card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.fix-card-back {
+    transform: rotateY(180deg);
+}
+
+/* ============================================================================
+   FRONT SIDE - MONITOR WITH SCROLLING CODE
+   ============================================================================ */
+
+.monitor-frame {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, #1a1a1f 0%, #0d0d10 100%);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.5),
+        0 10px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.monitor-bezel-top {
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #2a2a30 0%, #1a1a1f 100%);
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 4px;
+}
+
+.monitor-camera {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #3a3a45, #1a1a20);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.monitor-screen {
+    flex: 1;
+    position: relative;
+    background: #0a0a0f;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.8),
+        inset 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.screen-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.15) 2px,
+        rgba(0, 0, 0, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+}
+
+.screen-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, var(--glow-color, #3b82f6) 0%, transparent 70%);
+    opacity: 0.08;
+    pointer-events: none;
+    animation: screen-pulse 3s ease-in-out infinite;
+}
+
+@keyframes screen-pulse {
+    0%, 100% { opacity: 0.05; }
+    50% { opacity: 0.12; }
+}
+
+.screen-status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    z-index: 5;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: status-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes status-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.status-text {
+    flex: 1;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.status-progress {
+    font-weight: 700;
+    color: #fff;
+}
+
+.code-container {
+    position: absolute;
+    top: 36px;
+    left: 0;
+    right: 0;
+    bottom: 50px;
+    overflow: hidden;
+    mask-image: linear-gradient(180deg, transparent 0%, black 10%, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+.code-scroll {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 10px;
+    line-height: 24px;
+    transition: transform 0.1s linear;
+}
+
+.code-line {
+    display: flex;
+    padding: 0 12px;
+    white-space: pre;
+}
+
+.line-number {
+    width: 28px;
+    color: rgba(100, 100, 120, 0.5);
+    text-align: right;
+    margin-right: 12px;
+    user-select: none;
+}
+
+.line-content {
+    color: #a5b4fc;
+}
+
+/* Syntax highlighting */
+.line-content:has(import) { color: #c084fc; }
+
+.screen-info-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 100%);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 10px;
+    z-index: 5;
+}
+
+.project-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+.import-source {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+.progress-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.monitor-bezel-bottom {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(0deg, #2a2a30 0%, #1a1a1f 100%);
+    border-radius: 0 0 8px 8px;
+    margin-top: 4px;
+}
+
+.monitor-logo {
+    font-family: 'SF Pro Display', system-ui, sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.flip-hint {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(100, 100, 110, 0.8);
+    font-family: system-ui, sans-serif;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.fix-card.hovered .flip-hint {
+    opacity: 1;
+}
+
+/* ============================================================================
+   BACK SIDE - AI CONSCIOUSNESS STREAM
+   ============================================================================ */
+
+.consciousness-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: linear-gradient(145deg, #0f0f14 0%, #1a1a22 50%, #0d0d12 100%);
+    border-radius: 16px;
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.5),
+        0 10px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.consciousness-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 12px;
+}
+
+.ai-avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+}
+
+.ai-core {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #6366f1, #4f46e5);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+.ai-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    animation: ring-rotate 3s linear infinite;
+}
+
+.ai-ring-2 {
+    inset: 4px;
+    animation-direction: reverse;
+    animation-duration: 2s;
+}
+
+@keyframes ring-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.ai-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ai-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.ai-status {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.phase-display {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.phase-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.phase-value {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-value {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+}
+
+.thought-stream,
+.error-stream {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 12px;
+}
+
+.stream-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.error-label {
+    color: rgba(239, 68, 68, 0.8);
+}
+
+.stream-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.thought-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    animation: thought-fade-in 0.3s ease forwards;
+    opacity: 0;
+}
+
+@keyframes thought-fade-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.thought-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #6366f1;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.thought-text {
+    line-height: 1.4;
+}
+
+.error-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 10px;
+    color: rgba(239, 68, 68, 0.9);
+    background: rgba(239, 68, 68, 0.1);
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.error-icon {
+    flex-shrink: 0;
+}
+
+.error-text {
+    line-height: 1.4;
+}
+
+.consciousness-footer {
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.progress-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.progress-value {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.progress-bar-mini {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill-mini {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.open-project-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.open-project-btn:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ============================================================================
+   3D SHADOW
+   ============================================================================ */
+
+.fix-card-shadow {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -15px;
+    height: 30px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
+    filter: blur(15px);
+    transition: all 0.5s ease;
+}
+
+.fix-card-container:hover .fix-card-shadow {
+    bottom: -25px;
+    opacity: 0.7;
+}
+
+.fix-card-shadow.flipped {
+    opacity: 0.5;
+}
