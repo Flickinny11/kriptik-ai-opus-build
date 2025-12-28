@@ -1,3 +1,47 @@
+═══ [2025-12-28 UNIFIED ORCHESTRATION FLOW] ═══
+COMPLETED: Fixed API URL issue and unified orchestration flow
+
+ISSUE 1 - API URL FIX:
+- ChatInterface.tsx was calling /api/execute/plan with RELATIVE path
+- This hit the frontend domain (kriptik.app) instead of backend (api.kriptik.app)
+- Vercel frontend returned HTML 404 page: "The page could not be found"
+- This caused JSON parse error: "Unexpected token 'T', 'The page c'..."
+
+SOLUTION:
+- Added API_URL constant from VITE_API_URL environment variable
+- Updated all /api/execute/plan fetch calls to use ${API_URL}/api/execute/plan
+- Added credentials: 'include' for proper session cookie handling
+
+ISSUE 2 - UNIFIED FLOW:
+- User requested removal of KTN/Multi-Agent selector dropdown
+- All build requests should go through full 6-Phase orchestration automatically
+- Quick questions should use KTN for fast responses
+
+SOLUTION:
+- Removed CHAT_MODELS array and selectedModel state
+- Header now shows dynamic "Build Orchestrator" / "Intent Lock" / "Building..." status
+- Workflow phase indicator badge shows current state with color-coded glow
+- Tournament Mode toggle now always visible
+- Placeholder: "Describe your vision... we'll build it production-ready"
+- Hint shows "6-Phase Orchestration" instead of model name
+- isBuildRequest() function intelligently routes prompts
+
+FILES MODIFIED:
+- src/components/builder/ChatInterface.tsx
+  - Added API_URL constant
+  - Fixed 3 fetch calls to use API_URL
+  - Removed model selector dropdown
+  - Added workflow phase indicator
+  - Updated header with dynamic status
+  - Simplified typing indicator logic
+
+CURRENT STATE:
+✅ Frontend builds successfully  
+✅ API calls now hit correct backend URL
+✅ Unified orchestration flow - no model selector needed
+✅ Dynamic workflow status in header
+✅ Changes pushed to main
+
 ═══ [2025-12-28 BUILDER ORCHESTRATION FIX] ═══
 COMPLETED: Fixed Builder chat bypassing orchestration flow
 

@@ -16,6 +16,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './FloatingSoftInterrupt.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -267,7 +269,7 @@ export function FloatingSoftInterrupt({
 
   const fetchInterruptHistory = async () => {
     try {
-      const response = await fetch(`/api/soft-interrupt/history/${sessionId}`, {
+      const response = await fetch(`${API_URL}/api/soft-interrupt/history/${sessionId}`, {
         credentials: 'include',
       });
       const data = await response.json();
@@ -301,7 +303,7 @@ export function FloatingSoftInterrupt({
     setShowFeedback(false);
 
     try {
-      const response = await fetch('/api/soft-interrupt/submit', {
+      const response = await fetch(`${API_URL}/api/soft-interrupt/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

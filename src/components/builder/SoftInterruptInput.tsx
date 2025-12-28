@@ -22,6 +22,8 @@ import {
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -181,7 +183,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
 
   const fetchInterruptHistory = async () => {
     try {
-      const response = await fetch(`/api/soft-interrupt/history/${sessionId}`, {
+      const response = await fetch(`${API_URL}/api/soft-interrupt/history/${sessionId}`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -200,7 +202,7 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
     setShowFeedback(false);
 
     try {
-      const response = await fetch('/api/soft-interrupt/submit', {
+      const response = await fetch(`${API_URL}/api/soft-interrupt/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
