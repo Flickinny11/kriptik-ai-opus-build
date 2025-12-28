@@ -4837,3 +4837,40 @@ USER NEEDS TO TEST:
 5. Verify landing on /dashboard with user data
 
 COMMIT: fix(auth): simplify cookie config - direct domain setting, no crossSubDomainCookies
+
+═══ [2025-12-28 AUTH FIX - ROOT CAUSE FOUND AND FIXED] ═══
+STATUS: ✅ CONFIRMED WORKING
+
+ROOT CAUSE:
+The Drizzle adapter couldn't find the "users" model because schema keys didn't match modelName values.
+
+ERROR FROM LOGS:
+```
+[BetterAuthError: [# Drizzle Adapter]: The model "users" was not found in the schema object.
+```
+
+THE FIX:
+Changed schema keys to match modelName values:
+```typescript
+// BEFORE (broken):
+schema: {
+    user: schema.users,        // Key is 'user'
+    ...
+}
+user: { modelName: "users" }   // But modelName is 'users' - MISMATCH!
+
+// AFTER (working):
+schema: {
+    users: schema.users,       // Key is 'users' - MATCHES modelName
+    session: schema.sessions,
+    account: schema.accounts,
+    verification: schema.verifications,
+}
+user: { modelName: "users" }   // Now matches schema key
+```
+
+COMMITS:
+1. fix(auth): simplify cookie config - direct domain setting
+2. fix(auth): CRITICAL - schema keys must match modelName values for Drizzle adapter
+
+USER CONFIRMATION: "ok. it works now. thank you"
