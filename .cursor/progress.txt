@@ -4773,3 +4773,14 @@ NEXT STEPS:
    - Add `https://kriptik.app` and `https://www.kriptik.app` to Authorized JavaScript origins
    NEXT: Test login in Chrome on mobile (iOS Safari) once Google OAuth callback URI is updated; test email/password login as alternative.
    CONTEXT: Cursor's embedded browser Playwright automation cannot trigger React onClick handlers directly, which prevented automated testing of the login button. However, the underlying auth flow is verified working via curl and the code changes are deployed.
+
+   ═══ [2025-12-28T01:45:00.000Z] ═══
+   COMPLETED: Fixed critical auth regression by (1) reverting auth-client.ts to original Better Auth redirect handling, (2) adding explicit cookie domain `.kriptik.app` for cross-subdomain auth.
+   FILES MODIFIED: src/lib/auth-client.ts (reverted to original), server/src/auth.ts (added explicit domain)
+   ROOT CAUSE: The cookie domain was not explicitly set in Better Auth config. On Vercel serverless, cookies were being set on `api.kriptik.app` specifically instead of the parent `.kriptik.app` domain. This meant cookies set during OAuth callback on `api.kriptik.app` were NOT accessible on `kriptik.app`.
+   FIX APPLIED:
+   - `crossSubDomainCookies.domain: '.kriptik.app'` - explicitly sets cookie domain
+   - `defaultCookieAttributes.domain: '.kriptik.app'` - ensures all auth cookies use parent domain
+   CURRENT STATE: ✅ Both frontend + backend Vercel deployments READY.
+   NEXT: User should test Google OAuth login in Chrome, then mobile, then Cursor browser. Session cookie should now persist across `api.kriptik.app` → `kriptik.app` navigation.
+   CONTEXT: The issue was that cookies set by the backend (api.kriptik.app) during OAuth callback weren't being sent back by the browser when accessing the frontend (kriptik.app) because the cookie domain was too specific. Setting domain to `.kriptik.app` makes cookies accessible across all subdomains.
