@@ -585,6 +585,44 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setStreamController(controller);
     }, []);
 
+    // Detect if a prompt is a "build request" that should go through full orchestration
+    // vs a "quick question" that can be answered directly by KTN
+    const isBuildRequest = (prompt: string): boolean => {
+        const promptLower = prompt.toLowerCase();
+        // Build request indicators
+        const buildKeywords = [
+            'build', 'create', 'make', 'add', 'implement', 'design', 'develop',
+            'generate', 'set up', 'setup', 'integrate', 'deploy', 'configure',
+            'fix', 'modify', 'change', 'update', 'refactor', 'enhance', 'improve',
+            'landing page', 'dashboard', 'authentication', 'login', 'signup',
+            'database', 'api', 'form', 'component', 'feature', 'page', 'screen',
+            'app', 'application', 'website', 'system', 'module', 'functionality',
+            'chart', 'graph', 'table', 'list', 'modal', 'notification', 'settings',
+        ];
+        // Quick question indicators (should NOT trigger orchestration)
+        const questionKeywords = [
+            'what is', 'how does', 'explain', 'why', 'can you tell me',
+            'difference between', 'help me understand', 'documentation',
+        ];
+        
+        // Check if it's a quick question first
+        for (const keyword of questionKeywords) {
+            if (promptLower.startsWith(keyword)) {
+                return false; // It's a question, use KTN direct
+            }
+        }
+        
+        // Check if it's a build request
+        for (const keyword of buildKeywords) {
+            if (promptLower.includes(keyword)) {
+                return true; // It's a build request
+            }
+        }
+        
+        // Default: if prompt is longer than 50 chars, assume it's a build request
+        return prompt.length > 50;
+    };
+
     const confirmGeneration = async () => {
         if (!pendingPrompt) return;
 
@@ -604,12 +642,16 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setPendingPrompt(null);
         setIsTyping(true);
 
-        // Use Krip-Toe-Nite for fast intelligent routing
-        if (selectedModel === 'krip-toe-nite') {
+        // CRITICAL: Build requests ALWAYS go through full orchestration flow
+        // Only use KTN direct streaming for quick questions/help
+        const shouldUseOrchestration = isBuildRequest(prompt);
+
+        if (selectedModel === 'krip-toe-nite' && !shouldUseOrchestration) {
+            // Quick question - use KTN for fast response
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: '⚡ Using Krip-Toe-Nite intelligent routing...',
+                content: '⚡ Quick response via Krip-Toe-Nite...',
                 timestamp: new Date(),
                 agentType: 'krip-toe-nite',
             };
@@ -617,12 +659,15 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             handleKtnStream(prompt);
         } else {
-            // P0: Use new plan-first workflow for multi-agent orchestration
+            // BUILD REQUEST: Use full plan-first orchestration workflow
+            // This ensures Intent Lock → Plan Approval → Credentials → Build Loop
+            console.log('[ChatInterface] Build request detected - using full orchestration flow');
+            
             // Step 1: Generate plan and detect credentials
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: 'Analyzing your request and generating implementation plan...',
+                content: '🔒 Intent Lock → Generating implementation plan for your review...',
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             };
@@ -1526,9 +1571,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         <div className="flex-1">
                             <textarea
                                 ref={inputRef}
-                                placeholder={selectedModel === 'krip-toe-nite'
-                                    ? "Ask anything... ⚡ Ultra-fast response"
-                                    : "Describe what you want to build..."}
+                                placeholder="Describe what you want to build... (full orchestration)"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
