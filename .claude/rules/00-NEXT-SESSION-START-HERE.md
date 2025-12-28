@@ -10,7 +10,16 @@
 1. **3D Panel Enhancements** (`.claude/implementation-plan-3d-panels.md`) - Premium 3D visualizations for dev toolbar
 2. **LATTICE Speed Enhancement** (`.claude/implementation-plan-lattice.md`) - Parallel build system
 
-### What Was Just Completed (December 22, 2025)
+### What Was Just Completed (December 28, 2025)
+
+1. ✅ **Unified Orchestration Path** - Removed model selector from ChatInterface, ALL builds now use full BuildLoopOrchestrator
+2. ✅ **Ultrathink Mode Added** - Added ThinkingTier type system (think < think_hard < think_harder < ultrathink)
+3. ✅ **Thinking Budget Tiers** - Added THINKING_TIER_BUDGETS (8K/16K/32K/64K) and helper functions
+4. ✅ **KTN Streaming Removed** - Removed separate KripToeNite streaming path, now handled by orchestrator
+5. ✅ **Vercel Deployment Verified** - Both frontend and backend build and deploy successfully
+6. ✅ **PR Created** - https://github.com/Flickinny11/kriptik-ai-opus-build/pull/45
+
+### Previous Completions (December 22, 2025)
 
 1. ✅ **Dual SDK Architecture Fixed** - Anthropic + OpenAI SDKs properly routed
 2. ✅ **GPT-5.2-Codex Integrated** - SOTA agentic coding model
