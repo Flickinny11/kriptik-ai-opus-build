@@ -76,6 +76,8 @@ export interface PRInfo {
 export class GitBranchManager extends EventEmitter {
     private config: WorktreeConfig;
     private activeWorktrees: Map<string, WorktreeInfo> = new Map();
+    private hasRemote: boolean = false;
+    private isInitialized: boolean = false;
 
     constructor(config: WorktreeConfig) {
         super();
@@ -84,19 +86,58 @@ export class GitBranchManager extends EventEmitter {
 
     /**
      * Initialize the git branch manager
+     * - Ensures project path exists and is a git repo
+     * - Detects if remote 'origin' is available
+     * - Creates initial commit if repo is empty
      */
     async initialize(): Promise<void> {
+        // Ensure project path exists
+        await fs.mkdir(this.config.projectPath, { recursive: true });
+
         // Ensure worktrees base path exists
         await fs.mkdir(this.config.worktreesBasePath, { recursive: true });
+
+        // Check if project path is a git repo
+        const isGitRepo = await this.isGitRepository();
+        if (!isGitRepo) {
+            console.log(`[GitBranchManager] Initializing git repo at ${this.config.projectPath}`);
+            await this.runGitCommand('init');
+            await this.runGitCommand(`checkout -b ${this.config.defaultBranch}`);
+
+            // Create initial commit so we have something to branch from
+            await this.runGitCommand('commit --allow-empty -m "Initial commit"');
+        }
+
+        // Check if remote 'origin' exists
+        try {
+            const remotes = await this.runGitCommand('remote');
+            this.hasRemote = remotes.includes('origin');
+        } catch {
+            this.hasRemote = false;
+        }
 
         // Load existing worktrees
         await this.refreshWorktrees();
 
-        console.log(`[GitBranchManager] Initialized with ${this.activeWorktrees.size} active worktrees`);
+        this.isInitialized = true;
+        console.log(`[GitBranchManager] Initialized with ${this.activeWorktrees.size} active worktrees (hasRemote: ${this.hasRemote})`);
+    }
+
+    /**
+     * Check if the project path is a git repository
+     */
+    private async isGitRepository(): Promise<boolean> {
+        try {
+            await this.runGitCommand('rev-parse --git-dir');
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**
      * Create a new branch for an agent
+     * Handles both local-only repos and repos with remote 'origin'
      */
     async createAgentBranch(
         agentId: string,
@@ -107,14 +148,37 @@ export class GitBranchManager extends EventEmitter {
         const fullBranchName = branchName.startsWith('agent/') ? branchName : `agent/${branchName}`;
 
         try {
-            // Ensure we're on the latest base branch
-            await this.runGitCommand(`fetch origin ${base}`);
+            // If we have a remote, fetch the latest
+            if (this.hasRemote) {
+                try {
+                    await this.runGitCommand(`fetch origin ${base}`);
+                } catch {
+                    // Fetch might fail if remote branch doesn't exist yet, continue anyway
+                    console.log(`[GitBranchManager] Remote fetch failed, continuing with local ${base}`);
+                }
+            }
 
-            // Create the new branch from base
-            await this.runGitCommand(`checkout -b ${fullBranchName} origin/${base}`);
+            // Ensure we're on the base branch first
+            try {
+                await this.runGitCommand(`checkout ${base}`);
+            } catch {
+                // Base branch might not exist, try to create it
+                await this.runGitCommand(`checkout -b ${base}`);
+            }
+
+            // Create the new branch from base (local, not remote)
+            await this.runGitCommand(`checkout -b ${fullBranchName}`);
 
             // Create worktree for isolated work
             const worktreePath = path.join(this.config.worktreesBasePath, agentId);
+
+            // Clean up existing worktree if it exists
+            try {
+                await fs.rm(worktreePath, { recursive: true, force: true });
+            } catch {
+                // Ignore cleanup errors
+            }
+
             await this.runGitCommand(`worktree add ${worktreePath} ${fullBranchName}`);
 
             // Track the worktree
@@ -125,6 +189,9 @@ export class GitBranchManager extends EventEmitter {
                 isLocked: false,
                 agentId,
             });
+
+            // Switch back to base branch in main repo
+            await this.runGitCommand(`checkout ${base}`);
 
             console.log(`[GitBranchManager] Created branch ${fullBranchName} with worktree at ${worktreePath}`);
             this.emit('branchCreated', { agentId, branch: fullBranchName, worktreePath });
@@ -211,6 +278,7 @@ export class GitBranchManager extends EventEmitter {
 
     /**
      * Merge agent's branch into target
+     * Handles both local-only repos and repos with remote 'origin'
      */
     async mergeBranch(
         agentId: string,
@@ -225,12 +293,29 @@ export class GitBranchManager extends EventEmitter {
         const target = targetBranch || this.config.defaultBranch;
 
         try {
-            // Fetch latest
-            await this.runGitCommand(`fetch origin ${target}`);
+            // If we have a remote, sync with it first
+            if (this.hasRemote) {
+                try {
+                    await this.runGitCommand(`fetch origin ${target}`);
+                } catch {
+                    console.log(`[GitBranchManager] Remote fetch failed, continuing with local merge`);
+                }
+            }
 
             // Checkout target branch
             await this.runGitCommand(`checkout ${target}`);
-            await this.runGitCommand(`pull origin ${target}`);
+
+            // Pull from remote if available
+            if (this.hasRemote) {
+                try {
+                    await this.runGitCommand(`pull origin ${target}`);
+                } catch {
+                    console.log(`[GitBranchManager] Remote pull failed, continuing with local merge`);
+                }
+            }
+
+            // Get files changed in the feature branch before merge
+            const mergedFiles = await this.getChangedFiles(worktree.path);
 
             // Merge based on strategy
             let mergeCommand: string;
@@ -247,11 +332,9 @@ export class GitBranchManager extends EventEmitter {
 
             // If squash, need to commit
             if (strategy === 'squash') {
-                await this.runGitCommand(`commit -m "Merge ${worktree.branch} into ${target} (squashed)"`);
+                const commitMessage = `Merge ${worktree.branch} into ${target} (squashed)\n\nFeature Agent: ${agentId}`;
+                await this.runGitCommand(`commit -m "${commitMessage}"`);
             }
-
-            // Get merged files
-            const mergedFiles = await this.getChangedFiles(worktree.path);
 
             console.log(`[GitBranchManager] Merged ${worktree.branch} into ${target}`);
             this.emit('merged', { agentId, sourceBranch: worktree.branch, targetBranch: target });
@@ -263,8 +346,15 @@ export class GitBranchManager extends EventEmitter {
                 message: `Successfully merged ${worktree.branch} into ${target}`,
             };
         } catch (error: any) {
-            if (error.message.includes('CONFLICT')) {
+            // Check for merge conflicts
+            if (error.message.includes('CONFLICT') || error.message.includes('conflict')) {
                 const conflicts = await this.getConflictedFiles();
+                // Abort the merge to clean up state
+                try {
+                    await this.runGitCommand('merge --abort');
+                } catch {
+                    // Ignore abort errors
+                }
                 return {
                     success: false,
                     conflicts,
@@ -272,6 +362,17 @@ export class GitBranchManager extends EventEmitter {
                     message: `Merge conflicts detected in ${conflicts.length} files`,
                 };
             }
+
+            // Check for "nothing to commit" - this means merge was successful but no changes
+            if (error.message.includes('nothing to commit')) {
+                return {
+                    success: true,
+                    conflicts: [],
+                    mergedFiles: [],
+                    message: `No changes to merge from ${worktree.branch}`,
+                };
+            }
+
             throw error;
         }
     }
