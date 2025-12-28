@@ -536,7 +536,8 @@ app.get("/api/debug/cookie-test", (req, res) => {
     if (isProd) {
         cookieOptions.push('Secure');
         cookieOptions.push('SameSite=Lax');
-        cookieOptions.push('Domain=kriptik.app');
+        // Use leading dot for explicit domain-wide cookies (matches Better Auth crossSubDomainCookies)
+        cookieOptions.push('Domain=.kriptik.app');
     } else {
         cookieOptions.push('SameSite=Lax');
     }
