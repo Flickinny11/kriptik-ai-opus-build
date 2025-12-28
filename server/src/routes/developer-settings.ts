@@ -24,6 +24,11 @@ const router = Router();
 // Apply auth to all routes
 router.use(authMiddleware);
 
+function getRequestUserId(req: Request): string | undefined {
+    const headerUserId = req.headers['x-user-id'] as string | undefined;
+    return req.user?.id || headerUserId;
+}
+
 // =============================================================================
 // PROJECT RULES
 // =============================================================================
@@ -34,7 +39,8 @@ router.use(authMiddleware);
  */
 router.get('/project/:projectId/rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { projectId } = req.params;
 
         const rules = await db.select()
@@ -58,7 +64,8 @@ router.get('/project/:projectId/rules', async (req: Request, res: Response) => {
  */
 router.post('/project/:projectId/rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { projectId } = req.params;
         const { rulesContent, rulesJson, priority = 0 } = req.body;
 
@@ -114,7 +121,8 @@ router.post('/project/:projectId/rules', async (req: Request, res: Response) => 
  */
 router.delete('/project/:projectId/rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { projectId } = req.params;
 
         await db.delete(developerModeProjectRules)
@@ -136,7 +144,8 @@ router.delete('/project/:projectId/rules', async (req: Request, res: Response) =
  */
 router.post('/project/:projectId/rules/import', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { projectId } = req.params;
         const { fileContent, fileName } = req.body;
 
@@ -207,7 +216,8 @@ router.post('/project/:projectId/rules/import', async (req: Request, res: Respon
  */
 router.get('/user/rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
         let [userRules] = await db.select()
             .from(developerModeUserRules)
@@ -250,7 +260,8 @@ router.get('/user/rules', async (req: Request, res: Response) => {
  */
 router.patch('/user/rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const updates = req.body;
 
         // Allowed fields
@@ -316,7 +327,8 @@ router.patch('/user/rules', async (req: Request, res: Response) => {
  */
 router.post('/agents/:agentId/feedback', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { agentId } = req.params;
         const { feedbackContent, feedbackType, priority = 'medium', tags = [] } = req.body;
 
@@ -585,7 +597,8 @@ router.post('/project/:projectId/context/analyze', async (req: Request, res: Res
  */
 router.get('/project/:projectId/combined-rules', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         const { projectId } = req.params;
 
         // Get project rules

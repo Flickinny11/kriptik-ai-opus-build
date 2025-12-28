@@ -5079,3 +5079,18 @@ CONTEXT:
 - Auth: improved date parsing to accept numeric timestamp strings (including floats like "1766892908363.0").
 - Hosting: switched auth lookup to prefer session user (req.user.id) while preserving legacy x-user-id compatibility.
 - Monitoring: added dedupeKey support so variable-value alerts (memory %) respect cooldown; added memory cleanup hook to clear in-process DB query cache under pressure.
+
+═══ [2025-12-28T20:05:00Z] ═══
+COMPLETED: Fixed Settings and Developer Settings APIs returning 401 due to legacy x-user-id auth
+FILES MODIFIED:
+- server/src/routes/user-settings.ts
+- server/src/routes/developer-settings.ts
+CURRENT STATE:
+- Backend: `cd server && npm run build` ✅
+- Placeholders/TODOs/mock data added in fixes: ✅ none
+NEXT:
+- Deploy and verify `/api/settings` now returns 200 from the Settings page (no 401s)
+- Deploy and verify `/api/developer-settings/*` works from Developer Options UI
+CONTEXT:
+- Root cause: these routes still required `x-user-id` header even after moving the app to session-based auth.
+- Fix: added `getRequestUserId(req)` helpers to prefer `req.user.id` (session) with a fallback to `x-user-id` for backwards compatibility.

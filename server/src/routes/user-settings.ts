@@ -22,6 +22,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2024-11-20.acacia' as Stripe.LatestApiVersion,
 });
 
+function getRequestUserId(req: Request): string | undefined {
+    const headerUserId = req.headers['x-user-id'] as string | undefined;
+    return req.user?.id || headerUserId;
+}
+
 // =============================================================================
 // USER PROFILE
 // =============================================================================
@@ -32,7 +37,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  */
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -94,7 +99,7 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.patch('/', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -202,7 +207,7 @@ router.patch('/', async (req: Request, res: Response) => {
  */
 router.patch('/profile', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -245,7 +250,7 @@ router.patch('/profile', async (req: Request, res: Response) => {
  */
 router.get('/credits', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -311,7 +316,7 @@ router.get('/credits', async (req: Request, res: Response) => {
  */
 router.post('/credits/topup', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -463,7 +468,7 @@ router.post('/credits/webhook', async (req: Request, res: Response) => {
  */
 router.get('/payment-methods', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -515,7 +520,7 @@ router.get('/payment-methods', async (req: Request, res: Response) => {
  */
 router.post('/payment-methods/setup', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -582,7 +587,7 @@ router.post('/payment-methods/setup', async (req: Request, res: Response) => {
  */
 router.post('/payment-methods/:id/default', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -611,7 +616,7 @@ router.post('/payment-methods/:id/default', async (req: Request, res: Response) 
  */
 router.delete('/payment-methods/:id', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -655,7 +660,7 @@ router.delete('/payment-methods/:id', async (req: Request, res: Response) => {
  */
 router.get('/usage', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -695,7 +700,7 @@ router.get('/usage', async (req: Request, res: Response) => {
  */
 router.get('/developer', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -774,7 +779,7 @@ router.get('/developer', async (req: Request, res: Response) => {
  */
 router.patch('/developer', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -937,7 +942,7 @@ router.patch('/developer', async (req: Request, res: Response) => {
  */
 router.post('/developer/reset', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
