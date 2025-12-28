@@ -524,7 +524,7 @@ app.get("/api/debug/cookie-test", (req, res) => {
     const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     const testCookieName = 'kriptik_test_cookie';
     const testCookieValue = `test_${Date.now()}`;
-    
+
     // Set a test cookie with the same settings as auth cookies
     const cookieOptions: string[] = [
         `${testCookieName}=${testCookieValue}`,
@@ -532,7 +532,7 @@ app.get("/api/debug/cookie-test", (req, res) => {
         `Max-Age=${60 * 60}`, // 1 hour
         'HttpOnly',
     ];
-    
+
     if (isProd) {
         cookieOptions.push('Secure');
         cookieOptions.push('SameSite=Lax');
@@ -541,9 +541,9 @@ app.get("/api/debug/cookie-test", (req, res) => {
     } else {
         cookieOptions.push('SameSite=Lax');
     }
-    
+
     res.setHeader('Set-Cookie', cookieOptions.join('; '));
-    
+
     res.json({
         message: 'Test cookie set',
         cookieSet: {
@@ -568,7 +568,7 @@ app.get("/api/debug/sessions", async (req, res) => {
         const db = await import('./db.js').then(m => m.db);
         const { sessions } = await import('./schema.js');
         const { desc, sql } = await import('drizzle-orm');
-        
+
         // Get recent sessions (last 10)
         const recentSessions = await db
             .select({
@@ -580,7 +580,7 @@ app.get("/api/debug/sessions", async (req, res) => {
             .from(sessions)
             .orderBy(desc(sessions.expiresAt))
             .limit(10);
-        
+
         res.json({
             timestamp: new Date().toISOString(),
             sessionCount: recentSessions.length,

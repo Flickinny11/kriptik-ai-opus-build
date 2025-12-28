@@ -269,31 +269,25 @@ export const auth = betterAuth({
         },
     },
 
-    // Advanced configuration
+    // Advanced configuration - SIMPLIFIED for maximum compatibility
     advanced: {
-        // DISABLED: useSecureCookies adds __Secure- prefix which can cause issues in some browsers
-        // The Secure flag is already set via defaultCookieAttributes below
+        // NO useSecureCookies - avoids __Secure- prefix issues
         useSecureCookies: false,
-        
-        // CRITICAL: Enable cross-subdomain cookies for api.kriptik.app <-> kriptik.app
-        // This tells Better Auth to set cookies on the parent domain
-        crossSubDomainCookies: {
-            enabled: isProd, // Only in production where we have api.kriptik.app
-            domain: '.kriptik.app', // Parent domain with leading dot for explicit domain-wide cookies
-        },
+
+        // NO crossSubDomainCookies - we set domain directly below
         
         // Cookie name prefix
         cookiePrefix: "kriptik_auth",
-        
-        // Default cookie attributes for all auth cookies
+
+        // Default cookie attributes - EXPLICIT domain setting
         defaultCookieAttributes: {
-            // SameSite=Lax is safe for same-site requests (api.kriptik.app -> kriptik.app)
-            // and works in embedded browsers better than SameSite=None
             sameSite: 'lax' as const,
-            secure: isProd,
+            secure: true,
             httpOnly: true,
             path: "/",
-            maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            // CRITICAL: Explicit domain for cross-subdomain (api.kriptik.app <-> kriptik.app)
+            domain: isProd ? '.kriptik.app' : undefined,
         },
     },
 
