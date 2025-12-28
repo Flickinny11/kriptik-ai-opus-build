@@ -68,7 +68,7 @@ export function ProjectCard3D({
                 marginBottom: '16px',
             }}
         >
-            {/* 3D Card Container with interactive tilt */}
+            {/* 3D Card Container with interactive tilt - dramatic angle at rest */}
             <div
                 style={{
                     position: 'relative',
@@ -76,8 +76,8 @@ export function ProjectCard3D({
                     aspectRatio: '4/3',
                     transformStyle: 'preserve-3d',
                     transform: isHovered
-                        ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-8px) scale(1.02)`
-                        : 'rotateX(6deg) rotateY(-4deg)',
+                        ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-10px) scale(1.04)`
+                        : 'rotateX(8deg) rotateY(-10deg) skewY(-1deg)',
                     transition: isHovered
                         ? 'transform 0.1s ease-out'
                         : 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
@@ -306,35 +306,52 @@ export function ProjectCard3D({
                     </div>
                 </div>
 
-                {/* 3D Depth - Bottom Edge (soft, blurred) */}
+                {/* 3D Depth - Right Edge (visible 3D edge) */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '4px',
+                        bottom: '4px',
+                        right: '-6px',
+                        width: '6px',
+                        background: 'linear-gradient(90deg, rgba(180, 175, 170, 0.5) 0%, rgba(160, 155, 150, 0.3) 100%)',
+                        borderRadius: '0 8px 8px 0',
+                        transform: 'rotateY(90deg) translateX(-3px)',
+                        transformOrigin: 'left',
+                        opacity: isHovered ? 0.3 : 0.6,
+                        transition: 'opacity 0.4s ease',
+                    }}
+                />
+
+                {/* 3D Depth - Bottom Edge */}
                 <div
                     style={{
                         position: 'absolute',
                         left: '4px',
                         right: '4px',
                         bottom: '-6px',
-                        height: '8px',
-                        background: 'linear-gradient(180deg, rgba(200, 195, 190, 0.4) 0%, rgba(180, 175, 170, 0.2) 100%)',
+                        height: '6px',
+                        background: 'linear-gradient(180deg, rgba(180, 175, 170, 0.5) 0%, rgba(160, 155, 150, 0.3) 100%)',
                         borderRadius: '0 0 16px 16px',
-                        filter: 'blur(1px)',
-                        transform: 'rotateX(-85deg) translateZ(-2px)',
+                        transform: 'rotateX(-90deg) translateY(-3px)',
                         transformOrigin: 'top',
-                        opacity: isHovered ? 0.5 : 0.8,
+                        opacity: isHovered ? 0.3 : 0.6,
                         transition: 'opacity 0.4s ease',
                     }}
                 />
 
-                {/* Ground Shadow - soft and diffused */}
+                {/* Ground Shadow - skewed to match card angle */}
                 <div
                     style={{
                         position: 'absolute',
-                        left: '10%',
-                        right: '10%',
-                        bottom: isHovered ? '-30px' : '-20px',
-                        height: '30px',
-                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, transparent 70%)',
-                        filter: 'blur(12px)',
-                        opacity: isHovered ? 0.6 : 0.4,
+                        left: '5%',
+                        right: '15%',
+                        bottom: isHovered ? '-35px' : '-22px',
+                        height: '35px',
+                        background: 'radial-gradient(ellipse 80% 100% at 40% 50%, rgba(0,0,0,0.25) 0%, transparent 60%)',
+                        filter: 'blur(15px)',
+                        opacity: isHovered ? 0.7 : 0.5,
+                        transform: 'skewX(-8deg)',
                         transition: 'all 0.5s ease',
                     }}
                 />
