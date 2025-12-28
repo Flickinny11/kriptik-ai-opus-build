@@ -4784,3 +4784,19 @@ NEXT STEPS:
    CURRENT STATE: ✅ Both frontend + backend Vercel deployments READY.
    NEXT: User should test Google OAuth login in Chrome, then mobile, then Cursor browser. Session cookie should now persist across `api.kriptik.app` → `kriptik.app` navigation.
    CONTEXT: The issue was that cookies set by the backend (api.kriptik.app) during OAuth callback weren't being sent back by the browser when accessing the frontend (kriptik.app) because the cookie domain was too specific. Setting domain to `.kriptik.app` makes cookies accessible across all subdomains.
+
+   ═══ [2025-12-28T03:10:00.000Z] ═══
+   COMPLETED: Deep debugging of auth cookie issues. Verified sessions ARE being created in database (10+ valid sessions exist). Disabled `useSecureCookies` which was adding `__Secure-` prefix that may cause issues in some browsers. Added `/api/debug/sessions` endpoint to inspect database sessions.
+   FILES MODIFIED: server/src/auth.ts (disabled useSecureCookies), server/src/index.ts (added sessions debug endpoint)
+   INVESTIGATION FINDINGS:
+   - Sessions ARE being created in the database during OAuth flow
+   - The database shows valid, non-expired sessions for the user
+   - Cookie domain `.kriptik.app` is configured correctly in crossSubDomainCookies
+   - SameSite=Lax is set for better compatibility
+   - PROBLEM: `useSecureCookies: isProd` was true, adding `__Secure-` prefix to cookies
+   FIX APPLIED:
+   - Set `useSecureCookies: false` - the `__Secure-` prefix can cause issues in embedded browsers and some mobile browsers
+   - The `Secure` flag is still set via `defaultCookieAttributes.secure: isProd`
+   CURRENT STATE: ✅ `npm run build` passing. ✅ `server/npm run build` passing. ✅ Vercel deployments READY.
+   NEXT: User should clear cookies for kriptik.app, then test Google OAuth login again. The session should now persist after OAuth callback.
+   CONTEXT: The `__Secure-` cookie prefix has strict requirements beyond just HTTPS - some browsers require specific conditions that may not be met during cross-subdomain redirects. Disabling this prefix while keeping the Secure flag should resolve cookie persistence issues.
