@@ -274,8 +274,10 @@ export const auth = betterAuth({
         // Use secure cookies in production (required for SameSite=None)
         useSecureCookies: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
         // Cross-subdomain cookies (api.kriptik.app <-> kriptik.app)
+        // CRITICAL: Must specify domain explicitly for cookies to work across subdomains
         crossSubDomainCookies: {
             enabled: isKriptikSameSite,
+            domain: isKriptikSameSite ? '.kriptik.app' : undefined,
         },
         // Cookie settings
         cookiePrefix: "kriptik_auth",
@@ -287,6 +289,8 @@ export const auth = betterAuth({
             secure: true,
             httpOnly: true,
             path: "/",
+            // CRITICAL: Domain must be set for cross-subdomain cookies to work
+            domain: isKriptikSameSite ? '.kriptik.app' : undefined,
             // maxAge for better mobile compatibility
             maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
         },
