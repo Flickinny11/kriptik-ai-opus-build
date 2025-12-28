@@ -415,16 +415,17 @@ function ProjectThumbnail({ project }: { project: any }) {
     if (isBeingFixed) {
         return (
             <div className="group" style={{ marginBottom: '24px' }}>
-                <FixMyAppCard3D
+                <FixMyAppFlipCard
                     onClick={() => navigate(`/builder/${project.id}`)}
                     projectName={project.name}
                     fixingStatus={project.fixingStatus}
                     fixingProgress={project.fixingProgress || 0}
                     importSource={project.importSource}
-                    currentPhase={project.currentPhase}
-                    currentTask={project.currentTask}
-                    thoughts={project.thoughts}
-                    errors={project.errors}
+                    currentThought={project.currentThought}
+                    orchestrationPhase={project.currentPhase || 1}
+                    totalPhases={6}
+                    hasProblems={project.hasProblems || false}
+                    problemDescription={project.problemDescription}
                 />
                 {/* Minimal info below the flip card */}
                 <div className="mt-3 px-1">
@@ -532,7 +533,7 @@ export default function Dashboard() {
 
     // Track which projects are being fixed (for selective polling)
     const fixingProjectIds = useRef<Set<string>>(new Set());
-    
+
     // Update the set of projects being fixed WITHOUT causing re-renders
     useEffect(() => {
         const newFixingIds = new Set<string>();
@@ -552,7 +553,7 @@ export default function Dashboard() {
         const pollInterval = setInterval(() => {
             // Only poll if there are projects being fixed
             if (fixingProjectIds.current.size > 0) {
-                console.log('[Dashboard] Polling for Fix My App progress...', 
+                console.log('[Dashboard] Polling for Fix My App progress...',
                     Array.from(fixingProjectIds.current));
                 fetchProjects();
             }

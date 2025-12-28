@@ -13,7 +13,7 @@ interface ProjectCard3DTileProps {
 
 /**
  * Premium 3D Tile Card for Regular Projects
- * 
+ *
  * Features:
  * - 3D perspective with interactive tilt on hover
  * - Layered shadows for depth
@@ -38,16 +38,16 @@ export function ProjectCard3DTile({
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return;
-        
+
         const rect = cardRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
-        
+
         const rotateX = ((y - centerY) / centerY) * -10;
         const rotateY = ((x - centerX) / centerX) * 10;
-        
+
         setTiltStyle({
             transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`,
             '--mouse-x': `${(x / rect.width) * 100}%`,
@@ -108,7 +108,7 @@ export function ProjectCard3DTile({
                         )}
 
                         {/* Status badge */}
-                        <div 
+                        <div
                             className="status-badge"
                             style={{ '--status-color': statusInfo.color } as React.CSSProperties}
                         >

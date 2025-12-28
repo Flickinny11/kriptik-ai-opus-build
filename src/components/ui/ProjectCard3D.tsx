@@ -35,18 +35,18 @@ export function ProjectCard3D({
     // Handle mouse move for perspective tilt
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return;
-        
+
         const rect = cardRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
+
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
-        
+
         // Calculate tilt (max 12 degrees)
         const tiltX = ((y - centerY) / centerY) * -12;
         const tiltY = ((x - centerX) / centerX) * 12;
-        
+
         setTilt({ x: tiltX, y: tiltY });
     };
 
@@ -78,8 +78,8 @@ export function ProjectCard3D({
                     transform: isHovered
                         ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-8px) scale(1.02)`
                         : 'rotateX(6deg) rotateY(-4deg)',
-                    transition: isHovered 
-                        ? 'transform 0.1s ease-out' 
+                    transition: isHovered
+                        ? 'transform 0.1s ease-out'
                         : 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
             >
