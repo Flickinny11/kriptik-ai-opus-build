@@ -5010,3 +5010,47 @@ CURRENT STATE:
 ✅ 3D perspective matching FixMyAppFlipCard
 
 NEXT: Deploy and test in browser
+
+═══ [2025-12-28 VERIFICATION COMPLETE] ═══
+VERIFIED: New premium dark monitor-style project cards are live on kriptik.app
+
+VISUAL CONFIRMATION:
+✅ Dark monitor frame with traffic light dots
+✅ Project name in header bar
+✅ "ACTIVE" status badge in orange
+✅ Framework indicator (react) with colored dot
+✅ Modified date displayed
+✅ 3D perspective with dramatic angle
+✅ "K" logo in monitor chin
+✅ Cards flip on hover to show back face
+
+USER REQUEST COMPLETED: Regular project cards no longer "ugly and bland and plain looking"
+
+═══ [2025-12-28 DASHBOARD REFRESH FIX] ═══
+COMPLETED: Fixed constant dashboard refreshing
+
+ROOT CAUSE:
+1. Auto-flip interval (every 12s) on each ProjectCard3D causing state updates
+2. Polling interval running even when no projects are being fixed
+3. Multiple intervals stacking up on re-renders
+
+FIXES APPLIED:
+1. REMOVED auto-flip from ProjectCard3D
+   - Regular project cards now only flip on hover
+   - No more setInterval for each card causing re-renders
+
+2. FIXED polling logic in Dashboard.tsx
+   - Changed from ref-based to state-based tracking
+   - Polling is now COMPLETELY DISABLED when no projects are in fixing workflow
+   - Polling only starts when hasFixingProjects = true
+   - Clear console logging for debugging
+
+FILES MODIFIED:
+- src/components/ui/ProjectCard3D.tsx (removed auto-flip interval)
+- src/pages/Dashboard.tsx (fixed polling logic)
+
+CURRENT STATE:
+✅ Build compiles successfully
+✅ No auto-flip on regular project cards
+✅ Polling completely disabled when no Fix My App projects
+✅ Dashboard should remain stable

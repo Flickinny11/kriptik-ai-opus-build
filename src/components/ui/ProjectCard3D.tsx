@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import './ProjectCard3D.css';
 
 interface ProjectCard3DProps {
@@ -22,7 +22,7 @@ const CODE_SNIPPETS = [
 
 /**
  * Premium 3D Project Card with Flip Animation
- * 
+ *
  * Matches the FixMyAppFlipCard styling with:
  * - Dark monitor/screen aesthetic
  * - 3D perspective and visible edges
@@ -44,13 +44,8 @@ export function ProjectCard3D({
     const [glowPosition, setGlowPosition] = useState({ x: 50, y: 50 });
     const cardRef = useRef<HTMLDivElement>(null);
 
-    // Subtle auto-flip every 12 seconds for visual interest
-    useEffect(() => {
-        const flipInterval = setInterval(() => {
-            setIsFlipped(prev => !prev);
-        }, 12000);
-        return () => clearInterval(flipInterval);
-    }, []);
+    // NO auto-flip for regular project cards - only flip on hover
+    // This prevents unnecessary re-renders and dashboard refresh
 
     // Track mouse for dynamic glow effect
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -93,14 +88,14 @@ export function ProjectCard3D({
         >
             {/* 3D Card with flip transform */}
             <div className={`project-card ${isFlipped ? 'flipped' : ''}`}>
-                
+
                 {/* ========== FRONT FACE ========== */}
                 <div className="project-card-face project-card-front">
                     <div className="monitor-frame">
                         {/* Screen content */}
                         <div className="monitor-screen">
                             {/* Dynamic glow following cursor */}
-                            <div 
+                            <div
                                 className="cursor-glow"
                                 style={{
                                     background: `radial-gradient(circle at ${glowPosition.x}% ${glowPosition.y}%, rgba(249, 115, 22, 0.15) 0%, transparent 50%)`,
@@ -124,7 +119,7 @@ export function ProjectCard3D({
                             <div className="screen-content">
                                 {thumbnail ? (
                                     // Show actual screenshot
-                                    <div 
+                                    <div
                                         className="thumbnail-preview"
                                         style={{ backgroundImage: `url(${thumbnail})` }}
                                     />
@@ -139,13 +134,13 @@ export function ProjectCard3D({
                                                     <span /><span /><span />
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="ui-element hero-section">
                                                 <div className="hero-title" />
                                                 <div className="hero-subtitle" />
                                                 <div className="hero-button" />
                                             </div>
-                                            
+
                                             <div className="ui-element card-grid">
                                                 <div className="mini-card" />
                                                 <div className="mini-card" />
@@ -156,8 +151,8 @@ export function ProjectCard3D({
                                         {/* Ambient particles */}
                                         <div className="ambient-particles">
                                             {Array.from({ length: 6 }).map((_, i) => (
-                                                <div 
-                                                    key={i} 
+                                                <div
+                                                    key={i}
                                                     className="particle"
                                                     style={{
                                                         left: `${15 + Math.random() * 70}%`,
@@ -174,7 +169,7 @@ export function ProjectCard3D({
                             {/* Footer info bar */}
                             <div className="screen-footer">
                                 <div className="footer-framework">
-                                    <span 
+                                    <span
                                         className="framework-dot"
                                         style={{ background: getFrameworkColor() }}
                                     />

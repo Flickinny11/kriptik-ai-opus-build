@@ -520,35 +520,39 @@ export default function Dashboard() {
     }, [isAuthenticated, user?.id, fetchProjects]);
 
     // Track which projects are being fixed (for selective polling)
-    const fixingProjectIds = useRef<Set<string>>(new Set());
+    // Using state instead of ref so we can conditionally enable/disable polling
+    const [hasFixingProjects, setHasFixingProjects] = useState(false);
 
-    // Update the set of projects being fixed WITHOUT causing re-renders
+    // Check if any projects are in active fixing workflow
     useEffect(() => {
-        const newFixingIds = new Set<string>();
-        projects.forEach(p => {
-            if (p.fixingStatus && !['completed', 'failed', null].includes(p.fixingStatus)) {
-                newFixingIds.add(p.id);
-            }
-        });
-        fixingProjectIds.current = newFixingIds;
+        const activelyFixing = projects.some(p => 
+            p.fixingStatus && 
+            ['analyzing', 'creating_intent', 'building', 'verifying'].includes(p.fixingStatus)
+        );
+        setHasFixingProjects(activelyFixing);
     }, [projects]);
 
-    // Poll ONLY for projects being fixed (every 5 seconds)
-    // This effect only runs once on mount and sets up a stable interval
+    // Poll ONLY when there are projects being fixed
+    // This interval is COMPLETELY DISABLED when no projects are in the fixing workflow
     useEffect(() => {
-        if (!isAuthenticated) return;
+        // Don't set up polling if not authenticated or no fixing projects
+        if (!isAuthenticated || !hasFixingProjects) {
+            console.log('[Dashboard] Polling disabled - no active Fix My App projects');
+            return;
+        }
 
+        console.log('[Dashboard] Starting Fix My App polling (5s interval)...');
+        
         const pollInterval = setInterval(() => {
-            // Only poll if there are projects being fixed
-            if (fixingProjectIds.current.size > 0) {
-                console.log('[Dashboard] Polling for Fix My App progress...',
-                    Array.from(fixingProjectIds.current));
-                fetchProjects();
-            }
-        }, 5000); // Poll every 5 seconds
+            console.log('[Dashboard] Polling for Fix My App progress...');
+            fetchProjects();
+        }, 5000);
 
-        return () => clearInterval(pollInterval);
-    }, [isAuthenticated, fetchProjects]);
+        return () => {
+            console.log('[Dashboard] Stopping Fix My App polling');
+            clearInterval(pollInterval);
+        };
+    }, [isAuthenticated, hasFixingProjects, fetchProjects]);
 
     useEffect(() => {
         if (!hasCompletedOnboarding) {
