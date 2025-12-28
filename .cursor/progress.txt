@@ -4874,3 +4874,38 @@ COMMITS:
 2. fix(auth): CRITICAL - schema keys must match modelName values for Drizzle adapter
 
 USER CONFIRMATION: "ok. it works now. thank you"
+
+═══ [2025-12-28 PREMIUM 3D FLIP CARDS] ═══
+COMPLETED: Dashboard UI overhaul with premium 3D flip cards
+
+FEATURES IMPLEMENTED:
+1. FixMyAppFlipCard - Premium 3D monitor-style flip card
+   - Inspired by Remotion.dev landing page design
+   - 3D monitor/screen appearance with visible bezels
+   - Dark screen material resembling a display
+   - Front face: Scrolling code animation with syntax highlighting
+   - Back face: AI consciousness stream + orchestration status
+   - Auto-flip every 8 seconds, hover-flip on mouse enter
+   - Neural activity visualization bars
+   - Phase progress dots with active/complete states
+   - Problem indicators when issues detected
+
+2. ProjectCard3D - Cleaned up for regular projects only
+   - Removed broken Fix My App overlay code
+   - Added proper status badges (fixed/completed)
+   - Interactive 3D tilt on mouse move
+
+3. Dashboard refresh loop fix
+   - Only polls for projects being actively fixed
+   - Uses useRef to track fixing project IDs without re-renders
+   - Stable polling interval that doesn't cause refresh loops
+
+FILES MODIFIED:
+- src/components/ui/FixMyAppFlipCard.tsx (NEW)
+- src/components/ui/FixMyAppFlipCard.css (already existed)
+- src/components/ui/ProjectCard3D.tsx (cleaned up)
+- src/pages/Dashboard.tsx (updated imports and card usage)
+
+COMMIT: feat(dashboard): premium 3D flip cards for Fix My App projects
+PUSHED TO: main branch
+NEXT: Monitor Vercel build
