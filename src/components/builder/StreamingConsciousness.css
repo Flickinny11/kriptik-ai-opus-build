@@ -1,0 +1,434 @@
+/**
+ * Streaming Consciousness UI - Neural Network Visualization Styles
+ * 
+ * Premium 3D visualization with:
+ * - Glassmorphism panels
+ * - Neural network connections
+ * - Ambient glow effects
+ * - Perspective transforms
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Syne:wght@600;700&display=swap');
+
+/* Container */
+.sc {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    overflow: hidden;
+    background: linear-gradient(
+        145deg,
+        rgba(15, 15, 20, 0.98) 0%,
+        rgba(25, 25, 35, 0.95) 50%,
+        rgba(20, 20, 30, 0.98) 100%
+    );
+    border-radius: 20px;
+    perspective: 1200px;
+    transform-style: preserve-3d;
+}
+
+.sc--compact {
+    min-height: 200px;
+}
+
+/* Background grid */
+.sc-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Neural connections SVG */
+.sc-connections {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Central orchestrator hub */
+.sc-hub-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+.sc-hub {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.sc-hub__inner {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(
+        145deg,
+        rgba(40, 40, 50, 0.9) 0%,
+        rgba(30, 30, 40, 0.95) 100%
+    );
+    border: 2px solid rgba(249, 115, 22, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 
+        0 0 30px rgba(249, 115, 22, 0.2),
+        inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.sc-hub__core {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sc-hub__label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(249, 115, 22, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+/* Agent node */
+.sc-agent {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: z-index 0s 0.3s;
+}
+
+.sc-agent--expanded {
+    z-index: 100;
+    transition: z-index 0s 0s;
+}
+
+.sc-agent__bubble {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(
+        145deg,
+        rgba(50, 50, 60, 0.9) 0%,
+        rgba(35, 35, 45, 0.95) 100%
+    );
+    border: 2px solid var(--agent-color, #f97316);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+}
+
+.sc-agent__bubble:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 0 25px var(--glow-color, rgba(249, 115, 22, 0.5)),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.sc-agent--active .sc-agent__bubble {
+    border-width: 3px;
+    animation: agentPulse 2s ease-in-out infinite;
+}
+
+@keyframes agentPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px var(--glow-color, rgba(249, 115, 22, 0.4)),
+            0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    50% {
+        box-shadow: 
+            0 0 35px var(--glow-color, rgba(249, 115, 22, 0.6)),
+            0 8px 28px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.sc-agent__pulse-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--agent-color, #f97316);
+    opacity: 0.5;
+}
+
+.sc-agent__icon {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--agent-color, #f97316);
+    text-shadow: 0 0 10px var(--glow-color, rgba(249, 115, 22, 0.5));
+}
+
+/* Progress ring */
+.sc-agent__progress {
+    position: absolute;
+    inset: -3px;
+    width: calc(100% + 6px);
+    height: calc(100% + 6px);
+    transform: rotate(-90deg);
+}
+
+.sc-agent__progress-bg {
+    stroke: rgba(255, 255, 255, 0.1);
+}
+
+.sc-agent__progress-bar {
+    stroke: var(--agent-color, #f97316);
+    filter: drop-shadow(0 0 3px var(--glow-color, rgba(249, 115, 22, 0.5)));
+}
+
+/* Agent label */
+.sc-agent__label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.sc-agent__name {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.sc-agent__phase {
+    font-family: 'Fira Code', monospace;
+    font-size: 9px;
+    color: var(--agent-color, #f97316);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+/* Thought preview (collapsed) */
+.sc-agent__preview {
+    max-width: 180px;
+    padding: 8px 12px;
+    background: linear-gradient(
+        145deg,
+        rgba(40, 40, 50, 0.95) 0%,
+        rgba(30, 30, 40, 0.98) 100%
+    );
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* Expanded thoughts panel */
+.sc-agent__thoughts {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    max-height: 280px;
+    background: linear-gradient(
+        160deg,
+        rgba(30, 30, 40, 0.98) 0%,
+        rgba(20, 20, 30, 0.99) 100%
+    );
+    border-radius: 16px;
+    border: 1px solid rgba(var(--agent-color, 249, 115, 22), 0.3);
+    backdrop-filter: blur(16px);
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px var(--glow-color, rgba(249, 115, 22, 0.2)),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    transform-style: preserve-3d;
+}
+
+.sc-agent__thoughts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sc-agent__thoughts-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.sc-agent__thoughts-count {
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: var(--agent-color, #f97316);
+    padding: 2px 8px;
+    background: rgba(249, 115, 22, 0.15);
+    border-radius: 20px;
+}
+
+.sc-agent__thoughts-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sc-agent__thoughts-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sc-agent__thoughts-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sc-agent__thoughts-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+/* Individual thought */
+.sc-thought {
+    display: flex;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s ease;
+}
+
+.sc-thought:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sc-thought--reasoning {
+    border-left: 2px solid rgba(139, 92, 246, 0.6);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.sc-thought__time {
+    font-family: 'Fira Code', monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+    width: 60px;
+}
+
+.sc-thought__content {
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* Status bar */
+.sc-status {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+}
+
+.sc-status__agents,
+.sc-status__events {
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.sc-status__agents {
+    color: rgba(249, 115, 22, 0.8);
+}
+
+/* Empty state */
+.sc-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.sc-empty__text {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .sc-agent__bubble {
+        width: 44px;
+        height: 44px;
+    }
+
+    .sc-agent__icon {
+        font-size: 16px;
+    }
+
+    .sc-agent__thoughts {
+        width: 260px;
+        max-height: 220px;
+    }
+
+    .sc-hub__inner {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+    .sc {
+        background: linear-gradient(
+            145deg,
+            rgba(10, 10, 15, 0.99) 0%,
+            rgba(20, 20, 28, 0.97) 50%,
+            rgba(15, 15, 22, 0.99) 100%
+        );
+    }
+}

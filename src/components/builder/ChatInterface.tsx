@@ -31,7 +31,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
-import AgentActivityStream from './AgentActivityStream';
+import StreamingConsciousness from './StreamingConsciousness';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
 import type { AgentActivityEvent } from '../../types/agent-activity';
@@ -380,6 +380,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [requiredCredentials, setRequiredCredentials] = useState<RequiredCredential[]>([]);
     const [buildSessionId, setBuildSessionId] = useState<string | null>(null);
     const [_buildProjectId, setBuildProjectId] = useState<string | null>(null);
+    // Store the locked intent prompt for display
+    const [lockedIntentPrompt, setLockedIntentPrompt] = useState<string | null>(null);
 
     // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
     console.debug('[ChatInterface] Live preview state:', {
@@ -678,6 +680,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
                 // Store plan data and show plan approval UI
                 setCurrentPlan(data.plan);
+                // Store the locked intent prompt for display
+                setLockedIntentPrompt(prompt);
                 // Ensure credentials have value property initialized to null
                 const credsWithValue = (data.requiredCredentials || []).map((c: Omit<RequiredCredential, 'value'>) => ({
                     ...c,
@@ -780,6 +784,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         setRequiredCredentials([]);
         setBuildSessionId(null);
         setBuildProjectId(null);
+        setLockedIntentPrompt(null); // Clear the locked intent
         setMessages(prev => [...prev, {
             id: `msg-${Date.now()}`,
             role: 'system',
@@ -1147,10 +1152,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 )}
             </div>
 
-            {/* Main Content Area */}
+            {/* Main Content Area - Mutually exclusive views */}
             <div className="flex-1 overflow-hidden relative min-h-0">
-                {/* Plan Approval View - P0: Show implementation plan for user approval */}
-                {buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan && (
+                {/* VIEW 1: Plan Approval View - Review implementation plan */}
+                {buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan ? (
                     <div className="h-full overflow-auto p-4">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -1172,10 +1177,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </motion.div>
                     </div>
-                )}
-
-                {/* Stack Configuration View - P0-3: Show while ProductionStackWizard is open */}
-                {buildWorkflowPhase === 'configuring_stack' && (
+                ) : buildWorkflowPhase === 'configuring_stack' ? (
+                    /* VIEW 2: Stack Configuration View - Select production providers */
                     <div className="h-full overflow-auto p-4">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -1207,10 +1210,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             </p>
                         </motion.div>
                     </div>
-                )}
-
-                {/* Credentials Collection View - P0: Collect required API credentials */}
-                {buildWorkflowPhase === 'awaiting_credentials' && requiredCredentials.length > 0 && (
+                ) : buildWorkflowPhase === 'awaiting_credentials' && requiredCredentials.length > 0 ? (
+                    /* VIEW 3: Credentials Collection View - Collect API credentials */
                     <div className="h-full overflow-auto p-4">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -1231,10 +1232,61 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </motion.div>
                     </div>
-                )}
+                ) : buildWorkflowPhase === 'building' || globalStatus === 'running' ? (
+                    /* VIEW 4: Active Build View - Streaming Consciousness Neural Network */
+                    <div className="h-full flex flex-col">
+                        {/* Tournament Mode Results - Show when tournament is active */}
+                        {tournamentData && (
+                            <div className="px-4 pt-4 shrink-0">
+                                <TournamentStreamResults
+                                    data={tournamentData}
+                                    onSelectWinner={(files) => {
+                                        console.log('[ChatInterface] Tournament winner files:', Object.keys(files));
+                                        setTournamentData(null);
+                                    }}
+                                />
+                            </div>
+                        )}
 
-                {/* Default idle state with messages and suggestions */}
-                {(globalStatus === 'idle' || buildWorkflowPhase === 'generating_plan') && buildWorkflowPhase !== 'awaiting_plan_approval' && buildWorkflowPhase !== 'configuring_stack' && buildWorkflowPhase !== 'awaiting_credentials' ? (
+                        {/* Streaming Consciousness - Neural network visualization of parallel agents */}
+                        <div className="flex-1 overflow-hidden min-h-0 m-2">
+                            <StreamingConsciousness
+                                events={activityEvents}
+                                agentCount={parallelAgents.length > 0 ? parallelAgents.length : 3}
+                                isActive={globalStatus === 'running'}
+                                currentPhase={
+                                    buildWorkflowPhase === 'building' ? 'Autonomous Build' :
+                                    buildWorkflowPhase === 'complete' ? 'Complete' :
+                                    'Initializing'
+                                }
+                            />
+                        </div>
+
+                        {/* Agent Progress - Compact phase indicators */}
+                        <div
+                            className="px-4 py-3 shrink-0"
+                            style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                        >
+                            <AgentProgress />
+                        </div>
+
+                        {/* LATTICE Progress Visualization - shown when LATTICE blueprint is active */}
+                        <LatticeProgressWrapper />
+
+                        {/* Agent Terminal - Collapsible log view */}
+                        <div
+                            className="shrink-0 m-2 rounded-xl overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
+                                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.3)',
+                                maxHeight: '120px',
+                            }}
+                        >
+                            <AgentTerminal />
+                        </div>
+                    </div>
+                ) : (
+                    /* VIEW 5: Default idle state with messages and suggestions */
                     <ScrollArea className="h-full" ref={scrollRef}>
                         <div className="p-4 space-y-4">
                             {/* Empty state with suggestions */}
@@ -1409,47 +1461,6 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             )}
                         </div>
                     </ScrollArea>
-                ) : (
-                    <div className="h-full flex flex-col">
-                        {/* Tournament Mode Results - Show when tournament is active */}
-                        {tournamentData && (
-                            <div className="px-4 pt-4 shrink-0">
-                                <TournamentStreamResults
-                                    data={tournamentData}
-                                    onSelectWinner={(files) => {
-                                        console.log('[ChatInterface] Tournament winner files:', Object.keys(files));
-                                        setTournamentData(null);
-                                    }}
-                                />
-                            </div>
-                        )}
-
-                        {/* Agent Activity Stream - Real-time orchestration events */}
-                        <div className="px-4 pt-4 shrink-0">
-                            <AgentActivityStream
-                                events={activityEvents}
-                                isActive={globalStatus === 'running'}
-                                maxEvents={100}
-                            />
-                        </div>
-                        <div
-                            className="p-4 shrink-0"
-                            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                        >
-                            <AgentProgress />
-                        </div>
-                        {/* LATTICE Progress Visualization - shown when LATTICE blueprint is active */}
-                        <LatticeProgressWrapper />
-                        <div
-                            className="flex-1 overflow-hidden min-h-0 m-2 rounded-xl"
-                            style={{
-                                background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
-                                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.3)',
-                            }}
-                        >
-                            <AgentTerminal />
-                        </div>
-                    </div>
                 )}
 
                 {/* Cost Monitor Overlay */}
@@ -1473,6 +1484,54 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
             >
                 {/* Model Selector and Tournament Toggle */}
+                {/* Intent Lock Banner - Shows locked intent when active */}
+                {lockedIntentPrompt && buildWorkflowPhase !== 'idle' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-3 rounded-xl overflow-hidden"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(5,150,105,0.15) 0%, rgba(16,185,129,0.08) 100%)',
+                            border: '1px solid rgba(5,150,105,0.3)',
+                            boxShadow: '0 4px 16px rgba(5,150,105,0.1)',
+                        }}
+                    >
+                        <div className="px-4 py-3 flex items-start gap-3">
+                            <div 
+                                className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(5,150,105,0.4) 0%, rgba(16,185,129,0.25) 100%)',
+                                    boxShadow: '0 2px 8px rgba(5,150,105,0.2)',
+                                }}
+                            >
+                                <span style={{ fontSize: '14px' }}>🔒</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#059669' }}>
+                                        Intent Locked
+                                    </span>
+                                    <motion.div
+                                        animate={{ scale: [1, 1.2, 1] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ background: '#059669' }}
+                                    />
+                                </div>
+                                <p 
+                                    className="text-sm font-medium truncate"
+                                    style={{ color: '#1a1a1a' }}
+                                    title={lockedIntentPrompt}
+                                >
+                                    {lockedIntentPrompt.length > 80 
+                                        ? `${lockedIntentPrompt.substring(0, 80)}...` 
+                                        : lockedIntentPrompt}
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 <div className="mb-3 flex items-center justify-between">
                     {/* Workflow Phase Indicator - Unified orchestration flow */}
                     <div className="flex items-center gap-2">
@@ -1492,12 +1551,12 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         >
                             <OrchestratorIcon size={16} />
                             <span className="font-medium" style={{ color: '#1a1a1a' }}>
-                                {buildWorkflowPhase === 'idle' ? 'Auto-Orchestration' :
+                                {buildWorkflowPhase === 'idle' ? 'Ready to Build' :
                                  buildWorkflowPhase === 'generating_plan' ? 'Analyzing...' :
-                                 buildWorkflowPhase === 'awaiting_plan_approval' ? 'Intent Locked' :
+                                 buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review Plan' :
                                  buildWorkflowPhase === 'configuring_stack' ? 'Configure Stack' :
                                  buildWorkflowPhase === 'awaiting_credentials' ? 'Credentials' :
-                                 buildWorkflowPhase === 'building' ? 'Building' :
+                                 buildWorkflowPhase === 'building' ? '6-Phase Build' :
                                  buildWorkflowPhase === 'complete' ? 'Complete' : 'Ready'}
                             </span>
                             {buildWorkflowPhase !== 'idle' && (

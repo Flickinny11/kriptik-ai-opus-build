@@ -1,3 +1,41 @@
+═══ [2025-12-28 SOFT INTERRUPT API FIX] ═══
+COMPLETED: Fixed soft interrupt API URLs
+
+ISSUE: Soft interrupt components were using relative API URLs
+- SoftInterruptInput.tsx and FloatingSoftInterrupt.tsx used fetch('/api/soft-interrupt/...')
+- This caused "Failed to fetch interrupt history" JSON parse errors
+- Same issue as ChatInterface - hitting frontend domain instead of backend
+
+SOLUTION:
+- Added API_URL constant to both files (from VITE_API_URL env var)
+- Updated /api/soft-interrupt/history/${sessionId} → ${API_URL}/api/soft-interrupt/history/${sessionId}
+- Updated /api/soft-interrupt/submit → ${API_URL}/api/soft-interrupt/submit
+
+FILES MODIFIED:
+- src/components/builder/SoftInterruptInput.tsx
+- src/components/builder/FloatingSoftInterrupt.tsx
+
+CURRENT STATE: Frontend builds successfully, pushed to GitHub
+
+═══ [2025-12-28 VERIFIED] ═══
+COMPLETED: Verified plan approval UI works correctly
+
+The orchestration flow is now working:
+1. ✅ User enters build prompt
+2. ✅ isBuildRequest() detects it's a build request
+3. ✅ Calls ${API_URL}/api/execute/plan (not relative /api/execute/plan)
+4. ✅ Backend returns valid JSON with plan phases
+5. ✅ Plan approval UI displays with phases:
+   - UI Framework & Styling
+   - Core Component
+   - Page Routes & Navigation
+   - Database & ORM
+   - API Routes & Services
+   - Deployment Configuration
+6. ✅ "Cancel" and "Approve & Continue" buttons visible
+
+NEXT: User can click "Approve & Continue" to proceed to credentials → build loop
+
 ═══ [2025-12-28 UNIFIED ORCHESTRATION FLOW] ═══
 COMPLETED: Fixed API URL issue and unified orchestration flow
 
@@ -5185,3 +5223,41 @@ NEXT:
 CONTEXT:
 - Root cause: these routes still required `x-user-id` header even after moving the app to session-based auth.
 - Fix: added `getRequestUserId(req)` helpers to prefer `req.user.id` (session) with a fallback to `x-user-id` for backwards compatibility.
+
+═══ [2025-12-28 STREAMING CONSCIOUSNESS UI] ═══
+COMPLETED: Created premium 3D Streaming Consciousness visualization for parallel agents
+
+FEATURE: Neural Network Agent Visualization
+- Created StreamingConsciousness.tsx component with:
+  - Neural network-style visualization of parallel AI agents
+  - Real-time streaming thoughts/reasoning from each agent
+  - Expandable thought panels showing "stream of consciousness"
+  - Hexagonal positioning for agent nodes (supports 1-6 agents)
+  - SVG neural connections between nearby agents with pulsing glow
+  - Central orchestrator hub with rotating animation
+  - Progress rings around each agent node
+  - Phase indicators per agent (thinking, planning, coding, testing, verifying, etc.)
+  - Model-agnostic event parsing (works with Anthropic, OpenAI, etc.)
+
+- Created StreamingConsciousness.css with:
+  - Dark glassmorphism panels with 3D depth
+  - Ambient glow effects matching agent colors
+  - Grid background pattern for depth perception
+  - Pulsing animations for active agents
+  - Smooth framer-motion entry/exit animations
+  - Fira Code monospace for thoughts, Syne for labels
+  - Responsive layout for mobile
+
+INTEGRATION:
+- Replaced AgentActivityStream + AgentTerminal with StreamingConsciousness in ChatInterface.tsx
+- Component receives activityEvents from WebSocket and distributes to agent nodes
+- Each agent node shows latest thought preview (collapsed) or full history (expanded)
+- Terminal view is now a compact collapsible panel below the consciousness view
+
+FILES MODIFIED:
+- src/components/builder/StreamingConsciousness.tsx (NEW)
+- src/components/builder/StreamingConsciousness.css (NEW)
+- src/components/builder/ChatInterface.tsx (integrated StreamingConsciousness)
+
+CURRENT STATE: ✅ Frontend builds successfully
+NEXT: Commit/push changes, verify Vercel build, test full workflow
