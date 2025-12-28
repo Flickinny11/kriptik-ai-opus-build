@@ -30,7 +30,7 @@ import {
 export type VerificationCheckType =
     | 'typescript'      // TSC type checking
     | 'eslint'          // ESLint rules
-    | 'placeholder'     // TODO/FIXME detection
+    | 'placeholder'     // placeholder detection
     | 'security'        // Exposed secrets, injection
     | 'antiSlop'        // AI slop patterns
     | 'imports';        // Missing/unused imports

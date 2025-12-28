@@ -28,6 +28,7 @@ import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
+import { Complexity } from '../services/ai/krip-toe-nite/types.js';
 // Rich Context Integration
 import {
     loadUnifiedContext,
@@ -1147,7 +1148,7 @@ async function generateBuildPlan(prompt: string, projectId: string, userId: stri
         parallelAgentsNeeded: Math.min(5, Math.ceil(phases.length / 2)),
         frontendFirst: true,
         backendFirst: false,
-        parallelFrontendBackend: analysis.analysis.complexity === 'medium',
+        parallelFrontendBackend: analysis.analysis.complexity === Complexity.MEDIUM,
     };
 }
 

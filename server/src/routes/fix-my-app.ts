@@ -352,21 +352,16 @@ ESTIMATED TIME: ${session.selectedStrategy?.estimatedTimeMinutes || 30} minutes`
 
         // Create execution context
         const orchestrationRunId = uuidv4();
-        const context = await createExecutionContext(
+        const context = createExecutionContext({
+            mode: 'builder',
+            projectId: session.projectId,
             userId,
-            session.projectId,
-            prompt,
-            {
-                mode: mode || 'standard',
-                enableLattice: true,
-                enableBrowserInLoop: true,
-                enableVerificationSwarm: true,
-                enableVisualVerification: true,
-                enableCheckpoints: true,
-                // Pass imported files context
-                importedFrom: session.source,
-            }
-        );
+            orchestrationRunId,
+            framework: 'react',
+            language: 'typescript',
+            enableVisualVerification: true,
+            enableCheckpoints: true,
+        });
 
         // Store credentials if provided
         if (credentials) {
@@ -401,11 +396,7 @@ ESTIMATED TIME: ${session.selectedStrategy?.estimatedTimeMinutes || 30} minutes`
                 controller.emit('log', 'Starting 6-Phase BuildLoopOrchestrator...');
                 controller.emit('progress', { stage: 'initializing', progress: 5 });
 
-                await buildLoop.execute(
-                    prompt,
-                    undefined, // Let orchestrator create Intent Lock from our prompt
-                    context as unknown as ExecutionContext
-                );
+                await buildLoop.start(prompt);
 
                 controller.emit('progress', { stage: 'complete', progress: 100 });
                 controller.emit('complete', {

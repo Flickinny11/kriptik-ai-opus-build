@@ -8,6 +8,7 @@ import { Router, Request, Response, raw } from 'express';
 import Stripe from 'stripe';
 import { createStripeBillingService, BILLING_PLANS } from '../services/billing/stripe.js';
 import { usageTracker } from '../services/billing/usage.js';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
 import {
     getStripeSetupService,
     KRIPTIK_BILLING_CONFIG,
@@ -43,13 +44,9 @@ const getStripeService = () => {
  * GET /api/billing/credits
  * Get current user's credit balance and tier
  */
-router.get('/credits', async (req: Request, res: Response) => {
+router.get('/credits', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-        if (!userId) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         // Get user from database
         const userRecords = await db
@@ -106,13 +103,9 @@ router.get('/plans', async (req: Request, res: Response) => {
  * GET /api/billing/usage
  * Get usage summary for current user
  */
-router.get('/usage', async (req: Request, res: Response) => {
+router.get('/usage', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-        if (!userId) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         // Get from persistent usage service
         const usageService = getUsageService();
@@ -135,13 +128,9 @@ router.get('/usage', async (req: Request, res: Response) => {
  * GET /api/billing/usage/breakdown
  * Get usage breakdown by category
  */
-router.get('/usage/breakdown', async (req: Request, res: Response) => {
+router.get('/usage/breakdown', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-        if (!userId) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         const breakdown = await usageTracker.getUsageByCategory(userId);
         res.json({ breakdown });
@@ -155,13 +144,9 @@ router.get('/usage/breakdown', async (req: Request, res: Response) => {
  * GET /api/billing/usage/history
  * Get usage over time (persistent)
  */
-router.get('/usage/history', async (req: Request, res: Response) => {
+router.get('/usage/history', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-        if (!userId) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         const days = parseInt(req.query.days as string) || 30;
 

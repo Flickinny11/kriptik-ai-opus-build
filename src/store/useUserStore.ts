@@ -66,20 +66,16 @@ export const useUserStore = create<UserState>((set) => ({
     initialize: async () => {
         console.log('[UserStore] Initializing...');
 
-        // First, try to load from localStorage (for fast startup)
+        // Load from localStorage for fast UI hydration, but DO NOT treat it as authentication.
+        // Auth is determined exclusively by Better Auth session cookies.
         const storedUser = loadUserFromStorage();
         if (storedUser) {
             console.log('[UserStore] Found stored user:', storedUser.email);
-            setApiUserId(storedUser.id);
             set({
                 user: storedUser,
-                isAuthenticated: true,
-                isLoading: false
+                isAuthenticated: false,
+                isLoading: true
             });
-
-            // Fetch credits and projects in background
-            useCostStore.getState().fetchCredits();
-            useProjectStore.getState().fetchProjects();
         }
 
         // Then try to get session from auth API (validates it's still valid)
@@ -108,24 +104,22 @@ export const useUserStore = create<UserState>((set) => ({
                 // Fetch credits and projects
                 useCostStore.getState().fetchCredits();
                 useProjectStore.getState().fetchProjects();
-            } else if (!storedUser) {
-                // No session and no stored user
+            } else {
+                // No valid session => clear any cached user to avoid "ghost auth" across browsers/devices.
                 console.log('[UserStore] No session found');
+                clearUserFromStorage();
                 setApiUserId(null);
                 set({ user: null, isAuthenticated: false, isLoading: false });
-            } else {
-                // Session validation failed but we have stored user
-                // Keep the stored user (might work with x-user-id header)
-                console.log('[UserStore] Session invalid but keeping stored user');
-                set({ isLoading: false });
             }
         } catch (error) {
             console.error('[UserStore] Auth initialization failed:', error);
-            // If we have a stored user, keep them logged in
-            if (!storedUser) {
-                setApiUserId(null);
-            }
-            set({ isLoading: false });
+            // Network/auth failure: do not assume authentication.
+            setApiUserId(null);
+            set({
+                user: storedUser || null,
+                isAuthenticated: false,
+                isLoading: false
+            });
         }
     },
 
@@ -191,7 +185,7 @@ export const useUserStore = create<UserState>((set) => ({
         } catch (error: unknown) {
             console.error('[UserStore] Login exception:', error);
             set({ isLoading: false });
-            
+
             // Parse common auth errors
             if (error instanceof Error) {
                 const msg = error.message.toLowerCase();
@@ -272,7 +266,7 @@ export const useUserStore = create<UserState>((set) => ({
         } catch (error: unknown) {
             console.error('[UserStore] Signup exception:', error);
             set({ isLoading: false });
-            
+
             // Parse common signup errors
             if (error instanceof Error) {
                 const msg = error.message.toLowerCase();

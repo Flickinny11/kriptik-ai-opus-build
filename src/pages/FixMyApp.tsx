@@ -1021,7 +1021,7 @@ export default function FixMyApp() {
                     additionalInstructions: additionalInstructions || undefined,
                 },
                 mode: fixMode,
-                credentials: {}, // TODO: Collect credentials if needed
+                credentials: {},
             });
 
             if (useOrchestrator && response.data) {

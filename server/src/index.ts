@@ -246,6 +246,7 @@ import {
 } from './middleware/sanitizer.js';
 import { userContextMiddleware } from './middleware/user-context.js';
 import { requireCredits } from './services/billing/credits.js';
+import { optionalAuthMiddleware } from './middleware/auth.js';
 
 // =============================================================================
 // CORS CONFIGURATION
@@ -435,7 +436,12 @@ app.use("/api/auth/callback", (req, res, next) => {
         console.log(`[OAuth Callback] Redirect called with: ${targetUrl}`);
 
         // If redirect is to backend or root, redirect to frontend instead
-        if (!targetUrl || targetUrl === '/' || targetUrl.includes('kriptik-ai-opus-build-backend')) {
+        if (
+            !targetUrl ||
+            targetUrl === '/' ||
+            targetUrl.includes('kriptik-ai-opus-build-backend') ||
+            targetUrl.includes('api.kriptik.app')
+        ) {
             console.log(`[OAuth Callback] Overriding redirect to frontend dashboard`);
             targetUrl = `${FRONTEND_URL}/dashboard`;
         }
@@ -513,8 +519,11 @@ app.get("/api/debug/auth-test", async (req, res) => {
 // USER CONTEXT MIDDLEWARE (Applied after auth routes)
 // =============================================================================
 
-// Apply user context middleware - sets req.user from x-user-id header
-// This must come AFTER auth routes but BEFORE other API routes
+// Populate req.user from Better Auth session cookies if present (does NOT enforce auth).
+// This must come AFTER auth routes but BEFORE other API routes.
+app.use('/api', optionalAuthMiddleware);
+
+// Enrich authenticated req.user with tier/credits from DB.
 app.use('/api', userContextMiddleware);
 
 // =============================================================================

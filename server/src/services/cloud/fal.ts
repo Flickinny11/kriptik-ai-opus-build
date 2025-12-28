@@ -287,16 +287,8 @@ export FAL_KEY="${this.apiKey}"
                 code.push(`    ${line}`);
             }
         } else {
-            code.push('    # TODO: Implement handler');
-            code.push('    return {"status": "ok", "input": input_data}');
+            throw new Error('Fal deployment code generation requires a real handler implementation (request.handler).');
         }
-
-        code.push('');
-        code.push('');
-        code.push('if __name__ == "__main__":');
-        code.push('    # For local testing');
-        code.push('    result = ' + request.name.replace(/-/g, '_') + '({"test": "input"})');
-        code.push('    print(result)');
 
         return code.join('\n');
     }

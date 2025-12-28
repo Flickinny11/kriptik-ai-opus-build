@@ -1,9 +1,13 @@
 /**
  * User Context Middleware
  *
- * Sets req.user based on x-user-id header or session cookie.
- * This bridges the gap between how routes read user ID and how
- * requireCredits middleware expects it.
+ * Augments req.user with app-specific fields (tier/credits) by looking up the
+ * authenticated user in the database.
+ *
+ * IMPORTANT:
+ * - This middleware MUST NOT treat `x-user-id` as authentication.
+ * - Authentication is handled by Better Auth session cookies via authMiddleware/optionalAuthMiddleware.
+ * - We only enrich an already-authenticated `req.user`.
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -21,30 +25,22 @@ export async function userContextMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
-        // Get user ID from header (primary method used by frontend)
-        const userId = req.headers['x-user-id'] as string;
-
-        if (!userId) {
-            // No user ID - continue without user context
-            // Routes that need auth will handle this
-            return next();
-        }
+        const authedUserId = (req as any).user?.id as string | undefined;
+        if (!authedUserId) return next();
 
         // Look up user in database
         const userRecords = await db
             .select()
             .from(users)
-            .where(eq(users.id, userId))
+            .where(eq(users.id, authedUserId))
             .limit(1);
 
         if (userRecords.length > 0) {
             const userRecord = userRecords[0];
 
-            // Attach user to request
+            // Enrich existing authenticated user object
             (req as any).user = {
-                id: userRecord.id,
-                email: userRecord.email,
-                name: userRecord.name,
+                ...(req as any).user,
                 tier: userRecord.tier || 'free',
                 credits: userRecord.credits,
             };

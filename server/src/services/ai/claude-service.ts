@@ -64,6 +64,15 @@ export interface GenerationOptions {
     thinkingBudgetTokens?: number;
     effort?: 'low' | 'medium' | 'high'; // Opus 4.5 effort parameter for extended thinking
     stopSequences?: string[];
+    /**
+     * Optional image inputs for vision-capable models.
+     * For Claude/OpenRouter style messages, we pass base64 image blocks.
+     */
+    images?: Array<{
+        type: 'base64';
+        media_type: string;
+        data: string;
+    }>;
 }
 
 export interface StreamCallbacks {

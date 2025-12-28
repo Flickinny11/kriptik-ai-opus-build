@@ -22,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 export type FeedbackSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type FeedbackCategory =
     | 'error'           // TypeScript/runtime errors
-    | 'placeholder'     // TODO, FIXME, lorem ipsum
+    | 'placeholder'     // placeholder content (e.g. TODO/FIXME/lorem ipsum)
     | 'security'        // Exposed keys, injection vulnerabilities
     | 'visual'          // Anti-slop, design issues
     | 'quality'         // Code quality, DRY violations

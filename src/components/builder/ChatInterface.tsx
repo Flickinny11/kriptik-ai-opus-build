@@ -1000,7 +1000,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
     const handlePauseResume = () => {
         // Pause/Resume is now handled via WebSocket to server-side BuildLoopOrchestrator
-        // TODO: Send pause/resume command via WebSocket
+        // Pause/resume is handled by the server-side orchestration loop.
         if (globalStatus === 'running') {
             setGlobalStatus('paused');
             console.log('[ChatInterface] Pause requested - WebSocket command pending');

@@ -154,6 +154,21 @@ const frontendUrl =
     process.env.PUBLIC_FRONTEND_URL ||
     (isProd ? 'https://kriptik-ai-opus-build.vercel.app' : 'http://localhost:5173');
 
+// If frontend + backend share the same eTLD+1 (kriptik.app), we should use first-party
+// cookie semantics to maximize compatibility with embedded browsers and iOS Safari.
+const isKriptikSameSite = (() => {
+    try {
+        const b = new URL(backendUrl);
+        const f = new URL(frontendUrl);
+        const isKriptikApexOrSub = (host: string) => host === 'kriptik.app' || host.endsWith('.kriptik.app');
+        return isKriptikApexOrSub(b.hostname) && isKriptikApexOrSub(f.hostname);
+    } catch {
+        return false;
+    }
+})();
+
+const cookieSameSite = (isKriptikSameSite ? 'lax' : 'none') as 'lax' | 'none';
+
 const socialProviders: Record<string, { clientId: string; clientSecret: string; redirectURI?: string }> = {};
 
 const githubClientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID;
@@ -258,16 +273,18 @@ export const auth = betterAuth({
     advanced: {
         // Use secure cookies in production (required for SameSite=None)
         useSecureCookies: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
-        // Cross-site cookie settings - MUST be enabled for cross-origin auth
+        // Cross-subdomain cookies (api.kriptik.app <-> kriptik.app)
         crossSubDomainCookies: {
-            enabled: false, // Different domains, not subdomains
+            enabled: isKriptikSameSite,
         },
-        // Cookie settings for cross-origin
+        // Cookie settings
         cookiePrefix: "kriptik_auth",
-        // Default cookie options for cross-origin (mobile compatible)
+        // Default cookie options (mobile/embedded compatible)
         defaultCookieAttributes: {
-            sameSite: "none" as const, // Required for cross-origin requests
-            secure: true, // Required when sameSite is "none"
+            // For same-site (api.kriptik.app), we prefer Lax to avoid third-party cookie heuristics.
+            // For cross-site (Vercel preview domains), we must use None + Secure.
+            sameSite: cookieSameSite,
+            secure: true,
             httpOnly: true,
             path: "/",
             // maxAge for better mobile compatibility

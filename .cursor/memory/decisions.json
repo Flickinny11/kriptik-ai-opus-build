@@ -41,6 +41,13 @@
       "decision": "UI modifications are minimal enhancements",
       "rationale": "User stated no UI overhaul required, just slight modifications for AI communication",
       "impact": "Add SpeedDial, IntelligenceToggles, Phase/Verification indicators only"
+    },
+    {
+      "id": "AD007",
+      "date": "2025-12-27",
+      "decision": "Move backend to api.kriptik.app (same-site subdomain) and make the frontend use it as the canonical API base URL",
+      "rationale": "Fix Better Auth session persistence in embedded browsers and mobile by avoiding third-party cookie contexts, while preserving Git auto-deploy and the existing Vercel scaling architecture.",
+      "impact": "Backend custom domain api.kriptik.app added; Vercel env vars updated (frontend VITE_API_URL, backend BETTER_AUTH_URL). OAuth providers must allow new redirect URIs (e.g., https://api.kriptik.app/api/auth/callback/google)."
     }
   ],
 

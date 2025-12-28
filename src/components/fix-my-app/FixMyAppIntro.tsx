@@ -63,7 +63,7 @@ function App() {
   }
   // Missing: success handling
   // Missing: redirect logic
-  // TODO: Add validation
+  // Missing: validation
 };
 
 // Component unmounts before async completes

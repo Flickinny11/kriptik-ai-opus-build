@@ -302,8 +302,7 @@ export class ModalService {
                 code.push(`    ${line}`);
             }
         } else {
-            code.push('    # TODO: Implement handler');
-            code.push('    return {"status": "ok", "input": input_data}');
+            throw new Error(`Modal function "${fn.name}" requires a real handler implementation (fn.handler).`);
         }
 
         return code.join('\n');

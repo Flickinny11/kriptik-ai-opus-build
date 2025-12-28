@@ -1,6 +1,17 @@
 {
-  "resolutions": [],
-  "patterns": [],
-  "lessons_learned": []
+  "resolutions": [
+    {
+      "id": "IR-2025-12-27-oauth-redirect-uri",
+      "date": "2025-12-27",
+      "issue": "Google OAuth redirect_uri_mismatch after moving BETTER_AUTH_URL to https://api.kriptik.app",
+      "resolution": "Add https://api.kriptik.app/api/auth/callback/google to the Google OAuth Client's Authorized redirect URIs (and update other providers similarly)."
+    }
+  ],
+  "patterns": [
+    "When changing the Better Auth base URL (BETTER_AUTH_URL), update OAuth provider redirect URIs before deploying."
+  ],
+  "lessons_learned": [
+    "Same-site backend subdomain improves session reliability in embedded/mobile browsers, but OAuth redirect allowlists must be updated."
+  ]
 }
 

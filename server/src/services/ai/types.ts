@@ -80,6 +80,11 @@ export interface GenerationOptions {
     thinkingBudgetTokens?: number;
     effort?: EffortLevel;
     stopSequences?: string[];
+    images?: Array<{
+        type: 'base64';
+        media_type: string;
+        data: string;
+    }>;
 }
 
 export interface GenerationResponse {

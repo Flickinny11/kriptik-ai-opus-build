@@ -13,7 +13,8 @@ import {
     developerModeAgentFeedback,
     developerModeProjectContext,
     developerModeAgents,
-    projects
+    projects,
+    files
 } from '../schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
@@ -426,8 +427,20 @@ router.get('/project/:projectId/context', async (req: Request, res: Response) =>
  */
 router.post('/project/:projectId/context/analyze', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = (req as any).user?.id as string | undefined;
         const { projectId } = req.params;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Ensure the project belongs to the authenticated user
+        const [project] = await db.select()
+            .from(projects)
+            .where(and(eq(projects.id, projectId), eq(projects.ownerId, userId)))
+            .limit(1);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
 
         // Mark as analyzing
         const [existing] = await db.select()
@@ -454,11 +467,107 @@ router.post('/project/:projectId/context/analyze', async (req: Request, res: Res
                 .returning();
         }
 
-        // TODO: Trigger actual analysis in background
-        // For now, return the pending context
+        // Analyze synchronously (fast path) — this generates real context used by orchestration.
+        const projectFiles = await db.select({
+            path: files.path,
+            content: files.content,
+        })
+            .from(files)
+            .where(eq(files.projectId, projectId));
+
+        const packageJsonFile = projectFiles.find(f => f.path === 'package.json');
+        let dependencies: Record<string, string> | undefined;
+        let devDependencies: Record<string, string> | undefined;
+        if (packageJsonFile?.content) {
+            try {
+                const parsed = JSON.parse(packageJsonFile.content);
+                if (parsed && typeof parsed === 'object') {
+                    dependencies = parsed.dependencies && typeof parsed.dependencies === 'object' ? parsed.dependencies : undefined;
+                    devDependencies = parsed.devDependencies && typeof parsed.devDependencies === 'object' ? parsed.devDependencies : undefined;
+                }
+            } catch {
+                // leave deps undefined if invalid JSON
+            }
+        }
+
+        const paths = projectFiles.map(f => f.path);
+        const hasTS = paths.some(p => p.endsWith('.ts') || p.endsWith('.tsx'));
+        const hasJS = paths.some(p => p.endsWith('.js') || p.endsWith('.jsx'));
+        const hasPY = paths.some(p => p.endsWith('.py'));
+
+        const language =
+            hasTS ? 'TypeScript' :
+                hasJS ? 'JavaScript' :
+                    hasPY ? 'Python' :
+                        (project.framework ? String(project.framework) : 'Unknown');
+
+        const sourceDirectory =
+            paths.some(p => p.startsWith('src/')) ? 'src' :
+                paths.some(p => p.startsWith('app/')) ? 'app' :
+                    undefined;
+
+        const componentPaths = paths.filter(p => /(^|\/)(components|component)\//i.test(p));
+        const testPaths = paths.filter(p => /(^|\/)(__tests__|test|tests)\//i.test(p) || /\.(spec|test)\.(ts|tsx|js|jsx)$/.test(p));
+        const configFiles = paths.filter(p => /(vite\.config|next\.config|tailwind\.config|postcss\.config|tsconfig|eslint|prettier|drizzle|vercel)\./i.test(p) || p.endsWith('.env') || p.endsWith('.env.example'));
+
+        const contentSample = projectFiles
+            .filter(f => /\.(ts|tsx|js|jsx)$/.test(f.path))
+            .slice(0, 25)
+            .map(f => f.content || '')
+            .join('\n');
+
+        const detect = (needle: string) => contentSample.includes(needle) || !!(dependencies && Object.keys(dependencies).some(k => k === needle));
+        const patterns = {
+            stateManagement: detect('zustand') ? 'zustand' : (detect('redux') ? 'redux' : undefined),
+            styling: detect('tailwindcss') ? 'tailwind' : (detect('styled-components') ? 'styled-components' : undefined),
+            routing: detect('react-router') || detect('react-router-dom') ? 'react-router' : undefined,
+            apiClient: detect('axios') ? 'axios' : (detect('fetch(') ? 'fetch' : undefined),
+            testing: detect('vitest') ? 'vitest' : (detect('jest') ? 'jest' : undefined),
+        } as const;
+
+        const conventions = (() => {
+            const semicolons = (contentSample.match(/;\s*$/gm) || []).length;
+            const totalLines = (contentSample.match(/\n/g) || []).length + 1;
+            const quotesSingle = (contentSample.match(/'[^']*'/g) || []).length;
+            const quotesDouble = (contentSample.match(/"[^"]*"/g) || []).length;
+            const tabs = (contentSample.match(/^\t+/gm) || []).length;
+            const spaces2 = (contentSample.match(/^ {2}\S/gm) || []).length;
+            const spaces4 = (contentSample.match(/^ {4}\S/gm) || []).length;
+
+            const indentation = (tabs > Math.max(spaces2, spaces4) ? 'tabs' : 'spaces') as 'tabs' | 'spaces';
+            const indentSize = indentation === 'tabs' ? undefined : (spaces4 > spaces2 ? 4 : 2);
+            const quotes = (quotesDouble > quotesSingle ? 'double' : 'single') as 'double' | 'single';
+            return {
+                indentation,
+                indentSize,
+                quotes,
+                semicolons: semicolons > totalLines * 0.25,
+                componentStyle: 'functional' as const,
+            };
+        })();
+
+        const [updated] = await db.update(developerModeProjectContext)
+            .set({
+                framework: project.framework,
+                language,
+                dependencies,
+                devDependencies,
+                sourceDirectory,
+                componentPaths,
+                testPaths,
+                configFiles,
+                patterns,
+                conventions,
+                analyzedAt: new Date().toISOString(),
+                status: 'completed',
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(developerModeProjectContext.id, context.id))
+            .returning();
+
         res.json({
-            context,
-            message: 'Analysis started. Context will be available shortly.'
+            context: updated || context,
+            message: 'Analysis completed.'
         });
     } catch (error) {
         console.error('Analyze project error:', error);

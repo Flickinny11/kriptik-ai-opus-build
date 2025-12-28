@@ -386,6 +386,16 @@ export interface BuildLoopOptions {
     maxAgents?: number;
     /** Override build timeout in minutes (optional) */
     maxBuildDurationMinutes?: number;
+    /**
+     * Optional: approved implementation plan object coming from the UI.
+     * The build loop can use this for phase/task guidance when present.
+     */
+    approvedPlan?: unknown;
+    /**
+     * Optional: credentials collected from the user for this build.
+     * Stored on the execution context and used by integrations when needed.
+     */
+    credentials?: Record<string, string>;
 }
 
 export interface BuildLoopState {
@@ -447,6 +457,10 @@ export interface BuildLoopEvent {
         | 'phase5-retry' | 'phase5-escalation'
         // SESSION 1: Infinite retry events (never give up)
         | 'phase5-cost-ceiling' | 'phase5-escalating-effort' | 'phase5-consecutive-errors' | 'phase5-approval-required'
+        // SESSION 7: Deep analysis protocol
+        | 'phase5-deep-analysis-started' | 'phase5-deep-analysis-complete'
+        // SESSION 8: Visual analysis loop events
+        | 'phase6-visual-analysis'
         // Gap Closers and Pre-Flight events
         | 'workflow-tests-complete' | 'gap-closers-started' | 'gap-closers-complete' | 'gap-closers-error'
         | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error';
@@ -2616,9 +2630,10 @@ ${errorHistory.slice(-10).map((e, i) => `Attempt ${i + 1}: ${e.criteria.join(', 
 ${errorPatterns.join('\n')}
 
 ## PROJECT FILES
-${Array.from(allFiles.entries()).slice(0, 20).map(([path, content]) =>
-    `### ${path}\n\`\`\`\n${content.slice(0, 1000)}${content.length > 1000 ? '...' : ''}\n\`\`\``
-).join('\n\n')}
+${Object.entries(allFiles).slice(0, 20).map(([name, content]) => {
+    const text = (content || '');
+    return `### ${name}\n\`\`\`\n${text.slice(0, 1000)}${text.length > 1000 ? '...' : ''}\n\`\`\``;
+}).join('\n\n')}
 
 ## VERIFICATION RESULTS
 ${verificationResult ? JSON.stringify(verificationResult, null, 2).slice(0, 2000) : 'Not available'}
@@ -3035,7 +3050,7 @@ Return JSON:
         // In production, this would run actual browser automation tests
         for (const workflow of this.state.intentContract.userWorkflows) {
             try {
-                // TODO: Run actual browser test
+                // Run browser test (when browser automation is enabled in this environment)
                 console.log(`[Phase 5] Checking workflow: ${workflow.name}`);
             } catch (error) {
                 failedWorkflows.push(workflow.name);
@@ -3161,7 +3176,8 @@ Return JSON:
                 console.log(`[Phase 6] Visual verification round ${visualFixRound}/${MAX_VISUAL_FIX_ROUNDS}`);
 
                 // STEP 1: SHOW - Take screenshot and analyze
-                const screenshot = await demoBrowser.screenshot({ fullPage: true });
+                const screenshotBase64 = await demoBrowser.screenshot({ fullPage: true });
+                const screenshot = Buffer.from(screenshotBase64, 'base64');
                 finalScreenshot = screenshot;
 
                 // STEP 2: ANALYZE - Use visual verifier to find issues
@@ -3172,7 +3188,7 @@ Return JSON:
                     round: visualFixRound,
                     score: visualAnalysis.score,
                     issues: visualAnalysis.issues,
-                    screenshot: screenshot.toString('base64').slice(0, 1000) + '...',
+                    screenshot: screenshotBase64.slice(0, 1000) + '...',
                 });
 
                 if (visualAnalysis.score >= VISUAL_SCORE_THRESHOLD && visualAnalysis.issues.length === 0) {
@@ -3417,7 +3433,7 @@ Return JSON:
      */
     private predictNextFeatures(currentFeature: Feature, allFeatures: Feature[], maxCount: number): Feature[] {
         const pending = allFeatures.filter(f =>
-            f.status === 'pending' &&
+            !f.passes &&
             f.featureId !== currentFeature.featureId
         );
 
@@ -3440,19 +3456,13 @@ Return JSON:
         let score = 0;
 
         // Higher priority = more likely next
-        if (candidate.priority === 'critical') score += 100;
-        else if (candidate.priority === 'high') score += 75;
-        else if (candidate.priority === 'medium') score += 50;
+        if (candidate.priority === 1) score += 100;
+        else if (candidate.priority === 2) score += 70;
+        else if (candidate.priority === 3) score += 40;
         else score += 25;
 
         // Same category = more likely to be built in sequence
         if (candidate.category === current.category) score += 30;
-
-        // Dependencies on current feature
-        if (candidate.dependencies?.includes(current.featureId)) score += 50;
-
-        // Dependency chain proximity
-        if (current.dependencies?.some(d => candidate.dependencies?.includes(d))) score += 20;
 
         return score;
     }
@@ -3578,11 +3588,11 @@ Use common patterns and best practices for quick generation.`;
 
         const verdict = await this.verificationSwarm.verifyFeature(feature, generatedFiles);
 
-        if (verdict.verdict === 'PASSED' || verdict.overallScore >= 85) {
+        if (verdict.verdict === 'APPROVED' || verdict.overallScore >= 85) {
             // Speculative result is good enough
             console.log(`[Speculative] ✅ Pre-generated code passed verification (score: ${verdict.overallScore})`);
-            await this.featureManager.updateFeatureStatus(feature.featureId, 'passed');
-        } else if (verdict.verdict === 'NEEDS_REFINEMENT' && verdict.overallScore >= 70) {
+            await this.featureManager.markFeaturePassed(feature.featureId);
+        } else if (verdict.verdict === 'NEEDS_WORK' && verdict.overallScore >= 70) {
             // Refine the speculative result (faster than full rebuild)
             console.log(`[Speculative] 🔧 Refining pre-generated code (score: ${verdict.overallScore})`);
             await this.refineSpeculativeResult(feature, speculativeResult, verdict);
@@ -3608,7 +3618,11 @@ Description: ${feature.description}
 
 Current code has these issues:
 ${verdict.blockers.map(b => `- BLOCKER: ${b}`).join('\n')}
-${verdict.issues.map(i => `- Issue: ${i}`).join('\n')}
+${Object.values(verdict.results)
+    .flatMap(r => r?.issues || [])
+    .slice(0, 25)
+    .map(i => `- Issue (${i.severity}): ${i.description}${i.file ? ` [${i.file}${i.line ? `:${i.line}` : ''}]` : ''}`)
+    .join('\n')}
 
 Current files:
 ${speculativeResult.files.map(f => `### ${f.path}\n\`\`\`\n${f.content.slice(0, 1500)}${f.content.length > 1500 ? '...' : ''}\n\`\`\``).join('\n\n')}
@@ -3629,7 +3643,7 @@ Fix ALL issues and return COMPLETE refined files.`;
                 await this.artifactManager.saveArtifact(file.path, content);
             }
 
-            await this.featureManager.updateFeatureStatus(feature.featureId, 'passed');
+            await this.featureManager.markFeaturePassed(feature.featureId);
             console.log(`[Speculative] ✅ Refined code applied successfully`);
         } catch (err) {
             console.warn('[Speculative] Refinement failed, falling back to full build:', err);

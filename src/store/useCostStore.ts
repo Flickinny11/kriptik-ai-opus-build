@@ -56,6 +56,13 @@ export const useCostStore = create<CostStore>((set, get) => ({
                 isLoading: false,
             });
         } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            // If the user isn't authenticated yet, credits endpoint will 401. That's expected —
+            // avoid spamming console / Sentry with noise.
+            if (msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('http 401')) {
+                set({ isLoading: false });
+                return;
+            }
             console.error('[CostStore] Failed to fetch credits:', error);
             set({ isLoading: false });
         }

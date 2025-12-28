@@ -160,16 +160,16 @@ function CreditMeter({ used, total }: { used: number; total: number }) {
 function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const [isButtonHovered, setIsButtonHovered] = useState(false);
-    const { user } = useUserStore();
+    const { user, isAuthenticated } = useUserStore();
     const { balance, fetchCredits, isLoading: creditsLoading } = useCostStore();
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Fetch credits when menu opens
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && isAuthenticated) {
             fetchCredits();
         }
-    }, [isOpen, fetchCredits]);
+    }, [isOpen, isAuthenticated, fetchCredits]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -487,6 +487,13 @@ export default function Dashboard() {
 
     // Get user auth state
     const { user, isAuthenticated, isLoading: authLoading } = useUserStore();
+
+    // If not authenticated, redirect to login (prevents "blank profile" state in embedded browsers)
+    useEffect(() => {
+        if (!authLoading && !isAuthenticated) {
+            navigate('/login');
+        }
+    }, [authLoading, isAuthenticated, navigate]);
 
     // Fetch projects only when user is authenticated
     useEffect(() => {

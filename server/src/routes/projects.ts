@@ -9,8 +9,12 @@ import { db } from '../db.js';
 import { projects, files } from '../schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
+
+// All project operations require an authenticated Better Auth session.
+router.use(authMiddleware);
 
 // Type definitions
 interface CreateProjectBody {
@@ -32,11 +36,7 @@ interface UpdateProjectBody {
  */
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         const userProjects = await db
             .select()
@@ -57,11 +57,7 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.post('/', async (req: Request<object, object, CreateProjectBody>, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = (req as AuthenticatedRequest).user.id;
 
         const { name, description, framework = 'react', isPublic = false } = req.body;
 
@@ -105,12 +101,8 @@ router.post('/', async (req: Request<object, object, CreateProjectBody>, res: Re
  */
 router.get('/:id', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = (req as AuthenticatedRequest).user.id;
         const projectId = req.params.id;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
 
         const [project] = await db
             .select()
@@ -148,12 +140,8 @@ router.get('/:id', async (req: Request, res: Response) => {
  */
 router.put('/:id', async (req: Request<{ id: string }, object, UpdateProjectBody>, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = (req as AuthenticatedRequest).user.id;
         const projectId = req.params.id;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
 
         const { name, description, isPublic } = req.body;
 
@@ -190,12 +178,8 @@ router.put('/:id', async (req: Request<{ id: string }, object, UpdateProjectBody
  */
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = (req as AuthenticatedRequest).user.id;
         const projectId = req.params.id;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
 
         // Delete all project files first
         await db

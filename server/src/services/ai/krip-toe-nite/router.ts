@@ -268,7 +268,7 @@ export class KripToeNiteRouter {
         // Opus 4.5 for intent lock, GPT-5.2 Pro for validation
         return {
             primaryModel: KTN_MODELS[STRATEGY_MODELS.expert.primary], // claude-opus-4.5
-            parallelModel: KTN_MODELS[STRATEGY_MODELS.expert.parallel], // gpt-5.2-pro
+            parallelModel: KTN_MODELS[STRATEGY_MODELS.expert.validation], // claude-opus-4.5 (validation)
             fallbackModel: KTN_MODELS[STRATEGY_MODELS.expert.fallback], // claude-sonnet-4.5
         };
     }

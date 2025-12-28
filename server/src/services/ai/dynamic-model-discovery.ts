@@ -8,7 +8,8 @@
  * December 22, 2025 - Initial Implementation
  */
 
-import { KTN_MODELS, TIER_PREFERENCES, STRATEGY_MODELS, type KTNModelConfig } from './krip-toe-nite/model-registry.js';
+import { KTN_MODELS, TIER_PREFERENCES, STRATEGY_MODELS } from './krip-toe-nite/model-registry.js';
+import type { KTNModelConfig } from './krip-toe-nite/types.js';
 
 // =============================================================================
 // TYPES

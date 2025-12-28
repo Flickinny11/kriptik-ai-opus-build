@@ -346,6 +346,15 @@ Important:
     }
 
     /**
+     * Refresh the current page (alias for reload).
+     * Used by the Build Loop browser demo verification cycle.
+     */
+    async refresh(): Promise<void> {
+        await this.ensureInitialized();
+        await this.page!.reload({ waitUntil: 'networkidle' });
+    }
+
+    /**
      * Extract data from the page using AI
      */
     async extract<T>(instruction: string, schema?: unknown): Promise<T> {

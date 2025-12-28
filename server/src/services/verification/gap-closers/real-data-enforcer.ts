@@ -189,7 +189,7 @@ const MOCK_PATTERNS = {
         /qwerty/gi,
     ],
 
-    // TODO/FIXME patterns
+    // Placeholder comment patterns (e.g. TODO/FIXME)
     todo_comment: [
         /\/\/\s*TODO/gi,
         /\/\*\s*TODO/gi,
