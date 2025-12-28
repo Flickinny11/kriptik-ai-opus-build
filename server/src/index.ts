@@ -549,7 +549,7 @@ app.get("/api/debug/cookie-test", (req, res) => {
         cookieSet: {
             name: testCookieName,
             value: testCookieValue,
-            domain: isProd ? 'kriptik.app' : 'localhost',
+            domain: isProd ? '.kriptik.app' : 'localhost',
             secure: isProd,
             sameSite: 'Lax',
         },
@@ -560,6 +560,45 @@ app.get("/api/debug/cookie-test", (req, res) => {
         },
         isProd,
     });
+});
+
+// Session debug endpoint - checks recent sessions in database
+app.get("/api/debug/sessions", async (req, res) => {
+    try {
+        const db = await import('./db.js').then(m => m.db);
+        const { sessions } = await import('./schema.js');
+        const { desc, sql } = await import('drizzle-orm');
+        
+        // Get recent sessions (last 10)
+        const recentSessions = await db
+            .select({
+                id: sessions.id,
+                userId: sessions.userId,
+                expiresAt: sessions.expiresAt,
+                tokenPrefix: sql<string>`SUBSTR(${sessions.token}, 1, 10)`.as('tokenPrefix'),
+            })
+            .from(sessions)
+            .orderBy(desc(sessions.expiresAt))
+            .limit(10);
+        
+        res.json({
+            timestamp: new Date().toISOString(),
+            sessionCount: recentSessions.length,
+            recentSessions: recentSessions.map(s => ({
+                id: s.id,
+                userId: s.userId,
+                tokenPrefix: s.tokenPrefix + '...',
+                expiresAt: s.expiresAt,
+                isExpired: new Date(s.expiresAt) < new Date(),
+            })),
+            cookiesReceived: req.headers.cookie || 'none',
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            error: error.message,
+            cookiesReceived: req.headers.cookie || 'none',
+        });
+    }
 });
 
 // =============================================================================
