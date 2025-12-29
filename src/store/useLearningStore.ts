@@ -6,6 +6,7 @@
  */
 
 import { create } from 'zustand';
+import { getApiBaseUrl } from '../lib/runtime-urls';
 import { persist } from 'zustand/middleware';
 
 // =============================================================================
@@ -104,7 +105,7 @@ const DEFAULT_PREFERENCES: LearningPreferences = {
 // API CLIENT
 // =============================================================================
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const apiUrl = getApiBaseUrl();
 
 async function fetchLearningStatus(): Promise<LearningSystemStatus> {
     const res = await fetch(`${apiUrl}/api/learning/status`);

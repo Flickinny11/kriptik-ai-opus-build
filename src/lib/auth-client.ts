@@ -1,7 +1,8 @@
 import { createAuthClient } from "better-auth/react"
+import { getApiBaseUrl, getFrontendOrigin } from "./runtime-urls";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+const API_URL = getApiBaseUrl();
+const FRONTEND_URL = getFrontendOrigin();
 
 // Log configuration on startup
 console.log('[Auth Client] Initialized with API_URL:', API_URL);

@@ -21,6 +21,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
 interface GitHubImportModalProps {
     open: boolean;
@@ -49,7 +50,7 @@ interface GitHubImportResult {
     sourceRepo: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl();
 
 export default function GitHubImportModal({
     open,

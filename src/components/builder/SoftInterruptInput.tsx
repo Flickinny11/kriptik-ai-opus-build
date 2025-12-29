@@ -21,8 +21,9 @@ import {
   ChevronDownIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = getApiBaseUrl();
 
 // =============================================================================
 // TYPES

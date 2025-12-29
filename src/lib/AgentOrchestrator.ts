@@ -23,8 +23,9 @@ import { useAgentStore } from '../store/useAgentStore';
 import { useCostStore } from '../store/useCostStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { apiClient } from './api-client';
+import { getApiBaseUrl } from './runtime-urls';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = getApiBaseUrl();
 
 // Helper to get user ID for authenticated requests
 function getUserId(): string | null {

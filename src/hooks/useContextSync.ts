@@ -7,9 +7,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
-// API URL for backend requests
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+// API URL for backend requests (prefer same-origin in production for cookie safety)
+const API_URL = getApiBaseUrl();
 
 // ============================================================================
 // TYPES

@@ -48,6 +48,18 @@ ALTER TABLE users ADD COLUMN credits_v2 INTEGER;
 
 ## Authentication
 
+### Frontend API Origin vs Cookie Domain (CRITICAL)
+**Problem**: If the frontend calls the backend on an absolute origin (e.g. `https://*.vercel.app`) while Better Auth cookies are configured with `Domain=.kriptik.app`, browsers will **reject the cookie** (domain mismatch). Result: sessions never persist, auth appears “randomly broken” (mobile tends to fail first).
+
+**Solution**:
+- In production/previews, keep auth/API calls **same-origin** and proxy `/api/*` to the backend (Vercel rewrite).
+- Centralize API base URL logic so future refactors don’t reintroduce absolute cross-origin calls.
+
+**Fixed In**:
+- `vercel.json` rewrite: `/api/(.*)` → `https://kriptik-ai-opus-build-backend.vercel.app/api/$1`
+- `src/lib/runtime-urls.ts` (`getApiBaseUrl()`)
+- Frontend callers updated to use `getApiBaseUrl()`
+
 ### Better Auth Session Cookie
 **Problem**: Session validation requires proper Cookie header reading.
 

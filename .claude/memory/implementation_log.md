@@ -288,4 +288,35 @@ await loop.start();
 
 ---
 
+## 2025-12-29 Auth Stability Fix: Same-Origin `/api` + Centralized API Base URL
+
+### What Was Built
+- Restored stable auth by ensuring frontend API/auth calls use **same-origin** in production/previews.
+- Added a Vercel rewrite so `/api/*` on the frontend proxies to the backend service.
+- Added a single runtime helper to prevent future regressions where “API URL cleanups” break cookies again.
+
+### Why
+- Better Auth cookies are configured with `Domain=.kriptik.app`. If the frontend calls an absolute backend origin (e.g. `*.vercel.app`), browsers reject those cookies (domain mismatch), causing session/auth failures (mobile often fails first).
+
+### Files Changed
+- `vercel.json` (modified) - add `/api/(.*)` rewrite → backend
+- `src/lib/runtime-urls.ts` (added) - `getApiBaseUrl()` and `getFrontendOrigin()`
+- Updated callers to use `getApiBaseUrl()`:
+  - `src/lib/auth-client.ts`, `src/lib/api-client.ts`, `src/lib/virtual-fs.ts`, `src/lib/QualityScanner.ts`, `src/lib/AgentOrchestrator.ts`
+  - `src/pages/FixMyApp.tsx`
+  - `src/components/builder/*` (several panels/modals)
+  - `src/components/clone-mode/CloneModePanel.tsx`
+  - `src/components/market/MarketFitDashboard.tsx`
+  - `src/hooks/useContextSync.ts`, `src/hooks/useCredentials.ts`
+  - `src/store/useLearningStore.ts`, `src/store/useProductionStackStore.ts`
+
+### Verification
+- Build: PASS (`npm run build`)
+- Tests: N/A
+- Anti-slop: N/A (infra fix)
+
+### Notes
+- This fix is intentionally **additive** and avoids changing the locked backend auth configuration.
+- Key invariant going forward: **don’t route auth through an absolute cross-origin backend URL** unless cookie attributes are also changed accordingly.
+
 *Add new entries above this line*

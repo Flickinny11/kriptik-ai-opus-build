@@ -9,6 +9,7 @@
  */
 
 import { SandpackFiles } from '@codesandbox/sandpack-react';
+import { getApiBaseUrl } from './runtime-urls';
 
 export interface FileVersion {
     version: number;
@@ -41,7 +42,7 @@ export interface VFSState {
     lastSync?: Date;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Virtual File System class

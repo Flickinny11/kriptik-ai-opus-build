@@ -20,6 +20,7 @@ import {
     type IconProps,
 } from '../ui/icons';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiBaseUrl } from '../../lib/runtime-urls';
 
 // =============================================================================
 // TYPES
@@ -93,7 +94,7 @@ interface Strategy {
 // API CLIENT
 // =============================================================================
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const apiUrl = getApiBaseUrl();
 
 async function fetchLearningStatus(): Promise<LearningStatus> {
     const res = await fetch(`${apiUrl}/api/learning/status`);

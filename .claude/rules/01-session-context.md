@@ -4,7 +4,31 @@
 
 ---
 
-## Current State (as of 2025-12-26)
+## Current State (as of 2025-12-29)
+
+### Auth Regression Fix (Frontend API origin + cookie domain)
+
+**Symptom**: Auth appeared “randomly broken” (often worst on mobile).
+
+**Root Cause**: Frontend requests were routed to an absolute backend origin via `VITE_API_URL` (e.g. `*.vercel.app`). The backend sets Better Auth cookies with `Domain=.kriptik.app`, which browsers will reject if the request URL host is not a `*.kriptik.app` host — resulting in cookies never being stored/sent and sessions failing.
+
+**Fix** (no feature removals):
+- Added a Vercel rewrite so **frontend `/api/*` is proxied** to the backend service.
+- Centralized frontend API base URL resolution to **prefer same-origin in production** (so cookies stay first‑party and compatible with mobile browsers).
+
+**Files Changed**:
+- `vercel.json` (added `/api/(.*)` rewrite → backend)
+- `src/lib/runtime-urls.ts` (new helper: `getApiBaseUrl()`)
+- Updated all frontend API callers to use `getApiBaseUrl()` instead of `import.meta.env.VITE_API_URL`
+- `src/lib/auth-client.ts` updated to use `getApiBaseUrl()` / `getFrontendOrigin()`
+
+**Verification**:
+- `npm install`
+- `npm run build` ✅
+
+---
+
+## Previous State (as of 2025-12-26)
 
 ### AUTH SYSTEM NOW LOCKED - IMMUTABLE SPECIFICATION
 

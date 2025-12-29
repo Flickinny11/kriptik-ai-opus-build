@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api-client';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 import { cn } from '@/lib/utils';
 // Ultimate AI-First Builder Architecture Components
 import { SpeedDialSelector } from '@/components/builder/SpeedDialSelector';
@@ -1499,8 +1500,8 @@ export default function FixMyApp() {
                                         onClick={() => {
                                             if (requiresBrowserLogin() && extensionInstalled) {
                                                 // Signal extension to start Fix My App session BEFORE opening platform
-                                                // Use backend API URL from env, not frontend origin
-                                                const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+                                                // Use same-origin in production to preserve first-party cookies
+                                                const backendUrl = getApiBaseUrl();
                                                 // Note: We don't need to pass a token since the extension will use
                                                 // credentials: 'include' to send cookies for session-based auth.
                                                 // The sessionId is just for tracking purposes.
