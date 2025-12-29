@@ -1226,14 +1226,36 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-4"
                         >
-                            <div className="text-center mb-6">
-                                <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                                    Provide Credentials
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {requiredCredentials.length} credential{requiredCredentials.length > 1 ? 's' : ''} required for your integrations
-                                </p>
-                            </div>
+                            {/* Background preparation indicator */}
+                            <motion.div 
+                                className="p-3 rounded-xl mb-4"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%)',
+                                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                                }}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <motion.div 
+                                            className="w-3 h-3 rounded-full bg-emerald-500"
+                                            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium" style={{ color: '#059669' }}>
+                                            Preparing build environment...
+                                        </p>
+                                        <p className="text-xs" style={{ color: '#6b7280' }}>
+                                            Project structure and dependencies being analyzed
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
                             <CredentialsCollectionView
                                 credentials={requiredCredentials}
                                 onCredentialsSubmit={handleCredentialsSubmit}
