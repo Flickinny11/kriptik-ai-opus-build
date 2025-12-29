@@ -5610,3 +5610,22 @@ NEXT: Ensure orchestration continues building while awaiting credentials
      - Embedded browsers (Cursor, mobile webviews): CORS origins added
    NEXT: Deploy to production and test auth on mobile/Cursor browser
    CONTEXT: The cookieSameSite variable was calculated but never used (hardcoded 'lax'). Now uses dynamic value based on domain relationship. Added CORS support for vscode-webview://, file://, and cursor origins.
+
+   ═══ [2025-12-29T18:50:00] ═══
+   COMPLETED: Root cause analysis and prevention system for auth breaks
+   ROOT CAUSE IDENTIFIED:
+   - Inconsistent API URL patterns across 30+ files
+   - Some files use 'http://localhost:3001', others use 'https://api.kriptik.app'
+   - When making unrelated changes, developers/AI copy wrong patterns
+   - Hardcoded URLs break auth when environment changes
+   SOLUTION IMPLEMENTED:
+   - Created src/lib/api-config.ts (centralized API URL configuration)
+   - Created .cursor/rules/auth-protection.mdc (protection rules)
+   - Added authenticatedFetch helper for consistent auth headers
+   - Documented forbidden patterns and migration checklist
+   FILES CREATED:
+   - src/lib/api-config.ts (centralized config)
+   - .cursor/rules/auth-protection.mdc (protection rules)
+   CURRENT STATE: Auth protection system in place. Future changes must use centralized config.
+   NEXT: Migrate existing components to use api-config.ts (gradual migration)
+   CONTEXT: This prevents auth from breaking when making unrelated changes by enforcing consistent patterns and documenting what NOT to modify.
