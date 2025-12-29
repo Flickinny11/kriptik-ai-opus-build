@@ -196,6 +196,9 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
+console.log('[Auth] Is same-site (kriptik.app):', isKriptikSameSite);
+console.log('[Auth] Cookie SameSite setting:', cookieSameSite);
+console.log('[Auth] Is production:', isProd);
 
 // Log configuration on startup
 console.log('[Auth] Initializing Better Auth...');
@@ -282,13 +285,16 @@ export const auth = betterAuth({
 
         // Default cookie attributes - EXPLICIT domain setting
         defaultCookieAttributes: {
-            sameSite: 'lax' as const,
-            secure: true,
+            // CRITICAL: Use calculated sameSite (Lax for same-site, None for cross-site)
+            // SameSite=None REQUIRES Secure=true for embedded browsers and mobile Safari
+            sameSite: cookieSameSite,
+            secure: cookieSameSite === 'none' ? true : (isProd ? true : false), // Always Secure in prod, required for None
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
             // CRITICAL: Explicit domain for cross-subdomain (api.kriptik.app <-> kriptik.app)
-            domain: isProd ? '.kriptik.app' : undefined,
+            // Only set domain in production when both are on kriptik.app
+            domain: (isProd && isKriptikSameSite) ? '.kriptik.app' : undefined,
         },
     },
 

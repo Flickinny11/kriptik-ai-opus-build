@@ -104,15 +104,24 @@ export function FloatingVerificationSwarm({
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const [intentContext, setIntentContext] = useState<Record<string, unknown> | null>(null);
-  
+
   // Flag to prevent double-initialization
   const initializedRef = useRef(false);
+  const expandedScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Ensure expanded view starts at the top (prevents "missing top card" from persisted scroll)
+  useEffect(() => {
+    if (!isExpanded) return;
+    const el = expandedScrollRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+  }, [isExpanded, activeTab]);
 
   // Load persisted state on mount
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    
+
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_${projectId}`);
       if (saved) {
@@ -142,7 +151,7 @@ export function FloatingVerificationSwarm({
   // Persist state on changes
   useEffect(() => {
     if (!projectId || projectId === 'new') return;
-    
+
     try {
       const stateToSave = {
         agents,
@@ -538,22 +547,23 @@ export function FloatingVerificationSwarm({
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="floating-swarm__expanded"
+            ref={expandedScrollRef}
           >
             <div className="floating-swarm__tabs">
               <button
-                className={`tab-btn ${activeTab === 'status' ? 'active' : ''}`}
+                className={`floating-swarm__tab ${activeTab === 'status' ? 'active' : ''}`}
                 onClick={() => setActiveTab('status')}
               >
                 Status & Control
               </button>
               <button
-                className={`tab-btn ${activeTab === 'config' ? 'active' : ''}`}
+                className={`floating-swarm__tab ${activeTab === 'config' ? 'active' : ''}`}
                 onClick={() => setActiveTab('config')}
               >
                 Agent Config
               </button>
               <button
-                className={`tab-btn ${activeTab === 'bughunt' ? 'active' : ''}`}
+                className={`floating-swarm__tab ${activeTab === 'bughunt' ? 'active' : ''}`}
                 onClick={() => setActiveTab('bughunt')}
               >
                 Bug Hunt
@@ -649,91 +659,6 @@ export function FloatingVerificationSwarm({
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-                .floating-swarm__tabs {
-                    display: flex;
-                    gap: 4px;
-                    padding: 0 16px 12px 16px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                    margin-bottom: 12px;
-                }
-
-                .tab-btn {
-                    flex: 1;
-                    padding: 8px;
-                    background: transparent;
-                    border: none;
-                    border-radius: 6px;
-                    color: rgba(255, 255, 255, 0.5);
-                    font-size: 11px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .tab-btn:hover {
-                    background: rgba(255, 255, 255, 0.05);
-                    color: rgba(255, 255, 255, 0.8);
-                }
-
-                .tab-btn.active {
-                    background: rgba(255, 255, 255, 0.1);
-                    color: #ffffff;
-                    font-weight: 600;
-                }
-
-                .mode-selector-wrapper {
-                    margin-bottom: 16px;
-                }
-
-                .config-panel {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    max-height: 400px;
-                    overflow-y: auto;
-                    padding-right: 4px;
-                }
-
-                /* Custom Scrollbar for Config Panel */
-                .config-panel::-webkit-scrollbar {
-                    width: 4px;
-                }
-
-                .config-panel::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.02);
-                }
-
-                .config-panel::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 4px;
-                }
-
-                .run-swarm-main-btn {
-                    width: 100%;
-                    padding: 12px;
-                    margin-top: 16px;
-                    background: linear-gradient(135deg, #10b981, #059669);
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    font-weight: 600;
-                    font-size: 14px;
-                    cursor: pointer;
-                    transition: transform 0.1s, box-shadow 0.2s;
-                }
-
-                .run-swarm-main-btn:hover:not(:disabled) {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                }
-
-                .run-swarm-main-btn:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-            `}</style>
     </motion.div>
   );
 }

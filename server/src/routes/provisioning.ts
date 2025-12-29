@@ -1,271 +1,380 @@
 /**
  * Provisioning API Routes
  *
- * One-click infrastructure setup endpoints.
+ * Endpoints for autonomous browser-based service provisioning:
+ * - Start/resume provisioning sessions
+ * - Manage user permissions
+ * - Check session status
+ * - View credentials
  */
 
 import { Router, Request, Response } from 'express';
 import {
-    getDatabaseProvisioningService,
-    generateSchema,
-    DatabaseProvider,
-} from '../services/provisioning/database.js';
-import {
-    getAuthProvisioningService,
-    AuthProvider,
-} from '../services/provisioning/auth.js';
+    getProvisioningAgentService,
+    getPermissionManagerService,
+    getResearchAgentService,
+    type ServiceRequirement,
+} from '../services/provisioning/index.js';
 
 const router = Router();
 
 // ============================================================================
-// DATABASE PROVISIONING
+// HELPERS
+// ============================================================================
+
+function getUserId(req: Request): string | null {
+    // Try session user first
+    const sessionUser = (req as any).user;
+    if (sessionUser?.id) {
+        return sessionUser.id;
+    }
+
+    // Fallback to header
+    const headerUserId = req.headers['x-user-id'];
+    if (typeof headerUserId === 'string') {
+        return headerUserId;
+    }
+
+    return null;
+}
+
+// ============================================================================
+// PROVISIONING ROUTES
 // ============================================================================
 
 /**
- * GET /api/provisioning/database/providers
- * List available database providers
+ * POST /api/provisioning/start
+ * Start a new provisioning session for a project
  */
-router.get('/database/providers', async (req: Request, res: Response) => {
-    const service = getDatabaseProvisioningService();
-    const providers = service.getAvailableProviders();
-    res.json({ providers });
-});
-
-/**
- * POST /api/provisioning/database
- * Provision a new database
- */
-router.post('/database', async (req: Request, res: Response) => {
+router.post('/start', async (req: Request, res: Response) => {
     try {
-        const { provider, projectName, region, plan } = req.body;
-
-        if (!provider || !projectName) {
-            return res.status(400).json({ error: 'provider and projectName are required' });
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const service = getDatabaseProvisioningService();
-        const result = await service.provision({
-            provider: provider as DatabaseProvider,
-            projectName,
-            region,
-            plan,
-        });
+        const { projectId, orchestrationRunId, requirements } = req.body as {
+            projectId: string;
+            orchestrationRunId?: string;
+            requirements: ServiceRequirement[];
+        };
 
-        if (result.success) {
-            res.json(result);
-        } else {
-            res.status(400).json(result);
-        }
-    } catch (error) {
-        res.status(500).json({
-            error: error instanceof Error ? error.message : 'Provisioning failed',
-        });
-    }
-});
-
-/**
- * POST /api/provisioning/database/with-schema
- * Provision database and generate schema
- */
-router.post('/database/with-schema', async (req: Request, res: Response) => {
-    try {
-        const { provider, projectName, region, plan, schemaDescription, framework } = req.body;
-
-        if (!provider || !projectName || !schemaDescription) {
+        if (!projectId || !requirements || requirements.length === 0) {
             return res.status(400).json({
-                error: 'provider, projectName, and schemaDescription are required'
+                error: 'Missing required fields: projectId and requirements'
             });
         }
 
-        const service = getDatabaseProvisioningService();
-        const result = await service.provisionWithSchema(
-            {
-                provider: provider as DatabaseProvider,
-                projectName,
-                region,
-                plan,
-            },
-            {
-                description: schemaDescription,
-                framework: framework || 'drizzle',
-            }
-        );
-
-        if (result.success) {
-            res.json(result);
-        } else {
-            res.status(400).json(result);
-        }
-    } catch (error) {
-        res.status(500).json({
-            error: error instanceof Error ? error.message : 'Provisioning failed',
-        });
-    }
-});
-
-/**
- * POST /api/provisioning/database/generate-schema
- * Generate schema from description (without provisioning)
- */
-router.post('/database/generate-schema', async (req: Request, res: Response) => {
-    try {
-        const { description, existingSchema, framework } = req.body;
-
-        if (!description) {
-            return res.status(400).json({ error: 'description is required' });
-        }
-
-        const result = await generateSchema({
-            description,
-            existingSchema,
-            framework: framework || 'drizzle',
+        const provisioningService = getProvisioningAgentService();
+        const result = await provisioningService.startProvisioning({
+            projectId,
+            userId,
+            orchestrationRunId,
+            requirements,
         });
 
         res.json(result);
     } catch (error) {
+        console.error('[Provisioning] Start error:', error);
         res.status(500).json({
-            error: error instanceof Error ? error.message : 'Schema generation failed',
+            error: 'Failed to start provisioning',
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });
 
-// ============================================================================
-// AUTH PROVISIONING
-// ============================================================================
-
 /**
- * GET /api/provisioning/auth/providers
- * List available auth providers
+ * POST /api/provisioning/:sessionId/resume
+ * Resume a provisioning session after user approval
  */
-router.get('/auth/providers', async (req: Request, res: Response) => {
-    const service = getAuthProvisioningService();
-    const providers = service.getAvailableProviders();
-    res.json({ providers });
-});
-
-/**
- * GET /api/provisioning/auth/recommend
- * Get recommended auth provider based on requirements
- */
-router.get('/auth/recommend', async (req: Request, res: Response) => {
-    const { selfHosted, enterprise, includesDatabase, budget } = req.query;
-
-    const service = getAuthProvisioningService();
-    const recommendation = service.getRecommendation({
-        selfHosted: selfHosted === 'true',
-        enterprise: enterprise === 'true',
-        includesDatabase: includesDatabase === 'true',
-        budget: budget as 'free' | 'paid' | undefined,
-    });
-
-    res.json(recommendation);
-});
-
-/**
- * POST /api/provisioning/auth
- * Provision authentication for a project
- */
-router.post('/auth', async (req: Request, res: Response) => {
+router.post('/:sessionId/resume', async (req: Request, res: Response) => {
     try {
-        const { provider, projectName, features, framework } = req.body;
-
-        if (!provider || !projectName) {
-            return res.status(400).json({ error: 'provider and projectName are required' });
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const service = getAuthProvisioningService();
-        const result = await service.provision({
-            provider: provider as AuthProvider,
-            projectName,
-            features,
-            framework,
-        });
+        const { sessionId } = req.params;
+        const { approvedServices } = req.body as {
+            approvedServices: string[];
+        };
 
-        if (result.success) {
-            res.json(result);
-        } else {
-            res.status(400).json(result);
+        if (!approvedServices || approvedServices.length === 0) {
+            return res.status(400).json({
+                error: 'No services approved'
+            });
         }
+
+        const provisioningService = getProvisioningAgentService();
+        const result = await provisioningService.resumeProvisioning(
+            sessionId,
+            approvedServices
+        );
+
+        res.json(result);
     } catch (error) {
+        console.error('[Provisioning] Resume error:', error);
         res.status(500).json({
-            error: error instanceof Error ? error.message : 'Provisioning failed',
+            error: 'Failed to resume provisioning',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/provisioning/:sessionId/status
+ * Get the status of a provisioning session
+ */
+router.get('/:sessionId/status', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+
+        const provisioningService = getProvisioningAgentService();
+        const status = await provisioningService.getSessionStatus(sessionId);
+
+        res.json(status);
+    } catch (error) {
+        console.error('[Provisioning] Status error:', error);
+        res.status(500).json({
+            error: 'Failed to get session status',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/provisioning/:sessionId/cancel
+ * Cancel a provisioning session
+ */
+router.post('/:sessionId/cancel', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { sessionId } = req.params;
+
+        const provisioningService = getProvisioningAgentService();
+        await provisioningService.cancelSession(sessionId);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Provisioning] Cancel error:', error);
+        res.status(500).json({
+            error: 'Failed to cancel session',
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });
 
 // ============================================================================
-// FULL STACK PROVISIONING
+// PERMISSION ROUTES
 // ============================================================================
 
 /**
- * POST /api/provisioning/full-stack
- * Provision both database and auth in one call
+ * GET /api/provisioning/permissions
+ * Get the current user's browser agent permissions
  */
-router.post('/full-stack', async (req: Request, res: Response) => {
+router.get('/permissions', async (req: Request, res: Response) => {
     try {
-        const {
-            projectName,
-            databaseProvider,
-            authProvider,
-            schemaDescription,
-            framework,
-            features,
-        } = req.body;
-
-        if (!projectName) {
-            return res.status(400).json({ error: 'projectName is required' });
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const results: {
-            database?: unknown;
-            auth?: unknown;
-        } = {};
+        const permissionManager = getPermissionManagerService();
+        const permissions = await permissionManager.getUserPermissions(userId);
 
-        // Provision database if requested
-        if (databaseProvider) {
-            const dbService = getDatabaseProvisioningService();
+        if (!permissions) {
+            return res.json({ configured: false });
+        }
 
-            if (schemaDescription) {
-                results.database = await dbService.provisionWithSchema(
-                    {
-                        provider: databaseProvider as DatabaseProvider,
-                        projectName,
-                    },
-                    {
-                        description: schemaDescription,
-                        framework: framework || 'drizzle',
-                    }
-                );
+        res.json(permissions);
+    } catch (error) {
+        console.error('[Provisioning] Get permissions error:', error);
+        res.status(500).json({
+            error: 'Failed to get permissions',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/provisioning/permissions/summary
+ * Get a summary of user's permission setup
+ */
+router.get('/permissions/summary', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const permissionManager = getPermissionManagerService();
+        const summary = await permissionManager.getPermissionsSummary(userId);
+
+        res.json(summary);
+    } catch (error) {
+        console.error('[Provisioning] Get permissions summary error:', error);
+        res.status(500).json({
+            error: 'Failed to get permissions summary',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * PUT /api/provisioning/permissions
+ * Update the current user's browser agent permissions
+ */
+router.put('/permissions', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const updates = req.body;
+
+        const permissionManager = getPermissionManagerService();
+
+        // Check if user has permissions, create default if not
+        const existing = await permissionManager.getUserPermissions(userId);
+        if (!existing) {
+            // Get user email from session or request
+            const email = (req as any).user?.email || updates.primaryEmail || '';
+            await permissionManager.createDefaultPermissions(userId, email);
+        }
+
+        const permissions = await permissionManager.updatePermissions(userId, updates);
+
+        res.json(permissions);
+    } catch (error) {
+        console.error('[Provisioning] Update permissions error:', error);
+        res.status(500).json({
+            error: 'Failed to update permissions',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * POST /api/provisioning/permissions/initialize
+ * Initialize default permissions for a user
+ */
+router.post('/permissions/initialize', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { email } = req.body as { email: string };
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const permissionManager = getPermissionManagerService();
+        const permissions = await permissionManager.createDefaultPermissions(userId, email);
+
+        res.json(permissions);
+    } catch (error) {
+        console.error('[Provisioning] Initialize permissions error:', error);
+        res.status(500).json({
+            error: 'Failed to initialize permissions',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+// ============================================================================
+// RESEARCH ROUTES
+// ============================================================================
+
+/**
+ * POST /api/provisioning/research
+ * Research services without starting provisioning
+ */
+router.post('/research', async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { requirements } = req.body as {
+            requirements: ServiceRequirement[];
+        };
+
+        if (!requirements || requirements.length === 0) {
+            return res.status(400).json({ error: 'No requirements provided' });
+        }
+
+        const researchAgent = getResearchAgentService();
+        const results = [];
+
+        for (const req of requirements) {
+            const knowledge = researchAgent.getServiceKnowledge(req.provider || req.serviceType);
+            if (knowledge) {
+                results.push({
+                    serviceName: req.serviceType,
+                    ...knowledge,
+                });
             } else {
-                results.database = await dbService.provision({
-                    provider: databaseProvider as DatabaseProvider,
-                    projectName,
+                results.push({
+                    serviceName: req.serviceType,
+                    provider: req.provider || 'Unknown',
+                    signupUrl: '',
+                    hasFreeTier: false,
+                    credentialsToFetch: req.envVarsNeeded,
                 });
             }
         }
 
-        // Provision auth if requested
-        if (authProvider) {
-            const authService = getAuthProvisioningService();
-            results.auth = await authService.provision({
-                provider: authProvider as AuthProvider,
-                projectName,
-                features,
-                framework,
-            });
-        }
-
-        res.json({
-            success: true,
-            projectName,
-            ...results,
-        });
+        res.json({ results });
     } catch (error) {
+        console.error('[Provisioning] Research error:', error);
         res.status(500).json({
-            error: error instanceof Error ? error.message : 'Provisioning failed',
+            error: 'Failed to research services',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/provisioning/services/:category
+ * Get known services for a category
+ */
+router.get('/services/:category', async (req: Request, res: Response) => {
+    try {
+        const { category } = req.params;
+
+        const researchAgent = getResearchAgentService();
+        const services = researchAgent.getKnownServicesByCategory(category);
+
+        const details = services.map(serviceName => {
+            const knowledge = researchAgent.getServiceKnowledge(serviceName);
+            return {
+                id: serviceName,
+                ...knowledge,
+            };
+        });
+
+        res.json({ category, services: details });
+    } catch (error) {
+        console.error('[Provisioning] Get services error:', error);
+        res.status(500).json({
+            error: 'Failed to get services',
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });
 
 export default router;
-

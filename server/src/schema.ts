@@ -2417,3 +2417,352 @@ export const projectGithubRepos = sqliteTable('project_github_repos', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// AUTONOMOUS BROWSER AGENTS - Cloud-based browser automation for provisioning
+// =============================================================================
+
+/**
+ * User Browser Permissions - Controls what info browser agents can access
+ * Users configure these ONCE at onboarding, can modify anytime
+ * This is the permission layer that must be confirmed before agents act
+ */
+export const userBrowserPermissions = sqliteTable('user_browser_permissions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull().unique(),
+
+    // Email addresses agents can use for account creation
+    primaryEmail: text('primary_email'),
+    allowedEmails: text('allowed_emails', { mode: 'json' }).$type<string[]>(),
+
+    // Payment methods (reference to encrypted 1Password vault items)
+    allow1PasswordAutofill: integer('allow_1password_autofill', { mode: 'boolean' }).default(false),
+    onePasswordVaultId: text('1password_vault_id'),
+    allowedPaymentMethods: text('allowed_payment_methods', { mode: 'json' }).$type<{
+        id: string;
+        type: 'credit_card' | 'bank_account' | 'paypal';
+        lastFour?: string;
+        expiryMonth?: number;
+        expiryYear?: number;
+        isDefault: boolean;
+    }[]>(),
+
+    // OAuth providers agents can use for SSO
+    allowedOAuthProviders: text('allowed_oauth_providers', { mode: 'json' }).$type<
+        ('google' | 'github' | 'microsoft' | 'apple' | 'facebook')[]
+    >(),
+
+    // Personal info agents can use
+    allowPersonalName: integer('allow_personal_name', { mode: 'boolean' }).default(false),
+    allowAddress: integer('allow_address', { mode: 'boolean' }).default(false),
+    allowPhone: integer('allow_phone', { mode: 'boolean' }).default(false),
+
+    // Spending limits per session
+    maxSpendPerSession: integer('max_spend_per_session').default(5000), // cents
+    maxSpendPerMonth: integer('max_spend_per_month').default(50000), // cents
+    spentThisMonth: integer('spent_this_month').default(0),
+    monthResetDate: text('month_reset_date'),
+
+    // Allowed service categories
+    allowedServiceCategories: text('allowed_service_categories', { mode: 'json' }).$type<
+        ('database' | 'auth' | 'storage' | 'email' | 'payments' | 'hosting' | 'analytics' | 'ai' | 'other')[]
+    >(),
+
+    // Service blocklist (never touch these)
+    blockedServices: text('blocked_services', { mode: 'json' }).$type<string[]>(),
+
+    // Approval mode
+    approvalMode: text('approval_mode').default('confirm_each').$type<
+        'auto_approve' | 'confirm_each' | 'confirm_paid' | 'manual_only'
+    >(),
+
+    // Audit settings
+    recordAllActions: integer('record_all_actions', { mode: 'boolean' }).default(true),
+    notifyOnAccountCreate: integer('notify_on_account_create', { mode: 'boolean' }).default(true),
+    notifyOnPaymentUse: integer('notify_on_payment_use', { mode: 'boolean' }).default(true),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Provisioning Sessions - Overall session for a project's infrastructure setup
+ * Created when a build needs external services provisioned
+ */
+export const provisioningSessions = sqliteTable('provisioning_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Session lifecycle
+    status: text('status').default('pending').notNull().$type<
+        'pending' | 'awaiting_permissions' | 'researching' | 'provisioning' | 'verifying' | 'completed' | 'failed' | 'cancelled'
+    >(),
+    phase: text('phase').$type<
+        'research' | 'permission_capture' | 'account_creation' | 'credential_fetch' | 'verification' | 'integration'
+    >(),
+
+    // Required services from production stack analysis
+    requiredServices: text('required_services', { mode: 'json' }).$type<{
+        serviceType: string;
+        provider?: string;
+        required: boolean;
+        reason: string;
+        envVarsNeeded: string[];
+    }[]>(),
+
+    // Permission snapshot (what was approved for this session)
+    permissionSnapshot: text('permission_snapshot', { mode: 'json' }).$type<{
+        approvedAt: string;
+        emailUsed: string;
+        oauthProviders: string[];
+        paymentMethodId?: string;
+        maxSpend: number;
+        servicesApproved: string[];
+    }>(),
+
+    // Progress tracking
+    totalTasks: integer('total_tasks').default(0),
+    completedTasks: integer('completed_tasks').default(0),
+    failedTasks: integer('failed_tasks').default(0),
+
+    // Spending tracking
+    estimatedCost: integer('estimated_cost').default(0), // cents
+    actualCost: integer('actual_cost').default(0), // cents
+
+    // Research results (from Phase 0.25)
+    researchResults: text('research_results', { mode: 'json' }).$type<{
+        serviceName: string;
+        provider: string;
+        signupUrl: string;
+        hasFreeTier: boolean;
+        freeTierLimits?: string;
+        pricingTier?: string;
+        estimatedCost: number;
+        credentialsToFetch: string[];
+        signupSteps?: string[];
+    }[]>(),
+
+    // Error tracking
+    lastError: text('last_error'),
+    errorCount: integer('error_count').default(0),
+
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Browser Agent Tasks - Individual tasks executed by browser agents
+ * Each task is atomic: one service, one goal (signup, fetch key, configure, etc.)
+ */
+export const browserAgentTasks = sqliteTable('browser_agent_tasks', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    provisioningSessionId: text('provisioning_session_id').references(() => provisioningSessions.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Task definition
+    taskType: text('task_type').notNull().$type<
+        'research' | 'signup' | 'oauth_connect' | 'fetch_credentials' | 'configure_settings' | 'verify_connection' | 'enable_feature'
+    >(),
+    serviceName: text('service_name').notNull(), // e.g., 'supabase', 'stripe', 'vercel'
+    targetUrl: text('target_url'),
+    goal: text('goal').notNull(), // Human-readable goal
+
+    // Task intent lock (immutable definition of "done")
+    intentLockId: text('intent_lock_id').references(() => taskIntentLocks.id),
+
+    // Execution
+    status: text('status').default('pending').notNull().$type<
+        'pending' | 'running' | 'waiting_otp' | 'waiting_user' | 'verifying' | 'completed' | 'failed' | 'cancelled'
+    >(),
+    progress: integer('progress').default(0), // 0-100
+    currentStep: text('current_step'),
+
+    // Browser session (Browserbase)
+    browserbaseSessionId: text('browserbase_session_id'),
+    liveViewUrl: text('live_view_url'), // URL for user to watch/debug
+
+    // Model used for navigation
+    navigationModel: text('navigation_model').default('gemini-3-flash'), // Fast vision model
+    decisionModel: text('decision_model').default('claude-sonnet-4-5'), // For complex decisions
+
+    // Stagehand integration
+    stagehandActions: text('stagehand_actions', { mode: 'json' }).$type<{
+        action: string;
+        selector?: string;
+        value?: string;
+        timestamp: string;
+        success: boolean;
+        error?: string;
+    }[]>(),
+
+    // Credentials fetched (references to external_service_credentials)
+    credentialsFetched: text('credentials_fetched', { mode: 'json' }).$type<string[]>(),
+
+    // Screenshot history for debugging
+    screenshots: text('screenshots', { mode: 'json' }).$type<{
+        timestamp: string;
+        url: string;
+        step: string;
+        base64?: string; // Only for recent ones
+    }[]>(),
+
+    // Retry info
+    attempts: integer('attempts').default(0),
+    maxAttempts: integer('max_attempts').default(3),
+    lastAttemptError: text('last_attempt_error'),
+
+    // Timing
+    estimatedDurationMs: integer('estimated_duration_ms'),
+    actualDurationMs: integer('actual_duration_ms'),
+
+    // Cost (for paid tier signups)
+    costIncurred: integer('cost_incurred').default(0), // cents
+
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Task Intent Locks - Cascading intent lock system for granular verification
+ * Creates immutable "done" definitions at task level (not just project level)
+ * Hierarchy: Project Intent → Phase Intent → Task Intent
+ */
+export const taskIntentLocks = sqliteTable('task_intent_locks', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    provisioningSessionId: text('provisioning_session_id').references(() => provisioningSessions.id).notNull(),
+    browserAgentTaskId: text('browser_agent_task_id'), // Set after task is created
+    buildIntentId: text('build_intent_id').references(() => buildIntents.id), // Parent project intent
+
+    // Scope
+    scope: text('scope').notNull().$type<'phase' | 'task' | 'subtask'>(),
+
+    // Intent definition (immutable after lock)
+    serviceName: text('service_name').notNull(),
+    taskType: text('task_type').notNull(),
+    expectedOutcomes: text('expected_outcomes', { mode: 'json' }).$type<string[]>().notNull(),
+    successCriteria: text('success_criteria', { mode: 'json' }).$type<{
+        type: 'credential_exists' | 'api_responds' | 'dashboard_accessible' | 'feature_enabled' | 'custom';
+        key?: string;
+        expectedValue?: string;
+        validationEndpoint?: string;
+    }[]>().notNull(),
+    antiPatterns: text('anti_patterns', { mode: 'json' }).$type<string[]>(), // What NOT to do
+
+    // Lock status
+    locked: integer('locked', { mode: 'boolean' }).default(false).notNull(),
+    lockedAt: text('locked_at'),
+
+    // Verification results
+    verified: integer('verified', { mode: 'boolean' }).default(false),
+    verifiedAt: text('verified_at'),
+    verificationDetails: text('verification_details', { mode: 'json' }).$type<{
+        criterionIndex: number;
+        passed: boolean;
+        actualValue?: string;
+        error?: string;
+    }[]>(),
+
+    // AI generation
+    generatedBy: text('generated_by').default('claude-sonnet-4-5'),
+    tokensUsed: integer('tokens_used').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * External Service Credentials - Credentials fetched by browser agents
+ * Stored encrypted, integrated into project env vars automatically
+ */
+export const externalServiceCredentials = sqliteTable('external_service_credentials', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    provisioningSessionId: text('provisioning_session_id').references(() => provisioningSessions.id).notNull(),
+    browserAgentTaskId: text('browser_agent_task_id').references(() => browserAgentTasks.id),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Service info
+    serviceName: text('service_name').notNull(), // e.g., 'supabase', 'stripe'
+    serviceAccountId: text('service_account_id'), // Account ID on the service
+    serviceProjectId: text('service_project_id'), // Project ID on the service
+    dashboardUrl: text('dashboard_url'), // Direct link to service dashboard
+
+    // Credential type
+    credentialType: text('credential_type').notNull().$type<
+        'api_key' | 'secret_key' | 'connection_string' | 'oauth_token' | 'webhook_secret' | 'public_key' | 'private_key' | 'other'
+    >(),
+    credentialName: text('credential_name').notNull(), // e.g., 'SUPABASE_ANON_KEY'
+    envVarName: text('env_var_name').notNull(), // The env var name in user's app
+
+    // Encrypted credential value
+    encryptedValue: text('encrypted_value').notNull(),
+    encryptionIv: text('encryption_iv').notNull(),
+    encryptionAuthTag: text('encryption_auth_tag').notNull(),
+
+    // Validation
+    isValidated: integer('is_validated', { mode: 'boolean' }).default(false),
+    lastValidatedAt: text('last_validated_at'),
+    validationMethod: text('validation_method').$type<'api_call' | 'connection_test' | 'manual'>(),
+
+    // Integration status
+    isIntegrated: integer('is_integrated', { mode: 'boolean' }).default(false), // Has been added to project env
+    integratedAt: text('integrated_at'),
+    projectEnvVarId: text('project_env_var_id').references(() => projectEnvVars.id),
+
+    // Expiry (for rotating keys)
+    expiresAt: text('expires_at'),
+    rotationSchedule: text('rotation_schedule'), // cron expression
+
+    // Audit
+    fetchedVia: text('fetched_via').notNull().$type<'browser_agent' | 'oauth' | 'api' | 'manual'>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Browser Agent Audit Log - Comprehensive audit trail for all browser actions
+ * Required for security, debugging, and compliance
+ */
+export const browserAgentAuditLog = sqliteTable('browser_agent_audit_log', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    browserAgentTaskId: text('browser_agent_task_id').references(() => browserAgentTasks.id).notNull(),
+    provisioningSessionId: text('provisioning_session_id').references(() => provisioningSessions.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Action details
+    actionType: text('action_type').notNull().$type<
+        'navigate' | 'click' | 'type' | 'scroll' | 'screenshot' | 'extract' | 'oauth_flow' | 'payment_attempt' | 'error' | 'user_intervention'
+    >(),
+    actionDescription: text('action_description').notNull(),
+    targetUrl: text('target_url'),
+    targetElement: text('target_element'), // CSS selector or description
+
+    // Sensitive data handling
+    containsSensitiveData: integer('contains_sensitive_data', { mode: 'boolean' }).default(false),
+    sensitiveDataRedacted: integer('sensitive_data_redacted', { mode: 'boolean' }).default(true),
+
+    // Result
+    success: integer('success', { mode: 'boolean' }).notNull(),
+    errorMessage: text('error_message'),
+
+    // Screenshot (only stored if configured)
+    screenshotBase64: text('screenshot_base64'),
+
+    // Model usage
+    modelUsed: text('model_used'),
+    tokensUsed: integer('tokens_used').default(0),
+
+    // Timing
+    durationMs: integer('duration_ms'),
+
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});

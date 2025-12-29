@@ -1,6 +1,6 @@
 /**
  * Credentials Collection View - Premium Edition
- * 
+ *
  * A stunning, high-tech credential input interface that matches
  * the KripTik AI aesthetic:
  * - Frosted glass cards with 3D depth
@@ -100,7 +100,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
 
   const required = useMemo(() => credentials.filter((c) => c.required), [credentials]);
   const ready = useMemo(() => required.every((c) => (values[c.envVariableName] || '').trim().length > 0), [required, values]);
-  const filledCount = useMemo(() => 
+  const filledCount = useMemo(() =>
     credentials.filter(c => (values[c.envVariableName] || '').trim().length > 0).length
   , [credentials, values]);
 
@@ -127,7 +127,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
   return (
     <div className="credentials-view">
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="credentials-view__header"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -145,13 +145,13 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
       </motion.div>
 
       {/* Progress bar */}
-      <motion.div 
+      <motion.div
         className="credentials-view__progress-bar"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
         transition={{ duration: 0.6, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
       >
-        <motion.div 
+        <motion.div
           className="credentials-view__progress-fill"
           initial={{ width: 0 }}
           animate={{ width: `${(filledCount / credentials.length) * 100}%` }}
@@ -176,16 +176,16 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ 
-                  duration: 0.4, 
+                transition={{
+                  duration: 0.4,
                   delay: index * 0.05,
-                  ease: [0.23, 1, 0.32, 1] 
+                  ease: [0.23, 1, 0.32, 1]
                 }}
                 whileHover={{ scale: 1.01, y: -2 }}
               >
                 {/* Card inner glow */}
                 <div className="credential-card__glow" />
-                
+
                 {/* Card content */}
                 <div className="credential-card__content">
                   <div className="credential-card__header">
@@ -203,7 +203,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
                         <div className="credential-card__env-var">{c.envVariableName}</div>
                       </div>
                     </div>
-                    
+
                     {c.platformUrl && (
                       <a
                         href={c.platformUrl}
@@ -235,7 +235,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
                         autoComplete="off"
                         spellCheck={false}
                       />
-                      
+
                       <div className="credential-card__input-actions">
                         {isSecret && (
                           <button
@@ -247,7 +247,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
                             {showingSecret ? <EyeOpenIcon /> : <EyeClosedIcon />}
                           </button>
                         )}
-                        
+
                         <AnimatePresence>
                           {filled && (
                             <motion.div
@@ -276,7 +276,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
       </div>
 
       {/* Submit button */}
-      <motion.div 
+      <motion.div
         className="credentials-view__footer"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -293,7 +293,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
             {submitting ? 'Securing Credentials...' : ready ? 'Continue Building' : `${required.length - filledCount} more required`}
           </span>
           {ready && !submitting && (
-            <motion.span 
+            <motion.span
               className="credentials-view__submit-arrow"
               initial={{ x: -5, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -303,7 +303,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
             </motion.span>
           )}
           {submitting && (
-            <motion.span 
+            <motion.span
               className="credentials-view__submit-spinner"
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -312,7 +312,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
             </motion.span>
           )}
         </motion.button>
-        
+
         <p className="credentials-view__security-note">
           Your credentials are encrypted and never leave your account
         </p>

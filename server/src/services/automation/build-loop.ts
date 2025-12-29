@@ -145,6 +145,15 @@ import {
 } from '../lattice/index.js';
 
 // ============================================================================
+// AUTONOMOUS BROWSER AGENTS (Provisioning Integration)
+// ============================================================================
+import {
+    getProvisioningAgentService,
+    type ProvisioningAgentService,
+    type ProvisioningResult,
+} from '../provisioning/index.js';
+
+// ============================================================================
 // AUTONOMOUS LEARNING ENGINE INTEGRATION (Component 28)
 // ============================================================================
 import {
@@ -1100,6 +1109,17 @@ export class BuildLoopOrchestrator extends EventEmitter {
             // If InitializerAgent ran, we skip Phase 0 and 1 (already done by InitializerAgent)
             // If resuming, we also skip Phase 0 and 1
 
+            // =====================================================================
+            // AUTONOMOUS BROWSER AGENTS: Provisioning Phases (0.25, 0.5, 0.75)
+            // These run after initialization to:
+            //   - 0.25: Research required services and signup flows
+            //   - 0.5: Capture user permissions for account creation
+            //   - 0.75: Provision accounts and fetch credentials
+            // =====================================================================
+            if (!this.aborted) {
+                await this.executeProvisioningPhases();
+            }
+
             // Loop through stages (Frontend → Backend → Production)
             const stages: BuildStage[] = ['frontend', 'backend', 'production'];
 
@@ -1439,6 +1459,149 @@ export class BuildLoopOrchestrator extends EventEmitter {
         } catch (error) {
             throw new Error(`Initialization failed: ${(error as Error).message}`);
         }
+    }
+
+    /**
+     * AUTONOMOUS BROWSER AGENTS: Execute Provisioning Phases (0.25, 0.5, 0.75)
+     *
+     * These phases use browser automation to:
+     * - Research service signup requirements
+     * - Capture user permissions for account creation
+     * - Create accounts and fetch API credentials
+     * - Inject credentials into sandbox environment
+     */
+    private async executeProvisioningPhases(): Promise<void> {
+        this.emitEvent('status', { phase: 'provisioning', status: 'starting' });
+
+        try {
+            // Get required services from Intent Contract
+            const requiredServices = this.getRequiredServicesFromIntent();
+
+            if (requiredServices.length === 0) {
+                console.log('[BuildLoop] No external services required - skipping provisioning');
+                this.emitEvent('status', { phase: 'provisioning', status: 'skipped', reason: 'no_services_required' });
+                return;
+            }
+
+            console.log(`[BuildLoop] Starting provisioning for ${requiredServices.length} services:`, requiredServices);
+
+            // Initialize provisioning agent
+            const provisioningAgent = getProvisioningAgentService();
+
+            // Start the full provisioning flow (research + permissions + execution)
+            const provisioningResult = await provisioningAgent.startProvisioning({
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                orchestrationRunId: this.state.id,
+                requirements: requiredServices,
+            });
+
+            // Log results
+            console.log(`[BuildLoop] Provisioning complete: ${provisioningResult.credentialsIntegrated} credentials integrated, ${provisioningResult.credentialsFailed} failed`);
+
+            // Emit completion event
+            this.emitEvent('status', {
+                phase: 'provisioning',
+                status: provisioningResult.success ? 'complete' : 'partial',
+                credentialsIntegrated: provisioningResult.credentialsIntegrated,
+                credentialsFailed: provisioningResult.credentialsFailed,
+                errors: provisioningResult.errors,
+            });
+
+        } catch (error) {
+            console.error('[BuildLoop] Provisioning phases failed:', error);
+            this.emitEvent('error', { phase: 'provisioning', error: (error as Error).message });
+            // Non-fatal - continue with build, user will need to provide credentials manually
+        }
+    }
+
+    /**
+     * Extract required services from Intent Contract
+     * Returns ServiceRequirement[] compatible with ProvisioningAgentService
+     */
+    private getRequiredServicesFromIntent(): Array<{
+        serviceType: string;
+        provider?: string;
+        required: boolean;
+        reason: string;
+        envVarsNeeded: string[];
+    }> {
+        const services: Array<{
+            serviceType: string;
+            provider?: string;
+            required: boolean;
+            reason: string;
+            envVarsNeeded: string[];
+        }> = [];
+
+        // Parse intent contract for mentioned services
+        if (this.state.intentContract) {
+            // Build text from available intent contract fields
+            const coreValueProp = (this.state.intentContract.coreValueProp || '').toLowerCase();
+            const originalPrompt = (this.state.intentContract.originalPrompt || '').toLowerCase();
+            const userWorkflowSteps = this.state.intentContract.userWorkflows
+                ?.flatMap(w => w.steps)
+                ?.join(' ')
+                ?.toLowerCase() || '';
+            const allText = coreValueProp + ' ' + originalPrompt + ' ' + userWorkflowSteps;
+
+            // Database detection
+            if (allText.includes('database') || allText.includes('data') || allText.includes('store') || allText.includes('save')) {
+                services.push({
+                    serviceType: 'database',
+                    provider: 'supabase',
+                    required: true,
+                    reason: 'App requires data persistence',
+                    envVarsNeeded: ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'],
+                });
+            }
+
+            // Auth detection
+            if (allText.includes('auth') || allText.includes('login') || allText.includes('user') || allText.includes('sign')) {
+                services.push({
+                    serviceType: 'auth',
+                    provider: 'clerk',
+                    required: true,
+                    reason: 'App requires user authentication',
+                    envVarsNeeded: ['CLERK_SECRET_KEY', 'CLERK_PUBLISHABLE_KEY'],
+                });
+            }
+
+            // Payment detection
+            if (allText.includes('payment') || allText.includes('stripe') || allText.includes('checkout') || allText.includes('subscription')) {
+                services.push({
+                    serviceType: 'payments',
+                    provider: 'stripe',
+                    required: true,
+                    reason: 'App requires payment processing',
+                    envVarsNeeded: ['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY'],
+                });
+            }
+
+            // Storage detection
+            if (allText.includes('upload') || allText.includes('image') || allText.includes('file') || allText.includes('storage')) {
+                services.push({
+                    serviceType: 'storage',
+                    provider: 'cloudinary',
+                    required: false,
+                    reason: 'App may need file/image uploads',
+                    envVarsNeeded: ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
+                });
+            }
+
+            // Email detection
+            if (allText.includes('email') || allText.includes('notification') || allText.includes('send')) {
+                services.push({
+                    serviceType: 'email',
+                    provider: 'resend',
+                    required: false,
+                    reason: 'App may need email sending',
+                    envVarsNeeded: ['RESEND_API_KEY'],
+                });
+            }
+        }
+
+        return services;
     }
 
     /**

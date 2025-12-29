@@ -69,3 +69,6 @@ export { default as productionStackRouter } from './production-stack.js';
 
 // GitHub Integration
 export { default as githubRouter } from './github.js';
+
+// Autonomous Browser Provisioning
+export { default as provisioningRouter } from './provisioning.js';

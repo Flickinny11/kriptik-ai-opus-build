@@ -102,6 +102,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   { id: 'multiplayer', name: 'MultiPlayer', icon: 'multiplayer', category: 'collab' },
   { id: 'publish', name: 'Publish', icon: 'publish', category: 'collab' },
   { id: 'share', name: 'Share', icon: 'share', category: 'collab' },
+  { id: 'browser-permissions', name: 'Permissions', icon: 'zeroTrustSec', category: 'deploy' },
 ];
 
 type Orientation = 'vertical' | 'horizontal';

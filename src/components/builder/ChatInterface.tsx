@@ -51,6 +51,7 @@ import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
 import { ImplementationPlan } from './ImplementationPlan';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
+import { ProvisioningStatus } from '../provisioning/ProvisioningStatus';
 import {
     useProductionStackStore,
     AUTH_PROVIDERS,
@@ -379,7 +380,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [currentPlan, setCurrentPlan] = useState<BuildPlan | null>(null);
     const [requiredCredentials, setRequiredCredentials] = useState<RequiredCredential[]>([]);
     const [buildSessionId, setBuildSessionId] = useState<string | null>(null);
-    const [_buildProjectId, setBuildProjectId] = useState<string | null>(null);
+    const [buildProjectId, setBuildProjectId] = useState<string | null>(null);
     // Store the locked intent prompt for display
     const [lockedIntentPrompt, setLockedIntentPrompt] = useState<string | null>(null);
 
@@ -1116,15 +1117,15 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                              buildWorkflowPhase === 'building' ? 'Building...' :
                              buildWorkflowPhase === 'complete' ? 'Build Complete' : 'Build Orchestrator'}
                         </h2>
-                        <p className="text-xs" style={{ 
-                            color: buildWorkflowPhase === 'building' ? '#c25a00' : 
+                        <p className="text-xs" style={{
+                            color: buildWorkflowPhase === 'building' ? '#c25a00' :
                                    buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
                                    buildWorkflowPhase === 'complete' ? '#059669' :
-                                   globalStatus === 'running' ? '#c25a00' : '#666' 
+                                   globalStatus === 'running' ? '#c25a00' : '#666'
                         }}>
                             {buildWorkflowPhase === 'idle' ? (
                                 globalStatus === 'running' ? 'Agents working...' :
-                                globalStatus === 'paused' ? 'Paused' : 
+                                globalStatus === 'paused' ? 'Paused' :
                                 'Enter your vision, we handle the rest'
                             ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing requirements...' :
                             buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review and approve plan' :
@@ -1227,7 +1228,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             className="space-y-4"
                         >
                             {/* Background preparation indicator */}
-                            <motion.div 
+                            <motion.div
                                 className="p-3 rounded-xl mb-4"
                                 style={{
                                     background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%)',
@@ -1239,7 +1240,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
-                                        <motion.div 
+                                        <motion.div
                                             className="w-3 h-3 rounded-full bg-emerald-500"
                                             animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
                                             transition={{ duration: 1.5, repeat: Infinity }}
@@ -1277,6 +1278,14 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                 />
                             </div>
                         )}
+
+                        {/* Provisioning Status - Browser agent activity during provisioning phase */}
+                        <div className="px-4 pt-2 shrink-0">
+                            <ProvisioningStatus
+                                projectId={buildProjectId || projectId || ''}
+                                isActive={globalStatus === 'running'}
+                            />
+                        </div>
 
                         {/* Streaming Consciousness - Neural network visualization of parallel agents */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
@@ -1431,10 +1440,10 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     <div
                                         className="w-8 h-8 rounded-lg flex items-center justify-center"
                                         style={{
-                                            background: streamController 
+                                            background: streamController
                                                 ? 'linear-gradient(145deg, rgba(250,204,21,0.6) 0%, rgba(234,179,8,0.45) 100%)'
                                                 : 'linear-gradient(145deg, rgba(255,180,120,0.6) 0%, rgba(255,160,100,0.45) 100%)',
-                                            boxShadow: streamController 
+                                            boxShadow: streamController
                                                 ? `0 2px 8px rgba(234, 179, 8, 0.25)`
                                                 : `0 2px 8px rgba(255, 140, 100, 0.15)`,
                                         }}
@@ -1527,7 +1536,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         }}
                     >
                         <div className="px-4 py-3 flex items-start gap-3">
-                            <div 
+                            <div
                                 className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
                                 style={{
                                     background: 'linear-gradient(145deg, rgba(5,150,105,0.4) 0%, rgba(16,185,129,0.25) 100%)',
@@ -1548,13 +1557,13 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                         style={{ background: '#059669' }}
                                     />
                                 </div>
-                                <p 
+                                <p
                                     className="text-sm font-medium truncate"
                                     style={{ color: '#1a1a1a' }}
                                     title={lockedIntentPrompt}
                                 >
-                                    {lockedIntentPrompt.length > 80 
-                                        ? `${lockedIntentPrompt.substring(0, 80)}...` 
+                                    {lockedIntentPrompt.length > 80
+                                        ? `${lockedIntentPrompt.substring(0, 80)}...`
                                         : lockedIntentPrompt}
                                 </p>
                             </div>
@@ -1565,12 +1574,12 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 <div className="mb-3 flex items-center justify-between">
                     {/* Workflow Phase Indicator - Unified orchestration flow */}
                     <div className="flex items-center gap-2">
-                        <div 
+                        <div
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
                             style={{
-                                background: buildWorkflowPhase === 'idle' 
+                                background: buildWorkflowPhase === 'idle'
                                     ? 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%)'
-                                    : buildWorkflowPhase === 'building' 
+                                    : buildWorkflowPhase === 'building'
                                         ? 'linear-gradient(145deg, rgba(255,180,120,0.4) 0%, rgba(255,160,100,0.25) 100%)'
                                         : buildWorkflowPhase === 'awaiting_plan_approval'
                                             ? 'linear-gradient(145deg, rgba(5,150,105,0.25) 0%, rgba(16,185,129,0.15) 100%)'
@@ -1594,7 +1603,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     animate={{ rotate: buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' ? 360 : 0 }}
                                     transition={{ duration: 2, repeat: buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' ? Infinity : 0, ease: 'linear' }}
                                     className="w-2 h-2 rounded-full"
-                                    style={{ 
+                                    style={{
                                         background: buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
                                                     buildWorkflowPhase === 'building' ? '#c25a00' :
                                                     buildWorkflowPhase === 'complete' ? '#059669' : '#eab308'

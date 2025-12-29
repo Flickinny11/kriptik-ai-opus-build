@@ -12,6 +12,7 @@ import { useState, useRef } from 'react';
 import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
+import { BrowserAgentPermissions } from '../provisioning/BrowserAgentPermissions';
 import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
 
@@ -30,6 +31,11 @@ interface DeveloperBarPanelProps {
 const FeatureAgentCommandCenterWrapper = ({ isActive: _isActive, onClose: _onClose }: { isActive: boolean; onClose: () => void }) => {
   const { projectId } = useParams();
   return <FeatureAgentCommandCenter projectId={projectId || undefined} />;
+};
+
+// Panel wrapper for Browser Agent Permissions
+const BrowserPermissionsWrapper = ({ isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
+  return <BrowserAgentPermissions isOpen={isActive} onClose={onClose} />;
 };
 
 const FEATURE_PANELS: Record<string, {
@@ -60,6 +66,7 @@ const FEATURE_PANELS: Record<string, {
   'test-gen': { title: 'Test Gen', icon: 'testGen', component: GenericPanel },
   'self-heal': { title: 'Self Heal', icon: 'selfHeal', component: GenericPanel },
   'cloud-deploy': { title: 'Cloud', icon: 'cloudDeploy', component: GenericPanel },
+  'browser-permissions': { title: 'Browser Agent Permissions', icon: 'zeroTrustSec', component: BrowserPermissionsWrapper, fullWidth: true },
 };
 
 export function DeveloperBarPanel({
