@@ -17,8 +17,9 @@
 3. ✅ **All P0-P2 Blockers Fixed** - Code writes to disk, Builder wired, credentials work
 4. ✅ **LATTICE Architecture Designed** - Complete implementation plan created
 5. ✅ **3D Panel Plan Created** - Upgrade dev toolbar panels with 3D visualizations
-6. ⚠️ **MERGE GAP IDENTIFIED** - "Accept & Merge" button doesn't actually merge (fix first!)
-7. ⚠️ **GITHUB GAP IDENTIFIED** - No OAuth, no repo creation, no push to remote
+6. ✅ **Auth Stabilized (Dec 29, 2025)** - Restored same-origin `/api` proxy + centralized API base URL to prevent cookie-domain regressions
+7. ⚠️ **MERGE GAP IDENTIFIED** - "Accept & Merge" button doesn't actually merge (fix first!)
+8. ⚠️ **GITHUB GAP IDENTIFIED** - No OAuth, no repo creation, no push to remote
 
 ### CRITICAL: Features That Already Exist (DO NOT RECREATE)
 

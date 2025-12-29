@@ -24,6 +24,7 @@ import {
     CodeIcon as FileCode2Icon,
 } from '../ui/icons';
 import { apiClient } from '../../lib/api-client';
+import { getApiBaseUrl } from '../../lib/runtime-urls';
 import { FrameTimeline } from './FrameTimeline';
 import { DesignDNAPreview } from './DesignDNAPreview';
 import '../../styles/realistic-glass.css';
@@ -230,7 +231,7 @@ export function CloneModePanel({
             eventSourceRef.current.close();
         }
 
-        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const baseUrl = getApiBaseUrl();
         const eventSource = new EventSource(`${baseUrl}/api/clone/status/${sid}`, {
             withCredentials: true
         });

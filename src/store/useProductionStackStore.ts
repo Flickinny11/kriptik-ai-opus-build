@@ -7,9 +7,10 @@
  */
 
 import { create } from 'zustand';
+import { getApiBaseUrl } from '../lib/runtime-urls';
 
-// API URL for backend requests
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+// API URL for backend requests (prefer same-origin in production for cookie safety)
+const API_URL = getApiBaseUrl();
 
 // Provider type definitions
 export type AuthProvider = 'clerk' | 'better-auth' | 'nextauth' | 'supabase-auth' | 'auth0' | 'firebase-auth' | 'none';

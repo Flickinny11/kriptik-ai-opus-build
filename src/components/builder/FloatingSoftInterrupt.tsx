@@ -15,8 +15,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './FloatingSoftInterrupt.css';
+import { getApiBaseUrl } from '../../lib/runtime-urls';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = getApiBaseUrl();
 
 // =============================================================================
 // TYPES

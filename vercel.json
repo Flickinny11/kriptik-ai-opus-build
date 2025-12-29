@@ -7,6 +7,10 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://kriptik-ai-opus-build-backend.vercel.app/api/$1"
+    },
+    {
       "source": "/((?!api|_next/static|_next/image|favicon.ico|assets).*)",
       "destination": "/index.html"
     }

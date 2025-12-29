@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiBaseUrl } from '../../lib/runtime-urls';
 import {
     TrendingUpIcon,
     SearchIcon,
@@ -233,7 +234,7 @@ export function MarketFitDashboard({
             eventSourceRef.current.close();
         }
 
-        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const baseUrl = getApiBaseUrl();
         const eventSource = new EventSource(`${baseUrl}/api/market-fit/stream/${analysisId}`, {
             withCredentials: true
         });

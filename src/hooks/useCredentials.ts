@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
 export interface ConnectedCredential {
     id: string;
@@ -61,7 +62,7 @@ interface UseCredentialsReturn {
     refetch: () => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = getApiBaseUrl();
 
 // OAuth integrations that support one-click connect
 const OAUTH_INTEGRATIONS = ['vercel', 'github', 'netlify', 'google', 'cloudflare', 'slack', 'discord', 'notion'];

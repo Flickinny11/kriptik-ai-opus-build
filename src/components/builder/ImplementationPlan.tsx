@@ -21,6 +21,7 @@ import {
     AlertCircleIcon
 } from '@/components/ui/icons';
 import { apiClient } from '@/lib/api-client';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
 // Types
 interface PlanOption {
@@ -306,7 +307,7 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
 
         try {
             // Use SSE endpoint for streaming progress
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/plan/generate/stream`, {
+            const response = await fetch(`${getApiBaseUrl()}/api/plan/generate/stream`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

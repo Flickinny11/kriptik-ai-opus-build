@@ -43,9 +43,10 @@ import CostMonitor from '../cost/CostMonitor';
 import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
+import { getApiBaseUrl } from '../../lib/runtime-urls';
 
-// Backend API URL - use environment variable for proper cross-domain communication
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Backend API URL - prefer same-origin in production for cookie safety
+const API_URL = getApiBaseUrl();
 import { useUserStore } from '../../store/useUserStore';
 import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';

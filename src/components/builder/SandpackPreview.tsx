@@ -17,9 +17,10 @@ import { useEditorStore } from '../../store/useEditorStore';
 import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOverlay';
 import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 import { apiClient } from '@/lib/api-client';
+import { getApiBaseUrl } from '@/lib/runtime-urls';
 
-// API URL for backend requests
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+// API URL for backend requests (prefer same-origin in production for cookie safety)
+const API_URL = getApiBaseUrl();
 
 // Temporary icon components for icons not in custom icon set
 const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
