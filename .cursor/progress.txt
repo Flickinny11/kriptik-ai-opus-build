@@ -5598,3 +5598,15 @@ NEXT: Ensure orchestration continues building while awaiting credentials
    CURRENT STATE: `npm run build` passes (tsc -b + vite build).
    NEXT: Verify in prod deployment that expanded swarm tabs + mode selector are high-contrast liquid glass and no elements retain perspective skew in the desktop builder view.
    CONTEXT: Removed inline style blocks (tabs + mode selector) that forced white-on-white / dark-theme assumptions; added flat (no perspective) overrides scoped to the floating swarm while preserving the standalone 3D panel style elsewhere.
+
+   ═══ [2025-12-29T18:45:00] ═══
+   COMPLETED: Fixed auth cookie issues for mobile and Cursor browser + committed verification swarm UI fixes
+   FILES MODIFIED:
+   - server/src/auth.ts (use calculated cookieSameSite, fix Secure flag, domain logic)
+   - server/src/index.ts (add CORS support for embedded browsers)
+   CURRENT STATE: Auth cookies now properly configured for:
+     - Same-site (kriptik.app <-> api.kriptik.app): SameSite=Lax, Secure=true in prod
+     - Cross-site (Vercel previews): SameSite=None, Secure=true (required)
+     - Embedded browsers (Cursor, mobile webviews): CORS origins added
+   NEXT: Deploy to production and test auth on mobile/Cursor browser
+   CONTEXT: The cookieSameSite variable was calculated but never used (hardcoded 'lax'). Now uses dynamic value based on domain relationship. Added CORS support for vscode-webview://, file://, and cursor origins.

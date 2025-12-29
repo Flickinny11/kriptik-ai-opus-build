@@ -334,6 +334,20 @@ app.use((req, res, next) => {
         }
     }
 
+    // Allow embedded browser origins (Cursor, VS Code webviews, mobile webviews)
+    if (!isAllowed && origin) {
+        if (
+            origin.startsWith('vscode-webview://') ||
+            origin.startsWith('file://') ||
+            origin === 'null' || // Some embedded browsers send 'null' as origin
+            origin.includes('cursor') ||
+            origin.includes('Cursor')
+        ) {
+            console.log(`[CORS Preflight] Allowing embedded browser: ${origin}`);
+            isAllowed = true;
+        }
+    }
+
     // Fallback: Allow kriptik.app domain and Vercel domains with "kriptik" in the name
     // This prevents auth failures from new/unexpected URL patterns
     if (!isAllowed && origin) {
@@ -374,6 +388,18 @@ app.use(cors({
         // Allow Firefox extension origins (moz-extension://...)
         if (origin.startsWith('moz-extension://')) {
             console.log(`[CORS] Allowing Firefox extension: ${origin}`);
+            return callback(null, true);
+        }
+
+        // Allow embedded browser origins (Cursor, VS Code webviews, mobile webviews)
+        if (
+            origin.startsWith('vscode-webview://') ||
+            origin.startsWith('file://') ||
+            origin === 'null' ||
+            origin.includes('cursor') ||
+            origin.includes('Cursor')
+        ) {
+            console.log(`[CORS] Allowing embedded browser: ${origin}`);
             return callback(null, true);
         }
 
