@@ -279,7 +279,7 @@ export const auth = betterAuth({
         useSecureCookies: false,
 
         // NO crossSubDomainCookies - we set domain directly below
-        
+
         // Cookie name prefix
         cookiePrefix: "kriptik_auth",
 
