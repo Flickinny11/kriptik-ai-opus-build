@@ -13,6 +13,17 @@ import { eq, and } from 'drizzle-orm';
 
 const router = Router();
 
+function getRequestUserId(req: Request): string | null {
+    const sessionUserId = (req as any).user?.id;
+    const legacyUserId = (req as any).userId;
+    const headerUserId = req.headers['x-user-id'];
+
+    if (typeof sessionUserId === 'string' && sessionUserId.length > 0) return sessionUserId;
+    if (typeof legacyUserId === 'string' && legacyUserId.length > 0) return legacyUserId;
+    if (typeof headerUserId === 'string' && headerUserId.length > 0) return headerUserId;
+    return null;
+}
+
 // Type definitions matching the frontend store
 type AuthProvider = 'clerk' | 'better-auth' | 'nextauth' | 'supabase-auth' | 'auth0' | 'firebase-auth' | 'none';
 type DatabaseProvider = 'supabase' | 'planetscale' | 'turso' | 'neon' | 'mongodb' | 'firebase' | 'prisma-postgres' | 'none';
@@ -177,7 +188,7 @@ function computeEnvVars(stack: ProductionStackConfig): string[] {
  */
 router.get('/:projectId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         const { projectId } = req.params;
 
         if (!userId) {
@@ -236,7 +247,7 @@ router.get('/:projectId', async (req: Request, res: Response) => {
  */
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         const body = req.body as ProductionStackConfig;
 
         if (!userId) {
@@ -335,7 +346,7 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.delete('/:projectId', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         const { projectId } = req.params;
 
         if (!userId) {
@@ -372,7 +383,7 @@ router.delete('/:projectId', async (req: Request, res: Response) => {
  */
 router.get('/:projectId/env-template', async (req: Request, res: Response) => {
     try {
-        const userId = req.headers['x-user-id'] as string;
+        const userId = getRequestUserId(req);
         const { projectId } = req.params;
 
         if (!userId) {

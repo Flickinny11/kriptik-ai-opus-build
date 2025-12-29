@@ -5,7 +5,7 @@
  * and the comprehensive Bug Hunt system.
  */
 
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { db } from '../db.js';
 import { projects, files as filesTable } from '../schema.js';
@@ -34,6 +34,17 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 router.use(authMiddleware);
+
+function getRequestUserId(req: Request): string | null {
+    const sessionUserId = (req as any).user?.id;
+    const legacyUserId = (req as any).userId;
+    const headerUserId = req.headers['x-user-id'];
+
+    if (typeof sessionUserId === 'string' && sessionUserId.length > 0) return sessionUserId;
+    if (typeof legacyUserId === 'string' && legacyUserId.length > 0) return legacyUserId;
+    if (typeof headerUserId === 'string' && headerUserId.length > 0) return headerUserId;
+    return null;
+}
 
 // In-memory storage for bug hunt results (would be in database in production)
 const bugHuntResults = new Map<string, BugHuntResult>();
@@ -118,7 +129,7 @@ function getRecommendationReasoning(context: SwarmRunContext, mode: SwarmMode): 
  * Run the verification swarm with specified mode and configuration
  */
 router.post('/swarm/run', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { projectId, mode, agentConfigs } = req.body as {
         projectId: string;
         mode: SwarmMode;
@@ -127,6 +138,9 @@ router.post('/swarm/run', async (req, res) => {
 
     if (!projectId) {
         return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const selectedMode = mode || 'thorough';
@@ -222,7 +236,7 @@ router.post('/swarm/run', async (req, res) => {
  * Run a single verification agent
  */
 router.post('/swarm/run-agent/:agentType', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { agentType } = req.params as { agentType: VerificationAgentType };
     const { projectId } = req.body;
 
@@ -241,6 +255,9 @@ router.post('/swarm/run-agent/:agentType', async (req, res) => {
 
     if (!projectId) {
         return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
@@ -286,11 +303,14 @@ router.post('/swarm/run-agent/:agentType', async (req, res) => {
  * Start a comprehensive bug hunt
  */
 router.post('/bug-hunt/start', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { projectId, intent } = req.body;
 
     if (!projectId) {
         return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (!intent) {
@@ -410,12 +430,15 @@ router.get('/bug-hunt/status/:id', async (req, res) => {
  * Apply a single bug fix
  */
 router.post('/bug-hunt/fix/:bugId', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { bugId } = req.params;
     const { huntId, projectId } = req.body;
 
     if (!huntId || !projectId) {
         return res.status(400).json({ error: 'huntId and projectId are required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const huntResult = bugHuntResults.get(huntId);
@@ -485,11 +508,14 @@ router.post('/bug-hunt/fix/:bugId', async (req, res) => {
  * Apply all intent-lock approved bug fixes
  */
 router.post('/bug-hunt/fix-all-safe', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { huntId, projectId } = req.body;
 
     if (!huntId || !projectId) {
         return res.status(400).json({ error: 'huntId and projectId are required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const huntResult = bugHuntResults.get(huntId);
@@ -549,11 +575,14 @@ router.post('/bug-hunt/fix-all-safe', async (req, res) => {
  * Update user's swarm configuration
  */
 router.put('/config', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { projectId, mode, agentConfigs } = req.body;
 
     if (!projectId) {
         return res.status(400).json({ error: 'projectId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (mode && !SWARM_MODES[mode as SwarmMode]) {
@@ -596,8 +625,12 @@ router.put('/config', async (req, res) => {
  * Get user's swarm configuration for a project
  */
 router.get('/config/:projectId', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as unknown as { userId: string }).userId;
+    const userId = getRequestUserId(req as unknown as Request);
     const { projectId } = req.params;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const configKey = `${userId}:${projectId}`;
     const config = swarmConfigs.get(configKey) || {
@@ -628,10 +661,13 @@ router.get('/config/:projectId', async (req, res) => {
  */
 router.get('/feedback/:buildId/stream', async (req, res) => {
     const { buildId } = req.params;
-    const userId = req.headers['x-user-id'] as string;
+    const userId = getRequestUserId(req as unknown as Request);
 
     if (!buildId) {
         return res.status(400).json({ error: 'buildId is required' });
+    }
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     // Set up SSE headers

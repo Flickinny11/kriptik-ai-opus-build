@@ -876,6 +876,10 @@ app.use("/api/extension", extensionRouter);
 import productionStackRouter from './routes/production-stack.js';
 app.use("/api/production-stack", productionStackRouter);
 
+// Builder Agent Activity Stream (SSE)
+import agentRouter from './routes/agent.js';
+app.use("/api/agent", agentRouter);
+
 // Health Check Routes - Comprehensive infrastructure monitoring
 app.use("/api/health", healthRouter);
 

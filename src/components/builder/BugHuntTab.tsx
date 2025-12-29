@@ -9,6 +9,8 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
 export interface BugReport {
     id: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
@@ -67,9 +69,10 @@ export function BugHuntTab({
         setHuntResult(null);
 
         try {
-            const response = await fetch('/api/verification/bug-hunt/start', {
+            const response = await fetch(`${API_URL}/api/verification/bug-hunt/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ projectId, intent }),
             });
 
@@ -86,7 +89,7 @@ export function BugHuntTab({
     const pollStatus = async (huntId: string) => {
         const poll = async () => {
             try {
-                const response = await fetch(`/api/verification/bug-hunt/status/${huntId}`);
+                const response = await fetch(`${API_URL}/api/verification/bug-hunt/status/${huntId}`, { credentials: 'include' });
                 const data = await response.json();
 
                 if (data.result) {
@@ -114,9 +117,10 @@ export function BugHuntTab({
         setFixingBugId(bug.id);
 
         try {
-            const response = await fetch(`/api/verification/bug-hunt/fix/${bug.id}`, {
+            const response = await fetch(`${API_URL}/api/verification/bug-hunt/fix/${bug.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ huntId: huntResult.id, projectId }),
             });
 
@@ -147,9 +151,10 @@ export function BugHuntTab({
         setIsFixingAll(true);
 
         try {
-            const response = await fetch('/api/verification/bug-hunt/fix-all-safe', {
+            const response = await fetch(`${API_URL}/api/verification/bug-hunt/fix-all-safe`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ huntId: huntResult.id, projectId }),
             });
 

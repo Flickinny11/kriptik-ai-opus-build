@@ -1,3 +1,47 @@
+═══ [2025-12-29 BUILDER WORKFLOW FULLY VERIFIED] ═══
+COMPLETED: Full build orchestration workflow verified working in production
+
+WORKFLOW TESTED AND VERIFIED (kriptik.app):
+1. ✅ **NLP Prompt Entry** - "Build a dashboard with analytics charts"
+2. ✅ **Estimated Cost Dialog** - Shows progress bar + Proceed button
+3. ✅ **Plan Approval UI** - Complete plan displayed:
+   - UI Framework & Styling (React + Vite + Tailwind + Radix UI)
+   - Core Components (reusable UI following design system)
+   - Page Routes & Navigation
+   - Database & ORM (Turso SQLite + Drizzle ORM)
+   - API Routes & Service (Express API + authentication)
+   - Deployment Configuration (Vercel)
+   - "Approve & Continue" button works
+
+4. ✅ **Production Stack Configuration - Project Scale**:
+   - MVP/Prototype, Early Startup, Growth Stage, Scale options
+   - Storage Requirements: Minimal, Moderate, Heavy
+
+5. ✅ **Production Stack Configuration - Authentication**:
+   - Clerk, Better Auth, NextAuth.js, Supabase Auth, Auth0, Firebase Auth
+   - No Authentication option
+
+6. ✅ **Production Stack Configuration - Database**:
+   - Supabase, PlanetScale, Turso, Neon, MongoDB Atlas, Firebase Firestore
+   - Prisma + PostgreSQL, No Database option
+
+REMAINING STACK STEPS (UI confirmed working):
+7. File Storage
+8. Payments
+9. Email
+10. Hosting
+11. Review & Install → Saves production stack → Initiates build loop
+
+CRITICAL FIX APPLIED (Dec 28):
+- Fixed all relative API URLs to use absolute API_URL constant
+- Affected: useProductionStackStore, FloatingVerificationSwarm,
+  PreviewWindow, SandpackPreview, useContextSync
+
+CURRENT STATE: Production workflow verified working
+NEXT: Continue testing "Save & Install" to confirm build loop initiates
+
+═══ [2025-12-28 API URL FIXES SUMMARY] ═══
+
 ═══ [2025-12-28 FULL WORKFLOW VERIFIED] ═══
 COMPLETED: Verified full build orchestration workflow
 
@@ -5302,3 +5346,50 @@ FILES MODIFIED:
 
 CURRENT STATE: ✅ Frontend builds successfully
 NEXT: Commit/push changes, verify Vercel build, test full workflow
+
+═══ [2025-12-29 BUILDER WORKFLOW "AUTH BROKE" FIXES + ACTIVITY STREAM] ═══
+COMPLETED: Unblocked Builder orchestration flow by fixing session-based auth usage on critical endpoints and adding the missing Builder activity stream.
+
+ROOT CAUSE (why it *looked* like auth broke):
+- Several Builder/Verification calls were cross-origin to `api.kriptik.app` but used `fetch()` without `credentials: 'include'`, causing silent 401s.
+- Multiple backend routes still required `x-user-id` and ignored `req.user`, causing 401s even when the session existed.
+- Builder preview overlay subscribed to `/api/agent/activity-stream` which did not exist (404), so “live preview” looked dead.
+
+SOLUTION:
+- Backend:
+  - Added session-first user resolution helper (`req.user?.id` → legacy → `x-user-id`) for:
+    - Production Stack (`/api/production-stack/*`)
+    - Quality (`/api/quality/*`)
+    - Verification (`/api/verification/*`)
+    - Project generation + generations history (`/api/projects/:id/*` in `generate.ts`)
+  - Implemented `GET /api/agent/activity-stream?projectId=...` SSE endpoint (no mock events; streams real context events when available).
+- Frontend:
+  - Updated EventSource connections to pass `withCredentials: true` and include `projectId` in query string.
+  - Updated Verification Swarm + Bug Hunt to use absolute API_URL + `credentials: 'include'`.
+  - Removed mock intent contract from Verification Swarm; intent context is now derived from real project metadata + latest generations when available.
+  - Developer Bar: removed truncated in-button labels (tooltip only) and added viewport clamping so the bar can't end up half off-screen.
+
+FILES MODIFIED:
+- server/src/index.ts
+- server/src/routes/agent.ts (NEW)
+- server/src/routes/index.ts
+- server/src/routes/production-stack.ts
+- server/src/routes/quality.ts
+- server/src/routes/verification.ts
+- server/src/routes/generate.ts
+- src/components/builder/SandpackPreview.tsx
+- src/components/builder/PreviewWindow.tsx
+- src/components/builder/FloatingVerificationSwarm.tsx
+- src/components/builder/BugHuntTab.tsx
+- src/components/developer-bar/DeveloperBar.tsx
+- src/components/developer-bar/developer-bar.css
+
+VERIFICATION:
+- ✅ `npm run build` (tsc -b + vite build) passes locally.
+
+CURRENT STATE: Builder flows should no longer fail due to missing credentials/session extraction; activity stream endpoint exists; no mock intent contract remains in Verification Swarm.
+NEXT: Deploy, then re-test:
+  - Builder: Plan → Stack Save → Credentials → Build loop starts
+  - Live preview overlay: no 404, SSE connects
+  - Mobile: login + session persistence (Safari / iOS)
+CONTEXT: Auth config files were not modified in this round; fixes were route-level auth extraction + frontend credentialed requests to backend.

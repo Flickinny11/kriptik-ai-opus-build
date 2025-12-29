@@ -68,7 +68,11 @@ export default function PreviewWindow() {
     // Connect to agent event stream
     useEffect(() => {
         try {
-            const eventSource = new EventSource(`${API_URL}/api/agent/activity-stream`);
+            const match = window.location.pathname.match(/^\/builder\/([^/]+)/);
+            const projectId = match?.[1];
+            const url = `${API_URL}/api/agent/activity-stream${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`;
+
+            const eventSource = new EventSource(url, { withCredentials: true });
             eventSource.onmessage = (event) => {
                 try {
                     const agentEvent: AgentEvent = JSON.parse(event.data);

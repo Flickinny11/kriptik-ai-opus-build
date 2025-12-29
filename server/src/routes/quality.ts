@@ -4,15 +4,23 @@
  * Endpoints for linting, formatting, and code review.
  */
 
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { getCodeQualityService } from '../services/quality/code-quality.js';
-import { authMiddleware } from '../middleware/auth.js';
 import { db } from '../db.js';
 import { files as filesTable, projects } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 
 const router = Router();
-router.use(authMiddleware);
+function getRequestUserId(req: Request): string | null {
+    const sessionUserId = (req as any).user?.id;
+    const legacyUserId = (req as any).userId;
+    const headerUserId = req.headers['x-user-id'];
+
+    if (typeof sessionUserId === 'string' && sessionUserId.length > 0) return sessionUserId;
+    if (typeof legacyUserId === 'string' && legacyUserId.length > 0) return legacyUserId;
+    if (typeof headerUserId === 'string' && headerUserId.length > 0) return headerUserId;
+    return null;
+}
 
 const qualityService = getCodeQualityService();
 
@@ -22,6 +30,9 @@ const qualityService = getCodeQualityService();
 
 // Run ESLint on code
 router.post('/lint', async (req, res) => {
+    const userId = getRequestUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { files, config } = req.body;
 
     if (!files || typeof files !== 'object') {
@@ -58,6 +69,9 @@ router.post('/lint', async (req, res) => {
 
 // Format code with Prettier
 router.post('/format', async (req, res) => {
+    const userId = getRequestUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { files, config } = req.body;
 
     if (!files || typeof files !== 'object') {
@@ -89,6 +103,9 @@ router.post('/format', async (req, res) => {
 
 // Run AI code review
 router.post('/review', async (req, res) => {
+    const userId = getRequestUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { files, context, provider } = req.body;
 
     if (!files || typeof files !== 'object') {
@@ -120,6 +137,9 @@ router.post('/review', async (req, res) => {
 
 // Run security scan
 router.post('/security', async (req, res) => {
+    const userId = getRequestUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { files } = req.body;
 
     if (!files || typeof files !== 'object') {
@@ -154,6 +174,9 @@ router.post('/security', async (req, res) => {
 
 // Run all quality checks
 router.post('/check-all', async (req, res) => {
+    const userId = getRequestUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { files, config } = req.body;
 
     if (!files || typeof files !== 'object') {
@@ -182,8 +205,12 @@ router.post('/check-all', async (req, res) => {
  * Run comprehensive quality checks on a project's files
  */
 router.post('/:projectId/check', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as any).userId;
+    const userId = getRequestUserId(req);
     const { projectId } = req.params;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     try {
         // Verify project exists and belongs to user
@@ -335,8 +362,12 @@ router.post('/:projectId/check', async (req, res) => {
  * Get the last quality report for a project (cached)
  */
 router.get('/:projectId/report', async (req, res) => {
-    const userId = req.headers['x-user-id'] as string || (req as any).userId;
+    const userId = getRequestUserId(req);
     const { projectId } = req.params;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     try {
         // Verify project exists and belongs to user

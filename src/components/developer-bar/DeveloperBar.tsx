@@ -134,6 +134,33 @@ export function DeveloperBar({
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
 
+  const clampToViewport = useCallback((pos: { x: number; y: number }) => {
+    if (typeof window === 'undefined') return pos;
+
+    const TOOLBAR_THICKNESS = 84; // matches CSS cross-axis size
+    const width = orientation === 'vertical' ? TOOLBAR_THICKNESS : toolbarLength;
+    const height = orientation === 'vertical' ? toolbarLength : TOOLBAR_THICKNESS;
+    const padding = 8;
+
+    const maxX = Math.max(padding, window.innerWidth - width - padding);
+    const maxY = Math.max(padding, window.innerHeight - height - padding);
+
+    return {
+      x: Math.min(Math.max(pos.x, padding), maxX),
+      y: Math.min(Math.max(pos.y, padding), maxY),
+    };
+  }, [orientation, toolbarLength]);
+
+  // Ensure the toolbar never starts/ends half off-screen
+  useEffect(() => {
+    const clamped = clampToViewport(position);
+    if (clamped.x !== position.x || clamped.y !== position.y) {
+      setPosition(clamped);
+      x.set(clamped.x);
+      y.set(clamped.y);
+    }
+  }, [clampToViewport, position, x, y]);
+
   // Calculate how many buttons fit based on toolbar length
   const visibleButtonCount = Math.floor((toolbarLength - TOOLBAR_PADDING * 2) / (BUTTON_SIZE + BUTTON_GAP));
   const totalPages = Math.ceil(FEATURE_BUTTONS.length / Math.max(1, visibleButtonCount));
@@ -154,12 +181,13 @@ export function DeveloperBar({
 
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (!isResizing) {
-      setPosition({
-        x: position.x + info.offset.x,
-        y: position.y + info.offset.y
-      });
+      const next = { x: position.x + info.offset.x, y: position.y + info.offset.y };
+      const clamped = clampToViewport(next);
+      setPosition(clamped);
+      x.set(clamped.x);
+      y.set(clamped.y);
     }
-  }, [position, isResizing]);
+  }, [position, isResizing, clampToViewport, x, y]);
 
   const handleFeatureClick = useCallback((featureId: string) => {
     setOpenPanels(prev => {
@@ -393,6 +421,8 @@ function GlassPillButton({
 
   return (
     <motion.button
+      title={feature.name}
+      aria-label={feature.name}
       className={`glass-pill ${showGlow ? 'glass-pill--active' : ''} ${isFlipped ? 'glass-pill--flipped' : ''}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -455,7 +485,6 @@ function GlassPillButton({
               isHovered={isHovered}
             />
           </div>
-          <span className="glass-pill__label">{feature.name}</span>
 
           {/* Status dots - visible activity indicator */}
           <div className="glass-pill__dots">

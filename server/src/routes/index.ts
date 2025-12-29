@@ -34,6 +34,9 @@ export { default as smartDeployRouter } from './smart-deploy.js';
 // Multi-Agent Orchestration
 export { default as agentsRouter } from './agents.js';
 
+// Builder activity stream (SSE)
+export { default as agentRouter } from './agent.js';
+
 // Workflows & Model Discovery
 export { default as workflowsRouter } from './workflows.js';
 

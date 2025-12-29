@@ -1,6 +1,6 @@
 /**
  * Context Synchronization Hook
- * 
+ *
  * Provides real-time synchronization with the agent orchestration backend
  * via WebSocket connection. Enables live updates for agents, tasks, and deployments.
  */
@@ -144,11 +144,11 @@ export function useContextSync(projectId: string, userId: string) {
         lastInterrupt: null,
         injectedContext: null,
     });
-    
+
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const { toast } = useToast();
-    
+
     // Connect to WebSocket
     const connect = useCallback(async () => {
         // First, create or get context via API
@@ -159,24 +159,24 @@ export function useContextSync(projectId: string, userId: string) {
                 credentials: 'include',
                 body: JSON.stringify({ projectId }),
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to create context');
             }
-            
+
             const { contextId, sessionId } = await response.json();
-            
+
             setState(prev => ({ ...prev, contextId, sessionId }));
-            
+
             // Connect WebSocket - use API host for backend WebSocket connection
             const apiHost = API_URL.replace('https://', '').replace('http://', '');
             const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiHost}/ws/context?contextId=${contextId}&userId=${userId}`;
-            
+
             const ws = new WebSocket(wsUrl);
-            
+
             ws.onopen = () => {
                 setState(prev => ({ ...prev, connected: true }));
-                
+
                 // Subscribe to all events including advanced orchestration
                 ws.send(JSON.stringify({
                     type: 'subscribe',
@@ -196,7 +196,7 @@ export function useContextSync(projectId: string, userId: string) {
                     ],
                 }));
             };
-            
+
             ws.onmessage = (event) => {
                 try {
                     const message: WebSocketMessage = JSON.parse(event.data);
@@ -205,22 +205,22 @@ export function useContextSync(projectId: string, userId: string) {
                     console.error('Error parsing WebSocket message:', error);
                 }
             };
-            
+
             ws.onclose = () => {
                 setState(prev => ({ ...prev, connected: false }));
-                
+
                 // Attempt reconnect after 3 seconds
                 reconnectTimeoutRef.current = setTimeout(() => {
                     connect();
                 }, 3000);
             };
-            
+
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
             };
-            
+
             wsRef.current = ws;
-            
+
         } catch (error) {
             console.error('Error connecting:', error);
             toast({
@@ -230,7 +230,7 @@ export function useContextSync(projectId: string, userId: string) {
             });
         }
     }, [projectId, userId, toast]);
-    
+
     // Handle incoming messages
     const handleMessage = useCallback((message: WebSocketMessage) => {
         switch (message.type) {
@@ -247,34 +247,34 @@ export function useContextSync(projectId: string, userId: string) {
                     activeWorkflow: message.payload.activeWorkflow || null,
                 }));
                 break;
-                
+
             case 'agent-update':
                 setState(prev => ({
                     ...prev,
-                    agents: prev.agents.map(a => 
+                    agents: prev.agents.map(a =>
                         a.id === message.payload.agent.id ? message.payload.agent : a
                     ),
                 }));
                 break;
-                
+
             case 'task-update':
                 setState(prev => ({
                     ...prev,
-                    tasks: prev.tasks.map(t => 
+                    tasks: prev.tasks.map(t =>
                         t.id === message.payload.task.id ? message.payload.task : t
                     ),
                 }));
                 break;
-                
+
             case 'deployment-update':
                 setState(prev => ({
                     ...prev,
-                    deployments: prev.deployments.map(d => 
+                    deployments: prev.deployments.map(d =>
                         d.id === message.payload.deployment.id ? message.payload.deployment : d
                     ),
                 }));
                 break;
-                
+
             case 'new-message':
                 setState(prev => ({
                     ...prev,
@@ -284,7 +284,7 @@ export function useContextSync(projectId: string, userId: string) {
                     }],
                 }));
                 break;
-                
+
             case 'context-event':
                 // Handle various context events
                 const event = message.payload;
@@ -304,7 +304,7 @@ export function useContextSync(projectId: string, userId: string) {
                     // Add more event handlers as needed
                 }
                 break;
-                
+
             case 'stream-chunk':
                 // Handle streaming AI responses
                 const { messageId, chunk } = message.payload;
@@ -395,7 +395,7 @@ export function useContextSync(projectId: string, userId: string) {
                 break;
         }
     }, []);
-    
+
     // Send message to backend
     const sendMessage = useCallback((content: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -406,12 +406,12 @@ export function useContextSync(projectId: string, userId: string) {
             });
             return;
         }
-        
+
         wsRef.current.send(JSON.stringify({
             type: 'add-message',
             payload: { content },
         }));
-        
+
         // Optimistically add message to state
         setState(prev => ({
             ...prev,
@@ -423,35 +423,35 @@ export function useContextSync(projectId: string, userId: string) {
             }],
         }));
     }, [toast]);
-    
+
     // Create a task
     const createTask = useCallback((type: string, title: string, description: string, input?: Record<string, unknown>) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
             return;
         }
-        
+
         wsRef.current.send(JSON.stringify({
             type: 'create-task',
             payload: { type, title, description, input },
         }));
     }, []);
-    
+
     // Request context refresh
     const refreshContext = useCallback(() => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
             return;
         }
-        
+
         wsRef.current.send(JSON.stringify({
             type: 'get-context',
             payload: {},
         }));
     }, []);
-    
+
     // Start orchestration
     const startOrchestration = useCallback(async () => {
         if (!state.contextId) return;
-        
+
         try {
             await fetch(`${API_URL}/api/agents/context/${state.contextId}/orchestration/start`, {
                 method: 'POST',
@@ -469,11 +469,11 @@ export function useContextSync(projectId: string, userId: string) {
             });
         }
     }, [state.contextId, toast]);
-    
+
     // Stop orchestration
     const stopOrchestration = useCallback(async () => {
         if (!state.contextId) return;
-        
+
         try {
             await fetch(`${API_URL}/api/agents/context/${state.contextId}/orchestration/stop`, {
                 method: 'POST',
@@ -491,11 +491,11 @@ export function useContextSync(projectId: string, userId: string) {
             });
         }
     }, [state.contextId, toast]);
-    
+
     // Connect on mount
     useEffect(() => {
         connect();
-        
+
         return () => {
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
@@ -505,7 +505,7 @@ export function useContextSync(projectId: string, userId: string) {
             }
         };
     }, [connect]);
-    
+
     return {
         ...state,
         sendMessage,

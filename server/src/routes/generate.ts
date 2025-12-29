@@ -31,6 +31,17 @@ import {
 
 const router = Router();
 
+function getRequestUserId(req: Request): string | null {
+    const sessionUserId = (req as any).user?.id;
+    const legacyUserId = (req as any).userId;
+    const headerUserId = req.headers['x-user-id'];
+
+    if (typeof sessionUserId === 'string' && sessionUserId.length > 0) return sessionUserId;
+    if (typeof legacyUserId === 'string' && legacyUserId.length > 0) return legacyUserId;
+    if (typeof headerUserId === 'string' && headerUserId.length > 0) return headerUserId;
+    return null;
+}
+
 interface IntelligenceSettings {
     thinkingDepth: 'shallow' | 'normal' | 'deep' | 'maximum';
     powerLevel: 'economy' | 'balanced' | 'performance' | 'maximum';
@@ -60,7 +71,7 @@ interface ChatBody {
  * Start AI generation with SSE streaming
  */
 router.post('/:projectId/generate', async (req: Request<{ projectId: string }, object, GenerateBody>, res: Response) => {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = getRequestUserId(req as unknown as Request);
     const projectId = req.params.projectId;
     const { prompt, skipPhases, intelligenceSettings } = req.body;
 
@@ -468,7 +479,7 @@ router.post('/:projectId/generate', async (req: Request<{ projectId: string }, o
  * Chat with AI about the project (non-streaming for simple queries)
  */
 router.post('/:projectId/chat', async (req: Request<{ projectId: string }, object, ChatBody>, res: Response) => {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = getRequestUserId(req as unknown as Request);
     const projectId = req.params.projectId;
     const { message, context } = req.body;
 
@@ -561,7 +572,7 @@ router.post('/:projectId/generate/stop', async (req: Request, res: Response) => 
  * Get generation history for a project
  */
 router.get('/:projectId/generations', async (req: Request, res: Response) => {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = getRequestUserId(req as unknown as Request);
     const projectId = req.params.projectId;
 
     if (!userId) {

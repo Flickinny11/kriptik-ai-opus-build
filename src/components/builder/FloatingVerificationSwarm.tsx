@@ -100,12 +100,66 @@ export function FloatingVerificationSwarm({
   const [isRunning, setIsRunning] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
-  // Initial mock intent contract - in production this would come from project settings
-  const [intentContract] = useState({
-    coreFeatures: ['Login', 'Dashboard', 'Payment Processing'],
-    criticalPaths: ['/auth/login', '/dashboard'],
-    preventDeletion: ['UserAuthService', 'PaymentController'],
-  });
+  const [intentContext, setIntentContext] = useState<Record<string, unknown> | null>(null);
+
+  // Load real project intent context (no mock data)
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!projectId || projectId === 'new') {
+        setIntentContext(null);
+        return;
+      }
+
+      try {
+        const [projectsRes, gensRes] = await Promise.all([
+          fetch(`${API_URL}/api/projects`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/projects/${projectId}/generations`, { credentials: 'include' }),
+        ]);
+
+        let projectName: string | undefined;
+        let projectDescription: string | undefined;
+        if (projectsRes.ok) {
+          const projectsData = await projectsRes.json();
+          const p = (projectsData?.projects || []).find((x: any) => x?.id === projectId);
+          projectName = typeof p?.name === 'string' ? p.name : undefined;
+          projectDescription = typeof p?.description === 'string' ? p.description : undefined;
+        }
+
+        let latestPrompt: string | undefined;
+        if (gensRes.ok) {
+          const gensData = await gensRes.json();
+          const generations = Array.isArray(gensData?.generations) ? gensData.generations : [];
+          const sorted = generations
+            .map((g: any) => ({
+              prompt: typeof g?.prompt === 'string' ? g.prompt : null,
+              createdAt: typeof g?.createdAt === 'string' ? Date.parse(g.createdAt) : 0,
+            }))
+            .filter((g: any) => typeof g.prompt === 'string' && g.prompt.length > 0)
+            .sort((a: any, b: any) => b.createdAt - a.createdAt);
+          latestPrompt = sorted[0]?.prompt ?? undefined;
+        }
+
+        const ctx: Record<string, unknown> = {
+          projectId,
+          projectName,
+          projectDescription,
+          latestPrompt,
+        };
+
+        if (!cancelled) setIntentContext(ctx);
+      } catch (err) {
+        console.error('[VerificationSwarm] Failed to load intent context:', err);
+        if (!cancelled) setIntentContext({ projectId });
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   // Convert API response to agent states
   const processQualityResponse = useCallback((data: QualityCheckResponse): AgentState[] => {
@@ -187,7 +241,7 @@ export function FloatingVerificationSwarm({
     setAgents(prev => prev.map(a => ({ ...a, status: 'running' as const })));
 
     try {
-      const response = await fetch(`${API_URL}/api/quality/${projectId}/report`);
+      const response = await fetch(`${API_URL}/api/quality/${projectId}/report`, { credentials: 'include' });
 
       if (response.ok) {
         const data: QualityCheckResponse = await response.json();
@@ -218,9 +272,10 @@ export function FloatingVerificationSwarm({
   // Recommend mode based on basic heuristics
   useEffect(() => {
     if (isBuilding) {
-      fetch('/api/verification/recommend-mode', {
+      fetch(`${API_URL}/api/verification/recommend-mode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           buildPhase: 'developing',
           changeSize: 'medium',
@@ -268,9 +323,10 @@ export function FloatingVerificationSwarm({
     setActiveTab('status'); // Switch to status view
 
     try {
-      await fetch('/api/verification/swarm/run', {
+      await fetch(`${API_URL}/api/verification/swarm/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           projectId,
           mode: swarmMode,
@@ -288,9 +344,10 @@ export function FloatingVerificationSwarm({
     if (!projectId) return;
 
     try {
-      await fetch(`/api/verification/swarm/run-agent/${agentType}`, {
+      await fetch(`${API_URL}/api/verification/swarm/run-agent/${agentType}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ projectId }),
       });
 
@@ -511,7 +568,7 @@ export function FloatingVerificationSwarm({
                 >
                   <BugHuntTab
                     projectId={projectId}
-                    intent={intentContract}
+                    intent={intentContext || undefined}
                     onBugFixed={() => fetchQualityStatus()} // Refresh status after fix
                     onAllSafeFixed={() => fetchQualityStatus()}
                   />
