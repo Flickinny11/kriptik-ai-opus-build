@@ -172,7 +172,8 @@
 }
 
 .floating-swarm--expanded {
-  width: 220px;
+  width: 320px;
+  max-height: calc(100vh - 100px);
 }
 
 .floating-swarm--running {
@@ -385,7 +386,27 @@
    ============================================================================ */
 
 .floating-swarm__expanded {
-  overflow: visible; /* Changed from hidden to allow 3D edge pseudo-elements to show */
+  overflow-y: auto;
+  overflow-x: visible;
+  max-height: calc(100vh - 200px);
+}
+
+/* Custom scrollbar for expanded content */
+.floating-swarm__expanded::-webkit-scrollbar {
+  width: 4px;
+}
+
+.floating-swarm__expanded::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.floating-swarm__expanded::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.floating-swarm__expanded::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .floating-swarm__content {

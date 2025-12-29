@@ -9,7 +9,7 @@
  * - Premium Glass Morphism UI
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VerificationSwarmStatus, type AgentState, type SwarmVerdict, type VerificationAgentType } from './VerificationSwarmStatus';
 import SwarmModeSelector, { type SwarmMode } from './SwarmModeSelector';
@@ -19,6 +19,9 @@ import './FloatingVerificationSwarm.css';
 
 // API URL for backend requests
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+
+// Storage key for persisting swarm state
+const STORAGE_KEY = 'kriptik_verification_swarm_state';
 
 // Custom logo icon - Black, white, and red
 const SwarmLogoMini = () => (
@@ -101,6 +104,58 @@ export function FloatingVerificationSwarm({
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const [intentContext, setIntentContext] = useState<Record<string, unknown> | null>(null);
+  
+  // Flag to prevent double-initialization
+  const initializedRef = useRef(false);
+
+  // Load persisted state on mount
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_${projectId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.agents && Array.isArray(parsed.agents)) {
+          setAgents(parsed.agents);
+        }
+        if (parsed.verdict) {
+          setVerdict(parsed.verdict);
+        }
+        if (parsed.lastChecked) {
+          setLastChecked(new Date(parsed.lastChecked));
+        }
+        if (parsed.swarmMode) {
+          setSwarmMode(parsed.swarmMode);
+        }
+        if (parsed.isExpanded !== undefined) {
+          setIsExpanded(parsed.isExpanded);
+        }
+        console.log('[VerificationSwarm] Restored state from localStorage');
+      }
+    } catch (e) {
+      console.warn('[VerificationSwarm] Failed to restore state:', e);
+    }
+  }, [projectId]);
+
+  // Persist state on changes
+  useEffect(() => {
+    if (!projectId || projectId === 'new') return;
+    
+    try {
+      const stateToSave = {
+        agents,
+        verdict,
+        lastChecked: lastChecked?.toISOString(),
+        swarmMode,
+        isExpanded,
+      };
+      localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.warn('[VerificationSwarm] Failed to persist state:', e);
+    }
+  }, [projectId, agents, verdict, lastChecked, swarmMode, isExpanded]);
 
   // Load real project intent context (no mock data)
   useEffect(() => {

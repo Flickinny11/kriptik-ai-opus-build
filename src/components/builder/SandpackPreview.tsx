@@ -21,6 +21,9 @@ import { apiClient } from '@/lib/api-client';
 // API URL for backend requests
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
 
+// Storage key for external sandbox URL (set by build orchestration)
+const SANDBOX_URL_KEY = 'kriptik_external_sandbox_url';
+
 // Temporary icon components for icons not in custom icon set
 const SmartphoneIcon: React.FC<IconProps> = ({ size = 24, className }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -216,6 +219,10 @@ export default function SandpackPreviewWindow() {
     const [demoSegments, setDemoSegments] = useState<NarrationPlaybackSegment[]>([]);
     const [isLoadingDemo, setIsLoadingDemo] = useState(false);
 
+    // External sandbox URL from build orchestration (real dev server)
+    const [externalSandboxUrl, setExternalSandboxUrl] = useState<string | null>(null);
+    const [iframeKey, setIframeKey] = useState(0);
+
     // AI Interaction Overlay state
     const [isAIActive, setIsAIActive] = useState(false);
     const [agentPhase, setAgentPhase] = useState<AgentPhase>('idle');
@@ -226,6 +233,35 @@ export default function SandpackPreviewWindow() {
     const { sandpack } = useSandpack();
     const previewContainerRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
+
+    // Check for external sandbox URL on mount and listen for updates
+    useEffect(() => {
+        // Check localStorage for persisted sandbox URL
+        const savedUrl = localStorage.getItem(SANDBOX_URL_KEY);
+        if (savedUrl) {
+            setExternalSandboxUrl(savedUrl);
+        }
+
+        // Listen for sandbox-ready events via custom event
+        const handleSandboxReady = (event: CustomEvent<{ sandboxUrl: string }>) => {
+            if (event.detail?.sandboxUrl) {
+                setExternalSandboxUrl(event.detail.sandboxUrl);
+                localStorage.setItem(SANDBOX_URL_KEY, event.detail.sandboxUrl);
+                console.log('[SandpackPreview] External sandbox ready:', event.detail.sandboxUrl);
+            }
+        };
+
+        window.addEventListener('sandbox-ready' as any, handleSandboxReady);
+
+        return () => {
+            window.removeEventListener('sandbox-ready' as any, handleSandboxReady);
+        };
+    }, []);
+
+    // Refresh external sandbox
+    const handleExternalRefresh = useCallback(() => {
+        setIframeKey(prev => prev + 1);
+    }, []);
 
     // Subscribe to build events for AI overlay
     useEffect(() => {
@@ -333,11 +369,22 @@ export default function SandpackPreviewWindow() {
     }, [handleAgentEvent]);
 
     const handleRefresh = () => {
-        sandpack.runSandpack();
+        if (externalSandboxUrl) {
+            // Refresh external sandbox iframe
+            handleExternalRefresh();
+        } else {
+            // Refresh Sandpack
+            sandpack.runSandpack();
+        }
     };
 
     const handleOpenExternal = () => {
-        window.open('about:blank', '_blank');
+        if (externalSandboxUrl) {
+            window.open(externalSandboxUrl, '_blank');
+        } else {
+            // Sandpack doesn't have a direct external URL, open about:blank
+            window.open('about:blank', '_blank');
+        }
     };
 
     // Start "Show Me" demo with voice narration
@@ -580,12 +627,37 @@ export default function SandpackPreviewWindow() {
                             boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
                         }}
                     >
-                        <SandpackPreviewBase
-                            showNavigator={false}
-                            showRefreshButton={false}
-                            showOpenInCodeSandbox={false}
-                            style={{ height: '100%' }}
-                        />
+                        {externalSandboxUrl ? (
+                            /* External Sandbox Preview - Real dev server from build orchestration */
+                            <div className="relative w-full h-full">
+                                <iframe
+                                    key={iframeKey}
+                                    src={externalSandboxUrl}
+                                    className="w-full h-full border-0"
+                                    title="Live Build Preview"
+                                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                                />
+                                {/* Live indicator */}
+                                <div
+                                    className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-full"
+                                    style={{
+                                        background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.85) 100%)',
+                                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                                    }}
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                    <span className="text-xs font-semibold text-white">LIVE</span>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Sandpack Preview - In-browser bundling */
+                            <SandpackPreviewBase
+                                showNavigator={false}
+                                showRefreshButton={false}
+                                showOpenInCodeSandbox={false}
+                                style={{ height: '100%' }}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

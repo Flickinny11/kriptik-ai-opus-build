@@ -886,9 +886,17 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     // Handle WebSocket events
     const handleWebSocketEvent = (wsData: { type: string; data?: Record<string, unknown>; [key: string]: unknown }, ws: WebSocket) => {
         switch (wsData.type) {
-            case 'sandbox-ready':
-                setSandboxUrl((wsData.data?.sandboxUrl || wsData.sandboxUrl) as string);
+            case 'sandbox-ready': {
+                const url = (wsData.data?.sandboxUrl || wsData.sandboxUrl) as string;
+                setSandboxUrl(url);
+                // Also dispatch a custom event so SandpackPreview can pick it up
+                if (url) {
+                    localStorage.setItem('kriptik_external_sandbox_url', url);
+                    window.dispatchEvent(new CustomEvent('sandbox-ready', { detail: { sandboxUrl: url } }));
+                    console.log('[ChatInterface] Dispatched sandbox-ready event:', url);
+                }
                 break;
+            }
 
             case 'file-modified':
                 setLastModifiedFile((wsData.data?.filePath || wsData.filePath) as string);

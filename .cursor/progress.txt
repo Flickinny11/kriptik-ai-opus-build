@@ -5438,3 +5438,47 @@ NEXT: Deploy, then re-test:
   - Live preview overlay: no 404, SSE connects
   - Mobile: login + session persistence (Safari / iOS)
 CONTEXT: Auth config files were not modified in this round; fixes were route-level auth extraction + frontend credentialed requests to backend.
+
+═══ [2025-12-29 CRITICAL UI/UX FIXES] ═══
+COMPLETED: Multiple critical UI/UX issues addressed
+
+FIXES APPLIED:
+1. **Verification Swarm Expanded State** (Fixed)
+   - Added `max-height: calc(100vh - 200px)` to prevent off-screen overflow
+   - Added `overflow-y: auto` with custom scrollbar for expanded content
+   - Increased expanded width to 320px for better content display
+
+2. **Credential Input UI Redesign** (Complete)
+   - Created premium glass morphism styling with 3D depth
+   - Added Cal Sans / Outfit typography
+   - Implemented warm amber accents (no purple)
+   - Added progress bar showing filled/total credentials
+   - Custom SVG icons (lock, eye, key, check)
+   - Smooth micro-animations with Framer Motion
+   - 3D edge effects on credential cards
+   - Eye toggle for password visibility
+   - Files: CredentialsCollectionView.tsx, CredentialsCollectionView.css
+
+3. **State Persistence** (Implemented)
+   - Verification Swarm state now persists across page refreshes
+   - Saved to localStorage with project-specific key
+   - Persists: agents, verdict, lastChecked, swarmMode, isExpanded
+
+4. **Live Preview Connection** (Implemented)
+   - SandpackPreview now supports external sandbox URL
+   - When build orchestration creates sandbox, it dispatches 'sandbox-ready' event
+   - ChatInterface saves sandbox URL to localStorage and dispatches event
+   - SandpackPreview switches to iframe with real dev server when available
+   - Shows "LIVE" badge when connected to real sandbox
+   - Refresh and Open External buttons work with real sandbox
+
+FILES MODIFIED:
+- src/components/builder/FloatingVerificationSwarm.tsx (state persistence)
+- src/components/builder/FloatingVerificationSwarm.css (expanded state fix)
+- src/components/feature-agent/CredentialsCollectionView.tsx (complete redesign)
+- src/components/feature-agent/CredentialsCollectionView.css (new premium CSS)
+- src/components/builder/SandpackPreview.tsx (external sandbox support)
+- src/components/builder/ChatInterface.tsx (sandbox event dispatch)
+
+CURRENT STATE: Major UI/UX improvements complete
+NEXT: Ensure orchestration continues building while awaiting credentials
