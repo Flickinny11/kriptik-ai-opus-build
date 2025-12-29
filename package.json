@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "cd server && npm run dev"
+    "server": "cd server && npm run dev",
+    "prepare": "husky",
+    "check-auth": "node scripts/check-auth-protection.cjs"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
@@ -67,6 +69,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
+    "husky": "^9.1.7",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",

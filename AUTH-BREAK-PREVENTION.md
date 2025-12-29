@@ -16,10 +16,10 @@ When making changes to unrelated parts of the app (UI components, features, etc.
    ```typescript
    // File 1: Uses localhost
    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-   
+
    // File 2: Uses production URL
    const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
-   
+
    // File 3: Uses empty string
    const API_URL = import.meta.env.VITE_API_URL || '';
    ```
@@ -54,7 +54,7 @@ The AI/developer:
 
 ```typescript
 // ✅ SINGLE SOURCE OF TRUTH
-export const API_URL = import.meta.env.VITE_API_URL || 
+export const API_URL = import.meta.env.VITE_API_URL ||
     (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
 
 export const authenticatedFetch = (url, options) => {
@@ -184,7 +184,7 @@ Before committing changes:
 
 **The Problem**: Inconsistent API URL patterns cause auth to break when making unrelated changes.
 
-**The Solution**: 
+**The Solution**:
 1. Centralized API configuration (`api-config.ts`)
 2. Protection rules (`.cursor/rules/auth-protection.mdc`)
 3. Required patterns for new code

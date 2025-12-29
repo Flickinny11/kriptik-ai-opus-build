@@ -1,0 +1,2 @@
+# Run auth protection check
+node scripts/check-auth-protection.cjs

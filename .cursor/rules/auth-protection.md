@@ -110,7 +110,7 @@ Before committing, verify:
 When making changes to the codebase:
 
 1. **Before starting**: Check if any auth files will be modified
-2. **During changes**: 
+2. **During changes**:
    - Use `getApiUrl()` or `import.meta.env.VITE_API_URL`
    - Always add `credentials: 'include'` to fetch calls
    - Never hardcode API URLs
