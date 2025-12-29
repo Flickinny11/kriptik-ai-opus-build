@@ -30,6 +30,50 @@ type TableSpec = {
 
 const TABLE_SPECS: TableSpec[] = [
     // =========================================================================
+    // PROJECT PRODUCTION STACKS (Builder View Stack Configuration)
+    // =========================================================================
+    {
+        table: 'project_production_stacks',
+        createTableSql: `
+CREATE TABLE IF NOT EXISTS project_production_stacks (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL UNIQUE REFERENCES projects(id),
+    
+    auth_provider TEXT,
+    auth_config TEXT,
+    
+    database_provider TEXT,
+    database_config TEXT,
+    
+    storage_provider TEXT,
+    storage_config TEXT,
+    
+    payment_provider TEXT,
+    payment_config TEXT,
+    
+    email_provider TEXT,
+    email_config TEXT,
+    
+    hosting_target TEXT,
+    hosting_config TEXT,
+    
+    estimated_users TEXT,
+    estimated_storage TEXT,
+    
+    dependencies TEXT,
+    
+    is_configured INTEGER DEFAULT 0 NOT NULL,
+    configured_at TEXT,
+    
+    created_at TEXT DEFAULT (datetime('now')) NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+)`,
+        indexSql: [
+            `CREATE INDEX IF NOT EXISTS idx_project_production_stacks_project_id ON project_production_stacks(project_id)`,
+        ],
+    },
+
+    // =========================================================================
     // USER SETTINGS (Advanced Developer Options + UnifiedContext)
     // =========================================================================
     {

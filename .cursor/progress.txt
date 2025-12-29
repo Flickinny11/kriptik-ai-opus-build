@@ -1,3 +1,23 @@
+═══ [2025-12-29 CRITICAL DATABASE FIX] ═══
+COMPLETED: Added missing project_production_stacks table to db-schema.ts
+
+ROOT CAUSE OF "TRY AGAIN" ERROR:
+- The Production Stack Configuration's "Save & Install" was failing with 500 error
+- The `project_production_stacks` table was defined in schema.ts but NOT included in
+  the db-schema.ts ensurer that creates tables on startup
+- This caused the backend to fail when trying to query the table in production
+
+FIX APPLIED:
+- Added `project_production_stacks` table to server/src/services/infrastructure/db-schema.ts
+- Table includes all columns: id, project_id, auth_provider, auth_config,
+  database_provider, database_config, storage_provider, storage_config,
+  payment_provider, payment_config, email_provider, email_config,
+  hosting_target, hosting_config, estimated_users, estimated_storage,
+  dependencies, is_configured, configured_at, created_at, updated_at
+- Added index on project_id for efficient lookups
+
+VERIFICATION: Backend build successful, no TypeScript errors
+
 ═══ [2025-12-29 BUILDER WORKFLOW FULLY VERIFIED] ═══
 COMPLETED: Full build orchestration workflow verified working in production
 
