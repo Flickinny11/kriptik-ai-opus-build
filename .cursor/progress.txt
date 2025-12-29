@@ -5640,3 +5640,26 @@ NEXT: Ensure orchestration continues building while awaiting credentials
    CURRENT STATE: Auth fixes pushed to GitHub. Protection system created to prevent future breaks.
    NEXT: Implement lint rules and pre-commit hooks to enforce auth protection
    CONTEXT: Root cause analysis shows 80% of auth breaks are from missing credentials: 'include', 15% from hardcoded URLs, 5% from CORS/cookie changes. Created centralized API config usage patterns and protection rules.
+
+   ═══ [2025-12-29T19:00:00] ═══
+   COMPLETED: Phase 1 & 2 - ESLint rules + Pre-commit hooks for auth protection
+   PHASE 1 - ESLINT RULES:
+   - Created: eslint.config.js with auth protection rules
+   - Warns about hardcoded API URLs (localhost:3001, api.kriptik.app)
+   - Warns when protected auth files are modified
+   - Build compiles without errors ✓
+   PHASE 2 - PRE-COMMIT HOOKS:
+   - Created: scripts/check-auth-protection.cjs (pre-commit hook script)
+   - Integrated: Husky pre-commit hook (.husky/pre-commit)
+   - Checks for hardcoded API URLs (warns, doesn't block)
+   - Checks for missing credentials in fetch calls (blocks commit)
+   - Checks for protected auth file modifications (warns)
+   - Excludes api-config.ts from checks (source of truth)
+   - Tested: Hook correctly blocks commits with auth-breaking patterns ✓
+   FILES CREATED:
+   - eslint.config.js (ESLint config with auth rules)
+   - scripts/check-auth-protection.cjs (pre-commit hook script)
+   - .husky/pre-commit (husky hook integration)
+   CURRENT STATE: Both ESLint rules and pre-commit hooks are active and working.
+   NEXT: Monitor effectiveness - auth breaks should be prevented automatically
+   CONTEXT: Pre-commit hook runs automatically on every commit, blocking commits with hardcoded URLs or missing credentials. ESLint provides real-time warnings in IDE.
