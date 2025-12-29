@@ -1,0 +1,119 @@
+---
+description: Auth protection rules - prevent accidental auth breaks
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+alwaysApply: true
+---
+
+# 🔒 AUTH PROTECTION RULES
+
+## ⚠️ CRITICAL: AUTH FILES ARE LOCKED
+
+The following files MUST NOT be modified without explicit user permission:
+
+- `server/src/auth.ts` - Better Auth configuration
+- `server/src/schema.ts` - Auth table schemas
+- `server/src/middleware/auth.ts` - Auth middleware
+- `src/lib/auth-client.ts` - Frontend auth client
+- `src/lib/api-config.ts` - Centralized API URL configuration
+
+## 🚫 FORBIDDEN PATTERNS
+
+When making changes to OTHER parts of the app, DO NOT:
+
+1. **Hardcode API URLs** - Always use `import { API_URL } from '@/lib/api-config'`
+   ```typescript
+   // ❌ BAD - Hardcoded URL
+   const API_URL = 'http://localhost:3001';
+   const response = await fetch('https://api.kriptik.app/api/...');
+   
+   // ✅ GOOD - Import from centralized config
+   import { API_URL, authenticatedFetch } from '@/lib/api-config';
+   const response = await authenticatedFetch(`${API_URL}/api/...`);
+   ```
+
+2. **Change CORS settings** - Do not modify `server/src/index.ts` CORS configuration
+   ```typescript
+   // ❌ BAD - Modifying CORS
+   app.use(cors({ credentials: false })); // This breaks auth!
+   
+   // ✅ GOOD - Leave CORS as-is
+   // CORS is already configured correctly
+   ```
+
+3. **Modify cookie settings** - Do not change `sameSite`, `secure`, `domain` in auth.ts
+   ```typescript
+   // ❌ BAD - Changing cookie settings
+   sameSite: 'none', // This breaks mobile/Cursor browser!
+   
+   // ✅ GOOD - Use calculated cookieSameSite variable
+   sameSite: cookieSameSite, // Already configured correctly
+   ```
+
+4. **Remove credentials: 'include'** - Always include credentials for API calls
+   ```typescript
+   // ❌ BAD - Missing credentials
+   fetch(`${API_URL}/api/...`, { method: 'POST' });
+   
+   // ✅ GOOD - Include credentials
+   import { authenticatedFetch } from '@/lib/api-config';
+   authenticatedFetch(`${API_URL}/api/...`, { method: 'POST' });
+   ```
+
+5. **Change API URL fallbacks** - Do not change the fallback URLs in api-config.ts
+   ```typescript
+   // ❌ BAD - Wrong fallback
+   export const API_URL = import.meta.env.VITE_API_URL || 'https://wrong-url.com';
+   
+   // ✅ GOOD - Correct fallback
+   export const API_URL = import.meta.env.VITE_API_URL || 
+       (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
+   ```
+
+## ✅ REQUIRED PATTERNS
+
+When making API calls in NEW components:
+
+```typescript
+// ✅ ALWAYS use this pattern
+import { API_URL, authenticatedFetch } from '@/lib/api-config';
+
+// For simple GET requests
+const response = await authenticatedFetch(`${API_URL}/api/endpoint`);
+
+// For POST/PUT/DELETE with body
+const response = await authenticatedFetch(`${API_URL}/api/endpoint`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+});
+```
+
+## 🔍 HOW TO CHECK IF YOU BROKE AUTH
+
+Before committing, verify:
+
+1. **No hardcoded URLs** - Search for: `'http://localhost:3001'`, `'https://api.kriptik.app'`
+2. **No missing credentials** - All fetch calls should use `authenticatedFetch` or have `credentials: 'include'`
+3. **No CORS changes** - `server/src/index.ts` CORS config unchanged
+4. **No cookie changes** - `server/src/auth.ts` cookie settings unchanged
+
+## 📋 MIGRATION CHECKLIST
+
+When updating existing components to use centralized config:
+
+- [ ] Replace hardcoded `const API_URL = ...` with `import { API_URL } from '@/lib/api-config'`
+- [ ] Replace `fetch(..., { credentials: 'include' })` with `authenticatedFetch(...)`
+- [ ] Remove duplicate API_URL definitions
+- [ ] Test auth still works after changes
+
+## 🚨 IF AUTH BREAKS
+
+1. **DO NOT PANIC** - Revert the last commit
+2. Check if you modified any auth files (see list above)
+3. Check if you hardcoded any URLs
+4. Check if you removed `credentials: 'include'`
+5. Check CORS settings in `server/src/index.ts`
+6. Read `AUTH-IMMUTABLE-SPECIFICATION.md` for correct configuration
