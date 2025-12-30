@@ -1,12 +1,26 @@
 /**
  * Nango Integration Service
  *
- * Handles OAuth connections via Nango's unified API.
- * Nango manages token refresh, storage, and 400+ provider integrations.
+ * Handles OAuth connections via Nango's unified API using the current
+ * Connect Session Token flow (as of December 2025).
+ *
+ * IMPORTANT: This uses the new session token method, NOT the deprecated
+ * public key method. Public keys were deprecated on July 31, 2025.
+ *
+ * Flow:
+ * 1. Backend creates a Connect Session via POST /connect/sessions
+ * 2. Frontend receives short-lived token (30 min expiry)
+ * 3. Frontend opens Nango Connect UI with the token
+ * 4. User completes OAuth flow
+ * 5. Nango sends webhook to backend with connectionId
+ * 6. Backend stores connectionId for future API calls
  *
  * Environment Variables Required:
  * - NANGO_SECRET_KEY: Your Nango secret key for server-side operations
- * - NANGO_PUBLIC_KEY: Your Nango public key for client-side auth
+ *
+ * Webhook Configuration (in Nango Dashboard):
+ * - Webhook URL: https://your-backend.com/api/integrations/nango-webhook
+ * - Enable: "Send New Connection Creation Webhooks"
  */
 
 // Categories for filtering and organization
@@ -99,6 +113,7 @@ export const NANGO_INTEGRATIONS: Record<string, NangoIntegration> = {
     'cloudflare': { nangoId: 'cloudflare', name: 'Cloudflare', category: 'cloud' },
     'digital-ocean': { nangoId: 'digital-ocean', name: 'Digital Ocean', category: 'cloud' },
     'heroku': { nangoId: 'heroku', name: 'Heroku', category: 'deployment' },
+    'railway': { nangoId: 'railway', name: 'Railway', category: 'deployment' },
 
     // ============================================================================
     // VERSION CONTROL & DEV TOOLS
@@ -118,6 +133,7 @@ export const NANGO_INTEGRATIONS: Record<string, NangoIntegration> = {
     'resend': { nangoId: 'resend', name: 'Resend', category: 'email' },
     'mailgun': { nangoId: 'mailgun', name: 'Mailgun', category: 'email' },
     'mailchimp': { nangoId: 'mailchimp', name: 'Mailchimp', category: 'email' },
+    'postmark': { nangoId: 'postmark', name: 'Postmark', category: 'email' },
 
     // ============================================================================
     // COMMUNICATION & CHAT
@@ -187,33 +203,82 @@ export const NANGO_INTEGRATIONS: Record<string, NangoIntegration> = {
 
 export type IntegrationId = keyof typeof NANGO_INTEGRATIONS;
 
+/**
+ * Response from creating a Connect Session
+ */
+interface ConnectSessionResponse {
+    token: string;
+    expires_at: string;
+    connect_link?: string;
+}
+
+/**
+ * Response from getting a connection
+ */
 interface NangoConnection {
+    id: string;
+    connection_id: string;
+    provider_config_key: string;
+    provider: string;
+    credentials: {
+        type: string;
+        access_token?: string;
+        refresh_token?: string;
+        api_key?: string;
+        expires_at?: string;
+        raw?: Record<string, unknown>;
+    };
+    connection_config?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * Webhook payload from Nango when a connection is created
+ */
+export interface NangoWebhookPayload {
+    type: 'auth';
+    operation: 'creation' | 'refresh' | 'deletion';
+    success: boolean;
     connectionId: string;
     providerConfigKey: string;
-    credentials: {
-        accessToken?: string;
-        refreshToken?: string;
-        apiKey?: string;
-        expiresAt?: string;
+    provider: string;
+    environment: string;
+    endUser?: {
+        endUserId: string;
+        endUserEmail?: string;
+        displayName?: string;
+        tags?: Record<string, string>;
+    };
+    error?: {
+        type: string;
+        message: string;
     };
 }
 
-interface NangoAuthResult {
-    url: string;
+/**
+ * Parameters for creating a Connect Session
+ */
+interface CreateConnectSessionParams {
+    userId: string;
+    userEmail?: string;
+    displayName?: string;
+    tags?: Record<string, string>;
+    allowedIntegrations?: string[];
+    integrationsConfigDefaults?: Record<string, unknown>;
 }
 
 /**
  * Nango Service Class
- * Handles all OAuth operations via Nango API
+ * Handles all OAuth operations via Nango API using the current session token flow
  */
 class NangoService {
     private secretKey: string;
-    private publicKey: string;
     private baseUrl = 'https://api.nango.dev';
 
     constructor() {
         this.secretKey = process.env.NANGO_SECRET_KEY || '';
-        this.publicKey = process.env.NANGO_PUBLIC_KEY || '';
 
         if (!this.secretKey) {
             console.warn('[NangoService] NANGO_SECRET_KEY not set - OAuth features disabled');
@@ -228,64 +293,126 @@ class NangoService {
     }
 
     /**
-     * Get the public key for frontend use
+     * Create a Connect Session for a user
+     * This generates a short-lived token (30 minutes) that the frontend uses
+     * to open the Nango Connect UI
+     *
+     * @param params - User identification and optional configuration
+     * @returns Session token and expiry information
      */
-    getPublicKey(): string {
-        return this.publicKey;
-    }
-
-    /**
-     * Generate the OAuth URL for a user to connect an integration
-     */
-    async getOAuthUrl(params: {
-        integrationId: IntegrationId;
-        userId: string;
-        projectId?: string;
-        redirectUrl: string;
-    }): Promise<string> {
-        const integration = NANGO_INTEGRATIONS[params.integrationId];
-        if (!integration) {
-            throw new Error(`Unknown integration: ${params.integrationId}`);
+    async createConnectSession(params: CreateConnectSessionParams): Promise<ConnectSessionResponse> {
+        if (!this.secretKey) {
+            throw new Error('Nango is not configured - NANGO_SECRET_KEY is missing');
         }
 
-        // Connection ID is unique per user+integration
-        const connectionId = `${params.userId}_${params.integrationId}`;
+        const payload: Record<string, unknown> = {
+            end_user: {
+                id: params.userId,
+                ...(params.userEmail && { email: params.userEmail }),
+                ...(params.displayName && { display_name: params.displayName }),
+                ...(params.tags && { tags: params.tags }),
+            },
+        };
 
-        // Build the authorization URL
-        const authUrl = new URL(`${this.baseUrl}/oauth/connect/${integration.nangoId}`);
-        authUrl.searchParams.set('connection_id', connectionId);
-        authUrl.searchParams.set('public_key', this.publicKey);
-        if (params.redirectUrl) {
-            authUrl.searchParams.set('redirect_uri', params.redirectUrl);
+        // Add allowed integrations if specified
+        if (params.allowedIntegrations && params.allowedIntegrations.length > 0) {
+            payload.allowed_integrations = params.allowedIntegrations;
         }
-        if (params.projectId) {
-            authUrl.searchParams.set('user_scope', params.projectId);
+
+        // Add integration config defaults if specified
+        if (params.integrationsConfigDefaults) {
+            payload.integrations_config_defaults = params.integrationsConfigDefaults;
         }
-
-        return authUrl.toString();
-    }
-
-    /**
-     * Get connection status and credentials for an integration
-     */
-    async getConnection(params: {
-        integrationId: IntegrationId | string;
-        userId: string;
-    }): Promise<NangoConnection | null> {
-        if (!this.secretKey) return null;
-
-        const integration = NANGO_INTEGRATIONS[params.integrationId as IntegrationId];
-        if (!integration) return null;
-
-        const connectionId = `${params.userId}_${params.integrationId}`;
 
         try {
-            // Server-side API call with Bearer token (no browser credentials needed)
+            const response = await fetch(`${this.baseUrl}/connect/sessions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.secretKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[NangoService] Failed to create connect session:', response.status, errorText);
+                throw new Error(`Nango API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            return {
+                token: data.token,
+                expires_at: data.expires_at,
+                connect_link: data.connect_link,
+            };
+        } catch (error) {
+            console.error('[NangoService] Error creating connect session:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a reconnect session for updating expired credentials
+     *
+     * @param connectionId - The existing connection ID to reconnect
+     * @param params - User identification
+     * @returns Session token for reconnection
+     */
+    async createReconnectSession(connectionId: string, params: CreateConnectSessionParams): Promise<ConnectSessionResponse> {
+        if (!this.secretKey) {
+            throw new Error('Nango is not configured - NANGO_SECRET_KEY is missing');
+        }
+
+        const payload = {
+            end_user: {
+                id: params.userId,
+                ...(params.userEmail && { email: params.userEmail }),
+            },
+            connection_id: connectionId,
+        };
+
+        try {
+            const response = await fetch(`${this.baseUrl}/connect/sessions/reconnect`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.secretKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Nango API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            return {
+                token: data.token,
+                expires_at: data.expires_at,
+            };
+        } catch (error) {
+            console.error('[NangoService] Error creating reconnect session:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get connection details by connection ID
+     * The connectionId is provided by Nango via webhook after successful auth
+     *
+     * @param connectionId - The Nango-generated connection ID
+     * @param providerConfigKey - The integration provider key (e.g., 'github', 'stripe')
+     */
+    async getConnectionById(connectionId: string, providerConfigKey: string): Promise<NangoConnection | null> {
+        if (!this.secretKey) return null;
+
+        try {
             const response = await fetch(
-                `${this.baseUrl}/connection/${connectionId}?provider_config_key=${integration.nangoId}`,
+                `${this.baseUrl}/connection/${connectionId}?provider_config_key=${providerConfigKey}`,
                 {
                     method: 'GET',
-                    credentials: 'omit', // Server-side: no cookies to send
                     headers: {
                         'Authorization': `Bearer ${this.secretKey}`,
                         'Content-Type': 'application/json',
@@ -300,12 +427,7 @@ class NangoService {
                 throw new Error(`Nango API error: ${response.status}`);
             }
 
-            const data = await response.json();
-            return {
-                connectionId,
-                providerConfigKey: integration.nangoId,
-                credentials: data.credentials || {},
-            };
+            return await response.json();
         } catch (error) {
             console.error('[NangoService] Failed to get connection:', error);
             return null;
@@ -313,95 +435,97 @@ class NangoService {
     }
 
     /**
-     * Get the access token for an integration (auto-refreshes if expired)
+     * Get all connections for a specific end user
+     *
+     * @param endUserId - The end user's ID (your user ID)
      */
-    async getAccessToken(params: {
-        integrationId: IntegrationId | string;
-        userId: string;
-    }): Promise<string | null> {
-        const connection = await this.getConnection(params);
-        if (!connection) return null;
-
-        // Nango handles token refresh automatically
-        return connection.credentials.accessToken || connection.credentials.apiKey || null;
-    }
-
-    /**
-     * Delete a connection
-     */
-    async deleteConnection(params: {
-        integrationId: IntegrationId | string;
-        userId: string;
-    }): Promise<void> {
-        if (!this.secretKey) return;
-
-        const integration = NANGO_INTEGRATIONS[params.integrationId as IntegrationId];
-        if (!integration) return;
-
-        const connectionId = `${params.userId}_${params.integrationId}`;
+    async getConnectionsByEndUser(endUserId: string): Promise<NangoConnection[]> {
+        if (!this.secretKey) return [];
 
         try {
-            // Server-side API call with Bearer token (no browser credentials needed)
-            await fetch(
-                `${this.baseUrl}/connection/${connectionId}?provider_config_key=${integration.nangoId}`,
+            const response = await fetch(
+                `${this.baseUrl}/connection?end_user_id=${encodeURIComponent(endUserId)}`,
                 {
-                    method: 'DELETE',
-                    credentials: 'omit', // Server-side: no cookies to send
+                    method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${this.secretKey}`,
                         'Content-Type': 'application/json',
                     },
                 }
             );
+
+            if (!response.ok) {
+                throw new Error(`Nango API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.connections || [];
+        } catch (error) {
+            console.error('[NangoService] Failed to get user connections:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get the access token for a connection (auto-refreshes if expired)
+     *
+     * @param connectionId - The Nango connection ID
+     * @param providerConfigKey - The integration provider key
+     */
+    async getAccessToken(connectionId: string, providerConfigKey: string): Promise<string | null> {
+        const connection = await this.getConnectionById(connectionId, providerConfigKey);
+        if (!connection) return null;
+
+        // Nango handles token refresh automatically
+        return connection.credentials.access_token || connection.credentials.api_key || null;
+    }
+
+    /**
+     * Delete a connection
+     *
+     * @param connectionId - The Nango connection ID
+     * @param providerConfigKey - The integration provider key
+     */
+    async deleteConnection(connectionId: string, providerConfigKey: string): Promise<void> {
+        if (!this.secretKey) return;
+
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/connection/${connectionId}?provider_config_key=${providerConfigKey}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${this.secretKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            if (!response.ok && response.status !== 404) {
+                throw new Error(`Nango API error: ${response.status}`);
+            }
         } catch (error) {
             console.error('[NangoService] Failed to delete connection:', error);
+            throw error;
         }
     }
 
     /**
-     * Check if a user has connected a specific integration
+     * Validate a webhook payload from Nango
+     * In production, you should verify the webhook signature
+     *
+     * @param payload - The webhook payload from Nango
      */
-    async isConnected(params: {
-        integrationId: IntegrationId | string;
-        userId: string;
-    }): Promise<boolean> {
-        const connection = await this.getConnection(params);
-        return connection !== null;
-    }
+    validateWebhookPayload(payload: unknown): payload is NangoWebhookPayload {
+        if (!payload || typeof payload !== 'object') return false;
 
-    /**
-     * Get all connections for a user (checks all known integrations)
-     */
-    async getUserConnections(userId: string, integrationsToCheck?: IntegrationId[]): Promise<Array<{
-        integrationId: IntegrationId;
-        connected: boolean;
-        connectionId?: string;
-    }>> {
-        const integrationIds = integrationsToCheck || (Object.keys(NANGO_INTEGRATIONS) as IntegrationId[]);
-        const results: Array<{
-            integrationId: IntegrationId;
-            connected: boolean;
-            connectionId?: string;
-        }> = [];
-
-        // Check connections in parallel (batch of 10)
-        const batchSize = 10;
-        for (let i = 0; i < integrationIds.length; i += batchSize) {
-            const batch = integrationIds.slice(i, i + batchSize);
-            const batchResults = await Promise.all(
-                batch.map(async (integrationId) => {
-                    const connection = await this.getConnection({ integrationId, userId });
-                    return {
-                        integrationId,
-                        connected: connection !== null,
-                        connectionId: connection?.connectionId,
-                    };
-                })
-            );
-            results.push(...batchResults);
-        }
-
-        return results;
+        const p = payload as Record<string, unknown>;
+        return (
+            p.type === 'auth' &&
+            typeof p.operation === 'string' &&
+            typeof p.success === 'boolean' &&
+            typeof p.connectionId === 'string'
+        );
     }
 
     /**
@@ -448,6 +572,86 @@ class NangoService {
                 id: id as IntegrationId,
                 ...info,
             }));
+    }
+
+    /**
+     * Configure an integration in Nango (add OAuth credentials)
+     * This is used when setting up new integrations programmatically
+     *
+     * @param providerConfigKey - Unique key for this configuration (e.g., 'github')
+     * @param provider - The Nango provider name (e.g., 'github')
+     * @param credentials - OAuth client credentials
+     */
+    async configureIntegration(params: {
+        providerConfigKey: string;
+        provider: string;
+        oauthClientId: string;
+        oauthClientSecret: string;
+        oauthScopes?: string;
+    }): Promise<void> {
+        if (!this.secretKey) {
+            throw new Error('Nango is not configured');
+        }
+
+        const payload: Record<string, unknown> = {
+            provider_config_key: params.providerConfigKey,
+            provider: params.provider,
+            oauth_client_id: params.oauthClientId,
+            oauth_client_secret: params.oauthClientSecret,
+        };
+
+        if (params.oauthScopes) {
+            payload.oauth_scopes = params.oauthScopes;
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}/config`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.secretKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to configure integration: ${response.status} - ${errorText}`);
+            }
+        } catch (error) {
+            console.error('[NangoService] Failed to configure integration:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all configured integrations in Nango
+     */
+    async getConfiguredIntegrations(): Promise<Array<{
+        unique_key: string;
+        provider: string;
+    }>> {
+        if (!this.secretKey) return [];
+
+        try {
+            const response = await fetch(`${this.baseUrl}/config`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.secretKey}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Nango API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.configs || [];
+        } catch (error) {
+            console.error('[NangoService] Failed to get configured integrations:', error);
+            return [];
+        }
     }
 }
 

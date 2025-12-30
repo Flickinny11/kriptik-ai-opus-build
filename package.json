@@ -54,6 +54,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "three": "^0.165.0",
+    "@nangohq/frontend": "^0.69.20",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
