@@ -13,9 +13,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Nango from '@nangohq/frontend';
+import { API_URL } from '@/lib/api-config';
 import './IntegrationConnectView.css';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Integration requirement from backend
 export interface IntegrationRequirement {
@@ -269,7 +268,7 @@ export function IntegrationConnectView({
 
       try {
         // 1. Get session token from backend (new Nango method as of Dec 2025)
-        const sessionResponse = await fetch(`${API_BASE}/api/integrations/session`, {
+        const sessionResponse = await fetch(`${API_URL}/api/integrations/session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -332,7 +331,7 @@ export function IntegrationConnectView({
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/integrations/disconnect/${integrationId}`, {
+      const response = await fetch(`${API_URL}/api/integrations/disconnect/${integrationId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -352,7 +351,7 @@ export function IntegrationConnectView({
 
   const checkConnectionStatus = useCallback(async (integrationId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/integrations/connections`, {
+      const response = await fetch(`${API_URL}/api/integrations/connections`, {
         credentials: 'include',
       });
 

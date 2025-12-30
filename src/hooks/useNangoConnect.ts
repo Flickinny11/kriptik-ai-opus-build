@@ -15,8 +15,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Nango from '@nangohq/frontend';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '@/lib/api-config';
 
 export interface NangoConnection {
     connectionId: string;
@@ -96,7 +95,7 @@ export function useNangoConnect(): UseNangoConnectReturn {
     // Fetch all connections for the current user
     const fetchConnections = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/integrations/connections`, {
+            const response = await fetch(`${API_URL}/api/integrations/connections`, {
                 credentials: 'include',
             });
 
@@ -123,7 +122,7 @@ export function useNangoConnect(): UseNangoConnectReturn {
 
         try {
             // 1. Get session token from backend
-            const sessionResponse = await fetch(`${API_BASE}/api/integrations/session`, {
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -202,7 +201,7 @@ export function useNangoConnect(): UseNangoConnectReturn {
 
         try {
             // Get reconnect session token from backend
-            const sessionResponse = await fetch(`${API_BASE}/api/integrations/session/reconnect`, {
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session/reconnect`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

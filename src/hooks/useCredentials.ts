@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Nango from '@nangohq/frontend';
+import { API_URL } from '@/lib/api-config';
 
 export interface ConnectedCredential {
     id: string;
@@ -65,8 +66,6 @@ interface UseCredentialsReturn {
     refetch: () => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 // OAuth integrations that support one-click connect
 const OAUTH_INTEGRATIONS = ['vercel', 'github', 'netlify', 'google', 'cloudflare', 'slack', 'discord', 'notion'];
 
@@ -102,7 +101,7 @@ export function useCredentials(): UseCredentialsReturn {
             setIsLoading(true);
             setError(null);
 
-            const response = await fetch(`${API_BASE}/api/credentials`, {
+            const response = await fetch(`${API_URL}/api/credentials`, {
                 credentials: 'include',
                 headers: {
                     'x-user-id': getUserId(),
@@ -126,7 +125,7 @@ export function useCredentials(): UseCredentialsReturn {
     // Fetch OAuth providers
     const fetchOAuthProviders = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/oauth/providers`, {
+            const response = await fetch(`${API_URL}/api/oauth/providers`, {
                 credentials: 'include',
             });
 
@@ -198,7 +197,7 @@ export function useCredentials(): UseCredentialsReturn {
         connectionName?: string
     ): Promise<boolean> => {
         try {
-            const response = await fetch(`${API_BASE}/api/credentials/${integrationId}`, {
+            const response = await fetch(`${API_URL}/api/credentials/${integrationId}`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -235,7 +234,7 @@ export function useCredentials(): UseCredentialsReturn {
 
         try {
             // 1. Get session token from backend (new method as of Dec 2025)
-            const sessionResponse = await fetch(`${API_BASE}/api/integrations/session`, {
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -285,7 +284,7 @@ export function useCredentials(): UseCredentialsReturn {
         try {
             // Check if it's an OAuth integration
             if (OAUTH_INTEGRATIONS.includes(integrationId)) {
-                await fetch(`${API_BASE}/api/oauth/${integrationId}/revoke`, {
+                await fetch(`${API_URL}/api/oauth/${integrationId}/revoke`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -293,7 +292,7 @@ export function useCredentials(): UseCredentialsReturn {
                     },
                 });
             } else {
-                await fetch(`${API_BASE}/api/credentials/${integrationId}`, {
+                await fetch(`${API_URL}/api/credentials/${integrationId}`, {
                     method: 'DELETE',
                     credentials: 'include',
                     headers: {
@@ -315,7 +314,7 @@ export function useCredentials(): UseCredentialsReturn {
     // Test credentials
     const testCredentials = useCallback(async (integrationId: string): Promise<{ valid: boolean; error?: string }> => {
         try {
-            const response = await fetch(`${API_BASE}/api/credentials/${integrationId}/test`, {
+            const response = await fetch(`${API_URL}/api/credentials/${integrationId}/test`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -354,7 +353,7 @@ export function useCredentials(): UseCredentialsReturn {
             }
 
             // Get reconnect session token from backend
-            const sessionResponse = await fetch(`${API_BASE}/api/integrations/session/reconnect`, {
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session/reconnect`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
