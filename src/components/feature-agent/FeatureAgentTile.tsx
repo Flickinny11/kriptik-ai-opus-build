@@ -7,10 +7,12 @@ import {
   type FeatureAgentTileStatus,
   type ImplementationPlan,
   type RequiredCredential,
+  type IntegrationRequirement,
 } from '@/store/useFeatureAgentTileStore';
 import { useFeatureAgentStore, type GhostModeAgentConfig } from '@/store/feature-agent-store';
 import { ImplementationPlanView, type PhaseModification } from './ImplementationPlanView';
 import { CredentialsCollectionView } from './CredentialsCollectionView';
+import { IntegrationConnectView } from '@/components/integrations/IntegrationConnectView';
 import { GhostModeConfig } from './GhostModeConfig';
 import { FeaturePreviewWindow } from './FeaturePreviewWindow';
 import { FeatureAgentActivityStream } from './FeatureAgentActivityStream';
@@ -41,6 +43,8 @@ function labelForStatus(status: FeatureAgentTileStatus): string {
       return 'PLAN';
     case 'awaiting_credentials':
       return 'CREDENTIALS';
+    case 'awaiting_integrations':
+      return 'CONNECT';
     case 'implementing':
       return 'IMPLEMENTING';
     case 'verifying':
@@ -113,6 +117,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
   const updateProgress = useFeatureAgentTileStore((s) => s.updateProgress);
   const setImplementationPlan = useFeatureAgentTileStore((s) => s.setImplementationPlan);
   const setRequiredCredentials = useFeatureAgentTileStore((s) => s.setRequiredCredentials);
+  const setIntegrationRequirements = useFeatureAgentTileStore((s) => s.setIntegrationRequirements);
 
   // Ghost Mode state from persisted store
   const runningAgent = useFeatureAgentStore((s) => s.runningAgents.find((a) => a.id === agentId));
@@ -235,6 +240,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
             if (s === 'pending_intent' || s === 'intent_locked') return 'intent_lock';
             if (s === 'awaiting_plan_approval') return 'awaiting_plan_approval';
             if (s === 'awaiting_credentials') return 'awaiting_credentials';
+            if (s === 'awaiting_integrations') return 'awaiting_integrations';
             if (s === 'implementing') return 'implementing';
             if (s === 'verifying') return 'verifying';
             if (s === 'complete') return 'complete';
@@ -259,6 +265,12 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           const creds = meta.credentials as RequiredCredential[] | undefined;
           if (Array.isArray(creds)) setRequiredCredentials(agentId, creds);
           setTileStatus(agentId, 'awaiting_credentials');
+        }
+        if (data.type === 'integrations' as StreamMessage['type']) {
+          const meta = (data.metadata || {}) as Record<string, unknown>;
+          const integrations = meta.integrations as IntegrationRequirement[] | undefined;
+          if (Array.isArray(integrations)) setIntegrationRequirements(agentId, integrations);
+          setTileStatus(agentId, 'awaiting_integrations');
         }
 
         push({
@@ -291,7 +303,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
       es.close();
       eventSourceRef.current = null;
     };
-  }, [agentId, tile, addMessage, setTileStatus, updateProgress]);
+  }, [agentId, tile, addMessage, setTileStatus, updateProgress, setImplementationPlan, setRequiredCredentials, setIntegrationRequirements]);
 
   // Close SSE when minimized to reduce background load.
   useEffect(() => {
@@ -347,6 +359,18 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
   const submitCredentials = async (credentials: Record<string, string>) => {
     await apiClient.post(`/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/credentials`, { credentials });
     addMessage(agentId, { type: 'status', content: 'Credentials submitted.', timestamp: Date.now() });
+  };
+
+  const handleIntegrationsConnected = async () => {
+    await apiClient.post(`/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/integrations-connected`, {});
+    addMessage(agentId, { type: 'status', content: 'All integrations connected.', timestamp: Date.now() });
+    setTileStatus(agentId, 'implementing');
+  };
+
+  const handleIntegrationsSkipped = async () => {
+    await apiClient.post(`/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/skip-integrations`, {});
+    addMessage(agentId, { type: 'status', content: 'Integration connection skipped.', timestamp: Date.now() });
+    setTileStatus(agentId, 'implementing');
   };
 
   const handleGhostModeSave = async (config: GhostModeAgentConfig) => {
@@ -461,6 +485,14 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
             <CredentialsCollectionView
               credentials={tile.requiredCredentials || []}
               onCredentialsSubmit={submitCredentials}
+            />
+          )}
+          {tile.status === 'awaiting_integrations' && (tile.integrationRequirements?.length || 0) > 0 && (
+            <IntegrationConnectView
+              requirements={tile.integrationRequirements || []}
+              featureAgentId={agentId}
+              onAllConnected={handleIntegrationsConnected}
+              onSkip={handleIntegrationsSkipped}
             />
           )}
 

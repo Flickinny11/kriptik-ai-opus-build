@@ -5,6 +5,7 @@ export type FeatureAgentTileStatus =
   | 'intent_lock'
   | 'awaiting_plan_approval'
   | 'awaiting_credentials'
+  | 'awaiting_integrations'
   | 'implementing'
   | 'verifying'
   | 'complete'
@@ -62,6 +63,16 @@ export interface RequiredCredential {
   value: string | null;
 }
 
+export interface IntegrationRequirement {
+  id: string;
+  integrationId: string;
+  integrationName: string;
+  reason: string;
+  required: boolean;
+  connected: boolean;
+  connectionId?: string;
+}
+
 export interface FeatureAgentTileState {
   agentId: string;
   minimized: boolean;
@@ -74,6 +85,7 @@ export interface FeatureAgentTileState {
   currentPhase?: string;
   implementationPlan?: ImplementationPlan;
   requiredCredentials?: RequiredCredential[];
+  integrationRequirements?: IntegrationRequirement[];
   lastUpdatedAt: number;
 }
 
@@ -89,6 +101,7 @@ interface FeatureAgentTileStore {
   setTileStatus: (agentId: string, status: FeatureAgentTileStatus) => void;
   setImplementationPlan: (agentId: string, plan: ImplementationPlan) => void;
   setRequiredCredentials: (agentId: string, credentials: RequiredCredential[]) => void;
+  setIntegrationRequirements: (agentId: string, requirements: IntegrationRequirement[]) => void;
   addMessage: (agentId: string, msg: StreamMessage) => void;
   updateProgress: (agentId: string, progress: number, currentPhase?: string) => void;
 }
@@ -220,6 +233,20 @@ export const useFeatureAgentTileStore = create<FeatureAgentTileStore>()(
             },
           };
         }, false, { type: 'featureAgentTile/credentials', agentId });
+      },
+
+      setIntegrationRequirements: (agentId, requirements) => {
+        set((state) => {
+          const tile = state.tiles[agentId];
+          if (!tile) return state;
+          return {
+            ...state,
+            tiles: {
+              ...state.tiles,
+              [agentId]: { ...tile, integrationRequirements: requirements, lastUpdatedAt: Date.now() },
+            },
+          };
+        }, false, { type: 'featureAgentTile/integrations', agentId });
       },
 
       addMessage: (agentId, msg) => {

@@ -2766,3 +2766,54 @@ export const browserAgentAuditLog = sqliteTable('browser_agent_audit_log', {
 
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
 });
+
+// ============================================================================
+// NANGO OAUTH INTEGRATIONS - OAuth connections via Nango
+// ============================================================================
+
+/**
+ * Integration Connections - OAuth connections made through Nango
+ * Stores connection metadata; actual tokens managed by Nango
+ */
+export const integrationConnections = sqliteTable('integration_connections', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+
+    // Nango-specific fields
+    integrationId: text('integration_id').notNull(), // e.g., 'stripe', 'supabase', 'github'
+    nangoConnectionId: text('nango_connection_id').notNull(), // Nango's connection reference
+
+    // Status tracking
+    status: text('status').$type<'connected' | 'expired' | 'error' | 'revoked'>().notNull().default('connected'),
+    lastSyncAt: text('last_sync_at'),
+    expiresAt: text('expires_at'),
+
+    // Metadata
+    scopes: text('scopes', { mode: 'json' }).$type<string[]>(), // JSON array of granted scopes
+    metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(), // Additional provider-specific data
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Integration Requirements - Tracks which integrations a build/feature requires
+ * Created during Intent Lock analysis when dependencies are detected
+ */
+export const integrationRequirements = sqliteTable('integration_requirements', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildIntentId: text('build_intent_id').references(() => buildIntents.id, { onDelete: 'cascade' }),
+    featureAgentId: text('feature_agent_id'), // For Feature Agent builds
+
+    integrationId: text('integration_id').notNull(), // e.g., 'stripe'
+    integrationName: text('integration_name').notNull(), // Display name
+    reason: text('reason').notNull(), // Why this is needed
+    required: integer('required', { mode: 'boolean' }).default(true).notNull(),
+
+    // Status
+    connected: integer('connected', { mode: 'boolean' }).default(false).notNull(),
+    connectionId: text('connection_id').references(() => integrationConnections.id),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});

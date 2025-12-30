@@ -23,6 +23,7 @@ const CredentialVault = lazy(() => import('./pages/CredentialVault'));
 const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
 const MyAccount = lazy(() => import('./pages/MyAccount'));
 const GitHubCallback = lazy(() => import('./pages/GitHubCallback'));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -135,6 +136,13 @@ function App() {
                         <PageErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                                 <GitHubCallback />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/oauth-callback" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <OAuthCallback />
                             </Suspense>
                         </PageErrorBoundary>
                     } />

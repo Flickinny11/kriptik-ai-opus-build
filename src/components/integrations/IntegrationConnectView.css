@@ -1,0 +1,516 @@
+/**
+ * Integration Connect View - Premium Glass Styling
+ *
+ * OAuth connection UI matching KripTik AI aesthetic:
+ * - Frosted glass with 3D depth
+ * - Cal Sans / Outfit typography
+ * - Warm amber accents (NO purple)
+ * - Smooth micro-animations
+ */
+
+/* ============================================================================
+   VARIABLES
+   ============================================================================ */
+
+.integration-connect-view {
+  --icv-bg: linear-gradient(
+    145deg,
+    rgba(255, 253, 250, 0.98) 0%,
+    rgba(250, 248, 245, 0.96) 40%,
+    rgba(245, 243, 240, 0.97) 100%
+  );
+  --icv-glass: rgba(255, 255, 255, 0.7);
+  --icv-glass-border: rgba(255, 255, 255, 0.9);
+  --icv-card-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(250, 248, 245, 0.8) 50%,
+    rgba(245, 242, 238, 0.85) 100%
+  );
+
+  /* Text */
+  --icv-text: #1a1a1a;
+  --icv-text-muted: #555555;
+  --icv-text-dim: #888888;
+
+  /* Accent - warm amber */
+  --icv-accent: #f5a86c;
+  --icv-accent-glow: rgba(245, 168, 108, 0.4);
+  --icv-accent-light: rgba(245, 168, 108, 0.15);
+
+  /* States */
+  --icv-success: #1a8754;
+  --icv-success-bg: rgba(26, 135, 84, 0.08);
+  --icv-error: #c41e3a;
+  --icv-error-bg: rgba(196, 30, 58, 0.06);
+
+  font-family: 'Outfit', 'SF Pro Text', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================ */
+
+.integration-connect-view {
+  padding: 20px;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.integration-connect-view__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.integration-connect-view__header-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(248, 246, 242, 0.85) 100%
+  );
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+  color: var(--icv-text);
+}
+
+.integration-connect-view__header-text {
+  flex: 1;
+}
+
+.integration-connect-view__title {
+  font-family: 'Cal Sans', 'SF Pro Display', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--icv-text);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.integration-connect-view__subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--icv-text-muted);
+  margin: 0;
+}
+
+/* ============================================================================
+   PROGRESS BAR
+   ============================================================================ */
+
+.integration-connect-view__progress-bar {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  transform-origin: left;
+}
+
+.integration-connect-view__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--icv-accent) 0%, #ffb88c 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 12px var(--icv-accent-glow);
+  transition: width 0.3s ease;
+}
+
+/* ============================================================================
+   ERROR MESSAGE
+   ============================================================================ */
+
+.integration-connect-view__error {
+  background: var(--icv-error-bg);
+  border: 1px solid rgba(196, 30, 58, 0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--icv-error);
+}
+
+/* ============================================================================
+   INTEGRATION CARDS
+   ============================================================================ */
+
+.integration-connect-view__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.integration-card {
+  position: relative;
+  border-radius: 16px;
+  background: var(--icv-card-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 4px 0 rgba(200, 195, 190, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.7);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: visible;
+}
+
+.integration-card--required:not(.integration-card--connected) {
+  box-shadow:
+    0 4px 0 rgba(200, 195, 190, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(245, 168, 108, 0.4);
+}
+
+.integration-card--connected {
+  box-shadow:
+    0 4px 0 rgba(200, 195, 190, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(26, 135, 84, 0.3);
+}
+
+/* 3D edges */
+.integration-card__edge-right {
+  position: absolute;
+  top: 8px;
+  right: -4px;
+  width: 4px;
+  height: calc(100% - 16px);
+  background: linear-gradient(
+    90deg,
+    rgba(220, 215, 210, 0.6) 0%,
+    rgba(200, 195, 190, 0.4) 100%
+  );
+  border-radius: 0 4px 4px 0;
+  pointer-events: none;
+}
+
+.integration-card__edge-bottom {
+  position: absolute;
+  bottom: -4px;
+  left: 8px;
+  width: calc(100% - 16px);
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(200, 195, 190, 0.5) 0%,
+    rgba(180, 175, 170, 0.3) 100%
+  );
+  border-radius: 0 0 4px 4px;
+  pointer-events: none;
+}
+
+/* Card glow */
+.integration-card__glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.integration-card--connected .integration-card__glow {
+  opacity: 1;
+  background: linear-gradient(
+    145deg,
+    rgba(26, 135, 84, 0.08) 0%,
+    transparent 50%
+  );
+}
+
+/* Card content */
+.integration-card__content {
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+}
+
+/* Card header */
+.integration-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.integration-card__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.integration-card__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 246, 242, 0.9) 100%
+  );
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+  color: var(--icv-text);
+  flex-shrink: 0;
+}
+
+.integration-card__brand-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.integration-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.integration-card__name {
+  font-family: 'Cal Sans', 'SF Pro Display', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--icv-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-card__required-badge {
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--icv-accent-light);
+  color: #c57830;
+}
+
+.integration-card__connected-badge {
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--icv-success-bg);
+  color: var(--icv-success);
+}
+
+.integration-card__reason {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--icv-text-muted);
+  margin-top: 4px;
+}
+
+/* Actions */
+.integration-card__actions {
+  flex-shrink: 0;
+}
+
+.integration-card__connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(
+    145deg,
+    #1a1a1a 0%,
+    #333333 100%
+  );
+  border: none;
+  color: white;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.3),
+    0 6px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.integration-card__connect-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 10px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.integration-card__connect-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.integration-card__connect-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.integration-card__connect-btn--loading {
+  pointer-events: none;
+}
+
+.integration-card__spinner {
+  display: inline-flex;
+}
+
+.integration-card__disconnect-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--icv-text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.integration-card__disconnect-btn:hover {
+  background: var(--icv-error-bg);
+  border-color: rgba(196, 30, 58, 0.2);
+  color: var(--icv-error);
+}
+
+/* Connected check */
+.integration-card__check {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--icv-success) 0%, #22a366 100%);
+  color: white;
+  box-shadow:
+    0 2px 8px rgba(26, 135, 84, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+  z-index: 10;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.integration-connect-view__footer {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.integration-connect-view__success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--icv-success-bg);
+  color: var(--icv-success);
+  font-family: 'Cal Sans', 'SF Pro Display', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.integration-connect-view__remaining {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--icv-text-muted);
+  margin: 0;
+}
+
+.integration-connect-view__skip-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--icv-text-dim);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.integration-connect-view__skip-btn:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--icv-text);
+}
+
+.integration-connect-view__security-note {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--icv-text-dim);
+  text-align: center;
+  margin: 0;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .integration-connect-view {
+    padding: 16px;
+  }
+
+  .integration-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .integration-card__actions {
+    width: 100%;
+  }
+
+  .integration-card__connect-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

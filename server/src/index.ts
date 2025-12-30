@@ -705,6 +705,7 @@ import tournamentRouter from './routes/tournament.js';
 import reflectionRouter from './routes/reflection.js';
 import previewRouter from './routes/preview.js';
 import { importRouter } from './routes/import.js';
+import integrationsRouter from './routes/integrations.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -748,6 +749,9 @@ app.use("/api/templates", templatesRouter);
 // Credentials & OAuth
 app.use("/api/credentials", credentialsRouter);
 app.use("/api/oauth", oauthRouter);
+
+// Nango OAuth Integrations
+app.use("/api/integrations", integrationsRouter);
 
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);
