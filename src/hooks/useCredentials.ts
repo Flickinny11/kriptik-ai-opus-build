@@ -254,17 +254,20 @@ export function useCredentials(): UseCredentialsReturn {
             const { token } = await sessionResponse.json();
 
             // 2. Open Nango Connect UI with session token
+            // Using proper ConnectUIEvent types from @nangohq/frontend
             const connect = nangoRef.current.openConnectUI({
-                onEvent: (event: { type: string; payload?: { connectionId?: string; error?: { message: string } } }) => {
-                    if (event.type === 'connect' && event.payload?.connectionId) {
-                        // Connection successful - refetch credentials
+                onEvent: (event) => {
+                    if (event.type === 'connect') {
+                        // Connection successful - payload contains { providerConfigKey, connectionId }
                         fetchCredentials();
                     } else if (event.type === 'error') {
-                        setError(event.payload?.error?.message || 'OAuth connection failed');
+                        // Error payload contains { errorType, errorMessage }
+                        setError(event.payload.errorMessage || 'OAuth connection failed');
                     } else if (event.type === 'close') {
                         // Refetch credentials when UI closes in case of success
                         setTimeout(() => fetchCredentials(), 500);
                     }
+                    // 'ready' and 'settings_changed' events are also possible but not needed here
                 },
             });
 
@@ -373,14 +376,15 @@ export function useCredentials(): UseCredentialsReturn {
             const { token } = await sessionResponse.json();
 
             // Open Nango Connect UI in reconnect mode
+            // Using proper ConnectUIEvent types from @nangohq/frontend
             return new Promise((resolve) => {
                 const connect = nangoRef.current!.openConnectUI({
-                    onEvent: (event: { type: string; payload?: { error?: { message: string } } }) => {
+                    onEvent: (event) => {
                         if (event.type === 'connect') {
                             fetchCredentials();
                             resolve(true);
                         } else if (event.type === 'error') {
-                            setError(event.payload?.error?.message || 'Token refresh failed');
+                            setError(event.payload.errorMessage || 'Token refresh failed');
                             resolve(false);
                         } else if (event.type === 'close') {
                             resolve(false);

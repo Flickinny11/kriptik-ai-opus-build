@@ -58,17 +58,9 @@ interface ConnectOptions {
     onClose?: () => void;
 }
 
-interface NangoConnectEvent {
-    type: 'connect' | 'close' | 'error';
-    payload?: {
-        connectionId?: string;
-        providerConfigKey?: string;
-        error?: {
-            message: string;
-            code?: string;
-        };
-    };
-}
+// Note: We use the actual ConnectUIEvent types from @nangohq/frontend
+// The SDK provides: ConnectUIEventReady, ConnectUIEventClose, ConnectUIEventConnect,
+// ConnectUIEventError, ConnectUIEventSettingsChanged
 
 export function useNangoConnect(): UseNangoConnectReturn {
     const [isConnecting, setIsConnecting] = useState(false);
@@ -143,9 +135,11 @@ export function useNangoConnect(): UseNangoConnectReturn {
             const { token } = await sessionResponse.json();
 
             // 2. Open Nango Connect UI
+            // Using proper ConnectUIEvent types from @nangohq/frontend
             const connect = nangoRef.current.openConnectUI({
-                onEvent: (event: NangoConnectEvent) => {
-                    if (event.type === 'connect' && event.payload?.connectionId) {
+                onEvent: (event) => {
+                    if (event.type === 'connect') {
+                        // ConnectUIEventConnect - payload has providerConfigKey, connectionId
                         const connection: NangoConnection = {
                             connectionId: event.payload.connectionId,
                             integrationId: event.payload.providerConfigKey || integrationId || 'unknown',
@@ -162,15 +156,18 @@ export function useNangoConnect(): UseNangoConnectReturn {
                         // Call success callback
                         options?.onSuccess?.(connection);
                     } else if (event.type === 'error') {
-                        const errorMessage = event.payload?.error?.message || 'Connection failed';
+                        // ConnectUIEventError - payload has errorType, errorMessage
+                        const errorMessage = event.payload.errorMessage || 'Connection failed';
                         setError(errorMessage);
                         setIsConnecting(false);
 
                         options?.onError?.(new Error(errorMessage));
                     } else if (event.type === 'close') {
+                        // ConnectUIEventClose - no payload
                         setIsConnecting(false);
                         options?.onClose?.();
                     }
+                    // 'ready' and 'settings_changed' events are also possible but not needed here
                 },
             });
 
@@ -221,15 +218,19 @@ export function useNangoConnect(): UseNangoConnectReturn {
             const { token } = await sessionResponse.json();
 
             // Open Nango Connect UI in reconnect mode
+            // Using proper ConnectUIEvent types from @nangohq/frontend
             const connect = nangoRef.current.openConnectUI({
-                onEvent: (event: NangoConnectEvent) => {
+                onEvent: (event) => {
                     if (event.type === 'connect') {
+                        // ConnectUIEventConnect
                         setIsConnecting(false);
                         fetchConnections();
                     } else if (event.type === 'error') {
-                        setError(event.payload?.error?.message || 'Reconnection failed');
+                        // ConnectUIEventError - payload has errorType, errorMessage
+                        setError(event.payload.errorMessage || 'Reconnection failed');
                         setIsConnecting(false);
                     } else if (event.type === 'close') {
+                        // ConnectUIEventClose
                         setIsConnecting(false);
                     }
                 },

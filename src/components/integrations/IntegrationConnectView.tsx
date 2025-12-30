@@ -296,20 +296,24 @@ export function IntegrationConnectView({
         );
 
         // 2. Open Nango Connect UI with session token
+        // Using proper ConnectUIEvent types from @nangohq/frontend
         const connect = nangoRef.current.openConnectUI({
-          onEvent: (event: { type: string; payload?: { connectionId?: string; error?: { message: string } } }) => {
-            if (event.type === 'connect' && event.payload?.connectionId) {
-              // Connection successful
+          onEvent: (event) => {
+            if (event.type === 'connect') {
+              // ConnectUIEventConnect - payload has providerConfigKey, connectionId
               setConnections((prev) => ({ ...prev, [integrationId]: true }));
               setLoading((prev) => ({ ...prev, [integrationId]: false }));
             } else if (event.type === 'error') {
-              setError(event.payload?.error?.message || 'Connection failed');
+              // ConnectUIEventError - payload has errorType, errorMessage
+              setError(event.payload.errorMessage || 'Connection failed');
               setLoading((prev) => ({ ...prev, [integrationId]: false }));
             } else if (event.type === 'close') {
+              // ConnectUIEventClose - no payload
               setLoading((prev) => ({ ...prev, [integrationId]: false }));
               // Check connection status in case it succeeded
               checkConnectionStatus(integrationId);
             }
+            // 'ready' and 'settings_changed' events are also possible but not needed here
           },
         });
 
