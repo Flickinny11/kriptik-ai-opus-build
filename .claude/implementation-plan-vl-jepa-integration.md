@@ -41,6 +41,288 @@ User prompt → VL-JEPA embedding (200ms) → Build → Embedding comparison (50
 
 ---
 
+## Part 0: CRITICAL ADDITIONS - Voice Architect & Fix My App
+
+These two services have MASSIVE VL-JEPA potential that was missing from the original analysis.
+
+### Voice Architect: Real-Time Visual Feedback
+
+**Current State** (690 lines):
+- User speaks → Whisper transcription → LLM intent extraction → Build prompt
+- NO real-time visual feedback during voice session
+- "Make it bigger" → user has to wait for full rebuild to see result
+
+**With VL-JEPA:**
+```
+User: "Make that button bigger"
+       ↓
+VL-JEPA: Instantly generates embedding of "bigger button"
+       ↓
+System: Modifies button, takes screenshot (100ms)
+       ↓
+VL-JEPA: Compares to "bigger button" embedding (50ms)
+       ↓
+System: "Done!" or "Not quite, adjusting..."
+       ↓
+User: "Ok, too big, a little smaller"
+       ↓
+VL-JEPA: Instantly generates embedding of "slightly smaller button"
+       ↓
+Loop continues until user says "yeah, ok, that's it right there"
+```
+
+**Total cycle time: 200-300ms vs current 30-60 seconds**
+
+### PROMPT VOICE-1: Real-Time Voice Architect with VL-JEPA
+
+```
+Enhance Voice Architect with VL-JEPA for real-time visual feedback.
+
+## Context
+Voice Architect (server/src/services/ai/voice-architect.ts, 690 lines) lets users
+describe apps verbally. But it currently has NO real-time visual feedback.
+
+The user says "make that bigger" and has to wait for a full rebuild to see if it worked.
+
+## VL-JEPA Enhancement
+
+1. Create "directive embedding" system:
+   - "bigger" → embedding in "size increase" manifold
+   - "smaller" → embedding in "size decrease" manifold
+   - "move left" → embedding in "position change" manifold
+   - "change color to blue" → embedding in "color change" manifold
+
+2. Add real-time visual verification loop:
+```typescript
+// voice-architect.ts - new method
+async applyVisualDirective(
+  directive: string,
+  currentScreenshot: string,
+  targetElement?: string
+): Promise<{ success: boolean; newScreenshot: string; adjustments?: string[] }> {
+  const vljepa = getVLJEPAService();
+
+  // Embed the directive
+  const directiveEmbedding = await vljepa.embedDirective(directive);
+
+  // Embed the current visual state
+  const beforeEmbedding = await vljepa.embedVisual(currentScreenshot);
+
+  // Apply the change (quick CSS/style modification)
+  const newScreenshot = await this.applyQuickChange(directive, targetElement);
+
+  // Embed the new state
+  const afterEmbedding = await vljepa.embedVisual(newScreenshot);
+
+  // Calculate if the change matches the directive
+  const changeVector = vljepa.subtract(afterEmbedding, beforeEmbedding);
+  const similarity = vljepa.cosineSimilarity(changeVector, directiveEmbedding);
+
+  if (similarity > 0.7) {
+    return { success: true, newScreenshot };
+  } else {
+    // Not quite right - suggest adjustment
+    const adjustment = await vljepa.suggestAdjustment(
+      directiveEmbedding,
+      changeVector
+    );
+    return { success: false, newScreenshot, adjustments: [adjustment] };
+  }
+}
+```
+
+3. Add conversation mode with visual feedback:
+   - After each voice command, show updated preview
+   - VL-JEPA verifies change matches intent instantly
+   - If not right, ask clarifying question or auto-adjust
+
+4. Create quick-change engine:
+   - For common directives (size, color, position), apply CSS changes directly
+   - Don't rebuild entire app - just modify the specific element
+   - VL-JEPA verifies the visual result matches the directive
+
+## Key Insight
+This enables the "make it bigger... ok, too big... a little smaller" workflow
+that feels like talking to a human designer.
+
+## Validation
+- Test with size directives: "bigger", "smaller", "much smaller", "tiny"
+- Test with color directives: "make it blue", "darker", "lighter"
+- Test with position directives: "move left", "center it", "align to top"
+- Measure cycle time: should be < 500ms for each directive
+```
+
+---
+
+### Fix My App: Semantic Chat History Understanding
+
+**Current State** (ChatParser + FixOrchestrator):
+- Parses chat history text from 15+ platforms
+- Extracts intent using LLM (Sonnet 4.5)
+- Creates Intent Lock, then runs full BuildLoop
+
+**Problem:**
+- Text-based chat parsing misses VISUAL context
+- User might have said "like that mockup I showed earlier" - lost
+- User might have shared screenshots - not analyzed
+- LLM intent extraction takes 30-60 seconds
+
+**With VL-JEPA:**
+```
+Imported chat history (text + images + screenshots)
+       ↓
+VL-JEPA: Embeds ALL visual content (images, screenshots, mockups)
+       ↓
+VL-JEPA: Embeds text descriptions
+       ↓
+Creates unified "project intent manifold" combining text + visual
+       ↓
+Intent Lock uses BOTH text AND visual embeddings
+       ↓
+Intent Satisfaction compares to VISUAL manifold (not just text)
+       ↓
+Project matches what user SHOWED, not just what they TYPED
+```
+
+### PROMPT FIX-1: Fix My App with Visual Chat Understanding
+
+```
+Enhance Fix My App with VL-JEPA for visual chat history understanding.
+
+## Context
+Fix My App imports projects from Bolt, Lovable, Cursor, Replit, etc.
+It parses the chat history to understand what the user wanted.
+
+Current flow (fix-orchestrator.ts, 577 lines):
+1. ChatParser extracts messages
+2. LLM analyzes chat to create projectDescription
+3. Intent Lock created from projectDescription
+4. BuildLoop runs to fix/rebuild
+
+## Problem
+Users often share IMAGES in their chats:
+- Mockups
+- Screenshots of desired UI
+- Reference designs
+- Error screenshots
+
+Current system IGNORES all images and only parses text.
+
+## VL-JEPA Enhancement
+
+1. Extend ChatParser to extract images:
+```typescript
+// chat-parser.ts - extend ChatMessage
+interface ChatMessage {
+  // existing fields...
+  images?: Array<{
+    url: string;
+    base64?: string;
+    context: 'mockup' | 'screenshot' | 'reference' | 'error' | 'unknown';
+  }>;
+}
+
+// Detect image references in messages
+private detectImages(content: string): string[] {
+  const patterns = [
+    /!\[.*?\]\((.*?)\)/g,  // Markdown images
+    /(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp))/gi,  // URLs
+    /data:image\/[^;]+;base64,[^\s"')]+/gi,  // Base64
+  ];
+  // ... extract all images
+}
+```
+
+2. Create visual intent extraction:
+```typescript
+// fix-orchestrator.ts - new method
+async extractVisualIntent(
+  chatHistory: ChatMessage[]
+): Promise<VisualIntentManifold> {
+  const vljepa = getVLJEPAService();
+
+  // Collect all images from chat
+  const images = chatHistory.flatMap(m => m.images || []);
+
+  // Embed each image with context
+  const visualEmbeddings = await Promise.all(
+    images.map(async img => {
+      const embedding = await vljepa.embedVisual(img.base64 || img.url);
+      return {
+        embedding,
+        context: img.context,
+        timestamp: img.timestamp,
+      };
+    })
+  );
+
+  // Cluster by context (mockups together, screenshots together)
+  const mockupCluster = this.clusterByContext(visualEmbeddings, 'mockup');
+  const referenceCluster = this.clusterByContext(visualEmbeddings, 'reference');
+
+  // Create unified visual intent
+  const visualIntent = vljepa.createManifold([
+    ...mockupCluster,
+    ...referenceCluster,
+  ]);
+
+  return {
+    visualIntent,
+    mockupCount: mockupCluster.length,
+    referenceCount: referenceCluster.length,
+  };
+}
+```
+
+3. Enhance Intent Lock with visual component:
+```typescript
+// fix-orchestrator.ts - update createIntentLock
+async createIntentLock(session: FixMyAppSession, projectDescription: string): Promise<IntentContract> {
+  // Extract visual intent
+  const visualIntent = await this.extractVisualIntent(session.chatHistory);
+
+  // Create text contract as before
+  const textContract = await createAndLockIntent(enhancedPrompt, ...);
+
+  // ENHANCE with visual embeddings
+  textContract.visualIntentManifold = visualIntent.visualIntent;
+  textContract.hasVisualReference = visualIntent.mockupCount > 0;
+
+  return textContract;
+}
+```
+
+4. Enhance Intent Satisfaction with visual comparison:
+```typescript
+// In BuildLoop Phase 5
+if (intentContract.visualIntentManifold) {
+  const currentVisual = await vljepa.embedVisual(screenshot);
+  const visualMatch = await vljepa.compareToManifold(
+    currentVisual,
+    intentContract.visualIntentManifold
+  );
+
+  if (visualMatch.score < 0.8) {
+    // Doesn't match the mockups/references the user showed
+    return { satisfied: false, reason: 'Visual mismatch with user mockups' };
+  }
+}
+```
+
+## Key Insight
+When user says "build me something like this" and shows a mockup,
+VL-JEPA ensures the final result LOOKS like what they showed.
+Text-based Intent Lock can never capture this.
+
+## Validation
+- Import project with image mockups in chat
+- Verify images are extracted and embedded
+- Verify Intent Satisfaction checks visual similarity
+- Compare output to original mockups
+```
+
+---
+
 ## Part 1: Service-by-Service Integration Map
 
 ### Critical Path: Build Loop (3,074 lines)
@@ -838,7 +1120,7 @@ async detectVisualAnomaly(screenshot: string): Promise<AnomalyResult> {
 | Service | File | Changes | Lines to Modify |
 |---------|------|---------|-----------------|
 | **BuildLoopOrchestrator** | build-loop.ts | Add VL-JEPA to Phases 0, 2, 5, 6, 8 | ~100 lines |
-| **IntentLockEngine** | intent-lock.ts | Add semantic embeddings | ~50 lines |
+| **IntentLockEngine** | intent-lock.ts | Add semantic embeddings + visual intent | ~80 lines |
 | **VerificationSwarm** | swarm.ts | VL-JEPA visual verifier | ~80 lines |
 | **AntiSlopDetector** | anti-slop-detector.ts | Semantic slop detection | ~60 lines |
 | **PatternLibrary** | pattern-library.ts | Embedding-based search | ~70 lines |
@@ -848,8 +1130,11 @@ async detectVisualAnomaly(screenshot: string): Promise<AnomalyResult> {
 | **KripToeNite** | facade.ts | Embedding routing | ~40 lines |
 | **HyperThinking** | verification-bridge.ts | Quick embedding verify | ~30 lines |
 | **SelfHealing** | ai-diagnosis.ts | Embedding anomaly detection | ~50 lines |
+| **VoiceArchitect** | voice-architect.ts | Real-time visual directive feedback | ~150 lines |
+| **FixMyApp/ChatParser** | chat-parser.ts | Image extraction + visual embedding | ~100 lines |
+| **FixMyApp/Orchestrator** | fix-orchestrator.ts | Visual intent manifold creation | ~80 lines |
 
-**Total: ~670 lines of modifications across 11 services**
+**Total: ~1,030 lines of modifications across 14 services**
 
 ### What Stays the Same
 
@@ -891,13 +1176,21 @@ Everything else. VL-JEPA is **additive enhancement**, not replacement:
 12. PROMPT HEAL-1: Self-Healing Anomaly Detection
 ```
 
-### Week 3: Polish (Days 15-21)
+### Week 3: User-Facing Enhancements (Days 15-18)
 ```
-13. Pre-populate embedding manifolds
-14. Performance optimization
-15. Integration testing
-16. Production hardening
+13. PROMPT VOICE-1: Real-Time Voice Architect (CRITICAL for "make it bigger" workflow)
+14. PROMPT FIX-1: Fix My App Visual Chat Understanding (CRITICAL for visual mockup matching)
 ```
+
+### Week 3: Polish (Days 19-21)
+```
+15. Pre-populate embedding manifolds (slop, premium, App Souls, directives)
+16. Performance optimization
+17. Integration testing across all 14 services
+18. Production hardening
+```
+
+**Total: 18 implementation steps, 15 prompts**
 
 ---
 
@@ -931,6 +1224,9 @@ Everything else. VL-JEPA is **additive enhancement**, not replacement:
 | "This doesn't feel right" | User reports | System detects |
 | Pattern-based fixes | 2-5 seconds | 250ms |
 | Clone Mode video | 5-10 minutes | 30-60 seconds |
+| **Voice: "Make it bigger... too big... smaller"** | 30-60s per iteration | **200-300ms per iteration** |
+| **Fix My App with mockup images** | Ignores images, text only | **Matches visual mockups** |
+| **Fix My App Intent Satisfaction** | Text-based, can be gamed | **Visual + Text, bulletproof** |
 
 ---
 
@@ -941,11 +1237,48 @@ This revised plan shows **exactly how VL-JEPA enhances KripTik's existing 135+ s
 Key insights:
 1. **VL-JEPA accelerates existing verification by 50-100x**
 2. **Semantic embeddings add "understanding" that rules can't capture**
-3. **670 lines of modifications across 11 services (not a rewrite)**
+3. **1,030 lines of modifications across 14 services (not a rewrite)**
 4. **Everything existing remains as fallback**
 5. **Measurable outcomes: speed + quality + new capabilities**
+6. **Voice Architect becomes real-time conversational** ("make it bigger... ok, too big...")
+7. **Fix My App understands VISUAL intent** from mockups, not just text
+8. **Intent Lock is now bulletproof** - can't be gamed with clever wording
 
 This is how KripTik becomes "lightyears ahead" - not by adding new features, but by making existing features 50-100x faster and adding semantic understanding that competitors don't have.
+
+---
+
+## Appendix: How Intent Lock Powers All Three Entry Points
+
+### Builder View (Full Apps)
+1. User enters NLP prompt
+2. **VL-JEPA creates semantic embedding** of intent
+3. Opus 4.5 creates text contract + success criteria
+4. Intent Contract includes BOTH text AND embedding
+5. Phase 5 checks embedding similarity (50ms) + text satisfaction
+6. **Cannot claim "done" until BOTH match**
+
+### Feature Agent (Features for Existing Apps)
+1. User describes feature
+2. **VL-JEPA creates semantic embedding** of feature intent
+3. Feature-specific Intent Lock created
+4. Builds on existing project context
+5. Phase 5 checks feature embedding matches intent
+6. **Cannot claim "done" until feature actually works**
+
+### Fix My App (Import and Complete)
+1. User imports project from Bolt/Lovable/etc
+2. **VL-JEPA embeds ALL images from chat history** (mockups, screenshots, references)
+3. Chat parser extracts text + visual intent
+4. Intent Lock created from COMBINED text + visual
+5. Phase 5 checks:
+   - Text criteria satisfied?
+   - **Visual output matches mockups?**
+   - All errors fixed?
+   - Production ready?
+6. **Cannot claim "done" until output LOOKS like what user showed**
+
+This is the "not done until done" philosophy - with VL-JEPA, it's now bulletproof because visual intent can't be gamed.
 
 ---
 
