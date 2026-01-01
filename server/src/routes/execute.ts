@@ -47,6 +47,15 @@ import {
 } from '../services/integration/advanced-orchestration.js';
 // P1-2: Notification Service for credential requests and build status
 import { getNotificationService } from '../services/notifications/notification-service.js';
+// Deep Intent Lock System
+import {
+    createIntentLockEngine,
+    createAndLockDeepIntent,
+    enrichDeepIntentWithPlan,
+    type DeepIntentContract,
+    type DeepIntentOptions,
+    type ApprovedBuildPlan,
+} from '../services/ai/intent-lock.js';
 
 const router = Router();
 
@@ -880,6 +889,7 @@ interface PendingBuild {
     status: 'awaiting_plan_approval' | 'awaiting_credentials' | 'building' | 'complete' | 'failed';
     approvedPlan?: BuildPlan;
     credentials?: Record<string, string>;
+    deepIntentContractId?: string;
 }
 
 interface BuildPlan {
@@ -1178,6 +1188,23 @@ router.post('/plan', async (req: Request, res: Response) => {
         // Detect required credentials
         const requiredCredentials = detectRequiredCredentials(prompt);
 
+        // Create Deep Intent Contract for precise DONE definition
+        const engine = createIntentLockEngine(userId, projectId);
+        const deepIntent = await engine.createDeepContract(
+            prompt,
+            userId,
+            projectId,
+            undefined,
+            {
+                fetchAPIDocs: true,
+                thinkingBudget: 64000,
+            }
+        );
+
+        console.log(`[Execute:Plan] Deep Intent created: ${deepIntent.id}`);
+        console.log(`  - Functional Checklist: ${deepIntent.functionalChecklist.length} items`);
+        console.log(`  - Integrations: ${deepIntent.integrationRequirements.length}`);
+
         // Store the pending build
         const pendingBuild: PendingBuild = {
             sessionId,
@@ -1188,6 +1215,7 @@ router.post('/plan', async (req: Request, res: Response) => {
             requiredCredentials,
             createdAt: new Date(),
             status: 'awaiting_plan_approval',
+            deepIntentContractId: deepIntent.id,
         };
         pendingBuilds.set(sessionId, pendingBuild);
 
@@ -1236,6 +1264,27 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
         }
 
         pendingBuild.approvedPlan = pendingBuild.plan;
+
+        // CRITICAL: Enrich Deep Intent Contract with the approved plan
+        // This creates the complete functional checklist from the plan phases/steps
+        if (pendingBuild.deepIntentContractId) {
+            console.log(`[Execute:Approve] Enriching Deep Intent ${pendingBuild.deepIntentContractId} with approved plan`);
+            try {
+                const enrichedContract = await enrichDeepIntentWithPlan(
+                    pendingBuild.deepIntentContractId,
+                    pendingBuild.approvedPlan as ApprovedBuildPlan,
+                    pendingBuild.userId,
+                    pendingBuild.projectId
+                );
+                console.log(`[Execute:Approve] Deep Intent enriched successfully:`);
+                console.log(`  - Total Checklist Items: ${enrichedContract.totalChecklistItems}`);
+                console.log(`  - Technical Requirements: ${enrichedContract.technicalRequirements.length}`);
+                console.log(`  - Wiring Connections: ${enrichedContract.wiringMap.length}`);
+            } catch (enrichError) {
+                console.error('[Execute:Approve] Failed to enrich Deep Intent (non-blocking):', enrichError);
+                // Non-blocking - build can proceed without enrichment
+            }
+        }
 
         // Check if credentials are required but not provided
         if (pendingBuild.requiredCredentials.length > 0 && !credentials) {
@@ -1308,7 +1357,8 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                         projectPath: context.projectPath,
                         approvedPlan: pendingBuild.approvedPlan,
                         credentials: pendingBuild.credentials,
-                    }
+                        deepIntentContractId: pendingBuild.deepIntentContractId,
+                    } as any
                 );
 
                 buildLoop.on('event', (event) => {
@@ -1426,7 +1476,8 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
                         projectPath: context.projectPath,
                         approvedPlan: pendingBuild.approvedPlan,
                         credentials: pendingBuild.credentials,
-                    }
+                        deepIntentContractId: pendingBuild.deepIntentContractId,
+                    } as any
                 );
 
                 buildLoop.on('event', (event) => {

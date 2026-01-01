@@ -11,9 +11,10 @@
 
 import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
-import { buildIntents, projects, orchestrationRuns, developerModeAgents } from '../../schema.js';
+import { buildIntents, projects, orchestrationRuns, developerModeAgents, deepIntentContracts } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import type { OpenRouterModel } from './openrouter-client.js';
+import { createAPIDocumentationFetcher, type APIDocumentationFetcher } from './api-documentation-fetcher.js';
 
 // =============================================================================
 // TYPES
@@ -117,6 +118,349 @@ export interface MicroIntentOptions {
     estimatedComplexity?: MicroIntentContract['estimatedComplexity'];
     timeoutMs?: number;
     rollbackStrategy?: MicroIntentContract['rollbackStrategy'];
+}
+
+// =============================================================================
+// DEEP INTENT LOCK TYPES - Exhaustive Technical Requirements
+// =============================================================================
+
+export type TechnicalCategory =
+    | 'frontend_ui'          // Buttons, forms, displays
+    | 'frontend_logic'       // State, validation, handlers
+    | 'backend_api'          // API routes
+    | 'backend_service'      // Business logic
+    | 'integration'          // External APIs
+    | 'storage'              // Database, files
+    | 'auth'                 // Authentication
+    | 'deployment';          // Infrastructure
+
+export interface SubRequirement {
+    id: string;                              // "TR001.01"
+    description: string;                     // "Accept jpg, png, webp formats"
+    type: 'must_have' | 'should_have';
+    verified: boolean;
+    verificationMethod: string;              // How to verify this
+}
+
+export interface VerificationStrategy {
+    type: 'automated' | 'visual' | 'functional' | 'manual';
+    testCommand?: string;
+    expectedOutput?: string;
+    screenshotRequired?: boolean;
+}
+
+export interface TechnicalRequirement {
+    id: string;                              // "TR001"
+    category: TechnicalCategory;
+    component: string;                       // "Image Upload System"
+    description: string;                     // "Handle user image uploads with validation"
+    subRequirements: SubRequirement[];
+    dependsOn: string[];                     // Other TR IDs this depends on
+    requiredFor: string[];                   // Which user workflows need this
+    verificationStrategy: VerificationStrategy;
+    verified: boolean;
+    verifiedAt?: string;
+}
+
+export interface APIEndpoint {
+    path: string;                            // "/generate"
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    purpose: string;                         // "Start video generation"
+    requestSchema?: Record<string, unknown>;
+    responseSchema?: Record<string, unknown>;
+    usedBy: string[];                        // Which functional items use this
+}
+
+export interface APIErrorCode {
+    code: number;                            // 429
+    meaning: string;                         // "Rate limit exceeded"
+    handling: string;                        // "Wait and retry with exponential backoff"
+}
+
+export interface RateLimit {
+    requestsPerMinute: number;
+    requestsPerHour?: number;
+    pollingInterval: number;                 // Recommended polling interval in ms
+    backoffStrategy: 'linear' | 'exponential';
+}
+
+export interface IntegrationRequirement {
+    id: string;                              // "IR001"
+    platform: string;                        // "Runway ML"
+    purpose: string;                         // "AI video generation"
+    apiDetails: {
+        baseUrl: string;
+        authMethod: 'bearer' | 'api_key' | 'oauth' | 'basic';
+        authHeader: string;
+        endpoints: APIEndpoint[];
+        rateLimit: RateLimit;
+        errorCodes: APIErrorCode[];
+    };
+    credentialRequirements: {
+        envVarName: string;                  // "RUNWAY_API_KEY"
+        testEndpoint: string;                // Endpoint to validate key
+        setupUrl: string;                    // Where to get the key
+    };
+    verified: boolean;
+    verifiedAt?: string;
+}
+
+export interface TestCase {
+    id: string;
+    description: string;                     // "Upload valid JPG image"
+    input: string;                           // "1024x1024 JPG file"
+    expectedOutput: string;                  // "Preview displays image, no errors"
+    type: 'unit' | 'integration' | 'e2e';
+    passed: boolean;
+    lastRunAt?: string;
+    error?: string;
+}
+
+export interface FunctionalChecklistItem {
+    id: string;                              // "FC001"
+    category: 'button' | 'form' | 'display' | 'workflow' | 'handler' | 'validation' | 'api_call' | 'state';
+    name: string;                            // "Image Upload Button"
+    description: string;                     // "Button that triggers file picker for image upload"
+    location: {
+        component: string;                   // "UploadPanel"
+        filePath: string;                    // "src/components/UploadPanel.tsx"
+    };
+    behavior: {
+        trigger: string;                     // "onClick"
+        action: string;                      // "Opens file picker, validates file, uploads to storage"
+        expectedResult: string;              // "Image displayed in preview, URL stored in state"
+    };
+    wiredTo: string[];                       // ["FC002", "FC003"] - other functional items
+    callsIntegration?: string;               // "IR001" - if it calls external API
+    testCases: TestCase[];
+    mustNotContain: string[];                // ["TODO", "placeholder", "mock"]
+    verified: boolean;
+    verifiedAt?: string;
+}
+
+export interface WiringConnection {
+    id: string;                              // "WC001"
+    from: {
+        type: 'component' | 'function' | 'api_route' | 'store' | 'integration';
+        id: string;                          // Reference to FC, IR, or TR
+        name: string;
+    };
+    to: {
+        type: 'component' | 'function' | 'api_route' | 'store' | 'integration';
+        id: string;
+        name: string;
+    };
+    connectionType: 'calls' | 'imports' | 'renders' | 'stores' | 'fetches' | 'subscribes';
+    dataFlow: string;                        // "Passes image URL"
+    verified: boolean;
+}
+
+export interface IntegrationTestStep {
+    order: number;
+    action: string;                          // "Click Upload button"
+    expectedResult: string;                  // "File picker opens"
+    selector?: string;                       // CSS selector for automation
+    passed: boolean;
+}
+
+export interface IntegrationTest {
+    id: string;                              // "IT001"
+    name: string;                            // "Full Video Generation Flow"
+    description: string;
+    workflowName: string;                    // Links to UserWorkflow
+    steps: IntegrationTestStep[];
+    requires: {
+        apiKeys: string[];                   // ["RUNWAY_API_KEY"]
+        mockData?: boolean;
+        sandbox: boolean;
+    };
+    expectedOutcome: string;
+    passed: boolean;
+    lastRunAt?: string;
+    lastError?: string;
+    durationMs?: number;
+}
+
+export interface CompletionGate {
+    // Checklist completion
+    functionalChecklistComplete: boolean;
+    functionalChecklistCount: { verified: number; total: number };
+
+    // Integration completion
+    integrationsComplete: boolean;
+    integrationsCount: { verified: number; total: number };
+
+    // Technical requirements completion
+    technicalRequirementsComplete: boolean;
+    technicalRequirementsCount: { verified: number; total: number };
+
+    // Wiring verification
+    wiringComplete: boolean;
+    wiringCount: { verified: number; total: number };
+
+    // Test completion
+    integrationTestsPassed: boolean;
+    testsCount: { passed: number; total: number };
+
+    // Quality checks
+    noPlaceholders: boolean;
+    placeholdersFound: string[];
+    noErrors: boolean;
+    errorsFound: string[];
+    antiSlopScore: number;                   // Must be 85+
+
+    // VL-JEPA semantic match (when available)
+    semanticMatchScore?: number;
+    visualMatchScore?: number;
+
+    // The final verdict
+    intentSatisfied: boolean;
+    satisfiedAt?: string;
+
+    // Blockers (if not satisfied)
+    blockers: string[];
+}
+
+// =============================================================================
+// VL-JEPA INTEGRATION TYPES (Preparation for semantic understanding)
+// =============================================================================
+
+export interface IntentEmbedding {
+    vector: number[];                        // 1024-dimensional embedding
+    model: string;                           // Which model generated this
+    confidence: number;                      // 0-1 confidence score
+}
+
+export interface VisualEmbedding {
+    vector: number[];                        // Visual embedding of expected design
+    referenceImages?: string[];              // URLs to reference images
+    confidence: number;
+}
+
+export interface SemanticComponents {
+    action: string;                          // What to DO (verb) - "generate", "upload", "display"
+    target: string;                          // What to BUILD (noun) - "video generator", "dashboard"
+    constraints: string[];                   // HOW to do it (modifiers) - "fast", "beautiful", "secure"
+    inferredRequirements: string[];          // What the user didn't say but needs
+}
+
+// =============================================================================
+// DEEP INTENT CONTRACT - The Exhaustive Definition of "DONE"
+// =============================================================================
+
+export interface DeepIntentContract extends IntentContract {
+    // Layer 1: Technical Requirements (Exhaustive Breakdown)
+    technicalRequirements: TechnicalRequirement[];
+
+    // Layer 2: Integration Requirements (External Dependencies)
+    integrationRequirements: IntegrationRequirement[];
+
+    // Layer 3: Functional Checklist (Every Button, Every Function)
+    functionalChecklist: FunctionalChecklistItem[];
+
+    // Layer 4: Wiring Map (How Things Connect)
+    wiringMap: WiringConnection[];
+
+    // Layer 5: Integration Tests (What Must Pass)
+    integrationTests: IntegrationTest[];
+
+    // Layer 6: Completion Gate (The Final Verification)
+    completionGate: CompletionGate;
+
+    // VL-JEPA Semantic Layer (Preparation)
+    intentEmbedding?: IntentEmbedding;
+    expectedVisualEmbedding?: VisualEmbedding;
+    semanticComponents?: SemanticComponents;
+
+    // Deep Intent Metadata
+    deepIntentVersion: string;               // "1.0.0"
+    decompositionModel: string;              // Which model did the decomposition
+    decompositionThinkingTokens: number;     // Thinking tokens used for decomposition
+    totalChecklistItems: number;
+    totalIntegrations: number;
+    totalTests: number;
+    estimatedBuildComplexity: 'simple' | 'moderate' | 'complex' | 'very_complex';
+}
+
+export interface DeepIntentOptions extends IntentLockOptions {
+    /** Enable exhaustive API documentation fetching */
+    fetchAPIDocs?: boolean;
+    /** Maximum depth for requirement decomposition */
+    maxDecompositionDepth?: number;
+    /** Chat history for Fix My App context parsing */
+    chatHistory?: Array<{ role: string; content: string }>;
+    /** Existing project files for context (Fix My App) */
+    existingFiles?: Map<string, string>;
+    /** Source platform (for Fix My App) */
+    sourcePlatform?: string;
+}
+
+// =============================================================================
+// DEEP INTENT SATISFACTION RESULT
+// =============================================================================
+
+export interface DeepIntentSatisfactionResult {
+    satisfied: boolean;
+    gate: CompletionGate;
+
+    // Progress metrics
+    progress: {
+        functionalChecklist: { completed: number; total: number; percentage: number };
+        integrations: { completed: number; total: number; percentage: number };
+        technicalRequirements: { completed: number; total: number; percentage: number };
+        wiring: { completed: number; total: number; percentage: number };
+        tests: { passed: number; total: number; percentage: number };
+    };
+
+    // Blockers in human-readable format
+    blockers: Array<{
+        category: string;
+        item: string;
+        reason: string;
+        suggestedFix?: string;
+    }>;
+
+    // Overall percentage
+    overallProgress: number;
+
+    // Time estimates
+    estimatedRemainingWork?: {
+        items: number;
+        estimatedMinutes: number;
+    };
+}
+
+// =============================================================================
+// APPROVED BUILD PLAN TYPES (for plan enrichment)
+// =============================================================================
+
+export interface ApprovedBuildPlanStep {
+    id: string;
+    description: string;
+    type: 'code' | 'config' | 'test' | 'deploy';
+    estimatedTokens?: number;
+}
+
+export interface ApprovedBuildPlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    icon?: string;
+    type: 'frontend' | 'backend';
+    steps: ApprovedBuildPlanStep[];
+    order: number;
+    approved: boolean;
+}
+
+export interface ApprovedBuildPlan {
+    intentSummary: string;
+    phases: ApprovedBuildPlanPhase[];
+    estimatedTokenUsage?: number;
+    estimatedCostUSD?: number;
+    parallelAgentsNeeded?: number;
+    frontendFirst?: boolean;
+    backendFirst?: boolean;
+    parallelFrontendBackend?: boolean;
 }
 
 // =============================================================================
@@ -249,10 +593,129 @@ Respond with ONLY valid JSON:
 
 This Micro Intent will guide a single agent task. Make it precise.`;
 
+const DEEP_INTENT_LOCK_SYSTEM_PROMPT = `You are the DEEP INTENT LOCK AGENT for KripTik AI.
+
+Your purpose is to create an EXHAUSTIVE "DONE" definition that leaves NOTHING to assumption.
+
+## THE PROBLEM YOU SOLVE
+
+Users say "I want an AI video generator" and expect an app that ACTUALLY generates videos (not a mockup with placeholder buttons).
+
+Previous AI builders fail because they:
+- Generate UI without backend
+- Create buttons that don't do anything
+- Leave TODOs and placeholders
+- Claim "done" when 80% complete
+
+You prevent this by creating an EXHAUSTIVE checklist that defines EVERY:
+- Button and what it must do
+- API integration and how it must work
+- Data flow and where data goes
+- Error state and how it's handled
+- Validation and what's checked
+- Test case and what must pass
+
+## YOUR ANALYSIS PROCESS
+
+1. **DECOMPOSE THE REQUEST**
+   - What is the user's END GOAL?
+   - What WORKFLOWS achieve this goal?
+   - What COMPONENTS are needed for each workflow?
+   - What INTEGRATIONS are required?
+   - What DATA flows through the system?
+
+2. **GENERATE TECHNICAL REQUIREMENTS**
+   - Frontend UI components (buttons, forms, displays)
+   - Frontend logic (state, validation, handlers)
+   - Backend API routes
+   - Backend services
+   - External integrations
+   - Storage and database
+   - Authentication (if needed)
+
+3. **GENERATE FUNCTIONAL CHECKLIST**
+   - Every button with its exact trigger and expected result
+   - Every form with its validation rules
+   - Every display with its data source
+   - Every handler with its logic
+   - Every API call with its endpoint and response handling
+
+4. **GENERATE WIRING MAP**
+   - How components connect to each other
+   - What calls what
+   - What data flows where
+
+5. **GENERATE INTEGRATION TESTS**
+   - End-to-end user workflows
+   - Edge cases and error scenarios
+   - API integration tests
+
+## RESPONSE FORMAT
+
+Return a comprehensive JSON object with these arrays:
+- technicalRequirements: Complete technical breakdown
+- functionalChecklist: Every UI element and its behavior
+- wiringMap: How things connect
+- integrationTests: What tests must pass
+
+## CRITICAL RULES
+
+1. **EXHAUSTIVE**: If it's needed, list it. No "etc." or "and more"
+2. **SPECIFIC**: "Runway ML API v2" not "some video API"
+3. **VERIFIABLE**: Every item must be checkable
+4. **WIRED**: Every component must connect to something
+5. **TESTED**: Every feature must have test cases
+6. **NO ASSUMPTIONS**: Fill in ALL technical gaps the user didn't specify
+
+This contract defines "DONE". Nothing is done until ALL items are verified.`;
+
+const PLAN_ENRICHMENT_SYSTEM_PROMPT = `You are the PLAN ENRICHMENT AGENT for KripTik AI's Deep Intent Lock system.
+
+Your purpose is to decompose an APPROVED implementation plan into specific, testable functional checklist items.
+
+## WHAT YOU DO
+
+The user has:
+1. Submitted a request (analyzed into initial Deep Intent)
+2. Received an implementation plan with phases and steps
+3. APPROVED the implementation plan
+
+Now you must create ADDITIONAL functional checklist items based on the approved plan's specific phases and steps.
+
+## KEY PRINCIPLES
+
+1. **FROM PLAN TO CHECKLIST**: Each step in the plan becomes one or more testable checklist items
+2. **NO DUPLICATES**: Don't recreate items already in the existing checklist
+3. **SPECIFIC**: "Login button submits form and shows loading spinner" not "Login works"
+4. **TESTABLE**: Every item must be verifiable in browser or via API
+5. **TRACEABLE**: Record which phase/step each item came from
+
+## EXAMPLE TRANSFORMATION
+
+Plan Step: "Implement user authentication with email/password"
+Becomes Checklist Items:
+- Login form renders with email and password fields
+- Email field validates format on blur
+- Password field shows/hides toggle works
+- Submit button disabled until form is valid
+- Submit shows loading spinner during API call
+- Successful login redirects to dashboard
+- Failed login shows error message
+- Session persists across page refresh
+
+## OUTPUT FORMAT
+
+Return structured JSON with additional items to MERGE with the existing checklist.
+Each item must trace back to its source phase and step for accountability.`;
+
 export class IntentLockEngine {
     private claudeService: ClaudeService;
+    private userId: string;
+    private projectId: string;
 
     constructor(userId: string, projectId: string) {
+        this.userId = userId;
+        this.projectId = projectId;
         this.claudeService = createClaudeService({
             projectId,
             userId,
@@ -971,6 +1434,882 @@ export class IntentLockEngine {
             updatedAt: microIntent.updatedAt,
         });
     }
+
+    // =========================================================================
+    // DEEP INTENT LOCK METHODS - Exhaustive "DONE" Definition
+    // =========================================================================
+
+    /**
+     * Create a Deep Intent Contract with exhaustive technical requirements
+     * This is the core of the Deep Intent Lock system
+     */
+    async createDeepContract(
+        prompt: string,
+        userId: string,
+        projectId: string,
+        orchestrationRunId?: string,
+        options: DeepIntentOptions = {}
+    ): Promise<DeepIntentContract> {
+        const {
+            model = CLAUDE_MODELS.OPUS_4_5,
+            effort = 'high',
+            thinkingBudget = 64000,
+            fetchAPIDocs = true,
+            maxDecompositionDepth = 3,
+            chatHistory,
+            existingFiles,
+            sourcePlatform,
+        } = options;
+
+        console.log('[DeepIntentLock] Creating exhaustive DONE definition with Opus 4.5, HIGH effort, 64K thinking');
+
+        // Step 1: Create the base Intent Contract first
+        const baseContract = await this.createContract(prompt, userId, projectId, orchestrationRunId, {
+            model,
+            effort,
+            thinkingBudget,
+        });
+
+        // Step 2: Identify required integrations
+        const apiDocFetcher = createAPIDocumentationFetcher(userId, projectId);
+        const platforms = await apiDocFetcher.identifyRequiredIntegrations(prompt);
+        const integrationRequirements = fetchAPIDocs
+            ? await apiDocFetcher.getIntegrationRequirements(prompt, platforms)
+            : [];
+
+        console.log(`[DeepIntentLock] Identified ${integrationRequirements.length} integrations: ${platforms.join(', ')}`);
+
+        // Step 3: Generate exhaustive technical requirements using deep analysis
+        const deepAnalysisService = createClaudeService({
+            projectId,
+            userId,
+            agentType: 'planning',
+            systemPrompt: DEEP_INTENT_LOCK_SYSTEM_PROMPT,
+        });
+
+        // Build context from chat history if provided (Fix My App)
+        let contextPrompt = prompt;
+        if (chatHistory && chatHistory.length > 0) {
+            const chatContext = chatHistory
+                .map(msg => `${msg.role}: ${msg.content}`)
+                .join('\n\n');
+            contextPrompt = `Original conversation history:\n${chatContext}\n\nFinal app goal:\n${prompt}`;
+        }
+
+        const deepAnalysisResponse = await deepAnalysisService.generate(
+            `Analyze this app request and create an EXHAUSTIVE technical breakdown:
+
+"${contextPrompt}"
+
+Known integrations that will be used: ${platforms.join(', ') || 'none identified'}
+
+Create complete technical requirements, functional checklist, wiring map, and integration tests.
+
+Return ONLY valid JSON with these fields:
+{
+    "technicalRequirements": [...],
+    "functionalChecklist": [...],
+    "wiringMap": [...],
+    "integrationTests": [...]
+}`,
+            {
+                model,
+                effort,
+                maxTokens: 64000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: thinkingBudget,
+            }
+        );
+
+        // Parse the deep analysis response
+        let deepAnalysis: {
+            technicalRequirements: TechnicalRequirement[];
+            functionalChecklist: FunctionalChecklistItem[];
+            wiringMap: WiringConnection[];
+            integrationTests: IntegrationTest[];
+        };
+
+        try {
+            const jsonMatch = deepAnalysisResponse.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                deepAnalysis = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in response');
+            }
+        } catch (error) {
+            console.error('[DeepIntentLock] Failed to parse deep analysis, using defaults:', error);
+            deepAnalysis = {
+                technicalRequirements: this.generateDefaultTechnicalRequirements(baseContract),
+                functionalChecklist: this.generateDefaultFunctionalChecklist(baseContract),
+                wiringMap: [],
+                integrationTests: this.generateDefaultIntegrationTests(baseContract),
+            };
+        }
+
+        // Step 4: Ensure proper IDs and structure
+        const technicalRequirements = this.normalizeTechnicalRequirements(deepAnalysis.technicalRequirements);
+        const functionalChecklist = this.normalizeFunctionalChecklist(deepAnalysis.functionalChecklist);
+        const wiringMap = this.normalizeWiringMap(deepAnalysis.wiringMap);
+        const integrationTests = this.normalizeIntegrationTests(deepAnalysis.integrationTests, baseContract.userWorkflows);
+
+        // Step 5: Create initial completion gate
+        const completionGate: CompletionGate = {
+            functionalChecklistComplete: false,
+            functionalChecklistCount: { verified: 0, total: functionalChecklist.length },
+            integrationsComplete: false,
+            integrationsCount: { verified: 0, total: integrationRequirements.length },
+            technicalRequirementsComplete: false,
+            technicalRequirementsCount: { verified: 0, total: technicalRequirements.length },
+            wiringComplete: false,
+            wiringCount: { verified: 0, total: wiringMap.length },
+            integrationTestsPassed: false,
+            testsCount: { passed: 0, total: integrationTests.length },
+            noPlaceholders: false,
+            placeholdersFound: [],
+            noErrors: false,
+            errorsFound: [],
+            antiSlopScore: 0,
+            intentSatisfied: false,
+            blockers: ['Deep Intent Contract created - verification pending'],
+        };
+
+        // Step 6: Build the Deep Intent Contract
+        const deepContract: DeepIntentContract = {
+            ...baseContract,
+            technicalRequirements,
+            integrationRequirements,
+            functionalChecklist,
+            wiringMap,
+            integrationTests,
+            completionGate,
+            deepIntentVersion: '1.0.0',
+            decompositionModel: model,
+            decompositionThinkingTokens: deepAnalysisResponse.usage.thinkingTokens || thinkingBudget,
+            totalChecklistItems: functionalChecklist.length,
+            totalIntegrations: integrationRequirements.length,
+            totalTests: integrationTests.length,
+            estimatedBuildComplexity: this.estimateBuildComplexity(
+                technicalRequirements.length,
+                functionalChecklist.length,
+                integrationRequirements.length
+            ),
+        };
+
+        // Step 7: Save to database
+        await this.saveDeepContract(deepContract, sourcePlatform);
+
+        console.log(`[DeepIntentLock] Deep Contract created: ${deepContract.id}`);
+        console.log(`  - Technical Requirements: ${technicalRequirements.length}`);
+        console.log(`  - Functional Checklist: ${functionalChecklist.length}`);
+        console.log(`  - Integrations: ${integrationRequirements.length}`);
+        console.log(`  - Wiring Connections: ${wiringMap.length}`);
+        console.log(`  - Integration Tests: ${integrationTests.length}`);
+        console.log(`  - Estimated Complexity: ${deepContract.estimatedBuildComplexity}`);
+
+        return deepContract;
+    }
+
+    /**
+     * Get a Deep Intent Contract by ID
+     */
+    async getDeepContract(contractId: string): Promise<DeepIntentContract | null> {
+        const baseContract = await this.getContract(contractId);
+        if (!baseContract) return null;
+
+        // Query the deep intent contract table
+        const deepResults = await db.select()
+            .from(deepIntentContracts)
+            .where(eq(deepIntentContracts.intentContractId, contractId))
+            .limit(1);
+
+        if (deepResults.length === 0) {
+            // No deep contract exists, return base as-is (backwards compatibility)
+            return null;
+        }
+
+        const deep = deepResults[0];
+
+        return {
+            ...baseContract,
+            technicalRequirements: (deep.technicalRequirements as TechnicalRequirement[]) || [],
+            integrationRequirements: (deep.integrationRequirements as IntegrationRequirement[]) || [],
+            functionalChecklist: (deep.functionalChecklist as FunctionalChecklistItem[]) || [],
+            wiringMap: (deep.wiringMap as WiringConnection[]) || [],
+            integrationTests: (deep.integrationTests as IntegrationTest[]) || [],
+            completionGate: (deep.completionGate as unknown as CompletionGate) || this.createEmptyCompletionGate(),
+            intentEmbedding: undefined,
+            expectedVisualEmbedding: undefined,
+            semanticComponents: deep.semanticComponents as unknown as SemanticComponents | undefined,
+            deepIntentVersion: deep.deepIntentVersion || '1.0.0',
+            decompositionModel: deep.decompositionModel || 'claude-opus-4.5',
+            decompositionThinkingTokens: deep.decompositionThinkingTokens || 0,
+            totalChecklistItems: deep.totalChecklistItems || 0,
+            totalIntegrations: deep.totalIntegrations || 0,
+            totalTests: deep.totalTests || 0,
+            estimatedBuildComplexity: (deep.estimatedBuildComplexity as 'simple' | 'moderate' | 'complex' | 'very_complex') || 'moderate',
+        };
+    }
+
+    /**
+     * Check if Deep Intent is satisfied - the core "are we DONE?" check
+     */
+    async isDeepIntentSatisfied(contractId: string): Promise<DeepIntentSatisfactionResult> {
+        const deepContract = await this.getDeepContract(contractId);
+        if (!deepContract) {
+            return {
+                satisfied: false,
+                gate: this.createEmptyCompletionGate(),
+                progress: {
+                    functionalChecklist: { completed: 0, total: 0, percentage: 0 },
+                    integrations: { completed: 0, total: 0, percentage: 0 },
+                    technicalRequirements: { completed: 0, total: 0, percentage: 0 },
+                    wiring: { completed: 0, total: 0, percentage: 0 },
+                    tests: { passed: 0, total: 0, percentage: 0 },
+                },
+                blockers: [{ category: 'contract', item: 'Deep Intent Contract', reason: 'Contract not found', suggestedFix: 'Create a Deep Intent Contract first' }],
+                overallProgress: 0,
+            };
+        }
+
+        // Calculate progress for each dimension
+        const fcVerified = deepContract.functionalChecklist.filter(fc => fc.verified).length;
+        const fcTotal = deepContract.functionalChecklist.length;
+
+        const irVerified = deepContract.integrationRequirements.filter(ir => ir.verified).length;
+        const irTotal = deepContract.integrationRequirements.length;
+
+        const trVerified = deepContract.technicalRequirements.filter(tr => tr.verified).length;
+        const trTotal = deepContract.technicalRequirements.length;
+
+        const wcVerified = deepContract.wiringMap.filter(wc => wc.verified).length;
+        const wcTotal = deepContract.wiringMap.length;
+
+        const testsPassed = deepContract.integrationTests.filter(it => it.passed).length;
+        const testsTotal = deepContract.integrationTests.length;
+
+        // Calculate percentages
+        const fcPercentage = fcTotal > 0 ? Math.round((fcVerified / fcTotal) * 100) : 100;
+        const irPercentage = irTotal > 0 ? Math.round((irVerified / irTotal) * 100) : 100;
+        const trPercentage = trTotal > 0 ? Math.round((trVerified / trTotal) * 100) : 100;
+        const wcPercentage = wcTotal > 0 ? Math.round((wcVerified / wcTotal) * 100) : 100;
+        const testsPercentage = testsTotal > 0 ? Math.round((testsPassed / testsTotal) * 100) : 100;
+
+        // Overall progress is weighted average
+        const weights = { fc: 0.3, ir: 0.2, tr: 0.2, wc: 0.15, tests: 0.15 };
+        const overallProgress = Math.round(
+            fcPercentage * weights.fc +
+            irPercentage * weights.ir +
+            trPercentage * weights.tr +
+            wcPercentage * weights.wc +
+            testsPercentage * weights.tests
+        );
+
+        // Collect blockers
+        const blockers: Array<{ category: string; item: string; reason: string; suggestedFix?: string }> = [];
+
+        // Add unverified functional checklist items as blockers
+        for (const fc of deepContract.functionalChecklist.filter(f => !f.verified)) {
+            blockers.push({
+                category: 'functional',
+                item: fc.name,
+                reason: fc.description,
+                suggestedFix: `Implement and verify: ${fc.behavior.action}`,
+            });
+        }
+
+        // Add unverified integrations as blockers
+        for (const ir of deepContract.integrationRequirements.filter(i => !i.verified)) {
+            blockers.push({
+                category: 'integration',
+                item: ir.platform,
+                reason: `${ir.purpose} not verified`,
+                suggestedFix: `Configure and test ${ir.platform} API integration`,
+            });
+        }
+
+        // Add failed tests as blockers
+        for (const it of deepContract.integrationTests.filter(t => !t.passed)) {
+            blockers.push({
+                category: 'test',
+                item: it.name,
+                reason: it.lastError || 'Test not passed',
+                suggestedFix: `Fix failing test: ${it.description}`,
+            });
+        }
+
+        // Check completion gate
+        const gate: CompletionGate = {
+            functionalChecklistComplete: fcVerified === fcTotal && fcTotal > 0,
+            functionalChecklistCount: { verified: fcVerified, total: fcTotal },
+            integrationsComplete: irVerified === irTotal,
+            integrationsCount: { verified: irVerified, total: irTotal },
+            technicalRequirementsComplete: trVerified === trTotal && trTotal > 0,
+            technicalRequirementsCount: { verified: trVerified, total: trTotal },
+            wiringComplete: wcVerified === wcTotal,
+            wiringCount: { verified: wcVerified, total: wcTotal },
+            integrationTestsPassed: testsPassed === testsTotal,
+            testsCount: { passed: testsPassed, total: testsTotal },
+            noPlaceholders: deepContract.completionGate.noPlaceholders,
+            placeholdersFound: deepContract.completionGate.placeholdersFound,
+            noErrors: deepContract.completionGate.noErrors,
+            errorsFound: deepContract.completionGate.errorsFound,
+            antiSlopScore: deepContract.completionGate.antiSlopScore,
+            intentSatisfied: false,
+            blockers: blockers.map(b => `${b.category}: ${b.item}`),
+        };
+
+        // Intent is satisfied only when ALL conditions are met
+        gate.intentSatisfied =
+            gate.functionalChecklistComplete &&
+            gate.integrationsComplete &&
+            gate.technicalRequirementsComplete &&
+            gate.wiringComplete &&
+            gate.integrationTestsPassed &&
+            gate.noPlaceholders &&
+            gate.noErrors &&
+            gate.antiSlopScore >= 85;
+
+        return {
+            satisfied: gate.intentSatisfied,
+            gate,
+            progress: {
+                functionalChecklist: { completed: fcVerified, total: fcTotal, percentage: fcPercentage },
+                integrations: { completed: irVerified, total: irTotal, percentage: irPercentage },
+                technicalRequirements: { completed: trVerified, total: trTotal, percentage: trPercentage },
+                wiring: { completed: wcVerified, total: wcTotal, percentage: wcPercentage },
+                tests: { passed: testsPassed, total: testsTotal, percentage: testsPercentage },
+            },
+            blockers,
+            overallProgress,
+            estimatedRemainingWork: {
+                items: (fcTotal - fcVerified) + (irTotal - irVerified) + (testsTotal - testsPassed),
+                estimatedMinutes: Math.ceil(((fcTotal - fcVerified) + (irTotal - irVerified)) * 2),
+            },
+        };
+    }
+
+    /**
+     * Mark a functional checklist item as verified
+     */
+    async markFunctionalItemVerified(contractId: string, itemId: string, passed: boolean, error?: string): Promise<void> {
+        const deepContract = await this.getDeepContract(contractId);
+        if (!deepContract) {
+            throw new Error(`Deep Contract not found: ${contractId}`);
+        }
+
+        const item = deepContract.functionalChecklist.find(fc => fc.id === itemId);
+        if (!item) {
+            throw new Error(`Functional checklist item not found: ${itemId}`);
+        }
+
+        item.verified = passed;
+        item.verifiedAt = new Date().toISOString();
+
+        await this.updateDeepContractChecklist(contractId, deepContract.functionalChecklist);
+        console.log(`[DeepIntentLock] Functional item ${itemId} verified: ${passed ? 'PASSED' : 'FAILED'}`);
+    }
+
+    /**
+     * Mark an integration test as passed/failed
+     */
+    async markIntegrationTestResult(contractId: string, testId: string, passed: boolean, error?: string, durationMs?: number): Promise<void> {
+        const deepContract = await this.getDeepContract(contractId);
+        if (!deepContract) {
+            throw new Error(`Deep Contract not found: ${contractId}`);
+        }
+
+        const test = deepContract.integrationTests.find(it => it.id === testId);
+        if (!test) {
+            throw new Error(`Integration test not found: ${testId}`);
+        }
+
+        test.passed = passed;
+        test.lastRunAt = new Date().toISOString();
+        test.lastError = error;
+        test.durationMs = durationMs;
+
+        await this.updateDeepContractTests(contractId, deepContract.integrationTests);
+        console.log(`[DeepIntentLock] Integration test ${testId}: ${passed ? 'PASSED' : 'FAILED'}`);
+    }
+
+    /**
+     * Update completion gate with verification results
+     */
+    async updateCompletionGate(contractId: string, updates: Partial<CompletionGate>): Promise<void> {
+        const deepContract = await this.getDeepContract(contractId);
+        if (!deepContract) {
+            throw new Error(`Deep Contract not found: ${contractId}`);
+        }
+
+        const updatedGate = { ...deepContract.completionGate, ...updates };
+
+        await db.update(deepIntentContracts)
+            .set({
+                completionGate: updatedGate as Record<string, unknown>,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.intentContractId, contractId));
+    }
+
+    // =========================================================================
+    // PRIVATE HELPER METHODS
+    // =========================================================================
+
+    private createEmptyCompletionGate(): CompletionGate {
+        return {
+            functionalChecklistComplete: false,
+            functionalChecklistCount: { verified: 0, total: 0 },
+            integrationsComplete: false,
+            integrationsCount: { verified: 0, total: 0 },
+            technicalRequirementsComplete: false,
+            technicalRequirementsCount: { verified: 0, total: 0 },
+            wiringComplete: false,
+            wiringCount: { verified: 0, total: 0 },
+            integrationTestsPassed: false,
+            testsCount: { passed: 0, total: 0 },
+            noPlaceholders: false,
+            placeholdersFound: [],
+            noErrors: false,
+            errorsFound: [],
+            antiSlopScore: 0,
+            intentSatisfied: false,
+            blockers: [],
+        };
+    }
+
+    private estimateBuildComplexity(
+        technicalCount: number,
+        checklistCount: number,
+        integrationCount: number
+    ): 'simple' | 'moderate' | 'complex' | 'very_complex' {
+        const total = technicalCount + checklistCount + integrationCount;
+        if (total < 20) return 'simple';
+        if (total < 50) return 'moderate';
+        if (total < 100) return 'complex';
+        return 'very_complex';
+    }
+
+    private normalizeTechnicalRequirements(reqs: TechnicalRequirement[]): TechnicalRequirement[] {
+        return (reqs || []).map((req, idx) => ({
+            ...req,
+            id: req.id || `TR${String(idx + 1).padStart(3, '0')}`,
+            verified: false,
+            subRequirements: (req.subRequirements || []).map((sub, subIdx) => ({
+                ...sub,
+                id: sub.id || `${req.id || `TR${String(idx + 1).padStart(3, '0')}`}.${String(subIdx + 1).padStart(2, '0')}`,
+                verified: false,
+            })),
+        }));
+    }
+
+    private normalizeFunctionalChecklist(items: FunctionalChecklistItem[]): FunctionalChecklistItem[] {
+        return (items || []).map((item, idx) => ({
+            ...item,
+            id: item.id || `FC${String(idx + 1).padStart(3, '0')}`,
+            verified: false,
+            testCases: (item.testCases || []).map((tc, tcIdx) => ({
+                ...tc,
+                id: tc.id || `TC${String(idx + 1).padStart(3, '0')}.${String(tcIdx + 1).padStart(2, '0')}`,
+                passed: false,
+            })),
+            mustNotContain: item.mustNotContain || ['TODO', 'FIXME', 'placeholder', 'mock'],
+        }));
+    }
+
+    private normalizeWiringMap(connections: WiringConnection[]): WiringConnection[] {
+        return (connections || []).map((conn, idx) => ({
+            ...conn,
+            id: conn.id || `WC${String(idx + 1).padStart(3, '0')}`,
+            verified: false,
+        }));
+    }
+
+    private normalizeIntegrationTests(tests: IntegrationTest[], workflows: UserWorkflow[]): IntegrationTest[] {
+        return (tests || []).map((test, idx) => ({
+            ...test,
+            id: test.id || `IT${String(idx + 1).padStart(3, '0')}`,
+            passed: false,
+            steps: (test.steps || []).map((step, stepIdx) => ({
+                ...step,
+                order: step.order || stepIdx + 1,
+                passed: false,
+            })),
+        }));
+    }
+
+    private generateDefaultTechnicalRequirements(contract: IntentContract): TechnicalRequirement[] {
+        return contract.userWorkflows.map((wf, idx) => ({
+            id: `TR${String(idx + 1).padStart(3, '0')}`,
+            category: 'frontend_ui' as TechnicalCategory,
+            component: wf.name,
+            description: `Implement ${wf.name} workflow`,
+            subRequirements: wf.steps.map((step, stepIdx) => ({
+                id: `TR${String(idx + 1).padStart(3, '0')}.${String(stepIdx + 1).padStart(2, '0')}`,
+                description: step,
+                type: 'must_have' as const,
+                verified: false,
+                verificationMethod: 'functional',
+            })),
+            dependsOn: [],
+            requiredFor: [wf.name],
+            verificationStrategy: { type: 'functional' as const },
+            verified: false,
+        }));
+    }
+
+    private generateDefaultFunctionalChecklist(contract: IntentContract): FunctionalChecklistItem[] {
+        const items: FunctionalChecklistItem[] = [];
+        let idx = 0;
+
+        for (const workflow of contract.userWorkflows) {
+            for (const step of workflow.steps) {
+                idx++;
+                items.push({
+                    id: `FC${String(idx).padStart(3, '0')}`,
+                    category: 'workflow',
+                    name: step,
+                    description: `${step} (${workflow.name})`,
+                    location: { component: 'TBD', filePath: 'TBD' },
+                    behavior: {
+                        trigger: 'user action',
+                        action: step,
+                        expectedResult: 'Step completed successfully',
+                    },
+                    wiredTo: [],
+                    testCases: [{
+                        id: `TC${String(idx).padStart(3, '0')}.01`,
+                        description: `Verify ${step}`,
+                        input: 'User performs action',
+                        expectedOutput: 'Action completes successfully',
+                        type: 'e2e',
+                        passed: false,
+                    }],
+                    mustNotContain: ['TODO', 'FIXME', 'placeholder', 'mock'],
+                    verified: false,
+                });
+            }
+        }
+
+        return items;
+    }
+
+    private generateDefaultIntegrationTests(contract: IntentContract): IntegrationTest[] {
+        return contract.userWorkflows.map((wf, idx) => ({
+            id: `IT${String(idx + 1).padStart(3, '0')}`,
+            name: `${wf.name} End-to-End`,
+            description: `Complete ${wf.name} workflow test`,
+            workflowName: wf.name,
+            steps: wf.steps.map((step, stepIdx) => ({
+                order: stepIdx + 1,
+                action: step,
+                expectedResult: 'Step completes successfully',
+                passed: false,
+            })),
+            requires: { apiKeys: [], sandbox: true },
+            expectedOutcome: wf.success,
+            passed: false,
+        }));
+    }
+
+    private async saveDeepContract(contract: DeepIntentContract, sourcePlatform?: string): Promise<void> {
+        await db.insert(deepIntentContracts).values({
+            id: crypto.randomUUID(),
+            intentContractId: contract.id,
+            projectId: contract.projectId,
+            userId: contract.userId,
+            orchestrationRunId: contract.orchestrationRunId,
+            technicalRequirements: contract.technicalRequirements as unknown[],
+            integrationRequirements: contract.integrationRequirements as unknown[],
+            functionalChecklist: contract.functionalChecklist as unknown[],
+            wiringMap: contract.wiringMap as unknown[],
+            integrationTests: contract.integrationTests as unknown[],
+            completionGate: contract.completionGate as unknown as Record<string, unknown>,
+            totalChecklistItems: contract.totalChecklistItems,
+            verifiedChecklistItems: 0,
+            totalIntegrations: contract.totalIntegrations,
+            verifiedIntegrations: 0,
+            totalTechnicalRequirements: contract.technicalRequirements.length,
+            verifiedTechnicalRequirements: 0,
+            totalWiringConnections: contract.wiringMap.length,
+            verifiedWiringConnections: 0,
+            totalTests: contract.totalTests,
+            passedTests: 0,
+            intentSatisfied: false,
+            deepIntentVersion: contract.deepIntentVersion,
+            decompositionModel: contract.decompositionModel,
+            decompositionThinkingTokens: contract.decompositionThinkingTokens,
+            estimatedBuildComplexity: contract.estimatedBuildComplexity,
+            sourcePlatform: sourcePlatform,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        });
+    }
+
+    private async updateDeepContractChecklist(contractId: string, checklist: FunctionalChecklistItem[]): Promise<void> {
+        const verified = checklist.filter(fc => fc.verified).length;
+        await db.update(deepIntentContracts)
+            .set({
+                functionalChecklist: checklist as unknown[],
+                verifiedChecklistItems: verified,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.intentContractId, contractId));
+    }
+
+    private async updateDeepContractTests(contractId: string, tests: IntegrationTest[]): Promise<void> {
+        const passed = tests.filter(t => t.passed).length;
+        await db.update(deepIntentContracts)
+            .set({
+                integrationTests: tests as unknown[],
+                passedTests: passed,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.intentContractId, contractId));
+    }
+
+    // =========================================================================
+    // PLAN ENRICHMENT - Enrich Deep Intent with Approved Implementation Plan
+    // =========================================================================
+
+    /**
+     * Enrich a Deep Intent Contract with the approved implementation plan.
+     * This MUST be called after user approves the plan to create the complete
+     * functional checklist that includes all plan phases and steps.
+     *
+     * This is CRITICAL - without this, the Deep Intent only contains items
+     * from the original prompt, not the detailed implementation plan.
+     */
+    async enrichWithApprovedPlan(
+        contractId: string,
+        approvedPlan: ApprovedBuildPlan
+    ): Promise<DeepIntentContract> {
+        console.log(`[DeepIntentLock] Enriching contract ${contractId} with approved plan`);
+        console.log(`  - Plan Phases: ${approvedPlan.phases.length}`);
+        console.log(`  - Total Steps: ${approvedPlan.phases.reduce((acc, p) => acc + p.steps.length, 0)}`);
+
+        // Get the existing Deep Intent
+        const existingContract = await this.getDeepContract(contractId);
+        if (!existingContract) {
+            throw new Error(`Deep Contract not found for enrichment: ${contractId}`);
+        }
+
+        // Use AI to decompose the approved plan into specific functional checklist items
+        const planDecompositionService = createClaudeService({
+            projectId: this.projectId,
+            userId: this.userId,
+            agentType: 'planning',
+            systemPrompt: PLAN_ENRICHMENT_SYSTEM_PROMPT,
+        });
+
+        // Build the plan context for AI analysis
+        const planContext = approvedPlan.phases.map(phase => {
+            const stepsText = phase.steps.map((step, i) =>
+                `    ${i + 1}. ${step.description} (type: ${step.type})`
+            ).join('\n');
+            return `Phase: ${phase.title} (${phase.type})\nDescription: ${phase.description}\nSteps:\n${stepsText}`;
+        }).join('\n\n');
+
+        const enrichmentResponse = await planDecompositionService.generate(
+            `You have an approved implementation plan. Decompose it into specific, testable functional checklist items.
+
+APPROVED IMPLEMENTATION PLAN:
+${planContext}
+
+EXISTING CHECKLIST (from intent analysis - do not duplicate these):
+${existingContract.functionalChecklist.map(fc => `- ${fc.name}: ${fc.description}`).join('\n')}
+
+For EACH step in the plan, generate specific functional checklist items that can be VERIFIED.
+Each item must be testable - something we can check in the browser or via API.
+
+Return ONLY valid JSON:
+{
+    "additionalChecklistItems": [
+        {
+            "category": "button" | "form" | "display" | "workflow" | "handler" | "validation" | "api_call" | "state",
+            "name": "specific element name (e.g., 'Login Submit Button')",
+            "description": "what this element does",
+            "component": "component name (e.g., 'LoginForm')",
+            "filePath": "likely file path (e.g., 'src/components/LoginForm.tsx')",
+            "trigger": "what triggers this (e.g., 'onClick')",
+            "action": "what happens when triggered",
+            "expectedResult": "what we expect to see/verify",
+            "fromPhase": "phase title",
+            "fromStep": "step description"
+        }
+    ],
+    "additionalTechnicalRequirements": [
+        {
+            "category": "frontend_ui" | "frontend_logic" | "backend_api" | "backend_service" | "integration" | "storage" | "auth" | "deployment",
+            "requirement": "specific requirement",
+            "rationale": "why this is needed",
+            "complexity": "simple" | "moderate" | "complex",
+            "fromPhase": "phase title"
+        }
+    ],
+    "additionalWiring": [
+        {
+            "fromComponent": "source component/file",
+            "toComponent": "target component/file",
+            "connectionType": "calls" | "imports" | "renders" | "stores" | "fetches" | "subscribes",
+            "description": "what this connection does (data flow description)"
+        }
+    ]
+}`,
+            {
+                model: CLAUDE_MODELS.OPUS_4_5,
+                effort: 'high',
+                maxTokens: 32000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 32000,
+            }
+        );
+
+        // Parse the enrichment response
+        let enrichment: {
+            additionalChecklistItems: Array<{
+                category: FunctionalChecklistItem['category'];
+                name: string;
+                description: string;
+                component: string;
+                filePath: string;
+                trigger: string;
+                action: string;
+                expectedResult: string;
+                fromPhase?: string;
+                fromStep?: string;
+            }>;
+            additionalTechnicalRequirements: Array<{
+                category: TechnicalCategory;
+                requirement: string;
+                rationale: string;
+                complexity: 'simple' | 'moderate' | 'complex';
+                fromPhase?: string;
+            }>;
+            additionalWiring: Array<{
+                fromComponent: string;
+                toComponent: string;
+                connectionType: WiringConnection['connectionType'];
+                description: string;
+            }>;
+        };
+
+        try {
+            const content = enrichmentResponse.content || '';
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                throw new Error('No JSON found in enrichment response');
+            }
+            enrichment = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+            console.error('[DeepIntentLock] Failed to parse enrichment response:', parseError);
+            // Return existing contract without enrichment on parse failure
+            return existingContract;
+        }
+
+        // Generate unique IDs and create proper FunctionalChecklistItem objects
+        const newChecklistItems: FunctionalChecklistItem[] = (enrichment.additionalChecklistItems || []).map((item, index) => ({
+            id: `FC-PLAN-${String(index + 1).padStart(3, '0')}`,
+            category: item.category || 'workflow',
+            name: item.name,
+            description: item.description,
+            location: {
+                component: item.component,
+                filePath: item.filePath,
+            },
+            behavior: {
+                trigger: item.trigger,
+                action: item.action,
+                expectedResult: item.expectedResult,
+            },
+            wiredTo: [],
+            testCases: [{
+                id: `TC-PLAN-${String(index + 1).padStart(3, '0')}.01`,
+                description: `Verify: ${item.expectedResult}`,
+                input: item.trigger,
+                expectedOutput: item.expectedResult,
+                type: 'e2e' as const,
+                passed: false,
+            }],
+            mustNotContain: ['TODO', 'FIXME', 'placeholder', 'mock', 'lorem'],
+            verified: false,
+            // Extended fields for plan traceability
+            fromApprovedPlan: true,
+            planPhase: item.fromPhase,
+            planStep: item.fromStep,
+        } as FunctionalChecklistItem & { fromApprovedPlan?: boolean; planPhase?: string; planStep?: string }));
+
+        const newTechnicalRequirements: TechnicalRequirement[] = (enrichment.additionalTechnicalRequirements || []).map((item, index) => ({
+            id: `TR-PLAN-${String(index + 1).padStart(3, '0')}`,
+            category: item.category,
+            component: item.requirement, // Use requirement as component name
+            description: item.rationale,
+            subRequirements: [{
+                id: `TR-PLAN-${String(index + 1).padStart(3, '0')}.01`,
+                description: item.requirement,
+                type: 'must_have' as const,
+                verified: false,
+                verificationMethod: 'Automated verification during build',
+            }],
+            dependsOn: [],
+            requiredFor: [],
+            verificationStrategy: {
+                type: item.complexity === 'simple' ? 'automated' as const : 'functional' as const,
+                testCommand: undefined,
+                expectedOutput: undefined,
+                screenshotRequired: item.category === 'frontend_ui',
+            },
+            verified: false,
+        }));
+
+        const newWiring: WiringConnection[] = (enrichment.additionalWiring || []).map((item, index) => ({
+            id: `WC-PLAN-${String(index + 1).padStart(3, '0')}`,
+            from: {
+                type: 'component' as const,
+                id: `from-${index}`,
+                name: item.fromComponent,
+            },
+            to: {
+                type: 'component' as const,
+                id: `to-${index}`,
+                name: item.toComponent,
+            },
+            connectionType: item.connectionType,
+            dataFlow: item.description,
+            verified: false,
+        }));
+
+        // Merge with existing items
+        const mergedChecklist = [...existingContract.functionalChecklist, ...newChecklistItems];
+        const mergedRequirements = [...existingContract.technicalRequirements, ...newTechnicalRequirements];
+        const mergedWiring = [...existingContract.wiringMap, ...newWiring];
+
+        // Update the database
+        await db.update(deepIntentContracts)
+            .set({
+                functionalChecklist: mergedChecklist as unknown[],
+                technicalRequirements: mergedRequirements as unknown[],
+                wiringMap: mergedWiring as unknown[],
+                totalChecklistItems: mergedChecklist.length,
+                totalTechnicalRequirements: mergedRequirements.length,
+                totalWiringConnections: mergedWiring.length,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.intentContractId, contractId));
+
+        console.log(`[DeepIntentLock] Enrichment complete:`);
+        console.log(`  - Checklist: ${existingContract.functionalChecklist.length} -> ${mergedChecklist.length} items`);
+        console.log(`  - Requirements: ${existingContract.technicalRequirements.length} -> ${mergedRequirements.length} items`);
+        console.log(`  - Wiring: ${existingContract.wiringMap.length} -> ${mergedWiring.length} connections`);
+
+        // Return the enriched contract
+        return {
+            ...existingContract,
+            functionalChecklist: mergedChecklist,
+            technicalRequirements: mergedRequirements,
+            wiringMap: mergedWiring,
+            totalChecklistItems: mergedChecklist.length,
+        };
+    }
 }
 
 /**
@@ -1024,5 +2363,54 @@ export function estimateTaskCost(
 } {
     const engine = new IntentLockEngine('system', 'system');
     return engine.estimateMicroIntentCost(complexity);
+}
+
+/**
+ * Quick helper to create and lock a Deep Intent Contract
+ */
+export async function createAndLockDeepIntent(
+    prompt: string,
+    userId: string,
+    projectId: string,
+    orchestrationRunId?: string,
+    options?: DeepIntentOptions
+): Promise<DeepIntentContract> {
+    const engine = createIntentLockEngine(userId, projectId);
+    const contract = await engine.createDeepContract(prompt, userId, projectId, orchestrationRunId, options);
+    await engine.lockContract(contract.id);
+    return contract;
+}
+
+/**
+ * Check Deep Intent satisfaction status
+ */
+export async function checkDeepIntentSatisfaction(
+    contractId: string,
+    userId: string,
+    projectId: string
+): Promise<DeepIntentSatisfactionResult> {
+    const engine = createIntentLockEngine(userId, projectId);
+    return engine.isDeepIntentSatisfied(contractId);
+}
+
+/**
+ * Enrich a Deep Intent Contract with an approved implementation plan.
+ * This MUST be called after the user approves the plan to create the complete
+ * functional checklist that includes all plan phases and steps.
+ *
+ * @param contractId - The Deep Intent Contract ID
+ * @param approvedPlan - The approved implementation plan
+ * @param userId - The user ID
+ * @param projectId - The project ID
+ * @returns The enriched Deep Intent Contract
+ */
+export async function enrichDeepIntentWithPlan(
+    contractId: string,
+    approvedPlan: ApprovedBuildPlan,
+    userId: string,
+    projectId: string
+): Promise<DeepIntentContract> {
+    const engine = createIntentLockEngine(userId, projectId);
+    return engine.enrichWithApprovedPlan(contractId, approvedPlan);
 }
 
