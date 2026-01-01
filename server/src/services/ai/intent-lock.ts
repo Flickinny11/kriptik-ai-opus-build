@@ -431,6 +431,39 @@ export interface DeepIntentSatisfactionResult {
 }
 
 // =============================================================================
+// APPROVED BUILD PLAN TYPES (for plan enrichment)
+// =============================================================================
+
+export interface ApprovedBuildPlanStep {
+    id: string;
+    description: string;
+    type: 'code' | 'config' | 'test' | 'deploy';
+    estimatedTokens?: number;
+}
+
+export interface ApprovedBuildPlanPhase {
+    id: string;
+    title: string;
+    description: string;
+    icon?: string;
+    type: 'frontend' | 'backend';
+    steps: ApprovedBuildPlanStep[];
+    order: number;
+    approved: boolean;
+}
+
+export interface ApprovedBuildPlan {
+    intentSummary: string;
+    phases: ApprovedBuildPlanPhase[];
+    estimatedTokenUsage?: number;
+    estimatedCostUSD?: number;
+    parallelAgentsNeeded?: number;
+    frontendFirst?: boolean;
+    backendFirst?: boolean;
+    parallelFrontendBackend?: boolean;
+}
+
+// =============================================================================
 // INTENT LOCK ENGINE
 // =============================================================================
 
@@ -636,10 +669,53 @@ Return a comprehensive JSON object with these arrays:
 
 This contract defines "DONE". Nothing is done until ALL items are verified.`;
 
+const PLAN_ENRICHMENT_SYSTEM_PROMPT = `You are the PLAN ENRICHMENT AGENT for KripTik AI's Deep Intent Lock system.
+
+Your purpose is to decompose an APPROVED implementation plan into specific, testable functional checklist items.
+
+## WHAT YOU DO
+
+The user has:
+1. Submitted a request (analyzed into initial Deep Intent)
+2. Received an implementation plan with phases and steps
+3. APPROVED the implementation plan
+
+Now you must create ADDITIONAL functional checklist items based on the approved plan's specific phases and steps.
+
+## KEY PRINCIPLES
+
+1. **FROM PLAN TO CHECKLIST**: Each step in the plan becomes one or more testable checklist items
+2. **NO DUPLICATES**: Don't recreate items already in the existing checklist
+3. **SPECIFIC**: "Login button submits form and shows loading spinner" not "Login works"
+4. **TESTABLE**: Every item must be verifiable in browser or via API
+5. **TRACEABLE**: Record which phase/step each item came from
+
+## EXAMPLE TRANSFORMATION
+
+Plan Step: "Implement user authentication with email/password"
+Becomes Checklist Items:
+- Login form renders with email and password fields
+- Email field validates format on blur
+- Password field shows/hides toggle works
+- Submit button disabled until form is valid
+- Submit shows loading spinner during API call
+- Successful login redirects to dashboard
+- Failed login shows error message
+- Session persists across page refresh
+
+## OUTPUT FORMAT
+
+Return structured JSON with additional items to MERGE with the existing checklist.
+Each item must trace back to its source phase and step for accountability.`;
+
 export class IntentLockEngine {
     private claudeService: ClaudeService;
+    private userId: string;
+    private projectId: string;
 
     constructor(userId: string, projectId: string) {
+        this.userId = userId;
+        this.projectId = projectId;
         this.claudeService = createClaudeService({
             projectId,
             userId,
@@ -1990,6 +2066,250 @@ Return ONLY valid JSON with these fields:
             })
             .where(eq(deepIntentContracts.intentContractId, contractId));
     }
+
+    // =========================================================================
+    // PLAN ENRICHMENT - Enrich Deep Intent with Approved Implementation Plan
+    // =========================================================================
+
+    /**
+     * Enrich a Deep Intent Contract with the approved implementation plan.
+     * This MUST be called after user approves the plan to create the complete
+     * functional checklist that includes all plan phases and steps.
+     *
+     * This is CRITICAL - without this, the Deep Intent only contains items
+     * from the original prompt, not the detailed implementation plan.
+     */
+    async enrichWithApprovedPlan(
+        contractId: string,
+        approvedPlan: ApprovedBuildPlan
+    ): Promise<DeepIntentContract> {
+        console.log(`[DeepIntentLock] Enriching contract ${contractId} with approved plan`);
+        console.log(`  - Plan Phases: ${approvedPlan.phases.length}`);
+        console.log(`  - Total Steps: ${approvedPlan.phases.reduce((acc, p) => acc + p.steps.length, 0)}`);
+
+        // Get the existing Deep Intent
+        const existingContract = await this.getDeepContract(contractId);
+        if (!existingContract) {
+            throw new Error(`Deep Contract not found for enrichment: ${contractId}`);
+        }
+
+        // Use AI to decompose the approved plan into specific functional checklist items
+        const planDecompositionService = createClaudeService({
+            projectId: this.projectId,
+            userId: this.userId,
+            agentType: 'planning',
+            systemPrompt: PLAN_ENRICHMENT_SYSTEM_PROMPT,
+        });
+
+        // Build the plan context for AI analysis
+        const planContext = approvedPlan.phases.map(phase => {
+            const stepsText = phase.steps.map((step, i) =>
+                `    ${i + 1}. ${step.description} (type: ${step.type})`
+            ).join('\n');
+            return `Phase: ${phase.title} (${phase.type})\nDescription: ${phase.description}\nSteps:\n${stepsText}`;
+        }).join('\n\n');
+
+        const enrichmentResponse = await planDecompositionService.generate(
+            `You have an approved implementation plan. Decompose it into specific, testable functional checklist items.
+
+APPROVED IMPLEMENTATION PLAN:
+${planContext}
+
+EXISTING CHECKLIST (from intent analysis - do not duplicate these):
+${existingContract.functionalChecklist.map(fc => `- ${fc.name}: ${fc.description}`).join('\n')}
+
+For EACH step in the plan, generate specific functional checklist items that can be VERIFIED.
+Each item must be testable - something we can check in the browser or via API.
+
+Return ONLY valid JSON:
+{
+    "additionalChecklistItems": [
+        {
+            "category": "button" | "form" | "display" | "workflow" | "handler" | "validation" | "api_call" | "state",
+            "name": "specific element name (e.g., 'Login Submit Button')",
+            "description": "what this element does",
+            "component": "component name (e.g., 'LoginForm')",
+            "filePath": "likely file path (e.g., 'src/components/LoginForm.tsx')",
+            "trigger": "what triggers this (e.g., 'onClick')",
+            "action": "what happens when triggered",
+            "expectedResult": "what we expect to see/verify",
+            "fromPhase": "phase title",
+            "fromStep": "step description"
+        }
+    ],
+    "additionalTechnicalRequirements": [
+        {
+            "category": "frontend_ui" | "frontend_logic" | "backend_api" | "backend_service" | "integration" | "storage" | "auth" | "deployment",
+            "requirement": "specific requirement",
+            "rationale": "why this is needed",
+            "complexity": "simple" | "moderate" | "complex",
+            "fromPhase": "phase title"
+        }
+    ],
+    "additionalWiring": [
+        {
+            "fromComponent": "source component/file",
+            "toComponent": "target component/file",
+            "connectionType": "calls" | "imports" | "renders" | "stores" | "fetches" | "subscribes",
+            "description": "what this connection does (data flow description)"
+        }
+    ]
+}`,
+            {
+                model: CLAUDE_MODELS.OPUS_4_5,
+                effort: 'high',
+                maxTokens: 32000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 32000,
+            }
+        );
+
+        // Parse the enrichment response
+        let enrichment: {
+            additionalChecklistItems: Array<{
+                category: FunctionalChecklistItem['category'];
+                name: string;
+                description: string;
+                component: string;
+                filePath: string;
+                trigger: string;
+                action: string;
+                expectedResult: string;
+                fromPhase?: string;
+                fromStep?: string;
+            }>;
+            additionalTechnicalRequirements: Array<{
+                category: TechnicalCategory;
+                requirement: string;
+                rationale: string;
+                complexity: 'simple' | 'moderate' | 'complex';
+                fromPhase?: string;
+            }>;
+            additionalWiring: Array<{
+                fromComponent: string;
+                toComponent: string;
+                connectionType: WiringConnection['connectionType'];
+                description: string;
+            }>;
+        };
+
+        try {
+            const content = enrichmentResponse.content || '';
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                throw new Error('No JSON found in enrichment response');
+            }
+            enrichment = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+            console.error('[DeepIntentLock] Failed to parse enrichment response:', parseError);
+            // Return existing contract without enrichment on parse failure
+            return existingContract;
+        }
+
+        // Generate unique IDs and create proper FunctionalChecklistItem objects
+        const newChecklistItems: FunctionalChecklistItem[] = (enrichment.additionalChecklistItems || []).map((item, index) => ({
+            id: `FC-PLAN-${String(index + 1).padStart(3, '0')}`,
+            category: item.category || 'workflow',
+            name: item.name,
+            description: item.description,
+            location: {
+                component: item.component,
+                filePath: item.filePath,
+            },
+            behavior: {
+                trigger: item.trigger,
+                action: item.action,
+                expectedResult: item.expectedResult,
+            },
+            wiredTo: [],
+            testCases: [{
+                id: `TC-PLAN-${String(index + 1).padStart(3, '0')}.01`,
+                description: `Verify: ${item.expectedResult}`,
+                input: item.trigger,
+                expectedOutput: item.expectedResult,
+                type: 'e2e' as const,
+                passed: false,
+            }],
+            mustNotContain: ['TODO', 'FIXME', 'placeholder', 'mock', 'lorem'],
+            verified: false,
+            // Extended fields for plan traceability
+            fromApprovedPlan: true,
+            planPhase: item.fromPhase,
+            planStep: item.fromStep,
+        } as FunctionalChecklistItem & { fromApprovedPlan?: boolean; planPhase?: string; planStep?: string }));
+
+        const newTechnicalRequirements: TechnicalRequirement[] = (enrichment.additionalTechnicalRequirements || []).map((item, index) => ({
+            id: `TR-PLAN-${String(index + 1).padStart(3, '0')}`,
+            category: item.category,
+            component: item.requirement, // Use requirement as component name
+            description: item.rationale,
+            subRequirements: [{
+                id: `TR-PLAN-${String(index + 1).padStart(3, '0')}.01`,
+                description: item.requirement,
+                type: 'must_have' as const,
+                verified: false,
+                verificationMethod: 'Automated verification during build',
+            }],
+            dependsOn: [],
+            requiredFor: [],
+            verificationStrategy: {
+                type: item.complexity === 'simple' ? 'automated' as const : 'functional' as const,
+                testCommand: undefined,
+                expectedOutput: undefined,
+                screenshotRequired: item.category === 'frontend_ui',
+            },
+            verified: false,
+        }));
+
+        const newWiring: WiringConnection[] = (enrichment.additionalWiring || []).map((item, index) => ({
+            id: `WC-PLAN-${String(index + 1).padStart(3, '0')}`,
+            from: {
+                type: 'component' as const,
+                id: `from-${index}`,
+                name: item.fromComponent,
+            },
+            to: {
+                type: 'component' as const,
+                id: `to-${index}`,
+                name: item.toComponent,
+            },
+            connectionType: item.connectionType,
+            dataFlow: item.description,
+            verified: false,
+        }));
+
+        // Merge with existing items
+        const mergedChecklist = [...existingContract.functionalChecklist, ...newChecklistItems];
+        const mergedRequirements = [...existingContract.technicalRequirements, ...newTechnicalRequirements];
+        const mergedWiring = [...existingContract.wiringMap, ...newWiring];
+
+        // Update the database
+        await db.update(deepIntentContracts)
+            .set({
+                functionalChecklist: mergedChecklist as unknown[],
+                technicalRequirements: mergedRequirements as unknown[],
+                wiringMap: mergedWiring as unknown[],
+                totalChecklistItems: mergedChecklist.length,
+                totalTechnicalRequirements: mergedRequirements.length,
+                totalWiringConnections: mergedWiring.length,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.intentContractId, contractId));
+
+        console.log(`[DeepIntentLock] Enrichment complete:`);
+        console.log(`  - Checklist: ${existingContract.functionalChecklist.length} -> ${mergedChecklist.length} items`);
+        console.log(`  - Requirements: ${existingContract.technicalRequirements.length} -> ${mergedRequirements.length} items`);
+        console.log(`  - Wiring: ${existingContract.wiringMap.length} -> ${mergedWiring.length} connections`);
+
+        // Return the enriched contract
+        return {
+            ...existingContract,
+            functionalChecklist: mergedChecklist,
+            technicalRequirements: mergedRequirements,
+            wiringMap: mergedWiring,
+            totalChecklistItems: mergedChecklist.length,
+        };
+    }
 }
 
 /**
@@ -2071,5 +2391,26 @@ export async function checkDeepIntentSatisfaction(
 ): Promise<DeepIntentSatisfactionResult> {
     const engine = createIntentLockEngine(userId, projectId);
     return engine.isDeepIntentSatisfied(contractId);
+}
+
+/**
+ * Enrich a Deep Intent Contract with an approved implementation plan.
+ * This MUST be called after the user approves the plan to create the complete
+ * functional checklist that includes all plan phases and steps.
+ *
+ * @param contractId - The Deep Intent Contract ID
+ * @param approvedPlan - The approved implementation plan
+ * @param userId - The user ID
+ * @param projectId - The project ID
+ * @returns The enriched Deep Intent Contract
+ */
+export async function enrichDeepIntentWithPlan(
+    contractId: string,
+    approvedPlan: ApprovedBuildPlan,
+    userId: string,
+    projectId: string
+): Promise<DeepIntentContract> {
+    const engine = createIntentLockEngine(userId, projectId);
+    return engine.enrichWithApprovedPlan(contractId, approvedPlan);
 }
 

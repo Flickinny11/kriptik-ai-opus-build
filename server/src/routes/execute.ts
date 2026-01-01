@@ -51,8 +51,10 @@ import { getNotificationService } from '../services/notifications/notification-s
 import {
     createIntentLockEngine,
     createAndLockDeepIntent,
+    enrichDeepIntentWithPlan,
     type DeepIntentContract,
     type DeepIntentOptions,
+    type ApprovedBuildPlan,
 } from '../services/ai/intent-lock.js';
 
 const router = Router();
@@ -1262,6 +1264,27 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
         }
 
         pendingBuild.approvedPlan = pendingBuild.plan;
+
+        // CRITICAL: Enrich Deep Intent Contract with the approved plan
+        // This creates the complete functional checklist from the plan phases/steps
+        if (pendingBuild.deepIntentContractId) {
+            console.log(`[Execute:Approve] Enriching Deep Intent ${pendingBuild.deepIntentContractId} with approved plan`);
+            try {
+                const enrichedContract = await enrichDeepIntentWithPlan(
+                    pendingBuild.deepIntentContractId,
+                    pendingBuild.approvedPlan as ApprovedBuildPlan,
+                    pendingBuild.userId,
+                    pendingBuild.projectId
+                );
+                console.log(`[Execute:Approve] Deep Intent enriched successfully:`);
+                console.log(`  - Total Checklist Items: ${enrichedContract.totalChecklistItems}`);
+                console.log(`  - Technical Requirements: ${enrichedContract.technicalRequirements.length}`);
+                console.log(`  - Wiring Connections: ${enrichedContract.wiringMap.length}`);
+            } catch (enrichError) {
+                console.error('[Execute:Approve] Failed to enrich Deep Intent (non-blocking):', enrichError);
+                // Non-blocking - build can proceed without enrichment
+            }
+        }
 
         // Check if credentials are required but not provided
         if (pendingBuild.requiredCredentials.length > 0 && !credentials) {
