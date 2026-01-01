@@ -21,6 +21,11 @@ import {
 } from '../services/fix-my-app/index.js';
 import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { createExecutionContext, type ExecutionContext } from '../services/core/index.js';
+import {
+    createIntentLockEngine,
+    type DeepIntentContract,
+    type DeepIntentOptions,
+} from '../services/ai/intent-lock.js';
 
 const router = Router();
 
@@ -330,6 +335,55 @@ router.post('/:sessionId/fix-orchestrated', async (req: Request, res: Response) 
             return res.status(400).json({ error: 'Analysis not complete. Please run analysis first.' });
         }
 
+        // Parse chat history to create Deep Intent Contract
+        const intentEngine = createIntentLockEngine(userId, session.projectId);
+
+        // Extract chat history from the session context
+        const rawChatHistory = session.context?.raw?.chatHistory || [];
+        const chatHistory = rawChatHistory.map((msg: { role: string; content: string }) => ({
+            role: msg.role,
+            content: msg.content,
+        }));
+
+        // Build the original prompt from intent summary for Deep Intent
+        const originalPrompt = `${intentSummary.corePurpose}\n\nPrimary Features:\n${intentSummary.primaryFeatures?.map((f: { name: string; description: string }) => `- ${f.name}: ${f.description}`).join('\n') || 'None'}`;
+
+        // Note: Files will be analyzed during the build phase, not available at plan time
+        const existingFilesMap = new Map<string, string>();
+
+        // Create Deep Intent Contract with full chat history context
+        console.log(`[FixMyApp] Creating Deep Intent Contract...`);
+        const deepIntent = await intentEngine.createDeepContract(
+            originalPrompt,
+            userId,
+            session.projectId,
+            undefined,
+            {
+                fetchAPIDocs: true,
+                thinkingBudget: 64000,
+                chatHistory: chatHistory,
+                sourcePlatform: session.source,
+                existingFiles: existingFilesMap,
+            }
+        );
+
+        console.log(`[FixMyApp] Deep Intent created from chat history`);
+        console.log(`  - Source: ${session.source}`);
+        console.log(`  - Chat Messages: ${chatHistory.length}`);
+        console.log(`  - Technical Requirements: ${deepIntent.technicalRequirements.length}`);
+        console.log(`  - Functional Checklist: ${deepIntent.functionalChecklist.length}`);
+        console.log(`  - Inferred Requirements: ${deepIntent.semanticComponents?.inferredRequirements?.length || 0}`);
+
+        // Store the deep intent ID in the session context using extended type
+        if (session.context && session.context.processed && session.context.processed.intentSummary) {
+            // Extend intentSummary with Deep Intent metadata (cast to allow additional props)
+            const extendedSummary = session.context.processed.intentSummary as unknown as Record<string, unknown>;
+            extendedSummary.deepIntentId = deepIntent.id;
+            extendedSummary.technicalRequirementsCount = deepIntent.technicalRequirements.length;
+            extendedSummary.functionalChecklistCount = deepIntent.functionalChecklist.length;
+            extendedSummary.integrationsCount = deepIntent.integrationRequirements.length;
+        }
+
         // Create a comprehensive prompt from the analyzed intent
         const prompt = `FIX MY APP - Imported from ${session.source}
 
@@ -397,6 +451,48 @@ ESTIMATED TIME: ${session.selectedStrategy?.estimatedTimeMinutes || 30} minutes`
                 controller.emit('progress', { stage: 'initializing', progress: 5 });
 
                 await buildLoop.start(prompt);
+
+                // Before marking fix as complete, check Deep Intent Satisfaction
+                const deepIntentId = deepIntent.id;
+                if (deepIntentId) {
+                    console.log(`[FixMyApp] Checking Deep Intent satisfaction...`);
+                    const satisfactionResult = await intentEngine.isDeepIntentSatisfied(deepIntentId);
+
+                    if (!satisfactionResult.satisfied) {
+                        console.log(`[FixMyApp] Deep Intent NOT satisfied. Progress: ${satisfactionResult.overallProgress}%`);
+                        console.log(`[FixMyApp] Blockers: ${satisfactionResult.blockers.length}`);
+
+                        // Emit blockers for display to user
+                        controller.emit('log', `Deep Intent check: ${satisfactionResult.overallProgress}% satisfied`);
+                        controller.emit('log', `Found ${satisfactionResult.blockers.length} blockers that need fixing:`);
+
+                        satisfactionResult.blockers.slice(0, 5).forEach((blocker, i) => {
+                            controller.emit('log', `  ${i + 1}. [${blocker.category}] ${blocker.item}: ${blocker.reason}`);
+                        });
+
+                        controller.emit('progress', {
+                            stage: 'fixing_blockers',
+                            progress: satisfactionResult.overallProgress,
+                            blockers: satisfactionResult.blockers.map(b => ({
+                                category: b.category,
+                                item: b.item,
+                                reason: b.reason,
+                                suggestedFix: b.suggestedFix,
+                            })),
+                        });
+
+                        // Note: BuildLoopOrchestrator's Intent Satisfaction gate (Phase 5) should prevent this
+                        // If we reach here, it means we need additional iteration
+                        controller.emit('error', {
+                            message: `Fix incomplete: ${satisfactionResult.blockers.length} requirements not satisfied`,
+                            blockers: satisfactionResult.blockers,
+                        });
+                        return;
+                    }
+
+                    console.log(`[FixMyApp] Deep Intent SATISFIED - Fix complete`);
+                    controller.emit('log', 'Deep Intent 100% satisfied - all requirements met!');
+                }
 
                 controller.emit('progress', { stage: 'complete', progress: 100 });
                 controller.emit('complete', {

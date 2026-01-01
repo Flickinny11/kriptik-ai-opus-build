@@ -26,6 +26,8 @@ import { eq } from 'drizzle-orm';
 import {
     createIntentLockEngine,
     type IntentContract,
+    type DeepIntentContract,
+    type DeepIntentSatisfactionResult,
 } from '../ai/intent-lock.js';
 import {
     createFeatureListManager,
@@ -615,6 +617,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private artifactManager: ReturnType<typeof createArtifactManager>;
     private claudeService: ReturnType<typeof createClaudeService>;
     private aborted: boolean = false;
+    private deepIntentContract: DeepIntentContract | null = null;
 
     // Real automation services
     private browserService: BrowserAutomationService | null = null;
@@ -1346,15 +1349,16 @@ export class BuildLoopOrchestrator extends EventEmitter {
     }
 
     /**
-     * Phase 0: INTENT LOCK - Create Sacred Contract
+     * Phase 0: INTENT LOCK - Create Deep Intent Contract (Sacred Contract)
      * Uses Claude Opus 4.5 with HIGH effort and 64K thinking
+     * Creates exhaustive DONE definition with functional checklist, integrations, and technical requirements
      */
     private async executePhase0_IntentLock(prompt: string): Promise<void> {
         this.startPhase('intent_lock');
 
         try {
-            // Create the Sacred Contract
-            const contract = await this.intentEngine.createContract(
+            // Create Deep Intent Contract with exhaustive requirements
+            const deepContract = await this.intentEngine.createDeepContract(
                 prompt,
                 this.state.userId,
                 this.state.projectId,
@@ -1363,27 +1367,56 @@ export class BuildLoopOrchestrator extends EventEmitter {
                     model: CLAUDE_MODELS.OPUS_4_5,
                     effort: 'high',
                     thinkingBudget: 64000,
+                    fetchAPIDocs: true,
                 }
             );
 
-            // Lock it - no modifications allowed after this
-            this.state.intentContract = await this.intentEngine.lockContract(contract.id);
+            // Lock the contract (make it immutable)
+            await this.intentEngine.lockContract(deepContract.id);
+
+            // Store in state
+            this.state.intentContract = deepContract;
+            this.deepIntentContract = deepContract as DeepIntentContract;
 
             // Initialize artifacts
-            await this.artifactManager.initializeArtifacts(this.state.intentContract);
+            await this.artifactManager.initializeArtifacts(deepContract);
+
+            // Emit detailed intent created event
+            this.emitEvent('intent_created', {
+                contractId: deepContract.id,
+                appType: deepContract.appType,
+                appSoul: deepContract.appSoul,
+                coreValueProp: deepContract.coreValueProp,
+                successCriteriaCount: deepContract.successCriteria.length,
+                workflowCount: deepContract.userWorkflows.length,
+                technicalRequirementsCount: (deepContract as DeepIntentContract).technicalRequirements?.length || 0,
+                functionalChecklistCount: (deepContract as DeepIntentContract).functionalChecklist?.length || 0,
+                integrationsCount: (deepContract as DeepIntentContract).integrationRequirements?.length || 0,
+                estimatedComplexity: (deepContract as DeepIntentContract).estimatedBuildComplexity || 'moderate',
+            });
+
+            console.log(`[BuildLoop] Deep Intent Lock created: ${deepContract.id}`);
+            console.log(`  - App Type: ${deepContract.appType}`);
+            console.log(`  - App Soul: ${deepContract.appSoul}`);
+            console.log(`  - Technical Requirements: ${(deepContract as DeepIntentContract).technicalRequirements?.length || 0}`);
+            console.log(`  - Functional Checklist: ${(deepContract as DeepIntentContract).functionalChecklist?.length || 0}`);
+            console.log(`  - Integrations: ${(deepContract as DeepIntentContract).integrationRequirements?.length || 0}`);
 
             this.completePhase('intent_lock');
             this.emitEvent('phase_complete', {
                 phase: 'intent_lock',
-                contractId: contract.id,
-                appType: contract.appType,
-                appSoul: contract.appSoul,
-                successCriteria: contract.successCriteria.length,
-                workflows: contract.userWorkflows.length,
+                contractId: deepContract.id,
+                appType: deepContract.appType,
+                appSoul: deepContract.appSoul,
+                successCriteria: deepContract.successCriteria.length,
+                workflows: deepContract.userWorkflows.length,
+                technicalRequirements: (deepContract as DeepIntentContract).technicalRequirements?.length || 0,
+                functionalChecklist: (deepContract as DeepIntentContract).functionalChecklist?.length || 0,
+                integrations: (deepContract as DeepIntentContract).integrationRequirements?.length || 0,
             });
 
         } catch (error) {
-            throw new Error(`Intent Lock failed: ${(error as Error).message}`);
+            throw new Error(`Deep Intent Lock failed: ${(error as Error).message}`);
         }
     }
 
@@ -2647,28 +2680,27 @@ Include ALL necessary imports and exports.`;
 
             try {
                 // ================================================================
-                // PARALLEL VERIFICATION: Run all checks simultaneously for speed
+                // DEEP INTENT SATISFACTION CHECK
+                // Uses the comprehensive Deep Intent Lock system to verify ALL requirements
                 // ================================================================
-                const verificationResult = await this.runFullVerificationCheck();
-                totalEstimatedCost += 0.05;
+                const satisfactionResult = await this.intentEngine.isDeepIntentSatisfied(this.state.intentContract.id);
+                totalEstimatedCost += 0.08; // Deep Intent check is slightly more expensive but comprehensive
 
-                this.emitEvent('verification-complete', verificationResult);
+                this.emitEvent('phase5-retry', {
+                    satisfied: satisfactionResult.satisfied,
+                    overallProgress: satisfactionResult.overallProgress,
+                    blockers: satisfactionResult.blockers.length,
+                    progress: satisfactionResult.progress,
+                });
                 consecutiveErrors = 0;
 
-                // Evaluate ALL 8 criteria
-                const criteriaMet = this.evaluatePhase5Criteria(verificationResult);
-
-                if (criteriaMet.allMet) {
-                    console.log(`[Phase 5] ✅ Intent satisfaction achieved! All criteria passed.`);
+                if (satisfactionResult.satisfied) {
+                    console.log(`[Phase 5] ✅ Deep Intent satisfaction achieved! All requirements met.`);
                     console.log(`[Phase 5] Stats: ${totalAttempts} attempts, ${deepAnalysisRounds} deep analyses, ~$${totalEstimatedCost.toFixed(2)} cost`);
-
-                    // Mark all criteria as passed
-                    for (const criterion of this.state.intentContract.successCriteria) {
-                        await this.intentEngine.markCriterionPassed(
-                            this.state.intentContract.id,
-                            criterion.id
-                        );
-                    }
+                    console.log(`  - Functional Checklist: ${satisfactionResult.progress.functionalChecklist.percentage}% (${satisfactionResult.progress.functionalChecklist.completed}/${satisfactionResult.progress.functionalChecklist.total})`);
+                    console.log(`  - Integrations: ${satisfactionResult.progress.integrations.percentage}% (${satisfactionResult.progress.integrations.completed}/${satisfactionResult.progress.integrations.total})`);
+                    console.log(`  - Technical Requirements: ${satisfactionResult.progress.technicalRequirements.percentage}% (${satisfactionResult.progress.technicalRequirements.completed}/${satisfactionResult.progress.technicalRequirements.total})`);
+                    console.log(`  - Tests: ${satisfactionResult.progress.tests.percentage}% (${satisfactionResult.progress.tests.passed}/${satisfactionResult.progress.tests.total})`);
 
                     this.completePhase('intent_satisfaction');
                     this.emitEvent('phase_complete', {
@@ -2676,15 +2708,38 @@ Include ALL necessary imports and exports.`;
                         satisfied: true,
                         attempts: totalAttempts,
                         deepAnalysisRounds,
-                        verificationScore: verificationResult.overallScore,
+                        overallProgress: satisfactionResult.overallProgress,
+                        progress: satisfactionResult.progress,
                         totalCost: totalEstimatedCost,
                     });
                     return; // SUCCESS
                 }
 
+                // Extract failed criteria from blockers for error history
+                const failedCriteria = satisfactionResult.blockers.map(b =>
+                    `${b.category}: ${b.item}${b.reason ? ` - ${b.reason}` : ''}`
+                );
+
+                console.log(`[Phase 5] Intent NOT satisfied. Progress: ${satisfactionResult.overallProgress}%`);
+                console.log(`  - Functional Checklist: ${satisfactionResult.progress.functionalChecklist.percentage}%`);
+                console.log(`  - Integrations: ${satisfactionResult.progress.integrations.percentage}%`);
+                console.log(`  - Technical Requirements: ${satisfactionResult.progress.technicalRequirements.percentage}%`);
+                console.log(`  - Tests: ${satisfactionResult.progress.tests.percentage}%`);
+                console.log(`  - Blockers: ${satisfactionResult.blockers.length}`);
+
+                // Emit blockers for UI (limit to 10 for display)
+                for (const blocker of satisfactionResult.blockers.slice(0, 10)) {
+                    this.emitEvent('verification-blocker', {
+                        category: blocker.category,
+                        item: blocker.item,
+                        reason: blocker.reason,
+                        suggestedFix: blocker.suggestedFix,
+                    });
+                }
+
                 // Track error history for pattern detection
                 errorHistory.push({
-                    criteria: criteriaMet.failedCriteria,
+                    criteria: failedCriteria,
                     timestamp: new Date(),
                     fixes: [],
                 });
@@ -2699,15 +2754,15 @@ Include ALL necessary imports and exports.`;
 
                     this.emitEvent('phase5-deep-analysis-started', {
                         round: deepAnalysisRounds,
-                        failedCriteria: criteriaMet.failedCriteria,
+                        failedCriteria: failedCriteria,
                         errorHistory: errorHistory.slice(-10),
                     });
 
                     // DEEP ANALYSIS: Step back and comprehensively analyze
                     const deepAnalysisResult = await this.performDeepErrorAnalysis(
-                        criteriaMet.failedCriteria,
+                        failedCriteria,
                         errorHistory,
-                        verificationResult
+                        null
                     );
                     totalEstimatedCost += 0.50; // Deep analysis costs more but is worth it
 
@@ -2727,7 +2782,7 @@ Include ALL necessary imports and exports.`;
                 } else {
                     // Quick fix attempt
                     console.log(`[Phase 5] ⚡ Quick fix attempt ${quickFixAttempts}/${QUICK_FIX_ATTEMPTS}`);
-                    await this.escalatePhase5Issues(criteriaMet.failedCriteria, totalAttempts);
+                    await this.escalatePhase5Issues(failedCriteria, totalAttempts);
                     totalEstimatedCost += 0.10;
                 }
 

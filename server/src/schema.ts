@@ -576,6 +576,103 @@ export const buildIntents = sqliteTable('build_intents', {
 });
 
 /**
+ * Deep Intent Contracts - Exhaustive "DONE" definitions with full technical breakdown
+ * Extends buildIntents with exhaustive requirements, checklist, wiring, and tests
+ */
+export const deepIntentContracts = sqliteTable('deep_intent_contracts', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    intentContractId: text('intent_contract_id').references(() => buildIntents.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id),
+
+    // Technical Requirements (JSON array of TechnicalRequirement)
+    technicalRequirements: text('technical_requirements', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Integration Requirements (JSON array of IntegrationRequirement)
+    integrationRequirements: text('integration_requirements', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Functional Checklist (JSON array of FunctionalChecklistItem)
+    functionalChecklist: text('functional_checklist', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Wiring Map (JSON array of WiringConnection)
+    wiringMap: text('wiring_map', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Integration Tests (JSON array of IntegrationTest)
+    integrationTests: text('integration_tests', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // Completion Gate (JSON object)
+    completionGate: text('completion_gate', { mode: 'json' }).$type<Record<string, unknown>>(),
+
+    // VL-JEPA Embedding References (for future integration)
+    intentEmbeddingId: text('intent_embedding_id'),        // Qdrant point ID
+    visualEmbeddingId: text('visual_embedding_id'),        // Qdrant point ID
+    semanticComponents: text('semantic_components', { mode: 'json' }).$type<Record<string, unknown>>(),
+
+    // Counts for quick queries (denormalized for performance)
+    totalChecklistItems: integer('total_checklist_items').default(0),
+    verifiedChecklistItems: integer('verified_checklist_items').default(0),
+    totalIntegrations: integer('total_integrations').default(0),
+    verifiedIntegrations: integer('verified_integrations').default(0),
+    totalTechnicalRequirements: integer('total_technical_requirements').default(0),
+    verifiedTechnicalRequirements: integer('verified_technical_requirements').default(0),
+    totalWiringConnections: integer('total_wiring_connections').default(0),
+    verifiedWiringConnections: integer('verified_wiring_connections').default(0),
+    totalTests: integer('total_tests').default(0),
+    passedTests: integer('passed_tests').default(0),
+
+    // Completion status
+    intentSatisfied: integer('intent_satisfied', { mode: 'boolean' }).default(false),
+    satisfiedAt: text('satisfied_at'),
+    antiSlopScore: integer('anti_slop_score'),
+
+    // Metadata
+    deepIntentVersion: text('deep_intent_version').default('1.0.0'),
+    decompositionModel: text('decomposition_model'),
+    decompositionThinkingTokens: integer('decomposition_thinking_tokens').default(0),
+    estimatedBuildComplexity: text('estimated_build_complexity').default('moderate'),
+
+    // For Fix My App: source chat history parsing
+    sourcePlatform: text('source_platform'),               // 'lovable', 'bolt', 'v0', etc.
+    chatHistoryParsed: integer('chat_history_parsed', { mode: 'boolean' }).default(false),
+    inferredRequirements: text('inferred_requirements', { mode: 'json' }).$type<string[]>().default([]),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Deep Intent Verification Log - Tracks individual checklist item verifications
+ * Used for audit trail and debugging
+ */
+export const deepIntentVerificationLog = sqliteTable('deep_intent_verification_log', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    deepIntentContractId: text('deep_intent_contract_id').references(() => deepIntentContracts.id).notNull(),
+
+    // What was verified
+    itemType: text('item_type').notNull(),                 // 'functional', 'integration', 'technical', 'wiring', 'test'
+    itemId: text('item_id').notNull(),                     // The ID of the item (FC001, IR001, etc.)
+    itemName: text('item_name').notNull(),
+
+    // Verification result
+    passed: integer('passed', { mode: 'boolean' }).notNull(),
+    score: integer('score'),
+    error: text('error'),
+
+    // Verification method
+    verificationMethod: text('verification_method').notNull(),  // 'automated', 'visual', 'functional', 'manual'
+    verifiedBy: text('verified_by'),                       // 'verification_swarm', 'browser_automation', 'manual'
+
+    // Evidence
+    screenshotPath: text('screenshot_path'),
+    consoleOutput: text('console_output'),
+
+    // Timing
+    durationMs: integer('duration_ms'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
  * Feature Progress - Tracks features with passes: true/false
  */
 export const featureProgress = sqliteTable('feature_progress', {

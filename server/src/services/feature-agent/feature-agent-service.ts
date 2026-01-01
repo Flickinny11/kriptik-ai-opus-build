@@ -28,7 +28,12 @@ import { db } from '../../db.js';
 import { files } from '../../schema.js';
 import { and, eq } from 'drizzle-orm';
 
-import { createIntentLockEngine, type IntentContract } from '../ai/intent-lock.js';
+import {
+    createIntentLockEngine,
+    type IntentContract,
+    type DeepIntentContract,
+    type DeepIntentOptions,
+} from '../ai/intent-lock.js';
 import { createClaudeService, CLAUDE_MODELS, type ClaudeService } from '../ai/claude-service.js';
 import { DevelopmentOrchestrator } from '../orchestration/development-orchestrator.js';
 import {
@@ -141,6 +146,8 @@ type FeatureAgentRuntime = {
     contextSyncService: ContextSyncService | null;
     /** Unsubscribe function for context updates */
     contextSyncUnsubscribe: (() => void) | null;
+    /** Deep Intent Contract ID for precise DONE verification */
+    deepIntentId: string | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -730,6 +737,8 @@ ${basePrompt}`;
             // SESSION 5: Context Sync for parallel agent collaboration
             contextSyncService: contextSync,
             contextSyncUnsubscribe: unsubscribe,
+            // Deep Intent for precise DONE verification
+            deepIntentId: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -1006,6 +1015,36 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         rt.sessionId = buildId;
         rt.config.sessionId = buildId;
 
+        // Create Deep Intent Contract for precise DONE verification
+        const intentEngine = createIntentLockEngine(rt.config.userId, rt.config.projectId);
+        const deepIntent = await intentEngine.createDeepContract(
+            rt.config.taskPrompt,
+            rt.config.userId,
+            rt.config.projectId,
+            orchestrationRunId,
+            {
+                fetchAPIDocs: true,
+                thinkingBudget: 32000,
+            }
+        );
+
+        console.log(`[FeatureAgent] Deep Intent created: ${deepIntent.id}`);
+        console.log(`  - Functional Checklist: ${deepIntent.functionalChecklist.length} items`);
+        console.log(`  - Integrations: ${deepIntent.integrationRequirements.length}`);
+
+        rt.deepIntentId = deepIntent.id;
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: `Deep Intent created with ${deepIntent.functionalChecklist.length} functional requirements`,
+            timestamp: Date.now(),
+            metadata: {
+                deepIntentId: deepIntent.id,
+                functionalItems: deepIntent.functionalChecklist.length,
+                integrations: deepIntent.integrationRequirements.length,
+            }
+        });
+
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
         const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
@@ -1221,8 +1260,84 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                         });
                     }
 
-                    // If approved and no blockers, we're done
+                    // If approved and no blockers, check Deep Intent satisfaction
                     if (combined.verdict === 'APPROVED' && !hasBlockers) {
+                        if (rt.deepIntentId) {
+                            this.emitStream(agentId, {
+                                type: 'verification',
+                                content: 'Verification passed. Checking Deep Intent satisfaction...',
+                                timestamp: Date.now(),
+                            });
+
+                            const deepIntentEngine = createIntentLockEngine(rt.config.userId, rt.config.projectId);
+                            const satisfactionResult = await deepIntentEngine.isDeepIntentSatisfied(rt.deepIntentId);
+
+                            if (!satisfactionResult.satisfied) {
+                                this.emitStream(agentId, {
+                                    type: 'status',
+                                    content: `Deep Intent NOT satisfied. Progress: ${satisfactionResult.overallProgress}%`,
+                                    timestamp: Date.now(),
+                                    metadata: {
+                                        blockers: satisfactionResult.blockers.slice(0, 5).map(b => b.reason),
+                                        progress: satisfactionResult.overallProgress,
+                                        totalBlockers: satisfactionResult.blockers.length,
+                                    },
+                                });
+
+                                const deepIntentErrors: BuildError[] = satisfactionResult.blockers.slice(0, 10).map(blocker => ({
+                                    id: uuidv4(),
+                                    featureId: agentId,
+                                    category: 'integration_issues',
+                                    message: blocker.reason,
+                                    file: undefined,
+                                    line: undefined,
+                                    context: { severity: 'critical', deepIntent: true },
+                                    timestamp: new Date(),
+                                }));
+
+                                this.emitStream(agentId, {
+                                    type: 'action',
+                                    content: `Attempting to fix ${deepIntentErrors.length} Deep Intent blockers...`,
+                                    timestamp: Date.now(),
+                                });
+
+                                const escalationResult = await this.attemptEscalationFix(agentId, deepIntentErrors, fileMap);
+
+                                if (escalationResult.fixed) {
+                                    await this.applyFileChanges(rt.config.projectId, escalationResult.filesChanged);
+
+                                    this.emitStream(agentId, {
+                                        type: 'result',
+                                        content: 'Deep Intent blockers fixed. Re-running verification...',
+                                        timestamp: Date.now(),
+                                    });
+                                    continue;
+                                } else {
+                                    this.emitStream(agentId, {
+                                        type: 'result',
+                                        content: `Deep Intent blockers could not be fully resolved (round ${escalationRound})`,
+                                        timestamp: Date.now(),
+                                    });
+
+                                    if (escalationRound >= FeatureAgentService.MAX_ESCALATION_ROUNDS) {
+                                        break;
+                                    }
+                                    continue;
+                                }
+                            }
+
+                            this.emitStream(agentId, {
+                                type: 'verification',
+                                content: `Deep Intent SATISFIED - ${satisfactionResult.overallProgress}% complete, all gates passed`,
+                                timestamp: Date.now(),
+                                metadata: {
+                                    overallProgress: satisfactionResult.overallProgress,
+                                    functionalChecklist: satisfactionResult.progress.functionalChecklist,
+                                    integrations: satisfactionResult.progress.integrations,
+                                },
+                            });
+                        }
+
                         break;
                     }
 
