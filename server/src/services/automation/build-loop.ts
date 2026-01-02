@@ -140,6 +140,18 @@ import {
 } from '../agents/context-sync-service.js';
 
 // ============================================================================
+// GIT BRANCH MANAGER (Git worktree isolation and branch management)
+// ============================================================================
+import {
+    GitBranchManager,
+    createGitBranchManager,
+    type WorktreeConfig,
+    type BranchInfo,
+    type CommitInfo,
+    type MergeResult,
+} from '../developer-mode/git-branch-manager.js';
+
+// ============================================================================
 // LATTICE INTEGRATION (Parallel Cell Building)
 // ============================================================================
 import {
@@ -493,7 +505,9 @@ export interface BuildLoopEvent {
         | 'phase6-visual-analysis'
         // Gap Closers and Pre-Flight events
         | 'workflow-tests-complete' | 'gap-closers-started' | 'gap-closers-complete' | 'gap-closers-error'
-        | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error';
+        | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error'
+        // Git branch management events
+        | 'git_committed' | 'git_merged';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -657,6 +671,15 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // SESSION 3: CONTEXT SYNC SERVICE (Real-time agent context sharing)
     // =========================================================================
     private contextSync: ContextSyncService | null = null;
+
+    // =========================================================================
+    // GIT BRANCH MANAGER (Git branching and version control)
+    // =========================================================================
+    private gitBranchManager: GitBranchManager | null = null;
+    private buildBranchName: string | null = null;
+    private buildWorktreePath: string | null = null;
+    private lastCommitHash: string | null = null;
+    private uncommittedChanges: Set<string> = new Set();
 
     // =========================================================================
     // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
@@ -891,6 +914,10 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // Initialize WebSocket sync for real-time updates
         this.wsSync = getWebSocketSyncService();
 
+        // Initialize Git Branch Manager for version control and branching
+        // NOTE: Git manager is initialized later in start() to ensure project path exists
+        // This allows proper worktree setup based on actual project directory
+
         // =====================================================================
         // INITIALIZE AUTONOMOUS LEARNING ENGINE (Component 28)
         // =====================================================================
@@ -1121,6 +1148,59 @@ export class BuildLoopOrchestrator extends EventEmitter {
             console.log(`[BuildLoop] Context Sync Service activated for build ${this.state.id}`);
 
             // =====================================================================
+            // GIT BRANCH MANAGER: Initialize git branching for this build
+            // =====================================================================
+            try {
+                // Initialize Git Branch Manager with project-specific config
+                const worktreesBasePath = `${this.projectPath}/.worktrees`;
+                this.gitBranchManager = createGitBranchManager({
+                    projectPath: this.projectPath,
+                    worktreesBasePath,
+                    defaultBranch: 'main',
+                });
+
+                await this.gitBranchManager.initialize();
+
+                // Create a unique branch for this build
+                const buildBranchPrefix = `build/${this.state.projectId.substring(0, 8)}`;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                const branchName = `${buildBranchPrefix}/${timestamp}`;
+
+                const branchResult = await this.gitBranchManager.createAgentBranch(
+                    this.buildLoopAgentId,
+                    branchName,
+                    'main'
+                );
+
+                this.buildBranchName = branchResult.branch;
+                this.buildWorktreePath = branchResult.worktreePath;
+
+                console.log(`[BuildLoop] Git Branch Manager initialized: branch=${this.buildBranchName}, worktree=${this.buildWorktreePath}`);
+
+                // Register git events
+                this.gitBranchManager.on('committed', ({ commit }) => {
+                    this.lastCommitHash = commit.hash;
+                    this.emitEvent('git_committed', {
+                        hash: commit.hash,
+                        message: commit.message,
+                        filesChanged: commit.filesChanged,
+                    });
+                    console.log(`[BuildLoop] Committed: ${commit.shortHash} - ${commit.message}`);
+                });
+
+                this.gitBranchManager.on('merged', ({ sourceBranch, targetBranch }) => {
+                    this.emitEvent('git_merged', {
+                        sourceBranch,
+                        targetBranch,
+                    });
+                    console.log(`[BuildLoop] Merged ${sourceBranch} into ${targetBranch}`);
+                });
+            } catch (gitError) {
+                console.warn('[BuildLoop] Git Branch Manager initialization failed (non-fatal):', gitError);
+                // Git integration is optional - build can proceed without it
+            }
+
+            // =====================================================================
             // CURSOR 2.1+: Start runtime services
             // =====================================================================
             await this.startCursor21Services();
@@ -1163,6 +1243,44 @@ export class BuildLoopOrchestrator extends EventEmitter {
             }
 
             if (!this.aborted) {
+                // =====================================================================
+                // GIT: Merge build branch to main on successful completion
+                // =====================================================================
+                if (this.gitBranchManager && this.buildBranchName) {
+                    try {
+                        console.log(`[BuildLoop] Committing final changes on branch ${this.buildBranchName}...`);
+
+                        // Final commit with all remaining changes
+                        if (this.uncommittedChanges.size > 0) {
+                            await this.commitChanges('feat: Final build completion commit');
+                        }
+
+                        console.log(`[BuildLoop] Merging ${this.buildBranchName} to main...`);
+                        const mergeResult = await this.gitBranchManager.mergeBranch(
+                            this.buildLoopAgentId,
+                            'main',
+                            'squash' // Squash all commits into one clean merge
+                        );
+
+                        if (mergeResult.success) {
+                            console.log(`[BuildLoop] Successfully merged ${this.buildBranchName} to main`);
+                            console.log(`[BuildLoop] Files merged: ${mergeResult.mergedFiles.length}`);
+
+                            // Clean up the build branch after successful merge
+                            await this.gitBranchManager.cleanupAgentWorktree(
+                                this.buildLoopAgentId,
+                                true // Delete branch after cleanup
+                            );
+                        } else {
+                            console.warn(`[BuildLoop] Merge conflicts detected: ${mergeResult.conflicts.join(', ')}`);
+                            // Don't fail the build due to merge conflicts - let user resolve manually
+                        }
+                    } catch (gitError) {
+                        console.warn('[BuildLoop] Git merge failed (non-fatal):', gitError);
+                        // Git merge failure doesn't block build completion
+                    }
+                }
+
                 this.state.status = 'complete';
                 this.state.completedAt = new Date();
 
@@ -1797,7 +1915,9 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 stage: stage,
                 intentContract: this.state.intentContract,
                 verbose: true,
-            });
+                contextSync: this.contextSync, // SESSION 3: Pass context sync for agent collaboration
+                gitBranchManager: this.gitBranchManager, // Pass git branch manager for version control
+            } as any); // Type assertion until parallel-agent-manager.ts is updated
 
             // Forward agent activity events to build loop events
             parallelAgentManager.on('activity', (event: AgentActivityEvent) => {
@@ -4542,6 +4662,31 @@ Would the user be satisfied with this result?`;
         // All 4 levels exhausted - truly unrecoverable
         console.error(`[BuildLoop] Error escalation exhausted all 4 levels - build failed`);
 
+        // =====================================================================
+        // GIT: Clean up build branch on failure
+        // =====================================================================
+        if (this.gitBranchManager && this.buildBranchName) {
+            try {
+                console.log(`[BuildLoop] Build failed - cleaning up branch ${this.buildBranchName}...`);
+
+                // Commit current state for debugging purposes
+                if (this.uncommittedChanges.size > 0) {
+                    await this.commitChanges(`fix: Build failed - ${error.message.substring(0, 50)}`);
+                }
+
+                // DON'T merge failed builds - just clean up the worktree
+                // Keep the branch for debugging (deleteBranch: false)
+                await this.gitBranchManager.cleanupAgentWorktree(
+                    this.buildLoopAgentId,
+                    false // Keep branch for debugging
+                );
+
+                console.log(`[BuildLoop] Worktree cleaned up. Branch ${this.buildBranchName} preserved for debugging.`);
+            } catch (gitError) {
+                console.warn('[BuildLoop] Git cleanup failed (non-fatal):', gitError);
+            }
+        }
+
         this.state.status = 'failed';
         this.state.lastError = `${error.message} (Escalation exhausted all 4 levels)`;
         this.state.errorCount++;
@@ -6975,6 +7120,66 @@ Would the user be satisfied with this result?`;
             imageToCode: this.imageToCodeService !== null,
             apiAutopilot: this.apiAutopilotService !== null,
         };
+    }
+
+    /**
+     * Commit changes to git with the given message
+     * Tracks files that have been modified for periodic commits
+     */
+    private async commitChanges(message: string): Promise<void> {
+        if (!this.gitBranchManager || !this.buildBranchName) {
+            return;
+        }
+
+        try {
+            const files = Array.from(this.uncommittedChanges);
+            if (files.length === 0) {
+                return;
+            }
+
+            console.log(`[BuildLoop] Committing ${files.length} files: ${message}`);
+
+            const commitInfo = await this.gitBranchManager.commitChanges(
+                this.buildLoopAgentId,
+                message,
+                files
+            );
+
+            // Clear uncommitted changes
+            this.uncommittedChanges.clear();
+
+            // Share commit via context sync
+            if (this.contextSync) {
+                this.contextSync.shareDiscovery(this.buildLoopAgentId, {
+                    summary: `Committed: ${message}`,
+                    details: {
+                        hash: commitInfo.hash,
+                        filesChanged: commitInfo.filesChanged,
+                        message: commitInfo.message,
+                    },
+                    relevantFiles: commitInfo.filesChanged,
+                });
+            }
+        } catch (error) {
+            console.warn('[BuildLoop] Failed to commit changes:', error);
+            // Don't throw - committing is best-effort
+        }
+    }
+
+    /**
+     * Track a file modification for the next commit
+     */
+    private trackFileChange(filePath: string): void {
+        this.uncommittedChanges.add(filePath);
+
+        // Share file modification via context sync
+        if (this.contextSync) {
+            this.contextSync.notifyFileChange(
+                this.buildLoopAgentId,
+                filePath,
+                'modify'
+            );
+        }
     }
 }
 

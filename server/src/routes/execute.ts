@@ -28,6 +28,12 @@ import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
+// Enhanced Build Loop with Cursor 2.1+ features
+import {
+    EnhancedBuildLoopOrchestrator,
+    createEnhancedBuildLoop,
+    type EnhancedBuildConfig,
+} from '../services/automation/enhanced-build-loop.js';
 import { Complexity } from '../services/ai/krip-toe-nite/types.js';
 // Rich Context Integration
 import {
@@ -536,6 +542,191 @@ async function checkAndFixDeepIntentSatisfaction(
 }
 
 // =============================================================================
+// ENHANCED BUILD LOOP EVENT FORWARDING
+// =============================================================================
+
+/**
+ * Set up event forwarding from Enhanced Build Loop to ExecutionContext
+ * This streams all Cursor 2.1+ feature events to the frontend via WebSocket
+ */
+function setupEnhancedBuildLoopEvents(
+    context: ExecutionContext,
+    loop: EnhancedBuildLoopOrchestrator
+): void {
+    // =============================================================================
+    // 1. STREAMING FEEDBACK CHANNEL
+    // =============================================================================
+    loop.on('agent:feedback', (data) => {
+        context.broadcast('builder-feedback', {
+            type: 'feedback',
+            message: data.item?.message || 'Feedback received',
+            severity: data.item?.severity || 'info',
+            agentId: data.agentId,
+            agentName: data.agentName,
+            timestamp: Date.now(),
+            metadata: data,
+        });
+    });
+
+    loop.on('agent:self-corrected', (data) => {
+        context.broadcast('builder-self-correction', {
+            type: 'self-correction',
+            message: `Agent self-corrected (total: ${data.totalCorrections})`,
+            agentId: data.agentId,
+            totalCorrections: data.totalCorrections,
+            timestamp: Date.now(),
+        });
+    });
+
+    // =============================================================================
+    // 2. ERROR PATTERN LIBRARY (Level 0)
+    // =============================================================================
+    loop.on('error:pattern-fixed', (data) => {
+        context.broadcast('builder-pattern-fixed', {
+            type: 'pattern-fix',
+            message: `Error pattern matched and fixed: ${data.patternName}`,
+            patternId: data.patternId,
+            patternName: data.patternName,
+            filesModified: data.filesModified,
+            timestamp: Date.now(),
+        });
+    });
+
+    // =============================================================================
+    // 3. HUMAN VERIFICATION CHECKPOINTS
+    // =============================================================================
+    loop.on('checkpoint:waiting', (data) => {
+        context.broadcast('builder-checkpoint-waiting', {
+            type: 'checkpoint',
+            status: 'waiting',
+            trigger: data.trigger,
+            description: data.description,
+            message: `Waiting for human verification: ${data.description}`,
+            timestamp: Date.now(),
+        });
+    });
+
+    loop.on('checkpoint:responded', (data) => {
+        context.broadcast('builder-checkpoint-response', {
+            type: 'checkpoint',
+            status: 'responded',
+            action: data.response?.action,
+            note: data.response?.note,
+            message: `Human checkpoint response: ${data.response?.action}`,
+            timestamp: Date.now(),
+        });
+    });
+
+    // =============================================================================
+    // 4. BROWSER-IN-THE-LOOP (Visual Verification)
+    // =============================================================================
+    loop.on('visual:check-complete', (data) => {
+        context.broadcast('builder-visual-check', {
+            type: 'visual-verification',
+            status: 'complete',
+            score: data.score,
+            passed: data.passed,
+            issues: data.issues,
+            message: `Visual check complete. Score: ${data.score}`,
+            timestamp: Date.now(),
+            metadata: data,
+        });
+    });
+
+    loop.on('visual:check-failed', (data) => {
+        context.broadcast('builder-visual-check', {
+            type: 'visual-verification',
+            status: 'failed',
+            error: data.error,
+            message: `Visual check failed: ${data.error}`,
+            timestamp: Date.now(),
+        });
+    });
+
+    // =============================================================================
+    // 5. MULTI-AGENT JUDGING
+    // =============================================================================
+    loop.on('judgment:complete', (data) => {
+        context.broadcast('builder-judgment', {
+            type: 'multi-agent-judgment',
+            winnerId: data.winnerId,
+            winnerName: data.winnerName,
+            confidence: data.confidence,
+            message: `Multi-agent judgment: Winner ${data.winnerName} (confidence: ${(data.confidence * 100).toFixed(1)}%)`,
+            timestamp: Date.now(),
+            metadata: data,
+        });
+    });
+
+    // =============================================================================
+    // 6. CONTINUOUS VERIFICATION
+    // =============================================================================
+    loop.on('verification:check-complete', (data) => {
+        context.broadcast('builder-continuous-verification', {
+            type: 'continuous-verification',
+            checkType: data.type,
+            passed: data.result?.passed,
+            issues: data.result?.issues,
+            message: `Verification check (${data.type}): ${data.result?.passed ? 'Passed' : 'Failed'}`,
+            timestamp: Date.now(),
+            metadata: data,
+        });
+    });
+
+    // =============================================================================
+    // 7. CRITICAL FEEDBACK (High Priority)
+    // =============================================================================
+    loop.on('feedback:critical', (data) => {
+        context.broadcast('builder-critical-feedback', {
+            type: 'critical-feedback',
+            severity: 'critical',
+            message: `CRITICAL: ${data.message}`,
+            timestamp: Date.now(),
+            metadata: data,
+        });
+    });
+
+    // =============================================================================
+    // AGENT REGISTRATION & STATUS
+    // =============================================================================
+    loop.on('agent:registered', (data) => {
+        context.broadcast('builder-agent-registered', {
+            type: 'agent-registered',
+            agentId: data.agentId,
+            agentName: data.agentName,
+            task: data.task,
+            message: `Agent registered: ${data.agentName}`,
+            timestamp: Date.now(),
+        });
+    });
+
+    // =============================================================================
+    // BUILD LOOP LIFECYCLE
+    // =============================================================================
+    loop.on('started', (data) => {
+        context.broadcast('builder-enhanced-loop-started', {
+            type: 'enhanced-loop-lifecycle',
+            status: 'started',
+            buildId: data.buildId,
+            message: 'Enhanced Build Loop started',
+            timestamp: Date.now(),
+        });
+    });
+
+    loop.on('stopped', (data) => {
+        context.broadcast('builder-enhanced-loop-stopped', {
+            type: 'enhanced-loop-lifecycle',
+            status: 'stopped',
+            buildId: data.buildId,
+            message: 'Enhanced Build Loop stopped',
+            timestamp: Date.now(),
+        });
+    });
+
+    console.log('[Execute:Builder] Enhanced Build Loop event forwarding configured');
+}
+
+// =============================================================================
 // MODE-SPECIFIC EXECUTION
 // =============================================================================
 
@@ -548,7 +739,7 @@ async function executeBuilderMode(
     options: ExecuteRequest['options'] = {},
     advancedOrch?: AdvancedOrchestrationService
 ): Promise<void> {
-    console.log(`[Execute:Builder] Starting 6-phase build loop`);
+    console.log(`[Execute:Builder] Starting 6-phase build loop with Enhanced Build Loop`);
 
     context.broadcast('builder-started', {
         phases: ['intent_lock', 'initialization', 'parallel_build', 'integration_check', 'functional_test', 'intent_satisfaction', 'browser_demo'],
@@ -557,10 +748,80 @@ async function executeBuilderMode(
             continuousVerification: !!advancedOrch,
             shadowPatterns: !!advancedOrch,
         },
+        cursor21Features: {
+            streamingFeedback: true,
+            continuousVerification: true,
+            runtimeDebug: true,
+            browserInLoop: true,
+            humanCheckpoints: true,
+            multiAgentJudging: true,
+            patternLibrary: true,
+        },
     });
 
     try {
-        // Create build loop orchestrator with FULL production mode
+        // =============================================================================
+        // INITIALIZE ENHANCED BUILD LOOP (Cursor 2.1+ Features)
+        // =============================================================================
+        const buildId = context.sessionId;
+        const projectPath = context.projectPath || `/tmp/builds/${context.projectId}`;
+        const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
+
+        context.broadcast('builder-status', {
+            phase: 'init',
+            message: 'Initializing Enhanced Build Loop with Cursor 2.1+ features...',
+            features: [
+                'Streaming Feedback Channel',
+                'Continuous Verification',
+                'Runtime Debug Context',
+                'Browser-in-the-Loop',
+                'Human Verification Checkpoints',
+                'Multi-Agent Judging',
+                'Error Pattern Library',
+            ],
+        });
+
+        const enhancedBuildLoop = createEnhancedBuildLoop({
+            buildId,
+            projectId: context.projectId,
+            userId: context.userId,
+            projectPath,
+            previewUrl,
+            // Enable all Cursor 2.1+ features
+            enableStreamingFeedback: true,
+            enableContinuousVerification: true,
+            enableRuntimeDebug: true,
+            enableBrowserInLoop: options?.enableVisualVerification ?? true,
+            enableHumanCheckpoints: options?.enableCheckpoints ?? true,
+            enableMultiAgentJudging: true,
+            enablePatternLibrary: true,
+            visualQualityThreshold: 85,
+            humanCheckpointEscalationLevel: 2,
+        });
+
+        // =============================================================================
+        // SET UP ENHANCED BUILD LOOP EVENT FORWARDING
+        // =============================================================================
+        setupEnhancedBuildLoopEvents(context, enhancedBuildLoop);
+
+        // =============================================================================
+        // START THE ENHANCED BUILD LOOP
+        // =============================================================================
+        try {
+            await enhancedBuildLoop.start();
+
+            context.broadcast('builder-status', {
+                phase: 'enhanced-loop-started',
+                message: 'Enhanced Build Loop started. All Cursor 2.1+ features active.',
+            });
+        } catch (enhancedLoopError) {
+            console.warn('[Execute:Builder] Enhanced Build Loop failed to start (non-blocking):', enhancedLoopError);
+            // Non-blocking - build can continue without enhanced features
+        }
+
+        // =============================================================================
+        // CREATE BUILD LOOP ORCHESTRATOR (6-Phase Build)
+        // =============================================================================
         // 'production' mode enables all advanced features:
         // - LATTICE parallel cell building
         // - Browser-in-loop visual verification
@@ -699,6 +960,16 @@ async function executeBuilderMode(
                 status: buildState.status,
                 message: `Build ${buildState.status}.`,
             });
+        }
+
+        // =============================================================================
+        // CLEANUP ENHANCED BUILD LOOP
+        // =============================================================================
+        try {
+            await enhancedBuildLoop.stop();
+            console.log('[Execute:Builder] Enhanced Build Loop stopped');
+        } catch (cleanupError) {
+            console.warn('[Execute:Builder] Error stopping Enhanced Build Loop:', cleanupError);
         }
 
     } catch (error) {
@@ -1644,7 +1915,44 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
 
         // Start build in background
         setImmediate(async () => {
+            // Declare Enhanced Build Loop at function scope for cleanup access
+            let enhancedBuildLoop: EnhancedBuildLoopOrchestrator | null = null;
+
             try {
+                // Initialize Enhanced Build Loop (Cursor 2.1+ features)
+                const buildId = sessionId;
+                const projectPath = context.projectPath || `/tmp/builds/${pendingBuild.projectId}`;
+                const previewUrl = `http://localhost:3100`;
+
+                enhancedBuildLoop = createEnhancedBuildLoop({
+                    buildId,
+                    projectId: pendingBuild.projectId,
+                    userId: pendingBuild.userId,
+                    projectPath,
+                    previewUrl,
+                    enableStreamingFeedback: true,
+                    enableContinuousVerification: true,
+                    enableRuntimeDebug: true,
+                    enableBrowserInLoop: true,
+                    enableHumanCheckpoints: true,
+                    enableMultiAgentJudging: true,
+                    enablePatternLibrary: true,
+                    visualQualityThreshold: 85,
+                    humanCheckpointEscalationLevel: 2,
+                });
+
+                // Set up event forwarding
+                setupEnhancedBuildLoopEvents(context, enhancedBuildLoop);
+
+                // Start enhanced loop
+                try {
+                    await enhancedBuildLoop.start();
+                    console.log('[Execute:PlanApprove] Enhanced Build Loop started');
+                } catch (enhancedError) {
+                    console.warn('[Execute:PlanApprove] Enhanced Build Loop failed (non-blocking):', enhancedError);
+                }
+
+                // Create build loop orchestrator
                 const buildLoop = new BuildLoopOrchestrator(
                     context.projectId,
                     context.userId,
@@ -1734,6 +2042,16 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                 context.broadcast('builder-error', {
                     error: error instanceof Error ? error.message : 'Unknown error',
                 });
+            } finally {
+                // Cleanup Enhanced Build Loop
+                if (enhancedBuildLoop) {
+                    try {
+                        await enhancedBuildLoop.stop();
+                        console.log('[Execute:PlanApprove] Enhanced Build Loop stopped');
+                    } catch (cleanupError) {
+                        console.warn('[Execute:PlanApprove] Error stopping Enhanced Build Loop:', cleanupError);
+                    }
+                }
             }
         });
 
@@ -1834,7 +2152,44 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
         // Start build in background
         setImmediate(async () => {
+            // Declare Enhanced Build Loop at function scope for cleanup access
+            let enhancedBuildLoop: EnhancedBuildLoopOrchestrator | null = null;
+
             try {
+                // Initialize Enhanced Build Loop (Cursor 2.1+ features)
+                const buildId = sessionId;
+                const projectPath = context.projectPath || `/tmp/builds/${pendingBuild.projectId}`;
+                const previewUrl = `http://localhost:3100`;
+
+                enhancedBuildLoop = createEnhancedBuildLoop({
+                    buildId,
+                    projectId: pendingBuild.projectId,
+                    userId: pendingBuild.userId,
+                    projectPath,
+                    previewUrl,
+                    enableStreamingFeedback: true,
+                    enableContinuousVerification: true,
+                    enableRuntimeDebug: true,
+                    enableBrowserInLoop: true,
+                    enableHumanCheckpoints: true,
+                    enableMultiAgentJudging: true,
+                    enablePatternLibrary: true,
+                    visualQualityThreshold: 85,
+                    humanCheckpointEscalationLevel: 2,
+                });
+
+                // Set up event forwarding
+                setupEnhancedBuildLoopEvents(context, enhancedBuildLoop);
+
+                // Start enhanced loop
+                try {
+                    await enhancedBuildLoop.start();
+                    console.log('[Execute:PlanApprove] Enhanced Build Loop started');
+                } catch (enhancedError) {
+                    console.warn('[Execute:PlanApprove] Enhanced Build Loop failed (non-blocking):', enhancedError);
+                }
+
+                // Create build loop orchestrator
                 const buildLoop = new BuildLoopOrchestrator(
                     context.projectId,
                     context.userId,
@@ -1973,6 +2328,16 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
                 context.broadcast('builder-error', {
                     error: error instanceof Error ? error.message : 'Unknown error',
                 });
+            } finally {
+                // Cleanup Enhanced Build Loop
+                if (enhancedBuildLoop) {
+                    try {
+                        await enhancedBuildLoop.stop();
+                        console.log('[Execute:Credentials] Enhanced Build Loop stopped');
+                    } catch (cleanupError) {
+                        console.warn('[Execute:Credentials] Error stopping Enhanced Build Loop:', cleanupError);
+                    }
+                }
             }
         });
 

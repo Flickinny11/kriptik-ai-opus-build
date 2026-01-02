@@ -54,6 +54,10 @@ export interface ParallelAgentConfig {
     intentContract: IntentContract | null;
     /** Enable verbose logging */
     verbose?: boolean;
+    /** Context Sync Service for agent collaboration (optional) */
+    contextSync?: any; // Import type from context-sync-service.ts when available
+    /** Git Branch Manager for version control (optional) */
+    gitBranchManager?: any; // Import type from git-branch-manager.ts when available
 }
 
 export interface AgentSlot {
