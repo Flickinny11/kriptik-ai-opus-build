@@ -11,7 +11,7 @@
 import { Router } from 'express';
 import { getCeilingNotificationService } from '../services/notifications/ceiling-notification-service.js';
 import { getCreditService } from '../services/billing/credits.js';
-import { requireAuth } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -19,7 +19,7 @@ const router = Router();
  * GET /api/ceiling/status
  * Get current ceiling status and usage
  */
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', authMiddleware, async (req, res) => {
     try {
         const userId = req.user!.id;
 
@@ -62,7 +62,7 @@ router.get('/status', requireAuth, async (req, res) => {
  *
  * Body: { ceiling: number | null }
  */
-router.put('/', requireAuth, async (req, res) => {
+router.put('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.user!.id;
         const { ceiling } = req.body;
@@ -115,7 +115,7 @@ router.put('/', requireAuth, async (req, res) => {
  *   channels: ('email' | 'sms' | 'push')[]
  * }
  */
-router.put('/preferences', requireAuth, async (req, res) => {
+router.put('/preferences', authMiddleware, async (req, res) => {
     try {
         const userId = req.user!.id;
         const { enabled, channels } = req.body;
@@ -167,7 +167,7 @@ router.put('/preferences', requireAuth, async (req, res) => {
  * Query params:
  *   - monthKey: optional YYYY-MM format to clear specific month
  */
-router.delete('/history', requireAuth, async (req, res) => {
+router.delete('/history', authMiddleware, async (req, res) => {
     try {
         const userId = req.user!.id;
         const { monthKey } = req.query;
