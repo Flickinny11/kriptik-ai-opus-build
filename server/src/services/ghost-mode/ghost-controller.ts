@@ -23,6 +23,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getOpenRouterClient } from '../ai/openrouter-client.js';
 import { createTimeMachine } from '../checkpoints/time-machine.js';
 import { createSoftInterruptManager } from '../soft-interrupt/index.js';
+import { getNotificationService } from '../notifications/notification-service.js';
+import type { NotificationType, NotificationChannel } from '../notifications/notification-service.js';
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -181,6 +183,7 @@ export class GhostModeController {
   private openRouterClient = getOpenRouterClient();
   private timeMachine = createTimeMachine();
   private interruptManager = createSoftInterruptManager();
+  private notificationService = getNotificationService();
 
   private activeSessions: Map<string, GhostSessionRuntime> = new Map();
   private eventStore: Map<string, GhostEvent[]> = new Map();
@@ -715,11 +718,221 @@ Your decisions will be reviewed when the user returns. Document everything.`;
     channel: NotificationChannel,
     data: Record<string, unknown>
   ): Promise<void> {
-    // This would integrate with the notification service (F050)
-    console.log(`[Ghost Mode] Sending ${channel} notification to user ${userId}:`, data);
+    const { sessionId, condition, summary } = data as {
+      sessionId: string;
+      condition: WakeCondition;
+      summary: GhostSessionSummary;
+    };
 
-    // For now, just log the notification
-    // In production, this would call the actual notification service
+    // Build notification payload based on wake condition type
+    const payload = await this.buildNotificationPayload(userId, sessionId, condition, summary);
+
+    if (!payload) {
+      console.warn(`[Ghost Mode] Failed to build notification payload for condition: ${condition.type}`);
+      return;
+    }
+
+    // Send via NotificationService
+    try {
+      await this.notificationService.sendNotification(
+        userId,
+        [channel],
+        payload
+      );
+    } catch (error) {
+      console.error(`[Ghost Mode] Failed to send ${channel} notification:`, error);
+    }
+  }
+
+  /**
+   * Build notification payload based on wake condition type
+   */
+  private async buildNotificationPayload(
+    userId: string,
+    sessionId: string,
+    condition: WakeCondition,
+    summary: GhostSessionSummary
+  ): Promise<any> {
+    // Get project info for better notification context
+    const runtime = this.activeSessions.get(sessionId);
+    if (!runtime) return null;
+
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, runtime.config.projectId)
+    });
+
+    const projectName = project?.name || 'Your Project';
+    const baseUrl = process.env.FRONTEND_URL || 'https://kriptik.app';
+    const actionUrl = `${baseUrl}/projects/${runtime.config.projectId}?ghost=${sessionId}`;
+
+    // Map wake condition type to notification type and build specific payload
+    switch (condition.type) {
+      case 'completion':
+        return {
+          type: 'build_complete' as NotificationType,
+          title: `Ghost Mode Complete - ${projectName}`,
+          message: `All tasks completed successfully. ${summary.progress.tasksCompleted} of ${summary.progress.totalTasks} tasks finished. Runtime: ${this.formatDuration(summary.runtime)}. Credits used: ${summary.creditsUsed.toFixed(2)}.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            tasksCompleted: summary.progress.tasksCompleted,
+            creditsUsed: summary.creditsUsed,
+            runtime: summary.runtime
+          }
+        };
+
+      case 'error':
+      case 'critical_error':
+        const currentTask = summary.currentTask;
+        const errorMessage = currentTask?.error || 'An error occurred during autonomous building';
+        return {
+          type: 'error' as NotificationType,
+          title: `Ghost Mode Error - ${projectName}`,
+          message: `Building paused due to error: ${errorMessage}. Task: ${currentTask?.description || 'Unknown'}. Click to review and resume.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl: `${actionUrl}&action=review-error`,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            error: errorMessage,
+            taskId: currentTask?.id,
+            taskDescription: currentTask?.description,
+            isCritical: condition.type === 'critical_error'
+          }
+        };
+
+      case 'decision_needed':
+        return {
+          type: 'decision_needed' as NotificationType,
+          title: `Decision Needed - ${projectName}`,
+          message: `Ghost Mode needs your input to continue. ${condition.description}. Current progress: ${summary.progress.percentage}% complete.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl: `${actionUrl}&action=make-decision`,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            decisionDescription: condition.description,
+            progress: summary.progress.percentage,
+            currentTask: summary.currentTask?.description
+          }
+        };
+
+      case 'cost_threshold':
+        const remaining = (condition.threshold || 0) - summary.creditsUsed;
+        return {
+          type: 'ceiling_warning' as NotificationType,
+          title: `Credit Limit Reached - ${projectName}`,
+          message: `Ghost Mode has used ${summary.creditsUsed.toFixed(2)} credits (limit: ${condition.threshold}). Building paused. ${remaining < 0 ? 'Limit exceeded' : `${remaining.toFixed(2)} credits remaining`}. Adjust budget or review progress.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl: `${actionUrl}&action=adjust-budget`,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            creditsUsed: summary.creditsUsed,
+            creditLimit: condition.threshold,
+            progress: summary.progress.percentage
+          }
+        };
+
+      case 'time_elapsed':
+        return {
+          type: 'build_paused' as NotificationType,
+          title: `Time Limit Reached - ${projectName}`,
+          message: `Ghost Mode has reached the ${condition.threshold} minute time limit. Progress: ${summary.progress.percentage}% (${summary.progress.tasksCompleted}/${summary.progress.totalTasks} tasks). Click to extend or review.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl: `${actionUrl}&action=extend-time`,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            timeLimit: condition.threshold,
+            runtime: summary.runtime,
+            progress: summary.progress.percentage,
+            tasksCompleted: summary.progress.tasksCompleted,
+            totalTasks: summary.progress.totalTasks
+          }
+        };
+
+      case 'feature_complete':
+        const completedTask = runtime.config.tasks.find(t => t.id === condition.featureId);
+        return {
+          type: 'feature_complete' as NotificationType,
+          title: `Feature Complete - ${projectName}`,
+          message: `Ghost Mode completed: ${completedTask?.description || 'Feature'}. Overall progress: ${summary.progress.percentage}%. ${summary.progress.totalTasks - summary.progress.tasksCompleted} tasks remaining.`,
+          featureAgentId: condition.featureId || null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            featureId: condition.featureId,
+            featureDescription: completedTask?.description,
+            progress: summary.progress.percentage
+          }
+        };
+
+      case 'quality_threshold':
+        return {
+          type: 'error' as NotificationType,
+          title: `Quality Alert - ${projectName}`,
+          message: `Ghost Mode detected quality degradation below threshold. Building paused for review. ${condition.description}.`,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl: `${actionUrl}&action=review-quality`,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            qualityThreshold: condition.threshold,
+            alertDescription: condition.description
+          }
+        };
+
+      default:
+        return {
+          type: 'build_paused' as NotificationType,
+          title: `Ghost Mode Alert - ${projectName}`,
+          message: condition.description,
+          featureAgentId: null,
+          featureAgentName: 'Ghost Mode',
+          actionUrl,
+          metadata: {
+            sessionId,
+            projectId: runtime.config.projectId,
+            projectName,
+            conditionType: condition.type
+          }
+        };
+    }
+  }
+
+  /**
+   * Format duration in milliseconds to human-readable string
+   */
+  private formatDuration(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
   }
 
   // =============================================================================

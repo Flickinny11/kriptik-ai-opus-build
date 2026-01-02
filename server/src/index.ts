@@ -699,6 +699,7 @@ import learningRouter from './routes/learning.js';
 import developerModeRouter from './routes/developer-mode.js';
 import featureAgentRouter from './routes/feature-agent.js';
 import notificationsRouter from './routes/notifications.js';
+import webhooksRouter from './routes/webhooks.js';
 import autonomyRouter from './routes/autonomy.js';
 import checkpointsRouter from './routes/checkpoints.js';
 import intelligenceDialRouter from './routes/intelligence-dial.js';
@@ -841,6 +842,10 @@ app.use("/api/feature-agent", promptSanitizer, requireCredits(100), featureAgent
 
 // Notifications - in-app + external channels (non-expensive; do not credit-gate)
 app.use("/api/notifications", promptSanitizer, notificationsRouter);
+
+// Webhooks - Notification reply handlers (Twilio SMS, SendGrid email, Push, Slack)
+// No auth required - validated via token
+app.use("/api/webhooks", webhooksRouter);
 
 // Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
 app.use("/api/speed-dial", speedDialRouter);

@@ -19,9 +19,10 @@ import { notifications, notificationPreferences } from '../../schema.js';
 import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getNotificationReplyService } from './notification-reply-service.js';
 
 export type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning' | 'credentials_needed' | 'build_paused' | 'build_resumed' | 'build_complete' | 'ceiling_warning';
-export type NotificationChannel = 'email' | 'sms' | 'slack' | 'push';
+export type NotificationChannel = 'email' | 'sms' | 'slack' | 'discord' | 'webhook' | 'push';
 
 export interface ScreenshotOptions {
     projectId?: string;
@@ -45,6 +46,15 @@ export interface NotificationPayload {
     featureAgentName: string;
     actionUrl: string;
     metadata?: Record<string, unknown>;
+    // Optional: Enable reply functionality
+    enableReply?: boolean;
+    sessionId?: string;
+    sessionType?: 'ghost_mode' | 'feature_agent' | 'build_loop' | 'fix_my_app';
+    projectId?: string;
+    suggestedActions?: Array<{
+        action: 'yes' | 'no' | 'retry' | 'resume' | 'pause' | 'cancel' | 'approve';
+        label: string;
+    }>;
 }
 
 export interface NotificationPayloadWithScreenshot extends NotificationPayload {
@@ -108,7 +118,45 @@ export class NotificationService {
             dismissed: false,
         }).returning();
 
-        void created;
+        const notificationId = (created[0] as any).id;
+
+        // Generate reply tokens if reply is enabled
+        const replyTokens: Map<string, string> = new Map();
+        if (payload.enableReply && payload.sessionId && payload.sessionType) {
+            const replyService = getNotificationReplyService();
+
+            // Generate tokens for each suggested action
+            const actions = payload.suggestedActions || [{ action: 'yes', label: 'Confirm' }];
+
+            for (const actionDef of actions) {
+                const tokenData = await replyService.generateReplyToken({
+                    notificationId,
+                    userId,
+                    projectId: payload.projectId,
+                    sessionId: payload.sessionId,
+                    sessionType: payload.sessionType,
+                    replyAction: actionDef.action,
+                });
+                replyTokens.set(actionDef.action, tokenData.token);
+            }
+
+            // Add reply URLs to metadata for later use
+            const replyUrls: Record<string, string> = {};
+            replyTokens.forEach((token, action) => {
+                replyUrls[action] = replyService.buildReplyUrl(token, action as any);
+            });
+
+            // Update notification metadata with reply URLs
+            await db.update(notifications)
+                .set({
+                    metadata: safeJson({
+                        ...payload.metadata,
+                        featureAgentName: payload.featureAgentName,
+                        replyUrls,
+                    }),
+                })
+                .where(eq(notifications.id, notificationId));
+        }
 
         const prefs = await this.getPreferences(userId);
         const results: NotificationResult[] = [];
@@ -121,7 +169,7 @@ export class NotificationService {
                         results.push({ channel, ok: false, error: 'No email preference set' });
                         continue;
                     }
-                    const ok = await this.sendEmail(to, payload);
+                    const ok = await this.sendEmail(to, payload, replyTokens);
                     results.push({ channel, ok });
                     continue;
                 }
@@ -131,7 +179,7 @@ export class NotificationService {
                         results.push({ channel, ok: false, error: 'No phone preference set' });
                         continue;
                     }
-                    const ok = await this.sendSMS(phone, payload);
+                    const ok = await this.sendSMS(phone, payload, replyTokens);
                     results.push({ channel, ok });
                     continue;
                 }
@@ -154,6 +202,26 @@ export class NotificationService {
                     results.push({ channel, ok });
                     continue;
                 }
+                if (channel === 'discord') {
+                    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+                    if (!webhookUrl) {
+                        results.push({ channel, ok: false, error: 'Discord webhook not configured (set DISCORD_WEBHOOK_URL)' });
+                        continue;
+                    }
+                    const ok = await this.sendDiscord(webhookUrl, payload);
+                    results.push({ channel, ok });
+                    continue;
+                }
+                if (channel === 'webhook') {
+                    const webhookUrl = process.env.CUSTOM_WEBHOOK_URL;
+                    if (!webhookUrl) {
+                        results.push({ channel, ok: false, error: 'Custom webhook not configured (set CUSTOM_WEBHOOK_URL)' });
+                        continue;
+                    }
+                    const ok = await this.sendWebhook(webhookUrl, payload);
+                    results.push({ channel, ok });
+                    continue;
+                }
             } catch (e) {
                 results.push({ channel, ok: false, error: e instanceof Error ? e.message : String(e) });
             }
@@ -162,14 +230,14 @@ export class NotificationService {
         return results;
     }
 
-    async sendEmail(to: string, payload: NotificationPayload): Promise<boolean> {
+    async sendEmail(to: string, payload: NotificationPayload, replyTokens?: Map<string, string>): Promise<boolean> {
         const resendKey = process.env.RESEND_API_KEY;
         const resendFrom = process.env.RESEND_FROM;
         const sendgridKey = process.env.SENDGRID_API_KEY;
         const sendgridFrom = process.env.SENDGRID_FROM;
 
         const subject = payload.title;
-        const html = this.renderEmailHtml(payload);
+        const html = this.renderEmailHtml(payload, replyTokens);
 
         if (resendKey && resendFrom) {
             const resp = await fetch('https://api.resend.com/emails', {
@@ -207,7 +275,7 @@ export class NotificationService {
         throw new Error('Email provider not configured (set RESEND_API_KEY+RESEND_FROM or SENDGRID_API_KEY+SENDGRID_FROM)');
     }
 
-    async sendSMS(phone: string, payload: NotificationPayload): Promise<boolean> {
+    async sendSMS(phone: string, payload: NotificationPayload, replyTokens?: Map<string, string>): Promise<boolean> {
         const sid = process.env.TWILIO_ACCOUNT_SID;
         const token = process.env.TWILIO_AUTH_TOKEN;
         const from = process.env.TWILIO_FROM;
@@ -216,7 +284,22 @@ export class NotificationService {
             throw new Error('Twilio not configured (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM)');
         }
 
-        const body = compactSMS(`${payload.title}: ${payload.message} ${payload.actionUrl}`.trim());
+        // Build message with reply URL if available
+        let messageText = `${payload.title}: ${payload.message}`;
+
+        if (replyTokens && replyTokens.size > 0) {
+            const replyService = getNotificationReplyService();
+            const firstAction = Array.from(replyTokens.keys())[0];
+            const firstToken = replyTokens.get(firstAction);
+            if (firstToken) {
+                const replyUrl = replyService.buildReplyUrl(firstToken, firstAction as any);
+                messageText += ` Reply: ${replyUrl}`;
+            }
+        } else {
+            messageText += ` ${payload.actionUrl}`;
+        }
+
+        const body = compactSMS(messageText.trim());
         const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`;
 
         const form = new URLSearchParams();
@@ -260,6 +343,50 @@ export class NotificationService {
                         }] : [],
                     },
                 ],
+            }),
+        });
+        return resp.ok;
+    }
+
+    async sendDiscord(webhookUrl: string, payload: NotificationPayload): Promise<boolean> {
+        const color =
+            payload.type === 'feature_complete' ? 0x2FC979 :
+                payload.type === 'error' ? 0xFF4D4D :
+                    payload.type === 'decision_needed' ? 0xF5A86C :
+                        0xF59E0B;
+
+        const resp = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                embeds: [
+                    {
+                        title: payload.title,
+                        description: payload.message,
+                        color,
+                        footer: { text: payload.featureAgentName },
+                        url: payload.actionUrl,
+                        timestamp: new Date().toISOString(),
+                    },
+                ],
+            }),
+        });
+        return resp.ok;
+    }
+
+    async sendWebhook(webhookUrl: string, payload: NotificationPayload): Promise<boolean> {
+        const resp = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: payload.type,
+                title: payload.title,
+                message: payload.message,
+                actionUrl: payload.actionUrl,
+                featureAgentId: payload.featureAgentId,
+                featureAgentName: payload.featureAgentName,
+                metadata: payload.metadata,
+                timestamp: new Date().toISOString(),
             }),
         });
         return resp.ok;
@@ -384,10 +511,37 @@ export class NotificationService {
             .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
     }
 
-    private renderEmailHtml(payload: NotificationPayload): string {
+    private renderEmailHtml(payload: NotificationPayload, replyTokens?: Map<string, string>): string {
         const safeTitle = payload.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeMessage = payload.message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
         const actionUrl = payload.actionUrl;
+
+        // Build reply buttons if tokens are provided
+        let replyButtonsHtml = '';
+        if (replyTokens && replyTokens.size > 0 && payload.suggestedActions) {
+            const replyService = getNotificationReplyService();
+            const buttons: string[] = [];
+
+            for (const actionDef of payload.suggestedActions) {
+                const token = replyTokens.get(actionDef.action);
+                if (token) {
+                    const url = replyService.buildReplyUrl(token, actionDef.action);
+                    const buttonStyle = actionDef.action === 'yes' || actionDef.action === 'approve' || actionDef.action === 'resume'
+                        ? 'background:linear-gradient(145deg, rgba(47,201,121,0.18), rgba(255,255,255,0.02));border:1px solid rgba(47,201,121,0.28);'
+                        : actionDef.action === 'no' || actionDef.action === 'cancel'
+                        ? 'background:linear-gradient(145deg, rgba(255,77,77,0.18), rgba(255,255,255,0.02));border:1px solid rgba(255,77,77,0.28);'
+                        : 'background:linear-gradient(145deg, rgba(245,168,108,0.18), rgba(255,255,255,0.02));border:1px solid rgba(245,168,108,0.28);';
+
+                    buttons.push(`
+                        <a href="${url}" style="display:inline-block;text-decoration:none;border-radius:14px;${buttonStyle}color:#F6EFE7;padding:12px 16px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;font-size:12px;margin-right:8px;margin-bottom:8px;">${actionDef.label}</a>
+                    `);
+                }
+            }
+
+            if (buttons.length > 0) {
+                replyButtonsHtml = `<div style="margin-top:16px;">${buttons.join('')}</div>`;
+            }
+        }
 
         return `
 <!doctype html>
@@ -397,7 +551,7 @@ export class NotificationService {
       <div style="border-radius:18px;border:1px solid rgba(245,168,108,0.22);background:linear-gradient(145deg, rgba(255,255,255,0.06), rgba(0,0,0,0.35));box-shadow:0 18px 40px rgba(0,0,0,0.45);padding:22px;">
         <div style="font-weight:800;letter-spacing:-0.02em;font-size:18px;margin-bottom:10px;">${safeTitle}</div>
         <div style="opacity:0.86;line-height:1.55;font-size:14px;margin-bottom:18px;">${safeMessage}</div>
-        ${actionUrl ? `<a href="${actionUrl}" style="display:inline-block;text-decoration:none;border-radius:14px;border:1px solid rgba(245,168,108,0.28);background:linear-gradient(145deg, rgba(245,168,108,0.18), rgba(255,255,255,0.02));color:#F6EFE7;padding:12px 14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;font-size:12px;">Open in KripTik</a>` : ''}
+        ${replyButtonsHtml || (actionUrl ? `<a href="${actionUrl}" style="display:inline-block;text-decoration:none;border-radius:14px;border:1px solid rgba(245,168,108,0.28);background:linear-gradient(145deg, rgba(245,168,108,0.18), rgba(255,255,255,0.02));color:#F6EFE7;padding:12px 14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;font-size:12px;">Open in KripTik</a>` : '')}
         <div style="margin-top:18px;opacity:0.62;font-size:12px;">KripTik AI · ${payload.featureAgentName}</div>
       </div>
     </div>
@@ -653,6 +807,26 @@ export class NotificationService {
                         continue;
                     }
                     const ok = await this.sendPush(prefs.pushSubscription, payload);
+                    results.push({ channel, ok });
+                    continue;
+                }
+                if (channel === 'discord') {
+                    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+                    if (!webhookUrl) {
+                        results.push({ channel, ok: false, error: 'Discord webhook not configured (set DISCORD_WEBHOOK_URL)' });
+                        continue;
+                    }
+                    const ok = await this.sendDiscord(webhookUrl, payload);
+                    results.push({ channel, ok });
+                    continue;
+                }
+                if (channel === 'webhook') {
+                    const webhookUrl = process.env.CUSTOM_WEBHOOK_URL;
+                    if (!webhookUrl) {
+                        results.push({ channel, ok: false, error: 'Custom webhook not configured (set CUSTOM_WEBHOOK_URL)' });
+                        continue;
+                    }
+                    const ok = await this.sendWebhook(webhookUrl, payload);
                     results.push({ channel, ok });
                     continue;
                 }

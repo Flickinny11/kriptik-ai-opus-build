@@ -93,6 +93,40 @@ export const ceilingNotificationHistory = sqliteTable('ceiling_notification_hist
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
+// Notification Reply Tokens - Enable two-way notification interactions
+export const notificationReplyTokens = sqliteTable('notification_reply_tokens', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    notificationId: text('notification_id').references(() => notifications.id).notNull(),
+    token: text('token').notNull().unique(), // Unique token for reply URL
+    userId: text('user_id').notNull(),
+    projectId: text('project_id'),
+    sessionId: text('session_id'), // Ghost mode session, orchestration run, or feature agent session
+    sessionType: text('session_type'), // 'ghost_mode' | 'feature_agent' | 'build_loop' | 'fix_my_app'
+    replyAction: text('reply_action'), // 'resume' | 'retry' | 'adjust_ceiling' | 'approve' | 'cancel'
+    expiresAt: text('expires_at').notNull(), // Reply tokens expire after 7 days
+    used: integer('used', { mode: 'boolean' }).default(false),
+    usedAt: text('used_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Notification Replies - Track user responses to notifications
+export const notificationReplies = sqliteTable('notification_replies', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    notificationId: text('notification_id').references(() => notifications.id).notNull(),
+    tokenId: text('token_id').references(() => notificationReplyTokens.id),
+    userId: text('user_id').notNull(),
+    channel: text('channel').notNull(), // 'sms' | 'email' | 'push' | 'slack'
+    replyType: text('reply_type').notNull(), // 'text' | 'action' | 'button_click'
+    replyText: text('reply_text'), // For SMS/email text replies
+    replyAction: text('reply_action'), // Parsed action: 'yes' | 'no' | 'retry' | 'adjust_ceiling' | 'resume' | 'pause' | 'cancel'
+    actionData: text('action_data'), // JSON - additional data (e.g., new ceiling amount)
+    rawPayload: text('raw_payload'), // JSON - raw webhook payload for debugging
+    processed: integer('processed', { mode: 'boolean' }).default(false),
+    processedAt: text('processed_at'),
+    processingError: text('processing_error'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
 // Generations table
 export const generations = sqliteTable('generations', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
