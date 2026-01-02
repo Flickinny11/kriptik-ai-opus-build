@@ -1127,7 +1127,16 @@ After the code, summarize:
             })
             .where(eq(developerModeSessions.id, merge[0].sessionId));
 
-        this.emit('merge:completed', { mergeId, sessionId: merge[0].sessionId, agentId: merge[0].agentId });
+        // Get changed files list for HMR
+        const changedFilesList = merge[0].changedFilesList as string[] | null;
+
+        this.emit('merge:completed', {
+            mergeId,
+            sessionId: merge[0].sessionId,
+            agentId: merge[0].agentId,
+            projectId: merge[0].projectId,
+            changedFiles: changedFilesList || [],
+        });
     }
 
     /**
@@ -1304,6 +1313,7 @@ After the code, summarize:
         let filesChanged = 0;
         let additions = 0;
         let deletions = 0;
+        let changedFiles: string[] = [];
 
         try {
             const projectPath = `/tmp/kriptik-projects/${agent.projectId}`;
@@ -1317,10 +1327,12 @@ After the code, summarize:
             filesChanged = diffStats.filesChanged;
             additions = diffStats.additions;
             deletions = diffStats.deletions;
+            changedFiles = diffStats.files;
         } catch (gitError) {
             // If git diff fails, use default values
             console.error('[Developer Mode] Git diff error:', gitError);
             filesChanged = 0;
+            changedFiles = [];
         }
 
         await db.insert(developerModeMergeQueue).values({
@@ -1335,6 +1347,7 @@ After the code, summarize:
             filesChanged,
             additions,
             deletions,
+            changedFilesList: changedFiles,
             verificationResults: {
                 passed: verificationScore >= 70,
                 score: verificationScore,

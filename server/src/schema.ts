@@ -1165,6 +1165,7 @@ export const developerModeMergeQueue = sqliteTable('developer_mode_merge_queue',
     filesChanged: integer('files_changed').default(0),
     additions: integer('additions').default(0),
     deletions: integer('deletions').default(0),
+    changedFilesList: text('changed_files_list', { mode: 'json' }), // List of changed file paths for HMR
 
     verificationResults: text('verification_results', { mode: 'json' }),
     conflicts: text('conflicts', { mode: 'json' }),

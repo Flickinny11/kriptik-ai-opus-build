@@ -244,6 +244,84 @@ export class SandboxService extends EventEmitter {
         }
     }
 
+    /**
+     * Trigger HMR for multiple files after merge
+     */
+    async triggerMergeHMR(agentId: string, changedFiles: string[]): Promise<{
+        success: boolean;
+        frontendFilesUpdated: number;
+        backendFilesChanged: boolean;
+        needsRestart: boolean;
+    }> {
+        const sandbox = this.findSandboxByAgent(agentId);
+        if (!sandbox || sandbox.status !== 'running') {
+            return {
+                success: false,
+                frontendFilesUpdated: 0,
+                backendFilesChanged: false,
+                needsRestart: false,
+            };
+        }
+
+        let frontendFilesUpdated = 0;
+        let backendFilesChanged = false;
+
+        // Categorize files
+        const frontendExtensions = ['.tsx', '.jsx', '.ts', '.js', '.css', '.scss', '.vue', '.svelte'];
+        const backendPaths = ['server/', 'api/', 'backend/'];
+
+        for (const file of changedFiles) {
+            // Check if it's a backend file
+            const isBackend = backendPaths.some(p => file.startsWith(p));
+            if (isBackend) {
+                backendFilesChanged = true;
+                continue;
+            }
+
+            // Check if it's a frontend file
+            const isFrontend = frontendExtensions.some(ext => file.endsWith(ext));
+            if (isFrontend) {
+                try {
+                    const fullPath = path.join(sandbox.worktreePath, file);
+                    await fs.utimes(fullPath, new Date(), new Date());
+                    frontendFilesUpdated++;
+                    this.emit('hmrTriggered', { sandboxId: sandbox.id, filePath: file });
+                } catch (error: any) {
+                    console.error(`[SandboxService] HMR trigger failed for ${file}: ${error.message}`);
+                }
+            }
+        }
+
+        // If backend files changed, sandbox needs restart
+        const needsRestart = backendFilesChanged;
+
+        if (needsRestart) {
+            console.log(`[SandboxService] Backend files changed, restart recommended for sandbox ${sandbox.id}`);
+            this.emit('hmrBackendChanged', {
+                sandboxId: sandbox.id,
+                agentId,
+                needsRestart: true,
+                backendFiles: changedFiles.filter(f => backendPaths.some(p => f.startsWith(p))),
+            });
+        }
+
+        this.emit('hmrMergeComplete', {
+            sandboxId: sandbox.id,
+            agentId,
+            frontendFilesUpdated,
+            backendFilesChanged,
+            needsRestart,
+            totalFiles: changedFiles.length,
+        });
+
+        return {
+            success: true,
+            frontendFilesUpdated,
+            backendFilesChanged,
+            needsRestart,
+        };
+    }
+
     // ==========================================================================
     // PRIVATE HELPERS
     // ==========================================================================

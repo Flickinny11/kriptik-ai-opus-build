@@ -673,6 +673,7 @@ import securityRouter from './routes/security.js';
 import templatesRouter from './routes/templates.js';
 import credentialsRouter from './routes/credentials.js';
 import oauthRouter from './routes/oauth.js';
+import nangoRouter from './routes/nango.js';
 import smartDeployRouter from './routes/smart-deploy.js';
 import agentsRouter from './routes/agents.js';
 import workflowsRouter from './routes/workflows.js';
@@ -753,6 +754,7 @@ app.use("/api/templates", templatesRouter);
 // Credentials & OAuth
 app.use("/api/credentials", credentialsRouter);
 app.use("/api/oauth", oauthRouter);
+app.use("/api/nango", nangoRouter);
 
 // Nango OAuth Integrations
 app.use("/api/integrations", integrationsRouter);

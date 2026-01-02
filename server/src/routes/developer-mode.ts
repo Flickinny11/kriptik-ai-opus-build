@@ -53,6 +53,7 @@ const featureAgentService = getFeatureAgentService();
 let sandboxService: SandboxService | null = null;
 let interruptManager: SoftInterruptManager | null = null;
 let visualVerifier: VisualVerificationService | null = null;
+let mergeHMRListenerInitialized = false;
 
 function getSandboxService(): SandboxService {
     if (!sandboxService) {
@@ -65,6 +66,57 @@ function getSandboxService(): SandboxService {
     }
     return sandboxService;
 }
+
+/**
+ * Initialize merge -> HMR listener
+ * Automatically triggers HMR updates when merges complete
+ */
+function initializeMergeHMRListener(): void {
+    if (mergeHMRListenerInitialized) return;
+
+    const sandbox = getSandboxService();
+
+    orchestrator.on('merge:completed', async (data: {
+        mergeId: string;
+        sessionId: string;
+        agentId: string;
+        projectId: string;
+        changedFiles: string[];
+    }) => {
+        console.log(`[Developer Mode] Merge completed, triggering HMR for ${data.changedFiles.length} files`);
+
+        try {
+            const result = await sandbox.triggerMergeHMR(data.agentId, data.changedFiles);
+
+            if (result.success) {
+                console.log(
+                    `[Developer Mode] HMR triggered: ${result.frontendFilesUpdated} frontend files updated` +
+                    (result.needsRestart ? ', backend restart needed' : '')
+                );
+
+                // Emit event for SSE streams to notify UI
+                orchestrator.emit('merge:hmr-triggered', {
+                    mergeId: data.mergeId,
+                    sessionId: data.sessionId,
+                    agentId: data.agentId,
+                    frontendFilesUpdated: result.frontendFilesUpdated,
+                    backendFilesChanged: result.backendFilesChanged,
+                    needsRestart: result.needsRestart,
+                });
+            } else {
+                console.warn(`[Developer Mode] HMR trigger failed for merge ${data.mergeId}`);
+            }
+        } catch (error) {
+            console.error('[Developer Mode] Error triggering HMR after merge:', error);
+        }
+    });
+
+    mergeHMRListenerInitialized = true;
+    console.log('[Developer Mode] Merge -> HMR listener initialized');
+}
+
+// Initialize the listener when the module loads
+initializeMergeHMRListener();
 
 function getInterruptManager(): SoftInterruptManager {
     if (!interruptManager) {
@@ -454,7 +506,7 @@ router.post('/sandbox/:sessionId/restart', requireAuth, async (req: Request, res
 
 /**
  * POST /api/developer-mode/sandbox/:sessionId/hmr
- * Trigger HMR update
+ * Trigger HMR update for a single file
  */
 router.post('/sandbox/:sessionId/hmr', requireAuth, async (req: Request, res: Response) => {
     try {
@@ -472,6 +524,34 @@ router.post('/sandbox/:sessionId/hmr', requireAuth, async (req: Request, res: Re
     } catch (error) {
         console.error('[Developer Mode] HMR trigger error:', error);
         res.status(500).json({ error: error instanceof Error ? error.message : 'HMR trigger failed' });
+    }
+});
+
+/**
+ * POST /api/developer-mode/sandbox/:sessionId/hmr-batch
+ * Trigger HMR update for multiple files (e.g., after merge)
+ */
+router.post('/sandbox/:sessionId/hmr-batch', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { files } = req.body;
+
+        if (!files || !Array.isArray(files)) {
+            return res.status(400).json({ error: 'files array is required' });
+        }
+
+        const service = getSandboxService();
+        const result = await service.triggerMergeHMR(req.params.sessionId, files);
+
+        res.json({
+            success: result.success,
+            frontendFilesUpdated: result.frontendFilesUpdated,
+            backendFilesChanged: result.backendFilesChanged,
+            needsRestart: result.needsRestart,
+        });
+
+    } catch (error) {
+        console.error('[Developer Mode] Batch HMR trigger error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Batch HMR trigger failed' });
     }
 });
 
@@ -1340,6 +1420,7 @@ router.get('/sessions/:sessionId/events', requireAuth, async (req: Request, res:
             'merge:approved',
             'merge:rejected',
             'merge:completed',
+            'merge:hmr-triggered',
             'session:paused',
             'session:resumed',
             'session:ended',
