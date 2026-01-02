@@ -10,9 +10,14 @@
       "args": ["chrome-devtools-mcp@latest"],
       "description": "Browser automation, screenshots, console logs, DOM inspection"
     },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-playwright@latest"],
+      "description": "Accessibility-based browser automation (143 devices, no vision model needed)"
+    },
     "github": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "args": ["-y", "@modelcontextprotocol/server-github@2025.12.18"],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       },
@@ -20,13 +25,63 @@
     },
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/loganbaird/.claude-worktrees/Krip-Tik-AI-Trial/silly-rosalind"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@2025.12.18", "."],
       "description": "Enhanced file operations with watch capabilities"
     },
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"],
-      "description": "Persistent memory across sessions"
+      "args": ["-y", "@modelcontextprotocol/server-memory@2025.11.25"],
+      "description": "Persistent cross-session memory"
+    },
+    "aws-cloud-control": {
+      "command": "npx",
+      "args": ["-y", "@aws/mcp-server-cloud-control@latest"],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      },
+      "description": "Natural language AWS infrastructure management (EC2, S3, Lambda, CloudWatch)"
+    },
+    "aws-iac": {
+      "command": "npx",
+      "args": ["-y", "@aws/mcp-server-iac@latest"],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      },
+      "description": "CDK and CloudFormation assistance with validation"
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server@latest"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}",
+        "SUPABASE_PROJECT_REF": "${SUPABASE_PROJECT_REF}"
+      },
+      "description": "Supabase database, auth, and project management"
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-figma@latest"],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${FIGMA_TOKEN}"
+      },
+      "description": "Design-to-code with real component context and Code Connect"
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "@vercel/mcp-server@latest"],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "description": "Vercel deployment, preview, and project management"
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch@2025.12.18"],
+      "description": "Web content fetching and conversion for LLM usage"
     }
   }
 }
