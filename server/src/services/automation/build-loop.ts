@@ -2680,6 +2680,23 @@ Include ALL necessary imports and exports.`;
 
             try {
                 // ================================================================
+                // RUN VERIFICATION CHECKS FIRST
+                // Calculate and persist anti-slop score BEFORE checking satisfaction
+                // ================================================================
+                const verificationResult = await this.runFullVerificationCheck();
+
+                // Persist anti-slop score and verification results to completion gate
+                await this.intentEngine.updateCompletionGate(this.state.intentContract.id, {
+                    antiSlopScore: verificationResult.antiSlop.score,
+                    noPlaceholders: verificationResult.placeholders.found.length === 0,
+                    placeholdersFound: verificationResult.placeholders.found,
+                    noErrors: verificationResult.errors.count === 0,
+                    errorsFound: verificationResult.errors.issues,
+                });
+
+                console.log(`[Phase 5] Completion gate updated: anti-slop=${verificationResult.antiSlop.score}, placeholders=${verificationResult.placeholders.found.length}, errors=${verificationResult.errors.count}`);
+
+                // ================================================================
                 // DEEP INTENT SATISFACTION CHECK
                 // Uses the comprehensive Deep Intent Lock system to verify ALL requirements
                 // ================================================================

@@ -52,10 +52,26 @@ import {
     createIntentLockEngine,
     createAndLockDeepIntent,
     enrichDeepIntentWithPlan,
+    checkDeepIntentSatisfaction,
     type DeepIntentContract,
     type DeepIntentOptions,
+    type DeepIntentSatisfactionResult,
     type ApprovedBuildPlan,
 } from '../services/ai/intent-lock.js';
+// Error Escalation for Deep Intent fixes
+import {
+    createErrorEscalationEngine,
+    type BuildError,
+    type EscalationResult,
+} from '../services/automation/error-escalation.js';
+// Credential-to-Environment Bridge for writing credentials to .env
+import {
+    writeCredentialsToProjectEnv,
+    type WriteCredentialsToEnvResult,
+} from '../services/credentials/credential-env-bridge.js';
+import { db } from '../db.js';
+import { files } from '../schema.js';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -313,6 +329,213 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // =============================================================================
+// DEEP INTENT SATISFACTION VERIFICATION
+// =============================================================================
+
+/**
+ * Maximum escalation attempts for Deep Intent satisfaction
+ */
+const MAX_DEEP_INTENT_ESCALATION_ROUNDS = 3;
+
+/**
+ * Check Deep Intent satisfaction and attempt fixes if needed.
+ * This is the critical "are we DONE?" gate that prevents premature completion.
+ *
+ * @returns true if satisfied, false if not satisfied after all escalation attempts
+ */
+async function checkAndFixDeepIntentSatisfaction(
+    projectId: string,
+    userId: string,
+    deepIntentContractId: string,
+    context: ExecutionContext,
+    orchestrationRunId: string
+): Promise<boolean> {
+    console.log(`[DeepIntent] Checking satisfaction for contract ${deepIntentContractId}`);
+
+    context.broadcast('deep-intent-check-started', {
+        deepIntentContractId,
+        message: 'Verifying all requirements are satisfied...',
+    });
+
+    let escalationRound = 0;
+
+    while (escalationRound < MAX_DEEP_INTENT_ESCALATION_ROUNDS) {
+        escalationRound++;
+
+        // Check Deep Intent satisfaction
+        const satisfactionResult = await checkDeepIntentSatisfaction(
+            deepIntentContractId,
+            userId,
+            projectId
+        );
+
+        context.broadcast('deep-intent-progress', {
+            round: escalationRound,
+            satisfied: satisfactionResult.satisfied,
+            overallProgress: satisfactionResult.overallProgress,
+            progress: satisfactionResult.progress,
+            blockers: satisfactionResult.blockers.slice(0, 5), // Send top 5 blockers
+            totalBlockers: satisfactionResult.blockers.length,
+        });
+
+        console.log(`[DeepIntent] Round ${escalationRound}: ${satisfactionResult.satisfied ? 'SATISFIED' : 'NOT SATISFIED'} (${satisfactionResult.overallProgress}% complete, ${satisfactionResult.blockers.length} blockers)`);
+
+        // If satisfied, we're done!
+        if (satisfactionResult.satisfied) {
+            context.broadcast('deep-intent-satisfied', {
+                overallProgress: satisfactionResult.overallProgress,
+                progress: satisfactionResult.progress,
+                message: `All requirements satisfied! Build is complete.`,
+            });
+            return true;
+        }
+
+        // Not satisfied - attempt to fix blockers via escalation
+        context.broadcast('deep-intent-fixing', {
+            round: escalationRound,
+            maxRounds: MAX_DEEP_INTENT_ESCALATION_ROUNDS,
+            blockers: satisfactionResult.blockers.slice(0, 10).map(b => b.reason),
+            message: `${satisfactionResult.blockers.length} requirements not met. Attempting fixes...`,
+        });
+
+        // Convert blockers to BuildErrors for escalation system
+        const errors: BuildError[] = satisfactionResult.blockers.slice(0, 10).map(blocker => ({
+            id: uuidv4(),
+            featureId: orchestrationRunId,
+            category: 'integration_issues' as const,
+            message: blocker.reason,
+            file: undefined,
+            line: undefined,
+            context: {
+                severity: 'critical' as const,
+                deepIntent: true,
+                category: blocker.category,
+                item: blocker.item,
+                suggestedFix: blocker.suggestedFix,
+            },
+            timestamp: new Date(),
+        }));
+
+        // Get current file state
+        const fileRows = await db.select().from(files).where(eq(files.projectId, projectId));
+        const fileMap = new Map<string, string>();
+        for (const row of fileRows) {
+            fileMap.set(row.path, row.content);
+        }
+
+        // Create escalation engine
+        const escalationEngine = createErrorEscalationEngine(
+            orchestrationRunId,
+            projectId,
+            userId
+        );
+
+        // Attempt to fix each blocker
+        let allFixed = true;
+        const updatedFiles = new Map(fileMap);
+
+        for (const error of errors) {
+            context.broadcast('deep-intent-escalating', {
+                error: error.message.slice(0, 100),
+                category: error.context?.category,
+            });
+
+            const escalationResult = await escalationEngine.fixError(
+                error,
+                updatedFiles,
+                {
+                    featureId: orchestrationRunId,
+                    description: `Fix Deep Intent requirement: ${error.message}`,
+                    category: 'feature',
+                    priority: 'high',
+                    implementationSteps: [error.context?.suggestedFix || 'Fix the requirement'],
+                    visualRequirements: [],
+                } as any
+            );
+
+            if (escalationResult.success && escalationResult.fix) {
+                // Apply changes
+                for (const change of escalationResult.fix.changes) {
+                    if (change.action === 'delete') {
+                        updatedFiles.delete(change.path);
+                    } else if (change.newContent) {
+                        updatedFiles.set(change.path, change.newContent);
+                    }
+                }
+
+                context.broadcast('deep-intent-fix-applied', {
+                    level: escalationResult.level,
+                    strategy: escalationResult.fix.strategy,
+                    message: `Fixed at Level ${escalationResult.level}`,
+                });
+            } else {
+                allFixed = false;
+                context.broadcast('deep-intent-fix-failed', {
+                    error: error.message.slice(0, 100),
+                    level: escalationResult.level,
+                });
+            }
+        }
+
+        // Apply file changes to database
+        if (updatedFiles.size > fileMap.size || Array.from(updatedFiles.entries()).some(([path, content]) => fileMap.get(path) !== content)) {
+            for (const [path, content] of updatedFiles) {
+                const existing = fileRows.find(f => f.path === path);
+                if (existing) {
+                    await db.update(files)
+                        .set({ content, updatedAt: new Date().toISOString() })
+                        .where(eq(files.id, existing.id));
+                } else {
+                    // Infer language from extension
+                    const ext = path.split('.').pop() || '';
+                    const langMap: Record<string, string> = {
+                        ts: 'typescript', tsx: 'typescript',
+                        js: 'javascript', jsx: 'javascript',
+                        css: 'css', json: 'json',
+                    };
+
+                    await db.insert(files).values({
+                        projectId,
+                        path,
+                        content,
+                        language: langMap[ext] || 'text',
+                        version: 1,
+                    });
+                }
+            }
+
+            context.broadcast('deep-intent-files-updated', {
+                filesUpdated: updatedFiles.size,
+                round: escalationRound,
+            });
+        }
+
+        // If fixes were applied, loop to re-check
+        if (allFixed) {
+            context.broadcast('deep-intent-fixes-complete', {
+                round: escalationRound,
+                message: 'Fixes applied. Re-checking satisfaction...',
+            });
+            continue;
+        }
+
+        // If this was the last round and we couldn't fix everything
+        if (escalationRound >= MAX_DEEP_INTENT_ESCALATION_ROUNDS) {
+            context.broadcast('deep-intent-not-satisfied', {
+                overallProgress: satisfactionResult.overallProgress,
+                progress: satisfactionResult.progress,
+                blockers: satisfactionResult.blockers.slice(0, 10),
+                totalBlockers: satisfactionResult.blockers.length,
+                message: `Build incomplete: ${satisfactionResult.blockers.length} requirements not met after ${escalationRound} attempts.`,
+            });
+            return false;
+        }
+    }
+
+    return false;
+}
+
+// =============================================================================
 // MODE-SPECIFIC EXECUTION
 // =============================================================================
 
@@ -415,9 +638,68 @@ async function executeBuilderMode(
         // Start the build with enhanced prompt
         await buildLoop.start(enhancedPrompt);
 
-        context.broadcast('builder-completed', {
-            status: buildLoop.getState().status,
+        // Get build state
+        const buildState = buildLoop.getState();
+
+        context.broadcast('builder-build-complete', {
+            status: buildState.status,
+            message: 'Build loop finished. Verifying Deep Intent satisfaction...',
         });
+
+        // CRITICAL: Check Deep Intent satisfaction before claiming completion
+        // This is the "are we DONE?" gate that prevents premature victory
+        if (buildState.status === 'complete') {
+            // Check if we have a Deep Intent contract ID
+            const deepIntentContractId = (options as any)?.deepIntentContractId;
+
+            if (deepIntentContractId) {
+                console.log(`[Execute:Builder] Checking Deep Intent satisfaction for contract ${deepIntentContractId}`);
+
+                try {
+                    const satisfied = await checkAndFixDeepIntentSatisfaction(
+                        context.projectId,
+                        context.userId,
+                        deepIntentContractId,
+                        context,
+                        context.orchestrationRunId
+                    );
+
+                    if (satisfied) {
+                        context.broadcast('builder-completed', {
+                            status: 'complete',
+                            deepIntentSatisfied: true,
+                            message: 'Build complete! All requirements verified.',
+                        });
+                    } else {
+                        context.broadcast('builder-completed', {
+                            status: 'incomplete',
+                            deepIntentSatisfied: false,
+                            message: 'Build finished but not all requirements are met.',
+                        });
+                    }
+                } catch (deepIntentError) {
+                    console.error('[Execute:Builder] Deep Intent check failed:', deepIntentError);
+                    context.broadcast('builder-completed', {
+                        status: 'error',
+                        deepIntentError: deepIntentError instanceof Error ? deepIntentError.message : 'Unknown error',
+                        message: 'Build complete but Deep Intent verification failed.',
+                    });
+                }
+            } else {
+                // No Deep Intent contract - just complete normally
+                console.log('[Execute:Builder] No Deep Intent contract for this build');
+                context.broadcast('builder-completed', {
+                    status: buildState.status,
+                    message: 'Build complete (no Deep Intent verification).',
+                });
+            }
+        } else {
+            // Build failed
+            context.broadcast('builder-completed', {
+                status: buildState.status,
+                message: `Build ${buildState.status}.`,
+            });
+        }
 
     } catch (error) {
         // Use error escalation
@@ -1322,6 +1604,22 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
         // Store credentials if provided
         if (credentials) {
             pendingBuild.credentials = credentials;
+
+            // CRITICAL: Write credentials to .env file and credential vault
+            // This ensures the sandbox can access the credentials during the build
+            try {
+                const envResult = await writeCredentialsToProjectEnv(
+                    pendingBuild.projectId,
+                    pendingBuild.userId,
+                    credentials,
+                    { environment: 'all', overwriteExisting: true }
+                );
+
+                console.log(`[Execute:Approve] Wrote ${envResult.credentialsWritten} credentials to .env:`, envResult.envKeys);
+            } catch (envError) {
+                console.error('[Execute:Approve] Failed to write credentials to .env:', envError);
+                // Non-blocking - credentials are still in memory
+            }
         }
 
         pendingBuild.status = 'building';
@@ -1367,13 +1665,67 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
 
                 await buildLoop.start(pendingBuild.prompt);
 
-                pendingBuild.status = 'complete';
-                pendingBuilds.set(sessionId, pendingBuild);
+                const buildState = buildLoop.getState();
 
-                context.broadcast('builder-completed', {
-                    status: 'complete',
-                    projectId: pendingBuild.projectId,
+                context.broadcast('builder-build-complete', {
+                    status: buildState.status,
+                    message: 'Build loop finished. Verifying Deep Intent satisfaction...',
                 });
+
+                // CRITICAL: Check Deep Intent satisfaction before claiming completion
+                if (buildState.status === 'complete' && pendingBuild.deepIntentContractId) {
+                    console.log(`[Execute:Approve] Checking Deep Intent satisfaction for contract ${pendingBuild.deepIntentContractId}`);
+
+                    try {
+                        const satisfied = await checkAndFixDeepIntentSatisfaction(
+                            pendingBuild.projectId,
+                            pendingBuild.userId,
+                            pendingBuild.deepIntentContractId,
+                            context,
+                            context.orchestrationRunId
+                        );
+
+                        if (satisfied) {
+                            pendingBuild.status = 'complete';
+                            pendingBuilds.set(sessionId, pendingBuild);
+
+                            context.broadcast('builder-completed', {
+                                status: 'complete',
+                                projectId: pendingBuild.projectId,
+                                deepIntentSatisfied: true,
+                                message: 'Build complete! All requirements verified.',
+                            });
+                        } else {
+                            pendingBuild.status = 'failed';
+                            pendingBuilds.set(sessionId, pendingBuild);
+
+                            context.broadcast('builder-completed', {
+                                status: 'incomplete',
+                                projectId: pendingBuild.projectId,
+                                deepIntentSatisfied: false,
+                                message: 'Build finished but not all requirements are met.',
+                            });
+                        }
+                    } catch (deepIntentError) {
+                        console.error('[Execute:Approve] Deep Intent check failed:', deepIntentError);
+                        pendingBuild.status = 'failed';
+                        pendingBuilds.set(sessionId, pendingBuild);
+
+                        context.broadcast('builder-error', {
+                            error: deepIntentError instanceof Error ? deepIntentError.message : 'Deep Intent verification failed',
+                        });
+                    }
+                } else {
+                    // No Deep Intent or build failed
+                    pendingBuild.status = buildState.status === 'complete' ? 'complete' : 'failed';
+                    pendingBuilds.set(sessionId, pendingBuild);
+
+                    context.broadcast('builder-completed', {
+                        status: buildState.status,
+                        projectId: pendingBuild.projectId,
+                        message: buildState.status === 'complete' ? 'Build complete (no Deep Intent verification).' : `Build ${buildState.status}.`,
+                    });
+                }
 
             } catch (error) {
                 console.error(`[Execute:Plan:Approve] Build failed:`, error);
@@ -1425,6 +1777,23 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
         // Store credentials
         pendingBuild.credentials = credentials;
+
+        // CRITICAL: Write credentials to .env file and credential vault
+        // This ensures the sandbox can access the credentials during the build
+        try {
+            const envResult = await writeCredentialsToProjectEnv(
+                pendingBuild.projectId,
+                pendingBuild.userId,
+                credentials,
+                { environment: 'all', overwriteExisting: true }
+            );
+
+            console.log(`[Execute:Credentials] Wrote ${envResult.credentialsWritten} credentials to .env:`, envResult.envKeys);
+        } catch (envError) {
+            console.error('[Execute:Credentials] Failed to write credentials to .env:', envError);
+            // Non-blocking - credentials are still in memory
+        }
+
         pendingBuild.status = 'building';
         pendingBuilds.set(sessionId, pendingBuild);
 
@@ -1486,33 +1855,116 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
                 await buildLoop.start(pendingBuild.prompt);
 
-                pendingBuild.status = 'complete';
-                pendingBuilds.set(sessionId, pendingBuild);
+                const buildState = buildLoop.getState();
 
-                // P1-2: Create notification for build completion (via credentials flow)
-                const notifService = getNotificationService();
-                await notifService.sendNotification(
-                    pendingBuild.userId,
-                    ['push', 'email'],
-                    {
-                        type: 'build_complete',
-                        title: 'Build Complete!',
-                        message: `Your app "${pendingBuild.plan.intentSummary?.slice(0, 40) || 'Your app'}..." is ready. Click to see it in action!`,
-                        featureAgentId: sessionId,
-                        featureAgentName: 'Build Orchestrator',
-                        actionUrl: `/builder/${pendingBuild.projectId}?showDemo=true`,
-                        metadata: {
-                            projectId: pendingBuild.projectId,
-                            sessionId,
-                            buildComplete: true,
-                        },
-                    }
-                );
-
-                context.broadcast('builder-completed', {
-                    status: 'complete',
-                    projectId: pendingBuild.projectId,
+                context.broadcast('builder-build-complete', {
+                    status: buildState.status,
+                    message: 'Build loop finished. Verifying Deep Intent satisfaction...',
                 });
+
+                // CRITICAL: Check Deep Intent satisfaction before claiming completion
+                if (buildState.status === 'complete' && pendingBuild.deepIntentContractId) {
+                    console.log(`[Execute:Credentials] Checking Deep Intent satisfaction for contract ${pendingBuild.deepIntentContractId}`);
+
+                    try {
+                        const satisfied = await checkAndFixDeepIntentSatisfaction(
+                            pendingBuild.projectId,
+                            pendingBuild.userId,
+                            pendingBuild.deepIntentContractId,
+                            context,
+                            context.orchestrationRunId
+                        );
+
+                        if (satisfied) {
+                            pendingBuild.status = 'complete';
+                            pendingBuilds.set(sessionId, pendingBuild);
+
+                            // P1-2: Create notification for build completion (via credentials flow)
+                            const notifService = getNotificationService();
+                            await notifService.sendNotification(
+                                pendingBuild.userId,
+                                ['push', 'email'],
+                                {
+                                    type: 'build_complete',
+                                    title: 'Build Complete!',
+                                    message: `Your app "${pendingBuild.plan.intentSummary?.slice(0, 40) || 'Your app'}..." is ready. All requirements verified!`,
+                                    featureAgentId: sessionId,
+                                    featureAgentName: 'Build Orchestrator',
+                                    actionUrl: `/builder/${pendingBuild.projectId}?showDemo=true`,
+                                    metadata: {
+                                        projectId: pendingBuild.projectId,
+                                        sessionId,
+                                        buildComplete: true,
+                                        deepIntentSatisfied: true,
+                                    },
+                                }
+                            );
+
+                            context.broadcast('builder-completed', {
+                                status: 'complete',
+                                projectId: pendingBuild.projectId,
+                                deepIntentSatisfied: true,
+                                message: 'Build complete! All requirements verified.',
+                            });
+                        } else {
+                            pendingBuild.status = 'failed';
+                            pendingBuilds.set(sessionId, pendingBuild);
+
+                            context.broadcast('builder-completed', {
+                                status: 'incomplete',
+                                projectId: pendingBuild.projectId,
+                                deepIntentSatisfied: false,
+                                message: 'Build finished but not all requirements are met.',
+                            });
+                        }
+                    } catch (deepIntentError) {
+                        console.error('[Execute:Credentials] Deep Intent check failed:', deepIntentError);
+                        pendingBuild.status = 'failed';
+                        pendingBuilds.set(sessionId, pendingBuild);
+
+                        context.broadcast('builder-error', {
+                            error: deepIntentError instanceof Error ? deepIntentError.message : 'Deep Intent verification failed',
+                        });
+                    }
+                } else {
+                    // No Deep Intent or build failed
+                    pendingBuild.status = buildState.status === 'complete' ? 'complete' : 'failed';
+                    pendingBuilds.set(sessionId, pendingBuild);
+
+                    if (buildState.status === 'complete') {
+                        // P1-2: Create notification for build completion without Deep Intent
+                        const notifService = getNotificationService();
+                        await notifService.sendNotification(
+                            pendingBuild.userId,
+                            ['push', 'email'],
+                            {
+                                type: 'build_complete',
+                                title: 'Build Complete!',
+                                message: `Your app "${pendingBuild.plan.intentSummary?.slice(0, 40) || 'Your app'}..." is ready. Click to see it in action!`,
+                                featureAgentId: sessionId,
+                                featureAgentName: 'Build Orchestrator',
+                                actionUrl: `/builder/${pendingBuild.projectId}?showDemo=true`,
+                                metadata: {
+                                    projectId: pendingBuild.projectId,
+                                    sessionId,
+                                    buildComplete: true,
+                                },
+                            }
+                        );
+
+                        context.broadcast('builder-completed', {
+                            status: 'complete',
+                            projectId: pendingBuild.projectId,
+                            message: 'Build complete (no Deep Intent verification).',
+                        });
+                    } else {
+                        context.broadcast('builder-completed', {
+                            status: buildState.status,
+                            projectId: pendingBuild.projectId,
+                            message: `Build ${buildState.status}.`,
+                        });
+                    }
+                }
 
             } catch (error) {
                 console.error(`[Execute:Credentials] Build failed:`, error);

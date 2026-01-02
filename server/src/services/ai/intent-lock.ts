@@ -11,10 +11,15 @@
 
 import { eq } from 'drizzle-orm';
 import { db } from '../../db.js';
-import { buildIntents, projects, orchestrationRuns, developerModeAgents, deepIntentContracts } from '../../schema.js';
+import { buildIntents, projects, orchestrationRuns, developerModeAgents, deepIntentContracts, files } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import type { OpenRouterModel } from './openrouter-client.js';
 import { createAPIDocumentationFetcher, type APIDocumentationFetcher } from './api-documentation-fetcher.js';
+import {
+    createCompletionGateEvaluator,
+    type EvaluationContext,
+    type GateEvaluationResult,
+} from '../verification/completion-gate-evaluator.js';
 
 // =============================================================================
 // TYPES
@@ -1652,6 +1657,16 @@ Return ONLY valid JSON with these fields:
 
     /**
      * Check if Deep Intent is satisfied - the core "are we DONE?" check
+     *
+     * Uses the CompletionGateEvaluator for comprehensive verification including:
+     * - Functional checklist verification
+     * - Integration requirements
+     * - Technical requirements
+     * - Wiring connections
+     * - Integration tests
+     * - Placeholder detection (actual file scanning)
+     * - Error detection (build output analysis)
+     * - Anti-slop scoring (visual quality)
      */
     async isDeepIntentSatisfied(contractId: string): Promise<DeepIntentSatisfactionResult> {
         const deepContract = await this.getDeepContract(contractId);
@@ -1671,121 +1686,54 @@ Return ONLY valid JSON with these fields:
             };
         }
 
-        // Calculate progress for each dimension
-        const fcVerified = deepContract.functionalChecklist.filter(fc => fc.verified).length;
-        const fcTotal = deepContract.functionalChecklist.length;
+        // ================================================================
+        // LOAD PROJECT FILES FOR COMPREHENSIVE VERIFICATION
+        // The CompletionGateEvaluator needs actual file contents to:
+        // - Scan for placeholders (TODO, FIXME, etc.)
+        // - Check for orphaned code
+        // - Verify wiring connections exist
+        // - Run anti-slop analysis on UI components
+        // ================================================================
+        const projectFiles = await db
+            .select()
+            .from(files)
+            .where(eq(files.projectId, deepContract.projectId));
 
-        const irVerified = deepContract.integrationRequirements.filter(ir => ir.verified).length;
-        const irTotal = deepContract.integrationRequirements.length;
-
-        const trVerified = deepContract.technicalRequirements.filter(tr => tr.verified).length;
-        const trTotal = deepContract.technicalRequirements.length;
-
-        const wcVerified = deepContract.wiringMap.filter(wc => wc.verified).length;
-        const wcTotal = deepContract.wiringMap.length;
-
-        const testsPassed = deepContract.integrationTests.filter(it => it.passed).length;
-        const testsTotal = deepContract.integrationTests.length;
-
-        // Calculate percentages
-        const fcPercentage = fcTotal > 0 ? Math.round((fcVerified / fcTotal) * 100) : 100;
-        const irPercentage = irTotal > 0 ? Math.round((irVerified / irTotal) * 100) : 100;
-        const trPercentage = trTotal > 0 ? Math.round((trVerified / trTotal) * 100) : 100;
-        const wcPercentage = wcTotal > 0 ? Math.round((wcVerified / wcTotal) * 100) : 100;
-        const testsPercentage = testsTotal > 0 ? Math.round((testsPassed / testsTotal) * 100) : 100;
-
-        // Overall progress is weighted average
-        const weights = { fc: 0.3, ir: 0.2, tr: 0.2, wc: 0.15, tests: 0.15 };
-        const overallProgress = Math.round(
-            fcPercentage * weights.fc +
-            irPercentage * weights.ir +
-            trPercentage * weights.tr +
-            wcPercentage * weights.wc +
-            testsPercentage * weights.tests
-        );
-
-        // Collect blockers
-        const blockers: Array<{ category: string; item: string; reason: string; suggestedFix?: string }> = [];
-
-        // Add unverified functional checklist items as blockers
-        for (const fc of deepContract.functionalChecklist.filter(f => !f.verified)) {
-            blockers.push({
-                category: 'functional',
-                item: fc.name,
-                reason: fc.description,
-                suggestedFix: `Implement and verify: ${fc.behavior.action}`,
-            });
+        const fileContents = new Map<string, string>();
+        for (const file of projectFiles) {
+            fileContents.set(file.path, file.content);
         }
 
-        // Add unverified integrations as blockers
-        for (const ir of deepContract.integrationRequirements.filter(i => !i.verified)) {
-            blockers.push({
-                category: 'integration',
-                item: ir.platform,
-                reason: `${ir.purpose} not verified`,
-                suggestedFix: `Configure and test ${ir.platform} API integration`,
-            });
-        }
-
-        // Add failed tests as blockers
-        for (const it of deepContract.integrationTests.filter(t => !t.passed)) {
-            blockers.push({
-                category: 'test',
-                item: it.name,
-                reason: it.lastError || 'Test not passed',
-                suggestedFix: `Fix failing test: ${it.description}`,
-            });
-        }
-
-        // Check completion gate
-        const gate: CompletionGate = {
-            functionalChecklistComplete: fcVerified === fcTotal && fcTotal > 0,
-            functionalChecklistCount: { verified: fcVerified, total: fcTotal },
-            integrationsComplete: irVerified === irTotal,
-            integrationsCount: { verified: irVerified, total: irTotal },
-            technicalRequirementsComplete: trVerified === trTotal && trTotal > 0,
-            technicalRequirementsCount: { verified: trVerified, total: trTotal },
-            wiringComplete: wcVerified === wcTotal,
-            wiringCount: { verified: wcVerified, total: wcTotal },
-            integrationTestsPassed: testsPassed === testsTotal,
-            testsCount: { passed: testsPassed, total: testsTotal },
-            noPlaceholders: deepContract.completionGate.noPlaceholders,
-            placeholdersFound: deepContract.completionGate.placeholdersFound,
-            noErrors: deepContract.completionGate.noErrors,
-            errorsFound: deepContract.completionGate.errorsFound,
-            antiSlopScore: deepContract.completionGate.antiSlopScore,
-            intentSatisfied: false,
-            blockers: blockers.map(b => `${b.category}: ${b.item}`),
+        // Build evaluation context
+        const context: EvaluationContext = {
+            fileContents,
+            // buildOutput and consoleOutput could be provided if available
+            // screenshotPaths could be provided if available
         };
 
-        // Intent is satisfied only when ALL conditions are met
-        gate.intentSatisfied =
-            gate.functionalChecklistComplete &&
-            gate.integrationsComplete &&
-            gate.technicalRequirementsComplete &&
-            gate.wiringComplete &&
-            gate.integrationTestsPassed &&
-            gate.noPlaceholders &&
-            gate.noErrors &&
-            gate.antiSlopScore >= 85;
+        // ================================================================
+        // USE COMPLETION GATE EVALUATOR FOR COMPREHENSIVE VERIFICATION
+        // This performs deep analysis that the simplified version couldn't do
+        // ================================================================
+        const evaluator = createCompletionGateEvaluator(this.userId, deepContract.projectId);
+        const evaluation: GateEvaluationResult = await evaluator.evaluate(deepContract, context);
 
-        return {
-            satisfied: gate.intentSatisfied,
-            gate,
-            progress: {
-                functionalChecklist: { completed: fcVerified, total: fcTotal, percentage: fcPercentage },
-                integrations: { completed: irVerified, total: irTotal, percentage: irPercentage },
-                technicalRequirements: { completed: trVerified, total: trTotal, percentage: trPercentage },
-                wiring: { completed: wcVerified, total: wcTotal, percentage: wcPercentage },
-                tests: { passed: testsPassed, total: testsTotal, percentage: testsPercentage },
-            },
-            blockers,
-            overallProgress,
-            estimatedRemainingWork: {
-                items: (fcTotal - fcVerified) + (irTotal - irVerified) + (testsTotal - testsPassed),
-                estimatedMinutes: Math.ceil(((fcTotal - fcVerified) + (irTotal - irVerified)) * 2),
-            },
-        };
+        // Convert to DeepIntentSatisfactionResult format
+        const result: DeepIntentSatisfactionResult = evaluator.toSatisfactionResult(deepContract, evaluation);
+
+        // ================================================================
+        // UPDATE DATABASE WITH LATEST COMPLETION GATE STATE
+        // Persist the verification results for future reference
+        // ================================================================
+        await db
+            .update(deepIntentContracts)
+            .set({
+                completionGate: evaluation.gate as any, // Store as JSON
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(deepIntentContracts.id, contractId));
+
+        return result;
     }
 
     /**
@@ -1843,11 +1791,28 @@ Return ONLY valid JSON with these fields:
 
         const updatedGate = { ...deepContract.completionGate, ...updates };
 
+        // Build update object with both JSON and denormalized columns
+        const updateData: Record<string, unknown> = {
+            completionGate: updatedGate as Record<string, unknown>,
+            updatedAt: new Date().toISOString(),
+        };
+
+        // Update denormalized anti-slop score column if provided
+        if (typeof updates.antiSlopScore === 'number') {
+            updateData.antiSlopScore = updates.antiSlopScore;
+        }
+
+        // Update intent satisfied status if the gate now shows satisfaction
+        if (updatedGate.intentSatisfied && !deepContract.completionGate.intentSatisfied) {
+            updateData.intentSatisfied = true;
+            updateData.satisfiedAt = new Date().toISOString();
+        } else if (!updatedGate.intentSatisfied && deepContract.completionGate.intentSatisfied) {
+            updateData.intentSatisfied = false;
+            updateData.satisfiedAt = null;
+        }
+
         await db.update(deepIntentContracts)
-            .set({
-                completionGate: updatedGate as Record<string, unknown>,
-                updatedAt: new Date().toISOString(),
-            })
+            .set(updateData)
             .where(eq(deepIntentContracts.intentContractId, contractId));
     }
 
