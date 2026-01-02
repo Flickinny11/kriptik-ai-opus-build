@@ -15,26 +15,9 @@
 import { Router, Request, Response } from 'express';
 import { nangoService, NANGO_INTEGRATIONS, type IntegrationId } from '../services/integrations/nango-service.js';
 import { writeCredentialsToProjectEnv } from '../services/credentials/credential-env-bridge.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
-
-// ============================================================================
-// MIDDLEWARE
-// ============================================================================
-
-/**
- * Require authentication middleware
- */
-function requireAuth(req: Request, res: Response, next: Function) {
-    const userId = req.headers['x-user-id'] as string || (req as any).session?.userId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    (req as any).userId = userId;
-    next();
-}
 
 // ============================================================================
 // PUBLIC ROUTES (Configuration Info)
@@ -133,8 +116,8 @@ router.get('/public-key', (req: Request, res: Response) => {
 // AUTHENTICATED ROUTES
 // ============================================================================
 
-// Apply auth middleware to all routes below
-router.use(requireAuth);
+// Apply secure cookie-based auth middleware to all routes below
+router.use(authMiddleware);
 
 /**
  * GET /api/nango/auth-url
@@ -142,7 +125,7 @@ router.use(requireAuth);
  */
 router.get('/auth-url', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationId, projectId, redirectUrl } = req.query;
 
         if (!integrationId || typeof integrationId !== 'string') {
@@ -198,7 +181,7 @@ router.get('/auth-url', async (req: Request, res: Response) => {
  */
 router.get('/connection/:integrationId', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationId } = req.params;
 
         const connected = await nangoService.isConnected({
@@ -229,7 +212,7 @@ router.get('/connection/:integrationId', async (req: Request, res: Response) => 
  */
 router.get('/connections', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationIds } = req.query;
 
         let integrationIdList: IntegrationId[] | undefined;
@@ -258,7 +241,7 @@ router.get('/connections', async (req: Request, res: Response) => {
  */
 router.post('/disconnect/:integrationId', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationId } = req.params;
 
         await nangoService.deleteConnection({
@@ -288,7 +271,7 @@ router.post('/disconnect/:integrationId', async (req: Request, res: Response) =>
  */
 router.post('/credentials/:integrationId', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationId } = req.params;
         const { projectId, writeToEnv = true } = req.body;
 
@@ -365,7 +348,7 @@ router.post('/credentials/:integrationId', async (req: Request, res: Response) =
  */
 router.get('/token/:integrationId', async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = req.user!.id;
         const { integrationId } = req.params;
 
         const token = await nangoService.getAccessToken({
