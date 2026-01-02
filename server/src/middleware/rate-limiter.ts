@@ -1,8 +1,31 @@
 /**
  * Rate Limiter Middleware
  *
- * Implements sliding window rate limiting for API endpoints using Upstash Redis.
- * Supports tiered limits based on user subscription level.
+ * =======================================================================
+ * CREDIT-BASED ARCHITECTURE (December 2025)
+ * =======================================================================
+ *
+ * PHILOSOPHY:
+ * - Authenticated users: NO request rate limits
+ *   → The credit ceiling system handles all usage limits
+ *   → Complex builds need thousands of API calls - don't block them
+ *   → Let users build freely within their credit budget
+ *
+ * - Unauthenticated users: Minimal anti-abuse limits only
+ *   → Prevents basic DDoS/abuse from anonymous traffic
+ *   → Very permissive - just blocks obvious abuse patterns
+ *
+ * COST CONTROL:
+ * - Credit Ceiling System (server/src/services/billing/credit-ceiling.ts)
+ *   → Per-build credit limits
+ *   → Warning popup at 75%, 90%, 100%
+ *   → Integrated with Ghost Mode for autonomous building
+ *
+ * This is better because:
+ * 1. A 6-agent verification swarm making 100 requests/minute is NORMAL
+ * 2. Complex builds can use 1,000-4,000 API calls - don't limit that
+ * 3. Credit system provides fair usage control based on actual cost
+ * 4. Users pay for what they use, not penalized for complexity
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -31,22 +54,23 @@ interface RateLimitEntry {
 // RATE LIMIT CONFIGURATIONS
 // ============================================================================
 
-// VIRAL TRAFFIC READY: Increased limits to handle high concurrency
+// CREDIT-BASED ARCHITECTURE: Authenticated users bypass rate limits
+// The credit ceiling system handles usage control
 const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
     free: {
-        windowMs: 60 * 1000,  // 1 minute
-        maxRequests: 300,     // Increased for viral traffic - allows ~5 requests/second
-        message: 'Rate limit exceeded. Upgrade to Pro for higher limits.',
+        windowMs: 60 * 1000,
+        maxRequests: Infinity,  // NO rate limit - credit ceiling handles limits
+        message: '',
     },
     pro: {
         windowMs: 60 * 1000,
-        maxRequests: 1000,    // Increased for viral traffic - allows ~17 requests/second
-        message: 'Rate limit exceeded. Contact support for enterprise limits.',
+        maxRequests: Infinity,  // NO rate limit - credit ceiling handles limits
+        message: '',
     },
     enterprise: {
         windowMs: 60 * 1000,
-        maxRequests: 3000,    // Increased for viral traffic - allows ~50 requests/second
-        message: 'Rate limit exceeded. Please try again shortly.',
+        maxRequests: Infinity,  // NO rate limit - credit ceiling handles limits
+        message: '',
     },
     unlimited: {
         windowMs: 60 * 1000,
@@ -55,29 +79,36 @@ const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
     },
 };
 
-// Route-specific limits (override tier limits for specific routes)
-// These are BASE limits that get multiplied by tier multiplier
-// VIRAL TRAFFIC READY: Increased for high concurrency
+// ANTI-ABUSE LIMITS for unauthenticated traffic only
+// These are very permissive - just blocking obvious abuse
+const UNAUTHENTICATED_LIMITS: RateLimitConfig = {
+    windowMs: 60 * 1000,  // 1 minute
+    maxRequests: 100,     // 100 requests/minute for anonymous users
+    message: 'Please sign in to continue. Anonymous rate limit exceeded.',
+};
+
+// Route-specific limits removed - credit ceiling handles all limits
+// Keeping structure for backwards compatibility but all set to Infinity
 const ROUTE_LIMITS: Record<string, RateLimitConfig> = {
     '/api/ai/generate': {
         windowMs: 60 * 1000,
-        maxRequests: 60,  // Increased from 20 - allows bursts during active building
-        message: 'Generation rate limit exceeded. Please wait before generating more.',
+        maxRequests: Infinity,  // Credit ceiling handles this
+        message: '',
     },
     '/api/orchestrate': {
         windowMs: 60 * 1000,
-        maxRequests: 30,  // Increased from 10 - multiple phases per minute
-        message: 'Orchestration rate limit exceeded. Please wait before starting another build.',
+        maxRequests: Infinity,  // Credit ceiling handles this
+        message: '',
     },
     '/api/autonomous': {
         windowMs: 60 * 1000,
-        maxRequests: 15,  // Increased from 5 - autonomous building
-        message: 'Autonomous build limit exceeded. Please wait for current build to complete.',
+        maxRequests: Infinity,  // Credit ceiling handles this
+        message: '',
     },
     '/api/krip-toe-nite': {
         windowMs: 60 * 1000,
-        maxRequests: 100, // Increased from 30 - main builder interface
-        message: 'Builder rate limit exceeded. Please wait before making more requests.',
+        maxRequests: Infinity,  // Credit ceiling handles this
+        message: '',
     },
 };
 
@@ -262,36 +293,36 @@ function setRateLimitHeaders(
 
 /**
  * Create a rate limiter middleware with Upstash Redis
+ *
+ * CREDIT-BASED ARCHITECTURE:
+ * - Authenticated users: BYPASS rate limits (credit ceiling handles limits)
+ * - Unauthenticated users: Minimal anti-abuse limits only
  */
 export function createRateLimiter(options?: Partial<RateLimitConfig>) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const identifier = getUserIdentifier(req);
         const tier = getUserTier(req);
-        const path = req.path;
+        const isAuthenticated = identifier.startsWith('user:');
 
-        // Unlimited tier bypasses rate limiting
-        if (tier === 'unlimited') {
+        // AUTHENTICATED USERS: No rate limits - credit ceiling handles everything
+        // This allows complex builds with 1,000+ API calls per build
+        if (isAuthenticated) {
             return next();
         }
 
-        // Get applicable rate limit config
-        const routeLimit = getRouteLimit(path);
-        const tierLimit = TIER_LIMITS[tier];
-
-        // Route-specific limits multiply with tier limits
-        const effectiveConfig: RateLimitConfig = {
-            windowMs: options?.windowMs || routeLimit?.windowMs || tierLimit.windowMs,
-            maxRequests: options?.maxRequests ||
-                (routeLimit ? Math.min(routeLimit.maxRequests * getTierMultiplier(tier), tierLimit.maxRequests) : tierLimit.maxRequests),
-            message: routeLimit?.message || tierLimit.message,
-        };
+        // UNAUTHENTICATED USERS: Apply minimal anti-abuse limits
+        const effectiveConfig = options?.maxRequests
+            ? { ...UNAUTHENTICATED_LIMITS, maxRequests: options.maxRequests }
+            : UNAUTHENTICATED_LIMITS;
 
         if (effectiveConfig.maxRequests === Infinity) {
             return next();
         }
 
-        // Try Upstash rate limiter first
-        const upstashLimiter = getUpstashRateLimiter(tier, routeLimit ? path : undefined);
+        const path = req.path;
+
+        // Try Upstash rate limiter first (for unauthenticated users only)
+        const upstashLimiter = getUpstashRateLimiter('free'); // Use free tier for anonymous
 
         if (upstashLimiter) {
             try {
@@ -320,7 +351,7 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
             }
         }
 
-        // Fallback to in-memory rate limiting
+        // Fallback to in-memory rate limiting for unauthenticated users
         const now = Date.now();
         const key = `${identifier}:${path}`;
         let entry = fallbackStore.get(key);
@@ -374,47 +405,87 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
 // SPECIALIZED RATE LIMITERS
 // ============================================================================
 
+// CREDIT-BASED ARCHITECTURE: These are now passthroughs for authenticated users
+// Only apply limits to unauthenticated traffic
+
 /**
  * Rate limiter for AI generation endpoints
- * VIRAL TRAFFIC READY: Increased limits
+ * Authenticated users: BYPASSED (credit ceiling handles limits)
+ * Unauthenticated: 100 req/min anti-abuse
  */
-export const aiRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000,
-    maxRequests: 60,  // Increased from 20 - allows bursts during active building
-});
+export const aiRateLimiter = createRateLimiter();
 
 /**
  * Rate limiter for orchestration endpoints
- * VIRAL TRAFFIC READY: Increased limits
+ * Authenticated users: BYPASSED (credit ceiling handles limits)
+ * Unauthenticated: 100 req/min anti-abuse
  */
-export const orchestrationRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000,
-    maxRequests: 30,  // Increased from 10 - multiple phases per minute
-});
+export const orchestrationRateLimiter = createRateLimiter();
 
 /**
  * Rate limiter for autonomous building
- * VIRAL TRAFFIC READY: Increased limits
+ * Authenticated users: BYPASSED (credit ceiling handles limits)
+ * Unauthenticated: 100 req/min anti-abuse
  */
-export const autonomousRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000,
-    maxRequests: 15,  // Increased from 5 - longer running operations
-});
+export const autonomousRateLimiter = createRateLimiter();
 
 /**
  * General API rate limiter
- * Uses tier-based limits from TIER_LIMITS config
+ * Authenticated users: BYPASSED (credit ceiling handles limits)
+ * Unauthenticated: 100 req/min anti-abuse
  */
 export const generalRateLimiter = createRateLimiter();
 
 /**
  * Strict rate limiter for sensitive operations
- * Keep this low for security (password reset, account deletion, etc.)
+ * APPLIES TO ALL USERS (including authenticated) for security-critical operations
+ * (password reset, account deletion, payment operations, etc.)
  */
-export const strictRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000,
-    maxRequests: 10,  // Increased from 3 but still restrictive for security
-});
+export function createStrictRateLimiter(maxRequests: number = 10) {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        const identifier = getUserIdentifier(req);
+        const now = Date.now();
+        const windowMs = 60 * 1000;
+        const key = `strict:${identifier}:${req.path}`;
+
+        let entry = fallbackStore.get(key);
+
+        if (!entry || now > entry.resetTime) {
+            entry = {
+                count: 1,
+                resetTime: now + windowMs,
+                firstRequest: now,
+            };
+            fallbackStore.set(key, entry);
+            setRateLimitHeaders(res, maxRequests, maxRequests - 1, entry.resetTime);
+            return next();
+        }
+
+        entry.count++;
+        fallbackStore.set(key, entry);
+
+        const remaining = Math.max(0, maxRequests - entry.count);
+        setRateLimitHeaders(res, maxRequests, remaining, entry.resetTime);
+
+        if (entry.count > maxRequests) {
+            const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+            res.setHeader('Retry-After', retryAfter.toString());
+            res.status(429).json({
+                error: 'Too Many Requests',
+                message: 'Rate limit exceeded for sensitive operation. Please wait.',
+                retryAfter,
+                limit: maxRequests,
+                remaining: 0,
+                resetAt: new Date(entry.resetTime).toISOString(),
+            });
+            return;
+        }
+
+        next();
+    };
+}
+
+export const strictRateLimiter = createStrictRateLimiter(10);
 
 // ============================================================================
 // COST-BASED RATE LIMITING
