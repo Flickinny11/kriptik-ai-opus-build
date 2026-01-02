@@ -16,6 +16,7 @@ import {
 } from '../services/billing/stripe-setup.js';
 import { getCreditPoolService } from '../services/billing/credit-pool.js';
 import { getUsageService } from '../services/billing/usage-service.js';
+import { getCreditCeilingService } from '../services/billing/credit-ceiling.js';
 import { db } from '../db.js';
 import { subscriptions, users } from '../schema.js';
 import { eq } from 'drizzle-orm';
@@ -298,6 +299,168 @@ router.get('/invoices', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching invoices:', error);
         res.status(500).json({ error: 'Failed to fetch invoices' });
+    }
+});
+
+/**
+ * GET /api/billing/ceiling
+ * Get user's credit ceiling status
+ */
+router.get('/ceiling', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const buildId = req.query.buildId as string | undefined;
+
+        const ceilingService = getCreditCeilingService();
+        const status = await ceilingService.getCeilingStatus(userId, buildId);
+
+        res.json(status);
+    } catch (error) {
+        console.error('Error fetching ceiling status:', error);
+        res.status(500).json({ error: 'Failed to fetch ceiling status' });
+    }
+});
+
+/**
+ * POST /api/billing/ceiling
+ * Update user's credit ceiling
+ *
+ * Body:
+ * - ceiling: number | null (null for unlimited)
+ */
+router.post('/ceiling', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { ceiling } = req.body;
+
+        // Validate ceiling
+        if (ceiling !== null && (typeof ceiling !== 'number' || ceiling < 0)) {
+            res.status(400).json({ error: 'Ceiling must be a positive number or null for unlimited' });
+            return;
+        }
+
+        const ceilingService = getCreditCeilingService();
+        const status = await ceilingService.setCeiling(userId, ceiling);
+
+        res.json({
+            success: true,
+            status,
+            message: ceiling === null
+                ? 'Credit ceiling removed (unlimited)'
+                : `Credit ceiling set to ${ceiling} credits`,
+        });
+    } catch (error) {
+        console.error('Error updating ceiling:', error);
+        res.status(500).json({ error: 'Failed to update ceiling' });
+    }
+});
+
+/**
+ * POST /api/billing/ceiling/check
+ * Check if an operation can proceed given current ceiling
+ *
+ * Body:
+ * - estimatedCost: number (credits)
+ * - buildId?: string (optional, for better estimation)
+ */
+router.post('/ceiling/check', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { estimatedCost, buildId } = req.body;
+
+        if (typeof estimatedCost !== 'number' || estimatedCost < 0) {
+            res.status(400).json({ error: 'estimatedCost must be a positive number' });
+            return;
+        }
+
+        const ceilingService = getCreditCeilingService();
+        const result = await ceilingService.checkCeiling(userId, estimatedCost, buildId);
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error checking ceiling:', error);
+        res.status(500).json({ error: 'Failed to check ceiling' });
+    }
+});
+
+/**
+ * POST /api/billing/ceiling/adjust
+ * Quick adjustment to ceiling (add amount)
+ *
+ * Body:
+ * - amount: number (credits to add, can be negative)
+ */
+router.post('/ceiling/adjust', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { amount } = req.body;
+
+        if (typeof amount !== 'number') {
+            res.status(400).json({ error: 'amount must be a number' });
+            return;
+        }
+
+        const ceilingService = getCreditCeilingService();
+        const status = await ceilingService.adjustCeilingBy(userId, amount);
+
+        res.json({
+            success: true,
+            status,
+            message: `Credit ceiling adjusted by ${amount > 0 ? '+' : ''}${amount} credits`,
+        });
+    } catch (error) {
+        console.error('Error adjusting ceiling:', error);
+        res.status(500).json({ error: 'Failed to adjust ceiling' });
+    }
+});
+
+/**
+ * POST /api/billing/ceiling/unlimited
+ * Set ceiling to unlimited
+ */
+router.post('/ceiling/unlimited', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+
+        const ceilingService = getCreditCeilingService();
+        const status = await ceilingService.setUnlimited(userId);
+
+        res.json({
+            success: true,
+            status,
+            message: 'Credit ceiling set to unlimited',
+        });
+    } catch (error) {
+        console.error('Error setting unlimited ceiling:', error);
+        res.status(500).json({ error: 'Failed to set unlimited ceiling' });
+    }
+});
+
+/**
+ * POST /api/billing/ceiling/warning
+ * Record that a warning was shown to the user (for analytics)
+ *
+ * Body:
+ * - threshold: number (75, 90, or 100)
+ * - buildId?: string
+ */
+router.post('/ceiling/warning', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { threshold, buildId } = req.body;
+
+        if (typeof threshold !== 'number') {
+            res.status(400).json({ error: 'threshold must be a number' });
+            return;
+        }
+
+        const ceilingService = getCreditCeilingService();
+        await ceilingService.recordWarningShown(userId, threshold, buildId);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error recording warning:', error);
+        res.status(500).json({ error: 'Failed to record warning' });
     }
 });
 

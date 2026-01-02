@@ -663,6 +663,7 @@ import generateRouter from './routes/generate.js';
 import cloudRouter from './routes/cloud.js';
 import deployRouter from './routes/deploy.js';
 import billingRouter from './routes/billing.js';
+import ceilingRouter from './routes/ceiling.js';
 import orchestrateRouter from './routes/orchestrate.js';
 import exportRouter from './routes/export.js';
 import aiRouter from './routes/ai.js';
@@ -742,6 +743,9 @@ app.use("/api/mcp", mcpRouter);
 
 // Billing
 app.use("/api/billing", billingRouter);
+
+// Credit Ceiling - No credit requirement (monitoring only)
+app.use("/api/ceiling", ceilingRouter);
 
 // Templates
 app.use("/api/templates", templatesRouter);

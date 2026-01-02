@@ -20,7 +20,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning' | 'credentials_needed' | 'build_paused' | 'build_resumed' | 'build_complete';
+export type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning' | 'credentials_needed' | 'build_paused' | 'build_resumed' | 'build_complete' | 'ceiling_warning';
 export type NotificationChannel = 'email' | 'sms' | 'slack' | 'push';
 
 export interface ScreenshotOptions {

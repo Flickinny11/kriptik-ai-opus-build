@@ -11,6 +11,7 @@
 import { db } from '../../db.js';
 import { users, generations, projects } from '../../schema.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
+import { getCeilingNotificationService } from '../notifications/ceiling-notification-service.js';
 
 // ============================================================================
 // TYPES
@@ -224,10 +225,31 @@ export class CreditService {
 
         const newBalance = credits.balance - amount;
 
+        // Check ceiling and send notifications if thresholds reached
+        const newUsage = credits.usedThisMonth + amount;
+        void this.checkCeilingAndNotify(userId, newUsage);
+
         return {
             success: true,
             newBalance,
         };
+    }
+
+    /**
+     * Check credit ceiling and send notifications if needed
+     * (Called after credit deductions)
+     */
+    private async checkCeilingAndNotify(userId: string, currentUsage: number): Promise<void> {
+        try {
+            const ceilingService = getCeilingNotificationService();
+            await ceilingService.monitorAndNotify(userId, currentUsage, {
+                includeUsageProjection: true,
+                includeTimeEstimate: true,
+            });
+        } catch (error) {
+            console.error('[CreditService] Failed to check ceiling:', error);
+            // Don't throw - ceiling notifications are non-critical
+        }
     }
 
     /**

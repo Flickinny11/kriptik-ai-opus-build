@@ -13,6 +13,7 @@ export const users = sqliteTable('users', {
     image: text('image'),
     credits: integer('credits').default(500).notNull(),
     tier: text('tier').default('free').notNull(), // free, pro, enterprise
+    creditCeiling: integer('credit_ceiling'), // Optional spending limit per month (null = no limit)
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -76,7 +77,20 @@ export const notificationPreferences = sqliteTable('notification_preferences', {
     slackWebhook: text('slack_webhook'),
     pushEnabled: integer('push_enabled', { mode: 'boolean' }).default(false),
     pushSubscription: text('push_subscription'), // JSON
+    ceilingAlertsEnabled: integer('ceiling_alerts_enabled', { mode: 'boolean' }).default(true),
+    ceilingAlertChannels: text('ceiling_alert_channels').default('["email"]'), // JSON array of channels
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Ceiling notification history (prevents spam)
+export const ceilingNotificationHistory = sqliteTable('ceiling_notification_history', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    threshold: integer('threshold').notNull(), // 75, 90, 100
+    usageAtNotification: integer('usage_at_notification').notNull(),
+    ceilingAtNotification: integer('ceiling_at_notification').notNull(),
+    monthKey: text('month_key').notNull(), // YYYY-MM format
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
 // Generations table
@@ -880,6 +894,97 @@ export const buildSessionProgress = sqliteTable('build_session_progress', {
     costTotal: integer('cost_total').default(0),
     hasBlockingError: integer('has_blocking_error', { mode: 'boolean' }).default(false),
     blockingErrorMessage: text('blocking_error_message'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Build Freeze States - Complete build context preservation for pause/resume
+ *
+ * Freezing is NOT stopping - it preserves everything for seamless resume:
+ * - Complete BuildLoopState snapshot
+ * - All active agent states and contexts
+ * - All file states and modifications
+ * - Task progress and completion status
+ * - Intent contract and artifacts
+ * - Verification results and swarm status
+ * - Memory Harness context (compressed but restorable)
+ *
+ * Freeze triggers:
+ * - Credit ceiling reached
+ * - User manual pause
+ * - Error requiring human input
+ * - Human checkpoint approval needed
+ */
+export const buildFreezeStates = sqliteTable('build_freeze_states', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orchestrationRunId: text('orchestration_run_id').references(() => orchestrationRuns.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    buildIntentId: text('build_intent_id').references(() => buildIntents.id),
+
+    // Freeze metadata
+    freezeReason: text('freeze_reason').notNull(), // 'credit_ceiling' | 'manual_pause' | 'error_human_input' | 'approval_needed'
+    freezeMessage: text('freeze_message'),
+    canResume: integer('can_resume', { mode: 'boolean' }).default(true).notNull(),
+    isResumed: integer('is_resumed', { mode: 'boolean' }).default(false).notNull(),
+    resumedAt: text('resumed_at'),
+
+    // Complete BuildLoopState snapshot (serialized)
+    buildLoopState: text('build_loop_state', { mode: 'json' }).notNull(),
+
+    // Active agents state (array of agent states)
+    activeAgents: text('active_agents', { mode: 'json' }).$type<unknown[]>().default([]),
+
+    // File states (map of filePath -> fileContent + metadata)
+    fileStates: text('file_states', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+
+    // Task progress (from artifact manager)
+    taskProgress: text('task_progress', { mode: 'json' }).$type<unknown>().notNull(),
+
+    // Artifacts snapshot (intent contract, feature list, etc.)
+    artifactsSnapshot: text('artifacts_snapshot', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+
+    // Verification swarm results at freeze time
+    verificationResults: text('verification_results', { mode: 'json' }),
+
+    // Memory Harness context (compressed)
+    memoryContext: text('memory_context', { mode: 'json' }),
+
+    // Parallel build state (if in Phase 2)
+    parallelBuildState: text('parallel_build_state', { mode: 'json' }),
+
+    // LATTICE state (if using parallel cell building)
+    latticeState: text('lattice_state', { mode: 'json' }),
+
+    // Context Sync state (agent-to-agent shared context)
+    contextSyncState: text('context_sync_state', { mode: 'json' }),
+
+    // Checkpoint reference (Time Machine)
+    checkpointId: text('checkpoint_id').references(() => buildCheckpoints.id),
+
+    // Progress metrics at freeze time
+    currentPhase: text('current_phase').notNull(),
+    currentStage: text('current_stage').notNull(),
+    stageProgress: integer('stage_progress').default(0),
+    overallProgress: integer('overall_progress').default(0),
+    phasesCompleted: text('phases_completed', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Credits and cost tracking
+    creditsUsedAtFreeze: integer('credits_used_at_freeze').default(0),
+    tokensUsedAtFreeze: integer('tokens_used_at_freeze').default(0),
+    estimatedCreditsToComplete: integer('estimated_credits_to_complete'),
+
+    // Error state (if frozen due to error)
+    errorCount: integer('error_count').default(0),
+    lastError: text('last_error'),
+    escalationLevel: integer('escalation_level').default(0),
+
+    // Browser state (if using browser automation)
+    browserState: text('browser_state', { mode: 'json' }),
+
+    // Timestamp tracking
+    frozenAt: text('frozen_at').default(sql`(datetime('now'))`).notNull(),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
