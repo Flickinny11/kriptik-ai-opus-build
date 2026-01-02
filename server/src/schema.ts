@@ -2914,3 +2914,135 @@ export const integrationRequirements = sqliteTable('integration_requirements', {
 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// ============================================================================
+// TASK DISTRIBUTION - Parallel agent task distribution system
+// ============================================================================
+
+/**
+ * Distributed Tasks - Tasks to be distributed across parallel agents
+ */
+export const distributedTasks = sqliteTable('distributed_tasks', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    distributionId: text('distribution_id').notNull(), // Links tasks from same distribution
+    buildId: text('build_id').notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Task details
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    type: text('type').notNull().$type<
+        'feature_implementation' | 'bug_fix' | 'integration' | 'testing' | 'documentation' | 'refactoring' | 'deployment'
+    >(),
+    priority: text('priority').notNull().$type<'critical' | 'high' | 'medium' | 'low'>(),
+    estimatedDuration: integer('estimated_duration').notNull(), // minutes
+
+    // File context
+    filesToModify: text('files_to_modify', { mode: 'json' }).$type<string[]>(),
+    filesToRead: text('files_to_read', { mode: 'json' }).$type<string[]>(),
+
+    // Status
+    status: text('status').default('pending').notNull().$type<
+        'pending' | 'queued' | 'in_progress' | 'completed' | 'failed' | 'blocked'
+    >(),
+
+    // Metadata
+    metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Task Dependencies - Tracks dependencies between tasks
+ */
+export const taskDependencies = sqliteTable('task_dependencies', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    taskId: text('task_id').references(() => distributedTasks.id, { onDelete: 'cascade' }).notNull(),
+    dependsOnTaskId: text('depends_on_task_id').references(() => distributedTasks.id, { onDelete: 'cascade' }).notNull(),
+
+    // Type of dependency
+    dependencyType: text('dependency_type').notNull().$type<
+        'sequential' | 'data' | 'file' | 'integration'
+    >(),
+
+    // Metadata
+    reason: text('reason'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Task Assignments - Tracks which agent is assigned to which task
+ */
+export const taskAssignments = sqliteTable('task_assignments', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    taskId: text('task_id').references(() => distributedTasks.id, { onDelete: 'cascade' }).notNull(),
+    agentId: text('agent_id').notNull(),
+    agentName: text('agent_name').notNull(),
+    agentType: text('agent_type').notNull(),
+
+    // Assignment lifecycle
+    assignedAt: text('assigned_at').default(sql`(datetime('now'))`).notNull(),
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+
+    // Status
+    status: text('status').default('assigned').notNull().$type<
+        'assigned' | 'in_progress' | 'completed' | 'failed' | 'reassigned'
+    >(),
+
+    // Retry tracking
+    retryCount: integer('retry_count').default(0).notNull(),
+    maxRetries: integer('max_retries').default(3).notNull(),
+    lastError: text('last_error'),
+
+    // Result
+    result: text('result', { mode: 'json' }).$type<Record<string, unknown>>(),
+
+    // File locks held during execution
+    lockedFiles: text('locked_files', { mode: 'json' }).$type<string[]>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Task Distribution Sessions - Tracks overall distribution runs
+ */
+export const taskDistributionSessions = sqliteTable('task_distribution_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    distributionId: text('distribution_id').notNull().unique(),
+    buildId: text('build_id').notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Configuration
+    maxAgents: integer('max_agents').default(5).notNull(),
+    maxRetriesPerTask: integer('max_retries_per_task').default(3).notNull(),
+    enableFileConflictPrevention: integer('enable_file_conflict_prevention', { mode: 'boolean' }).default(true).notNull(),
+    enableContextSharing: integer('enable_context_sharing', { mode: 'boolean' }).default(true).notNull(),
+
+    // Status
+    status: text('status').default('pending').notNull().$type<
+        'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+    >(),
+
+    // Progress
+    totalTasks: integer('total_tasks').default(0).notNull(),
+    completedTasks: integer('completed_tasks').default(0).notNull(),
+    failedTasks: integer('failed_tasks').default(0).notNull(),
+    activeAgents: integer('active_agents').default(0).notNull(),
+
+    // Metrics
+    parallelLayers: integer('parallel_layers').default(0).notNull(),
+    maxParallelism: integer('max_parallelism').default(0).notNull(),
+    estimatedDuration: integer('estimated_duration').default(0).notNull(), // minutes
+    actualDuration: integer('actual_duration'), // minutes
+
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

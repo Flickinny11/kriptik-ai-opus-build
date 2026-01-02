@@ -95,6 +95,12 @@ import {
     type BuildContextSummary,
 } from '../agents/context-overflow.js';
 import {
+    createParallelAgentManager,
+    type ParallelAgentManager,
+    type ParallelBuildResult,
+    type AgentActivityEvent,
+} from './parallel-agent-manager.js';
+import {
     VerificationSwarm,
     createVerificationSwarm,
     type CombinedVerificationResult,
@@ -1728,21 +1734,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
             }
 
             // =====================================================================
-            // TRADITIONAL BUILD: Task-based feature building
+            // PARALLEL BUILD: Multi-agent parallel execution
+            // Uses ParallelAgentManager for TRUE parallel building
+            // Up to maxAgents concurrent coding agents with automatic handoff at 180K tokens
             // =====================================================================
 
-            // Create coding agent wrapper for this phase
-            const codingAgent = createCodingAgentWrapper({
-                projectId: this.state.projectId,
-                userId: this.state.userId,
-                orchestrationRunId: this.state.orchestrationRunId,
-                projectPath: this.projectPath,
-                agentType: 'build',
-                agentId: `build-${stage}-${Date.now()}`,
-            });
-
-            // Load context from artifacts
-            await codingAgent.startSession();
+            console.log(`[BuildLoop] Starting parallel build with maxAgents=${this.state.config.maxAgents}`);
 
             // =====================================================================
             // ORPHANED FEATURES: Process images and API integrations
@@ -1767,180 +1764,78 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 }
             }
 
-            // Get tasks for this stage from task list
-            // We'll claim tasks one by one and build them
-            let task = await codingAgent.claimTask();
+            // Create parallel agent manager
+            const parallelAgentManager = createParallelAgentManager({
+                maxAgents: this.state.config.maxAgents,
+                projectId: this.state.projectId,
+                userId: this.state.userId,
+                orchestrationRunId: this.state.orchestrationRunId,
+                projectPath: this.projectPath,
+                stage: stage,
+                intentContract: this.state.intentContract,
+                verbose: true,
+            });
 
-            while (task && !this.aborted) {
-                console.log(`[BuildLoop] Building task: ${task.id} - ${task.description}`);
+            // Forward agent activity events to build loop events
+            parallelAgentManager.on('activity', (event: AgentActivityEvent) => {
+                // Emit detailed agent activity
+                this.emitEvent('agent-progress', {
+                    slotId: event.slotId,
+                    agentId: event.agentId,
+                    type: event.type,
+                    timestamp: event.timestamp,
+                    ...event.data,
+                });
 
-                // =====================================================================
-                // LEARNING ENGINE: Get relevant patterns before building
-                // SPEED: Instant in-memory lookup from pre-cached data
-                // =====================================================================
-                let patternContext = '';
-                if (this.learningEnabled && this.learningCacheLoaded) {
-                    const patterns = this.getRelevantPatterns(task.description); // Sync - instant
-                    if (patterns.length > 0) {
-                        patternContext = `\n\nLEARNED PATTERNS TO APPLY:\n${patterns.map(p =>
-                            `- ${p.name}: ${p.problem}\n  Solution: ${p.solutionTemplate?.substring(0, 200) || 'N/A'}`
-                        ).join('\n')}`;
-                        console.log(`[BuildLoop] Injecting ${patterns.length} learned patterns`);
-                    }
-
-                    // Get best strategy for this task
-                    const strategy = this.getBestStrategy(task.category); // Sync - instant
-                    if (strategy) {
-                        console.log(`[BuildLoop] Using learned strategy: ${strategy}`);
-                    }
-                }
-
-                // =====================================================================
-                // SESSION 1: PREDICTIVE ERROR PREVENTION
-                // Prevent errors BEFORE they happen by injecting prevention prompts
-                // =====================================================================
-                let preventionContext = '';
-                try {
-                    const prediction = await this.predictiveErrorPrevention.predict({
-                        projectId: this.state.projectId,
-                        taskType: task.category,
-                        taskDescription: task.description,
-                        dependencies: ['react', 'typescript', 'tailwindcss'],
+                // If task completed, also emit feature_complete event
+                if (event.type === 'task_completed') {
+                    this.emitEvent('feature_complete', {
+                        taskId: event.data.taskId,
+                        description: event.data.description,
+                        commit: event.data.commit,
+                        filesCreated: event.data.filesCreated,
                     });
-                    if (prediction.preventionPrompt) {
-                        preventionContext = `\n\n${prediction.preventionPrompt}`;
-                        console.log(`[BuildLoop] SESSION 1: Injected predictive error prevention (${prediction.predictions.length} rules, ~${prediction.estimatedIterationsSaved} iterations saved)`);
-                    }
-                } catch (err) {
-                    console.warn('[BuildLoop] Predictive error prevention failed (non-fatal):', err);
                 }
+            });
 
-                // Get system prompt with full context injected
-                const basePrompt = `You are a senior software engineer building production-ready code.
-You are working on a ${this.state.intentContract?.appType || 'web'} application.
+            // Forward context warnings and handoffs
+            parallelAgentManager.on('agent:context-warning', ({ agentId, status }) => {
+                console.log(`[BuildLoop] Agent ${agentId} context warning: ${status.usagePercent}%`);
+            });
 
-TASK: ${task.description}
-CATEGORY: ${task.category}
-PRIORITY: ${task.priority}
-${patternContext}${preventionContext}
-
-Generate complete, production-ready code for this task.
-Follow the existing style guide and patterns.
-Do NOT use placeholders or TODO comments.
-Include ALL necessary imports and exports.`;
-
-                // SESSION 5: Use getFullContextPrompt to include verification feedback
-                const systemPrompt = codingAgent.getFullContextPrompt(basePrompt);
-
-                // Generate code using OpenRouter/KripToeNite
-                const phaseConfig = getPhaseConfig('build_agent');
-                const ktn = getKripToeNite();
-
-                let responseContent = '';
-                try {
-                    const result = await ktn.buildFeature(
-                        `${task.description}\n\nContext: Building for ${stage} stage.`,
-                        {
-                            projectId: this.state.projectId,
-                            userId: this.state.userId,
-                            projectPath: this.projectPath,
-                            framework: 'React',
-                            language: 'TypeScript',
-                        }
-                    );
-                    responseContent = result.content;
-                    console.log(`[BuildLoop] KTN build completed: strategy=${result.strategy}, model=${result.model}`);
-                } catch (error) {
-                    // Fallback to Claude service
-                    console.warn('[BuildLoop] KTN failed, falling back to Claude:', error);
-                    const response = await this.claudeService.generate(
-                        `${systemPrompt}\n\nTask: ${task.description}`,
-                        {
-                            model: phaseConfig.model,
-                            maxTokens: 32000,
-                            useExtendedThinking: true,
-                            thinkingBudgetTokens: phaseConfig.thinkingBudget,
-                        }
-                    );
-                    responseContent = response.content;
-                }
-
-                // Parse files from response
-                const files = this.claudeService.parseFileOperations(responseContent);
-
-                // =====================================================================
-                // LEARNING ENGINE: Capture decision and code artifacts
-                // SPEED: Fire-and-forget - doesn't block build pipeline
-                // =====================================================================
-                if (this.learningEnabled && this.experienceCapture) {
-                    // Capture the code generation decision (async, non-blocking)
-                    this.captureCodeDecision(
-                        task.id,
-                        task.description,
-                        'KTN/Claude generation',
-                        ['Manual coding', 'Template-based'],
-                        `Generated ${files.length} files using AI for task: ${task.description}`
-                    ); // No await - fire and forget
-                }
-
-                // Record file changes
-                for (const file of files) {
-                    codingAgent.recordFileChange(file.path, 'create', file.content);
-                    this.projectFiles.set(file.path, file.content || '');
-
-                    // LEARNING ENGINE: Capture each code artifact (async, non-blocking)
-                    if (this.learningEnabled) {
-                        this.captureCodeArtifact(file.path, file.content || '', 'initial'); // No await
-                    }
-                }
-
-                // CRITICAL: Write files to disk
-                // This ensures AI-generated code actually exists on filesystem
-                const fsModule = await import('fs/promises');
-                const pathModule = await import('path');
-                for (const file of files) {
-                    if (file.content) {
-                        try {
-                            const fullPath = pathModule.join(this.projectPath, file.path);
-                            const dir = pathModule.dirname(fullPath);
-                            await fsModule.mkdir(dir, { recursive: true });
-                            await fsModule.writeFile(fullPath, file.content, 'utf-8');
-                            console.log(`[BuildLoop] Wrote file: ${file.path}`);
-                        } catch (writeError) {
-                            console.error(`[BuildLoop] Failed to write ${file.path}:`, writeError);
-                        }
-                    }
-                }
-
-                // Complete task (updates artifacts, commits to git)
-                const taskResult: TaskResult = await codingAgent.completeTask({
-                    summary: `Built: ${task.description}`,
-                    filesCreated: files.map(f => f.path),
-                    nextSteps: this.determineNextSteps(task),
+            parallelAgentManager.on('agent:handoff-initiated', (handoff) => {
+                console.log(`[BuildLoop] Agent handoff initiated: ${handoff.fromAgentId} -> ${handoff.toAgentId}`);
+                this.emitEvent('agent-progress', {
+                    type: 'handoff',
+                    fromAgent: handoff.fromAgentId,
+                    toAgent: handoff.toAgentId,
+                    reason: handoff.reason,
                 });
+            });
 
-                // Emit progress
-                const summary = await this.featureManager.getSummary();
-                this.state.featureSummary = summary;
+            parallelAgentManager.on('agent:handoff-completed', (handoff) => {
+                console.log(`[BuildLoop] Agent handoff completed: ${handoff.toAgentId} ready`);
+            });
 
-                this.emitEvent('feature_complete', {
-                    taskId: task.id,
-                    description: task.description,
-                    commit: taskResult.gitCommit,
-                    filesCreated: taskResult.filesCreated.length,
-                });
+            // Start parallel build
+            const parallelResult: ParallelBuildResult = await parallelAgentManager.startParallelBuild();
 
-                // Auto-checkpoint on interval
-                if (this.shouldCreateCheckpoint()) {
-                    await this.createCheckpoint('task_complete', `After task ${task.id}`);
-                }
+            // Log statistics
+            console.log(`[BuildLoop] Parallel build complete:`);
+            console.log(`  - Tasks completed: ${parallelResult.tasksCompleted}`);
+            console.log(`  - Agents spawned: ${parallelResult.agentsSpawned}`);
+            console.log(`  - Handoffs performed: ${parallelResult.handoffsPerformed}`);
+            console.log(`  - Avg tokens per agent: ${parallelResult.avgTokensPerAgent.toFixed(0)}`);
+            console.log(`  - Build time: ${(parallelResult.totalBuildTimeMs / 1000).toFixed(1)}s`);
+            console.log(`  - Efficiency: ${parallelResult.efficiency.toFixed(2)} tasks/agent`);
 
-                // Get next task
-                task = await codingAgent.claimTask();
+            if (!parallelResult.success) {
+                throw new Error(`Parallel build failed: ${parallelResult.error}`);
             }
 
-            // End coding agent session
-            await codingAgent.endSession();
+            // Update feature summary
+            const summary = await this.featureManager.getSummary();
+            this.state.featureSummary = summary;
 
             // Also build features from feature manager (legacy path)
             const features = await this.featureManager.getAllFeatures();
