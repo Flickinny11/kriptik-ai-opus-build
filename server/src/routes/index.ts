@@ -27,6 +27,7 @@ export { default as billingRouter } from './billing.js';
 // Credentials & OAuth
 export { default as credentialsRouter } from './credentials.js';
 export { default as oauthRouter } from './oauth.js';
+export { default as nangoRouter } from './nango.js';
 
 // Smart Deployment
 export { default as smartDeployRouter } from './smart-deploy.js';

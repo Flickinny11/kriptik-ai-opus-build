@@ -1260,6 +1260,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             <CredentialsCollectionView
                                 credentials={requiredCredentials}
                                 onCredentialsSubmit={handleCredentialsSubmit}
+                                projectId={projectId}
                             />
                         </motion.div>
                     </div>

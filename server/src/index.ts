@@ -663,6 +663,7 @@ import generateRouter from './routes/generate.js';
 import cloudRouter from './routes/cloud.js';
 import deployRouter from './routes/deploy.js';
 import billingRouter from './routes/billing.js';
+import ceilingRouter from './routes/ceiling.js';
 import orchestrateRouter from './routes/orchestrate.js';
 import exportRouter from './routes/export.js';
 import aiRouter from './routes/ai.js';
@@ -672,6 +673,7 @@ import securityRouter from './routes/security.js';
 import templatesRouter from './routes/templates.js';
 import credentialsRouter from './routes/credentials.js';
 import oauthRouter from './routes/oauth.js';
+import nangoRouter from './routes/nango.js';
 import smartDeployRouter from './routes/smart-deploy.js';
 import agentsRouter from './routes/agents.js';
 import workflowsRouter from './routes/workflows.js';
@@ -697,6 +699,7 @@ import learningRouter from './routes/learning.js';
 import developerModeRouter from './routes/developer-mode.js';
 import featureAgentRouter from './routes/feature-agent.js';
 import notificationsRouter from './routes/notifications.js';
+import webhooksRouter from './routes/webhooks.js';
 import autonomyRouter from './routes/autonomy.js';
 import checkpointsRouter from './routes/checkpoints.js';
 import intelligenceDialRouter from './routes/intelligence-dial.js';
@@ -743,12 +746,16 @@ app.use("/api/mcp", mcpRouter);
 // Billing
 app.use("/api/billing", billingRouter);
 
+// Credit Ceiling - No credit requirement (monitoring only)
+app.use("/api/ceiling", ceilingRouter);
+
 // Templates
 app.use("/api/templates", templatesRouter);
 
 // Credentials & OAuth
 app.use("/api/credentials", credentialsRouter);
 app.use("/api/oauth", oauthRouter);
+app.use("/api/nango", nangoRouter);
 
 // Nango OAuth Integrations
 app.use("/api/integrations", integrationsRouter);
@@ -835,6 +842,10 @@ app.use("/api/feature-agent", promptSanitizer, requireCredits(100), featureAgent
 
 // Notifications - in-app + external channels (non-expensive; do not credit-gate)
 app.use("/api/notifications", promptSanitizer, notificationsRouter);
+
+// Webhooks - Notification reply handlers (Twilio SMS, SendGrid email, Push, Slack)
+// No auth required - validated via token
+app.use("/api/webhooks", webhooksRouter);
 
 // Speed Dial - Build mode selector (Lightning/Standard/Tournament/Production)
 app.use("/api/speed-dial", speedDialRouter);

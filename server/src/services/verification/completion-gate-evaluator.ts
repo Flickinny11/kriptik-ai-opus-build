@@ -33,6 +33,8 @@ import {
     type AntiSlopScore,
 } from './anti-slop-detector.js';
 
+import { createIntentLockEngine, type IntentLockEngine } from '../ai/intent-lock.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -68,10 +70,12 @@ export interface EvaluationContext {
 export class CompletionGateEvaluator {
     private projectId: string;
     private userId: string;
+    private intentEngine: IntentLockEngine;
 
     constructor(userId: string, projectId: string) {
         this.projectId = projectId;
         this.userId = userId;
+        this.intentEngine = createIntentLockEngine(userId, projectId);
     }
 
     /**
@@ -89,7 +93,8 @@ export class CompletionGateEvaluator {
         const fcResult = await this.evaluateFunctionalChecklist(
             contract.functionalChecklist,
             context.fileContents,
-            contract.wiringMap
+            contract.wiringMap,
+            contract.id
         );
         blockers.push(...fcResult.blockers);
 
@@ -106,7 +111,7 @@ export class CompletionGateEvaluator {
         blockers.push(...wiringResult.blockers);
 
         // Step 5: Evaluate Integration Tests
-        const testResult = this.evaluateIntegrationTests(contract.integrationTests);
+        const testResult = await this.evaluateIntegrationTests(contract.integrationTests, contract.id);
         blockers.push(...testResult.blockers);
 
         // Step 6: Check for Placeholders
@@ -307,14 +312,15 @@ export class CompletionGateEvaluator {
     private async evaluateFunctionalChecklist(
         checklist: FunctionalChecklistItem[],
         fileContents: Map<string, string>,
-        wiringMap: WiringConnection[]
+        wiringMap: WiringConnection[],
+        contractId: string
     ): Promise<{
         complete: boolean;
         counts: { verified: number; total: number };
         blockers: GateBlocker[];
     }> {
         const verifier = createFunctionalChecklistVerifier(this.userId, this.projectId);
-        const summary = await verifier.verifyChecklist(checklist, fileContents, wiringMap);
+        const summary = await verifier.verifyChecklist(checklist, fileContents, wiringMap, contractId);
 
         const blockers: GateBlocker[] = [];
         for (const result of summary.results) {
@@ -412,22 +418,40 @@ export class CompletionGateEvaluator {
         };
     }
 
-    private evaluateIntegrationTests(tests: IntegrationTest[]): {
+    private async evaluateIntegrationTests(tests: IntegrationTest[], contractId: string): Promise<{
         complete: boolean;
         counts: { passed: number; total: number };
         blockers: GateBlocker[];
-    } {
+    }> {
         const blockers: GateBlocker[] = [];
         const passed = tests.filter(t => t.passed).length;
 
-        for (const test of tests.filter(t => !t.passed)) {
-            blockers.push({
-                category: 'test',
-                severity: 'blocker',
-                item: test.name,
-                reason: test.lastError || 'Test not passed',
-                suggestedFix: `Fix test: ${test.description}`,
-            });
+        // PRODUCTION: Mark each test result in the Deep Intent Contract
+        for (const test of tests) {
+            try {
+                await this.intentEngine.markIntegrationTestResult(
+                    contractId,
+                    test.id,
+                    test.passed,
+                    test.lastError,
+                    test.durationMs
+                );
+                console.log(`[CompletionGateEvaluator] Marked test ${test.id} as ${test.passed ? 'PASSED' : 'FAILED'} in contract ${contractId}`);
+            } catch (error) {
+                console.error(`[CompletionGateEvaluator] Failed to mark test ${test.id}:`, error);
+                // Don't throw - evaluation can continue
+            }
+
+            // Add to blockers if not passed
+            if (!test.passed) {
+                blockers.push({
+                    category: 'test',
+                    severity: 'blocker',
+                    item: test.name,
+                    reason: test.lastError || 'Test not passed',
+                    suggestedFix: `Fix test: ${test.description}`,
+                });
+            }
         }
 
         return {

@@ -83,3 +83,20 @@ export {
     type EscalationResult,
 } from './error-escalation.js';
 
+// =============================================================================
+// BUILD FREEZE SERVICE - Pause/Resume with Full Context Preservation
+// =============================================================================
+
+export {
+    BuildFreezeService,
+    getBuildFreezeService,
+    createBuildFreezeService,
+    type FreezeReason,
+    type FreezeContext,
+    type ResumeContext,
+    type FrozenBuild,
+    type FileState,
+    type TaskProgress,
+    type FreezeServiceEvent,
+} from './build-freeze-service.js';
+

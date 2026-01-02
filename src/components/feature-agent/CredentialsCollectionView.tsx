@@ -13,11 +13,14 @@
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RequiredCredential } from '@/store/useFeatureAgentTileStore';
+import { OAuthConnectButton } from '../credentials/OAuthConnectButton';
+import { useUserStore } from '@/store/useUserStore';
 import './CredentialsCollectionView.css';
 
 interface CredentialsCollectionViewProps {
   credentials: RequiredCredential[];
   onCredentialsSubmit: (credentials: Record<string, string>) => Promise<void> | void;
+  projectId?: string;
 }
 
 // Custom external link icon
@@ -92,11 +95,13 @@ function isSecretName(name: string): boolean {
   return n.includes('secret') || n.includes('token') || n.includes('key') || n.includes('password');
 }
 
-export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: CredentialsCollectionViewProps) {
+export function CredentialsCollectionView({ credentials, onCredentialsSubmit, projectId }: CredentialsCollectionViewProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [oauthErrors, setOauthErrors] = useState<Record<string, string>>({});
+  const user = useUserStore((state) => state.user);
 
   const required = useMemo(() => credentials.filter((c) => c.required), [credentials]);
   const ready = useMemo(() => required.every((c) => (values[c.envVariableName] || '').trim().length > 0), [required, values]);
@@ -106,6 +111,23 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
 
   const toggleSecretVisibility = useCallback((key: string) => {
     setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleOAuthConnected = useCallback((credentialId: string, credentials: Record<string, string>) => {
+    // Mark the credential as filled with OAuth placeholder
+    setValues(prev => ({
+      ...prev,
+      ...credentials,
+    }));
+    setOauthErrors(prev => {
+      const next = { ...prev };
+      delete next[credentialId];
+      return next;
+    });
+  }, []);
+
+  const handleOAuthError = useCallback((credentialId: string, error: string) => {
+    setOauthErrors(prev => ({ ...prev, [credentialId]: error }));
   }, []);
 
   const submit = async () => {
@@ -220,6 +242,23 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit }: 
 
                   {c.description && (
                     <p className="credential-card__description">{c.description}</p>
+                  )}
+
+                  {/* OAuth Connect Button (if supported) */}
+                  {user && (
+                    <div className="mb-3">
+                      <OAuthConnectButton
+                        credential={c}
+                        userId={user.id}
+                        projectId={projectId}
+                        onConnected={(creds) => handleOAuthConnected(c.envVariableName, creds)}
+                        onError={(error) => handleOAuthError(c.id, error)}
+                      />
+                      {oauthErrors[c.id] && (
+                        <p className="text-xs text-red-400 mt-1">{oauthErrors[c.id]}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-2">or enter manually:</p>
+                    </div>
                   )}
 
                   <div className="credential-card__input-container">

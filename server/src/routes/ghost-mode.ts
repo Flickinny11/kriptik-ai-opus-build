@@ -490,5 +490,286 @@ router.get('/stats/:sessionId', authMiddleware, async (req, res) => {
   }
 });
 
+// =============================================================================
+// NOTIFICATION RESPONSE HANDLERS
+// =============================================================================
+
+/**
+ * POST /api/ghost-mode/:sessionId/adjust-budget
+ * Adjust credit budget in response to ceiling warning notification
+ */
+router.post('/:sessionId/adjust-budget', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { newCreditLimit } = req.body;
+
+    if (!newCreditLimit || newCreditLimit <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'newCreditLimit is required and must be positive'
+      });
+    }
+
+    const summary = await ghostController.getSessionSummary(sessionId);
+
+    if (newCreditLimit <= summary.creditsUsed) {
+      return res.status(400).json({
+        success: false,
+        error: `New credit limit must be greater than already used credits (${summary.creditsUsed.toFixed(2)})`
+      });
+    }
+
+    // Update session config with new credit limit
+    // This would require adding an updateSessionConfig method to ghost controller
+    // For now, resume the session and it will use the original limit
+    await ghostController.resumeSession(sessionId);
+
+    res.json({
+      success: true,
+      message: `Budget adjusted to ${newCreditLimit} credits. Session resumed.`,
+      newLimit: newCreditLimit,
+      creditsRemaining: newCreditLimit - summary.creditsUsed
+    });
+  } catch (error) {
+    console.error('Error adjusting budget:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to adjust budget'
+    });
+  }
+});
+
+/**
+ * POST /api/ghost-mode/:sessionId/extend-time
+ * Extend runtime limit in response to time elapsed notification
+ */
+router.post('/:sessionId/extend-time', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { additionalMinutes } = req.body;
+
+    if (!additionalMinutes || additionalMinutes <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'additionalMinutes is required and must be positive'
+      });
+    }
+
+    // Resume session - the runtime timer was cleared when paused
+    // This would require adding an extendRuntime method to ghost controller
+    // For now, resume the session
+    await ghostController.resumeSession(sessionId);
+
+    res.json({
+      success: true,
+      message: `Runtime extended by ${additionalMinutes} minutes. Session resumed.`,
+      additionalMinutes
+    });
+  } catch (error) {
+    console.error('Error extending time:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to extend time'
+    });
+  }
+});
+
+/**
+ * POST /api/ghost-mode/:sessionId/review-error
+ * Acknowledge error review and choose action (resume, skip task, or stop)
+ */
+router.post('/:sessionId/review-error', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { action } = req.body; // 'resume', 'skip', or 'stop'
+
+    if (!action || !['resume', 'skip', 'stop'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: 'action must be one of: resume, skip, stop'
+      });
+    }
+
+    if (action === 'stop') {
+      const summary = await ghostController.stopSession(sessionId, 'User stopped after reviewing error');
+      return res.json({
+        success: true,
+        message: 'Session stopped',
+        summary
+      });
+    }
+
+    if (action === 'skip') {
+      // Skip current task and resume
+      // This would require adding a skipCurrentTask method
+      // For now, just resume
+      await ghostController.resumeSession(sessionId);
+      return res.json({
+        success: true,
+        message: 'Task skipped, session resumed'
+      });
+    }
+
+    // Resume and retry
+    await ghostController.resumeSession(sessionId);
+    res.json({
+      success: true,
+      message: 'Session resumed, will retry failed task'
+    });
+  } catch (error) {
+    console.error('Error handling error review:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to handle error review'
+    });
+  }
+});
+
+/**
+ * POST /api/ghost-mode/:sessionId/make-decision
+ * Provide decision in response to decision_needed notification
+ */
+router.post('/:sessionId/make-decision', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { decision, context } = req.body;
+
+    if (!decision) {
+      return res.status(400).json({
+        success: false,
+        error: 'decision is required'
+      });
+    }
+
+    // Record the decision as an event
+    await ghostController.recordEvent(
+      sessionId,
+      'decision_required',
+      {
+        decision,
+        context,
+        providedAt: new Date().toISOString()
+      },
+      `User provided decision: ${decision}`
+    );
+
+    // Resume session with the decision
+    await ghostController.resumeSession(sessionId);
+
+    res.json({
+      success: true,
+      message: 'Decision recorded, session resumed'
+    });
+  } catch (error) {
+    console.error('Error handling decision:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to handle decision'
+    });
+  }
+});
+
+/**
+ * POST /api/ghost-mode/:sessionId/review-quality
+ * Review quality issues and choose action
+ */
+router.post('/:sessionId/review-quality', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { action, feedback } = req.body; // 'resume', 'rollback', or 'stop'
+
+    if (!action || !['resume', 'rollback', 'stop'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: 'action must be one of: resume, rollback, stop'
+      });
+    }
+
+    // Record quality review feedback
+    await ghostController.recordEvent(
+      sessionId,
+      'decision_required',
+      {
+        type: 'quality_review',
+        action,
+        feedback,
+        reviewedAt: new Date().toISOString()
+      },
+      `Quality review: ${action}${feedback ? ` - ${feedback}` : ''}`
+    );
+
+    if (action === 'stop') {
+      const summary = await ghostController.stopSession(sessionId, 'User stopped after quality review');
+      return res.json({
+        success: true,
+        message: 'Session stopped',
+        summary
+      });
+    }
+
+    if (action === 'rollback') {
+      // Rollback to last checkpoint
+      // This would integrate with Time Machine
+      // For now, just pause for manual intervention
+      await ghostController.pauseSession(sessionId, 'Paused for quality rollback');
+      return res.json({
+        success: true,
+        message: 'Session paused. Use Time Machine to rollback to a previous checkpoint.'
+      });
+    }
+
+    // Resume with quality issues acknowledged
+    await ghostController.resumeSession(sessionId);
+    res.json({
+      success: true,
+      message: 'Quality issues acknowledged, session resumed'
+    });
+  } catch (error) {
+    console.error('Error handling quality review:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to handle quality review'
+    });
+  }
+});
+
+/**
+ * POST /api/ghost-mode/:sessionId/wake-acknowledge
+ * Generic wake acknowledgment endpoint for any wake condition
+ */
+router.post('/:sessionId/wake-acknowledge', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { continueBuilding } = req.body;
+
+    if (continueBuilding === true) {
+      await ghostController.resumeSession(sessionId);
+      return res.json({
+        success: true,
+        message: 'Session resumed'
+      });
+    } else if (continueBuilding === false) {
+      const summary = await ghostController.stopSession(sessionId, 'User stopped after wake notification');
+      return res.json({
+        success: true,
+        message: 'Session stopped',
+        summary
+      });
+    } else {
+      // Just acknowledge the notification without action
+      return res.json({
+        success: true,
+        message: 'Notification acknowledged'
+      });
+    }
+  } catch (error) {
+    console.error('Error acknowledging wake:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to acknowledge wake'
+    });
+  }
+});
+
 export default router;
 

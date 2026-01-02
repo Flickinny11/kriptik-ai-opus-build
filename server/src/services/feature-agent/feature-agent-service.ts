@@ -61,6 +61,11 @@ import {
     formatUnifiedContextSummary,
     type UnifiedContext,
 } from '../ai/unified-context.js';
+// Credential-to-Environment Bridge for writing credentials to .env
+import {
+    writeCredentialsToProjectEnv,
+    type WriteCredentialsToEnvResult,
+} from '../credentials/credential-env-bridge.js';
 
 // SESSION 5: Context Sync Service for real-time sharing between parallel Feature Agents
 import {
@@ -212,45 +217,8 @@ function inferCredentials(taskPrompt: string): RequiredCredential[] {
     });
 }
 
-async function upsertProjectEnv(projectId: string, vars: Record<string, string>): Promise<void> {
-    const envPath = '.env';
-    const existing = await db.select().from(files).where(and(eq(files.projectId, projectId), eq(files.path, envPath))).limit(1);
-    const current = existing.length > 0 ? existing[0].content : '';
-
-    const lines = current.split('\n');
-    const map = new Map<string, string>();
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) continue;
-        const idx = trimmed.indexOf('=');
-        const k = trimmed.slice(0, idx).trim();
-        const v = trimmed.slice(idx + 1);
-        if (k) map.set(k, v);
-    }
-
-    for (const [k, v] of Object.entries(vars)) {
-        map.set(k, v);
-    }
-
-    const rendered = [
-        '# Managed by KripTik Feature Agent Service',
-        ...Array.from(map.entries()).map(([k, v]) => `${k}=${v}`),
-        '',
-    ].join('\n');
-
-    if (existing.length > 0) {
-        await db.update(files).set({ content: rendered, updatedAt: new Date().toISOString() }).where(eq(files.id, existing[0].id));
-        return;
-    }
-
-    await db.insert(files).values({
-        projectId,
-        path: envPath,
-        content: rendered,
-        language: 'text',
-        version: 1,
-    });
-}
+// NOTE: upsertProjectEnv has been moved to credential-env-bridge.ts
+// Use writeCredentialsToProjectEnv instead for unified credential handling
 
 export class FeatureAgentService extends EventEmitter {
     private agents: Map<string, FeatureAgentRuntime> = new Map();
@@ -974,18 +942,28 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         const plan = rt.config.implementationPlan;
         if (!plan) throw new Error('No implementation plan');
 
-        const vault = getCredentialVault();
-        const vars: Record<string, string> = {};
+        // CRITICAL: Use the credential-to-env bridge service
+        // This writes credentials to:
+        // 1. Credential vault (encrypted)
+        // 2. projectEnvVars table (links to project)
+        // 3. .env file in the project's file system (for sandbox access)
+        try {
+            const envResult = await writeCredentialsToProjectEnv(
+                rt.config.projectId,
+                rt.config.userId,
+                credentials,
+                { environment: 'all', overwriteExisting: true }
+            );
 
-        for (const [k, v] of Object.entries(credentials)) {
-            if (!v) continue;
-            vars[k] = v;
-            rt.providedCredentialKeys.add(k);
-            await vault.storeCredential(rt.config.userId, k, { value: v });
-        }
+            // Track which credentials have been provided
+            for (const envKey of envResult.envKeys) {
+                rt.providedCredentialKeys.add(envKey);
+            }
 
-        if (Object.keys(vars).length > 0) {
-            await upsertProjectEnv(rt.config.projectId, vars);
+            console.log(`[FeatureAgent] Wrote ${envResult.credentialsWritten} credentials to .env for agent ${agentId}`);
+        } catch (error) {
+            console.error('[FeatureAgent] Failed to write credentials:', error);
+            throw new Error('Failed to store credentials securely');
         }
 
         // Never echo secrets back through the stream; send only schema.

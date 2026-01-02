@@ -6,6 +6,7 @@
  */
 
 import { createClaudeService, CLAUDE_MODELS, type ClaudeService } from '../ai/claude-service.js';
+import { createIntentLockEngine, type IntentLockEngine } from '../ai/intent-lock.js';
 import type {
     FunctionalChecklistItem,
     TestCase,
@@ -97,6 +98,7 @@ const PLACEHOLDER_PATTERNS = [
 
 export class FunctionalChecklistVerifier {
     private claudeService: ClaudeService;
+    private intentEngine: IntentLockEngine;
     private projectId: string;
     private userId: string;
 
@@ -109,6 +111,7 @@ export class FunctionalChecklistVerifier {
             agentType: 'verification',
             systemPrompt: VERIFICATION_SYSTEM_PROMPT,
         });
+        this.intentEngine = createIntentLockEngine(userId, projectId);
     }
 
     /**
@@ -243,17 +246,36 @@ export class FunctionalChecklistVerifier {
 
     /**
      * Verify all items in a functional checklist
+     *
+     * @param contractId - Optional Deep Intent Contract ID to mark items as verified
      */
     async verifyChecklist(
         checklist: FunctionalChecklistItem[],
         fileContents: Map<string, string>,
-        wiringMap: WiringConnection[]
+        wiringMap: WiringConnection[],
+        contractId?: string
     ): Promise<ChecklistVerificationSummary> {
         const results: VerificationResult[] = [];
 
         for (const item of checklist) {
             const result = await this.verifyItem(item, fileContents, wiringMap);
             results.push(result);
+
+            // PRODUCTION: Mark item as verified in Deep Intent Contract
+            if (contractId) {
+                try {
+                    await this.intentEngine.markFunctionalItemVerified(
+                        contractId,
+                        item.id,
+                        result.passed,
+                        result.passed ? undefined : result.issues.map(i => i.message).join('; ')
+                    );
+                    console.log(`[FunctionalChecklistVerifier] Marked item ${item.id} as ${result.passed ? 'VERIFIED' : 'FAILED'} in contract ${contractId}`);
+                } catch (error) {
+                    console.error(`[FunctionalChecklistVerifier] Failed to mark item ${item.id}:`, error);
+                    // Don't throw - verification can continue even if marking fails
+                }
+            }
         }
 
         const passedItems = results.filter(r => r.passed).length;

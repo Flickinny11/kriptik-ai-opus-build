@@ -310,5 +310,8 @@ export function requireRole(...roles: string[]) {
     };
 }
 
+// Alias for convenience
+export const requireAuth = authMiddleware;
+
 export default authMiddleware;
 
