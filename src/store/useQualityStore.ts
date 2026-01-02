@@ -21,7 +21,7 @@ export const useQualityStore = create<QualityStore>((set) => ({
     setIsScanning: (isScanning) => set({ isScanning }),
     setIsFixing: (issueId) => set({ isFixing: issueId }),
 
-    resolveIssue: (issueId) => set((state) => {
+    resolveIssue: (issueId: string) => set((state: QualityStore) => {
         if (!state.report) return {};
 
         // Deep clone to update nested state safely
@@ -31,11 +31,11 @@ export const useQualityStore = create<QualityStore>((set) => ({
         Object.keys(newReport.categories).forEach((key) => {
             const category = key as keyof typeof newReport.categories;
             newReport.categories[category].issues = newReport.categories[category].issues.filter(
-                (i) => i.id !== issueId
+                (i: { id: string }) => i.id !== issueId
             );
 
             // Recalculate score slightly (mock logic)
-            if (state.report!.categories[category].issues.find(i => i.id === issueId)) {
+            if (state.report!.categories[category].issues.find((i: { id: string }) => i.id === issueId)) {
                 newReport.categories[category].score = Math.min(100, newReport.categories[category].score + 5);
             }
         });

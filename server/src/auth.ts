@@ -354,10 +354,11 @@ export const auth = betterAuth({
         return Array.from(allowedExact);
     },
 
-    // Rate limiting (optional but recommended)
+    // Rate limiting - increased for viral traffic capacity
+    // Auth endpoints need high limits since every page load checks session
     rateLimit: {
         window: 60, // 1 minute
-        max: 100, // Max requests per window
+        max: 2000, // Increased from 100 - supports ~33 auth checks/second per IP
     },
 
     // Callbacks for security validation

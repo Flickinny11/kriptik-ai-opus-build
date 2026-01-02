@@ -8,16 +8,37 @@ console.log('[Auth Client] Initialized with API_URL:', API_URL);
 console.log('[Auth Client] Frontend URL:', FRONTEND_URL);
 
 // Detect if we're on mobile
-export const isMobile = () => {
+export const isMobile = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
+
+// Detect Safari (for special cookie handling)
+export const isSafari = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    return /Safari/i.test(ua) && !/Chrome/i.test(ua);
+};
+
+// Detect iOS Safari (strictest cookie handling)
+export const isIOSSafari = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    return /iPhone|iPad|iPod/i.test(ua) && /Safari/i.test(ua) && !/Chrome/i.test(ua);
+};
+
+// Log browser detection for debugging
+if (typeof navigator !== 'undefined') {
+    console.log('[Auth Client] Browser detection - Mobile:', isMobile(), 'Safari:', isSafari(), 'iOS Safari:', isIOSSafari());
+}
 
 // Create auth client with proper config for cross-origin requests
 export const authClient = createAuthClient({
     baseURL: API_URL,
     fetchOptions: {
         credentials: "include",
+        // Safari requires explicit cache control for cookie handling
+        cache: "no-store" as RequestCache,
     },
 });
 
@@ -190,8 +211,29 @@ export const signOut = async () => {
 export const getSession = async () => {
     console.log('[Auth] Getting session...');
 
-    try {
+    // Helper function to attempt session fetch
+    const attemptGetSession = async () => {
         const session = await authClient.getSession();
+        return session;
+    };
+
+    try {
+        let session = await attemptGetSession();
+
+        // SAFARI FIX: If no session and we're on Safari, retry after a short delay
+        // Safari sometimes needs more time for cookies to be accessible after redirect
+        if (!session.data && isSafari()) {
+            console.log('[Auth] Safari detected - retrying session fetch after delay...');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            session = await attemptGetSession();
+
+            // If still no session, try one more time with longer delay
+            if (!session.data && isIOSSafari()) {
+                console.log('[Auth] iOS Safari detected - final retry with longer delay...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                session = await attemptGetSession();
+            }
+        }
 
         if (session.data) {
             console.log('[Auth] Session data:', session.data);

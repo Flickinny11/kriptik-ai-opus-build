@@ -1,23 +1,33 @@
 /**
- * OpenRouter AI Client - Ultimate AI-First Builder Architecture
+ * OpenRouter AI Client - FALLBACK for Third-Party Models
  *
- * Primary AI client for KripTik AI using OpenRouter's API.
- * OpenRouter provides access to Claude models with full capabilities:
- * - Extended thinking
- * - Effort/Verbosity parameter (low/medium/high)
- * - Tool calls
- * - 200K context / 1M for Sonnet
- * - Parallel agent execution support
+ * =======================================================================
+ * ⚠️  IMPORTANT: This client is for FALLBACK models ONLY (Gemini, DeepSeek, Llama)
+ * ⚠️  PRIMARY models (Claude, GPT-5.x) use DIRECT SDKs for better performance
+ * =======================================================================
  *
- * December 2025 Beta Features:
+ * DUAL ARCHITECTURE (December 2025):
+ * - PRIMARY: Anthropic SDK (direct) → Claude Opus 4.5, Sonnet 4.5, Haiku
+ * - PRIMARY: OpenAI SDK (direct) → GPT-5.2 Pro, Codex, Thinking
+ * - FALLBACK: OpenRouter → Gemini 3, DeepSeek V3, Llama 3.3
+ *
+ * When to use OpenRouter (this client):
+ * - Google Gemini 3 (vision, video monitoring)
+ * - DeepSeek V3 (bulk cost-effective operations)
+ * - Llama 3.3 (open-source alternative)
+ * - Other third-party models not available via direct SDK
+ *
+ * When NOT to use OpenRouter:
+ * - Claude models → Use direct Anthropic SDK (anthropic-client.ts)
+ * - GPT-5.x models → Use direct OpenAI SDK (unified-client.ts)
+ *
+ * OpenRouter Beta Features (for fallback models):
  * - effort-2025-11-24: Effort parameter control
  * - interleaved-thinking-2025-05-14: Think between tool calls
  * - context-management-2025-06-27: Memory tool + context editing
  * - structured-outputs-2025-11-13: Guaranteed JSON schema
  * - advanced-tool-use-2025-11-20: Enhanced tool capabilities
- * - context-1m-2025-08-07: 1M token context (Sonnet)
- *
- * Uses the Anthropic SDK pointed at OpenRouter's Anthropic-compatible endpoint.
+ * - context-1m-2025-08-07: 1M token context
  */
 
 import { Anthropic } from '@anthropic-ai/sdk';

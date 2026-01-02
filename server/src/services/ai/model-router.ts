@@ -741,7 +741,7 @@ export function analyzeTask(task: {
 // ============================================================================
 
 export interface RouterConfig {
-    openRouterApiKey: string;
+    openRouterApiKey?: string; // Optional - only needed for Gemini/DeepSeek/Llama fallback
     defaultTier?: ModelTier;
     costLimit?: number; // Max cost per request in USD
     preferredProviders?: string[];
@@ -786,7 +786,7 @@ export interface StreamCallbacks {
 }
 
 export class ModelRouter {
-    private openrouterClient: OpenAI;
+    private openrouterClient: OpenAI | null = null;
     private anthropicClient: Anthropic | null = null;
     private openaiClient: OpenAI | null = null;
     private config: RouterConfig;
@@ -803,32 +803,46 @@ export class ModelRouter {
             ...config,
         };
 
-        // Initialize OpenRouter client (fallback for other models)
-        this.openrouterClient = new OpenAI({
-            apiKey: config.openRouterApiKey,
-            baseURL: 'https://openrouter.ai/api/v1',
-            defaultHeaders: {
-                'HTTP-Referer': 'https://kriptik.ai',
-                'X-Title': 'KripTik AI Builder',
-            },
-        });
-
-        // Initialize Anthropic client (direct access for Claude models)
+        // Initialize Anthropic client FIRST (PRIMARY for Claude models)
         const anthropicKey = process.env.ANTHROPIC_API_KEY;
         if (anthropicKey) {
             this.anthropicClient = new Anthropic({
                 apiKey: anthropicKey,
             });
-            console.log('[ModelRouter] Anthropic SDK initialized (direct Claude access)');
+            console.log('[ModelRouter] Anthropic SDK initialized (PRIMARY for Claude)');
         }
 
-        // Initialize OpenAI client (direct access for GPT-5.2)
+        // Initialize OpenAI client (PRIMARY for GPT-5.2)
         const openaiKey = process.env.OPENAI_API_KEY;
         if (openaiKey) {
             this.openaiClient = new OpenAI({
                 apiKey: openaiKey,
             });
-            console.log('[ModelRouter] OpenAI SDK initialized (direct GPT-5.2 access)');
+            console.log('[ModelRouter] OpenAI SDK initialized (PRIMARY for GPT-5.2)');
+        }
+
+        // Initialize OpenRouter client ONLY for fallback models (Gemini, DeepSeek, Llama)
+        // This is OPTIONAL - only needed if using third-party models
+        if (config.openRouterApiKey) {
+            this.openrouterClient = new OpenAI({
+                apiKey: config.openRouterApiKey,
+                baseURL: 'https://openrouter.ai/api/v1',
+                defaultHeaders: {
+                    'HTTP-Referer': 'https://kriptik.ai',
+                    'X-Title': 'KripTik AI Builder',
+                },
+            });
+            console.log('[ModelRouter] OpenRouter initialized (FALLBACK for Gemini/DeepSeek/Llama)');
+        } else {
+            console.log('[ModelRouter] OpenRouter not configured - Gemini/DeepSeek/Llama unavailable');
+        }
+
+        // Verify at least one primary provider is available
+        if (!this.anthropicClient && !this.openaiClient) {
+            throw new Error(
+                'At least one primary AI provider must be configured. ' +
+                'Set ANTHROPIC_API_KEY for Claude or OPENAI_API_KEY for GPT-5.2'
+            );
         }
     }
 
@@ -1012,8 +1026,8 @@ export class ModelRouter {
                         stream: false,
                     });
                     console.log(`[ModelRouter] Used OpenAI SDK for ${model.id}`);
-                } else {
-                    // Use OpenRouter for fallback
+                } else if (this.openrouterClient) {
+                    // Use OpenRouter for fallback (Gemini, DeepSeek, Llama)
                     response = await this.openrouterClient.chat.completions.create({
                         model: model.id,
                         messages,
@@ -1021,7 +1035,12 @@ export class ModelRouter {
                         temperature: request.temperature ?? 0.7,
                         stream: false,
                     });
-                    console.log(`[ModelRouter] Used OpenRouter for ${model.id}`);
+                    console.log(`[ModelRouter] Used OpenRouter (fallback) for ${model.id}`);
+                } else {
+                    throw new Error(
+                        `OpenRouter not configured but required for model ${model.id}. ` +
+                        `Set OPENROUTER_API_KEY for Gemini/DeepSeek/Llama support.`
+                    );
                 }
 
                 const inputTokens = response.usage?.prompt_tokens || 0;
@@ -1153,10 +1172,18 @@ export class ModelRouter {
                 }
                 console.log(`[ModelRouter] Streamed via Anthropic SDK for ${model.id}`);
             } else {
-                // Stream via OpenAI SDK (direct or OpenRouter)
-                const client = (provider === 'openai' && this.openaiClient)
-                    ? this.openaiClient
-                    : this.openrouterClient;
+                // Stream via OpenAI SDK (direct or OpenRouter fallback)
+                let client: OpenAI;
+                if (provider === 'openai' && this.openaiClient) {
+                    client = this.openaiClient;
+                } else if (this.openrouterClient) {
+                    client = this.openrouterClient;
+                } else {
+                    throw new Error(
+                        `OpenRouter not configured but required for model ${model.id}. ` +
+                        `Set OPENROUTER_API_KEY for Gemini/DeepSeek/Llama support.`
+                    );
+                }
 
                 const stream = await client.chat.completions.create({
                     model: model.id,
@@ -1259,9 +1286,17 @@ export class ModelRouter {
                 },
             };
         } else {
-            const client = (provider === 'openai' && this.openaiClient)
-                ? this.openaiClient
-                : this.openrouterClient;
+            let client: OpenAI;
+            if (provider === 'openai' && this.openaiClient) {
+                client = this.openaiClient;
+            } else if (this.openrouterClient) {
+                client = this.openrouterClient;
+            } else {
+                throw new Error(
+                    `OpenRouter not configured but required for model ${model.id}. ` +
+                    `Set OPENROUTER_API_KEY for Gemini/DeepSeek/Llama support.`
+                );
+            }
 
             response = await client.chat.completions.create({
                 model: model.id,
@@ -1386,15 +1421,24 @@ export class ModelRouter {
 
 let routerInstance: ModelRouter | null = null;
 
+/**
+ * Get the ModelRouter singleton instance
+ *
+ * DUAL ARCHITECTURE (December 2025):
+ * - PRIMARY: Anthropic SDK (ANTHROPIC_API_KEY) for Claude models
+ * - PRIMARY: OpenAI SDK (OPENAI_API_KEY) for GPT-5.2 models
+ * - FALLBACK: OpenRouter (OPENROUTER_API_KEY) for Gemini/DeepSeek/Llama
+ *
+ * At least one primary provider (Anthropic or OpenAI) must be configured.
+ * OpenRouter is optional - only needed for third-party model fallback.
+ */
 export function getModelRouter(): ModelRouter {
     if (!routerInstance) {
-        const apiKey = process.env.OPENROUTER_API_KEY;
-        if (!apiKey) {
-            throw new Error('OPENROUTER_API_KEY is not set. Get one from https://openrouter.ai/keys');
-        }
+        // OpenRouter is OPTIONAL - only for fallback models (Gemini, DeepSeek, Llama)
+        const openrouterKey = process.env.OPENROUTER_API_KEY;
 
         routerInstance = new ModelRouter({
-            openRouterApiKey: apiKey,
+            openRouterApiKey: openrouterKey, // Optional - undefined if not set
             premiumMode: process.env.PREMIUM_MODE === 'true',
             maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
             retryDelayMs: parseInt(process.env.RETRY_DELAY_MS || '1000', 10),
