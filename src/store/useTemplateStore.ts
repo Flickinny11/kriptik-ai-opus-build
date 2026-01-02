@@ -37,35 +37,35 @@ export const useTemplateStore = create<TemplateState>((set, get) => ({
 
     setSelectedCategory: (category) => set({ selectedCategory: category }),
 
-    getFilteredTemplates: () => {
+    getFilteredTemplates: (): Template[] => {
         const { templates, searchQuery, selectedCategory } = get();
 
         let filtered = templates;
 
         // Filter by category
         if (selectedCategory !== 'all') {
-            filtered = filtered.filter(t => t.category === selectedCategory);
+            filtered = filtered.filter((t: Template) => t.category === selectedCategory);
         }
 
         // Filter by search query
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(t =>
+            filtered = filtered.filter((t: Template) =>
                 t.name.toLowerCase().includes(query) ||
                 t.description.toLowerCase().includes(query) ||
-                t.tags.some(tag => tag.toLowerCase().includes(query))
+                t.tags.some((tag: string) => tag.toLowerCase().includes(query))
             );
         }
 
         return filtered;
     },
 
-    useTemplate: (templateId, customization) => {
-        const template = get().templates.find(t => t.id === templateId);
+    useTemplate: (templateId: string, customization: Record<string, unknown>): void => {
+        const template = get().templates.find((t: Template) => t.id === templateId);
         if (template) {
             // Increment use count
-            set(state => ({
-                templates: state.templates.map(t =>
+            set((state: TemplateState) => ({
+                templates: state.templates.map((t: Template) =>
                     t.id === templateId ? { ...t, useCount: t.useCount + 1 } : t
                 )
             }));

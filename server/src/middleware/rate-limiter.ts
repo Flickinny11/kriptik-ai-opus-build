@@ -31,20 +31,21 @@ interface RateLimitEntry {
 // RATE LIMIT CONFIGURATIONS
 // ============================================================================
 
+// VIRAL TRAFFIC READY: Increased limits to handle high concurrency
 const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
     free: {
         windowMs: 60 * 1000,  // 1 minute
-        maxRequests: 120,     // Increased from 10 - allows ~2 requests/second for normal UI
+        maxRequests: 300,     // Increased for viral traffic - allows ~5 requests/second
         message: 'Rate limit exceeded. Upgrade to Pro for higher limits.',
     },
     pro: {
         windowMs: 60 * 1000,
-        maxRequests: 300,     // Increased from 50 - allows ~5 requests/second
+        maxRequests: 1000,    // Increased for viral traffic - allows ~17 requests/second
         message: 'Rate limit exceeded. Contact support for enterprise limits.',
     },
     enterprise: {
         windowMs: 60 * 1000,
-        maxRequests: 1000,    // Increased from 200 - allows ~17 requests/second
+        maxRequests: 3000,    // Increased for viral traffic - allows ~50 requests/second
         message: 'Rate limit exceeded. Please try again shortly.',
     },
     unlimited: {
@@ -56,25 +57,26 @@ const TIER_LIMITS: Record<UserTier, RateLimitConfig> = {
 
 // Route-specific limits (override tier limits for specific routes)
 // These are BASE limits that get multiplied by tier multiplier
+// VIRAL TRAFFIC READY: Increased for high concurrency
 const ROUTE_LIMITS: Record<string, RateLimitConfig> = {
     '/api/ai/generate': {
         windowMs: 60 * 1000,
-        maxRequests: 20,  // AI generation - allows bursts during active building
+        maxRequests: 60,  // Increased from 20 - allows bursts during active building
         message: 'Generation rate limit exceeded. Please wait before generating more.',
     },
     '/api/orchestrate': {
         windowMs: 60 * 1000,
-        maxRequests: 10,  // Full orchestration - multiple phases per minute
+        maxRequests: 30,  // Increased from 10 - multiple phases per minute
         message: 'Orchestration rate limit exceeded. Please wait before starting another build.',
     },
     '/api/autonomous': {
         windowMs: 60 * 1000,
-        maxRequests: 5,   // Autonomous building - longer running
+        maxRequests: 15,  // Increased from 5 - autonomous building
         message: 'Autonomous build limit exceeded. Please wait for current build to complete.',
     },
     '/api/krip-toe-nite': {
         windowMs: 60 * 1000,
-        maxRequests: 30,  // KripToeNite - main builder interface
+        maxRequests: 100, // Increased from 30 - main builder interface
         message: 'Builder rate limit exceeded. Please wait before making more requests.',
     },
 };
@@ -374,39 +376,44 @@ export function createRateLimiter(options?: Partial<RateLimitConfig>) {
 
 /**
  * Rate limiter for AI generation endpoints
+ * VIRAL TRAFFIC READY: Increased limits
  */
 export const aiRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 20,  // Allows bursts during active building
+    maxRequests: 60,  // Increased from 20 - allows bursts during active building
 });
 
 /**
  * Rate limiter for orchestration endpoints
+ * VIRAL TRAFFIC READY: Increased limits
  */
 export const orchestrationRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 10,  // Multiple phases per minute
+    maxRequests: 30,  // Increased from 10 - multiple phases per minute
 });
 
 /**
  * Rate limiter for autonomous building
+ * VIRAL TRAFFIC READY: Increased limits
  */
 export const autonomousRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 5,   // Longer running operations
+    maxRequests: 15,  // Increased from 5 - longer running operations
 });
 
 /**
  * General API rate limiter
+ * Uses tier-based limits from TIER_LIMITS config
  */
 export const generalRateLimiter = createRateLimiter();
 
 /**
  * Strict rate limiter for sensitive operations
+ * Keep this low for security (password reset, account deletion, etc.)
  */
 export const strictRateLimiter = createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 3,
+    maxRequests: 10,  // Increased from 3 but still restrictive for security
 });
 
 // ============================================================================

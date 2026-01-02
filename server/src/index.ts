@@ -461,10 +461,20 @@ import { auth, testDatabaseConnection, ensureAuthTables } from './auth.js';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kriptik-ai-opus-build.vercel.app';
 
 // Custom middleware to handle OAuth callback redirect
-// This intercepts the response from Better Auth and ensures proper redirect
+// SAFARI FIX: Safari has issues with 307 redirects not storing cookies
+// This middleware ensures:
+// 1. We use 302 (not 307) for better cookie handling
+// 2. Proper redirect to frontend (not backend)
+// 3. Explicit cookie acceptance headers for Safari
 app.use("/api/auth/callback", (req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+
     console.log(`[OAuth Callback] ${req.method} ${req.path}`);
     console.log(`[OAuth Callback] Query params:`, req.query);
+    console.log(`[OAuth Callback] User-Agent: ${userAgent.substring(0, 100)}...`);
+    console.log(`[OAuth Callback] Browser detection - Safari: ${isSafari}, iOS: ${isIOS}`);
 
     // Store original redirect method
     const originalRedirect = res.redirect.bind(res);
@@ -472,9 +482,10 @@ app.use("/api/auth/callback", (req, res, next) => {
     // Override redirect to ensure we go to frontend
     res.redirect = function (statusOrUrl: number | string, url?: string) {
         let targetUrl = typeof statusOrUrl === 'string' ? statusOrUrl : url;
-        let status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
+        // SAFARI FIX: Force 302 instead of 307 - Safari handles 302 better for cookies
+        let status = 302; // Always use 302 for OAuth callbacks
 
-        console.log(`[OAuth Callback] Redirect called with: ${targetUrl}`);
+        console.log(`[OAuth Callback] Redirect called with: ${targetUrl}, forcing status 302`);
 
         // If redirect is to backend or root, redirect to frontend instead
         if (
@@ -486,6 +497,12 @@ app.use("/api/auth/callback", (req, res, next) => {
             console.log(`[OAuth Callback] Overriding redirect to frontend dashboard`);
             targetUrl = `${FRONTEND_URL}/dashboard`;
         }
+
+        // SAFARI FIX: Set explicit cache and vary headers for cookie handling
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Vary', 'Cookie');
 
         return originalRedirect(status, targetUrl);
     } as typeof res.redirect;
