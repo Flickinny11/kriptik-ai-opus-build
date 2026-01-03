@@ -3,6 +3,7 @@
 > **THE COMPUTE LAYER**: This document specifies the complete implementation plan for Modal-based sandboxing that enables KripTik to run autonomous, long-running builds at Lovable-scale.
 >
 > **Created**: 2026-01-03
+> **Updated**: 2026-01-03 (Added existing feature integrations)
 > **Status**: IMPLEMENTATION PLAN (Awaiting Approval)
 > **Reference**: [Modal Lovable Case Study](https://modal.com/blog/lovable-case-study) - 1M sandboxes, 20K concurrent
 
@@ -19,6 +20,22 @@ This plan transforms KripTik from a Vercel-limited system (10-60s timeouts) to a
 - **Tournament mode** - Multiple implementations compared by AI judge
 - **Merge verification** - Pre-merge testing in main-test sandbox
 - **Lovable-scale** - Support for 20K+ concurrent sandboxes
+
+### CRITICAL: Existing Feature Integrations
+
+This plan MUST integrate with all existing KripTik systems:
+
+| System | File Location | Integration Requirement |
+|--------|--------------|------------------------|
+| **LATTICE** | `services/lattice/*` | Parallel cell building runs INSIDE Modal sandboxes |
+| **KripToeNite** | `services/ai/krip-toe-nite/*` | All AI calls use speculative execution strategies |
+| **Deep Intent Lock** | `services/ai/intent-lock.ts` | DeepIntentContract + CompletionGateEvaluator for "done" |
+| **Component 28** | `services/learning/*` | Experience capture, pattern library, strategy evolution |
+| **Precompute Engine** | `services/lattice/precompute-engine.ts` | Pre-build cells during user review time |
+| **HeadlessPreview** | `services/preview/headless-preview-service.ts` | AI demos + "Show Me" button |
+| **CompletionGate** | `services/verification/completion-gate-evaluator.ts` | Final arbiter of "done" |
+
+**FAILURE TO INTEGRATE = PLAN INCOMPLETE**
 
 ---
 
@@ -101,6 +118,336 @@ This plan transforms KripTik from a Vercel-limited system (10-60s timeouts) to a
 │  • build:{buildId}:progress     - Phase progress                            │
 │  • build:{buildId}:merge        - Merge requests                            │
 └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## PHASE 0: EXISTING FEATURE INTEGRATIONS (CRITICAL)
+
+> **ULTRATHINK REQUIRED FOR ALL PHASE 0 PROMPTS**
+>
+> These integrations ensure KripTik's existing advanced features work inside Modal sandboxes.
+> Without these, the system will NOT achieve "always complete from single NLP."
+
+### Prompt 0.1: LATTICE System Integration
+
+```
+PROMPT FOR CLAUDE CODE:
+
+[ULTRATHINK REQUIRED - LATTICE is how parallel building happens]
+
+Integrate the LATTICE system with Modal sandboxes.
+
+Key files to understand first:
+- server/src/services/lattice/lattice-orchestrator.ts (parallel cell building)
+- server/src/services/lattice/cell-builder.ts (individual cell construction)
+- server/src/services/lattice/intent-crystallizer.ts (NLP → blueprint)
+- server/src/services/lattice/precompute-engine.ts (speculative pre-building)
+
+How LATTICE works:
+1. Intent Crystallizer converts NLP → LatticeBlueprint (cells with dependencies)
+2. LATTICE Orchestrator groups cells by dependency level
+3. Cells in same level build in parallel
+4. Each cell uses CellBuilder to generate code
+5. Quality checks run per-cell
+
+Integration requirements:
+1. LATTICE Orchestrator runs INSIDE each Modal component sandbox
+2. Cells within a sandbox build in parallel (existing parallelism preserved)
+3. Multiple sandboxes = multiple LATTICE instances = even more parallelism
+4. SharedBuildContext syncs across sandboxes via Redis
+
+Modify:
+- LatticeOrchestrator to accept Modal sandbox context
+- CellBuilder to write files via Modal sandbox client (not local fs)
+- Enable cross-sandbox context sharing for cells that depend on other sandboxes
+
+Flow:
+1. Coordinator creates Deep Intent Contract
+2. Intent Crystallizer creates LatticeBlueprint
+3. Blueprint cells are partitioned by component (frontend/backend/etc)
+4. Each component's cells go to separate Modal sandbox
+5. LATTICE Orchestrator in each sandbox builds cells in parallel
+6. Cell results sync via Redis
+7. When all cells in sandbox complete → sandbox signals ready for merge
+
+DO NOT modify any auth files.
+```
+
+### Prompt 0.2: KripToeNite Speculative Execution Integration
+
+```
+PROMPT FOR CLAUDE CODE:
+
+[ULTRATHINK REQUIRED - KripToeNite makes AI calls fast and smart]
+
+Integrate KripToeNite's intelligent routing and speculative execution with Modal sandboxes.
+
+Key files to understand first:
+- server/src/services/ai/krip-toe-nite/facade.ts (entry point)
+- server/src/services/ai/krip-toe-nite/executor.ts (execution strategies)
+- server/src/services/ai/krip-toe-nite/router.ts (model routing)
+- server/src/services/ai/unified-context.ts (context injection)
+
+What KripToeNite provides:
+1. Task classification (what kind of task is this?)
+2. Intelligent model routing (which model is best?)
+3. Execution strategies:
+   - SINGLE: One model, one attempt
+   - SPECULATIVE: Multiple models race, first wins
+   - PARALLEL: Multiple models, merge results
+   - ENSEMBLE: All models vote on best
+4. Unified context injection (14+ context sources)
+5. Predictive error prevention
+
+Integration requirements:
+1. ALL AI calls inside Modal sandboxes MUST go through KripToeNiteFacade
+2. CellBuilder.generateCode() → Use KripToeNiteFacade.buildFeature()
+3. Error fixes → Use KripToeNiteFacade with error context
+4. Design decisions → Use KripToeNiteFacade.designReview()
+5. Speculative execution works across sandboxes (parallel attempts in different sandboxes)
+
+Modify:
+- CellBuilder to use KripToeNiteFacade instead of direct Claude/OpenRouter calls
+- SandboxBuildRunner to initialize KripToeNiteFacade with sandbox context
+- Enable cross-sandbox speculative execution for critical decisions
+
+Key code pattern:
+```typescript
+// INSIDE Modal sandbox
+import { getKripToeNite } from '../ai/krip-toe-nite/index.js';
+
+const ktn = getKripToeNite();
+const result = await ktn.buildFeature(prompt, {
+    projectId: sandboxContext.projectId,
+    userId: sandboxContext.userId,
+    projectPath: sandboxContext.workdir,  // Modal sandbox workdir
+    injectRichContext: true,  // Always inject unified context
+});
+```
+
+DO NOT modify any auth files.
+```
+
+### Prompt 0.3: Deep Intent Lock + CompletionGate Integration
+
+```
+PROMPT FOR CLAUDE CODE:
+
+[ULTRATHINK REQUIRED - This is how "DONE" is determined]
+
+Integrate Deep Intent Lock and CompletionGateEvaluator with Modal sandboxes.
+
+Key files to understand first:
+- server/src/services/ai/intent-lock.ts (Deep Intent contracts)
+- server/src/services/verification/completion-gate-evaluator.ts (DONE evaluation)
+- server/src/services/verification/functional-checklist-verifier.ts (checklist verification)
+
+What Deep Intent Lock provides:
+1. DeepIntentContract with:
+   - Technical requirements (TR001, TR002, etc.)
+   - Integration requirements (external APIs)
+   - Functional checklist
+   - Wiring map (component → file connections)
+   - Completion gate criteria
+2. CompletionGateEvaluator that checks:
+   - All functional items verified
+   - All integrations working
+   - All wiring connected
+   - No placeholders
+   - No build errors
+   - Anti-slop score 85+
+
+Integration requirements:
+1. Coordinator creates DeepIntentContract in Phase 0 (before sandboxes spawn)
+2. Each sandbox receives subset of contract relevant to its component
+3. Sandbox's completion check uses CompletionGateEvaluator.evaluate()
+4. Sandbox CANNOT signal "ready to merge" until gate passes
+5. Main-test sandbox runs FULL contract evaluation before merge to main
+6. Build loops FOREVER until CompletionGateEvaluator.satisfied === true
+
+Critical flow:
+```
+Phase 0: createDeepIntentContract(nlp)
+    ↓
+Sandboxes spawn with contract reference
+    ↓
+Each sandbox works on its cells
+    ↓
+After each cell: check partial satisfaction
+    ↓
+When sandbox thinks done: CompletionGateEvaluator.evaluate()
+    ↓
+If NOT satisfied: identify blockers → fix → retry
+    ↓
+LOOP FOREVER until satisfied (this is "never gives up")
+    ↓
+Only when satisfied: signal ready for merge
+```
+
+Modify:
+- SandboxBuildRunner to load DeepIntentContract from database
+- Add completion gate check after each build cycle
+- Implement infinite retry loop with escalating error handling
+- Main-test sandbox runs isDeepIntentSatisfied() before merge approval
+
+DO NOT modify any auth files.
+```
+
+### Prompt 0.4: Component 28 Learning Engine Integration
+
+```
+PROMPT FOR CLAUDE CODE:
+
+[ULTRATHINK REQUIRED - This makes KripTik get better with use]
+
+Integrate the 5-layer Autonomous Learning Engine with Modal sandboxes.
+
+Key files to understand first:
+- server/src/services/learning/evolution-flywheel.ts (orchestrator)
+- server/src/services/learning/experience-capture.ts (Layer 1)
+- server/src/services/learning/ai-judgment.ts (Layer 2)
+- server/src/services/learning/pattern-library.ts (Layer 4)
+- server/src/services/learning/strategy-evolution.ts (Layer 4)
+
+What Component 28 provides:
+1. Experience Capture - Records every decision, artifact, design choice
+2. AI Judgment - Evaluates quality, generates preference pairs
+3. Shadow Models - Trains on accumulated experience
+4. Pattern Library - Stores successful patterns for reuse
+5. Strategy Evolution - Evolves build strategies based on success
+
+Integration requirements:
+1. BEFORE code generation: Load patterns from PatternLibrary
+2. DURING build: Capture all decisions via ExperienceCaptureService
+3. AFTER each cell: Record artifact trace
+4. ON ERROR: Record error recovery trace
+5. ON BUILD COMPLETE: Trigger AI judgment for quality evaluation
+6. AFTER MERGE: Update pattern library with successful patterns
+
+Modify:
+- SandboxBuildRunner to initialize ExperienceCaptureService
+- CellBuilder to call patternLibrary.getRelevantPatterns() before generation
+- CellBuilder to inject patterns into prompts
+- Add experience capture hooks for decision traces
+- Main-test sandbox triggers evolution flywheel after successful build
+
+Pattern injection example:
+```typescript
+const patterns = await patternLibrary.getRelevantPatterns({
+    category: 'code',
+    framework: 'react',
+    component: cellType,
+});
+
+const prompt = `
+${patterns.map(p => `LEARNED PATTERN: ${p.description}\n${p.example}`).join('\n')}
+
+Now generate: ${cellDescription}
+`;
+```
+
+Experience capture example:
+```typescript
+await experienceCapture.captureDecision({
+    phase: 'code_generation',
+    decisionType: 'component_structure',
+    chosen: 'functional_components',
+    alternatives: ['class_components'],
+    reasoning: 'Better for hooks',
+    projectId,
+    agentId: sandboxId,
+});
+```
+
+DO NOT modify any auth files.
+```
+
+### Prompt 0.5: Precompute Engine Integration
+
+```
+PROMPT FOR CLAUDE CODE:
+
+Integrate the Precompute Engine with Modal sandboxes for speculative pre-building.
+
+Key file:
+- server/src/services/lattice/precompute-engine.ts
+
+What Precompute Engine provides:
+1. During user review time (reading intent lock, entering credentials), start building
+2. Identifies dependency-free cells that can be built speculatively
+3. Caches built cells for instant use when user approves
+4. Cancels if context changes (user modifies intent)
+
+Integration requirements:
+1. WHILE USER REVIEWS INTENT: Coordinator starts PrecomputeEngine
+2. Precompute runs in TEMPORARY Modal sandboxes (disposable)
+3. Built cells are cached in Redis with TTL
+4. When user approves: check cache for precomputed cells
+5. Cache hits skip generation, cache misses build normally
+6. If user modifies intent: cancel precompute, invalidate cache
+
+Flow:
+1. Intent Lock created → presented to user
+2. While user reads: PrecomputeEngine.startPrecomputation(blueprint)
+3. Engine identifies high-priority dependency-free cells
+4. Spawns temporary Modal sandboxes to build these cells
+5. Stores results: Redis cache with key `precompute:{buildId}:{cellId}`
+6. User approves → check cache → use cached cells
+7. User modifies → PrecomputeEngine.invalidate() → delete cache
+
+Modify:
+- PrecomputeEngine to spawn Modal sandboxes instead of local builds
+- Add Redis caching for precomputed cell results
+- Coordinator to check precompute cache before assigning cells to sandboxes
+
+DO NOT modify any auth files.
+```
+
+### Prompt 0.6: HeadlessPreviewService Integration ("Show Me" Button)
+
+```
+PROMPT FOR CLAUDE CODE:
+
+Integrate HeadlessPreviewService with Modal sandboxes for AI-controlled browser demos.
+
+Key file:
+- server/src/services/preview/headless-preview-service.ts
+
+What HeadlessPreviewService provides:
+1. Playwright browser inside sandbox
+2. AI controls browser to demonstrate features
+3. Cursor movements, clicks, typing streamed to frontend
+4. User can click "Take Control" to interact directly
+5. Screenshots captured for verification
+
+Integration requirements:
+1. Each Modal sandbox has Playwright installed
+2. HeadlessPreviewService runs INSIDE Modal sandbox
+3. Preview events stream to frontend via WebSocket tunnel
+4. After build complete: AI demo runs automatically
+5. User sees live browser controlled by AI
+6. "Take Control" transfers browser to user (via tunnel)
+
+For Builder View:
+- Phase 7 (Browser Demo) uses HeadlessPreviewService
+- AI walks through ALL user workflows from Intent Lock
+- Each workflow step: cursor move → action → narration
+- If anything breaks: loop back to Phase 2
+
+For Feature Agent ("Show Me"):
+- After feature complete, "Show Me" button appears
+- Click → HeadlessPreviewService.startPreview()
+- AI demonstrates the specific feature
+- User can take control after demo
+
+Modify:
+- HeadlessPreviewService to work with Modal tunnel URLs
+- Add WebSocket event streaming from sandbox to frontend
+- Implement user takeover via tunnel connection handoff
+- Main sandbox exposes Playwright browser via Modal tunnel
+
+DO NOT modify any auth files.
 ```
 
 ---
@@ -853,33 +1200,44 @@ DO NOT skip auth verification.
 
 Execute prompts in this order:
 
-### Week 1: Foundation
+> **CRITICAL**: Phase 0 prompts must be completed ALONGSIDE Phase 1-3, not before.
+> Each Phase 1-3 prompt should reference the corresponding Phase 0 integration.
+
+### Week 1: Foundation + LATTICE Integration
 1. **Prompt 1.1** - Modal Sandbox Runner (Python)
 2. **Prompt 1.2** - Modal TypeScript Client
-3. **Prompt 7.1** - Environment Configuration
-4. **Prompt 7.2** - Modal Deployment Script
+3. **Prompt 0.1** - LATTICE System Integration (run alongside 1.1/1.2)
+4. **Prompt 7.1** - Environment Configuration
+5. **Prompt 7.2** - Modal Deployment Script
 
-### Week 2: Coordinator
-5. **Prompt 2.1** - Build Coordinator Service
-6. **Prompt 2.2** - Redis Context Sync Adapter
-7. **Prompt 5.2** - Coordinator Resumption Handler
+### Week 2: Coordinator + KripToeNite Integration
+6. **Prompt 2.1** - Build Coordinator Service
+7. **Prompt 2.2** - Redis Context Sync Adapter
+8. **Prompt 0.2** - KripToeNite Speculative Execution Integration
+9. **Prompt 5.2** - Coordinator Resumption Handler
 
-### Week 3: Multi-Sandbox
-8. **Prompt 3.1** - Sandbox Fleet Manager
-9. **Prompt 3.2** - Per-Sandbox Build Runner
-10. **Prompt 5.1** - Build Persistence Manager
+### Week 3: Multi-Sandbox + Deep Intent Integration
+10. **Prompt 3.1** - Sandbox Fleet Manager
+11. **Prompt 3.2** - Per-Sandbox Build Runner
+12. **Prompt 0.3** - Deep Intent Lock + CompletionGate Integration
+13. **Prompt 5.1** - Build Persistence Manager
 
-### Week 4: Merge Pipeline
-11. **Prompt 4.1** - Main-Test Sandbox Manager
-12. **Prompt 4.2** - Live Preview Sync
+### Week 4: Merge Pipeline + Learning Engine Integration
+14. **Prompt 4.1** - Main-Test Sandbox Manager
+15. **Prompt 4.2** - Live Preview Sync
+16. **Prompt 0.4** - Component 28 Learning Engine Integration
 
-### Week 5: Integration
-13. **Prompt 6.1** - Modify Build Loop Orchestrator
-14. **Prompt 6.2** - Update API Routes
+### Week 5: Integration + Speed Enhancements
+17. **Prompt 6.1** - Modify Build Loop Orchestrator
+18. **Prompt 6.2** - Update API Routes
+19. **Prompt 0.5** - Precompute Engine Integration
 
-### Week 6: Testing
-15. **Prompt 8.1** - Integration Tests
-16. **Prompt 8.2** - Verification Checklist
+### Week 6: Testing + Preview Integration
+20. **Prompt 0.6** - HeadlessPreviewService Integration ("Show Me" Button)
+21. **Prompt 8.1** - Integration Tests
+22. **Prompt 8.2** - Verification Checklist
+
+### Total Prompts: 22 (was 16, added 6 for existing feature integrations)
 
 ---
 
@@ -902,6 +1260,7 @@ See `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` for details.
 
 The Modal integration is complete when:
 
+### Core Infrastructure
 1. [ ] User enters NLP → Build runs on Modal (not local)
 2. [ ] Multiple sandboxes work in parallel (3+ components)
 3. [ ] Context syncs in real-time between sandboxes
@@ -912,9 +1271,31 @@ The Modal integration is complete when:
 8. [ ] Builds can run for hours (tested 4+ hour build)
 9. [ ] Coordinator survives Vercel restarts
 10. [ ] Ghost Mode works (user leaves, build continues)
-11. [ ] All existing features work (91 features preserved)
-12. [ ] Auth continues to work (CRITICAL)
-13. [ ] No regressions in existing tests
+
+### Existing Feature Integrations (CRITICAL)
+11. [ ] **LATTICE**: Cells build in parallel inside Modal sandboxes
+12. [ ] **KripToeNite**: All AI calls use speculative execution strategies
+13. [ ] **Deep Intent Lock**: CompletionGateEvaluator determines "done"
+14. [ ] **Component 28**: Patterns injected, experiences captured, flywheel runs
+15. [ ] **Precompute**: Cells pre-built during user review time
+16. [ ] **HeadlessPreview**: AI demo works via Modal tunnel, "Show Me" button works
+17. [ ] **"Never Gives Up"**: Build loops infinitely until intent satisfied
+18. [ ] **Single NLP → Complete App**: User enters prompt, gets working app
+
+### Verification
+19. [ ] All 91+ features preserved (see unified-orchestrator-spec.md)
+20. [ ] Auth continues to work (CRITICAL - run full auth test suite)
+21. [ ] No regressions in existing tests
+22. [ ] Anti-slop score 85+ enforced
+23. [ ] Zero placeholders in output
+24. [ ] All user workflows from Intent Lock verified in browser
+
+### Production Readiness
+25. [ ] 1000+ concurrent sandboxes tested
+26. [ ] Budget/cost tracking works per user
+27. [ ] Sandbox cleanup (no orphaned resources)
+28. [ ] Error escalation works (4 levels + rebuild from intent)
+29. [ ] Learning engine captures experience after each build
 
 ---
 
