@@ -273,40 +273,99 @@ router.post('/', async (req: Request, res: Response) => {
             context.broadcast('video-analysis', data);
         });
 
-        // Start execution in background based on mode (using enriched prompt with context)
-        setImmediate(async () => {
-            try {
-                // Initialize advanced orchestration with the prompt
-                await advancedOrch.initialize(prompt);
+        // Check if Modal is enabled for long-running builds (24h+)
+        const useModal = process.env.MODAL_ENABLED === 'true' &&
+                        process.env.MODAL_TOKEN_ID &&
+                        process.env.MODAL_TOKEN_SECRET &&
+                        mode === 'builder'; // Only use Modal for full builds
 
-                // Get shadow pattern hints for enhanced routing
-                const routingHints = advancedOrch.getRoutingHints();
-                if (routingHints.successfulApproaches.length > 0) {
-                    context.broadcast('routing-hints', routingHints);
-                }
+        if (useModal) {
+            // Trigger Modal orchestration for long-running build
+            console.log(`[Execute] Using Modal for long-running build ${sessionId}`);
 
-                switch (mode) {
-                    case 'builder':
-                        await executeBuilderMode(context, enrichedPrompt, options, advancedOrch);
-                        break;
-                    case 'developer':
-                        await executeDeveloperMode(context, enrichedPrompt, options, advancedOrch);
-                        break;
-                    case 'agents':
-                        await executeAgentsMode(context, enrichedPrompt, options, advancedOrch);
-                        break;
+            setImmediate(async () => {
+                try {
+                    // Trigger Modal via the orchestrate API
+                    const modalResult = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3100'}/api/orchestrate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'start',
+                            projectId,
+                            userId,
+                            intentContractId: (options as any)?.deepIntentContractId,
+                            implementationPlan: (options as any)?.approvedPlan || { phases: [] },
+                            credentials: (options as any)?.credentials || {},
+                            config: {
+                                maxParallelSandboxes: 5,
+                                taskPartitionStrategy: 'by-phase',
+                                tournamentMode: false,
+                                budgetLimitUsd: 100,
+                                timeoutHours: 24,
+                                respawnOnFailure: true,
+                            },
+                        }),
+                    }).then(res => res.json());
+
+                    if (modalResult.success) {
+                        context.broadcast('modal-started', {
+                            buildId: modalResult.buildId,
+                            modalFunctionId: modalResult.modalFunctionId,
+                            message: 'Build started on Modal. This can run for 24+ hours.',
+                        });
+                    } else {
+                        throw new Error(modalResult.error || 'Failed to start Modal orchestration');
+                    }
+                } catch (error) {
+                    console.error('[Execute] Modal trigger failed, falling back to local:', error);
+                    context.broadcast('modal-fallback', {
+                        error: error instanceof Error ? error.message : 'Unknown error',
+                        message: 'Falling back to local execution',
+                    });
+
+                    // Fall back to local execution
+                    await executeBuilderMode(context, enrichedPrompt, options, advancedOrch);
+                } finally {
+                    advancedOrch.shutdown();
+                    activeOrchestrations.delete(sessionId);
                 }
-            } catch (error) {
-                console.error(`[Execute] ${mode} mode failed:`, error);
-                context.broadcast('execution-error', {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                });
-            } finally {
-                // Cleanup advanced orchestration
-                advancedOrch.shutdown();
-                activeOrchestrations.delete(sessionId);
-            }
-        });
+            });
+        } else {
+            // Original local execution path
+            setImmediate(async () => {
+                try {
+                    // Initialize advanced orchestration with the prompt
+                    await advancedOrch.initialize(prompt);
+
+                    // Get shadow pattern hints for enhanced routing
+                    const routingHints = advancedOrch.getRoutingHints();
+                    if (routingHints.successfulApproaches.length > 0) {
+                        context.broadcast('routing-hints', routingHints);
+                    }
+
+                    switch (mode) {
+                        case 'builder':
+                            await executeBuilderMode(context, enrichedPrompt, options, advancedOrch);
+                            break;
+                        case 'developer':
+                            await executeDeveloperMode(context, enrichedPrompt, options, advancedOrch);
+                            break;
+                        case 'agents':
+                            await executeAgentsMode(context, enrichedPrompt, options, advancedOrch);
+                            break;
+                    }
+                } catch (error) {
+                    console.error(`[Execute] ${mode} mode failed:`, error);
+                    context.broadcast('execution-error', {
+                        error: error instanceof Error ? error.message : 'Unknown error',
+                    });
+                } finally {
+                    // Cleanup advanced orchestration
+                    advancedOrch.shutdown();
+                    activeOrchestrations.delete(sessionId);
+                }
+            });
+        }
 
         // Return immediately with session info
         const response: ExecuteResponse = {

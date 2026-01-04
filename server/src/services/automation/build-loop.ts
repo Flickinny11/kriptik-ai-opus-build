@@ -116,6 +116,12 @@ import {
     type SandboxInstance,
 } from '../developer-mode/sandbox-service.js';
 import {
+    ModalSandboxAdapter,
+    createModalSandboxAdapter,
+    type SandboxConfig,
+} from '../cloud/modal-sandbox-adapter.js';
+import type { ModalSandboxCredentials } from '../cloud/modal-sandbox.js';
+import {
     TimeMachine,
     createTimeMachine,
     CheckpointScheduler,
@@ -445,6 +451,11 @@ export interface BuildLoopOptions {
      * Stored on the execution context and used by integrations when needed.
      */
     credentials?: Record<string, string>;
+    /**
+     * Optional: Modal sandbox identifier for cloud builds.
+     * When running in Modal, this identifies which sandbox this build is in.
+     */
+    sandboxId?: string;
 }
 
 export interface BuildLoopState {
@@ -664,7 +675,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private errorEscalationEngine: ErrorEscalationEngine;
     private verificationSwarm: VerificationSwarm;
     private visualVerifier: VisualVerificationService;
-    private sandboxService: SandboxService | null = null;
+    private sandboxService: SandboxService | ModalSandboxAdapter | null = null;
     private mergeController: SandboxMergeController;
     private timeMachine: TimeMachine;
     private checkpointScheduler: CheckpointScheduler;
@@ -3588,6 +3599,52 @@ Return JSON:
     }
 
     /**
+     * Helper: Create sandbox service (local or Modal)
+     * Conditionally creates either a local SandboxService or ModalSandboxAdapter
+     * based on MODAL_ENABLED environment variable.
+     */
+    private async createSandboxServiceInstance(
+        projectPath: string
+    ): Promise<SandboxService | ModalSandboxAdapter> {
+        const config: SandboxConfig = {
+            basePort: 3100,
+            maxSandboxes: 5,
+            projectPath,
+            framework: 'vite',
+        };
+
+        const useModal = process.env.MODAL_ENABLED === 'true';
+
+        if (useModal) {
+            console.log('[BuildLoop] Using Modal sandboxes (MODAL_ENABLED=true)');
+
+            const modalTokenId = process.env.MODAL_TOKEN_ID;
+            const modalTokenSecret = process.env.MODAL_TOKEN_SECRET;
+
+            if (!modalTokenId || !modalTokenSecret) {
+                throw new Error(
+                    'Modal sandbox enabled but MODAL_TOKEN_ID or MODAL_TOKEN_SECRET not set. ' +
+                    'Please set these environment variables or disable Modal with MODAL_ENABLED=false'
+                );
+            }
+
+            const credentials: ModalSandboxCredentials = {
+                tokenId: modalTokenId,
+                tokenSecret: modalTokenSecret,
+            };
+
+            const adapter = createModalSandboxAdapter(config, credentials);
+            await adapter.initialize();
+            return adapter;
+        } else {
+            console.log('[BuildLoop] Using local sandboxes (MODAL_ENABLED not set or false)');
+            const service = createSandboxService(config);
+            await service.initialize();
+            return service;
+        }
+    }
+
+    /**
      * Phase 6: BROWSER DEMO - Show the user their working app
      * Opens a VISIBLE browser for the user to see and optionally take control
      *
@@ -3604,13 +3661,9 @@ Return JSON:
         try {
             // Ensure sandbox is running
             if (!this.sandboxService) {
-                this.sandboxService = createSandboxService({
-                    basePort: 3100,
-                    maxSandboxes: 5,
-                    projectPath: `/tmp/builds/${this.state.projectId}`,
-                    framework: 'vite',
-                });
-                await this.sandboxService.initialize();
+                this.sandboxService = await this.createSandboxServiceInstance(
+                    `/tmp/builds/${this.state.projectId}`
+                );
             }
 
             // Get or create sandbox
@@ -4365,13 +4418,9 @@ Generate production-ready code for this feature.`;
         try {
             // Initialize sandbox if not already running
             if (!this.sandboxService) {
-                this.sandboxService = createSandboxService({
-                    basePort: 3100,
-                    maxSandboxes: 5,
-                    projectPath: `/tmp/builds/${this.state.projectId}`,
-                    framework: 'vite',
-                });
-                await this.sandboxService.initialize();
+                this.sandboxService = await this.createSandboxServiceInstance(
+                    `/tmp/builds/${this.state.projectId}`
+                );
             }
 
             // Get or create sandbox for this build
