@@ -494,7 +494,7 @@ export class TaskDistributor extends EventEmitter {
 
         // Check file conflicts
         if (this.config.enableFileConflictPrevention) {
-            const conflict = this.checkFileConflicts(task, agent.id);
+            const conflict = await this.checkFileConflicts(task, agent.id);
             if (conflict) {
                 console.warn(`[TaskDistributor] File conflict for task ${taskId}: ${conflict}`);
                 assignment.status = 'blocked';
@@ -689,9 +689,9 @@ export class TaskDistributor extends EventEmitter {
     /**
      * Check if task would conflict with files being modified by other agents
      */
-    private checkFileConflicts(task: DistributableTask, agentId: string): string | null {
+    private async checkFileConflicts(task: DistributableTask, agentId: string): Promise<string | null> {
         for (const filePath of task.filesToModify) {
-            const lockInfo = this.contextSync.isFileLocked(filePath, agentId);
+            const lockInfo = await this.contextSync.isFileLocked(filePath, agentId);
             if (lockInfo.locked) {
                 return `${filePath} is being modified by ${lockInfo.byAgent}`;
             }

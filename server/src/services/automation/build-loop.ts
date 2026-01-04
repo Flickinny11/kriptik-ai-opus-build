@@ -126,6 +126,13 @@ import {
     getWebSocketSyncService,
     type WebSocketSyncService,
 } from '../agents/websocket-sync.js';
+import {
+    SandboxMergeController,
+    createSandboxMergeController,
+    type MergeRequest,
+    type MergeResult as SandboxMergeResult,
+    type FileChange,
+} from '../orchestration/merge-controller.js';
 
 // ============================================================================
 // SESSION 3: CONTEXT SYNC SERVICE (Real-time context sharing between agents)
@@ -658,6 +665,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private verificationSwarm: VerificationSwarm;
     private visualVerifier: VisualVerificationService;
     private sandboxService: SandboxService | null = null;
+    private mergeController: SandboxMergeController;
     private timeMachine: TimeMachine;
     private checkpointScheduler: CheckpointScheduler;
     private loopBlocker: LoopBlocker;
@@ -870,6 +878,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
             { enableVisualVerification: BUILD_MODE_CONFIGS[mode].enableVisualVerification }
         );
         this.visualVerifier = createVisualVerificationService();
+        this.mergeController = createSandboxMergeController({
+            strictMode: true,
+            antiSlopThreshold: 85,
+            requireAllGates: true,
+            autoMerge: false,
+        });
         this.timeMachine = createTimeMachine(projectId, userId, orchestrationRunId, 10);
         this.checkpointScheduler = createCheckpointScheduler(
             this.timeMachine,
@@ -2371,12 +2385,19 @@ export class BuildLoopOrchestrator extends EventEmitter {
     }
 
     /**
-     * Phase 3: INTEGRATION CHECK - Scan for issues
+     * Phase 3: INTEGRATION CHECK - Scan for issues + 7-Gate Merge Verification
+     *
+     * Enhanced with Modal Sandbox Merge Controller:
+     * - Existing: Orphan scan, dead code detection, console errors
+     * - NEW: 7-gate verification for sandbox merges when sandboxes active
      */
     private async executePhase3_IntegrationCheck(): Promise<void> {
         this.startPhase('integration_check');
 
         try {
+            // =====================================================================
+            // STEP 1: Existing Integration Check (Orphans, Dead Code, Console Errors)
+            // =====================================================================
             const issues = await this.runIntegrationCheck();
 
             if (issues.length > 0) {
@@ -2386,16 +2407,199 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 }
             }
 
+            // =====================================================================
+            // STEP 2: 7-Gate Merge Verification (When Sandboxes Active)
+            // =====================================================================
+            let mergeResult: SandboxMergeResult | null = null;
+
+            if (this.sandboxService) {
+                console.log('[Phase 3] Running 7-gate merge verification for sandbox changes...');
+                this.emitEvent('verification', {
+                    phase: 'integration_check',
+                    type: '7-gate-merge-verification',
+                    status: 'started',
+                    gateCount: 7,
+                });
+
+                try {
+                    mergeResult = await this.run7GateMergeVerification();
+
+                    if (!mergeResult.success) {
+                        console.warn(`[Phase 3] 7-gate verification failed: ${mergeResult.failedChecks?.join(', ')}`);
+                        this.emitEvent('verification-results', {
+                            phase: 'integration_check',
+                            type: '7-gate-merge-verification',
+                            status: 'failed',
+                            gatesPassed: mergeResult.gatesPassed,
+                            gatesTotalCount: mergeResult.gatesTotalCount,
+                            failedChecks: mergeResult.failedChecks,
+                        });
+
+                        // Add failed gate checks as integration issues
+                        if (mergeResult.failedChecks) {
+                            for (const failedCheck of mergeResult.failedChecks) {
+                                issues.push({
+                                    type: 'merge_gate_failure',
+                                    description: `7-Gate Verification: ${failedCheck}`,
+                                });
+                            }
+                        }
+                    } else {
+                        console.log(`[Phase 3] 7-gate verification PASSED (${mergeResult.gatesPassed}/${mergeResult.gatesTotalCount})`);
+                        this.emitEvent('verification-results', {
+                            phase: 'integration_check',
+                            type: '7-gate-merge-verification',
+                            status: 'passed',
+                            gatesPassed: mergeResult.gatesPassed,
+                            gatesTotalCount: mergeResult.gatesTotalCount,
+                            verificationResults: mergeResult.verificationResults,
+                        });
+                    }
+                } catch (error) {
+                    console.error('[Phase 3] 7-gate merge verification error:', error);
+                    this.emitEvent('error', {
+                        phase: 'integration_check',
+                        type: '7-gate-merge-verification',
+                        error: (error as Error).message,
+                    });
+                    // Don't throw - continue with build even if merge verification fails
+                    // This is an enhancement, not a blocker
+                }
+            } else {
+                console.log('[Phase 3] Sandboxes not active - skipping 7-gate merge verification');
+            }
+
             this.completePhase('integration_check');
             this.emitEvent('phase_complete', {
                 phase: 'integration_check',
                 issuesFound: issues.length,
                 issuesFixed: issues.length,
+                mergeVerificationRan: !!mergeResult,
+                mergeVerificationPassed: mergeResult?.success ?? null,
             });
 
         } catch (error) {
             throw new Error(`Integration Check failed: ${(error as Error).message}`);
         }
+    }
+
+    /**
+     * Run 7-Gate Merge Verification for sandbox changes
+     *
+     * THE 7 GATES:
+     * 1. Swarm Verification - 6-agent verification swarm
+     * 2. Anti-Slop Check - 85+ score required
+     * 3. Build Check - Error-free compilation
+     * 4. Compatibility Check - Compatible with other sandboxes
+     * 5. Intent Satisfaction - Validates against contract
+     * 6. Visual Verification - Headless Playwright screenshots
+     * 7. Main-Test Sandbox - Test merge in isolated main clone
+     */
+    private async run7GateMergeVerification(): Promise<SandboxMergeResult> {
+        console.log('[7-Gate] Starting merge verification...');
+
+        // Gather all modified files from completed features
+        const features = await this.featureManager.getAllFeatures();
+        const passedFeatures = features.filter(f => f.passes);
+
+        if (passedFeatures.length === 0) {
+            console.log('[7-Gate] No passed features to verify');
+            return {
+                success: true,
+                mergedFiles: [],
+                verificationResults: {
+                    swarm: { passed: true, details: 'No features to verify', duration: 0 },
+                    antislop: { passed: true, details: 'No features to verify', duration: 0 },
+                    build: { passed: true, details: 'No features to verify', duration: 0 },
+                    compatibility: { passed: true, details: 'No features to verify', duration: 0 },
+                    intent: { passed: true, details: 'No features to verify', duration: 0 },
+                    visual: { passed: true, details: 'No features to verify', duration: 0 },
+                    maintest: { passed: true, details: 'No features to verify', duration: 0 },
+                },
+                mergeDuration: 0,
+                gatesPassed: 7,
+                gatesTotalCount: 7,
+            };
+        }
+
+        // Collect all unique modified files
+        const modifiedFilePathsSet = new Set<string>();
+        for (const feature of passedFeatures) {
+            if (feature.filesModified) {
+                for (const filePath of feature.filesModified) {
+                    modifiedFilePathsSet.add(filePath);
+                }
+            }
+        }
+
+        const modifiedFilePaths = Array.from(modifiedFilePathsSet);
+        console.log(`[7-Gate] Found ${modifiedFilePaths.length} modified files across ${passedFeatures.length} features`);
+
+        // Read file contents from project
+        const fileChanges: FileChange[] = [];
+        const fs = await import('fs/promises');
+        const path = await import('path');
+
+        for (const filePath of modifiedFilePaths) {
+            try {
+                const fullPath = path.join(this.projectPath, filePath);
+                const content = await fs.readFile(fullPath, 'utf-8');
+
+                fileChanges.push({
+                    path: filePath,
+                    content,
+                    action: 'modify', // For now, assume all are modifications
+                });
+            } catch (error) {
+                console.warn(`[7-Gate] Could not read file ${filePath}:`, (error as Error).message);
+                // If file doesn't exist, it might have been deleted or is new
+                // For now, skip it
+            }
+        }
+
+        if (fileChanges.length === 0) {
+            console.warn('[7-Gate] No file changes could be read');
+            return {
+                success: false,
+                mergedFiles: [],
+                failedChecks: ['No file changes could be read from project'],
+                verificationResults: {
+                    swarm: { passed: false, details: 'No files to verify', duration: 0 },
+                    antislop: { passed: false, details: 'No files to verify', duration: 0 },
+                    build: { passed: false, details: 'No files to verify', duration: 0 },
+                    compatibility: { passed: false, details: 'No files to verify', duration: 0 },
+                    intent: { passed: false, details: 'No files to verify', duration: 0 },
+                    visual: { passed: false, details: 'No files to verify', duration: 0 },
+                    maintest: { passed: false, details: 'No files to verify', duration: 0 },
+                },
+                mergeDuration: 0,
+                gatesPassed: 0,
+                gatesTotalCount: 7,
+            };
+        }
+
+        // Get current sandbox instance
+        const sandbox = this.sandboxService!.getSandbox(this.state.id);
+        const sandboxId = sandbox?.id || this.state.id;
+
+        // Create merge request
+        const mergeRequest: MergeRequest = {
+            id: `merge-${this.state.orchestrationRunId}-${Date.now()}`,
+            sandboxId,
+            taskId: this.state.orchestrationRunId,
+            files: fileChanges,
+            intentContract: this.state.intentContract || undefined,
+            targetBranch: 'main',
+        };
+
+        console.log(`[7-Gate] Created merge request ${mergeRequest.id} with ${fileChanges.length} files`);
+
+        // Run 7-gate verification
+        const mergeResult = await this.mergeController.verifyAndMerge(mergeRequest);
+
+        console.log(`[7-Gate] Verification complete: ${mergeResult.success ? 'PASSED' : 'FAILED'} (${mergeResult.gatesPassed}/${mergeResult.gatesTotalCount})`);
+
+        return mergeResult;
     }
 
     /**
@@ -6063,9 +6267,9 @@ Would the user be satisfied with this result?`;
     /**
      * Check if a file is locked by another agent
      */
-    isFileLockedByOtherAgent(filePath: string): { locked: boolean; byAgent?: string } {
+    async isFileLockedByOtherAgent(filePath: string): Promise<{ locked: boolean; byAgent?: string }> {
         if (this.contextSync) {
-            return this.contextSync.isFileLocked(filePath, this.buildLoopAgentId);
+            return await this.contextSync.isFileLocked(filePath, this.buildLoopAgentId);
         }
         return { locked: false };
     }

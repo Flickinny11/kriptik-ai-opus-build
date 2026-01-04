@@ -9,10 +9,17 @@
  * - File modifications are broadcast to prevent conflicts
  * - Shared context is injected into every agent's prompts
  * - Solutions are captured by learning engine for future builds
+ *
+ * MODAL INTEGRATION:
+ * - Optionally uses Redis (via ContextBridgeService) for cross-sandbox communication
+ * - Falls back to in-memory when Redis not configured
+ * - Atomic file ownership via Redis HSETNX when available
+ * - Cross-sandbox discovery broadcasting
  */
 
 import { EventEmitter } from 'events';
 import { getWebSocketSyncService, type WebSocketSyncService } from './websocket-sync.js';
+import { ContextBridgeService, type Discovery } from '../orchestration/context-bridge.js';
 
 // =============================================================================
 // TYPES
@@ -93,10 +100,16 @@ export class ContextSyncService extends EventEmitter {
     private context: SharedAgentContext;
     private wsSync: WebSocketSyncService;
     private syncInterval: NodeJS.Timeout | null = null;
+    private contextBridge?: ContextBridgeService;
+    private sandboxId?: string;
 
     private constructor(
         private buildId: string,
-        private projectId: string
+        private projectId: string,
+        options?: {
+            contextBridge?: ContextBridgeService;
+            sandboxId?: string;
+        }
     ) {
         super();
         this.context = {
@@ -108,17 +121,101 @@ export class ContextSyncService extends EventEmitter {
             activeAgents: new Map()
         };
         this.wsSync = getWebSocketSyncService();
+        this.contextBridge = options?.contextBridge;
+        this.sandboxId = options?.sandboxId;
 
-        console.log(`[ContextSyncService] Created for build ${buildId}, project ${projectId}`);
+        const mode = this.contextBridge ? 'Redis-enabled (cross-sandbox)' : 'in-memory only';
+        console.log(`[ContextSyncService] Created for build ${buildId}, project ${projectId} [${mode}]`);
+
+        // Subscribe to Redis discoveries if available
+        if (this.contextBridge) {
+            this.setupCrossSandboxSync();
+        }
+    }
+
+    /**
+     * Set up cross-sandbox synchronization via Redis
+     */
+    private setupCrossSandboxSync(): void {
+        if (!this.contextBridge) return;
+
+        this.contextBridge.onDiscovery((discovery: Discovery) => {
+            // Don't process our own discoveries (already in local context)
+            if (discovery.sandboxId === this.sandboxId) return;
+
+            // Merge remote discoveries into local context
+            this.mergeRemoteDiscovery(discovery);
+        });
+
+        console.log(`[ContextSyncService] Cross-sandbox sync enabled for sandbox ${this.sandboxId}`);
+    }
+
+    /**
+     * Merge a discovery from another sandbox into local context
+     */
+    private mergeRemoteDiscovery(discovery: Discovery): void {
+        switch (discovery.type) {
+            case 'pattern':
+                const patternUpdate: ContextUpdate = {
+                    type: 'pattern',
+                    agentId: discovery.sandboxId,
+                    timestamp: Date.now(),
+                    data: {
+                        summary: `[Remote] ${discovery.data.name}: ${discovery.data.description}`,
+                        details: discovery.data,
+                    }
+                };
+                this.context.learnedPatterns.push(patternUpdate);
+                this.emit('update', patternUpdate);
+                break;
+
+            case 'error':
+                const errorUpdate: ContextUpdate = {
+                    type: 'error',
+                    agentId: discovery.sandboxId,
+                    timestamp: Date.now(),
+                    data: {
+                        summary: `[Remote] ${discovery.data.error}`,
+                        details: discovery.data,
+                    }
+                };
+                this.context.recentErrors.push(errorUpdate);
+                this.emit('update', errorUpdate);
+                break;
+
+            case 'completion':
+                console.log(`[ContextSyncService] Remote sandbox ${discovery.sandboxId} completed: ${discovery.data.featureId}`);
+                break;
+
+            case 'conflict':
+                const warningUpdate: ContextUpdate = {
+                    type: 'warning',
+                    agentId: discovery.sandboxId,
+                    timestamp: Date.now(),
+                    data: {
+                        summary: `[Remote] Conflict: ${discovery.data.message}`,
+                        details: discovery.data,
+                    }
+                };
+                this.emit('update', warningUpdate);
+                break;
+        }
     }
 
     /**
      * Get singleton instance per build+project combination
      */
-    static getInstance(buildId: string, projectId: string): ContextSyncService {
+    static getInstance(
+        buildId: string,
+        projectId: string,
+        options?: {
+            contextBridge?: ContextBridgeService;
+            sandboxId?: string;
+        }
+    ): ContextSyncService {
         const key = `${buildId}:${projectId}`;
         if (!this.instances.has(key)) {
-            this.instances.set(key, new ContextSyncService(buildId, projectId));
+            this.instances.set(key, new ContextSyncService(buildId, projectId, options));
         }
         return this.instances.get(key)!;
     }
@@ -187,7 +284,7 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Agent shares a discovery (something useful learned)
      */
-    shareDiscovery(agentId: string, discovery: DiscoveryData): void {
+    async shareDiscovery(agentId: string, discovery: DiscoveryData): Promise<void> {
         const update: ContextUpdate = {
             type: 'discovery',
             agentId,
@@ -208,6 +305,25 @@ export class ContextSyncService extends EventEmitter {
         }
 
         this.broadcast(update);
+
+        // Broadcast to other sandboxes via Redis if available
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                await this.contextBridge.broadcastDiscovery({
+                    type: 'pattern',
+                    sandboxId: this.sandboxId,
+                    data: {
+                        name: discovery.summary,
+                        description: JSON.stringify(discovery.details),
+                        confidence: discovery.confidence,
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to broadcast discovery to Redis:', error);
+            }
+        }
+
         console.log(`[ContextSyncService] Agent ${agentId} shared discovery: ${discovery.summary}`);
     }
 
@@ -218,7 +334,7 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Agent shares a solution to a problem
      */
-    shareSolution(agentId: string, problemType: string, solution: SolutionData): void {
+    async shareSolution(agentId: string, problemType: string, solution: SolutionData): Promise<void> {
         const update: ContextUpdate = {
             type: 'solution',
             agentId,
@@ -237,6 +353,25 @@ export class ContextSyncService extends EventEmitter {
         // Emit to learning engine for pattern extraction
         this.emit('solution-found', { problemType, solution, agentId });
 
+        // Broadcast to other sandboxes via Redis if available
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                await this.contextBridge.broadcastDiscovery({
+                    type: 'pattern',
+                    sandboxId: this.sandboxId,
+                    data: {
+                        name: `Solution: ${problemType}`,
+                        description: solution.summary,
+                        code: solution.code,
+                        pattern: solution.pattern,
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to broadcast solution to Redis:', error);
+            }
+        }
+
         console.log(`[ContextSyncService] Agent ${agentId} shared solution for ${problemType}: ${solution.summary}`);
     }
 
@@ -254,7 +389,7 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Agent reports an error (so others can avoid or help)
      */
-    reportError(agentId: string, error: ErrorData): void {
+    async reportError(agentId: string, error: ErrorData): Promise<void> {
         const update: ContextUpdate = {
             type: 'error',
             agentId,
@@ -273,6 +408,28 @@ export class ContextSyncService extends EventEmitter {
         }
 
         this.broadcast(update);
+
+        // Broadcast to other sandboxes via Redis if available
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                await this.contextBridge.broadcastDiscovery({
+                    type: 'error',
+                    sandboxId: this.sandboxId,
+                    data: {
+                        error: error.message,
+                        file: error.file,
+                        line: error.line,
+                        stack: error.stack,
+                        attemptedFix: error.attemptedFix,
+                        severity: error.severity,
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+            } catch (err) {
+                console.error('[ContextSyncService] Failed to broadcast error to Redis:', err);
+            }
+        }
+
         console.log(`[ContextSyncService] Agent ${agentId} reported error: ${error.message}`);
     }
 
@@ -283,7 +440,7 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Agent modified a file
      */
-    notifyFileChange(agentId: string, filePath: string, action: 'create' | 'modify' | 'delete'): void {
+    async notifyFileChange(agentId: string, filePath: string, action: 'create' | 'modify' | 'delete'): Promise<void> {
         this.context.modifiedFiles.set(filePath, {
             agentId,
             action,
@@ -301,12 +458,64 @@ export class ContextSyncService extends EventEmitter {
         };
 
         this.broadcast(update);
+
+        // Claim file ownership in Redis if available (atomic operation)
+        if (this.contextBridge && this.sandboxId && action !== 'delete') {
+            try {
+                const claimResult = await this.contextBridge.claimFile(this.sandboxId, filePath);
+                if (!claimResult.success && claimResult.currentOwner !== this.sandboxId) {
+                    console.warn(
+                        `[ContextSyncService] File ${filePath} already owned by ${claimResult.currentOwner}`
+                    );
+                    // Broadcast conflict
+                    await this.contextBridge.broadcastDiscovery({
+                        type: 'conflict',
+                        sandboxId: this.sandboxId,
+                        data: {
+                            message: `File conflict on ${filePath}`,
+                            file: filePath,
+                            currentOwner: claimResult.currentOwner,
+                        },
+                        timestamp: new Date().toISOString(),
+                    });
+                }
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to claim file in Redis:', error);
+            }
+        }
+
+        // Release file ownership if deleting
+        if (this.contextBridge && this.sandboxId && action === 'delete') {
+            try {
+                await this.contextBridge.releaseFile(this.sandboxId, filePath);
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to release file in Redis:', error);
+            }
+        }
     }
 
     /**
      * Check if a file is being modified by another agent
      */
-    isFileLocked(filePath: string, requestingAgentId: string): { locked: boolean; byAgent?: string } {
+    async isFileLocked(filePath: string, requestingAgentId: string): Promise<{ locked: boolean; byAgent?: string }> {
+        // If Redis is available, check Redis for atomic file ownership
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                const ownership = await this.contextBridge.getFileOwnership();
+                const owner = ownership.get(filePath);
+
+                if (!owner || owner === this.sandboxId) {
+                    return { locked: false };
+                }
+
+                return { locked: true, byAgent: owner };
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to check file ownership in Redis:', error);
+                // Fall through to in-memory check
+            }
+        }
+
+        // Fall back to in-memory check
         const fileInfo = this.context.modifiedFiles.get(filePath);
         if (!fileInfo || fileInfo.agentId === requestingAgentId) {
             return { locked: false };
@@ -324,7 +533,17 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Release file lock
      */
-    releaseFileLock(agentId: string, filePath: string): void {
+    async releaseFileLock(agentId: string, filePath: string): Promise<void> {
+        // Release in Redis if available
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                await this.contextBridge.releaseFile(this.sandboxId, filePath);
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to release file in Redis:', error);
+            }
+        }
+
+        // Also release in local context
         const fileInfo = this.context.modifiedFiles.get(filePath);
         if (fileInfo && fileInfo.agentId === agentId) {
             this.context.modifiedFiles.delete(filePath);
@@ -338,7 +557,7 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Share a learned pattern
      */
-    sharePattern(agentId: string, pattern: PatternData): void {
+    async sharePattern(agentId: string, pattern: PatternData): Promise<void> {
         const update: ContextUpdate = {
             type: 'pattern',
             agentId,
@@ -358,6 +577,26 @@ export class ContextSyncService extends EventEmitter {
         }
 
         this.broadcast(update);
+
+        // Broadcast to other sandboxes via Redis if available
+        if (this.contextBridge && this.sandboxId) {
+            try {
+                await this.contextBridge.broadcastDiscovery({
+                    type: 'pattern',
+                    sandboxId: this.sandboxId,
+                    data: {
+                        name: pattern.type,
+                        description: `${pattern.problemType} → ${pattern.solution}`,
+                        problemType: pattern.problemType,
+                        solution: pattern.solution,
+                        confidence: pattern.confidence,
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to broadcast pattern to Redis:', error);
+            }
+        }
     }
 
     // =========================================================================
@@ -487,6 +726,102 @@ export class ContextSyncService extends EventEmitter {
     }
 
     // =========================================================================
+    // CROSS-SANDBOX CONTEXT
+    // =========================================================================
+
+    /**
+     * Get cross-sandbox shared context from Redis
+     */
+    async getCrossSandboxContext(): Promise<any> {
+        if (!this.contextBridge) {
+            return null;
+        }
+
+        try {
+            return await this.contextBridge.getSharedContext();
+        } catch (error) {
+            console.error('[ContextSyncService] Failed to get cross-sandbox context:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Manually sync local context with Redis
+     */
+    async syncWithRedis(): Promise<void> {
+        if (!this.contextBridge) {
+            console.warn('[ContextSyncService] No context bridge available for sync');
+            return;
+        }
+
+        try {
+            const sharedContext = await this.contextBridge.getSharedContext();
+
+            // Merge patterns from other sandboxes
+            for (const pattern of sharedContext.discoveredPatterns) {
+                if (pattern.discoveredBy !== this.sandboxId) {
+                    const exists = this.context.learnedPatterns.some(
+                        p => p.data.details &&
+                        (p.data.details as any).id === pattern.id
+                    );
+
+                    if (!exists) {
+                        this.context.learnedPatterns.push({
+                            type: 'pattern',
+                            agentId: pattern.discoveredBy,
+                            timestamp: Date.now(),
+                            data: {
+                                summary: `[Remote] ${pattern.name}: ${pattern.description}`,
+                                details: pattern as unknown as Record<string, unknown>,
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Merge errors from other sandboxes
+            for (const error of sharedContext.sharedErrors) {
+                if (error.sandboxId !== this.sandboxId) {
+                    const exists = this.context.recentErrors.some(
+                        e => e.data.details &&
+                        (e.data.details as any).id === error.id
+                    );
+
+                    if (!exists) {
+                        this.context.recentErrors.push({
+                            type: 'error',
+                            agentId: error.sandboxId,
+                            timestamp: Date.now(),
+                            data: {
+                                summary: `[Remote] ${error.error}`,
+                                details: error as unknown as Record<string, unknown>,
+                            }
+                        });
+                    }
+                }
+            }
+
+            console.log('[ContextSyncService] Synced with Redis successfully');
+        } catch (error) {
+            console.error('[ContextSyncService] Failed to sync with Redis:', error);
+        }
+    }
+
+    /**
+     * Check if Redis-based cross-sandbox communication is enabled
+     */
+    isCrossSandboxEnabled(): boolean {
+        return !!this.contextBridge;
+    }
+
+    /**
+     * Get sandbox ID (if running in cross-sandbox mode)
+     */
+    getSandboxId(): string | undefined {
+        return this.sandboxId;
+    }
+
+    // =========================================================================
     // STATS
     // =========================================================================
 
@@ -500,6 +835,8 @@ export class ContextSyncService extends EventEmitter {
         filesModified: number;
         activeAgents: number;
         patterns: number;
+        crossSandboxEnabled: boolean;
+        sandboxId?: string;
     } {
         return {
             discoveries: this.context.discoveries.length,
@@ -507,7 +844,9 @@ export class ContextSyncService extends EventEmitter {
             errors: this.context.recentErrors.length,
             filesModified: this.context.modifiedFiles.size,
             activeAgents: this.context.activeAgents.size,
-            patterns: this.context.learnedPatterns.length
+            patterns: this.context.learnedPatterns.length,
+            crossSandboxEnabled: this.isCrossSandboxEnabled(),
+            sandboxId: this.sandboxId
         };
     }
 
@@ -518,10 +857,19 @@ export class ContextSyncService extends EventEmitter {
     /**
      * Cleanup when build completes
      */
-    cleanup(): void {
+    async cleanup(): Promise<void> {
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
             this.syncInterval = null;
+        }
+
+        // Cleanup context bridge if available
+        if (this.contextBridge) {
+            try {
+                await this.contextBridge.cleanup();
+            } catch (error) {
+                console.error('[ContextSyncService] Failed to cleanup context bridge:', error);
+            }
         }
 
         const key = `${this.buildId}:${this.projectId}`;
@@ -542,8 +890,15 @@ export class ContextSyncService extends EventEmitter {
 // FACTORY FUNCTION
 // =============================================================================
 
-export function getContextSyncService(buildId: string, projectId: string): ContextSyncService {
-    return ContextSyncService.getInstance(buildId, projectId);
+export function getContextSyncService(
+    buildId: string,
+    projectId: string,
+    options?: {
+        contextBridge?: ContextBridgeService;
+        sandboxId?: string;
+    }
+): ContextSyncService {
+    return ContextSyncService.getInstance(buildId, projectId, options);
 }
 
 export default ContextSyncService;
