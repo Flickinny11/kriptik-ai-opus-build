@@ -67,9 +67,8 @@ orchestrator_image = (
     memory=8192,    # 8GB RAM for orchestration
     cpu=4.0,        # 4 CPU cores
     keep_warm=1,    # Keep 1 instance warm for fast starts
-    secrets=[
-        modal.Secret.from_name("kriptik-api-keys"),  # Contains API keys
-    ],
+    # Note: Modal authenticates via MODAL_TOKEN_ID and MODAL_TOKEN_SECRET env vars
+    # API keys for external services are passed via the credentials parameter
 )
 class KriptikOrchestrator:
     """
