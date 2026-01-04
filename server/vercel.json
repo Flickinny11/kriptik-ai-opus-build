@@ -10,9 +10,15 @@
       "maxDuration": 900,
       "memory": 3008,
       "includeFiles": "src/**"
+    },
+    "api/modal-webhook.ts": {
+      "maxDuration": 10,
+      "memory": 512,
+      "includeFiles": "src/**"
     }
   },
   "rewrites": [
+    { "source": "/api/modal-webhook", "destination": "/api/modal-webhook" },
     { "source": "/api/orchestrate", "destination": "/api/orchestrate" },
     { "source": "/(.*)", "destination": "/api" }
   ]
