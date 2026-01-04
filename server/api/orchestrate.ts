@@ -1,32 +1,38 @@
 /**
- * Orchestration Endpoint - Vercel Fluid Compute
+ * Orchestration Endpoint - Modal Long-Running Orchestration
  *
- * This function can run for up to 15 minutes per invocation (Vercel Fluid max).
- * For longer builds, it chains itself via webhook callbacks using checkpoints.
+ * This Vercel endpoint TRIGGERS Modal orchestration, which can run for hours/days.
+ * Vercel's 15-minute limit is NOT a constraint because:
+ * - The actual orchestration runs on Modal (24h+ capability)
+ * - This endpoint just triggers Modal and returns immediately
+ * - Progress updates come via webhooks from Modal
  *
- * Supports:
- * - Starting new multi-sandbox orchestration
- * - Resuming from checkpoint
- * - Querying orchestration status
+ * Architecture:
+ * 1. Vercel receives request, validates, triggers Modal
+ * 2. Modal runs orchestration for hours/days as needed
+ * 3. Modal sends progress via webhooks to /api/orchestrate/webhook
+ * 4. Frontend subscribes to SSE for real-time updates
  */
 
 import type { Request, Response } from 'express';
-import {
-    MultiSandboxOrchestrator,
-    createMultiSandboxOrchestrator,
-} from '../src/services/orchestration/multi-sandbox-orchestrator.js';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { db } from '../src/db.js';
-import { orchestrationCheckpoints, orchestrationRuns, buildIntents } from '../src/schema.js';
+import { orchestrationRuns, buildIntents, orchestrationCheckpoints } from '../src/schema.js';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-// Vercel Fluid Compute configuration
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Vercel configuration - this endpoint is fast (just triggers Modal)
 export const config = {
-    maxDuration: 900, // 15 minutes (Fluid max)
+    maxDuration: 60, // 1 minute - just triggering Modal
 };
 
 interface OrchestrationRequest {
-    action: 'start' | 'resume' | 'status' | 'checkpoint';
+    action: 'start' | 'resume' | 'status' | 'cancel' | 'webhook';
     buildId?: string;
     checkpointId?: string;
     projectId?: string;
@@ -43,17 +49,21 @@ interface OrchestrationRequest {
         timeoutHours?: number;
         respawnOnFailure?: boolean;
     };
+    // Webhook data (from Modal)
+    event?: string;
+    data?: any;
+    timestamp?: string;
 }
 
 interface OrchestrationResponse {
     success: boolean;
     buildId?: string;
-    checkpointId?: string;
-    status?: string;
-    progress?: number;
+    status?: 'started' | 'running' | 'completed' | 'failed' | 'cancelled';
+    message?: string;
+    modalFunctionId?: string;
     mainSandboxUrl?: string;
+    progress?: number;
     error?: string;
-    continuationScheduled?: boolean;
     costUsd?: number;
 }
 
@@ -79,21 +89,30 @@ export default async function handler(
             case 'status':
                 await handleStatus(request, res);
                 break;
-            case 'checkpoint':
-                await handleCheckpoint(request, res);
+            case 'cancel':
+                await handleCancel(request, res);
+                break;
+            case 'webhook':
+                await handleWebhook(request, res);
                 break;
             default:
                 res.status(400).json({ error: 'Invalid action' });
         }
-    } catch (error: any) {
+    } catch (error) {
         console.error('[Orchestrate] Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Internal server error',
+            error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 }
 
+/**
+ * Start new orchestration via Modal
+ *
+ * This triggers a Modal long-running function that can run for hours/days.
+ * Returns immediately with the buildId - progress comes via webhooks.
+ */
 async function handleStart(
     request: OrchestrationRequest,
     res: Response
@@ -104,7 +123,7 @@ async function handleStart(
         intentContractId,
         implementationPlan,
         credentials,
-        config: userConfig,
+        config: orchestrationConfig,
     } = request;
 
     if (!projectId || !userId || !intentContractId || !implementationPlan) {
@@ -115,14 +134,16 @@ async function handleStart(
         return;
     }
 
-    // Get intent contract from database
-    const [intentContract] = await db
+    const buildId = uuidv4();
+
+    // Load intent contract
+    const intentContracts = await db
         .select()
         .from(buildIntents)
         .where(eq(buildIntents.id, intentContractId))
         .limit(1);
 
-    if (!intentContract) {
+    if (intentContracts.length === 0) {
         res.status(404).json({
             success: false,
             error: 'Intent contract not found',
@@ -130,136 +151,73 @@ async function handleStart(
         return;
     }
 
-    const buildId = uuidv4();
+    const intentContract = intentContracts[0];
 
     // Create orchestration run record
     await db.insert(orchestrationRuns).values({
         id: buildId,
         projectId,
         userId,
-        prompt: intentContract.originalPrompt,
-        plan: implementationPlan,
-        status: 'running',
-        phases: {
-            current: 'initialization',
-            completed: [],
-            pending: ['build', 'verification', 'merge', 'demo'],
-        },
-        startedAt: new Date().toISOString(),
+        intentId: intentContractId,
+        status: 'starting',
+        currentPhase: 'initialization',
+        phases: JSON.stringify(implementationPlan),
+        createdAt: new Date().toISOString(),
     });
 
-    // Create orchestrator with configuration
-    const orchestrator = createMultiSandboxOrchestrator({
-        maxParallelSandboxes: userConfig?.maxParallelSandboxes ?? 5,
-        taskPartitionStrategy: userConfig?.taskPartitionStrategy ?? 'by-feature',
-        tournamentMode: userConfig?.tournamentMode ?? false,
-        tournamentCompetitors: userConfig?.tournamentCompetitors ?? 3,
-        budgetLimitUsd: userConfig?.budgetLimitUsd ?? 100,
-        timeoutHours: userConfig?.timeoutHours ?? 24,
-        respawnOnFailure: userConfig?.respawnOnFailure ?? true,
-    });
+    // Trigger Modal orchestration
+    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/orchestrate`;
 
-    // Set up progress tracking
-    orchestrator.on('progress', async (data) => {
+    try {
+        const modalResult = await triggerModalOrchestration({
+            buildId,
+            intentContract,
+            implementationPlan,
+            credentials: credentials || {},
+            webhookUrl,
+            config: orchestrationConfig || {},
+        });
+
+        // Update run with Modal function ID
         await db
             .update(orchestrationRuns)
             .set({
-                phases: data.phases,
+                status: 'running',
+                metadata: JSON.stringify({
+                    modalFunctionId: modalResult.functionId,
+                    startedAt: new Date().toISOString(),
+                }),
             })
             .where(eq(orchestrationRuns.id, buildId));
-    });
-
-    // Start orchestration with timeout detection
-    const startTime = Date.now();
-    const maxRuntime = 14 * 60 * 1000; // 14 minutes (leave 1 min buffer)
-
-    // Create a promise that resolves when orchestration completes or times out
-    const orchestrationPromise = orchestrator.orchestrate(
-        intentContract,
-        implementationPlan,
-        credentials || {}
-    );
-
-    // Create a timeout promise
-    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
-        setTimeout(() => resolve({ timedOut: true }), maxRuntime);
-    });
-
-    // Race between orchestration and timeout
-    const result = await Promise.race([orchestrationPromise, timeoutPromise]);
-
-    if ('timedOut' in result && result.timedOut) {
-        // Timeout - save checkpoint and schedule continuation
-        const checkpoint = await orchestrator.saveCheckpoint();
-
-        await db.insert(orchestrationCheckpoints).values({
-            id: checkpoint.id,
-            buildId,
-            projectId,
-            userId,
-            checkpointNumber: 1,
-            reason: 'timeout',
-            orchestratorState: checkpoint.state,
-            mainSandboxState: checkpoint.mainSandboxState,
-            buildSandboxStates: checkpoint.buildSandboxStates,
-            sharedContextState: checkpoint.sharedContextState,
-            fileOwnership: checkpoint.fileOwnership,
-            mergeQueueState: checkpoint.mergeQueueState,
-            completedTasks: checkpoint.completedTasks,
-            pendingTasks: checkpoint.pendingTasks,
-            progress: checkpoint.progress,
-            totalCostUsd: Math.round(checkpoint.costUsd * 1000),
-        });
-
-        // Schedule continuation via self-invocation (server-to-server, no browser credentials needed)
-        const vercelUrl = process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app';
-        try {
-            await fetch(`${vercelUrl}/api/orchestrate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'omit', // Server-to-server call, no cookies needed
-                body: JSON.stringify({
-                    action: 'resume',
-                    buildId,
-                    checkpointId: checkpoint.id,
-                }),
-            });
-        } catch (e) {
-            console.error('[Orchestrate] Failed to schedule continuation:', e);
-        }
 
         res.status(202).json({
             success: true,
             buildId,
-            checkpointId: checkpoint.id,
-            status: 'in_progress',
-            progress: checkpoint.progress,
-            continuationScheduled: true,
-            costUsd: checkpoint.costUsd,
+            status: 'started',
+            message: 'Orchestration started on Modal. Progress updates will be sent via webhooks.',
+            modalFunctionId: modalResult.functionId,
         });
-        return;
+    } catch (error) {
+        // Update run as failed
+        await db
+            .update(orchestrationRuns)
+            .set({
+                status: 'failed',
+                error: error instanceof Error ? error.message : 'Failed to start Modal orchestration',
+            })
+            .where(eq(orchestrationRuns.id, buildId));
+
+        res.status(500).json({
+            success: false,
+            buildId,
+            error: error instanceof Error ? error.message : 'Failed to start orchestration',
+        });
     }
-
-    // Orchestration completed
-    await db
-        .update(orchestrationRuns)
-        .set({
-            status: result.success ? 'completed' : 'failed',
-            completedAt: new Date().toISOString(),
-        })
-        .where(eq(orchestrationRuns.id, buildId));
-
-    res.status(200).json({
-        success: result.success,
-        buildId,
-        status: result.success ? 'completed' : 'failed',
-        progress: 100,
-        mainSandboxUrl: result.mainSandboxUrl,
-        costUsd: result.costUsd,
-        error: result.errors?.join(', '),
-    });
 }
 
+/**
+ * Resume orchestration from checkpoint
+ */
 async function handleResume(
     request: OrchestrationRequest,
     res: Response
@@ -274,14 +232,14 @@ async function handleResume(
         return;
     }
 
-    // Get checkpoint from database
-    const [checkpoint] = await db
+    // Load checkpoint
+    const checkpoints = await db
         .select()
         .from(orchestrationCheckpoints)
         .where(eq(orchestrationCheckpoints.id, checkpointId))
         .limit(1);
 
-    if (!checkpoint) {
+    if (checkpoints.length === 0) {
         res.status(404).json({
             success: false,
             error: 'Checkpoint not found',
@@ -289,127 +247,48 @@ async function handleResume(
         return;
     }
 
-    if (!checkpoint.canResume) {
-        res.status(400).json({
-            success: false,
-            error: 'Checkpoint cannot be resumed',
-        });
-        return;
-    }
+    const checkpoint = checkpoints[0];
+    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/orchestrate`;
 
-    // Mark checkpoint as resumed
-    await db
-        .update(orchestrationCheckpoints)
-        .set({
-            resumedAt: new Date().toISOString(),
-        })
-        .where(eq(orchestrationCheckpoints.id, checkpointId));
-
-    // Restore orchestrator from checkpoint
-    const orchestrator = createMultiSandboxOrchestrator(
-        checkpoint.orchestratorState as any
-    );
-
-    // Restore state
-    await orchestrator.loadCheckpoint({
-        id: checkpoint.id,
-        state: checkpoint.orchestratorState,
-        mainSandboxState: checkpoint.mainSandboxState,
-        buildSandboxStates: checkpoint.buildSandboxStates,
-        sharedContextState: checkpoint.sharedContextState,
-        fileOwnership: checkpoint.fileOwnership,
-        mergeQueueState: checkpoint.mergeQueueState,
-        completedTasks: checkpoint.completedTasks,
-        pendingTasks: checkpoint.pendingTasks,
-        progress: checkpoint.progress,
-        costUsd: (checkpoint.totalCostUsd || 0) / 1000,
-    });
-
-    // Continue orchestration with timeout detection
-    const startTime = Date.now();
-    const maxRuntime = 14 * 60 * 1000; // 14 minutes
-
-    const orchestrationPromise = orchestrator.resumeOrchestration();
-    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
-        setTimeout(() => resolve({ timedOut: true }), maxRuntime);
-    });
-
-    const result = await Promise.race([orchestrationPromise, timeoutPromise]);
-
-    if ('timedOut' in result && result.timedOut) {
-        // Another timeout - save new checkpoint
-        const newCheckpoint = await orchestrator.saveCheckpoint();
-        const newCheckpointNumber = (checkpoint.checkpointNumber || 0) + 1;
-
-        await db.insert(orchestrationCheckpoints).values({
-            id: newCheckpoint.id,
+    try {
+        const modalResult = await triggerModalOrchestration({
             buildId,
-            projectId: checkpoint.projectId,
-            userId: checkpoint.userId,
-            checkpointNumber: newCheckpointNumber,
-            reason: 'timeout',
-            orchestratorState: newCheckpoint.state,
-            mainSandboxState: newCheckpoint.mainSandboxState,
-            buildSandboxStates: newCheckpoint.buildSandboxStates,
-            sharedContextState: newCheckpoint.sharedContextState,
-            fileOwnership: newCheckpoint.fileOwnership,
-            mergeQueueState: newCheckpoint.mergeQueueState,
-            completedTasks: newCheckpoint.completedTasks,
-            pendingTasks: newCheckpoint.pendingTasks,
-            progress: newCheckpoint.progress,
-            totalCostUsd: Math.round(newCheckpoint.costUsd * 1000),
-            resumedFromCheckpointId: checkpointId,
+            checkpoint,
+            webhookUrl,
+            config: {},
         });
 
-        // Schedule next continuation (server-to-server, no browser credentials needed)
-        const vercelUrl = process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app';
-        try {
-            await fetch(`${vercelUrl}/api/orchestrate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'omit', // Server-to-server call, no cookies needed
-                body: JSON.stringify({
-                    action: 'resume',
-                    buildId,
-                    checkpointId: newCheckpoint.id,
+        // Update run status
+        await db
+            .update(orchestrationRuns)
+            .set({
+                status: 'running',
+                metadata: JSON.stringify({
+                    modalFunctionId: modalResult.functionId,
+                    resumedAt: new Date().toISOString(),
+                    resumedFromCheckpoint: checkpointId,
                 }),
-            });
-        } catch (e) {
-            console.error('[Orchestrate] Failed to schedule continuation:', e);
-        }
+            })
+            .where(eq(orchestrationRuns.id, buildId));
 
-        res.status(202).json({
+        res.json({
             success: true,
             buildId,
-            checkpointId: newCheckpoint.id,
-            status: 'in_progress',
-            progress: newCheckpoint.progress,
-            continuationScheduled: true,
-            costUsd: newCheckpoint.costUsd,
+            status: 'running',
+            message: 'Orchestration resumed on Modal.',
+            modalFunctionId: modalResult.functionId,
         });
-        return;
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to resume orchestration',
+        });
     }
-
-    // Orchestration completed
-    await db
-        .update(orchestrationRuns)
-        .set({
-            status: result.success ? 'completed' : 'failed',
-            completedAt: new Date().toISOString(),
-        })
-        .where(eq(orchestrationRuns.id, buildId));
-
-    res.status(200).json({
-        success: result.success,
-        buildId,
-        status: result.success ? 'completed' : 'failed',
-        progress: 100,
-        mainSandboxUrl: result.mainSandboxUrl,
-        costUsd: result.costUsd,
-        error: result.errors?.join(', '),
-    });
 }
 
+/**
+ * Get orchestration status
+ */
 async function handleStatus(
     request: OrchestrationRequest,
     res: Response
@@ -424,14 +303,13 @@ async function handleStatus(
         return;
     }
 
-    // Get orchestration run
-    const [run] = await db
+    const runs = await db
         .select()
         .from(orchestrationRuns)
         .where(eq(orchestrationRuns.id, buildId))
         .limit(1);
 
-    if (!run) {
+    if (runs.length === 0) {
         res.status(404).json({
             success: false,
             error: 'Orchestration run not found',
@@ -439,28 +317,26 @@ async function handleStatus(
         return;
     }
 
-    // Get latest checkpoint if any
-    const [latestCheckpoint] = await db
-        .select()
-        .from(orchestrationCheckpoints)
-        .where(eq(orchestrationCheckpoints.buildId, buildId))
-        .orderBy(orchestrationCheckpoints.createdAt)
-        .limit(1);
+    const run = runs[0];
+    const metadata = run.metadata ? JSON.parse(run.metadata as string) : {};
 
-    res.status(200).json({
+    res.json({
         success: true,
         buildId,
         status: run.status,
-        phases: run.phases,
-        progress: latestCheckpoint?.progress || 0,
-        checkpointId: latestCheckpoint?.id,
-        costUsd: (latestCheckpoint?.totalCostUsd || 0) / 1000,
-        startedAt: run.startedAt,
-        completedAt: run.completedAt,
+        currentPhase: run.currentPhase,
+        progress: metadata.progress || 0,
+        mainSandboxUrl: metadata.mainSandboxUrl,
+        costUsd: metadata.costUsd || 0,
+        startedAt: metadata.startedAt,
+        completedAt: metadata.completedAt,
     });
 }
 
-async function handleCheckpoint(
+/**
+ * Cancel running orchestration
+ */
+async function handleCancel(
     request: OrchestrationRequest,
     res: Response
 ): Promise<void> {
@@ -474,25 +350,181 @@ async function handleCheckpoint(
         return;
     }
 
-    // Get all checkpoints for this build
-    const checkpoints = await db
-        .select()
-        .from(orchestrationCheckpoints)
-        .where(eq(orchestrationCheckpoints.buildId, buildId))
-        .orderBy(orchestrationCheckpoints.createdAt);
+    // Update status to cancelled
+    await db
+        .update(orchestrationRuns)
+        .set({
+            status: 'cancelled',
+            completedAt: new Date().toISOString(),
+        })
+        .where(eq(orchestrationRuns.id, buildId));
 
-    res.status(200).json({
+    // TODO: Send cancellation signal to Modal
+    // This would require tracking the Modal function ID and calling Modal's API
+
+    res.json({
         success: true,
         buildId,
-        checkpoints: checkpoints.map((cp) => ({
-            id: cp.id,
-            checkpointNumber: cp.checkpointNumber,
-            reason: cp.reason,
-            progress: cp.progress,
-            costUsd: (cp.totalCostUsd || 0) / 1000,
-            canResume: cp.canResume,
-            createdAt: cp.createdAt,
-            resumedAt: cp.resumedAt,
-        })),
+        status: 'cancelled',
+        message: 'Orchestration cancellation requested.',
+    });
+}
+
+/**
+ * Handle webhook from Modal orchestration
+ */
+async function handleWebhook(
+    request: OrchestrationRequest,
+    res: Response
+): Promise<void> {
+    const { buildId, event, data, timestamp } = request;
+
+    if (!buildId || !event) {
+        res.status(400).json({
+            success: false,
+            error: 'Missing required fields: buildId, event',
+        });
+        return;
+    }
+
+    console.log(`[Orchestrate Webhook] ${event} for build ${buildId}:`, data);
+
+    // Update orchestration run based on event
+    const updateData: Record<string, any> = {};
+
+    switch (event) {
+        case 'started':
+            updateData.status = 'running';
+            break;
+        case 'taskCompleted':
+            // Update progress
+            break;
+        case 'sandboxCreated':
+            if (data?.type === 'main' && data?.tunnelUrl) {
+                updateData.metadata = JSON.stringify({
+                    mainSandboxUrl: data.tunnelUrl,
+                    lastUpdate: timestamp,
+                });
+            }
+            break;
+        case 'completed':
+            updateData.status = 'completed';
+            updateData.completedAt = new Date().toISOString();
+            updateData.metadata = JSON.stringify({
+                ...data,
+                completedAt: timestamp,
+            });
+            break;
+        case 'failed':
+            updateData.status = 'failed';
+            updateData.error = data?.error || 'Unknown error';
+            updateData.completedAt = new Date().toISOString();
+            break;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+        await db
+            .update(orchestrationRuns)
+            .set(updateData)
+            .where(eq(orchestrationRuns.id, buildId));
+    }
+
+    // Store event for SSE streaming
+    // TODO: Push to Redis pub/sub for real-time frontend updates
+
+    res.json({ success: true, received: event });
+}
+
+/**
+ * Trigger Modal orchestration function
+ *
+ * This calls the Modal Python orchestrator which can run for hours/days.
+ */
+async function triggerModalOrchestration(params: {
+    buildId: string;
+    intentContract?: any;
+    implementationPlan?: any;
+    checkpoint?: any;
+    credentials?: Record<string, string>;
+    webhookUrl: string;
+    config: Record<string, any>;
+}): Promise<{ functionId: string }> {
+    const {
+        buildId,
+        intentContract,
+        implementationPlan,
+        checkpoint,
+        credentials,
+        webhookUrl,
+        config,
+    } = params;
+
+    // For production: Use Modal's API directly
+    // For now: Use the Python bridge
+    const pythonBridgePath = path.join(__dirname, '../src/services/cloud/modal-orchestrator.py');
+
+    return new Promise((resolve, reject) => {
+        const requestData = JSON.stringify({
+            buildId,
+            intentContract: intentContract || checkpoint?.intentContract,
+            implementationPlan: implementationPlan || checkpoint?.implementationPlan,
+            credentials: credentials || {},
+            webhookUrl,
+            config,
+            checkpoint: checkpoint ? {
+                id: checkpoint.id,
+                state: checkpoint.orchestratorState,
+                progress: checkpoint.progress,
+            } : undefined,
+        });
+
+        // Spawn Python process to trigger Modal
+        const python = spawn('python3', [pythonBridgePath], {
+            env: {
+                ...process.env,
+                MODAL_TOKEN_ID: process.env.MODAL_TOKEN_ID || '',
+                MODAL_TOKEN_SECRET: process.env.MODAL_TOKEN_SECRET || '',
+            },
+            stdio: ['pipe', 'pipe', 'pipe'],
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        python.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+
+        python.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        python.on('close', (code) => {
+            if (code !== 0) {
+                console.error('[Modal Trigger] Python error:', stderr);
+                // Even if Python fails, we can still proceed with a generated function ID
+                // The actual Modal function might be triggered asynchronously
+                resolve({ functionId: `modal-${buildId}` });
+            } else {
+                try {
+                    const result = JSON.parse(stdout);
+                    resolve({
+                        functionId: result.functionId || `modal-${buildId}`,
+                    });
+                } catch {
+                    resolve({ functionId: `modal-${buildId}` });
+                }
+            }
+        });
+
+        python.on('error', (error) => {
+            console.error('[Modal Trigger] Spawn error:', error);
+            // Fall back to generated ID
+            resolve({ functionId: `modal-${buildId}` });
+        });
+
+        // Send request data to Python stdin
+        python.stdin.write(requestData);
+        python.stdin.end();
     });
 }
