@@ -40,11 +40,20 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}'],
     rules: {
       // Rule 1: Warn about hardcoded API URLs in string literals
+      // Note: Using multiple simpler selectors for esquery compatibility
       'no-restricted-syntax': [
         'warn',
         {
-          selector: 'Literal[value=/^(http:\\/\\/localhost:3001|https:\\/\\/api\\.kriptik\\.app|https:\\/\\/kriptik-ai-opus-build-backend)/]',
+          selector: 'Literal[value=/localhost:3001/]',
+          message: '⚠️ Hardcoded localhost API URL detected. Use: import { API_URL } from "@/lib/api-config"',
+        },
+        {
+          selector: 'Literal[value=/api\\.kriptik\\.app/]',
           message: '⚠️ Hardcoded API URL detected. Use: import { API_URL } from "@/lib/api-config"',
+        },
+        {
+          selector: 'Literal[value=/kriptik-ai-opus-build-backend/]',
+          message: '⚠️ Hardcoded backend URL detected. Use: import { API_URL } from "@/lib/api-config"',
         },
       ],
     },

@@ -3186,3 +3186,210 @@ export const taskDistributionSessions = sqliteTable('task_distribution_sessions'
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// CLOUD SANDBOXES - Modal + Vercel multi-sandbox orchestration
+// =============================================================================
+
+/**
+ * Cloud Sandboxes - Modal-hosted isolated code execution environments
+ */
+export const cloudSandboxes = sqliteTable('cloud_sandboxes', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Modal sandbox info
+    modalSandboxId: text('modal_sandbox_id').notNull(),
+    sandboxType: text('sandbox_type').notNull().$type<'main' | 'build' | 'test' | 'tournament'>(),
+    status: text('status').default('creating').notNull().$type<
+        'creating' | 'running' | 'building' | 'verifying' | 'merging' | 'completed' | 'failed' | 'terminated'
+    >(),
+
+    // Tunnel URLs for external access
+    tunnelUrl: text('tunnel_url'),
+    tunnelPort: integer('tunnel_port'),
+    tunnelUrls: text('tunnel_urls', { mode: 'json' }).$type<Record<number, string>>(),
+
+    // Assigned tasks
+    assignedTasks: text('assigned_tasks', { mode: 'json' }).$type<string[]>().default([]),
+    completedTasks: text('completed_tasks', { mode: 'json' }).$type<string[]>().default([]),
+    failedTasks: text('failed_tasks', { mode: 'json' }).$type<string[]>().default([]),
+
+    // Verification
+    verificationScore: integer('verification_score'),
+    antiSlopScore: integer('anti_slop_score'),
+    lastVerificationAt: text('last_verification_at'),
+
+    // Resource configuration
+    memory: integer('memory').default(4096),
+    cpu: integer('cpu').default(2),
+    timeout: integer('timeout').default(3600),
+
+    // Cost tracking
+    costUsd: integer('cost_usd').default(0), // in millicents (1/1000 of a cent)
+    computeSeconds: integer('compute_seconds').default(0),
+
+    // Metadata
+    metadata: text('metadata', { mode: 'json' }),
+    errorMessage: text('error_message'),
+
+    // Timestamps
+    startedAt: text('started_at'),
+    terminatedAt: text('terminated_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Sandbox Merge Queue - Verification-gated merges from build sandboxes to main
+ */
+export const sandboxMergeQueue = sqliteTable('sandbox_merge_queue', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').notNull(),
+    sandboxId: text('sandbox_id').references(() => cloudSandboxes.id).notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+
+    // Task info
+    taskId: text('task_id').notNull(),
+    taskPhase: text('task_phase'),
+    taskDescription: text('task_description'),
+
+    // Status
+    status: text('status').default('pending').notNull().$type<
+        'pending' | 'verifying' | 'approved' | 'merged' | 'rejected' | 'conflict'
+    >(),
+    priority: integer('priority').default(0),
+
+    // Changed files
+    changedFiles: text('changed_files', { mode: 'json' }).$type<string[]>().default([]),
+    fileCount: integer('file_count').default(0),
+    additions: integer('additions').default(0),
+    deletions: integer('deletions').default(0),
+
+    // 7-Gate Verification Results
+    verificationResults: text('verification_results', { mode: 'json' }).$type<{
+        swarm: { passed: boolean; score?: number; details?: any };
+        antislop: { passed: boolean; score?: number; details?: any };
+        build: { passed: boolean; details?: any };
+        compatibility: { passed: boolean; conflicts?: string[] };
+        intent: { passed: boolean; satisfaction?: number };
+        visual: { passed: boolean; screenshots?: string[] };
+        maintest: { passed: boolean; testResults?: any };
+    }>(),
+    overallScore: integer('overall_score'),
+    gatesPassed: integer('gates_passed').default(0),
+    gatesTotal: integer('gates_total').default(7),
+
+    // Merge execution
+    mergedFiles: text('merged_files', { mode: 'json' }).$type<string[]>().default([]),
+    mergeConflicts: text('merge_conflicts', { mode: 'json' }),
+    mergeResolution: text('merge_resolution'),
+
+    // Timestamps
+    queuedAt: text('queued_at').default(sql`(datetime('now'))`).notNull(),
+    verificationStartedAt: text('verification_started_at'),
+    verificationCompletedAt: text('verification_completed_at'),
+    mergedAt: text('merged_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Sandbox Tournament Results - Competing implementations with AI judging
+ */
+export const sandboxTournamentResults = sqliteTable('sandbox_tournament_results', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Tournament info
+    taskId: text('task_id').notNull(),
+    taskDescription: text('task_description'),
+    competitorCount: integer('competitor_count').notNull(),
+
+    // Competitors (sandbox IDs)
+    competitors: text('competitors', { mode: 'json' }).$type<string[]>().notNull(),
+
+    // Winner
+    winningSandboxId: text('winning_sandbox_id'),
+    winnerCode: text('winner_code', { mode: 'json' }).$type<Record<string, string>>(),
+    winningScore: integer('winning_score'),
+
+    // All scores (one per competitor)
+    allScores: text('all_scores', { mode: 'json' }).$type<Array<{
+        sandboxId: string;
+        score: number;
+        breakdown: {
+            codeQuality: number;
+            performance: number;
+            designScore: number;
+            testCoverage: number;
+            intentAlignment: number;
+        };
+        rationale: string;
+    }>>(),
+
+    // Judge info
+    judgingModel: text('judging_model'),
+    judgingRationale: text('judging_rationale'),
+    judgingDuration: integer('judging_duration'),
+
+    // Cost tracking
+    tournamentCostUsd: integer('tournament_cost_usd').default(0),
+    judgingCostUsd: integer('judging_cost_usd').default(0),
+
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Orchestration Checkpoints - Resume long-running builds
+ */
+export const orchestrationCheckpoints = sqliteTable('orchestration_checkpoints', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    buildId: text('build_id').notNull(),
+    projectId: text('project_id').references(() => projects.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+
+    // Checkpoint info
+    checkpointNumber: integer('checkpoint_number').notNull(),
+    reason: text('reason').notNull().$type<
+        'timeout' | 'budget' | 'phase_complete' | 'error' | 'manual' | 'scheduled'
+    >(),
+
+    // Orchestrator state (complete state for resume)
+    orchestratorState: text('orchestrator_state', { mode: 'json' }).notNull(),
+
+    // Sandbox states
+    mainSandboxState: text('main_sandbox_state', { mode: 'json' }),
+    buildSandboxStates: text('build_sandbox_states', { mode: 'json' }).$type<Record<string, any>>(),
+
+    // Context bridge state
+    sharedContextState: text('shared_context_state', { mode: 'json' }),
+    fileOwnership: text('file_ownership', { mode: 'json' }).$type<Record<string, string>>(),
+
+    // Merge queue state
+    mergeQueueState: text('merge_queue_state', { mode: 'json' }).$type<string[]>(),
+
+    // Progress metrics
+    completedTasks: text('completed_tasks', { mode: 'json' }).$type<string[]>().default([]),
+    pendingTasks: text('pending_tasks', { mode: 'json' }).$type<string[]>().default([]),
+    progress: integer('progress').default(0),
+
+    // Cost at checkpoint
+    totalCostUsd: integer('total_cost_usd').default(0),
+    creditsUsed: integer('credits_used').default(0),
+
+    // Resume info
+    canResume: integer('can_resume', { mode: 'boolean' }).default(true),
+    resumedAt: text('resumed_at'),
+    resumedFromCheckpointId: text('resumed_from_checkpoint_id'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
