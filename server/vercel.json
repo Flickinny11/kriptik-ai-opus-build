@@ -23,16 +23,6 @@
       }
     }
   ],
-  "functions": {
-    "api/orchestrate.ts": {
-      "maxDuration": 900,
-      "memory": 3008
-    },
-    "api/modal-webhook.ts": {
-      "maxDuration": 60,
-      "memory": 512
-    }
-  },
   "routes": [
     { "src": "/api/modal-webhook", "dest": "/api/modal-webhook.ts" },
     { "src": "/api/orchestrate", "dest": "/api/orchestrate.ts" },
