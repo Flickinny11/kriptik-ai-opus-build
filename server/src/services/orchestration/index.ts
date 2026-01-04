@@ -12,3 +12,7 @@ export * from './development-orchestrator.js';
 export * from './agents/queen-agent.js';
 export * from './agents/worker-agent.js';
 
+// Multi-Sandbox Orchestration (Modal + Vercel)
+export * from './context-bridge.js';
+export * from './multi-sandbox-orchestrator.js';
+
