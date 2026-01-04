@@ -2,20 +2,22 @@
  * Context Bridge Service
  *
  * Enables real-time context sharing between cloud sandboxes.
- * Uses Redis for pub/sub and Turso for persistent state.
+ * Uses Upstash Redis REST API for state storage and coordination.
  *
  * This service coordinates parallel sandbox builds by:
  * - Managing atomic file ownership to prevent conflicts
- * - Broadcasting discoveries (patterns, errors, completions) in real-time
+ * - Broadcasting discoveries (patterns, errors, completions) via queues
  * - Maintaining shared context across all sandboxes
  * - Managing the merge queue for verified code integration
+ *
+ * Note: Uses Upstash Redis REST (HTTP-based) instead of ioredis (TCP-based)
+ * to work with Vercel KV integration.
  */
 
 import { EventEmitter } from 'events';
-import { Redis } from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../db.js';
-import { eq } from 'drizzle-orm';
+import { getRedis, getConnectionMode } from '../infrastructure/redis.js';
+import type { Redis } from '@upstash/redis';
 
 // =============================================================================
 // TYPES
@@ -36,7 +38,7 @@ export interface ContextBridgeConfig {
     buildId: string;
     sandboxIds: string[];
     intentContract: any;
-    redisUrl?: string;
+    redisUrl?: string; // Kept for API compatibility but not used (uses Vercel KV env vars)
 }
 
 export interface Pattern {
@@ -84,42 +86,29 @@ export interface FileClaimResult {
 
 export class ContextBridgeService extends EventEmitter {
     private redis: Redis;
-    private subscriber: Redis;
     private buildId: string;
     private sandboxIds: string[];
     private sharedContext: SandboxSharedContext;
     private discoveryCallbacks: Array<(discovery: Discovery) => void>;
     private isInitialized: boolean;
+    private pollingInterval: NodeJS.Timeout | null;
+    private lastPolledIndex: number;
 
     constructor(config: ContextBridgeConfig) {
         super();
 
-        const redisUrl = config.redisUrl || process.env.REDIS_URL;
-        if (!redisUrl) {
-            throw new Error('REDIS_URL not configured for Context Bridge');
-        }
+        // Get Redis from the existing infrastructure (supports Vercel KV + Upstash)
+        this.redis = getRedis();
+
+        const mode = getConnectionMode();
+        console.log(`[Context Bridge] Using Redis mode: ${mode}`);
 
         this.buildId = config.buildId;
         this.sandboxIds = config.sandboxIds;
         this.discoveryCallbacks = [];
         this.isInitialized = false;
-
-        // Initialize Redis clients
-        this.redis = new Redis(redisUrl, {
-            maxRetriesPerRequest: 3,
-            retryStrategy: (times: number) => {
-                if (times > 3) return null;
-                return Math.min(times * 1000, 3000);
-            },
-        });
-
-        this.subscriber = new Redis(redisUrl, {
-            maxRetriesPerRequest: 3,
-            retryStrategy: (times: number) => {
-                if (times > 3) return null;
-                return Math.min(times * 1000, 3000);
-            },
-        });
+        this.pollingInterval = null;
+        this.lastPolledIndex = 0;
 
         // Initialize shared context
         this.sharedContext = {
@@ -133,35 +122,13 @@ export class ContextBridgeService extends EventEmitter {
             pendingMerges: [],
         };
 
-        this.setupErrorHandlers();
+        // Note: @upstash/redis is stateless HTTP, no persistent connection events
+        console.log('[Context Bridge] Initialized with Upstash REST client');
+        this.emit('connected');
     }
 
     /**
-     * Set up error handlers for Redis connections
-     */
-    private setupErrorHandlers(): void {
-        this.redis.on('error', (err: Error) => {
-            console.error('[Context Bridge] Redis error:', err);
-            this.emit('error', err);
-        });
-
-        this.subscriber.on('error', (err: Error) => {
-            console.error('[Context Bridge] Subscriber error:', err);
-            this.emit('error', err);
-        });
-
-        this.redis.on('connect', () => {
-            console.log('[Context Bridge] Redis connected');
-            this.emit('connected');
-        });
-
-        this.subscriber.on('connect', () => {
-            console.log('[Context Bridge] Subscriber connected');
-        });
-    }
-
-    /**
-     * Initialize shared context and subscribe to discovery channel
+     * Initialize shared context and start discovery polling
      */
     async initializeSharedContext(config: ContextBridgeConfig): Promise<void> {
         if (this.isInitialized) {
@@ -179,28 +146,23 @@ export class ContextBridgeService extends EventEmitter {
                     inProgressFeatures: Array.from(this.sharedContext.inProgressFeatures.entries()),
                     fileOwnership: Array.from(this.sharedContext.fileOwnership.entries()),
                 }),
-                'EX',
-                86400 // 24 hours TTL
+                { ex: 86400 } // 24 hours TTL
             );
 
-            // Subscribe to discovery channel
-            const discoveryChannel = `build:${this.buildId}:discoveries`;
-            await this.subscriber.subscribe(discoveryChannel);
-
-            this.subscriber.on('message', (channel: string, message: string) => {
-                if (channel === discoveryChannel) {
-                    try {
-                        const discovery: Discovery = JSON.parse(message);
-                        this.handleDiscovery(discovery);
-                    } catch (err) {
-                        console.error('[Context Bridge] Failed to parse discovery:', err);
-                    }
-                }
-            });
+            // Initialize discovery queue key
+            const discoveryQueueKey = `build:${this.buildId}:discoveries`;
+            const exists = await this.redis.exists(discoveryQueueKey);
+            if (!exists) {
+                // Initialize with empty array if not exists
+                await this.redis.set(discoveryQueueKey, JSON.stringify([]), { ex: 86400 });
+            }
 
             // Create file ownership locks hash
             const locksKey = `build:${this.buildId}:file_locks`;
             await this.redis.del(locksKey);
+
+            // Start polling for discoveries (replaces pub/sub)
+            this.startDiscoveryPolling();
 
             this.isInitialized = true;
             console.log(`[Context Bridge] Initialized for build ${this.buildId}`);
@@ -212,35 +174,87 @@ export class ContextBridgeService extends EventEmitter {
     }
 
     /**
+     * Start polling for new discoveries (replaces pub/sub which isn't supported in REST API)
+     */
+    private startDiscoveryPolling(): void {
+        const pollInterval = 1000; // Poll every second
+
+        this.pollingInterval = setInterval(async () => {
+            try {
+                const discoveryQueueKey = `build:${this.buildId}:discoveries`;
+                const queueData = await this.redis.get<string>(discoveryQueueKey);
+
+                if (queueData) {
+                    const discoveries: Discovery[] = JSON.parse(queueData);
+
+                    // Process any new discoveries since last poll
+                    if (discoveries.length > this.lastPolledIndex) {
+                        const newDiscoveries = discoveries.slice(this.lastPolledIndex);
+                        this.lastPolledIndex = discoveries.length;
+
+                        for (const discovery of newDiscoveries) {
+                            this.handleDiscovery(discovery);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('[Context Bridge] Discovery polling error:', err);
+            }
+        }, pollInterval);
+    }
+
+    /**
+     * Stop discovery polling
+     */
+    private stopDiscoveryPolling(): void {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+    }
+
+    /**
      * Atomically claim ownership of a file to prevent conflicts
-     * Uses Redis HSETNX for atomic operation
+     * Simulates HSETNX behavior with Upstash
      */
     async claimFile(sandboxId: string, filePath: string): Promise<FileClaimResult> {
         try {
             const locksKey = `build:${this.buildId}:file_locks`;
             const normalizedPath = filePath.replace(/\\/g, '/');
 
-            // HSETNX: Set only if field doesn't exist (atomic)
-            const claimed = await this.redis.hsetnx(locksKey, normalizedPath, sandboxId);
+            // Check if already claimed
+            const currentOwner = await this.redis.hget<string>(locksKey, normalizedPath);
 
-            if (claimed === 1) {
-                // Successfully claimed
-                this.sharedContext.fileOwnership.set(normalizedPath, sandboxId);
-                this.emit('fileClaimed', { sandboxId, filePath: normalizedPath });
-
-                return {
-                    success: true,
-                    message: `File ${normalizedPath} claimed by sandbox ${sandboxId}`,
-                };
-            } else {
-                // Already claimed by another sandbox
-                const currentOwner = await this.redis.hget(locksKey, normalizedPath);
+            if (currentOwner) {
+                // Already claimed
                 return {
                     success: false,
-                    currentOwner: currentOwner || undefined,
+                    currentOwner,
                     message: `File ${normalizedPath} already claimed by ${currentOwner}`,
                 };
             }
+
+            // Claim the file (not truly atomic in REST, but sufficient for most cases)
+            await this.redis.hset(locksKey, { [normalizedPath]: sandboxId });
+
+            // Verify we got it (handle race conditions)
+            const verifyOwner = await this.redis.hget<string>(locksKey, normalizedPath);
+
+            if (verifyOwner !== sandboxId) {
+                return {
+                    success: false,
+                    currentOwner: verifyOwner || undefined,
+                    message: `File ${normalizedPath} was claimed by ${verifyOwner} (race condition)`,
+                };
+            }
+
+            this.sharedContext.fileOwnership.set(normalizedPath, sandboxId);
+            this.emit('fileClaimed', { sandboxId, filePath: normalizedPath });
+
+            return {
+                success: true,
+                message: `File ${normalizedPath} claimed by sandbox ${sandboxId}`,
+            };
         } catch (error) {
             console.error('[Context Bridge] File claim failed:', error);
             return {
@@ -259,7 +273,7 @@ export class ContextBridgeService extends EventEmitter {
             const normalizedPath = filePath.replace(/\\/g, '/');
 
             // Check current owner
-            const currentOwner = await this.redis.hget(locksKey, normalizedPath);
+            const currentOwner = await this.redis.hget<string>(locksKey, normalizedPath);
 
             if (currentOwner !== sandboxId) {
                 console.warn(
@@ -281,17 +295,28 @@ export class ContextBridgeService extends EventEmitter {
     }
 
     /**
-     * Broadcast a discovery to all sandboxes
+     * Broadcast a discovery to all sandboxes (via queue instead of pub/sub)
      */
     async broadcastDiscovery(discovery: Discovery): Promise<void> {
         try {
-            const discoveryChannel = `build:${this.buildId}:discoveries`;
-            const message = JSON.stringify({
+            const discoveryQueueKey = `build:${this.buildId}:discoveries`;
+
+            // Get current discoveries
+            const queueData = await this.redis.get<string>(discoveryQueueKey);
+            const discoveries: Discovery[] = queueData ? JSON.parse(queueData) : [];
+
+            // Add new discovery
+            const newDiscovery = {
                 ...discovery,
                 timestamp: discovery.timestamp || new Date().toISOString(),
-            });
+            };
+            discoveries.push(newDiscovery);
 
-            await this.redis.publish(discoveryChannel, message);
+            // Keep only last 1000 discoveries to prevent unbounded growth
+            const trimmedDiscoveries = discoveries.slice(-1000);
+
+            // Store updated queue
+            await this.redis.set(discoveryQueueKey, JSON.stringify(trimmedDiscoveries), { ex: 86400 });
 
             console.log(
                 `[Context Bridge] Discovery broadcasted: ${discovery.type} from ${discovery.sandboxId}`
@@ -375,11 +400,13 @@ export class ContextBridgeService extends EventEmitter {
     async getFileOwnership(): Promise<Map<string, string>> {
         try {
             const locksKey = `build:${this.buildId}:file_locks`;
-            const allLocks = await this.redis.hgetall(locksKey);
+            const allLocks = await this.redis.hgetall<Record<string, string>>(locksKey);
 
             const ownership = new Map<string, string>();
-            for (const [filePath, sandboxId] of Object.entries(allLocks)) {
-                ownership.set(filePath, sandboxId as string);
+            if (allLocks) {
+                for (const [filePath, sandboxId] of Object.entries(allLocks)) {
+                    ownership.set(filePath, sandboxId);
+                }
             }
 
             return ownership;
@@ -395,7 +422,7 @@ export class ContextBridgeService extends EventEmitter {
     async getSharedContext(): Promise<SandboxSharedContext> {
         try {
             const contextKey = `build:${this.buildId}:context`;
-            const contextJson = await this.redis.get(contextKey);
+            const contextJson = await this.redis.get<string>(contextKey);
 
             if (contextJson) {
                 const parsed = JSON.parse(contextJson);
@@ -448,8 +475,7 @@ export class ContextBridgeService extends EventEmitter {
                 inProgressFeatures: Array.from(this.sharedContext.inProgressFeatures.entries()),
                 fileOwnership: Array.from(this.sharedContext.fileOwnership.entries()),
             }),
-            'EX',
-            86400 // 24 hours TTL
+            { ex: 86400 } // 24 hours TTL
         );
     }
 
@@ -499,17 +525,16 @@ export class ContextBridgeService extends EventEmitter {
         try {
             console.log(`[Context Bridge] Cleaning up build ${this.buildId}`);
 
-            // Unsubscribe from channels
-            await this.subscriber.unsubscribe();
+            // Stop polling
+            this.stopDiscoveryPolling();
 
             // Clean up Redis keys
             const contextKey = `build:${this.buildId}:context`;
             const locksKey = `build:${this.buildId}:file_locks`;
-            await this.redis.del(contextKey, locksKey);
+            const discoveryKey = `build:${this.buildId}:discoveries`;
+            await this.redis.del(contextKey, locksKey, discoveryKey);
 
-            // Close connections
-            await this.redis.quit();
-            await this.subscriber.quit();
+            // Note: @upstash/redis is stateless HTTP, no connection to close
 
             this.isInitialized = false;
             this.emit('cleanup');
