@@ -158,10 +158,11 @@ async function handleStart(
         id: buildId,
         projectId,
         userId,
-        intentId: intentContractId,
+        prompt: `Intent Contract: ${intentContractId}`,
         status: 'starting',
-        currentPhase: 'initialization',
-        phases: JSON.stringify(implementationPlan),
+        plan: { intentContractId, phase: 'initialization' },
+        phases: implementationPlan,
+        artifacts: { startedAt: new Date().toISOString() },
         createdAt: new Date().toISOString(),
     });
 
@@ -183,10 +184,10 @@ async function handleStart(
             .update(orchestrationRuns)
             .set({
                 status: 'running',
-                metadata: JSON.stringify({
+                artifacts: {
                     modalFunctionId: modalResult.functionId,
                     startedAt: new Date().toISOString(),
-                }),
+                },
             })
             .where(eq(orchestrationRuns.id, buildId));
 
@@ -198,19 +199,20 @@ async function handleStart(
             modalFunctionId: modalResult.functionId,
         });
     } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to start Modal orchestration';
         // Update run as failed
         await db
             .update(orchestrationRuns)
             .set({
                 status: 'failed',
-                error: error instanceof Error ? error.message : 'Failed to start Modal orchestration',
+                artifacts: { error: errorMessage, failedAt: new Date().toISOString() },
             })
             .where(eq(orchestrationRuns.id, buildId));
 
         res.status(500).json({
             success: false,
             buildId,
-            error: error instanceof Error ? error.message : 'Failed to start orchestration',
+            error: errorMessage,
         });
     }
 }
@@ -263,11 +265,11 @@ async function handleResume(
             .update(orchestrationRuns)
             .set({
                 status: 'running',
-                metadata: JSON.stringify({
+                artifacts: {
                     modalFunctionId: modalResult.functionId,
                     resumedAt: new Date().toISOString(),
                     resumedFromCheckpoint: checkpointId,
-                }),
+                },
             })
             .where(eq(orchestrationRuns.id, buildId));
 
@@ -318,18 +320,19 @@ async function handleStatus(
     }
 
     const run = runs[0];
-    const metadata = run.metadata ? JSON.parse(run.metadata as string) : {};
+    const artifacts = run.artifacts as Record<string, any> || {};
+    const plan = run.plan as Record<string, any> || {};
 
     res.json({
         success: true,
         buildId,
         status: run.status,
-        currentPhase: run.currentPhase,
-        progress: metadata.progress || 0,
-        mainSandboxUrl: metadata.mainSandboxUrl,
-        costUsd: metadata.costUsd || 0,
-        startedAt: metadata.startedAt,
-        completedAt: metadata.completedAt,
+        currentPhase: plan.phase || 'unknown',
+        progress: artifacts.progress || 0,
+        mainSandboxUrl: artifacts.mainSandboxUrl,
+        costUsd: artifacts.costUsd || 0,
+        startedAt: artifacts.startedAt || run.startedAt,
+        completedAt: artifacts.completedAt || run.completedAt,
     });
 }
 
@@ -401,23 +404,23 @@ async function handleWebhook(
             break;
         case 'sandboxCreated':
             if (data?.type === 'main' && data?.tunnelUrl) {
-                updateData.metadata = JSON.stringify({
+                updateData.artifacts = {
                     mainSandboxUrl: data.tunnelUrl,
                     lastUpdate: timestamp,
-                });
+                };
             }
             break;
         case 'completed':
             updateData.status = 'completed';
             updateData.completedAt = new Date().toISOString();
-            updateData.metadata = JSON.stringify({
+            updateData.artifacts = {
                 ...data,
                 completedAt: timestamp,
-            });
+            };
             break;
         case 'failed':
             updateData.status = 'failed';
-            updateData.error = data?.error || 'Unknown error';
+            updateData.artifacts = { error: data?.error || 'Unknown error' };
             updateData.completedAt = new Date().toISOString();
             break;
     }

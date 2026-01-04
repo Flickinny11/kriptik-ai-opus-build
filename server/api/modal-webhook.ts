@@ -57,10 +57,11 @@ export default async function handler(
         switch (event) {
             case 'started':
                 updateData.status = 'running';
-                updateData.metadata = JSON.stringify({
+                updateData.startedAt = timestamp;
+                updateData.artifacts = {
                     ...data,
                     startedAt: timestamp,
-                });
+                };
                 break;
 
             case 'taskCompleted':
@@ -78,15 +79,13 @@ export default async function handler(
                         .limit(1);
 
                     if (existingRun.length > 0) {
-                        const existingMetadata = existingRun[0].metadata
-                            ? JSON.parse(existingRun[0].metadata as string)
-                            : {};
+                        const existingArtifacts = existingRun[0].artifacts as Record<string, any> || {};
 
-                        updateData.metadata = JSON.stringify({
-                            ...existingMetadata,
+                        updateData.artifacts = {
+                            ...existingArtifacts,
                             mainSandboxUrl: data.tunnelUrl,
                             lastUpdate: timestamp,
-                        });
+                        };
                     }
                 }
                 break;
@@ -94,15 +93,15 @@ export default async function handler(
             case 'completed':
                 updateData.status = 'completed';
                 updateData.completedAt = new Date().toISOString();
-                updateData.metadata = JSON.stringify({
+                updateData.artifacts = {
                     ...data,
                     completedAt: timestamp,
-                });
+                };
                 break;
 
             case 'failed':
                 updateData.status = 'failed';
-                updateData.error = data?.error || 'Unknown error';
+                updateData.artifacts = { error: data?.error || 'Unknown error' };
                 updateData.completedAt = new Date().toISOString();
                 break;
 
