@@ -1251,9 +1251,9 @@ Apply them to ensure high-quality code. Avoid patterns that have caused errors b
     /**
      * SESSION 3: Check if a file is locked by another agent
      */
-    isFileLocked(filePath: string): { locked: boolean; byAgent?: string } {
+    async isFileLocked(filePath: string): Promise<{ locked: boolean; byAgent?: string }> {
         if (this.contextSync) {
-            return this.contextSync.isFileLocked(filePath, this.config.agentId!);
+            return await this.contextSync.isFileLocked(filePath, this.config.agentId!);
         }
         return { locked: false };
     }

@@ -166,7 +166,7 @@ async function handleStart(
     });
 
     // Trigger Modal orchestration
-    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/orchestrate`;
+    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/modal-webhook`;
 
     try {
         const modalResult = await triggerModalOrchestration({
@@ -248,7 +248,7 @@ async function handleResume(
     }
 
     const checkpoint = checkpoints[0];
-    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/orchestrate`;
+    const webhookUrl = `${process.env.VERCEL_URL || 'https://kriptik-ai-opus-build-backend.vercel.app'}/api/modal-webhook`;
 
     try {
         const modalResult = await triggerModalOrchestration({

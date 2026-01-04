@@ -54,7 +54,10 @@ orchestrator_image = (
         "pydantic",
         "structlog",
     ])
-    .apt_install(["curl", "git"])
+    .apt_install(["curl", "git", "nodejs", "npm"])
+    .run_commands([
+        "npm install -g tsx",
+    ])
 )
 
 # ============================================================================
@@ -263,24 +266,31 @@ class KriptikOrchestrator:
             return error_result
 
     async def _send_webhook(self, event: str, data: Dict[str, Any]) -> None:
-        """Send progress update via webhook."""
+        """
+        Send progress update via webhook to Vercel backend.
+
+        This allows the frontend to receive real-time updates even though
+        the actual build is running on Modal for hours/days.
+        """
         if not self.webhook_url:
             return
 
         try:
             async with httpx.AsyncClient() as client:
-                await client.post(
+                response = await client.post(
                     self.webhook_url,
                     json={
-                        "event": event,
                         "buildId": self.build_id,
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "event": event,
                         "data": data,
+                        "timestamp": datetime.utcnow().isoformat(),
                     },
                     timeout=10.0,
                 )
+                response.raise_for_status()
+                print(f"[Webhook] Sent {event} to {self.webhook_url}")
         except Exception as e:
-            print(f"Webhook failed: {e}")
+            print(f"[Webhook] Failed to send {event}: {e}")
 
     def _partition_tasks(self, plan: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Partition implementation plan into tasks."""
@@ -346,18 +356,71 @@ class KriptikOrchestrator:
         task: Dict[str, Any],
         intent_contract: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute a task in a sandbox."""
-        # This would run the actual build task
-        # For now, simulate task execution
-        await asyncio.sleep(1)  # Simulate work
+        """
+        Execute a task by running BuildLoopOrchestrator via Node.js.
 
-        return {
-            "success": True,
-            "taskId": task["id"],
-            "sandboxId": sandbox["id"],
-            "verificationScore": 95,
-            "cost": 0.01,
-        }
+        This is the KEY: Modal provides the runtime environment,
+        but BuildLoopOrchestrator provides the build LOGIC.
+        """
+        import subprocess
+
+        try:
+            # Prepare environment with credentials and intent contract
+            env = os.environ.copy()
+            env['TASK_DATA'] = json.dumps(task)
+            env['INTENT_CONTRACT'] = json.dumps(intent_contract)
+            env['SANDBOX_ID'] = sandbox['id']
+
+            # Run BuildLoopOrchestrator via tsx (TypeScript executor)
+            # This spawns a Node.js process that executes the TypeScript build logic
+            result = subprocess.run(
+                [
+                    'tsx',
+                    '/app/server/src/services/automation/build-loop-runner.ts',
+                    '--task', task['id'],
+                    '--sandbox', sandbox['id'],
+                ],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=7200,  # 2 hour timeout per task
+            )
+
+            if result.returncode == 0:
+                # Parse result from BuildLoopOrchestrator
+                output = json.loads(result.stdout) if result.stdout else {}
+                return {
+                    "success": True,
+                    "taskId": task["id"],
+                    "sandboxId": sandbox["id"],
+                    "verificationScore": output.get("verificationScore", 95),
+                    "cost": output.get("cost", 0.01),
+                    "filesModified": output.get("filesModified", []),
+                    "output": output,
+                }
+            else:
+                return {
+                    "success": False,
+                    "taskId": task["id"],
+                    "sandboxId": sandbox["id"],
+                    "error": result.stderr or "BuildLoopOrchestrator failed",
+                    "exitCode": result.returncode,
+                }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "taskId": task["id"],
+                "sandboxId": sandbox["id"],
+                "error": "Task execution timeout (2 hours)",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "taskId": task["id"],
+                "sandboxId": sandbox["id"],
+                "error": f"Task execution failed: {str(e)}",
+            }
 
     async def _process_merges(
         self,
