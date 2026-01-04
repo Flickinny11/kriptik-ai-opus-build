@@ -177,7 +177,7 @@ async function handleStart(
     const orchestrationPromise = orchestrator.orchestrate(
         intentContract,
         implementationPlan,
-        new Map(Object.entries(credentials || {}))
+        credentials || {}
     );
 
     // Create a timeout promise
