@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, blob, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // Helper for generating UUIDs in SQLite
@@ -198,6 +198,32 @@ export const deployments = sqliteTable('deployments', {
     url: text('url'),
     estimatedMonthlyCost: integer('estimated_monthly_cost'),
     actualCost: integer('actual_cost').default(0),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+// Training Jobs - Fine-tuning jobs on RunPod (PROMPT 4)
+export const trainingJobs = sqliteTable('training_jobs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+    // Training configuration
+    config: text('config', { mode: 'json' }).notNull(), // TrainingJobConfig
+    // Status tracking
+    status: text('status').default('queued').notNull(), // queued | provisioning | downloading | training | saving | completed | failed | stopped | cancelled
+    // Training metrics
+    metrics: text('metrics', { mode: 'json' }), // TrainingMetrics
+    // Logs
+    logs: text('logs').default('[]'), // JSON array of log strings
+    // Error if failed
+    error: text('error'),
+    // RunPod integration
+    runpodPodId: text('runpod_pod_id'),
+    // Output
+    outputModelUrl: text('output_model_url'),
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });

@@ -32,6 +32,35 @@ export interface TokenValidationResult {
   error?: string;
 }
 
+// Model search options
+export interface ModelSearchOptions {
+  task?: string;
+  library?: string;
+  sort?: 'downloads' | 'likes' | 'lastModified';
+  page?: number;
+  limit?: number;
+}
+
+// Model type
+export interface HuggingFaceModel {
+  modelId: string;
+  author: string;
+  downloads: number;
+  likes: number;
+  pipeline_tag?: string;
+  tags: string[];
+  siblings?: Array<{ rfilename: string; size?: number }>;
+  cardData?: {
+    license?: string;
+    language?: string[];
+    library_name?: string;
+    description?: string;
+  };
+  estimatedSize?: number;
+  estimatedVRAM?: number;
+  canBeModified?: boolean;
+}
+
 // Hook return type
 export interface UseHuggingFaceReturn {
   // Status
@@ -43,6 +72,7 @@ export interface UseHuggingFaceReturn {
   connect: (token: string) => Promise<TokenValidationResult>;
   disconnect: () => Promise<void>;
   refreshStatus: () => Promise<void>;
+  searchModels: (query: string, options?: ModelSearchOptions) => Promise<HuggingFaceModel[]>;
   
   // Computed
   isConnected: boolean;
@@ -157,6 +187,37 @@ export function useHuggingFace(): UseHuggingFaceReturn {
     }
   }, []);
 
+  /**
+   * Search HuggingFace models
+   */
+  const searchModels = useCallback(async (
+    query: string,
+    options: ModelSearchOptions = {}
+  ): Promise<HuggingFaceModel[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (query) params.set('query', query);
+      if (options.task) params.set('task', options.task);
+      if (options.library) params.set('library', options.library);
+      if (options.sort) params.set('sort', options.sort);
+      if (options.page !== undefined) params.set('page', String(options.page));
+      if (options.limit !== undefined) params.set('limit', String(options.limit));
+
+      const response = await authenticatedFetch(`/api/open-source-studio/models?${params.toString()}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to search models' }));
+        throw new Error(errorData.error || 'Failed to search models');
+      }
+
+      const data = await response.json();
+      return data.models || [];
+    } catch (err) {
+      console.error('[useHuggingFace] Model search failed:', err);
+      throw err;
+    }
+  }, []);
+
   // Check status on mount
   useEffect(() => {
     refreshStatus();
@@ -169,6 +230,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
     connect,
     disconnect,
     refreshStatus,
+    searchModels,
     isConnected: status.connected,
     canUploadModels: status.connected && status.canWrite === true,
   };

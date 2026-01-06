@@ -93,16 +93,23 @@ const TagIcon = () => (
   </svg>
 );
 
+const FineTuneIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
 interface ModelDetailsProps {
   model: ModelWithRequirements;
+  onFineTune?: (model: ModelWithRequirements) => void;
 }
 
-export function ModelDetails({ model }: ModelDetailsProps) {
-  const { selectModel, addToDock, dock } = useOpenSourceStudioStore();
+export function ModelDetails({ model, onFineTune }: ModelDetailsProps) {
+  const { selectModel, addToDock, dock, hfConnected } = useOpenSourceStudioStore();
 
   const isInDock = dock.some(item => item.model.modelId === model.modelId);
 
@@ -263,6 +270,19 @@ export function ModelDetails({ model }: ModelDetailsProps) {
 
       {/* Actions */}
       <div className="model-details-actions">
+        {/* Fine-Tune Button - Primary Action */}
+        {hfConnected && onFineTune && (
+          <motion.button
+            className="model-details-btn fine-tune"
+            onClick={() => onFineTune(model)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <FineTuneIcon />
+            Fine-Tune Model
+          </motion.button>
+        )}
+        
         {!isInDock ? (
           <motion.button
             className="model-details-btn primary"

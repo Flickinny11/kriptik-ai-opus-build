@@ -5913,3 +5913,78 @@ CONTEXT:
 - Store persists dock and HF connection state
 - Premium design with depth, animations, DM Sans typography
 - No emoji, no purple gradients, amber accent colors
+
+═══ [2026-01-06 PROMPT 4: TRAINING & FINE-TUNING MODULE COMPLETE] ═══
+COMPLETED: Full implementation of Training & Fine-Tuning Module for Open Source Studio
+
+IMPLEMENTATION SUMMARY:
+Training & Fine-Tuning Module allows users to fine-tune HuggingFace models on RunPod GPUs
+with automatic saving to their HuggingFace Hub account.
+
+FRONTEND COMPONENTS CREATED:
+1. src/components/open-source-studio/TrainingConfig.tsx - Training parameter configuration UI
+   - Training type selection (LoRA, QLoRA, Full Fine-Tune)
+   - Epochs, batch size, learning rate controls
+   - LoRA parameters (rank, alpha, dropout, target modules)
+   - Budget limits
+   - Output settings with HuggingFace Hub integration
+   
+2. src/components/open-source-studio/TrainingCostEstimator.tsx - Cost estimation panel
+   - GPU recommendation based on VRAM requirements
+   - Hourly cost calculation
+   - Budget tracking with visual progress bar
+   
+3. src/components/open-source-studio/TrainingProgress.tsx - Real-time training display
+   - Progress bar with percentage
+   - Metrics grid (epoch, step, loss, learning rate, GPU utilization)
+   - Time tracking and cost tracking
+   - Live log viewer
+   - Stop training button
+   
+4. src/components/open-source-studio/DatasetSelector.tsx - Dataset selection UI
+   - HuggingFace dataset search
+   - Custom dataset upload support
+   - Task-based filtering
+   
+5. src/components/open-source-studio/TrainingModule.tsx - Main training workflow container
+   - Multi-step wizard (Dataset → Config → Training → Complete)
+   - Job polling for live updates
+   - Error handling
+
+BACKEND SERVICES CREATED:
+6. server/src/services/ml/training-job.ts - Individual training job management
+   - TrainingJob class with event emitter
+   - State tracking (queued, provisioning, training, completed, etc.)
+   - Cost tracking
+   - Training script generation for RunPod
+
+7. server/src/services/ml/training-orchestrator.ts - Multi-job orchestration
+   - Job queue management
+   - RunPod integration for GPU provisioning
+   - HuggingFace credential management
+   - Callback handling for job completion
+
+8. server/src/routes/training.ts - Training API endpoints
+   - POST /api/training/jobs - Create new training job
+   - GET /api/training/jobs - List user's training jobs
+   - GET /api/training/jobs/:jobId - Get specific job
+   - POST /api/training/jobs/:jobId/stop - Stop running job
+   - DELETE /api/training/jobs/:jobId - Cancel/delete job
+   - POST /api/training/callback - RunPod completion callback
+   - POST /api/training/estimate - Cost estimation
+
+SCHEMA UPDATES:
+9. server/src/schema.ts - Added trainingJobs table
+   - Training configuration storage
+   - Status, metrics, logs tracking
+   - RunPod pod ID reference
+   - Output model URL
+
+INTEGRATIONS:
+- Updated ModelDetails.tsx with "Fine-Tune" button
+- Updated useHuggingFace hook with searchModels function
+- Added dataset search endpoint to open-source-studio routes
+- Registered training router in server/src/index.ts
+
+COMPILE STATUS: ✅ Both frontend and backend compile successfully
+

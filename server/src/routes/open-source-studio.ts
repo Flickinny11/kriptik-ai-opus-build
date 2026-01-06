@@ -186,4 +186,120 @@ router.get('/libraries', authMiddleware, async (_req: Request, res: Response): P
   res.json({ libraries });
 });
 
+// =============================================================================
+// DATASETS (PROMPT 4)
+// =============================================================================
+
+/**
+ * GET /api/open-source-studio/datasets/search
+ * Search HuggingFace datasets
+ */
+router.get('/datasets/search', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      search = '',
+      filter = '',
+      sort = 'downloads',
+      limit = '50',
+    } = req.query as Record<string, string>;
+
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
+
+    // Build HuggingFace API URL
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (filter) params.set('filter', filter);
+    params.set('sort', sort);
+    params.set('limit', String(limitNum));
+
+    const hfApiUrl = `https://huggingface.co/api/datasets?${params.toString()}`;
+
+    const response = await fetch(hfApiUrl, {
+      headers: {
+        'Accept': 'application/json',
+      },
+      credentials: 'omit',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HuggingFace API error: ${response.status}`);
+    }
+
+    const datasets = await response.json();
+
+    // Transform to our format
+    const formattedDatasets = datasets.map((dataset: any) => ({
+      id: dataset.id,
+      author: dataset.author || dataset.id.split('/')[0],
+      name: dataset.id.split('/').pop(),
+      description: dataset.description || '',
+      downloads: dataset.downloads || 0,
+      likes: dataset.likes || 0,
+      tags: dataset.tags || [],
+      size: dataset.size || null,
+      cardData: dataset.cardData,
+      lastModified: dataset.lastModified,
+    }));
+
+    res.json(formattedDatasets);
+  } catch (error) {
+    console.error('[Open Source Studio] Dataset search error:', error);
+    res.status(500).json({
+      error: 'Failed to search datasets',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/open-source-studio/datasets/:author/:name
+ * Get detailed info for a specific dataset
+ */
+router.get('/datasets/:author/:name', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { author, name } = req.params;
+    const datasetId = `${author}/${name}`;
+
+    const hfApiUrl = `https://huggingface.co/api/datasets/${datasetId}`;
+
+    const response = await fetch(hfApiUrl, {
+      headers: {
+        'Accept': 'application/json',
+      },
+      credentials: 'omit',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        res.status(404).json({ error: 'Dataset not found' });
+        return;
+      }
+      throw new Error(`HuggingFace API error: ${response.status}`);
+    }
+
+    const dataset = await response.json();
+
+    res.json({
+      dataset: {
+        id: dataset.id,
+        author: dataset.author || dataset.id.split('/')[0],
+        name: dataset.id.split('/').pop(),
+        description: dataset.description || '',
+        downloads: dataset.downloads || 0,
+        likes: dataset.likes || 0,
+        tags: dataset.tags || [],
+        size: dataset.size || null,
+        cardData: dataset.cardData,
+        lastModified: dataset.lastModified,
+      },
+    });
+  } catch (error) {
+    console.error('[Open Source Studio] Dataset details error:', error);
+    res.status(500).json({
+      error: 'Failed to get dataset details',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 export default router;

@@ -302,6 +302,22 @@
   cursor: not-allowed;
 }
 
+.model-details-btn.fine-tune {
+  flex: 1;
+  gap: 8px;
+  background: linear-gradient(135deg, #64c864 0%, #3aa03a 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(100, 200, 100, 0.25);
+}
+
+.model-details-btn.fine-tune:hover {
+  box-shadow: 0 6px 20px rgba(100, 200, 100, 0.35);
+}
+
+.model-details-btn.fine-tune svg {
+  flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .model-details-stats {

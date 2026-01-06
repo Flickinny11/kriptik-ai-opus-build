@@ -785,6 +785,10 @@ app.use("/api/huggingface", huggingfaceAuthRouter);
 // Open Source Studio (Model Browser & Training)
 app.use("/api/open-source-studio", openSourceStudioRouter);
 
+// Training API (Fine-tuning on RunPod - PROMPT 4)
+import trainingRouter from './routes/training.js';
+app.use("/api/training", trainingRouter);
+
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);
 

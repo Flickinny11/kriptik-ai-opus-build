@@ -1,0 +1,205 @@
+/**
+ * Training Cost Estimator Styles
+ */
+
+.cost-estimator {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cost-estimator-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.cost-estimator-title svg {
+  color: #64c864;
+}
+
+/* GPU */
+.cost-estimator-gpu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.cost-estimator-gpu-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 168, 108, 0.1);
+  border-radius: 10px;
+  color: #F5A86C;
+}
+
+.cost-estimator-gpu-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cost-estimator-gpu-name {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cost-estimator-gpu-spec {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cost-estimator-gpu-fit {
+  flex-shrink: 0;
+}
+
+.cost-estimator-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cost-estimator-badge.success {
+  background: rgba(100, 200, 100, 0.15);
+  color: #64c864;
+}
+
+.cost-estimator-badge.warning {
+  background: rgba(255, 180, 0, 0.15);
+  color: #ffb400;
+}
+
+/* Grid */
+.cost-estimator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cost-estimator-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+
+.cost-estimator-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cost-estimator-value {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cost-estimator-value.within {
+  color: #64c864;
+}
+
+.cost-estimator-value.over {
+  color: #ff6b6b;
+}
+
+/* Budget */
+.cost-estimator-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cost-estimator-budget-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cost-estimator-budget-header .within {
+  color: #64c864;
+}
+
+.cost-estimator-budget-header .over {
+  color: #ff6b6b;
+}
+
+.cost-estimator-budget-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cost-estimator-budget-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.cost-estimator-budget-fill.within {
+  background: linear-gradient(90deg, #64c864, #40a040);
+}
+
+.cost-estimator-budget-fill.over {
+  background: linear-gradient(90deg, #ff6b6b, #ff4444);
+}
+
+/* Warning */
+.cost-estimator-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 100, 100, 0.1);
+  border: 1px solid rgba(255, 100, 100, 0.2);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+}
+
+/* Notes */
+.cost-estimator-notes {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.cost-estimator-notes p {
+  margin: 0;
+}
