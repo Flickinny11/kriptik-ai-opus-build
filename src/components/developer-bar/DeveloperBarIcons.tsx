@@ -19,7 +19,7 @@ export type IconName =
   | 'deployment' | 'cloudDeploy' | 'migrationWizard' | 'repoAware'
   | 'cloneMode' | 'zeroTrustSec'
   | 'multiplayer' | 'publish' | 'share' | 'multiTask'
-  | 'openSourceStudio';
+  | 'openSourceStudio' | 'aiLab';
 
 interface IconProps {
   name: IconName;
@@ -1004,6 +1004,86 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
           cy: isHovered ? [16, 12, 16] : 16,
         }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+      />
+    </g>
+  ),
+
+  // AI Lab - Multi-agent research orchestration (flask/beaker icon)
+  aiLab: ({ isActive, isHovered }) => (
+    <g filter="url(#dropShadow)">
+      <GradientDefs />
+      {/* Flask body */}
+      <motion.path
+        d="M8 3 V8 L4 18 C3.5 19.5 4.5 21 6 21 H18 C19.5 21 20.5 19.5 20 18 L16 8 V3"
+        fill="none"
+        stroke={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        animate={{ scale: isHovered ? 1.05 : 1 }}
+        style={{ transformOrigin: '12px 12px' }}
+      />
+      {/* Flask neck */}
+      <motion.line
+        x1="7" y1="3" x2="17" y2="3"
+        stroke={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      {/* Liquid inside */}
+      <motion.path
+        d="M6 16 L7.5 13 H16.5 L18 16 C18.3 17 17.7 18 17 18 H7 C6.3 18 5.7 17 6 16 Z"
+        fill={isActive ? 'url(#activeGlow)' : 'url(#darkMetallic)'}
+        animate={{ 
+          y: isHovered ? [0, -1, 0] : 0,
+          opacity: isHovered ? [1, 0.8, 1] : 1,
+        }}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      />
+      {/* Bubbles - representing parallel agents */}
+      <motion.circle
+        cx="9" cy="15" r="1"
+        fill={isActive ? '#FFD21E' : '#B8B8C4'}
+        animate={{
+          y: isHovered ? [-3, -6, -3] : 0,
+          opacity: isHovered ? [1, 0, 1] : 1,
+        }}
+        transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+      />
+      <motion.circle
+        cx="12" cy="16" r="1.2"
+        fill={isActive ? '#FF8E4A' : '#A8A8B4'}
+        animate={{
+          y: isHovered ? [-2, -5, -2] : 0,
+          opacity: isHovered ? [1, 0, 1] : 1,
+        }}
+        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+      />
+      <motion.circle
+        cx="15" cy="15" r="0.8"
+        fill={isActive ? '#E85D2A' : '#989898'}
+        animate={{
+          y: isHovered ? [-4, -7, -4] : 0,
+          opacity: isHovered ? [1, 0, 1] : 1,
+        }}
+        transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+      />
+      {/* Plus symbols - research synthesis */}
+      <motion.path
+        d="M10 7 H11 M10.5 6.5 V7.5"
+        stroke={isActive ? '#FFD21E' : '#B8B8C4'}
+        strokeWidth="0.8"
+        strokeLinecap="round"
+        animate={{ opacity: isHovered ? [1, 0.5, 1] : 0.7 }}
+        transition={{ duration: 1, repeat: Infinity }}
+      />
+      <motion.path
+        d="M13 7 H14 M13.5 6.5 V7.5"
+        stroke={isActive ? '#FFD21E' : '#B8B8C4'}
+        strokeWidth="0.8"
+        strokeLinecap="round"
+        animate={{ opacity: isHovered ? [1, 0.5, 1] : 0.7 }}
+        transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
       />
     </g>
   ),

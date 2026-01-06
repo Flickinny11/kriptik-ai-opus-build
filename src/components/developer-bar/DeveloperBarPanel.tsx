@@ -15,6 +15,8 @@ import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { BrowserAgentPermissions } from '../provisioning/BrowserAgentPermissions';
 import { OpenSourceStudio } from '../open-source-studio/OpenSourceStudio';
 import { useOpenSourceStudioStore } from '@/store/useOpenSourceStudioStore';
+import { AILab } from '../ai-lab/AILab';
+import { useAILabStore } from '@/store/useAILabStore';
 import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
 
@@ -58,6 +60,29 @@ const OpenSourceStudioWrapper = ({ isActive: _isActive, onClose }: { isActive: b
   return <OpenSourceStudio onClose={handleClose} />;
 };
 
+// Panel wrapper for AI Lab (opens as full-screen modal)
+const AILabWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
+  const { setOpen } = useAILabStore();
+  
+  // Open the lab when this panel is mounted
+  useEffect(() => {
+    setOpen(true);
+  }, [setOpen]);
+
+  // Close both the store and the panel
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
+  };
+  
+  return (
+    <div className="ai-lab-panel-wrapper">
+      <button className="ai-lab-close-btn" onClick={handleClose}>×</button>
+      <AILab />
+    </div>
+  );
+};
+
 const FEATURE_PANELS: Record<string, {
   title: string;
   icon: IconName;
@@ -67,6 +92,7 @@ const FEATURE_PANELS: Record<string, {
   // Premium comprehensive panels
   'feature-agent': { title: 'Feature Agent Command Center', icon: 'agents', component: FeatureAgentCommandCenterWrapper, fullWidth: true },
   'open-source-studio': { title: 'Open Source Studio', icon: 'openSourceStudio', component: OpenSourceStudioWrapper, fullWidth: true },
+  'ai-lab': { title: 'AI Lab', icon: 'aiLab', component: AILabWrapper, fullWidth: true },
 
   // Other panels (to be upgraded to comprehensive versions)
   // Note: Ghost Mode configuration is now integrated into Feature Agent Command Center
