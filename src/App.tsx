@@ -25,6 +25,10 @@ const MyAccount = lazy(() => import('./pages/MyAccount'));
 const GitHubCallback = lazy(() => import('./pages/GitHubCallback'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 
+// GPU & AI Lab pages (PROMPT 9)
+const OpenSourceStudioPage = lazy(() => import('./pages/OpenSourceStudioPage'));
+const AILabPage = lazy(() => import('./pages/AILabPage'));
+
 // Loading fallback
 const PageLoader = () => (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -143,6 +147,22 @@ function App() {
                         <PageErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                                 <OAuthCallback />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    
+                    {/* GPU & AI Lab Routes (PROMPT 9) */}
+                    <Route path="/ai-lab" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <AILabPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/open-source-studio" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <OpenSourceStudioPage />
                             </Suspense>
                         </PageErrorBoundary>
                     } />

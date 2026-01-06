@@ -1,0 +1,22 @@
+/**
+ * Open Source Studio Page Styles (PROMPT 9)
+ */
+
+.open-source-studio-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a0f 0%, #0f0a08 50%, #0a0a0f 100%);
+    padding: 2rem;
+    padding-left: 80px; /* Account for hover sidebar */
+}
+
+.open-source-studio-main {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .open-source-studio-page {
+        padding: 1rem;
+        padding-left: 60px;
+    }
+}

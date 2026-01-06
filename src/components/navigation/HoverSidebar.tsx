@@ -75,6 +75,20 @@ const NAV_ITEMS: NavItem[] = [
         path: '/account',
         description: 'Profile & billing',
     },
+    {
+        id: 'ai-lab',
+        label: 'AI Lab',
+        icon: SparklesIcon,
+        path: '/ai-lab',
+        description: 'Multi-agent research',
+    },
+    {
+        id: 'open-source-studio',
+        label: 'Open Source',
+        icon: LayersIcon,
+        path: '/open-source-studio',
+        description: 'Browse HuggingFace models',
+    },
 ];
 
 export function HoverSidebar() {
