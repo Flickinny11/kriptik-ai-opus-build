@@ -64,7 +64,14 @@ export type ErrorCategory =
     | 'styling_dependency_load_failure'
     | 'styling_animation_performance'
     | 'styling_font_not_loaded'
-    | 'styling_3d_render_failure';
+    | 'styling_3d_render_failure'
+    // GPU error categories (PROMPT 7)
+    | 'gpu_deployment_failed'
+    | 'gpu_endpoint_unavailable'
+    | 'gpu_memory_exceeded'
+    | 'gpu_cost_overrun'
+    | 'gpu_performance_degraded'
+    | 'gpu_quantization_incompatible';
 
 export interface BuildError {
     id: string;

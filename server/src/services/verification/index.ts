@@ -113,3 +113,18 @@ export {
     type VideoFrame,
 } from './gemini-video-analyzer.js';
 
+// ============================================================================
+// GPU VERIFICATION (PROMPT 7) - GPU Build Loop Integration
+// ============================================================================
+
+// GPU Verification Service - Endpoint health, cost validation, performance checks
+export {
+    GPUVerificationService,
+    createGPUVerificationService,
+    type GPUVerificationAgentType,
+    type GPUVerificationResult,
+    type GPUVerificationIssue,
+    type GPUMetrics,
+    type GPUVerificationConfig,
+    type CombinedGPUVerificationResult,
+} from './gpu-verification.js';
