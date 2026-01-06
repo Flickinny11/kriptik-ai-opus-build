@@ -797,6 +797,10 @@ app.use("/api/endpoints", endpointsRouter);
 import gpuCostsRouter from './routes/gpu-costs.js';
 app.use("/api/gpu-costs", gpuCostsRouter);
 
+// AI Lab - Multi-Agent Research Orchestration (PROMPT 6)
+import aiLabRouter from './routes/ai-lab.js';
+app.use("/api/ai-lab", aiLabRouter);
+
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);
 

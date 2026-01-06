@@ -267,6 +267,90 @@ export const deployedEndpoints = sqliteTable('deployed_endpoints', {
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
 
+// ============================================================================
+// AI LAB - Multi-Agent Research Orchestration (PROMPT 6)
+// ============================================================================
+
+/**
+ * AI Lab Sessions
+ * Tracks user-submitted research problems and their overall status
+ */
+export const aiLabSessions = sqliteTable('ai_lab_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+    // Research problem
+    researchPrompt: text('research_prompt').notNull(),
+    problemType: text('problem_type').default('general').notNull(), // general | code_review | architecture | optimization | research
+    // Budget and constraints
+    budgetLimitCents: integer('budget_limit_cents').default(10000).notNull(), // $100 default
+    maxOrchestrations: integer('max_orchestrations').default(5).notNull(),
+    maxDurationMinutes: integer('max_duration_minutes').default(60).notNull(),
+    // Status
+    status: text('status').default('initializing').notNull(), // initializing | running | paused | completed | failed | cancelled
+    // Results
+    synthesizedResult: text('synthesized_result', { mode: 'json' }), // Final combined result
+    // Metrics
+    totalTokensUsed: integer('total_tokens_used').default(0),
+    totalCostCents: integer('total_cost_cents').default(0),
+    orchestrationsCompleted: integer('orchestrations_completed').default(0),
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * AI Lab Orchestrations
+ * Individual orchestration runs within an AI Lab session (up to 5 parallel)
+ */
+export const aiLabOrchestrations = sqliteTable('ai_lab_orchestrations', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => aiLabSessions.id).notNull(),
+    // Orchestration identity
+    orchestrationIndex: integer('orchestration_index').notNull(), // 0-4
+    focusArea: text('focus_area').notNull(), // What this orchestration is researching
+    // Phase tracking (follows Build Loop phases)
+    currentPhase: integer('current_phase').default(0).notNull(), // 0-6
+    phaseProgress: integer('phase_progress').default(0).notNull(), // 0-100
+    phaseStatus: text('phase_status').default('pending').notNull(), // pending | running | completed | failed
+    // Status
+    status: text('status').default('queued').notNull(), // queued | initializing | running | completed | failed | stopped
+    // Findings
+    findings: text('findings', { mode: 'json' }), // Array of findings discovered
+    conclusion: text('conclusion'), // Final conclusion from this orchestration
+    // Communication
+    messagesShared: integer('messages_shared').default(0), // Inter-agent messages sent
+    conflictsRaised: integer('conflicts_raised').default(0), // Conflicts identified
+    // Metrics
+    tokensUsed: integer('tokens_used').default(0),
+    costCents: integer('cost_cents').default(0),
+    durationSeconds: integer('duration_seconds').default(0),
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * AI Lab Agent Messages
+ * Inter-agent communication within an AI Lab session
+ */
+export const aiLabMessages = sqliteTable('ai_lab_messages', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => aiLabSessions.id).notNull(),
+    fromOrchestrationId: text('from_orchestration_id').references(() => aiLabOrchestrations.id).notNull(),
+    toOrchestrationId: text('to_orchestration_id'), // null = broadcast to all
+    // Message content
+    messageType: text('message_type').notNull(), // focus_announcement | finding | conflict | request | response
+    content: text('content').notNull(),
+    metadata: text('metadata', { mode: 'json' }), // Additional data
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
 // Orchestration runs
 export const orchestrationRuns = sqliteTable('orchestration_runs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
