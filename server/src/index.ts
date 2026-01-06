@@ -793,6 +793,10 @@ app.use("/api/training", trainingRouter);
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);
 
+// GPU Cost Tracking API (PROMPT 8)
+import gpuCostsRouter from './routes/gpu-costs.js';
+app.use("/api/gpu-costs", gpuCostsRouter);
+
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);
 
