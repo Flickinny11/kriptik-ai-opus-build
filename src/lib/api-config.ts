@@ -17,10 +17,13 @@
 /**
  * Backend API URL
  *
- * Priority:
- * 1. VITE_API_URL env var (set in Vercel)
- * 2. Production fallback: https://api.kriptik.app
- * 3. Development fallback: http://localhost:3001
+ * PRODUCTION (Vercel): Uses VITE_API_URL env var (set in Vercel dashboard)
+ * - If VITE_API_URL is set: Uses that value
+ * - If NOT set: Falls back to https://api.kriptik.app
+ *
+ * DEVELOPMENT (local): Falls back to http://localhost:3001
+ * - Only used when running locally (npm run dev)
+ * - NEVER used in production deployments
  */
 export const API_URL = import.meta.env.VITE_API_URL ||
     (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');

@@ -1,5 +1,15 @@
 # 🔒 AUTH PROTECTION RULES
 
+> **⚠️ DEPRECATED: This file has been consolidated into `.cursor/rules/01-auth-protection.md`**
+>
+> **Please use**: `.cursor/rules/01-auth-protection.md` for the latest auth protection rules.
+>
+> This file is kept for reference but will be removed in a future update.
+
+---
+
+# 🔒 AUTH PROTECTION RULES (LEGACY - SEE 01-auth-protection.md)
+
 > **CRITICAL: These rules prevent auth from breaking when making unrelated changes**
 
 ## 🚫 NEVER DO THESE THINGS
@@ -109,15 +119,21 @@ Before committing, verify:
 
 When making changes to the codebase:
 
-1. **Before starting**: Check if any auth files will be modified
+1. **Before starting**:
+   - Check if any auth files will be modified
+   - Check if file has hardcoded URLs (grep for common patterns)
+   - Read `.cursor/rules/URL-MIGRATION-GUIDE.md` if migrating URLs
 2. **During changes**:
-   - Use `getApiUrl()` or `import.meta.env.VITE_API_URL`
-   - Always add `credentials: 'include'` to fetch calls
-   - Never hardcode API URLs
+   - **ALWAYS** import from `@/lib/api-config`: `import { API_URL, authenticatedFetch } from '@/lib/api-config'`
+   - **NEVER** hardcode URLs: No `'https://api.kriptik.app'` or `'http://localhost:3001'`
+   - **ALWAYS** include `credentials: 'include'` in fetch calls OR use `authenticatedFetch()` helper
+   - If modifying existing file with hardcoded URL, migrate it properly (see URL-MIGRATION-GUIDE.md)
 3. **Before committing**:
-   - Verify no auth files were modified
-   - Verify all fetch calls have `credentials: 'include'`
+   - Verify no auth files were modified (unless explicitly approved)
+   - Verify all fetch calls have `credentials: 'include'` OR use `authenticatedFetch()`
    - Verify no hardcoded API URLs were added
+   - Run `npm run check-auth` to verify pre-commit hook passes
+   - If migrating URLs, verify build passes and feature still works
 
 ## 🎯 QUICK REFERENCE
 

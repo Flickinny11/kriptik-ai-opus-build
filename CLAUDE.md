@@ -353,22 +353,59 @@ Authentication has been broken multiple times by AI prompts modifying auth-relat
 2. **Date Type Mismatch**: SQLite TEXT columns return strings, not Date objects
 3. **Cross-Origin Cookies**: Frontend/backend on different domains require specific cookie settings
 4. **Drizzle Adapter**: Schema mapping MUST be passed correctly
+5. **Hardcoded URLs**: Different files using different API URLs break cookie domains
+6. **Missing Credentials**: Fetch calls without `credentials: 'include'` don't send cookies
+
+### URL Management - CRITICAL RULES
+
+**NEVER hardcode API URLs in any file.** Always use centralized configuration:
+
+```typescript
+// ✅ CORRECT - Import from centralized config
+import { API_URL, authenticatedFetch } from '@/lib/api-config';
+
+// Use API_URL directly
+fetch(`${API_URL}/api/endpoint`, {
+    credentials: 'include', // REQUIRED for cookies
+});
+
+// OR use authenticatedFetch helper (includes credentials automatically)
+authenticatedFetch(`${API_URL}/api/endpoint`, { ... });
+```
+
+**❌ WRONG Patterns to Avoid:**
+```typescript
+// ❌ DON'T hardcode URLs
+const API_URL = 'https://api.kriptik.app';
+const API_URL = 'http://localhost:3001';
+
+// ❌ DON'T use inconsistent fallbacks
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app'; // Wrong fallback
+const API_URL = import.meta.env.VITE_API_URL || ''; // Empty fallback
+
+// ❌ DON'T forget credentials
+fetch(`${API_URL}/api/endpoint`, { method: 'GET' }); // Missing credentials!
+```
+
+**Migration Guide**: See `.cursor/rules/URL-MIGRATION-GUIDE.md` for step-by-step instructions on fixing existing hardcoded URLs.
 
 ### If You Need to Work on Auth:
 
 1. **READ** `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` FIRST
-2. **ASK** the user for explicit approval before ANY changes
-3. **UNDERSTAND** the exact table mappings and why they exist
-4. **VERIFY** your changes don't break the configuration
-5. **TEST** auth works after any changes
+2. **READ** `.cursor/rules/URL-MIGRATION-GUIDE.md` if modifying files with URLs
+3. **ASK** the user for explicit approval before ANY changes
+4. **UNDERSTAND** the exact table mappings and why they exist
+5. **VERIFY** your changes don't break the configuration
+6. **TEST** auth works after any changes
 
 ### Quick Reference:
 
 ```
 SQL Table Names: users, session, account, verification
 Cookie Prefix: kriptik_auth
-Backend URL: https://kriptik-ai-opus-build-backend.vercel.app
-Frontend URL: https://kriptik.app (or Vercel URL)
+Backend URL: Use API_URL from @/lib/api-config (NOT hardcoded)
+Frontend URL: Use FRONTEND_URL from @/lib/api-config (NOT hardcoded)
+Credentials: ALWAYS include credentials: 'include' in fetch calls
 ```
 
 ---

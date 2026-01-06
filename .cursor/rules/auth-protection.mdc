@@ -29,7 +29,7 @@ When making changes to OTHER parts of the app, DO NOT:
    // ❌ BAD - Hardcoded URL
    const API_URL = 'http://localhost:3001';
    const response = await fetch('https://api.kriptik.app/api/...');
-   
+
    // ✅ GOOD - Import from centralized config
    import { API_URL, authenticatedFetch } from '@/lib/api-config';
    const response = await authenticatedFetch(`${API_URL}/api/...`);
@@ -39,7 +39,7 @@ When making changes to OTHER parts of the app, DO NOT:
    ```typescript
    // ❌ BAD - Modifying CORS
    app.use(cors({ credentials: false })); // This breaks auth!
-   
+
    // ✅ GOOD - Leave CORS as-is
    // CORS is already configured correctly
    ```
@@ -48,7 +48,7 @@ When making changes to OTHER parts of the app, DO NOT:
    ```typescript
    // ❌ BAD - Changing cookie settings
    sameSite: 'none', // This breaks mobile/Cursor browser!
-   
+
    // ✅ GOOD - Use calculated cookieSameSite variable
    sameSite: cookieSameSite, // Already configured correctly
    ```
@@ -57,7 +57,7 @@ When making changes to OTHER parts of the app, DO NOT:
    ```typescript
    // ❌ BAD - Missing credentials
    fetch(`${API_URL}/api/...`, { method: 'POST' });
-   
+
    // ✅ GOOD - Include credentials
    import { authenticatedFetch } from '@/lib/api-config';
    authenticatedFetch(`${API_URL}/api/...`, { method: 'POST' });
@@ -67,9 +67,9 @@ When making changes to OTHER parts of the app, DO NOT:
    ```typescript
    // ❌ BAD - Wrong fallback
    export const API_URL = import.meta.env.VITE_API_URL || 'https://wrong-url.com';
-   
+
    // ✅ GOOD - Correct fallback
-   export const API_URL = import.meta.env.VITE_API_URL || 
+   export const API_URL = import.meta.env.VITE_API_URL ||
        (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
    ```
 

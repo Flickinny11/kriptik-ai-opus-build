@@ -620,6 +620,38 @@ export const buildIntents = sqliteTable('build_intents', {
     originalPrompt: text('original_prompt').notNull(),
     generatedBy: text('generated_by').default('claude-opus-4.5'),
     thinkingTokensUsed: integer('thinking_tokens_used').default(0),
+    
+    // GPU Requirements - Added for AI Lab Integration
+    requiresGPU: integer('requires_gpu', { mode: 'boolean' }).default(false),
+    gpuWorkloadType: text('gpu_workload_type'), // inference-only, training, fine-tuning, video-generation, etc.
+    gpuRequirements: text('gpu_requirements', { mode: 'json' }).$type<{
+        minVRAM: number;
+        recommendedVRAM: number;
+        computeCapability: number;
+        estimatedCostPerHour: number;
+        supportedQuantizations: string[];
+        recommendedTier: string;
+        recommendedGPUs: string[];
+        workloadType: string;
+        distributedRequired: boolean;
+        distributedGPUCount?: number;
+        batchSizeRecommendation: number;
+        memoryBreakdown: {
+            modelWeights: number;
+            activations: number;
+            optimizer: number;
+            buffer: number;
+        };
+    }>(),
+    detectedModels: text('detected_models', { mode: 'json' }).$type<{
+        modelId: string;
+        displayName: string;
+        source: 'explicit' | 'inferred';
+        confidence: number;
+    }[]>(),
+    gpuClassificationConfidence: real('gpu_classification_confidence'),
+    gpuClassificationReasoning: text('gpu_classification_reasoning'),
+    
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 

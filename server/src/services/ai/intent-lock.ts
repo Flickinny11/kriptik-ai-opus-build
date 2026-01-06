@@ -15,6 +15,12 @@ import { buildIntents, projects, orchestrationRuns, developerModeAgents, deepInt
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import type { OpenRouterModel } from './openrouter-client.js';
 import { createAPIDocumentationFetcher, type APIDocumentationFetcher } from './api-documentation-fetcher.js';
+import { 
+    createGPUClassifierService, 
+    type GPUClassificationResult,
+    type GPURequirement,
+    type GPUWorkloadType,
+} from '../ml/gpu-classifier.js';
 import {
     createCompletionGateEvaluator,
     type EvaluationContext,
@@ -74,6 +80,19 @@ export interface IntentContract {
     generatedBy: string;
     thinkingTokensUsed: number;
     createdAt: string;
+    
+    // GPU Requirements - Added for AI Lab Integration
+    requiresGPU?: boolean;
+    gpuWorkloadType?: GPUWorkloadType;
+    gpuRequirements?: GPURequirement;
+    detectedModels?: Array<{
+        modelId: string;
+        displayName: string;
+        source: 'explicit' | 'inferred';
+        confidence: number;
+    }>;
+    gpuClassificationConfidence?: number;
+    gpuClassificationReasoning?: string;
 }
 
 export interface IntentLockOptions {
@@ -809,6 +828,35 @@ export class IntentLockEngine {
             createdAt: now,
         };
 
+        // GPU Classification - Analyze prompt for GPU requirements
+        try {
+            const gpuClassifier = createGPUClassifierService(userId, projectId);
+            const gpuClassification = await gpuClassifier.classifyPrompt({
+                prompt,
+                preferSpeed: false,
+            });
+
+            fullContract.requiresGPU = gpuClassification.requiresGPU;
+            fullContract.gpuWorkloadType = gpuClassification.workloadType;
+            fullContract.gpuRequirements = gpuClassification.requirements;
+            fullContract.detectedModels = gpuClassification.detectedModels;
+            fullContract.gpuClassificationConfidence = gpuClassification.confidence;
+            fullContract.gpuClassificationReasoning = gpuClassification.reasoning;
+
+            if (gpuClassification.requiresGPU) {
+                console.log(`[IntentLock] GPU workload detected: ${gpuClassification.workloadType}`);
+                console.log(`  - Confidence: ${(gpuClassification.confidence * 100).toFixed(0)}%`);
+                console.log(`  - Models: ${gpuClassification.detectedModels.map(m => m.displayName).join(', ')}`);
+                if (gpuClassification.requirements) {
+                    console.log(`  - Recommended GPU: ${gpuClassification.requirements.recommendedTier}`);
+                    console.log(`  - Est. Cost: $${gpuClassification.requirements.estimatedCostPerHour.toFixed(2)}/hr`);
+                }
+            }
+        } catch (gpuError) {
+            console.warn('[IntentLock] GPU classification failed, continuing without GPU requirements:', gpuError);
+            fullContract.requiresGPU = false;
+        }
+
         // Store in database
         await this.saveContract(fullContract);
 
@@ -869,6 +917,14 @@ export class IntentLockEngine {
             generatedBy: row.generatedBy || 'claude-opus-4.5',
             thinkingTokensUsed: row.thinkingTokensUsed || 0,
             createdAt: row.createdAt,
+            
+            // GPU Requirements
+            requiresGPU: row.requiresGPU ?? undefined,
+            gpuWorkloadType: row.gpuWorkloadType as GPUWorkloadType | undefined,
+            gpuRequirements: row.gpuRequirements as unknown as GPURequirement | undefined,
+            detectedModels: row.detectedModels as unknown as IntentContract['detectedModels'],
+            gpuClassificationConfidence: row.gpuClassificationConfidence ?? undefined,
+            gpuClassificationReasoning: row.gpuClassificationReasoning ?? undefined,
         };
     }
 
@@ -1074,6 +1130,15 @@ export class IntentLockEngine {
             originalPrompt: contract.originalPrompt,
             generatedBy: contract.generatedBy,
             thinkingTokensUsed: contract.thinkingTokensUsed,
+            
+            // GPU Requirements
+            requiresGPU: contract.requiresGPU ?? false,
+            gpuWorkloadType: contract.gpuWorkloadType,
+            gpuRequirements: contract.gpuRequirements as any,
+            detectedModels: contract.detectedModels as any,
+            gpuClassificationConfidence: contract.gpuClassificationConfidence,
+            gpuClassificationReasoning: contract.gpuClassificationReasoning,
+            
             createdAt: contract.createdAt,
         } as any);
     }
