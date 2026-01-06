@@ -1,0 +1,435 @@
+/**
+ * Endpoint Management Styles
+ */
+
+.endpoint-mgmt {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(30, 30, 40, 0.98), rgba(20, 20, 30, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+/* Header */
+.endpoint-mgmt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.endpoint-mgmt-title-group {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.endpoint-mgmt-title-group > svg {
+  color: #F5A86C;
+  margin-top: 4px;
+}
+
+.endpoint-mgmt-title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.endpoint-mgmt-subtitle {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 4px 0 0 0;
+}
+
+.endpoint-mgmt-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.endpoint-mgmt-refresh-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.endpoint-mgmt-refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.endpoint-mgmt-deploy-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #F5A86C 0%, #E8904A 100%);
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.endpoint-mgmt-deploy-btn:hover {
+  box-shadow: 0 4px 16px rgba(245, 168, 108, 0.3);
+}
+
+/* Stats */
+.endpoint-mgmt-stats {
+  display: flex;
+  gap: 24px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+.endpoint-mgmt-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.endpoint-mgmt-stat-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.endpoint-mgmt-stat-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Loading */
+.endpoint-mgmt-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.endpoint-mgmt-spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error */
+.endpoint-mgmt-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  border-radius: 10px;
+  color: #ff6b6b;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+}
+
+.endpoint-mgmt-error button {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Empty State */
+.endpoint-mgmt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.endpoint-mgmt-empty > svg {
+  width: 48px;
+  height: 48px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 16px;
+}
+
+.endpoint-mgmt-empty h3 {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.endpoint-mgmt-empty p {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 24px 0;
+}
+
+.endpoint-mgmt-empty-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #F5A86C 0%, #E8904A 100%);
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+/* List */
+.endpoint-mgmt-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Card */
+.endpoint-mgmt-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.endpoint-mgmt-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.endpoint-mgmt-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.endpoint-mgmt-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.endpoint-mgmt-card-title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.endpoint-mgmt-card-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.endpoint-mgmt-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.endpoint-mgmt-card-gpu {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+/* URL Row */
+.endpoint-mgmt-card-url-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.endpoint-mgmt-card-url {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  color: #F5A86C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.endpoint-mgmt-card-copy {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.endpoint-mgmt-card-copy:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #64c864;
+}
+
+/* Metrics */
+.endpoint-mgmt-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.endpoint-mgmt-card-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.endpoint-mgmt-metric-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.endpoint-mgmt-metric-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Footer */
+.endpoint-mgmt-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.endpoint-mgmt-card-date {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.endpoint-mgmt-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.endpoint-mgmt-card-action {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.endpoint-mgmt-card-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.endpoint-mgmt-card-action.delete:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.endpoint-mgmt-card-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .endpoint-mgmt-stats {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .endpoint-mgmt-card-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .endpoint-mgmt-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .endpoint-mgmt-actions {
+    width: 100%;
+  }
+  
+  .endpoint-mgmt-deploy-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

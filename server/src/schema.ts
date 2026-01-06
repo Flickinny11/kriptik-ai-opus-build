@@ -228,6 +228,45 @@ export const trainingJobs = sqliteTable('training_jobs', {
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
 
+/**
+ * Deployed Inference Endpoints
+ * Tracks deployed inference endpoints on RunPod for GPU & AI Lab
+ */
+export const deployedEndpoints = sqliteTable('deployed_endpoints', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+    // Model info
+    modelId: text('model_id').notNull(), // HuggingFace model ID
+    modelName: text('model_name').notNull(), // Display name
+    // Status
+    status: text('status').default('scaling').notNull(), // scaling | active | idle | error | stopped
+    // Endpoint configuration
+    endpointUrl: text('endpoint_url').notNull(),
+    gpuType: text('gpu_type').notNull(),
+    minWorkers: integer('min_workers').default(0).notNull(),
+    maxWorkers: integer('max_workers').default(3).notNull(),
+    currentWorkers: integer('current_workers').default(0),
+    idleTimeout: integer('idle_timeout').default(300).notNull(), // seconds
+    volumePersistence: integer('volume_persistence').default(0), // boolean as int
+    volumeSizeGB: integer('volume_size_gb').default(20),
+    customEnvVars: text('custom_env_vars').default('{}'), // JSON
+    // Metrics
+    totalRequests: integer('total_requests').default(0),
+    avgLatencyMs: integer('avg_latency_ms').default(0),
+    costToday: integer('cost_today').default(0), // cents
+    costTotal: integer('cost_total').default(0), // cents
+    // RunPod integration
+    runpodEndpointId: text('runpod_endpoint_id'),
+    // Test period
+    testWindowEndsAt: text('test_window_ends_at'),
+    isTestPeriod: integer('is_test_period').default(1), // boolean as int
+    // Timestamps
+    lastActiveAt: text('last_active_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
 // Orchestration runs
 export const orchestrationRuns = sqliteTable('orchestration_runs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

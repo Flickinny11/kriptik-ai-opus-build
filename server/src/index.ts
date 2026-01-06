@@ -789,6 +789,10 @@ app.use("/api/open-source-studio", openSourceStudioRouter);
 import trainingRouter from './routes/training.js';
 app.use("/api/training", trainingRouter);
 
+// Inference Endpoints API (Deploy & manage endpoints - PROMPT 5)
+import endpointsRouter from './routes/endpoints.js';
+app.use("/api/endpoints", endpointsRouter);
+
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);
 
