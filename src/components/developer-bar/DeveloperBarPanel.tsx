@@ -8,11 +8,13 @@
  * - High-tech photorealistic design
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
 import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { BrowserAgentPermissions } from '../provisioning/BrowserAgentPermissions';
+import { OpenSourceStudio } from '../open-source-studio/OpenSourceStudio';
+import { useOpenSourceStudioStore } from '@/store/useOpenSourceStudioStore';
 import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
 
@@ -38,6 +40,24 @@ const BrowserPermissionsWrapper = ({ isActive, onClose }: { isActive: boolean; o
   return <BrowserAgentPermissions isOpen={isActive} onClose={onClose} />;
 };
 
+// Panel wrapper for Open Source Studio (opens as full-screen modal)
+const OpenSourceStudioWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
+  const { setOpen } = useOpenSourceStudioStore();
+  
+  // Open the studio when this panel is mounted
+  useEffect(() => {
+    setOpen(true);
+  }, [setOpen]);
+  
+  // Handle close from the store
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
+  };
+  
+  return <OpenSourceStudio onClose={handleClose} />;
+};
+
 const FEATURE_PANELS: Record<string, {
   title: string;
   icon: IconName;
@@ -46,6 +66,7 @@ const FEATURE_PANELS: Record<string, {
 }> = {
   // Premium comprehensive panels
   'feature-agent': { title: 'Feature Agent Command Center', icon: 'agents', component: FeatureAgentCommandCenterWrapper, fullWidth: true },
+  'open-source-studio': { title: 'Open Source Studio', icon: 'openSourceStudio', component: OpenSourceStudioWrapper, fullWidth: true },
 
   // Other panels (to be upgraded to comprehensive versions)
   // Note: Ghost Mode configuration is now integrated into Feature Agent Command Center

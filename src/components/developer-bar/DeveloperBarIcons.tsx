@@ -18,7 +18,8 @@ export type IconName =
   | 'rules' | 'agentBuilder' | 'livingDocs' | 'apiAutopilot'
   | 'deployment' | 'cloudDeploy' | 'migrationWizard' | 'repoAware'
   | 'cloneMode' | 'zeroTrustSec'
-  | 'multiplayer' | 'publish' | 'share' | 'multiTask';
+  | 'multiplayer' | 'publish' | 'share' | 'multiTask'
+  | 'openSourceStudio';
 
 interface IconProps {
   name: IconName;
@@ -936,6 +937,73 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
         fill={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
         animate={{ scale: isHovered ? 0.95 : 1 }}
         style={{ transformOrigin: '16.5px 16.5px' }}
+      />
+    </g>
+  ),
+
+  // Open Source Studio - HuggingFace model browser icon (stylized 🤗 face)
+  openSourceStudio: ({ isActive, isHovered }) => (
+    <g filter="url(#dropShadow)">
+      <GradientDefs />
+      {/* Outer ring - representing open source community */}
+      <motion.circle
+        cx="12" cy="12" r="9"
+        fill="none"
+        stroke={isActive ? 'url(#warmGradient)' : 'url(#metallicSilver)'}
+        strokeWidth="1.5"
+        animate={{
+          strokeDasharray: isHovered ? '3 2' : '56.5 0',
+          rotate: isHovered ? 360 : 0,
+        }}
+        style={{ transformOrigin: '12px 12px' }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+      />
+      {/* Inner hub - model repository */}
+      <motion.circle
+        cx="12" cy="12" r="5"
+        fill={isActive ? 'url(#activeGlow)' : 'url(#darkMetallic)'}
+        animate={{ scale: isHovered ? 1.1 : 1 }}
+        style={{ transformOrigin: '12px 12px' }}
+      />
+      {/* Eyes - friendly face like HuggingFace mascot */}
+      <motion.circle
+        cx="10" cy="11" r="1"
+        fill={isActive ? '#1A1A28' : '#E8E8EC'}
+        animate={{ y: isHovered ? -0.5 : 0 }}
+      />
+      <motion.circle
+        cx="14" cy="11" r="1"
+        fill={isActive ? '#1A1A28' : '#E8E8EC'}
+        animate={{ y: isHovered ? -0.5 : 0 }}
+      />
+      {/* Smile - representing positive community */}
+      <motion.path
+        d="M10 13.5 Q12 15.5 14 13.5"
+        fill="none"
+        stroke={isActive ? '#1A1A28' : '#E8E8EC'}
+        strokeWidth="1"
+        strokeLinecap="round"
+        animate={{ scale: isHovered ? 1.1 : 1 }}
+        style={{ transformOrigin: '12px 14px' }}
+      />
+      {/* Orbiting dots - representing models/datasets */}
+      <motion.circle
+        cx="18" cy="7" r="1.5"
+        fill={isActive ? '#FFD21E' : '#B8B8C4'}
+        animate={{
+          cx: isHovered ? [18, 5, 18] : 18,
+          cy: isHovered ? [7, 12, 7] : 7,
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.circle
+        cx="5" cy="16" r="1.5"
+        fill={isActive ? '#FF8E4A' : '#A8A8B4'}
+        animate={{
+          cx: isHovered ? [5, 19, 5] : 5,
+          cy: isHovered ? [16, 12, 16] : 16,
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
       />
     </g>
   ),

@@ -5875,3 +5875,41 @@ CONTEXT:
 - Write access required for model uploads (validated via API)
 - Components follow Feature Agent popout design aesthetic
 
+
+═══ 2026-01-06T17:45:00Z ═══
+COMPLETED: PROMPT 2: Open Source Studio - Model Browser & Dock
+FILES MODIFIED/CREATED:
+- src/components/open-source-studio/OpenSourceStudio.tsx - Main container
+- src/components/open-source-studio/OpenSourceStudio.css - Main styles
+- src/components/open-source-studio/ModelBrowser.tsx - Search & filter UI
+- src/components/open-source-studio/ModelBrowser.css - Browser styles
+- src/components/open-source-studio/ModelCard.tsx - Individual model display
+- src/components/open-source-studio/ModelCard.css - Card styles
+- src/components/open-source-studio/ModelDock.tsx - Drag-and-drop dock
+- src/components/open-source-studio/ModelDock.css - Dock styles
+- src/components/open-source-studio/ModelDetails.tsx - Selected model info
+- src/components/open-source-studio/ModelDetails.css - Details styles
+- src/store/useOpenSourceStudioStore.ts - Zustand store for state
+- server/src/routes/open-source-studio.ts - API routes for model search
+- src/components/developer-bar/DeveloperBar.tsx - Added Open Source Studio button
+- src/components/developer-bar/DeveloperBarIcons.tsx - Added openSourceStudio icon
+- src/components/developer-bar/DeveloperBarPanel.tsx - Added studio panel wrapper
+
+CURRENT STATE: Build passes. Open Source Studio fully implemented:
+- Full-screen modal with glassmorphic design
+- Left panel: HuggingFace model browser with search, filters (task, library, sort)
+- Right panel: Model Dock (max 5 models) for drag-and-drop collection
+- Bottom panel: Selected model details with requirements and cost estimates
+- Model cards show: name, downloads, likes, size, license, task, VRAM estimate
+- License warnings for restrictive licenses
+- Drag model cards to dock, reorder, remove
+- HuggingFace connection required before using studio
+- Button added to Developer Toolbar (ai category)
+
+NEXT: Continue with remaining GPU & AI Lab prompts (4-10)
+
+CONTEXT:
+- Uses existing HuggingFaceService for API calls
+- Store persists dock and HF connection state
+- Premium design with depth, animations, DM Sans typography
+- No emoji, no purple gradients, amber accent colors

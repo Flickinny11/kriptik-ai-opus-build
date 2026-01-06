@@ -727,6 +727,7 @@ import previewRouter from './routes/preview.js';
 import { importRouter } from './routes/import.js';
 import integrationsRouter from './routes/integrations.js';
 import huggingfaceAuthRouter from './routes/huggingface-auth.js';
+import openSourceStudioRouter from './routes/open-source-studio.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -780,6 +781,9 @@ app.use("/api/integrations", integrationsRouter);
 
 // HuggingFace Authentication (Open Source Studio)
 app.use("/api/huggingface", huggingfaceAuthRouter);
+
+// Open Source Studio (Model Browser & Training)
+app.use("/api/open-source-studio", openSourceStudioRouter);
 
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);

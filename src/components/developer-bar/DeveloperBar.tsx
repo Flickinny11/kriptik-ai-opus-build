@@ -71,6 +71,7 @@ export interface FeatureButton {
 
 const FEATURE_BUTTONS: FeatureButton[] = [
   { id: 'feature-agent', name: 'Feature Agent', icon: 'agents', category: 'core' },
+  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', category: 'ai' },
   { id: 'memory', name: 'Memory', icon: 'memory', category: 'core' },
   { id: 'quality-check', name: 'Quality', icon: 'qualityCheck', category: 'core' },
   { id: 'integrations', name: 'Integrations', icon: 'integrations', category: 'core' },
