@@ -1,0 +1,302 @@
+/**
+ * HuggingFace Status Styles
+ * 
+ * Connected account display matching KripTik AI design system.
+ */
+
+/* =============================================================================
+   CONTAINER
+   ============================================================================= */
+
+.hf-status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(
+    165deg,
+    rgba(30, 30, 36, 0.9) 0%,
+    rgba(20, 20, 24, 0.95) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* =============================================================================
+   USER INFO
+   ============================================================================= */
+
+.hf-status-user {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.hf-status-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.hf-status-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.hf-status-avatar svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hf-status-connected-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  border: 2px solid rgba(20, 20, 24, 1);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.hf-status-connected-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.hf-status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hf-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hf-status-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hf-status-pro {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.2) 0%, rgba(243, 156, 18, 0.2) 100%);
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #f1c40f;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hf-status-pro svg {
+  width: 10px;
+  height: 10px;
+}
+
+.hf-status-username {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* =============================================================================
+   BADGES
+   ============================================================================= */
+
+.hf-status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.hf-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.hf-status-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.hf-status-badge.connected {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.hf-status-badge.write {
+  background: rgba(245, 168, 108, 0.15);
+  border: 1px solid rgba(245, 168, 108, 0.2);
+  color: #F5A86C;
+}
+
+/* =============================================================================
+   DISCONNECT
+   ============================================================================= */
+
+.hf-status-disconnect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.15);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: rgba(231, 76, 60, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hf-status-disconnect:hover {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.25);
+  color: #e74c3c;
+}
+
+/* =============================================================================
+   CONFIRM DIALOG
+   ============================================================================= */
+
+.hf-status-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.15);
+  border-radius: 10px;
+}
+
+.hf-status-confirm-text {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+.hf-status-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hf-status-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.hf-status-btn.danger {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.hf-status-btn.danger:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.hf-status-btn.danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hf-status-btn.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.hf-status-btn.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* =============================================================================
+   SPINNER
+   ============================================================================= */
+
+.hf-status-spinner {
+  animation: hf-status-spin 1s linear infinite;
+}
+
+@keyframes hf-status-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   COMPACT MODE
+   ============================================================================= */
+
+.hf-status-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.hf-status-compact svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hf-status-compact-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hf-status-compact-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: rgba(245, 168, 108, 0.2);
+  border-radius: 4px;
+  color: #F5A86C;
+}
+
+.hf-status-compact-badge svg {
+  width: 12px;
+  height: 12px;
+}

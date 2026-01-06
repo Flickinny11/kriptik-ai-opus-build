@@ -726,6 +726,7 @@ import reflectionRouter from './routes/reflection.js';
 import previewRouter from './routes/preview.js';
 import { importRouter } from './routes/import.js';
 import integrationsRouter from './routes/integrations.js';
+import huggingfaceAuthRouter from './routes/huggingface-auth.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -776,6 +777,9 @@ app.use("/api/nango", nangoRouter);
 
 // Nango OAuth Integrations
 app.use("/api/integrations", integrationsRouter);
+
+// HuggingFace Authentication (Open Source Studio)
+app.use("/api/huggingface", huggingfaceAuthRouter);
 
 // Smart Deployment
 app.use("/api/smart-deploy", smartDeployRouter);

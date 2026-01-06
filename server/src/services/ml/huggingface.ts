@@ -88,6 +88,18 @@ export interface ModelDeploymentConfig {
     customEnv?: Record<string, string>;
 }
 
+// Token validation result
+export interface HuggingFaceTokenValidation {
+    valid: boolean;
+    username?: string;
+    fullName?: string;
+    email?: string;
+    avatarUrl?: string;
+    canWrite: boolean;
+    isPro: boolean;
+    error?: string;
+}
+
 /**
  * HuggingFace Service
  */
@@ -96,6 +108,75 @@ export class HuggingFaceService {
 
     constructor(token?: string) {
         this.token = token || process.env.HUGGINGFACE_TOKEN;
+    }
+
+    /**
+     * Validate a HuggingFace token and return user info
+     * @param token The HuggingFace access token to validate
+     * @returns Token validation result with user info
+     */
+    async validateToken(token: string): Promise<HuggingFaceTokenValidation> {
+        try {
+            // Server-to-server call to HuggingFace API (no browser credentials)
+            const response = await fetch('https://huggingface.co/api/whoami-v2', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                credentials: 'omit', // Server-side: no browser credentials needed
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    return { valid: false, canWrite: false, isPro: false, error: 'Invalid or expired token' };
+                }
+                return { valid: false, canWrite: false, isPro: false, error: `HuggingFace API error: ${response.status}` };
+            }
+
+            const data = await response.json();
+
+            // Check for write access
+            let canWrite = false;
+            
+            if (data.auth?.accessToken?.fineGrained) {
+                const globalPerms = data.auth.accessToken.fineGrained.global || [];
+                canWrite = globalPerms.some((p: string) => 
+                    p === 'write-repos' || 
+                    p === 'manage-repos' || 
+                    p === 'write' ||
+                    p.includes('write')
+                );
+                
+                if (!canWrite && data.auth.accessToken.role) {
+                    canWrite = data.auth.accessToken.role === 'write' || data.auth.accessToken.role === 'admin';
+                }
+            } else {
+                canWrite = data.auth?.accessToken?.role === 'write' || data.auth?.accessToken?.role === 'admin';
+            }
+
+            // For older tokens without explicit permissions, assume write access if not read-only
+            if (!canWrite && data.auth?.accessToken?.role !== 'read') {
+                canWrite = true;
+            }
+
+            return {
+                valid: true,
+                username: data.name,
+                fullName: data.fullname || data.name,
+                email: data.email,
+                avatarUrl: data.avatarUrl,
+                canWrite,
+                isPro: data.plan === 'pro' || data.isPro === true,
+            };
+        } catch (error) {
+            console.error('[HuggingFace] Token validation error:', error);
+            return {
+                valid: false,
+                canWrite: false,
+                isPro: false,
+                error: error instanceof Error ? error.message : 'Failed to validate token',
+            };
+        }
     }
 
     /**
@@ -121,8 +202,10 @@ export class HuggingFaceService {
             params.append('library', options.library);
         }
 
+        // Server-to-server call to HuggingFace API
         const response = await fetch(`${HF_API_BASE}/models?${params}`, {
             headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {},
+            credentials: 'omit', // Server-side: no browser credentials needed
         });
 
         if (!response.ok) {
@@ -136,8 +219,10 @@ export class HuggingFaceService {
      * Get model details
      */
     async getModel(modelId: string): Promise<HuggingFaceModel> {
+        // Server-to-server call to HuggingFace API
         const response = await fetch(`${HF_API_BASE}/models/${modelId}`, {
             headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {},
+            credentials: 'omit', // Server-side: no browser credentials needed
         });
 
         if (!response.ok) {

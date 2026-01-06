@@ -5668,7 +5668,7 @@ NEXT: Ensure orchestration continues building while awaiting credentials
 COMPLETED: Full Nango OAuth integration for KripTik AI
 
 IMPLEMENTATION SUMMARY:
-Implemented Nango OAuth integration to replace manual credential input with 
+Implemented Nango OAuth integration to replace manual credential input with
 seamless "Connect" buttons for 500+ third-party services. This enables users
 to connect services like Stripe, Supabase, OpenAI, GitHub, etc. via OAuth
 flows during both Builder View and Feature Agent workflows.
@@ -5679,7 +5679,7 @@ FILES CREATED (Backend - 3 files):
    - OAuth URL generation
    - Token management & refresh
    - Connection status checking
-   
+
 2. server/src/routes/integrations.ts - API routes:
    - GET /api/integrations/available - List all available integrations
    - GET /api/integrations/connections - Get user's active connections
@@ -5754,4 +5754,124 @@ NEXT STEPS:
 2. Configure integrations in Nango dashboard
 3. Test OAuth flows with real services
 4. Update backend routes to emit 'integrations' stream messages
+
+═══ [2026-01-06 GPU RESOURCE CLASSIFIER SERVICE COMPLETE - PROMPT 1] ═══
+COMPLETED: GPU Resource Classifier Service for KripTik AI Lab
+
+IMPLEMENTATION SUMMARY:
+Implemented PROMPT 1 of the GPU & AI Lab Implementation Plan. This creates
+the foundational GPU classification system that analyzes user NLP input during
+the Intent Lock phase to automatically detect GPU requirements.
+
+FILES CREATED (Backend - 2 files):
+1. server/src/services/ml/gpu-classifier.ts - Main GPU Classification Service:
+   - NLP-based workload detection (keywords + AI analysis)
+   - Model alias mapping (Wan -> Lightricks/Wan-2.2-i2v, etc.)
+   - HuggingFace model ID pattern matching
+   - Confidence scoring for classification results
+   - Integration with Claude Haiku for complex cases
+   - Workload type classification: inference-only, training, fine-tuning,
+     lora-training, video-generation, image-generation, audio, llm,
+     embedding, multimodal
+
+2. server/src/services/ml/gpu-requirements.ts - GPU Requirement Estimation:
+   - Model size analysis via HuggingFace API
+   - VRAM estimation based on model size, workload, and quantization
+   - Supports all quantization types: fp32, fp16, bf16, int8, int4, awq, gptq, gguf
+   - GPU tier recommendations: consumer, professional, datacenter, enterprise
+   - Distributed GPU detection for models >80GB
+   - Cost estimation based on RunPod pricing
+   - Memory breakdown: weights, activations, optimizer, buffer
+   - GPU catalog with RTX 3090/4090, A40, L40, A100, H100
+
+FILES MODIFIED:
+1. server/src/schema.ts - Added GPU fields to buildIntents table:
+   - requiresGPU: boolean flag for GPU workload detection
+   - gpuWorkloadType: classified workload type
+   - gpuRequirements: full GPU requirement object (JSON)
+   - detectedModels: array of detected model references
+   - gpuClassificationConfidence: 0-1 confidence score
+   - gpuClassificationReasoning: explanation text
+
+2. server/src/services/ai/intent-lock.ts - Integrated GPU classification:
+   - Added imports for GPU classifier
+   - Extended IntentContract interface with GPU fields
+   - Added GPU classification step in createContract()
+   - Updated saveContract() to persist GPU data
+   - Updated getContract() to retrieve GPU data
+
+3. server/src/services/ml/index.ts - Added exports for new modules
+
+KEY FEATURES:
+- Automatic GPU detection from user prompts during Intent Lock
+- Model alias resolution (supports common names like "Wan", "SDXL", "Llama")
+- HuggingFace model ID pattern matching
+- Quantization-aware VRAM estimation
+- Cost estimation based on RunPod pricing ($0.44-$3.99/hr)
+- Distributed GPU detection for very large models
+- Fallback to keyword-based detection if AI fails
+
+MODEL ALIASES SUPPORTED:
+- Video: Wan 2.2, CogVideo, AnimateDiff, SVD
+- Image: SDXL, SD, FLUX, Kandinsky
+- LLM: Llama 2/3/3.1/3.2, Mistral, Mixtral, Qwen, DeepSeek, Phi, Gemma
+- Audio: Whisper, Bark, MusicGen, XTTS
+- Embedding: BGE, E5, GTE, Jina
+- Multimodal: LLaVA, Idefics, Qwen-VL
+
+GPU CATALOG (RunPod Pricing):
+- RTX 4090 (24GB): $0.69/hr - consumer
+- RTX 3090 (24GB): $0.44/hr - consumer
+- A40 (48GB): $0.79/hr - professional
+- L40 (48GB): $0.99/hr - professional
+- A100-40GB: $1.89/hr - datacenter
+- A100-80GB: $2.49/hr - datacenter-high
+- H100 (80GB): $3.99/hr - enterprise
+
+VERIFICATION:
+- Frontend Build: ✅ SUCCESS
+- Backend Build: ✅ SUCCESS
+- TypeScript: ✅ No errors
+- Git Push: ✅ SUCCESS
+
+NEXT STEPS (GPU & AI Lab Implementation Plan):
+- PROMPT 2: Open Source Studio - Model Browser & Dock
+- PROMPT 3: HuggingFace Token Connection Flow
+- PROMPT 4: Training & Fine-Tuning Module
+- PROMPT 5: Inference Endpoint Deployment
+- PROMPT 6: AI Lab - Multi-Agent Research Orchestration
+- PROMPT 7: GPU Build Loop Integration
+- PROMPT 8: Credential & Cost Management
+- PROMPT 9: Dashboard Integration & Navigation
+- PROMPT 10: Final Integration & Testing
+
+═══ 2026-01-06T17:25:00Z ═══
+COMPLETED: PROMPT 3: HuggingFace Token Connection Flow
+FILES MODIFIED: 
+- server/src/routes/huggingface-auth.ts (NEW - Token validation endpoint)
+- server/src/services/ml/huggingface.ts (Added validateToken method)
+- server/src/index.ts (Registered huggingface-auth routes)
+- src/components/open-source-studio/HuggingFaceConnect.tsx (Token input modal)
+- src/components/open-source-studio/HuggingFaceConnect.css (Glassmorphic styling)
+- src/components/open-source-studio/HuggingFaceStatus.tsx (Connected status display)
+- src/components/open-source-studio/HuggingFaceStatus.css (Status styling)
+- src/hooks/useHuggingFace.ts (NEW - React hook for HF connection)
+
+CURRENT STATE: Build passes. HuggingFace connection flow implemented:
+- Token validation with write access check via HuggingFace whoami-v2 API
+- Encrypted token storage in user_credentials table
+- Beautiful glassmorphic UI components with animations
+- Frontend hook for state management
+- GET /api/huggingface/status - Check connection status
+- POST /api/huggingface/validate-token - Validate and store token
+- POST /api/huggingface/disconnect - Remove connection
+- GET /api/huggingface/token - Retrieve decrypted token (internal use)
+
+NEXT: Continue with PROMPT 2 (Open Source Studio UI) or integrate HF flow into Dev Toolbar
+
+CONTEXT: 
+- Token stored encrypted using AES-256-GCM in userCredentials table
+- Uses existing schema fields: encryptedData, iv, authTag
+- Write access required for model uploads (validated via API)
+- Components follow Feature Agent popout design aesthetic
 
