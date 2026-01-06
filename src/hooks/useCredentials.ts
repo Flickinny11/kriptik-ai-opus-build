@@ -3,9 +3,14 @@
  *
  * Manages integration credentials, OAuth flows, and connection status.
  * Provides one-click connect functionality for all integrations.
+ *
+ * As of December 2025, OAuth connections use Nango Connect with session tokens.
+ * This replaces the deprecated public key approach.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Nango from '@nangohq/frontend';
+import { API_URL } from '@/lib/api-config';
 
 export interface ConnectedCredential {
     id: string;
@@ -61,8 +66,6 @@ interface UseCredentialsReturn {
     refetch: () => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 // OAuth integrations that support one-click connect
 const OAUTH_INTEGRATIONS = ['vercel', 'github', 'netlify', 'google', 'cloudflare', 'slack', 'discord', 'notion'];
 
@@ -71,6 +74,20 @@ export function useCredentials(): UseCredentialsReturn {
     const [oauthProviders, setOAuthProviders] = useState<OAuthProvider[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Nango instance for OAuth connections
+    const nangoRef = useRef<Nango | null>(null);
+    const connectUIRef = useRef<ReturnType<Nango['openConnectUI']> | null>(null);
+
+    // Initialize Nango on mount
+    useEffect(() => {
+        nangoRef.current = new Nango();
+        return () => {
+            if (connectUIRef.current) {
+                connectUIRef.current.close();
+            }
+        };
+    }, []);
 
     // Get user ID from localStorage or session
     const getUserId = () => {
@@ -84,7 +101,8 @@ export function useCredentials(): UseCredentialsReturn {
             setIsLoading(true);
             setError(null);
 
-            const response = await fetch(`${API_BASE}/api/credentials`, {
+            const response = await fetch(`${API_URL}/api/credentials`, {
+                credentials: 'include',
                 headers: {
                     'x-user-id': getUserId(),
                 },
@@ -107,7 +125,9 @@ export function useCredentials(): UseCredentialsReturn {
     // Fetch OAuth providers
     const fetchOAuthProviders = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/oauth/providers`);
+            const response = await fetch(`${API_URL}/api/oauth/providers`, {
+                credentials: 'include',
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -177,8 +197,9 @@ export function useCredentials(): UseCredentialsReturn {
         connectionName?: string
     ): Promise<boolean> => {
         try {
-            const response = await fetch(`${API_BASE}/api/credentials/${integrationId}`, {
+            const response = await fetch(`${API_URL}/api/credentials/${integrationId}`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': getUserId(),
@@ -204,55 +225,56 @@ export function useCredentials(): UseCredentialsReturn {
         }
     }, [fetchCredentials]);
 
-    // Connect with OAuth
+    // Connect with OAuth using Nango Connect UI (session token flow)
     const connectWithOAuth = useCallback(async (provider: string): Promise<void> => {
+        if (!nangoRef.current) {
+            setError('Nango not initialized');
+            return;
+        }
+
         try {
-            // Get authorization URL from backend
-            const response = await fetch(`${API_BASE}/api/oauth/${provider}/authorize`, {
+            // 1. Get session token from backend (new method as of Dec 2025)
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': getUserId(),
                 },
+                body: JSON.stringify({
+                    allowedIntegrations: [provider],
+                }),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to start OAuth flow');
+            if (!sessionResponse.ok) {
+                const errorData = await sessionResponse.json();
+                throw new Error(errorData.error || 'Failed to create session');
             }
 
-            const data = await response.json();
+            const { token } = await sessionResponse.json();
 
-            if (!data.authorizationUrl) {
-                throw new Error('No authorization URL returned');
-            }
+            // 2. Open Nango Connect UI with session token
+            // Using proper ConnectUIEvent types from @nangohq/frontend
+            const connect = nangoRef.current.openConnectUI({
+                onEvent: (event) => {
+                    if (event.type === 'connect') {
+                        // Connection successful - payload contains { providerConfigKey, connectionId }
+                        fetchCredentials();
+                    } else if (event.type === 'error') {
+                        // Error payload contains { errorType, errorMessage }
+                        setError(event.payload.errorMessage || 'OAuth connection failed');
+                    } else if (event.type === 'close') {
+                        // Refetch credentials when UI closes in case of success
+                        setTimeout(() => fetchCredentials(), 500);
+                    }
+                    // 'ready' and 'settings_changed' events are also possible but not needed here
+                },
+            });
 
-            // Open OAuth popup
-            const width = 600;
-            const height = 700;
-            const left = window.screenX + (window.outerWidth - width) / 2;
-            const top = window.screenY + (window.outerHeight - height) / 2;
+            connectUIRef.current = connect;
 
-            const popup = window.open(
-                data.authorizationUrl,
-                `oauth_${provider}`,
-                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
-            );
-
-            if (!popup) {
-                // Popup blocked, redirect instead
-                window.location.href = data.authorizationUrl;
-                return;
-            }
-
-            // Poll for popup close
-            const checkClosed = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(checkClosed);
-                    // Refetch credentials after popup closes
-                    setTimeout(() => fetchCredentials(), 1000);
-                }
-            }, 500);
+            // 3. Set the session token to start the flow
+            connect.setSessionToken(token);
 
         } catch (err) {
             console.error('Error starting OAuth flow:', err);
@@ -265,15 +287,17 @@ export function useCredentials(): UseCredentialsReturn {
         try {
             // Check if it's an OAuth integration
             if (OAUTH_INTEGRATIONS.includes(integrationId)) {
-                await fetch(`${API_BASE}/api/oauth/${integrationId}/revoke`, {
+                await fetch(`${API_URL}/api/oauth/${integrationId}/revoke`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
                         'x-user-id': getUserId(),
                     },
                 });
             } else {
-                await fetch(`${API_BASE}/api/credentials/${integrationId}`, {
+                await fetch(`${API_URL}/api/credentials/${integrationId}`, {
                     method: 'DELETE',
+                    credentials: 'include',
                     headers: {
                         'x-user-id': getUserId(),
                     },
@@ -293,8 +317,9 @@ export function useCredentials(): UseCredentialsReturn {
     // Test credentials
     const testCredentials = useCallback(async (integrationId: string): Promise<{ valid: boolean; error?: string }> => {
         try {
-            const response = await fetch(`${API_BASE}/api/credentials/${integrationId}/test`, {
+            const response = await fetch(`${API_URL}/api/credentials/${integrationId}/test`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'x-user-id': getUserId(),
                 },
@@ -317,27 +342,65 @@ export function useCredentials(): UseCredentialsReturn {
         }
     }, [fetchCredentials]);
 
-    // Refresh OAuth tokens
+    // Refresh OAuth tokens using Nango's reconnect session flow
     const refreshOAuthTokens = useCallback(async (integrationId: string): Promise<boolean> => {
-        try {
-            const response = await fetch(`${API_BASE}/api/oauth/${integrationId}/refresh`, {
-                method: 'POST',
-                headers: {
-                    'x-user-id': getUserId(),
-                },
-            });
+        if (!nangoRef.current) {
+            return false;
+        }
 
-            if (!response.ok) {
+        try {
+            // Find the existing connection
+            const existingCred = credentials.find(c => c.integrationId === integrationId);
+            if (!existingCred) {
                 return false;
             }
 
-            await fetchCredentials();
-            return true;
+            // Get reconnect session token from backend
+            const sessionResponse = await fetch(`${API_URL}/api/integrations/session/reconnect`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': getUserId(),
+                },
+                body: JSON.stringify({
+                    connectionId: existingCred.id,
+                    integrationId,
+                }),
+            });
+
+            if (!sessionResponse.ok) {
+                return false;
+            }
+
+            const { token } = await sessionResponse.json();
+
+            // Open Nango Connect UI in reconnect mode
+            // Using proper ConnectUIEvent types from @nangohq/frontend
+            return new Promise((resolve) => {
+                const connect = nangoRef.current!.openConnectUI({
+                    onEvent: (event) => {
+                        if (event.type === 'connect') {
+                            fetchCredentials();
+                            resolve(true);
+                        } else if (event.type === 'error') {
+                            setError(event.payload.errorMessage || 'Token refresh failed');
+                            resolve(false);
+                        } else if (event.type === 'close') {
+                            resolve(false);
+                        }
+                    },
+                });
+
+                connectUIRef.current = connect;
+                connect.setSessionToken(token);
+            });
+
         } catch (err) {
             console.error('Error refreshing tokens:', err);
             return false;
         }
-    }, [fetchCredentials]);
+    }, [credentials, fetchCredentials]);
 
     return {
         credentials,

@@ -65,17 +65,23 @@ function checkHardcodedUrls(filePath, content) {
 
 // Check for fetch calls without credentials
 function checkMissingCredentials(filePath, content) {
+  // Skip server-side files - they use Bearer token auth, not cookies
+  // Server-to-server API calls (e.g., to Nango, OpenRouter, Stripe) don't need credentials: 'include'
+  if (filePath.startsWith('server/')) {
+    return;
+  }
+
   // Find fetch calls - look for fetch( followed by options object
   const lines = content.split('\n');
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     // Check if line contains fetch call
     if (line.includes('fetch(') && !line.includes('authenticatedFetch')) {
       // Check if this fetch call has credentials in the next few lines
       const nextLines = lines.slice(i, Math.min(i + 10, lines.length)).join('\n');
-      
+
       // Skip if it's using authenticatedFetch or has credentials
       if (!nextLines.includes('credentials') && !nextLines.includes('authenticatedFetch')) {
         // Check if it's actually a fetch call (not a comment or string)

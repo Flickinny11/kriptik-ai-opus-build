@@ -10,8 +10,10 @@
  * - No purple, no emojis, no Lucide icons
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Nango from '@nangohq/frontend';
+import { API_URL } from '@/lib/api-config';
 import './IntegrationConnectView.css';
 
 // Integration requirement from backend
@@ -223,6 +225,20 @@ export function IntegrationConnectView({
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Nango instance for OAuth connections (session token flow)
+  const nangoRef = useRef<Nango | null>(null);
+  const connectUIRef = useRef<ReturnType<Nango['openConnectUI']> | null>(null);
+
+  // Initialize Nango on mount
+  useEffect(() => {
+    nangoRef.current = new Nango();
+    return () => {
+      if (connectUIRef.current) {
+        connectUIRef.current.close();
+      }
+    };
+  }, []);
+
   const connectedCount = Object.values(connections).filter(Boolean).length;
   const requiredCount = requirements.filter((r) => r.required).length;
   const allRequiredConnected = requirements
@@ -242,29 +258,33 @@ export function IntegrationConnectView({
 
   const handleConnect = useCallback(
     async (integrationId: string) => {
+      if (!nangoRef.current) {
+        setError('OAuth system not initialized');
+        return;
+      }
+
       setLoading((prev) => ({ ...prev, [integrationId]: true }));
       setError(null);
 
       try {
-        const response = await fetch('/api/integrations/connect', {
+        // 1. Get session token from backend (new Nango method as of Dec 2025)
+        const sessionResponse = await fetch(`${API_URL}/api/integrations/session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            integrationId,
-            projectId: buildIntentId,
-            redirectUrl: `${window.location.origin}/oauth-callback`,
+            allowedIntegrations: [integrationId],
           }),
         });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to initiate connection');
+        if (!sessionResponse.ok) {
+          const data = await sessionResponse.json();
+          throw new Error(data.error || 'Failed to create session');
         }
 
-        const { authUrl } = await response.json();
+        const { token } = await sessionResponse.json();
 
-        // Store context for callback
+        // Store context for potential use
         sessionStorage.setItem(
           'oauth_context',
           JSON.stringify({
@@ -275,33 +295,33 @@ export function IntegrationConnectView({
           })
         );
 
-        // Open OAuth popup or redirect
-        const width = 600;
-        const height = 700;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
+        // 2. Open Nango Connect UI with session token
+        // Using proper ConnectUIEvent types from @nangohq/frontend
+        const connect = nangoRef.current.openConnectUI({
+          onEvent: (event) => {
+            if (event.type === 'connect') {
+              // ConnectUIEventConnect - payload has providerConfigKey, connectionId
+              setConnections((prev) => ({ ...prev, [integrationId]: true }));
+              setLoading((prev) => ({ ...prev, [integrationId]: false }));
+            } else if (event.type === 'error') {
+              // ConnectUIEventError - payload has errorType, errorMessage
+              setError(event.payload.errorMessage || 'Connection failed');
+              setLoading((prev) => ({ ...prev, [integrationId]: false }));
+            } else if (event.type === 'close') {
+              // ConnectUIEventClose - no payload
+              setLoading((prev) => ({ ...prev, [integrationId]: false }));
+              // Check connection status in case it succeeded
+              checkConnectionStatus(integrationId);
+            }
+            // 'ready' and 'settings_changed' events are also possible but not needed here
+          },
+        });
 
-        const popup = window.open(
-          authUrl,
-          'oauth_popup',
-          `width=${width},height=${height},left=${left},top=${top},popup=yes`
-        );
+        connectUIRef.current = connect;
 
-        if (!popup || popup.closed) {
-          // Popup blocked, redirect instead
-          window.location.href = authUrl;
-          return;
-        }
+        // 3. Set the session token to start the OAuth flow
+        connect.setSessionToken(token);
 
-        // Poll for popup close
-        const pollInterval = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(pollInterval);
-            setLoading((prev) => ({ ...prev, [integrationId]: false }));
-            // Check connection status
-            checkConnectionStatus(integrationId);
-          }
-        }, 500);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to connect');
         setLoading((prev) => ({ ...prev, [integrationId]: false }));
@@ -315,7 +335,7 @@ export function IntegrationConnectView({
     setError(null);
 
     try {
-      const response = await fetch(`/api/integrations/disconnect/${integrationId}`, {
+      const response = await fetch(`${API_URL}/api/integrations/disconnect/${integrationId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -335,14 +355,14 @@ export function IntegrationConnectView({
 
   const checkConnectionStatus = useCallback(async (integrationId: string) => {
     try {
-      const response = await fetch('/api/integrations/connections', {
+      const response = await fetch(`${API_URL}/api/integrations/connections`, {
         credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
         const connection = data.connections.find(
-          (c: { integrationId: string }) => c.integrationId === integrationId
+          (c: { integrationId: string; status: string }) => c.integrationId === integrationId
         );
         if (connection?.status === 'connected') {
           setConnections((prev) => ({ ...prev, [integrationId]: true }));
