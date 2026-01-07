@@ -23,7 +23,11 @@ export {
   BorderControl,
   PromptInput,
   AntiSlopWarnings,
+  PropsInspector,
 } from './controls';
+
+// Control types
+export type { PropType, PropDefinition } from './controls';
 
 // Services
 export {

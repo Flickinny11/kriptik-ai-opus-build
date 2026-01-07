@@ -11,3 +11,5 @@ export { LayoutControl } from './LayoutControl';
 export { BorderControl } from './BorderControl';
 export { PromptInput } from './PromptInput';
 export { AntiSlopWarnings } from './AntiSlopWarnings';
+export { PropsInspector } from './PropsInspector';
+export type { PropType, PropDefinition } from './PropsInspector';

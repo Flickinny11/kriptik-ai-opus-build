@@ -6,7 +6,7 @@
  */
 
 import { Router, type Request } from 'express';
-import { getPromptToStyleService, antiSlopValidator, type StyleEntry } from '../services/visual-editor/index.js';
+import { getPromptToStyleService, antiSlopValidator, getPropExtractionService, type StyleEntry } from '../services/visual-editor/index.js';
 
 const router = Router();
 
@@ -374,6 +374,77 @@ router.post('/convert-styles', async (req, res) => {
     console.error('[Visual Editor] Error converting styles:', error);
     res.status(500).json({
       error: 'Failed to convert styles',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// =============================================================================
+// PROPS INSPECTOR
+// =============================================================================
+
+/**
+ * POST /api/visual-editor/extract-props
+ * Extract props from a React component source code
+ */
+router.post('/extract-props', async (req, res) => {
+  const userId = getRequestUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { sourceCode, filePath } = req.body;
+
+  if (!sourceCode || typeof sourceCode !== 'string') {
+    return res.status(400).json({ error: 'Source code is required' });
+  }
+
+  if (!filePath || typeof filePath !== 'string') {
+    return res.status(400).json({ error: 'File path is required' });
+  }
+
+  try {
+    const propExtractionService = getPropExtractionService();
+    const result = propExtractionService.extractProps(sourceCode, filePath);
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('[Visual Editor] Error extracting props:', error);
+    res.status(500).json({
+      error: 'Failed to extract props',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/visual-editor/element-props/:tagName
+ * Get standard HTML element props for a tag
+ */
+router.get('/element-props/:tagName', async (req, res) => {
+  const userId = getRequestUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { tagName } = req.params;
+
+  if (!tagName) {
+    return res.status(400).json({ error: 'Tag name is required' });
+  }
+
+  try {
+    const propExtractionService = getPropExtractionService();
+    const props = propExtractionService.getStandardElementProps(tagName);
+
+    res.status(200).json({
+      success: true,
+      tagName,
+      props,
+    });
+  } catch (error) {
+    console.error('[Visual Editor] Error getting element props:', error);
+    res.status(500).json({
+      error: 'Failed to get element props',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

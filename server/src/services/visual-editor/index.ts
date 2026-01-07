@@ -21,3 +21,12 @@ export {
   type ValidationIssue,
   type StyleEntry,
 } from './anti-slop-validator.js';
+
+// Prop Extraction Service
+export {
+  PropExtractionService,
+  getPropExtractionService,
+  type PropType,
+  type ExtractedProp,
+  type PropExtractionResult,
+} from './prop-extraction.js';
