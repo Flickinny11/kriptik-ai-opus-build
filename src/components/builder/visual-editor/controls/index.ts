@@ -17,3 +17,8 @@ export type { PropType, PropDefinition } from './PropsInspector';
 // Multi-Element Selection
 export { SelectionOverlay } from './SelectionOverlay';
 export { BatchStyleEditor } from './BatchStyleEditor';
+
+// Drag-and-Drop
+export { DraggableElement, DragHandle } from './DraggableElement';
+export { DropZone, StaticDropZone } from './DropZone';
+export { DOMReorderPanel } from './DOMReorderPanel';

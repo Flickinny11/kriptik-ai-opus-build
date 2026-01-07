@@ -26,6 +26,11 @@ export {
   PropsInspector,
   SelectionOverlay,
   BatchStyleEditor,
+  DraggableElement,
+  DragHandle,
+  DropZone,
+  StaticDropZone,
+  DOMReorderPanel,
 } from './controls';
 
 // Control types
@@ -42,6 +47,8 @@ export {
   stylesToCSS,
   stylesToInline,
   generateClassName,
+  dragDropManager,
+  DRAG_DROP_INJECTION_SCRIPT,
 } from './services';
 
 // Service types
@@ -54,4 +61,10 @@ export type {
   StyleOutputFormat,
   CodeChange,
   StyleToCodeResult,
+  DropPosition,
+  DragState,
+  DropTarget,
+  DropZoneVisual,
+  DOMReorderOperation,
+  DOMReorderResult,
 } from './services';

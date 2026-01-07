@@ -12,3 +12,13 @@ export type { ElementInfo, StyleApplicationResult, PreviewMessage, PreviewMessag
 
 export { codeSyncService, stylesToTailwind, stylesToCSS, stylesToInline, generateClassName } from './code-sync';
 export type { StyleOutputFormat, CodeChange, StyleToCodeResult } from './code-sync';
+
+export { dragDropManager, DRAG_DROP_INJECTION_SCRIPT } from './drag-drop-manager';
+export type {
+  DropPosition,
+  DragState,
+  DropTarget,
+  DropZoneVisual,
+  DOMReorderOperation,
+  DOMReorderResult,
+} from './drag-drop-manager';
