@@ -291,26 +291,32 @@ export interface VisualEmbeddingPayload {
 export interface CodePatternPayload {
   tenant_id?: string;
   project_id: string;
-  file_path: string;
-  pattern_type: 'function' | 'component' | 'hook' | 'api_route' | 'schema';
+  file_path?: string;
+  pattern_type: 'function' | 'component' | 'hook' | 'api_route' | 'schema' | 'good_practice' | 'anti_pattern' | 'common' | 'framework';
   language: string;
-  framework: string;
-  complexity_score: number;
-  loc: number;
+  framework?: string;
+  code_snippet?: string;
+  description?: string;
+  complexity_score?: number;
+  quality_score?: number;
+  loc?: number;
+  times_matched?: number;
   created_at: string;
 }
 
 export interface ErrorFixPayload {
-  error_type: 'typescript' | 'eslint' | 'runtime' | 'build';
-  error_code: string;
-  severity: 'error' | 'warning' | 'info';
-  resolution_type: 'import_fix' | 'type_fix' | 'logic_fix' | 'config_fix';
+  error_type: 'typescript' | 'eslint' | 'runtime' | 'build' | string;
+  error_code?: string;
+  error_message: string;
+  severity?: 'error' | 'warning' | 'info';
+  resolution_type?: 'import_fix' | 'type_fix' | 'logic_fix' | 'config_fix';
+  fix_description: string;
+  fix_code?: string;
+  context?: string;
   success_rate: number;
   times_used: number;
-  error_message: string;
-  fix_description: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface HyperThinkingPayload {

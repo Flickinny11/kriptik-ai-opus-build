@@ -112,3 +112,18 @@ export {
   type SemanticDriftResult,
   type SimilarIntent,
 } from './semantic-intent-service.js';
+
+// Semantic Satisfaction Service (VL-JEPA Completion Gates)
+export {
+  SemanticSatisfactionService,
+  getSemanticSatisfactionService,
+  resetSemanticSatisfactionService,
+  type SuccessCriterion,
+  type WorkflowStep,
+  type UserWorkflow,
+  type SatisfactionInput,
+  type CriterionResult,
+  type WorkflowResult,
+  type SatisfactionResult,
+  type CompletionGateResult,
+} from './semantic-satisfaction-service.js';
