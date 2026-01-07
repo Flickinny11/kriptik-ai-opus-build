@@ -11,7 +11,12 @@
     "migrate": "drizzle-kit migrate",
     "seed": "tsx src/seed-demo-user.ts",
     "db:setup": "drizzle-kit push && npm run seed",
-    "install:full": "npm install && npm install playwright playwright-core @ffmpeg-installer/ffmpeg fluent-ffmpeg"
+    "install:full": "npm install && npm install playwright playwright-core @ffmpeg-installer/ffmpeg fluent-ffmpeg",
+    "qdrant:start": "docker-compose -f ../docker/docker-compose.qdrant.yml --profile dev up -d",
+    "qdrant:stop": "docker-compose -f ../docker/docker-compose.qdrant.yml --profile dev down",
+    "qdrant:start:prod": "docker-compose -f ../docker/docker-compose.qdrant.yml --profile prod up -d",
+    "qdrant:stop:prod": "docker-compose -f ../docker/docker-compose.qdrant.yml --profile prod down",
+    "setup:qdrant": "tsx src/scripts/setup-qdrant-collections.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +34,7 @@
     "@google/generative-ai": "^0.24.1",
     "@libsql/client": "^0.15.15",
     "@octokit/rest": "^22.0.1",
+    "@qdrant/js-client-rest": "^1.16.2",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/jszip": "^3.4.0",
     "@types/pg": "^8.15.6",

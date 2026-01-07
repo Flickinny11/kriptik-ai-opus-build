@@ -9,6 +9,7 @@ import { checkStorageHealth, getStorageStats } from '../services/infrastructure/
 import { checkJobQueueHealth, QueueNames } from '../services/infrastructure/job-queue.js';
 import { checkCacheHealth } from '../services/performance/cache-service.js';
 import { areWorkersInitialized } from '../workers/index.js';
+import qdrantHealthRouter from './qdrant-health.js';
 
 const router = Router();
 
@@ -411,5 +412,12 @@ router.get('/metrics', async (_req: Request, res: Response) => {
         res.status(500).send(`# Error generating metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 });
+
+// =============================================================================
+// QDRANT VECTOR DATABASE HEALTH
+// =============================================================================
+
+// Mount Qdrant health routes as sub-router
+router.use('/qdrant', qdrantHealthRouter);
 
 export { router as healthRouter };

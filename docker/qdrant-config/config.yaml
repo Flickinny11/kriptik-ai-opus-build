@@ -1,0 +1,53 @@
+# Qdrant Configuration for KripTik AI VL-JEPA
+# This config enables tiered multitenancy and optimized settings
+
+log_level: INFO
+
+service:
+  http_port: 6333
+  grpc_port: 6334
+  enable_tls: false
+  # Enable CORS for development
+  cors:
+    allow_origin: "*"
+    allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers: ["*"]
+
+storage:
+  # Performance settings
+  performance:
+    max_search_threads: 4
+    max_optimization_threads: 2
+    
+  # Optimize for mixed workloads
+  optimizers:
+    default_segment_number: 4
+    max_segment_size_kb: 204800  # 200MB per segment
+    memmap_threshold_kb: 51200   # 50MB threshold for mmap
+    indexing_threshold_kb: 20000 # 20MB before indexing
+    flush_interval_sec: 30
+    max_optimization_threads: 2
+    
+  # HNSW index defaults
+  hnsw_index:
+    m: 16
+    ef_construct: 128
+    full_scan_threshold: 20000
+    max_indexing_threads: 4
+    on_disk: false  # Keep in memory for dev, set true for large production
+    
+  # Write-ahead log
+  wal:
+    wal_capacity_mb: 128
+    wal_segments_ahead: 2
+
+# Tiered multitenancy settings (Qdrant 1.16+)
+cluster:
+  enabled: false  # Enable for production with multiple nodes
+  
+# API settings
+api:
+  max_request_size_mb: 32
+  
+# Telemetry (disable for privacy)
+telemetry_disabled: true
