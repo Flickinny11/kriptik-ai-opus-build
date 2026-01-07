@@ -1,6 +1,6 @@
 /**
  * Embedding Service Interface for KripTik AI VL-JEPA
- * 
+ *
  * Defines the contract for embedding operations across multiple providers:
  * - BGE-M3 (text/intent embeddings)
  * - Voyage-code-3 (code embeddings)
@@ -108,13 +108,13 @@ export interface EmbeddingProvider {
   maxBatchSize: number;
   /** Cost per 1K tokens in credits */
   costPer1kTokens: number;
-  
+
   /** Generate embeddings for text */
   embed(texts: string[], options?: EmbeddingOptions): Promise<ProviderEmbeddingResult>;
-  
+
   /** Generate embeddings for images (visual provider only) */
   embedImage?(imageData: string, options?: EmbeddingOptions): Promise<ProviderEmbeddingResult>;
-  
+
   /** Health check */
   healthCheck(): Promise<ProviderHealth>;
 }
@@ -135,12 +135,12 @@ export interface IEmbeddingService {
    * Generate embeddings for content
    */
   embed(request: EmbeddingRequest): Promise<EmbeddingResult>;
-  
+
   /**
    * Generate embeddings for multiple requests in batch
    */
   embedBatch(requests: EmbeddingRequest[]): Promise<BatchEmbeddingResult>;
-  
+
   /**
    * Calculate similarity between two embeddings
    */
@@ -149,17 +149,17 @@ export interface IEmbeddingService {
     embedding2: number[],
     method?: 'cosine' | 'dot' | 'euclidean'
   ): SimilarityResult;
-  
+
   /**
    * Health check for all providers
    */
   healthCheck(): Promise<EmbeddingServiceHealth>;
-  
+
   /**
    * Get provider for specific type
    */
   getProvider(type: EmbeddingType): EmbeddingProvider;
-  
+
   /**
    * Estimate cost for embedding request
    */

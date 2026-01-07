@@ -1,8 +1,8 @@
 /**
  * Semantic Satisfaction API Routes
- * 
+ *
  * REST endpoints for VL-JEPA intent satisfaction verification.
- * 
+ *
  * Endpoints:
  *   POST /api/semantic-satisfaction/check - Check intent satisfaction
  *   POST /api/semantic-satisfaction/gate - Evaluate completion gate
@@ -62,7 +62,7 @@ interface StoreCodePatternBody {
 
 /**
  * POST /api/semantic-satisfaction/check
- * 
+ *
  * Check if build satisfies the original intent
  */
 router.post('/check', async (req: Request, res: Response) => {
@@ -87,7 +87,7 @@ router.post('/check', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticSatisfactionService();
-    
+
     const result = await service.checkSatisfaction({
       intentId: body.intentId,
       buildDescription: body.buildDescription,
@@ -150,7 +150,7 @@ router.post('/check', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-satisfaction/gate
- * 
+ *
  * Evaluate completion gate for phase transition
  */
 router.post('/gate', async (req: Request, res: Response) => {
@@ -183,7 +183,7 @@ router.post('/gate', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticSatisfactionService();
-    
+
     const result = await service.evaluateCompletionGate(
       {
         intentId: body.intentId,
@@ -226,7 +226,7 @@ router.post('/gate', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-satisfaction/error-fix
- * 
+ *
  * Store an error fix pattern for learning
  */
 router.post('/error-fix', async (req: Request, res: Response) => {
@@ -251,7 +251,7 @@ router.post('/error-fix', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticSatisfactionService();
-    
+
     const fixId = await service.storeErrorFix({
       errorMessage: body.errorMessage,
       errorType: body.errorType,
@@ -282,7 +282,7 @@ router.post('/error-fix', async (req: Request, res: Response) => {
 
 /**
  * GET /api/semantic-satisfaction/error-fix
- * 
+ *
  * Find similar error fixes
  */
 router.get('/error-fix', async (req: Request, res: Response) => {
@@ -304,7 +304,7 @@ router.get('/error-fix', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticSatisfactionService();
-    
+
     const fixes = await service.findSimilarErrors(
       errorMessage,
       errorType,
@@ -341,7 +341,7 @@ router.get('/error-fix', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-satisfaction/code-pattern
- * 
+ *
  * Store a code pattern for quality assessment
  */
 router.post('/code-pattern', async (req: Request, res: Response) => {
@@ -375,7 +375,7 @@ router.post('/code-pattern', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticSatisfactionService();
-    
+
     const patternId = await service.storeCodePattern({
       code: body.code,
       patternType: body.patternType,
@@ -406,7 +406,7 @@ router.post('/code-pattern', async (req: Request, res: Response) => {
 
 /**
  * GET /api/semantic-satisfaction/health
- * 
+ *
  * Health check for semantic satisfaction service
  */
 router.get('/health', async (_req: Request, res: Response) => {
@@ -415,7 +415,7 @@ router.get('/health', async (_req: Request, res: Response) => {
     const health = await service.healthCheck();
 
     const statusCode = health.healthy ? 200 : 503;
-    
+
     res.status(statusCode).json({
       success: health.healthy,
       data: {

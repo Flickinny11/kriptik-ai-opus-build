@@ -1,6 +1,6 @@
 /**
  * Embeddings Service Index
- * 
+ *
  * Exports all embedding-related services for the VL-JEPA semantic layer.
  */
 

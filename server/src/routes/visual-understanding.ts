@@ -1,6 +1,6 @@
 /**
  * Visual Understanding API Routes
- * 
+ *
  * VL-JEPA visual analysis endpoints for:
  * - Screenshot analysis
  * - Design alignment checking
@@ -25,7 +25,7 @@ const router = Router();
 router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user?.id;
-  
+
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -34,8 +34,8 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
     const { imageUrl, imageBase64, context, analysisType, projectId, expectedAppSoul } = req.body;
 
     if (!imageUrl && !imageBase64) {
-      return res.status(400).json({ 
-        error: 'Either imageUrl or imageBase64 is required' 
+      return res.status(400).json({
+        error: 'Either imageUrl or imageBase64 is required'
       });
     }
 
@@ -55,8 +55,8 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('[VisualUnderstanding] Analysis failed:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Analysis failed' 
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Analysis failed'
     });
   }
 });
@@ -68,7 +68,7 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
 router.post('/alignment', authMiddleware, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user?.id;
-  
+
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -77,8 +77,8 @@ router.post('/alignment', authMiddleware, async (req: Request, res: Response) =>
     const { imageUrl, imageBase64, context, analysisType, projectId, expectedAppSoul } = req.body;
 
     if (!imageUrl && !imageBase64) {
-      return res.status(400).json({ 
-        error: 'Either imageUrl or imageBase64 is required' 
+      return res.status(400).json({
+        error: 'Either imageUrl or imageBase64 is required'
       });
     }
 
@@ -98,8 +98,8 @@ router.post('/alignment', authMiddleware, async (req: Request, res: Response) =>
     });
   } catch (error) {
     console.error('[VisualUnderstanding] Alignment check failed:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Alignment check failed' 
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Alignment check failed'
     });
   }
 });
@@ -115,7 +115,7 @@ router.post('/alignment', authMiddleware, async (req: Request, res: Response) =>
 router.post('/store', authMiddleware, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user?.id;
-  
+
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -124,14 +124,14 @@ router.post('/store', authMiddleware, async (req: Request, res: Response) => {
     const { imageUrl, imageBase64, context, analysisType, projectId, expectedAppSoul, buildId } = req.body;
 
     if (!imageUrl && !imageBase64) {
-      return res.status(400).json({ 
-        error: 'Either imageUrl or imageBase64 is required' 
+      return res.status(400).json({
+        error: 'Either imageUrl or imageBase64 is required'
       });
     }
 
     if (!buildId) {
-      return res.status(400).json({ 
-        error: 'buildId is required' 
+      return res.status(400).json({
+        error: 'buildId is required'
       });
     }
 
@@ -151,8 +151,8 @@ router.post('/store', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('[VisualUnderstanding] Store failed:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Store failed' 
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Store failed'
     });
   }
 });
@@ -164,7 +164,7 @@ router.post('/store', authMiddleware, async (req: Request, res: Response) => {
 router.post('/search', authMiddleware, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user?.id;
-  
+
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -173,8 +173,8 @@ router.post('/search', authMiddleware, async (req: Request, res: Response) => {
     const { imageUrl, imageBase64, context, analysisType, projectId, expectedAppSoul, limit } = req.body;
 
     if (!imageUrl && !imageBase64) {
-      return res.status(400).json({ 
-        error: 'Either imageUrl or imageBase64 is required' 
+      return res.status(400).json({
+        error: 'Either imageUrl or imageBase64 is required'
       });
     }
 
@@ -194,8 +194,8 @@ router.post('/search', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('[VisualUnderstanding] Search failed:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Search failed' 
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Search failed'
     });
   }
 });
@@ -212,15 +212,15 @@ router.get('/health', async (_req: Request, res: Response) => {
   try {
     const service = getVisualUnderstandingService();
     const health = await service.healthCheck();
-    
+
     return res.json({
       success: true,
       ...health,
     });
   } catch (error) {
     console.error('[VisualUnderstanding] Health check failed:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Health check failed' 
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Health check failed'
     });
   }
 });

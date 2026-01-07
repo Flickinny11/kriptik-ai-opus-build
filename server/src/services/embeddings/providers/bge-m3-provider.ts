@@ -1,6 +1,6 @@
 /**
  * BGE-M3 Embedding Provider
- * 
+ *
  * Uses HuggingFace Inference API to generate embeddings with the BAAI/bge-m3 model.
  * Features:
  * - 1024-dimensional embeddings
@@ -43,7 +43,7 @@ export class BGEM3Provider implements EmbeddingProvider {
   readonly maxTokens = CONFIG.maxTokens;
   readonly maxBatchSize = CONFIG.maxBatchSize;
   readonly costPer1kTokens = COST.costPer1kTokens;
-  
+
   private apiKey: string;
   private retryAttempts = 3;
   private retryDelay = 1000;
@@ -64,11 +64,11 @@ export class BGEM3Provider implements EmbeddingProvider {
     }
 
     const startTime = Date.now();
-    
+
     // Process in batches if needed
     const allEmbeddings: number[][] = [];
     let totalTokens = 0;
-    
+
     for (let i = 0; i < texts.length; i += this.maxBatchSize) {
       const batch = texts.slice(i, i + this.maxBatchSize);
       const result = await this.processBatch(batch);
@@ -89,7 +89,7 @@ export class BGEM3Provider implements EmbeddingProvider {
    */
   private async processBatch(texts: string[]): Promise<{ embeddings: number[][]; tokensUsed: number }> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
         // Server-side external API call to HuggingFace (credentials: omit for external APIs)
@@ -111,26 +111,26 @@ export class BGEM3Provider implements EmbeddingProvider {
 
         if (!response.ok) {
           const errorText = await response.text();
-          
+
           // Handle rate limiting
           if (response.status === 429) {
             const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
             throw new Error(`Rate limited. Retry after ${retryAfter}s`);
           }
-          
+
           // Handle model loading
           if (response.status === 503) {
             throw new Error('Model is loading. Please wait.');
           }
-          
+
           throw new Error(`HuggingFace API error (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
-        
+
         // HuggingFace returns embeddings directly as array
         let embeddings: number[][];
-        
+
         if (Array.isArray(data)) {
           // Check if it's nested (batch) or single
           if (Array.isArray(data[0]) && Array.isArray(data[0][0])) {
@@ -169,7 +169,7 @@ export class BGEM3Provider implements EmbeddingProvider {
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.retryAttempts) {
           const delay = this.retryDelay * Math.pow(2, attempt - 1);
           console.warn(`[BGE-M3] Attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
@@ -186,7 +186,7 @@ export class BGEM3Provider implements EmbeddingProvider {
    */
   async healthCheck(): Promise<ProviderHealth> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.apiKey) {
         return {
@@ -199,7 +199,7 @@ export class BGEM3Provider implements EmbeddingProvider {
 
       // Simple test embedding
       const result = await this.embed(['health check test']);
-      
+
       if (result.embeddings.length === 0 || result.embeddings[0].length !== this.defaultDimensions) {
         throw new Error('Invalid embedding response');
       }

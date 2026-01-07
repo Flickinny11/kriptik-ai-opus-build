@@ -1,8 +1,8 @@
 /**
  * Embeddings API Routes
- * 
+ *
  * REST endpoints for the embedding service.
- * 
+ *
  * Endpoints:
  *   POST /api/embeddings/generate - Generate embeddings
  *   POST /api/embeddings/similarity - Compare two embeddings
@@ -49,13 +49,13 @@ interface BatchRequestBody {
 
 /**
  * POST /api/embeddings/generate
- * 
+ *
  * Generate embeddings for text or image content.
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
     const body = req.body as GenerateRequestBody;
-    
+
     // Validate request
     if (!body.content) {
       res.status(400).json({
@@ -64,7 +64,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     if (!body.type || !['intent', 'code', 'visual', 'error', 'reasoning'].includes(body.type)) {
       res.status(400).json({
         error: 'Invalid or missing type. Must be one of: intent, code, visual, error, reasoning',
@@ -75,7 +75,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     const service = getEmbeddingService();
     const userId = (req as Request & { user?: { id: string } }).user?.id;
-    
+
     const result = await service.embed({
       content: body.content,
       type: body.type,
@@ -100,7 +100,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('[Embeddings] Generate error:', error);
-    
+
     // Handle rate limiting
     if (error instanceof Error && error.message.includes('Rate limit')) {
       res.status(429).json({
@@ -110,7 +110,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to generate embeddings',
       code: 'GENERATION_FAILED',
@@ -121,13 +121,13 @@ router.post('/generate', async (req: Request, res: Response) => {
 
 /**
  * POST /api/embeddings/similarity
- * 
+ *
  * Calculate similarity between two embeddings.
  */
 router.post('/similarity', async (req: Request, res: Response) => {
   try {
     const body = req.body as SimilarityRequestBody;
-    
+
     // Validate request
     if (!body.embedding1 || !Array.isArray(body.embedding1)) {
       res.status(400).json({
@@ -136,7 +136,7 @@ router.post('/similarity', async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     if (!body.embedding2 || !Array.isArray(body.embedding2)) {
       res.status(400).json({
         error: 'Missing or invalid embedding2',
@@ -156,9 +156,9 @@ router.post('/similarity', async (req: Request, res: Response) => {
         // Interpretation helpers
         interpretation: {
           match: result.similarity >= 0.85 ? 'high' : result.similarity >= 0.7 ? 'medium' : 'low',
-          description: result.similarity >= 0.85 
-            ? 'Strong semantic similarity' 
-            : result.similarity >= 0.7 
+          description: result.similarity >= 0.85
+            ? 'Strong semantic similarity'
+            : result.similarity >= 0.7
               ? 'Moderate semantic similarity'
               : 'Low semantic similarity',
         },
@@ -177,13 +177,13 @@ router.post('/similarity', async (req: Request, res: Response) => {
 
 /**
  * POST /api/embeddings/batch
- * 
+ *
  * Generate embeddings for multiple requests in batch.
  */
 router.post('/batch', async (req: Request, res: Response) => {
   try {
     const body = req.body as BatchRequestBody;
-    
+
     // Validate request
     if (!body.requests || !Array.isArray(body.requests) || body.requests.length === 0) {
       res.status(400).json({
@@ -192,7 +192,7 @@ router.post('/batch', async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     if (body.requests.length > 100) {
       res.status(400).json({
         error: 'Maximum 100 requests per batch',
@@ -203,7 +203,7 @@ router.post('/batch', async (req: Request, res: Response) => {
 
     const service = getEmbeddingService();
     const userId = (req as Request & { user?: { id: string } }).user?.id;
-    
+
     const result = await service.embedBatch(
       body.requests.map(r => ({
         content: r.content,
@@ -246,7 +246,7 @@ router.post('/batch', async (req: Request, res: Response) => {
 
 /**
  * GET /api/embeddings/stats
- * 
+ *
  * Get embedding usage statistics.
  */
 router.get('/stats', async (_req: Request, res: Response) => {
@@ -283,7 +283,7 @@ router.get('/stats', async (_req: Request, res: Response) => {
 
 /**
  * GET /api/embeddings/health
- * 
+ *
  * Check health of embedding service and providers.
  */
 router.get('/health', async (_req: Request, res: Response) => {
@@ -292,7 +292,7 @@ router.get('/health', async (_req: Request, res: Response) => {
     const health = await service.healthCheck();
 
     const statusCode = health.healthy ? 200 : 503;
-    
+
     res.status(statusCode).json({
       success: health.healthy,
       data: {
@@ -324,13 +324,13 @@ router.get('/health', async (_req: Request, res: Response) => {
 
 /**
  * POST /api/embeddings/estimate
- * 
+ *
  * Estimate cost for embedding request without generating.
  */
 router.post('/estimate', async (req: Request, res: Response) => {
   try {
     const body = req.body as Pick<GenerateRequestBody, 'content' | 'type'>;
-    
+
     if (!body.content || !body.type) {
       res.status(400).json({
         error: 'Missing required fields: content, type',
@@ -341,7 +341,7 @@ router.post('/estimate', async (req: Request, res: Response) => {
 
     const service = getEmbeddingService();
     const estimatedCost = service.estimateCost(body.content, body.type);
-    
+
     // Estimate tokens
     const texts = Array.isArray(body.content) ? body.content : [body.content];
     const estimatedTokens = texts.reduce((sum, text) => sum + Math.ceil(text.length / 4), 0);

@@ -1,6 +1,6 @@
 /**
  * Qdrant Vector Database Client for KripTik AI VL-JEPA
- * 
+ *
  * Provides type-safe access to Qdrant with:
  * - Connection pooling for production
  * - Retry logic with exponential backoff
@@ -149,13 +149,13 @@ export class QdrantClientWrapper {
     operationName: string
   ): Promise<T> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.config.retryAttempts) {
           const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
           console.warn(
@@ -166,7 +166,7 @@ export class QdrantClientWrapper {
         }
       }
     }
-    
+
     throw new Error(`[Qdrant] ${operationName} failed after ${this.config.retryAttempts} attempts: ${lastError?.message}`);
   }
 
@@ -179,17 +179,17 @@ export class QdrantClientWrapper {
    */
   async healthCheck(): Promise<QdrantHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // Get collections (this also verifies connectivity)
       const collections = await this.withRetry(
         () => this.client.getCollections(),
         'health check'
       );
-      
+
       const responseTimeMs = Date.now() - startTime;
       this.connectionVerified = true;
-      
+
       return {
         healthy: true,
         version: 'unknown', // Version requires separate API call
@@ -204,7 +204,7 @@ export class QdrantClientWrapper {
     } catch (error) {
       const responseTimeMs = Date.now() - startTime;
       this.connectionVerified = false;
-      
+
       return {
         healthy: false,
         version: 'unknown',
@@ -225,7 +225,7 @@ export class QdrantClientWrapper {
    */
   async verifyConnection(): Promise<boolean> {
     if (this.connectionVerified) return true;
-    
+
     const health = await this.healthCheck();
     return health.healthy;
   }
@@ -235,13 +235,13 @@ export class QdrantClientWrapper {
    */
   async getCollectionStats(collectionName: string): Promise<CollectionStats | null> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       const info = await this.withRetry(
         () => this.client.getCollection(fullName),
         `get collection stats: ${fullName}`
       );
-      
+
       return {
         name: fullName,
         vectorsCount: info.indexed_vectors_count || 0,
@@ -266,7 +266,7 @@ export class QdrantClientWrapper {
    */
   async collectionExists(collectionName: string): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.client.getCollection(fullName);
       return true;
@@ -301,7 +301,7 @@ export class QdrantClientWrapper {
     }
   ): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       // Check if collection already exists
       const exists = await this.collectionExists(collectionName);
@@ -309,7 +309,7 @@ export class QdrantClientWrapper {
         console.log(`[Qdrant] Collection ${fullName} already exists`);
         return true;
       }
-      
+
       await this.withRetry(
         () => this.client.createCollection(fullName, {
           vectors: {
@@ -328,7 +328,7 @@ export class QdrantClientWrapper {
         }),
         `create collection: ${fullName}`
       );
-      
+
       console.log(`[Qdrant] Created collection ${fullName} with vector size ${vectorSize}`);
       return true;
     } catch (error) {
@@ -342,7 +342,7 @@ export class QdrantClientWrapper {
    */
   async deleteCollection(collectionName: string): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.withRetry(
         () => this.client.deleteCollection(fullName),
@@ -365,7 +365,7 @@ export class QdrantClientWrapper {
     fieldType: 'keyword' | 'integer' | 'float' | 'bool' | 'geo' | 'datetime' | 'text'
   ): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.withRetry(
         () => this.client.createPayloadIndex(fullName, {
@@ -399,7 +399,7 @@ export class QdrantClientWrapper {
     wait?: boolean
   ): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.withRetry(
         () => this.client.upsert(fullName, {
@@ -428,7 +428,7 @@ export class QdrantClientWrapper {
     wait?: boolean
   ): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.withRetry(
         () => this.client.delete(fullName, {
@@ -453,7 +453,7 @@ export class QdrantClientWrapper {
     wait?: boolean
   ): Promise<boolean> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       await this.withRetry(
         () => this.client.delete(fullName, {
@@ -479,7 +479,7 @@ export class QdrantClientWrapper {
     withVector: boolean = false
   ): Promise<Point[]> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       const result = await this.withRetry(
         () => this.client.retrieve(fullName, {
@@ -489,7 +489,7 @@ export class QdrantClientWrapper {
         }),
         `get ${pointIds.length} points from ${fullName}`
       );
-      
+
       return result.map(p => ({
         id: p.id,
         vector: (p.vector as number[]) || [],
@@ -513,7 +513,7 @@ export class QdrantClientWrapper {
     query: SearchQuery
   ): Promise<SearchResult[]> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       const result = await this.withRetry(
         () => this.client.search(fullName, {
@@ -527,7 +527,7 @@ export class QdrantClientWrapper {
         }),
         `search in ${fullName}`
       );
-      
+
       return result.map(r => ({
         id: r.id,
         score: r.score,
@@ -548,7 +548,7 @@ export class QdrantClientWrapper {
     queries: SearchQuery[]
   ): Promise<SearchResult[][]> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       const result = await this.withRetry(
         () => this.client.searchBatch(fullName, {
@@ -564,8 +564,8 @@ export class QdrantClientWrapper {
         }),
         `batch search in ${fullName}`
       );
-      
-      return result.map(batch => 
+
+      return result.map(batch =>
         batch.map(r => ({
           id: r.id,
           score: r.score,
@@ -591,7 +591,7 @@ export class QdrantClientWrapper {
     tenantId: string
   ): Promise<TenantInfo | null> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       // Count vectors for this tenant
       const countResult = await this.client.count(fullName, {
@@ -605,7 +605,7 @@ export class QdrantClientWrapper {
         },
         exact: false,
       });
-      
+
       return {
         tenantId,
         collectionName: fullName,
@@ -659,7 +659,7 @@ export class QdrantClientWrapper {
     exact: boolean = false
   ): Promise<number> {
     const fullName = this.getCollectionName(collectionName);
-    
+
     try {
       const result = await this.withRetry(
         () => this.client.count(fullName, {
@@ -684,7 +684,7 @@ export class QdrantClientWrapper {
         () => this.client.getCollections(),
         'list collections'
       );
-      
+
       return (result.collections || [])
         .map(c => c.name)
         .filter(name => name.startsWith(this.config.collectionPrefix));

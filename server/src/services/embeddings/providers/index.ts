@@ -1,6 +1,6 @@
 /**
  * Embedding Providers Index
- * 
+ *
  * Exports all embedding provider implementations.
  */
 

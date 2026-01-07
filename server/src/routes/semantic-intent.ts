@@ -1,8 +1,8 @@
 /**
  * Semantic Intent API Routes
- * 
+ *
  * REST endpoints for VL-JEPA semantic intent verification.
- * 
+ *
  * Endpoints:
  *   POST /api/semantic-intent/store - Store a new intent with embedding
  *   POST /api/semantic-intent/verify - Verify alignment between output and intent
@@ -56,7 +56,7 @@ interface SimilarIntentsQuery {
 
 /**
  * POST /api/semantic-intent/store
- * 
+ *
  * Store a new intent with its embedding
  */
 router.post('/store', async (req: Request, res: Response) => {
@@ -82,7 +82,7 @@ router.post('/store', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const intent = await service.storeIntent({
       originalPrompt: body.originalPrompt,
       intentText: body.intentText,
@@ -118,7 +118,7 @@ router.post('/store', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-intent/verify
- * 
+ *
  * Verify alignment between current output and original intent
  */
 router.post('/verify', async (req: Request, res: Response) => {
@@ -143,7 +143,7 @@ router.post('/verify', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const result = await service.verifyAlignment(
       body.intentId,
       body.outputDescription,
@@ -173,7 +173,7 @@ router.post('/verify', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-intent/drift
- * 
+ *
  * Detect drift from original intent across intermediate outputs
  */
 router.post('/drift', async (req: Request, res: Response) => {
@@ -198,7 +198,7 @@ router.post('/drift', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const result = await service.detectDrift(
       body.intentId,
       body.intermediateOutputs,
@@ -228,7 +228,7 @@ router.post('/drift', async (req: Request, res: Response) => {
 
 /**
  * GET /api/semantic-intent/similar
- * 
+ *
  * Find similar intents based on query text
  */
 router.get('/similar', async (req: Request, res: Response) => {
@@ -245,7 +245,7 @@ router.get('/similar', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const results = await service.findSimilarIntents(query.query, {
       projectId: query.projectId,
       userId,
@@ -285,7 +285,7 @@ router.get('/similar', async (req: Request, res: Response) => {
 
 /**
  * GET /api/semantic-intent/project/:projectId
- * 
+ *
  * Get all intents for a project
  */
 router.get('/project/:projectId', async (req: Request, res: Response) => {
@@ -303,7 +303,7 @@ router.get('/project/:projectId', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const intents = await service.getProjectIntents(projectId, userId, limit);
 
     res.json({
@@ -333,7 +333,7 @@ router.get('/project/:projectId', async (req: Request, res: Response) => {
 
 /**
  * POST /api/semantic-intent/similarity
- * 
+ *
  * Calculate similarity between two texts
  */
 router.post('/similarity', async (req: Request, res: Response) => {
@@ -350,7 +350,7 @@ router.post('/similarity', async (req: Request, res: Response) => {
     }
 
     const service = getSemanticIntentService();
-    
+
     const similarity = await service.calculateTextSimilarity(text1, text2, userId);
 
     res.json({
@@ -377,7 +377,7 @@ router.post('/similarity', async (req: Request, res: Response) => {
 
 /**
  * GET /api/semantic-intent/health
- * 
+ *
  * Health check for semantic intent service
  */
 router.get('/health', async (_req: Request, res: Response) => {
@@ -386,7 +386,7 @@ router.get('/health', async (_req: Request, res: Response) => {
     const health = await service.healthCheck();
 
     const statusCode = health.healthy ? 200 : 503;
-    
+
     res.status(statusCode).json({
       success: health.healthy,
       data: {

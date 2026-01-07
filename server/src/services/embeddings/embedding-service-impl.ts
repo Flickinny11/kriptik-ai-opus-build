@@ -1,6 +1,6 @@
 /**
  * Embedding Service Implementation
- * 
+ *
  * Central service for generating embeddings across multiple providers.
  * Features:
  * - Automatic provider selection based on type
@@ -55,20 +55,20 @@ const DEFAULT_RATE_LIMIT = parseInt(process.env.EMBEDDING_RATE_LIMIT_PER_MINUTE 
 
 function checkRateLimit(userId?: string, projectId?: string): boolean {
   if (!userId) return true;
-  
+
   const key = `${userId}:${projectId || 'default'}`;
   const now = Date.now();
   const entry = rateLimits.get(key);
-  
+
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
     rateLimits.set(key, { count: 1, windowStart: now });
     return true;
   }
-  
+
   if (entry.count >= DEFAULT_RATE_LIMIT) {
     return false;
   }
-  
+
   entry.count++;
   return true;
 }
@@ -90,7 +90,7 @@ export class EmbeddingService implements IEmbeddingService {
    */
   async embed(request: EmbeddingRequest): Promise<EmbeddingResult> {
     const startTime = Date.now();
-    
+
     // Rate limit check
     if (!checkRateLimit(request.userId, request.projectId)) {
       throw new Error('Rate limit exceeded. Please wait before making more requests.');
@@ -98,19 +98,19 @@ export class EmbeddingService implements IEmbeddingService {
 
     const providerKey = TYPE_TO_PROVIDER[request.type];
     const provider = providers[providerKey];
-    
+
     // Normalize content to array
     const texts = Array.isArray(request.content) ? request.content : [request.content];
-    
+
     // Check cache for each text
     const cachedResults = new Map<number, number[]>();
     const textsToEmbed: Array<{ index: number; text: string }> = [];
-    
+
     if (!request.options?.skipCache) {
       for (let i = 0; i < texts.length; i++) {
         const cacheKey = this.cache.generateKey(texts[i], provider.model, request.options);
         const cached = await this.cache.get(cacheKey);
-        
+
         if (cached) {
           cachedResults.set(i, cached);
         } else {
@@ -136,7 +136,7 @@ export class EmbeddingService implements IEmbeddingService {
     // Generate embeddings for uncached texts
     if (textsToEmbed.length > 0) {
       const textsOnly = textsToEmbed.map(t => t.text);
-      
+
       // Handle visual type with images
       if (request.type === 'visual' && request.options?.imageBase64) {
         const siglip = providers['siglip-2'] as SigLIPProvider;
@@ -150,7 +150,7 @@ export class EmbeddingService implements IEmbeddingService {
 
       // Cache the new embeddings
       const cacheEntries: Array<{ key: string; embedding: number[]; type: string }> = [];
-      
+
       for (let i = 0; i < textsToEmbed.length; i++) {
         const cacheKey = this.cache.generateKey(
           textsToEmbed[i].text,
@@ -163,14 +163,14 @@ export class EmbeddingService implements IEmbeddingService {
           type: request.type,
         });
       }
-      
+
       await this.cache.setMany(cacheEntries);
     }
 
     // Combine cached and new results in correct order
     const finalEmbeddings: number[][] = new Array(texts.length);
     let newIndex = 0;
-    
+
     for (let i = 0; i < texts.length; i++) {
       if (cachedResults.has(i)) {
         finalEmbeddings[i] = cachedResults.get(i)!;
@@ -185,7 +185,7 @@ export class EmbeddingService implements IEmbeddingService {
       providerResult.tokensUsed,
       request.options?.imageBase64 || request.options?.imageUrl ? 1 : 0
     );
-    
+
     // Track cost for project
     if (request.projectId) {
       const current = this.creditTracker.get(request.projectId) || 0;
@@ -215,7 +215,7 @@ export class EmbeddingService implements IEmbeddingService {
 
     // Group requests by type for more efficient batching
     const groupedByType = new Map<EmbeddingType, EmbeddingRequest[]>();
-    
+
     for (const req of requests) {
       const existing = groupedByType.get(req.type) || [];
       existing.push(req);
@@ -274,18 +274,18 @@ export class EmbeddingService implements IEmbeddingService {
         let dotProduct = 0;
         let norm1 = 0;
         let norm2 = 0;
-        
+
         for (let i = 0; i < embedding1.length; i++) {
           dotProduct += embedding1[i] * embedding2[i];
           norm1 += embedding1[i] * embedding1[i];
           norm2 += embedding2[i] * embedding2[i];
         }
-        
+
         const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2);
         similarity = magnitude > 0 ? dotProduct / magnitude : 0;
         break;
       }
-      
+
       case 'dot': {
         similarity = 0;
         for (let i = 0; i < embedding1.length; i++) {
@@ -293,7 +293,7 @@ export class EmbeddingService implements IEmbeddingService {
         }
         break;
       }
-      
+
       case 'euclidean': {
         let sumSquared = 0;
         for (let i = 0; i < embedding1.length; i++) {
@@ -314,14 +314,14 @@ export class EmbeddingService implements IEmbeddingService {
    */
   async healthCheck(): Promise<EmbeddingServiceHealth> {
     const providerHealths: Record<string, Awaited<ReturnType<EmbeddingProvider['healthCheck']>>> = {};
-    
+
     const healthChecks = Object.entries(providers).map(async ([key, provider]) => {
       const health = await provider.healthCheck();
       providerHealths[key] = health;
     });
-    
+
     await Promise.all(healthChecks);
-    
+
     const cacheHealth = await this.cache.healthCheck();
     const anyHealthy = Object.values(providerHealths).some(h => h.healthy);
 
@@ -350,7 +350,7 @@ export class EmbeddingService implements IEmbeddingService {
   estimateCost(content: string | string[], type: EmbeddingType): number {
     const texts = Array.isArray(content) ? content : [content];
     const estimatedTokens = texts.reduce((sum, text) => sum + Math.ceil(text.length / 4), 0);
-    
+
     return this.calculateCost(type, estimatedTokens, 0);
   }
 
@@ -359,14 +359,14 @@ export class EmbeddingService implements IEmbeddingService {
    */
   private calculateCost(type: EmbeddingType, tokensUsed: number, imagesUsed: number): number {
     const providerKey = TYPE_TO_PROVIDER[type];
-    
+
     switch (providerKey) {
       case 'bge-m3':
         return (tokensUsed / 1000) * EMBEDDING_COSTS['bge-m3'].costPer1kTokens;
       case 'voyage-code-3':
         return (tokensUsed / 1000) * EMBEDDING_COSTS['voyage-code-3'].costPer1kTokens;
       case 'siglip-2':
-        return (tokensUsed / 1000) * EMBEDDING_COSTS['siglip-2'].costPerText + 
+        return (tokensUsed / 1000) * EMBEDDING_COSTS['siglip-2'].costPerText +
                imagesUsed * EMBEDDING_COSTS['siglip-2'].costPerImage;
       default:
         return 0;

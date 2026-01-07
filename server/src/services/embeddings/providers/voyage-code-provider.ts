@@ -1,6 +1,6 @@
 /**
  * Voyage-code-3 Embedding Provider
- * 
+ *
  * Uses Voyage AI API to generate code embeddings with the voyage-code-3 model.
  * Features:
  * - 32K token context (excellent for full files)
@@ -56,7 +56,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
   readonly maxTokens = CONFIG.maxTokens;
   readonly maxBatchSize = CONFIG.maxBatchSize;
   readonly costPer1kTokens = COST.costPer1kTokens;
-  
+
   private apiKey: string;
   private retryAttempts = 3;
   private retryDelay = 1000;
@@ -78,11 +78,11 @@ export class VoyageCodeProvider implements EmbeddingProvider {
 
     const startTime = Date.now();
     const dimensions = options?.dimensions || this.defaultDimensions;
-    
+
     // Process in batches if needed
     const allEmbeddings: number[][] = [];
     let totalTokens = 0;
-    
+
     for (let i = 0; i < texts.length; i += this.maxBatchSize) {
       const batch = texts.slice(i, i + this.maxBatchSize);
       const result = await this.processBatch(batch, dimensions, options);
@@ -107,7 +107,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
     options?: EmbeddingOptions
   ): Promise<{ embeddings: number[][]; tokensUsed: number }> {
     let lastError: Error | null = null;
-    
+
     // Truncate texts that exceed context window
     const truncatedTexts = texts.map(text => {
       // Rough estimate: 1 token ≈ 4 characters for code
@@ -120,7 +120,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
       }
       return text;
     });
-    
+
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
         const requestBody: Record<string, unknown> = {
@@ -152,18 +152,18 @@ export class VoyageCodeProvider implements EmbeddingProvider {
 
         if (!response.ok) {
           const errorData = await response.json() as VoyageError;
-          
+
           // Handle rate limiting
           if (response.status === 429) {
             const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
             throw new Error(`Rate limited. Retry after ${retryAfter}s`);
           }
-          
+
           throw new Error(`Voyage API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
         }
 
         const data = await response.json() as VoyageResponse;
-        
+
         // Sort by index to maintain order
         const sortedData = [...data.data].sort((a, b) => a.index - b.index);
         const embeddings = sortedData.map(item => item.embedding);
@@ -174,7 +174,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.retryAttempts) {
           const delay = this.retryDelay * Math.pow(2, attempt - 1);
           console.warn(`[Voyage-code-3] Attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
@@ -191,7 +191,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
    */
   async healthCheck(): Promise<ProviderHealth> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.apiKey) {
         return {
@@ -204,7 +204,7 @@ export class VoyageCodeProvider implements EmbeddingProvider {
 
       // Simple test embedding with minimal code
       const result = await this.embed(['function test() { return true; }']);
-      
+
       if (result.embeddings.length === 0) {
         throw new Error('Invalid embedding response');
       }

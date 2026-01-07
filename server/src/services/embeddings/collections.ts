@@ -1,6 +1,6 @@
 /**
  * Qdrant Collection Definitions for KripTik AI VL-JEPA
- * 
+ *
  * Defines all 7 collections for the semantic intelligence layer:
  * 1. intent_embeddings - Intent Lock semantic embeddings (BGE-M3)
  * 2. visual_embeddings - Screenshot/design embeddings (SigLIP 2)

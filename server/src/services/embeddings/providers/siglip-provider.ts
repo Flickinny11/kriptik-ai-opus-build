@@ -1,6 +1,6 @@
 /**
  * SigLIP 2 Embedding Provider
- * 
+ *
  * Uses HuggingFace Inference API to generate visual embeddings with SigLIP 2.
  * Features:
  * - 768-dimensional embeddings
@@ -37,7 +37,7 @@ export class SigLIPProvider implements EmbeddingProvider {
   readonly maxTokens = CONFIG.maxTokens;
   readonly maxBatchSize = CONFIG.maxBatchSize;
   readonly costPer1kTokens = COST.costPerText * 1000; // Convert to per-1k
-  
+
   private apiKey: string;
   private retryAttempts = 3;
   private retryDelay = 1000;
@@ -59,7 +59,7 @@ export class SigLIPProvider implements EmbeddingProvider {
 
     const startTime = Date.now();
     const embeddings: number[][] = [];
-    
+
     // Process texts individually (SigLIP text encoding)
     for (const text of texts) {
       const embedding = await this.embedText(text);
@@ -82,7 +82,7 @@ export class SigLIPProvider implements EmbeddingProvider {
    */
   private async embedText(text: string): Promise<number[]> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
         // Server-side external API call to HuggingFace (credentials: omit for external APIs)
@@ -104,23 +104,23 @@ export class SigLIPProvider implements EmbeddingProvider {
 
         if (!response.ok) {
           const errorText = await response.text();
-          
+
           if (response.status === 429) {
             throw new Error('Rate limited');
           }
-          
+
           if (response.status === 503) {
             throw new Error('Model is loading');
           }
-          
+
           throw new Error(`HuggingFace API error (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
-        
+
         // Parse response - SigLIP returns text embeddings
         let embedding: number[];
-        
+
         if (Array.isArray(data) && typeof data[0] === 'number') {
           embedding = data;
         } else if (Array.isArray(data) && Array.isArray(data[0])) {
@@ -140,7 +140,7 @@ export class SigLIPProvider implements EmbeddingProvider {
         return embedding;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.retryAttempts) {
           const delay = this.retryDelay * Math.pow(2, attempt - 1);
           console.warn(`[SigLIP] Text embed attempt ${attempt} failed, retrying:`, lastError.message);
@@ -162,10 +162,10 @@ export class SigLIPProvider implements EmbeddingProvider {
 
     const startTime = Date.now();
     let lastError: Error | null = null;
-    
+
     // Determine if imageData is URL or base64
     const isUrl = imageData.startsWith('http://') || imageData.startsWith('https://');
-    
+
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
         let body: BodyInit;
@@ -203,23 +203,23 @@ export class SigLIPProvider implements EmbeddingProvider {
 
         if (!response.ok) {
           const errorText = await response.text();
-          
+
           if (response.status === 429) {
             throw new Error('Rate limited');
           }
-          
+
           if (response.status === 503) {
             throw new Error('Model is loading');
           }
-          
+
           throw new Error(`HuggingFace API error (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
-        
+
         // Parse image embedding response
         let embedding: number[];
-        
+
         if (Array.isArray(data) && typeof data[0] === 'number') {
           embedding = data;
         } else if (Array.isArray(data) && Array.isArray(data[0])) {
@@ -243,7 +243,7 @@ export class SigLIPProvider implements EmbeddingProvider {
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.retryAttempts) {
           const delay = this.retryDelay * Math.pow(2, attempt - 1);
           console.warn(`[SigLIP] Image embed attempt ${attempt} failed, retrying:`, lastError.message);
@@ -260,7 +260,7 @@ export class SigLIPProvider implements EmbeddingProvider {
    */
   async healthCheck(): Promise<ProviderHealth> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.apiKey) {
         return {
@@ -273,7 +273,7 @@ export class SigLIPProvider implements EmbeddingProvider {
 
       // Test with text embedding (simpler than image)
       const result = await this.embed(['visual health check']);
-      
+
       if (result.embeddings.length === 0) {
         throw new Error('Invalid embedding response');
       }

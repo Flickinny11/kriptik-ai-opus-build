@@ -1,8 +1,8 @@
 /**
  * Qdrant Health Check Routes
- * 
+ *
  * Provides health monitoring endpoints for the Qdrant vector database.
- * 
+ *
  * Endpoints:
  *   GET /api/health/qdrant - Full health status
  *   GET /api/health/qdrant/collections - Collection statistics
@@ -20,7 +20,7 @@ const router = Router();
 
 /**
  * GET /api/health/qdrant
- * 
+ *
  * Returns comprehensive health status of Qdrant including:
  * - Connection status
  * - Collection counts
@@ -31,7 +31,7 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     const client = getQdrantClient();
     const health = await client.healthCheck();
-    
+
     if (health.healthy) {
       res.json({
         status: 'healthy',
@@ -64,13 +64,13 @@ router.get('/', async (_req: Request, res: Response) => {
 
 /**
  * GET /api/health/qdrant/collections
- * 
+ *
  * Returns statistics for all KripTik collections
  */
 router.get('/collections', async (_req: Request, res: Response) => {
   try {
     const client = getQdrantClient();
-    
+
     // Check connectivity first
     const isConnected = await client.verifyConnection();
     if (!isConnected) {
@@ -81,7 +81,7 @@ router.get('/collections', async (_req: Request, res: Response) => {
       });
       return;
     }
-    
+
     // Get stats for each collection
     const collectionStats = await Promise.all(
       Object.values(COLLECTION_NAMES).map(async (name) => {
@@ -93,7 +93,7 @@ router.get('/collections', async (_req: Request, res: Response) => {
         };
       })
     );
-    
+
     // Calculate totals
     const totalVectors = collectionStats.reduce(
       (sum, c) => sum + (c.vectorsCount || 0),
@@ -107,7 +107,7 @@ router.get('/collections', async (_req: Request, res: Response) => {
       (sum, c) => sum + (c.diskDataSizeBytes || 0),
       0
     );
-    
+
     res.json({
       status: 'ok',
       collections: collectionStats,
@@ -135,16 +135,16 @@ router.get('/collections', async (_req: Request, res: Response) => {
 
 /**
  * GET /api/health/qdrant/ping
- * 
+ *
  * Simple connectivity check - returns quickly for monitoring
  */
 router.get('/ping', async (_req: Request, res: Response) => {
   const startTime = Date.now();
-  
+
   try {
     const client = getQdrantClient();
     const isConnected = await client.verifyConnection();
-    
+
     res.json({
       pong: true,
       connected: isConnected,
@@ -168,12 +168,12 @@ router.get('/ping', async (_req: Request, res: Response) => {
 
 /**
  * GET /api/health/qdrant/collection/:name
- * 
+ *
  * Returns detailed stats for a specific collection
  */
 router.get('/collection/:name', async (req: Request, res: Response) => {
   const { name } = req.params;
-  
+
   // Validate collection name
   if (!Object.values(COLLECTION_NAMES).includes(name as typeof COLLECTION_NAMES[keyof typeof COLLECTION_NAMES])) {
     res.status(400).json({
@@ -184,11 +184,11 @@ router.get('/collection/:name', async (req: Request, res: Response) => {
     });
     return;
   }
-  
+
   try {
     const client = getQdrantClient();
     const stats = await client.getCollectionStats(name);
-    
+
     if (!stats) {
       res.status(404).json({
         status: 'not_found',
@@ -197,10 +197,10 @@ router.get('/collection/:name', async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     // Get point count
     const pointCount = await client.countPoints(name);
-    
+
     res.json({
       status: 'ok',
       collection: {

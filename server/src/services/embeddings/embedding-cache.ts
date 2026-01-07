@@ -1,6 +1,6 @@
 /**
  * Embedding Cache Layer
- * 
+ *
  * Redis-based caching for embedding vectors to reduce API costs.
  * Features:
  * - Content-hash based cache keys
@@ -100,7 +100,7 @@ export class EmbeddingCache {
     hash.update(model);
     if (options?.dimensions) hash.update(String(options.dimensions));
     if (options?.quantization) hash.update(options.quantization);
-    
+
     return `${this.config.prefix}${hash.digest('hex').slice(0, 32)}`;
   }
 
@@ -114,7 +114,7 @@ export class EmbeddingCache {
       stats.hits++;
       return memCached.embedding;
     }
-    
+
     // Clean expired memory cache entry
     if (memCached) {
       this.memoryCache.delete(key);
@@ -129,7 +129,7 @@ export class EmbeddingCache {
     try {
       const redis = getRedis();
       const cached = await redis.get(key);
-      
+
       if (!cached) {
         stats.misses++;
         return null;
@@ -137,16 +137,16 @@ export class EmbeddingCache {
 
       // Handle different response types from Redis
       const cachedStr = typeof cached === 'string' ? cached : JSON.stringify(cached);
-      
+
       stats.hits++;
       stats.bytesRead += cachedStr.length;
 
       // Parse cached embedding
       const embedding = (typeof cached === 'string' ? JSON.parse(cached) : cached) as number[];
-      
+
       // Store in memory cache for faster subsequent access
       this.setMemoryCache(key, embedding, 60 * 1000); // 1 minute
-      
+
       return embedding;
     } catch (error) {
       stats.errors++;
@@ -160,10 +160,10 @@ export class EmbeddingCache {
    */
   async getMany(keys: string[]): Promise<Map<string, number[]>> {
     const results = new Map<string, number[]>();
-    
+
     // Check memory cache first
     const keysToFetch: string[] = [];
-    
+
     for (const key of keys) {
       const memCached = this.memoryCache.get(key);
       if (memCached && memCached.expires > Date.now()) {
@@ -179,7 +179,7 @@ export class EmbeddingCache {
       try {
         const redis = getRedis();
         const values = await redis.mget(...keysToFetch) as (string | null)[];
-        
+
         for (let i = 0; i < keysToFetch.length; i++) {
           const value = values[i];
           if (value && typeof value === 'string') {
@@ -187,7 +187,7 @@ export class EmbeddingCache {
             results.set(keysToFetch[i], embedding);
             stats.hits++;
             stats.bytesRead += value.length;
-            
+
             // Store in memory cache
             this.setMemoryCache(keysToFetch[i], embedding, 60 * 1000);
           } else {
@@ -215,7 +215,7 @@ export class EmbeddingCache {
     type: string = 'default'
   ): Promise<void> {
     const ttl = this.config.ttlByType[type] || this.config.defaultTtlSeconds;
-    
+
     // Store in memory cache
     this.setMemoryCache(key, embedding, ttl * 1000);
 
@@ -227,9 +227,9 @@ export class EmbeddingCache {
     try {
       const redis = getRedis();
       const serialized = JSON.stringify(embedding);
-      
+
       await redis.setex(key, ttl, serialized);
-      
+
       stats.sets++;
       stats.bytesWritten += serialized.length;
     } catch (error) {
@@ -256,18 +256,18 @@ export class EmbeddingCache {
     try {
       const redis = getRedis();
       const pipeline = redis.pipeline();
-      
+
       for (const entry of entries) {
         const ttl = this.config.ttlByType[entry.type || 'default'] || this.config.defaultTtlSeconds;
         const serialized = JSON.stringify(entry.embedding);
-        
+
         pipeline.setex(entry.key, ttl, serialized);
         stats.bytesWritten += serialized.length;
-        
+
         // Also store in memory cache
         this.setMemoryCache(entry.key, entry.embedding, ttl * 1000);
       }
-      
+
       await pipeline.exec();
       stats.sets += entries.length;
     } catch (error) {
@@ -281,7 +281,7 @@ export class EmbeddingCache {
    */
   async delete(key: string): Promise<void> {
     this.memoryCache.delete(key);
-    
+
     if (!isRedisAvailable()) return;
 
     try {
@@ -300,7 +300,7 @@ export class EmbeddingCache {
     // Clear memory cache
     const fullPattern = `${this.config.prefix}${pattern}`;
     let deleted = 0;
-    
+
     for (const key of this.memoryCache.keys()) {
       if (key.includes(fullPattern)) {
         this.memoryCache.delete(key);
@@ -313,12 +313,12 @@ export class EmbeddingCache {
     try {
       const redis = getRedis();
       const keys = await redis.keys(`${fullPattern}*`);
-      
+
       if (keys.length > 0) {
         await redis.del(...keys);
         deleted += keys.length;
       }
-      
+
       return deleted;
     } catch (error) {
       stats.errors++;
@@ -366,7 +366,7 @@ export class EmbeddingCache {
         if (keyToRemove) this.memoryCache.delete(keyToRemove);
       }
     }
-    
+
     this.memoryCache.set(key, {
       embedding,
       expires: Date.now() + ttlMs,

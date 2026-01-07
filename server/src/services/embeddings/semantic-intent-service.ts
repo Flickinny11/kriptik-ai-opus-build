@@ -1,9 +1,9 @@
 /**
  * Semantic Intent Verification Service
- * 
+ *
  * VL-JEPA integration for intent lock system.
  * Provides semantic understanding and verification of user intents.
- * 
+ *
  * Features:
  * - Intent embedding generation and storage
  * - Semantic similarity matching
@@ -139,7 +139,7 @@ export class SemanticIntentService {
   async storeIntent(intent: Omit<SemanticIntent, 'id' | 'embedding' | 'createdAt'>): Promise<SemanticIntent> {
     const intentId = uuidv4();
     const createdAt = new Date().toISOString();
-    
+
     // Generate embedding for the intent
     const embeddingResult = await this.embeddingService.embed({
       content: this.buildIntentText(intent),
@@ -149,7 +149,7 @@ export class SemanticIntentService {
     });
 
     const embedding = embeddingResult.embeddings[0];
-    
+
     // Store in Qdrant
     const payload: IntentEmbeddingPayload = {
       project_id: intent.projectId,
@@ -194,7 +194,7 @@ export class SemanticIntentService {
 
     const point = points[0];
     const intentText = point.payload.intent_text || point.payload.original_text;
-    
+
     // Re-generate embedding
     const embeddingResult = await this.embeddingService.embed({
       content: intentText,
@@ -203,7 +203,7 @@ export class SemanticIntentService {
     });
 
     const newEmbedding = embeddingResult.embeddings[0];
-    
+
     // Update in Qdrant
     await this.collectionManager.upsertPoints<IntentEmbeddingPayload>(
       COLLECTION_NAMES.INTENT_EMBEDDINGS,
@@ -263,7 +263,7 @@ export class SemanticIntentService {
     // Calculate criteria coverage (if success criteria exist)
     let criteriaCoverage = 1.0;
     const successCriteria = originalPoint.payload.success_criteria;
-    
+
     if (successCriteria && successCriteria.length > 0) {
       // Check how many criteria seem addressed in the output
       const criteriaChecks = await Promise.all(
@@ -365,7 +365,7 @@ export class SemanticIntentService {
       );
 
       const drift = 1 - similarity.similarity;
-      
+
       if (drift > maxDrift) {
         maxDrift = drift;
         if (drift > CONFIG.driftThreshold && driftStartIndex === -1) {

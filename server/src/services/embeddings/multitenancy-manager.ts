@@ -1,6 +1,6 @@
 /**
  * Multitenancy Manager for Qdrant VL-JEPA Collections
- * 
+ *
  * Manages tenant isolation and scaling for the vector database:
  * - Track tenant sizes (vector count per tenant)
  * - Automatic promotion threshold
@@ -129,18 +129,18 @@ export class MultitenancyManager {
    */
   async getAllTenantsInCollection(collectionName: CollectionName): Promise<Map<string, number>> {
     const tenantCounts = new Map<string, number>();
-    
+
     // Note: This is a simplified implementation
     // In production, you'd use Qdrant's aggregation features
     // or maintain a separate tenant registry
-    
+
     // For now, return cached data
     for (const [tenantId, stats] of this.tenantCache) {
       if (stats.collections[collectionName]) {
         tenantCounts.set(tenantId, stats.collections[collectionName]);
       }
     }
-    
+
     return tenantCounts;
   }
 
@@ -182,7 +182,7 @@ export class MultitenancyManager {
   ): Promise<PromotionEvent> {
     const stats = await this.getTenantStats(tenantId);
     const vectorCount = stats.collections[collectionName] || 0;
-    
+
     const event: PromotionEvent = {
       tenantId,
       collectionName,
@@ -204,7 +204,7 @@ export class MultitenancyManager {
       // Execute promotion
       const success = await this.client.promoteTenant(collectionName, tenantId);
       event.success = success;
-      
+
       if (success) {
         // Update cache
         const cachedStats = this.tenantCache.get(tenantId);
@@ -231,7 +231,7 @@ export class MultitenancyManager {
   ): Promise<PromotionEvent> {
     const stats = await this.getTenantStats(tenantId);
     const vectorCount = stats.collections[collectionName] || 0;
-    
+
     const event: PromotionEvent = {
       tenantId,
       collectionName,
@@ -245,7 +245,7 @@ export class MultitenancyManager {
     try {
       const success = await this.client.demoteTenant(collectionName, tenantId);
       event.success = success;
-      
+
       if (success) {
         const cachedStats = this.tenantCache.get(tenantId);
         if (cachedStats) {
@@ -272,7 +272,7 @@ export class MultitenancyManager {
     if (this.checkInterval) return;
 
     console.log('[Multitenancy] Starting tenant monitoring...');
-    
+
     this.checkInterval = setInterval(
       () => this.checkAllTenants(),
       this.config.checkIntervalMs
@@ -297,11 +297,11 @@ export class MultitenancyManager {
     if (!this.config.autoPromoteEnabled) return;
 
     console.log('[Multitenancy] Checking tenant thresholds...');
-    
+
     for (const [tenantId, stats] of this.tenantCache) {
       if (this.shouldPromote(stats)) {
         console.log(`[Multitenancy] Tenant ${tenantId} exceeds promotion threshold`);
-        
+
         for (const collectionName of Object.values(COLLECTION_NAMES)) {
           if (stats.collections[collectionName] > this.config.promotionThreshold) {
             await this.requestPromotion(
@@ -313,7 +313,7 @@ export class MultitenancyManager {
         }
       } else if (this.shouldDemote(stats)) {
         console.log(`[Multitenancy] Tenant ${tenantId} below demotion threshold`);
-        
+
         for (const collectionName of Object.values(COLLECTION_NAMES)) {
           await this.requestDemotion(
             tenantId,
@@ -334,7 +334,7 @@ export class MultitenancyManager {
    */
   async getTenantHealth(tenantId: string): Promise<TenantHealth> {
     const stats = await this.getTenantStats(tenantId);
-    
+
     const collections = Object.entries(stats.collections).map(([name, count]) => ({
       name,
       vectorCount: count,
@@ -424,7 +424,7 @@ export class MultitenancyManager {
    */
   updateConfig(updates: Partial<MultitenancyConfig>): void {
     this.config = { ...this.config, ...updates };
-    
+
     // Restart monitoring if interval changed
     if (updates.checkIntervalMs && this.checkInterval) {
       this.stopMonitoring();

@@ -1,9 +1,9 @@
 /**
  * Visual Understanding Service
- * 
+ *
  * VL-JEPA integration for visual analysis using Gemini 3 Pro.
  * Provides semantic understanding of screenshots, designs, and UI components.
- * 
+ *
  * Features:
  * - Screenshot analysis and description
  * - Design alignment checking
@@ -164,7 +164,7 @@ export class VisualUnderstandingService {
     this.embeddingService = getEmbeddingService();
     this.collectionManager = getCollectionManager();
     this.apiKey = process.env.GOOGLE_AI_API_KEY || '';
-    
+
     if (!this.apiKey) {
       console.warn('[VisualUnderstanding] GOOGLE_AI_API_KEY not set - using fallback analysis');
     }
@@ -229,7 +229,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
             contents: [{
               parts: [
                 { text: prompt },
-                isUrl 
+                isUrl
                   ? { fileData: { mimeType: 'image/jpeg', fileUri: imageData } }
                   : { inlineData: { mimeType: 'image/png', data: imageData?.replace(/^data:image\/\w+;base64,/, '') } },
               ],
@@ -250,7 +250,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
 
       const data = await response.json();
       const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
+
       // Parse JSON from response
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -319,14 +319,14 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
   ): Promise<DesignAlignmentResult> {
     // Analyze the visual first
     const description = await this.analyzeVisual(input, userId);
-    
+
     // Determine detected app soul based on visual characteristics
     const detectedAppSoul = this.detectAppSoul(description);
     const expectedAppSoul = input.expectedAppSoul || 'professional';
-    
+
     // Check soul match
     const soulMatch = detectedAppSoul === expectedAppSoul;
-    
+
     // Check design principles
     const expectedCharacteristics = CONFIG.appSoulCharacteristics[expectedAppSoul] || [];
     const principles = expectedCharacteristics.map(char => ({
@@ -337,13 +337,13 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
 
     // Check for anti-slop violations
     const antiSlopViolations = this.detectAntiSlopViolations(description);
-    
+
     // Calculate alignment score
     const principleScore = principles.filter(p => p.aligned).length / Math.max(principles.length, 1);
     const slopPenalty = antiSlopViolations.reduce((sum, v) => {
       return sum + (v.severity === 'severe' ? 0.3 : v.severity === 'moderate' ? 0.15 : 0.05);
     }, 0);
-    
+
     const alignmentScore = Math.max(0, (soulMatch ? 0.4 : 0) + principleScore * 0.6 - slopPenalty);
 
     // Generate suggestions
@@ -373,27 +373,27 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
    */
   private detectAppSoul(description: VisualDescription): string {
     const descLower = description.description.toLowerCase();
-    
+
     // Score each soul type based on characteristics
     const scores: Record<string, number> = {};
-    
+
     for (const [soul, characteristics] of Object.entries(CONFIG.appSoulCharacteristics)) {
-      scores[soul] = characteristics.filter(char => 
+      scores[soul] = characteristics.filter(char =>
         descLower.includes(char.toLowerCase())
       ).length;
     }
-    
+
     // Find highest scoring soul
     let maxSoul = 'professional';
     let maxScore = 0;
-    
+
     for (const [soul, score] of Object.entries(scores)) {
       if (score > maxScore) {
         maxScore = score;
         maxSoul = soul;
       }
     }
-    
+
     return maxSoul;
   }
 
@@ -405,7 +405,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
   ): DesignAlignmentResult['antiSlopViolations'] {
     const violations: DesignAlignmentResult['antiSlopViolations'] = [];
     const descLower = description.description.toLowerCase();
-    
+
     for (const pattern of CONFIG.antiSlopPatterns) {
       if (descLower.includes(pattern.pattern.toLowerCase())) {
         violations.push({
@@ -415,10 +415,10 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
         });
       }
     }
-    
+
     // Check color palette for problematic patterns
     for (const color of description.colorPalette || []) {
-      if (color.color?.toLowerCase().includes('purple') && 
+      if (color.color?.toLowerCase().includes('purple') &&
           description.layout?.type === 'unknown') {
         violations.push({
           pattern: 'purple gradient misuse',
@@ -427,7 +427,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
         });
       }
     }
-    
+
     return violations;
   }
 
@@ -444,7 +444,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
     userId: string
   ): Promise<string> {
     const visualId = uuidv4();
-    
+
     // Generate visual embedding
     const embedding = await this.embeddingService.embed({
       content: input.context || 'UI visual',
@@ -547,7 +547,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
         percentage: c.percentage ? Number(c.percentage) : undefined,
       })) : [],
       typography: {
-        primaryFont: parsed.typography && typeof parsed.typography === 'object' 
+        primaryFont: parsed.typography && typeof parsed.typography === 'object'
           ? String((parsed.typography as Record<string, unknown>).primaryFont || '') || undefined
           : undefined,
         headingStyle: parsed.typography && typeof parsed.typography === 'object'
@@ -561,7 +561,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
           : undefined,
       },
       layout: {
-        type: (parsed.layout && typeof parsed.layout === 'object' 
+        type: (parsed.layout && typeof parsed.layout === 'object'
           ? (parsed.layout as Record<string, unknown>).type as VisualDescription['layout']['type']
           : 'unknown') || 'unknown',
         structure: parsed.layout && typeof parsed.layout === 'object'
@@ -573,7 +573,7 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
       },
       motion: parsed.motion && typeof parsed.motion === 'object' ? {
         detected: Boolean((parsed.motion as Record<string, unknown>).detected),
-        type: (parsed.motion as Record<string, unknown>).type 
+        type: (parsed.motion as Record<string, unknown>).type
           ? String((parsed.motion as Record<string, unknown>).type)
           : undefined,
       } : undefined,
@@ -602,22 +602,22 @@ Respond ONLY with valid JSON, no markdown or explanation.`;
     violations: DesignAlignmentResult['antiSlopViolations']
   ): string[] {
     const suggestions: string[] = [];
-    
+
     // Address misaligned principles
     const misaligned = principles.filter(p => !p.aligned);
     for (const p of misaligned.slice(0, 3)) {
       suggestions.push(`Consider incorporating ${p.principle} to better match ${expectedSoul} aesthetic`);
     }
-    
+
     // Address violations
     for (const v of violations.filter(v => v.severity === 'severe')) {
       suggestions.push(`CRITICAL: Remove ${v.pattern} - this is a common AI design anti-pattern`);
     }
-    
+
     for (const v of violations.filter(v => v.severity === 'moderate').slice(0, 2)) {
       suggestions.push(`Improve: ${v.description}`);
     }
-    
+
     return suggestions;
   }
 

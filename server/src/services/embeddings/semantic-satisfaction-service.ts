@@ -1,9 +1,9 @@
 /**
  * Semantic Satisfaction Verification Service
- * 
+ *
  * VL-JEPA integration for intent satisfaction checking.
  * Determines if build outputs truly satisfy the original intent.
- * 
+ *
  * Features:
  * - Success criteria embedding and matching
  * - Feature completeness scoring
@@ -231,12 +231,12 @@ export class SemanticSatisfactionService {
     const criteriaScore = criteriaResults.length > 0
       ? criteriaResults.reduce((sum, r) => sum + (r.satisfied ? r.confidence : 0), 0) / criteriaResults.length
       : semanticSimilarity;
-    
+
     const workflowScore = workflowResults.length > 0
       ? workflowResults.reduce((sum, r) => sum + r.completionScore, 0) / workflowResults.length
       : 1.0;
 
-    const overallScore = 
+    const overallScore =
       criteriaScore * CONFIG.criteriaWeight +
       workflowScore * CONFIG.workflowWeight +
       codeQualityScore * CONFIG.codeWeight;
@@ -300,7 +300,7 @@ export class SemanticSatisfactionService {
     // Check each criterion
     for (let i = 0; i < criteria.length; i++) {
       const criterion = criteria[i];
-      
+
       // Generate embedding for criterion
       const criterionEmbedding = await this.embeddingService.embed({
         content: criterion,
@@ -395,7 +395,7 @@ export class SemanticSatisfactionService {
     const satisfiedCriteria = criteriaResults.filter(r => r.satisfied).length;
     const totalCriteria = criteriaResults.length || features.length || 1;
     const implemented = satisfiedCriteria || features.length;
-    
+
     return {
       implemented,
       total: totalCriteria,
@@ -460,7 +460,7 @@ export class SemanticSatisfactionService {
       gatePassed = 'minimum';
     }
 
-    const canProceed = satisfaction.overallScore >= requiredScore && 
+    const canProceed = satisfaction.overallScore >= requiredScore &&
                        blockers.filter(b => b.severity === 'critical').length === 0;
 
     // Calculate score needed for next gate
@@ -501,7 +501,7 @@ export class SemanticSatisfactionService {
     userId: string
   ): Promise<string> {
     const fixId = uuidv4();
-    
+
     // Generate embedding for error context
     const errorContext = `${errorPattern.errorType}: ${errorPattern.errorMessage}\nContext: ${errorPattern.context}`;
     const embedding = await this.embeddingService.embed({
@@ -584,7 +584,7 @@ export class SemanticSatisfactionService {
     userId: string
   ): Promise<string> {
     const patternId = uuidv4();
-    
+
     const embedding = await this.embeddingService.embed({
       content: pattern.code,
       type: 'code',

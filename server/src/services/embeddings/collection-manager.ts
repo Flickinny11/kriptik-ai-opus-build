@@ -1,6 +1,6 @@
 /**
  * Qdrant Collection Manager
- * 
+ *
  * Provides CRUD operations and management for all VL-JEPA collections.
  * Features:
  * - Automatic tenant field for multitenancy
@@ -219,14 +219,14 @@ export class CollectionManager {
    */
   async getAllCollectionsInfo(): Promise<CollectionInfo[]> {
     const infos: CollectionInfo[] = [];
-    
+
     for (const name of Object.values(COLLECTION_NAMES)) {
       const info = await this.getCollectionInfo(name);
       if (info) {
         infos.push(info);
       }
     }
-    
+
     return infos;
   }
 
@@ -243,7 +243,7 @@ export class CollectionManager {
     tenantId?: string
   ): Promise<boolean> {
     const payloadSchema = PAYLOAD_SCHEMAS[collectionName];
-    
+
     // Add tenant_id if collection supports multitenancy
     const processedPoints = points.map(p => ({
       id: p.id,
@@ -385,7 +385,7 @@ export class CollectionManager {
   ): Promise<SearchResult<IntentEmbeddingPayload>[]> {
     const filter: Record<string, unknown> = { must: [] };
     const must = filter.must as Array<Record<string, unknown>>;
-    
+
     if (options.projectId) {
       must.push({ key: 'project_id', match: { value: options.projectId } });
     }
@@ -432,7 +432,7 @@ export class CollectionManager {
   ): Promise<SearchResult<VisualEmbeddingPayload>[]> {
     const filter: Record<string, unknown> = { must: [] };
     const must = filter.must as Array<Record<string, unknown>>;
-    
+
     if (options.projectId) {
       must.push({ key: 'project_id', match: { value: options.projectId } });
     }
@@ -483,7 +483,7 @@ export class CollectionManager {
   ): Promise<SearchResult<CodePatternPayload>[]> {
     const filter: Record<string, unknown> = { must: [] };
     const must = filter.must as Array<Record<string, unknown>>;
-    
+
     if (options.projectId) {
       must.push({ key: 'project_id', match: { value: options.projectId } });
     }
@@ -532,7 +532,7 @@ export class CollectionManager {
   ): Promise<SearchResult<ErrorFixPayload>[]> {
     const filter: Record<string, unknown> = { must: [] };
     const must = filter.must as Array<Record<string, unknown>>;
-    
+
     if (options.errorType) {
       must.push({ key: 'error_type', match: { value: options.errorType } });
     }
