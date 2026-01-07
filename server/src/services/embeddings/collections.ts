@@ -263,12 +263,18 @@ export const PAYLOAD_SCHEMAS: Record<CollectionName, CollectionPayloadSchema> = 
 export interface IntentEmbeddingPayload {
   tenant_id?: string;
   project_id: string;
-  build_intent_id: string;
-  intent_type: 'full_intent' | 'component' | 'workflow';
+  user_id?: string;
+  build_intent_id?: string;
+  intent_type: 'full_intent' | 'component' | 'workflow' | 'feature' | 'bugfix' | 'refactor' | 'enhancement' | 'migration' | 'build';
   semantic_component?: 'action' | 'target' | 'constraint';
   original_text: string;
+  intent_text?: string; // Processed intent text
+  original_prompt?: string;
+  app_soul?: string;
+  success_criteria?: string[];
   created_at: string;
-  confidence: number;
+  updated_at?: string;
+  confidence?: number;
 }
 
 export interface VisualEmbeddingPayload {

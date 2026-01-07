@@ -729,6 +729,7 @@ import integrationsRouter from './routes/integrations.js';
 import huggingfaceAuthRouter from './routes/huggingface-auth.js';
 import openSourceStudioRouter from './routes/open-source-studio.js';
 import embeddingsRouter from './routes/embeddings.js';
+import semanticIntentRouter from './routes/semantic-intent.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -745,6 +746,9 @@ app.use("/api/ai", aiRateLimiter, promptSanitizer, requireCredits(30), aiRouter)
 
 // Embeddings API (VL-JEPA semantic layer) - 5 credits per request
 app.use("/api/embeddings", aiRateLimiter, requireCredits(5), embeddingsRouter);
+
+// Semantic Intent API (VL-JEPA intent verification) - 10 credits per request
+app.use("/api/semantic-intent", aiRateLimiter, requireCredits(10), semanticIntentRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);

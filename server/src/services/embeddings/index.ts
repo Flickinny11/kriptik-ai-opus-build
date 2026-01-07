@@ -101,3 +101,14 @@ export {
   type PromotionEvent,
   type TenantHealth,
 } from './multitenancy-manager.js';
+
+// Semantic Intent Service (VL-JEPA Integration)
+export {
+  SemanticIntentService,
+  getSemanticIntentService,
+  resetSemanticIntentService,
+  type SemanticIntent,
+  type SemanticAlignmentResult,
+  type SemanticDriftResult,
+  type SimilarIntent,
+} from './semantic-intent-service.js';
