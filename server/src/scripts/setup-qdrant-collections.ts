@@ -1,9 +1,16 @@
 #!/usr/bin/env npx tsx
 /**
- * Qdrant Collection Setup Script
+ * Qdrant Collection Setup Script (Enhanced)
  * 
  * Creates and configures all 7 collections for the VL-JEPA semantic layer.
  * This script is idempotent - safe to run multiple times.
+ * 
+ * Features:
+ * - Creates all collections with proper configurations
+ * - Sets up payload indexes for filtering
+ * - Configures HNSW and quantization settings
+ * - Verifies setup with statistics
+ * - Supports tiered multitenancy
  * 
  * Usage:
  *   npm run setup:qdrant
@@ -19,23 +26,13 @@ import { config } from 'dotenv';
 config();
 
 import { getQdrantClient, type QdrantClientWrapper } from '../services/embeddings/qdrant-client.js';
-import { 
-  COLLECTION_NAMES, 
-  VECTOR_CONFIGS, 
-  PAYLOAD_SCHEMAS,
-  type CollectionName,
-} from '../services/embeddings/collections.js';
+import { getCollectionManager } from '../services/embeddings/collection-manager.js';
+import { getMultitenancyManager } from '../services/embeddings/multitenancy-manager.js';
+import { COLLECTION_NAMES, VECTOR_CONFIGS, PAYLOAD_SCHEMAS } from '../services/embeddings/collections.js';
 
 // ============================================================================
 // Types
 // ============================================================================
-
-interface SetupResult {
-  collection: string;
-  created: boolean;
-  indexesCreated: number;
-  error?: string;
-}
 
 interface SetupSummary {
   success: boolean;
@@ -45,104 +42,74 @@ interface SetupSummary {
   totalIndexes: number;
   errors: string[];
   duration: number;
+  collectionDetails: Array<{
+    name: string;
+    vectorSize: number;
+    pointsCount: number;
+    indexes: string[];
+    status: string;
+  }>;
 }
 
 // ============================================================================
 // Setup Functions
 // ============================================================================
 
-async function setupCollection(
-  client: QdrantClientWrapper,
-  collectionName: CollectionName
-): Promise<SetupResult> {
-  const vectorConfig = VECTOR_CONFIGS[collectionName];
-  const payloadSchema = PAYLOAD_SCHEMAS[collectionName];
-  const fullName = client.getCollectionName(collectionName);
-  
-  const result: SetupResult = {
-    collection: fullName,
-    created: false,
-    indexesCreated: 0,
-  };
-
-  try {
-    // Check if collection exists
-    const exists = await client.collectionExists(collectionName);
-    
-    if (!exists) {
-      // Create collection
-      const created = await client.createCollection(
-        collectionName,
-        vectorConfig.size,
-        vectorConfig.distance,
-        {
-          onDisk: vectorConfig.onDisk,
-          hnswConfig: vectorConfig.hnswConfig,
-          quantizationConfig: vectorConfig.quantizationConfig ? {
-            scalar: vectorConfig.quantizationConfig.scalar ? {
-              type: vectorConfig.quantizationConfig.scalar.type,
-              quantile: vectorConfig.quantizationConfig.scalar.quantile,
-              always_ram: vectorConfig.quantizationConfig.scalar.alwaysRam,
-            } : undefined,
-          } : undefined,
-          replicationFactor: 2,
-          writeConsistencyFactor: 1,
-          shardNumber: 2,
-        }
-      );
-      
-      if (!created) {
-        throw new Error('Failed to create collection');
-      }
-      
-      result.created = true;
-      console.log(`  ✓ Created collection: ${fullName}`);
-    } else {
-      console.log(`  ○ Collection exists: ${fullName}`);
-    }
-
-    // Create payload indexes
-    for (const field of payloadSchema.fields) {
-      if (field.indexed) {
-        const indexCreated = await client.createPayloadIndex(
-          collectionName,
-          field.name,
-          field.type
-        );
-        
-        if (indexCreated) {
-          result.indexesCreated++;
-        }
-      }
-    }
-    
-    if (result.indexesCreated > 0) {
-      console.log(`    → Created ${result.indexesCreated} payload indexes`);
-    }
-
-  } catch (error) {
-    result.error = error instanceof Error ? error.message : String(error);
-    console.error(`  ✗ Error setting up ${fullName}:`, result.error);
-  }
-
-  return result;
-}
-
-async function verifySetup(client: QdrantClientWrapper): Promise<void> {
+async function verifySetup(client: QdrantClientWrapper): Promise<SetupSummary['collectionDetails']> {
   console.log('\n📊 Verifying collection setup...\n');
+  
+  const details: SetupSummary['collectionDetails'] = [];
   
   for (const collectionName of Object.values(COLLECTION_NAMES)) {
     const stats = await client.getCollectionStats(collectionName);
+    const vectorConfig = VECTOR_CONFIGS[collectionName];
+    const payloadSchema = PAYLOAD_SCHEMAS[collectionName];
+    const indexes = payloadSchema.fields.filter(f => f.indexed).map(f => f.name);
     
     if (stats) {
       console.log(`  ${stats.name}:`);
       console.log(`    Status: ${stats.status}`);
+      console.log(`    Vector Size: ${vectorConfig.size} dimensions`);
       console.log(`    Points: ${stats.pointsCount}`);
-      console.log(`    Vectors: ${stats.vectorsCount}`);
       console.log(`    Segments: ${stats.segmentsCount}`);
+      console.log(`    Indexes: ${indexes.join(', ')}`);
+      
+      details.push({
+        name: collectionName,
+        vectorSize: vectorConfig.size,
+        pointsCount: stats.pointsCount,
+        indexes,
+        status: stats.status,
+      });
     } else {
       console.log(`  ${client.getCollectionName(collectionName)}: NOT FOUND`);
+      details.push({
+        name: collectionName,
+        vectorSize: vectorConfig.size,
+        pointsCount: 0,
+        indexes: [],
+        status: 'missing',
+      });
     }
+  }
+  
+  return details;
+}
+
+async function printCollectionConfigurations(): Promise<void> {
+  console.log('\n📋 Collection Configurations:\n');
+  
+  for (const [name, config] of Object.entries(VECTOR_CONFIGS)) {
+    console.log(`  ${name}:`);
+    console.log(`    Dimensions: ${config.size}`);
+    console.log(`    Distance: ${config.distance}`);
+    if (config.hnswConfig) {
+      console.log(`    HNSW m=${config.hnswConfig.m}, ef_construct=${config.hnswConfig.efConstruct}`);
+    }
+    if (config.quantizationConfig?.scalar) {
+      console.log(`    Quantization: ${config.quantizationConfig.scalar.type}`);
+    }
+    console.log('');
   }
 }
 
@@ -156,11 +123,14 @@ async function main(): Promise<void> {
   console.log('╔════════════════════════════════════════════════════════════════╗');
   console.log('║          KripTik AI - Qdrant Collection Setup                  ║');
   console.log('║          VL-JEPA Semantic Intelligence Layer                   ║');
+  console.log('║          Version 2.0 - With Multitenancy Support               ║');
   console.log('╚════════════════════════════════════════════════════════════════╝');
   console.log('');
   
-  // Get Qdrant client
+  // Get managers
   const client = getQdrantClient();
+  const collectionManager = getCollectionManager();
+  const multitenancyManager = getMultitenancyManager();
   
   // Check health
   console.log('🔌 Connecting to Qdrant...\n');
@@ -180,29 +150,61 @@ async function main(): Promise<void> {
   console.log(`  ✓ Existing collections: ${health.collectionsCount}`);
   console.log('');
   
-  // Setup collections
-  console.log('📦 Setting up collections...\n');
+  // Print collection configurations
+  await printCollectionConfigurations();
   
-  const results: SetupResult[] = [];
-  const collectionNames = Object.values(COLLECTION_NAMES);
+  // Initialize all collections using CollectionManager
+  console.log('📦 Initializing collections...\n');
   
-  for (const collectionName of collectionNames) {
-    const result = await setupCollection(client, collectionName);
-    results.push(result);
+  const initResult = await collectionManager.initialize();
+  
+  if (initResult.created.length > 0) {
+    console.log(`  ✓ Created ${initResult.created.length} new collections:`);
+    for (const name of initResult.created) {
+      console.log(`    - ${name}`);
+    }
+  }
+  
+  if (initResult.existing.length > 0) {
+    console.log(`  ○ ${initResult.existing.length} collections already exist:`);
+    for (const name of initResult.existing) {
+      console.log(`    - ${name}`);
+    }
+  }
+  
+  if (initResult.errors.length > 0) {
+    console.log(`  ✗ ${initResult.errors.length} errors:`);
+    for (const error of initResult.errors) {
+      console.log(`    - ${error}`);
+    }
   }
   
   // Verify setup
-  await verifySetup(client);
+  const collectionDetails = await verifySetup(client);
+  
+  // Initialize multitenancy (just create the manager, don't start monitoring)
+  console.log('\n🏢 Multitenancy Configuration:');
+  const mtConfig = multitenancyManager.getConfig();
+  console.log(`  Promotion Threshold: ${mtConfig.promotionThreshold.toLocaleString()} vectors`);
+  console.log(`  Demotion Threshold: ${mtConfig.demotionThreshold.toLocaleString()} vectors`);
+  console.log(`  Auto-Promote Enabled: ${mtConfig.autoPromoteEnabled}`);
+  console.log(`  Off-Peak Hours: ${mtConfig.offPeakHoursStart}:00 - ${mtConfig.offPeakHoursEnd}:00`);
   
   // Generate summary
+  const totalIndexes = collectionDetails.reduce(
+    (sum, c) => sum + c.indexes.length,
+    0
+  );
+  
   const summary: SetupSummary = {
-    success: results.every(r => !r.error),
-    totalCollections: collectionNames.length,
-    collectionsCreated: results.filter(r => r.created).length,
-    collectionsExisting: results.filter(r => !r.created && !r.error).length,
-    totalIndexes: results.reduce((sum, r) => sum + r.indexesCreated, 0),
-    errors: results.filter(r => r.error).map(r => `${r.collection}: ${r.error}`),
+    success: initResult.errors.length === 0,
+    totalCollections: Object.keys(COLLECTION_NAMES).length,
+    collectionsCreated: initResult.created.length,
+    collectionsExisting: initResult.existing.length,
+    totalIndexes,
+    errors: initResult.errors,
     duration: Date.now() - startTime,
+    collectionDetails,
   };
   
   // Print summary
@@ -213,12 +215,28 @@ async function main(): Promise<void> {
   console.log(`  Total Collections: ${summary.totalCollections}`);
   console.log(`  Created: ${summary.collectionsCreated}`);
   console.log(`  Already Existing: ${summary.collectionsExisting}`);
-  console.log(`  Indexes Created: ${summary.totalIndexes}`);
+  console.log(`  Total Indexes: ${summary.totalIndexes}`);
   console.log(`  Duration: ${summary.duration}ms`);
   console.log('');
   
+  // Collection overview table
+  console.log('  Collection Overview:');
+  console.log('  ────────────────────────────────────────────────────────────────');
+  console.log('  Collection              │ Vectors │ Dims  │ Status');
+  console.log('  ────────────────────────────────────────────────────────────────');
+  
+  for (const col of collectionDetails) {
+    const name = col.name.padEnd(22);
+    const vectors = String(col.vectorSize).padStart(7);
+    const points = String(col.pointsCount).padStart(5);
+    console.log(`  ${name} │ ${vectors} │ ${points} │ ${col.status}`);
+  }
+  
+  console.log('  ────────────────────────────────────────────────────────────────');
+  console.log('');
+  
   if (summary.errors.length > 0) {
-    console.log('❌ Errors:');
+    console.log('❌ Setup completed with errors:');
     for (const error of summary.errors) {
       console.log(`   - ${error}`);
     }
@@ -227,6 +245,11 @@ async function main(): Promise<void> {
   }
   
   console.log('✅ All collections set up successfully!');
+  console.log('');
+  console.log('Next steps:');
+  console.log('  1. Configure embedding API keys (HUGGINGFACE_API_KEY, VOYAGE_API_KEY)');
+  console.log('  2. Start using the embedding service via /api/embeddings endpoints');
+  console.log('  3. Monitor collection health via /api/health/qdrant/collections');
   console.log('');
 }
 

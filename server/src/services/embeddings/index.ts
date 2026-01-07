@@ -29,7 +29,7 @@ export {
   type VectorConfig,
   type PayloadFieldSchema,
   type CollectionPayloadSchema,
-  type CollectionConfig,
+  type CollectionConfig as CollectionDefinitionConfig,
   type IntentEmbeddingPayload,
   type VisualEmbeddingPayload,
   type CodePatternPayload,
@@ -77,3 +77,27 @@ export {
   VoyageCodeProvider,
   SigLIPProvider,
 } from './providers/index.js';
+
+// Collection Manager
+export {
+  CollectionManager,
+  getCollectionManager,
+  resetCollectionManager,
+  type CollectionConfig,
+  type CollectionInfo,
+  type Point as CollectionPoint,
+  type SearchQuery as CollectionSearchQuery,
+  type SearchResult as CollectionSearchResult,
+  type AnyPayload,
+} from './collection-manager.js';
+
+// Multitenancy Manager
+export {
+  MultitenancyManager,
+  getMultitenancyManager,
+  resetMultitenancyManager,
+  type MultitenancyConfig,
+  type TenantStats,
+  type PromotionEvent,
+  type TenantHealth,
+} from './multitenancy-manager.js';
