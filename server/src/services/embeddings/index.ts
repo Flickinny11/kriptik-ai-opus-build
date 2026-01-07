@@ -38,3 +38,42 @@ export {
   type DecompositionPayload,
   type ReasoningSkeletonPayload,
 } from './collections.js';
+
+// Embedding service interfaces and types
+export {
+  type EmbeddingType,
+  type EmbeddingRequest,
+  type EmbeddingResult,
+  type BatchEmbeddingResult,
+  type SimilarityResult,
+  type EmbeddingServiceHealth,
+  type EmbeddingProvider,
+  type EmbeddingOptions,
+  type ProviderHealth,
+  type IEmbeddingService,
+  EMBEDDING_COSTS,
+  MODEL_CONFIG,
+  TYPE_TO_PROVIDER,
+} from './embedding-service.js';
+
+// Embedding service implementation
+export {
+  EmbeddingService,
+  getEmbeddingService,
+  resetEmbeddingService,
+} from './embedding-service-impl.js';
+
+// Embedding cache
+export {
+  EmbeddingCache,
+  getEmbeddingCache,
+  resetEmbeddingCache,
+  type EmbeddingCacheConfig,
+} from './embedding-cache.js';
+
+// Providers
+export {
+  BGEM3Provider,
+  VoyageCodeProvider,
+  SigLIPProvider,
+} from './providers/index.js';

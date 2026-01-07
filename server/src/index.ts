@@ -728,6 +728,7 @@ import { importRouter } from './routes/import.js';
 import integrationsRouter from './routes/integrations.js';
 import huggingfaceAuthRouter from './routes/huggingface-auth.js';
 import openSourceStudioRouter from './routes/open-source-studio.js';
+import embeddingsRouter from './routes/embeddings.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -741,6 +742,9 @@ app.use("/api/orchestrate", orchestrationRateLimiter, promptSanitizer, requireCr
 
 // AI services (image-to-code, self-healing, test generation) - 30 credits
 app.use("/api/ai", aiRateLimiter, promptSanitizer, requireCredits(30), aiRouter);
+
+// Embeddings API (VL-JEPA semantic layer) - 5 credits per request
+app.use("/api/embeddings", aiRateLimiter, requireCredits(5), embeddingsRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
