@@ -35,6 +35,7 @@ import {
   type ReasoningResponse,
 } from './providers/index.js';
 import { createToTEngine, type ToTEngine, type ToTResult } from './tree-of-thought/index.js';
+import { createSwarmEngine, type SwarmEngine, type SwarmResult } from './multi-agent/index.js';
 
 // ============================================================================
 // Configuration
@@ -436,7 +437,7 @@ Provide your reasoning and final answer.`;
   
   /**
    * Multi-Agent reasoning - parallel agents with synthesis
-   * Note: Full implementation in separate module (PROMPT 3)
+   * Uses the full Swarm Engine with conflict detection and resolution
    */
   async multiAgentReasoning(
     sessionId: string,
@@ -444,68 +445,105 @@ Provide your reasoning and final answer.`;
     config: HyperThinkingConfig,
     routing: RoutingDecision
   ): Promise<HyperThinkingResult> {
-    // Placeholder - will be implemented in PROMPT 3
-    // For now, simulate multi-perspective analysis
     const startedAt = new Date();
-    const provider = getProvider(routing.model.provider);
     
-    const multiAgentPrompt = `${this.buildPrompt(input)}
-
-Analyze this from multiple expert perspectives:
-
-## Analyst Perspective:
-- What are the key requirements?
-- What constraints exist?
-- What data/information is needed?
-
-## Architect Perspective:
-- What is the high-level structure?
-- What components are needed?
-- How do they interact?
-
-## Implementer Perspective:
-- What are the concrete steps?
-- What tools/technologies to use?
-- What are potential challenges?
-
-## Critic Perspective:
-- What could go wrong?
-- What edge cases exist?
-- What improvements are possible?
-
-## Synthesis:
-Combine insights from all perspectives into a comprehensive solution.
-
-## Final Answer:
-[Clear, actionable answer]`;
+    // Create swarm engine with configuration based on routing
+    const swarmEngine = createSwarmEngine({
+      config: {
+        parallelAgents: CONFIG.maxParallelOps,
+        conflictResolution: 'hybrid',
+        debateRounds: 1,
+        temperature: config.temperature,
+        modelTierDistribution: {
+          maximum: routing.model.tier === 'maximum' ? 0.4 : 0.1,
+          deep: routing.model.tier === 'deep' ? 0.5 : 0.3,
+          standard: 0.3,
+          fast: 0.2,
+        },
+      },
+      onProgress: (event) => {
+        // Track progress events
+        console.log(`[Swarm] ${event.type}: ${event.message}`);
+      },
+    });
     
-    const request: ReasoningRequest = {
-      prompt: multiAgentPrompt,
-      systemPrompt: input.systemPrompt || CONFIG.systemPrompt,
-      model: routing.model,
-      thinkingBudget: routing.thinkingBudget,
-      temperature: config.temperature,
-      previousContext: input.context,
-    };
+    // Execute swarm reasoning
+    const swarmResult = await swarmEngine.reason({
+      problem: this.buildPrompt(input),
+      context: input.context,
+    });
     
-    const response = await provider.reason(request);
-    this.budgetManager.recordUsage(sessionId, 'multi-agent-main', response.tokenUsage);
+    // Record total token usage
+    this.budgetManager.recordUsage(sessionId, 'multi-agent-swarm', swarmResult.tokenUsage);
     
-    const step: ReasoningStep = {
+    // Convert swarm reasoning steps to hyper-thinking format
+    const steps: ReasoningStep[] = swarmResult.reasoning.map((step, index) => ({
       id: uuidv4(),
-      parentId: null,
-      depth: 0,
-      thought: response.thinking || response.content,
-      model: response.model,
-      provider: response.provider,
-      tokenUsage: response.tokenUsage,
-      latencyMs: response.latencyMs,
+      parentId: index > 0 ? steps[index - 1]?.id || null : null,
+      depth: step.step - 1,
+      thought: step.reasoning,
+      evaluation: step.conclusion ? {
+        score: step.confidence,
+        confidence: step.confidence,
+        reasoning: step.conclusion,
+        isTerminal: index === swarmResult.reasoning.length - 1,
+        shouldExpand: false,
+        concerns: [],
+        suggestions: [],
+      } : undefined,
+      model: routing.model.displayName,
+      provider: routing.model.provider,
+      tokenUsage: {
+        promptTokens: Math.floor(swarmResult.tokenUsage.promptTokens / swarmResult.reasoning.length),
+        completionTokens: Math.floor(swarmResult.tokenUsage.completionTokens / swarmResult.reasoning.length),
+        thinkingTokens: Math.floor((swarmResult.tokenUsage.thinkingTokens || 0) / swarmResult.reasoning.length),
+        totalTokens: Math.floor(swarmResult.tokenUsage.totalTokens / swarmResult.reasoning.length),
+      },
+      latencyMs: Math.floor(swarmResult.latencyMs / swarmResult.reasoning.length),
       createdAt: new Date(),
       children: [],
-      metadata: { strategy: 'multi_agent', agentCount: 4 },
-    };
+      metadata: { 
+        strategy: 'multi_agent',
+        agentCount: swarmResult.contributingAgents.length,
+        phase: step.thought,
+      },
+    }));
     
-    return this.buildResult(sessionId, 'multi_agent', response, [step], startedAt);
+    // Build result
+    const completedAt = new Date();
+    const session = this.activeSessions.get(sessionId);
+    
+    return {
+      success: swarmResult.confidence > 0.5,
+      strategy: 'multi_agent',
+      finalAnswer: swarmResult.answer,
+      reasoningPath: steps,
+      confidence: swarmResult.confidence,
+      totalTokens: {
+        promptTokens: swarmResult.tokenUsage.promptTokens,
+        completionTokens: swarmResult.tokenUsage.completionTokens,
+        thinkingTokens: swarmResult.tokenUsage.thinkingTokens || 0,
+        totalTokens: swarmResult.tokenUsage.totalTokens,
+      },
+      totalLatencyMs: swarmResult.latencyMs,
+      modelsUsed: [...new Set(swarmResult.contributingAgents.map(a => a.role))],
+      budgetStatus: session?.budgetSession.currentBudget || {
+        totalTokens: swarmResult.tokenUsage.totalTokens,
+        usedTokens: swarmResult.tokenUsage.totalTokens,
+        remainingTokens: 0,
+        budgetPerStep: 0,
+        maxSteps: 0,
+        estimatedCreditCost: Math.ceil(swarmResult.tokenUsage.totalTokens / 1000),
+      },
+      metadata: {
+        startedAt,
+        completedAt,
+        stepsCompleted: steps.length,
+        stepsEvaluated: steps.filter(s => s.evaluation).length,
+        agentsUsed: swarmResult.contributingAgents.length,
+        conflictsResolved: swarmResult.conflictResolutions.length,
+      },
+    };
   }
   
   /**

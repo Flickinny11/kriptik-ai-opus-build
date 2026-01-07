@@ -76,6 +76,33 @@ export {
   type ToTStrategy,
 } from './tree-of-thought/index.js';
 
+// Multi-Agent Reasoning Swarm
+export {
+  SwarmEngine,
+  getSwarmEngine,
+  createSwarmEngine,
+  resetSwarmEngine,
+  AgentFactory,
+  AgentCoordinator,
+  ConflictDetector,
+  ConflictResolver,
+  SwarmSynthesisEngine,
+  DEFAULT_SWARM_CONFIG,
+  type SwarmConfig,
+  type SwarmResult,
+  type SwarmAgent,
+  type AgentResult,
+  type SwarmProgressEvent,
+  type SwarmState,
+  type Conflict,
+  type ConflictResolution,
+  type DebateRound,
+  type ReasoningSwarmInput,
+  type SwarmEngineOptions,
+  type SwarmReasoningStep,
+  type ContributingAgent,
+} from './multi-agent/index.js';
+
 // Convenience function for quick reasoning
 export async function reason(
   prompt: string,
