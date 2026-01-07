@@ -34,6 +34,7 @@ import {
   type ReasoningRequest,
   type ReasoningResponse,
 } from './providers/index.js';
+import { createToTEngine, type ToTEngine, type ToTResult } from './tree-of-thought/index.js';
 
 // ============================================================================
 // Configuration
@@ -340,7 +341,7 @@ Provide your reasoning and final answer.`;
   
   /**
    * Tree-of-Thought reasoning - parallel path exploration
-   * Note: Full implementation in separate ToT module (PROMPT 2)
+   * Uses the full ToT engine with beam search, evaluation, and synthesis
    */
   async treeOfThought(
     sessionId: string,
@@ -348,72 +349,89 @@ Provide your reasoning and final answer.`;
     config: HyperThinkingConfig,
     routing: RoutingDecision
   ): Promise<HyperThinkingResult> {
-    // Placeholder - will be implemented in PROMPT 2
-    // For now, fall back to enhanced CoT
     const startedAt = new Date();
-    const provider = getProvider(routing.model.provider);
     
-    const totPrompt = `${this.buildPrompt(input)}
-
-Use Tree-of-Thought reasoning:
-1. Generate 3 different initial approaches to this problem
-2. Evaluate each approach (score 0-10, explain strengths/weaknesses)
-3. Select the most promising approach
-4. Develop that approach further
-5. Synthesize your final answer
-
-Format:
-## Approach 1: [Name]
-[Description]
-Score: X/10
-Reasoning: [Why this score]
-
-## Approach 2: [Name]
-[Description]
-Score: X/10
-Reasoning: [Why this score]
-
-## Approach 3: [Name]
-[Description]
-Score: X/10
-Reasoning: [Why this score]
-
-## Selected Approach: [Number]
-Justification: [Why this is best]
-
-## Developed Solution:
-[Full solution]
-
-## Final Answer:
-[Concise answer]`;
+    // Create ToT engine with configuration
+    const totEngine = createToTEngine(routing.model, {
+      strategy: 'beam',
+      beamWidth: 5,
+      maxDepth: 4,
+      maxBranches: 3,
+      evaluationThreshold: 0.5,
+      pruningThreshold: 0.3,
+      generationTemperature: Math.max(config.temperature, 0.8),
+      evaluationTemperature: 0.3,
+      minSuccessScore: 0.7,
+    });
     
-    const request: ReasoningRequest = {
-      prompt: totPrompt,
-      systemPrompt: input.systemPrompt || CONFIG.systemPrompt,
-      model: routing.model,
-      thinkingBudget: routing.thinkingBudget,
-      temperature: Math.max(config.temperature, 0.8), // Higher temp for diversity
-      previousContext: input.context,
+    // Run ToT
+    const totResult = await totEngine.solve(
+      this.buildPrompt(input),
+      input.hints
+    );
+    
+    // Record usage
+    this.budgetManager.recordUsage(sessionId, 'tot-main', totResult.totalTokens);
+    
+    // Convert ToT result to reasoning steps
+    const steps: ReasoningStep[] = totResult.tree.bestPath.map((nodeId, index) => {
+      const node = totResult.tree.nodes.get(nodeId)!;
+      return {
+        id: node.id,
+        parentId: node.parentId,
+        depth: node.depth,
+        thought: node.thought,
+        evaluation: node.evaluation ? {
+          score: node.evaluation.score,
+          confidence: node.evaluation.confidence,
+          reasoning: node.evaluation.reasoning,
+          isTerminal: node.evaluation.isTerminal,
+          shouldExpand: node.evaluation.shouldExpand,
+          concerns: node.evaluation.concerns,
+          suggestions: node.evaluation.suggestions,
+        } : undefined,
+        model: node.model,
+        provider: node.provider,
+        tokenUsage: node.tokenUsage,
+        latencyMs: node.latencyMs,
+        createdAt: node.createdAt,
+        children: node.children,
+        metadata: { 
+          strategy: 'tree_of_thought',
+          generationStrategy: node.generationStrategy,
+          pruned: node.pruned,
+        },
+      };
+    });
+    
+    // Build final result
+    const completedAt = new Date();
+    
+    return {
+      success: totResult.success,
+      strategy: 'tree_of_thought',
+      finalAnswer: totResult.finalAnswer,
+      reasoningPath: steps,
+      confidence: totResult.confidence,
+      totalTokens: totResult.totalTokens,
+      totalLatencyMs: totResult.totalLatencyMs,
+      modelsUsed: totResult.modelsUsed,
+      budgetStatus: this.activeSessions.get(sessionId)?.budgetSession.currentBudget || {
+        totalTokens: totResult.totalTokens.totalTokens,
+        usedTokens: totResult.totalTokens.totalTokens,
+        remainingTokens: 0,
+        budgetPerStep: 0,
+        maxSteps: 0,
+        estimatedCreditCost: Math.ceil(totResult.totalTokens.totalTokens / 1000),
+      },
+      metadata: {
+        startedAt,
+        completedAt,
+        stepsCompleted: steps.length,
+        stepsEvaluated: totResult.metadata.nodesEvaluated,
+        branchesPruned: totResult.metadata.nodesPruned,
+      },
     };
-    
-    const response = await provider.reason(request);
-    this.budgetManager.recordUsage(sessionId, 'tot-main', response.tokenUsage);
-    
-    const step: ReasoningStep = {
-      id: uuidv4(),
-      parentId: null,
-      depth: 0,
-      thought: response.thinking || response.content,
-      model: response.model,
-      provider: response.provider,
-      tokenUsage: response.tokenUsage,
-      latencyMs: response.latencyMs,
-      createdAt: new Date(),
-      children: [],
-      metadata: { strategy: 'tree_of_thought' },
-    };
-    
-    return this.buildResult(sessionId, 'tree_of_thought', response, [step], startedAt);
   }
   
   /**

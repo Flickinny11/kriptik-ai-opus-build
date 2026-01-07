@@ -54,6 +54,28 @@ export {
   type StreamingReasoningResponse,
 } from './providers/index.js';
 
+// Tree-of-Thought
+export {
+  ToTEngine,
+  createToTEngine,
+  ThoughtGenerator,
+  ThoughtEvaluator,
+  SynthesisEngine,
+  createSearchStrategy,
+  BeamSearchStrategy,
+  BFSStrategy,
+  DFSStrategy,
+  DEFAULT_TOT_CONFIG,
+  type ToTConfig,
+  type ToTResult,
+  type ToTProgressEvent,
+  type ThoughtNode,
+  type ThoughtTree,
+  type ThoughtEvaluation,
+  type GenerationStrategy,
+  type ToTStrategy,
+} from './tree-of-thought/index.js';
+
 // Convenience function for quick reasoning
 export async function reason(
   prompt: string,
