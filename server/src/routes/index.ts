@@ -73,3 +73,6 @@ export { default as githubRouter } from './github.js';
 
 // Autonomous Browser Provisioning
 export { default as provisioningRouter } from './provisioning.js';
+
+// Visual Editor (Point-and-Prompt, Style Generation)
+export { default as visualEditorRouter } from './visual-editor.js';

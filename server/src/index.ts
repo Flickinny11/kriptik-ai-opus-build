@@ -958,6 +958,10 @@ app.use("/api/extension", extensionRouter);
 import productionStackRouter from './routes/production-stack.js';
 app.use("/api/production-stack", productionStackRouter);
 
+// Visual Editor - Point-and-Prompt Style Generation
+import visualEditorRouter from './routes/visual-editor.js';
+app.use("/api/visual-editor", promptSanitizer, requireCredits(15), visualEditorRouter);
+
 // Builder Agent Activity Stream (SSE)
 import agentRouter from './routes/agent.js';
 app.use("/api/agent", agentRouter);
