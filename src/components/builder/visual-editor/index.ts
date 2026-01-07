@@ -24,6 +24,8 @@ export {
   PromptInput,
   AntiSlopWarnings,
   PropsInspector,
+  SelectionOverlay,
+  BatchStyleEditor,
 } from './controls';
 
 // Control types

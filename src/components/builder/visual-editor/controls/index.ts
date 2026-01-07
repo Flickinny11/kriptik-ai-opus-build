@@ -13,3 +13,7 @@ export { PromptInput } from './PromptInput';
 export { AntiSlopWarnings } from './AntiSlopWarnings';
 export { PropsInspector } from './PropsInspector';
 export type { PropType, PropDefinition } from './PropsInspector';
+
+// Multi-Element Selection
+export { SelectionOverlay } from './SelectionOverlay';
+export { BatchStyleEditor } from './BatchStyleEditor';
