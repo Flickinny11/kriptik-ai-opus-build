@@ -283,8 +283,11 @@ export interface VisualEmbeddingPayload {
   build_id: string;
   image_type: 'screenshot' | 'mockup' | 'design_system' | 'component';
   app_soul: string;
-  phase: string;
-  verification_score: number;
+  phase?: string;
+  verification_score?: number;
+  design_alignment_score?: number;
+  visual_description?: string;
+  anti_slop_passed?: boolean;
   created_at: string;
 }
 

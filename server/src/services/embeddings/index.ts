@@ -127,3 +127,14 @@ export {
   type SatisfactionResult,
   type CompletionGateResult,
 } from './semantic-satisfaction-service.js';
+
+// Visual Understanding Service (VL-JEPA Visual Analysis)
+export {
+  VisualUnderstandingService,
+  getVisualUnderstandingService,
+  resetVisualUnderstandingService,
+  type VisualAnalysisInput,
+  type VisualDescription,
+  type DesignAlignmentResult,
+  type SimilarVisual,
+} from './visual-understanding-service.js';

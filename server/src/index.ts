@@ -731,6 +731,7 @@ import openSourceStudioRouter from './routes/open-source-studio.js';
 import embeddingsRouter from './routes/embeddings.js';
 import semanticIntentRouter from './routes/semantic-intent.js';
 import semanticSatisfactionRouter from './routes/semantic-satisfaction.js';
+import visualUnderstandingRouter from './routes/visual-understanding.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -753,6 +754,9 @@ app.use("/api/semantic-intent", aiRateLimiter, requireCredits(10), semanticInten
 
 // Semantic Satisfaction API (VL-JEPA completion gates) - 15 credits per request
 app.use("/api/semantic-satisfaction", aiRateLimiter, requireCredits(15), semanticSatisfactionRouter);
+
+// Visual Understanding API (VL-JEPA visual analysis with Gemini) - 20 credits per request
+app.use("/api/visual", aiRateLimiter, requireCredits(20), visualUnderstandingRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
