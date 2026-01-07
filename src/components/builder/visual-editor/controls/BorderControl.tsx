@@ -30,15 +30,6 @@ const RADIUS_PRESETS = [
   { label: 'Full', value: '9999px' },
 ];
 
-// Border width presets
-const WIDTH_PRESETS = [
-  { label: '0', value: '0' },
-  { label: '1', value: '1px' },
-  { label: '2', value: '2px' },
-  { label: '3', value: '3px' },
-  { label: '4', value: '4px' },
-];
-
 // Border styles
 const BORDER_STYLES = [
   { value: 'none', label: 'None' },

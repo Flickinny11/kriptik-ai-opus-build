@@ -386,7 +386,8 @@ const PropRow: React.FC<PropRowProps> = ({ prop, onPropChange }) => {
 // =============================================================================
 
 export const PropsInspector: React.FC<PropsInspectorProps> = ({ className = '' }) => {
-  const { selectedElement, pendingStyleChanges } = useVisualEditorStore();
+  const { selectedElements } = useVisualEditorStore();
+  const selectedElement = selectedElements[0] ?? null;
   const [searchTerm, setSearchTerm] = useState('');
   const [showRequired, setShowRequired] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(

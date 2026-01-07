@@ -1,6 +1,6 @@
 /**
  * GPU Billing Service
- * 
+ *
  * Connects GPU cost tracking to credit deduction with margin calculation.
  * Handles:
  * - Pre-authorization of GPU usage before jobs start

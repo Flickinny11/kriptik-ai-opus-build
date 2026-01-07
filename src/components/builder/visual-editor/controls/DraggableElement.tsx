@@ -68,7 +68,6 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
 }) => {
   const {
     selectionMode,
-    isDragging: storeDragging,
     dragSource,
     startDrag: storeStartDrag,
     endDrag: storeEndDrag,

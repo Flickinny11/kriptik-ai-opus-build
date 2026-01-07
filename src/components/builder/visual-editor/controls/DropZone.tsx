@@ -259,7 +259,7 @@ const DropZoneLabel: React.FC<{ position: DropPosition; elementName: string }> =
 // =============================================================================
 
 export const DropZone: React.FC<DropZoneProps> = ({ className = '' }) => {
-  const { isDragging, dropTarget } = useVisualEditorStore();
+  const { isDragging, dropTarget: storeDropTarget } = useVisualEditorStore();
   const [currentTarget, setCurrentTarget] = useState<DropTarget | null>(null);
   const [frameOffset, setFrameOffset] = useState({ x: 0, y: 0 });
 
@@ -300,8 +300,13 @@ export const DropZone: React.FC<DropZoneProps> = ({ className = '' }) => {
     };
   }, []);
 
-  // Use store's dropTarget if available, otherwise use local state
-  const activeTarget = dropTarget || currentTarget;
+  // Convert store dropTarget to DropTarget format if needed, otherwise use local state
+  const activeTarget: DropTarget | null = currentTarget || (storeDropTarget ? {
+    element: storeDropTarget.element,
+    position: storeDropTarget.position,
+    bounds: new DOMRect(0, 0, 100, 40), // Default bounds if not available
+    insertionIndex: 0,
+  } : null);
 
   if (!isDragging) {
     return null;

@@ -1456,7 +1456,7 @@ router.get('/oss/products', async (_req: Request, res: Response) => {
 /**
  * POST /api/billing/oss/usage
  * Record metered usage for Open Source Studio features
- * 
+ *
  * Body:
  * - type: 'training' | 'finetuning' | 'inference' | 'storage'
  * - subscriptionItemId: Stripe subscription item ID
@@ -1555,7 +1555,7 @@ router.post('/oss/usage', authMiddleware, async (req: Request, res: Response) =>
 /**
  * GET /api/billing/oss/estimate
  * Get price estimate for Open Source Studio operations
- * 
+ *
  * Query params:
  * - type: 'training' | 'inference' | 'storage'
  * - Additional params based on type

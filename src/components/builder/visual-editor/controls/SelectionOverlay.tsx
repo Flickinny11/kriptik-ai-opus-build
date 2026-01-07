@@ -262,10 +262,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     selectedElements,
     hoveredElement,
     selectionMode,
-    selectElement,
-    deselectElement,
     clearSelection,
-    setHoveredElement,
   } = useVisualEditorStore();
 
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -337,20 +334,6 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       clearSelection();
     }
   }, [clearSelection]);
-
-  // Handle element click for selection
-  const handleElementClick = useCallback((element: SelectedElement, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
-
-    if (additive && selectedElements.some(el => el.id === element.id)) {
-      // If already selected and additive click, deselect
-      deselectElement(element.id);
-    } else {
-      // Select element (additive if shift/cmd/ctrl held)
-      selectElement(element, additive);
-    }
-  }, [selectedElements, selectElement, deselectElement]);
 
   if (selectionMode === 'off') {
     return null;

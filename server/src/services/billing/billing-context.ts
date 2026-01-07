@@ -1,6 +1,6 @@
 /**
  * Billing Context Service
- * 
+ *
  * Determines who pays for GPU/compute usage in different scenarios:
  * - KripTik absorbs cost when building user's apps
  * - Users pay when training/fine-tuning their own models
@@ -61,7 +61,7 @@ export interface BillingContextParams {
 
 /**
  * Determine the billing context for an operation
- * 
+ *
  * @param params - Parameters describing the operation
  * @returns BillingDecision indicating who pays and margin
  */

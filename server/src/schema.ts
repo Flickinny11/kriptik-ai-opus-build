@@ -361,7 +361,7 @@ export const aiLabMessages = sqliteTable('ai_lab_messages', {
  * - Training jobs
  * - Inference endpoints
  * - Storage usage
- * 
+ *
  * Supports both KripTik-absorbed costs (building/verification) and user-billed costs (training/inference)
  */
 export const gpuBillingRecords = sqliteTable('gpu_billing_records', {

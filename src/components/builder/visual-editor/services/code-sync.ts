@@ -266,7 +266,8 @@ class CodeSyncService {
     // Build styles object from changes
     const styles: Partial<ElementStyles> = {};
     for (const change of changes) {
-      styles[change.property] = change.newValue;
+      // Use type assertion since we know newValue matches the property type
+      (styles as Record<string, string>)[change.property] = change.newValue;
     }
 
     switch (this.outputFormat) {

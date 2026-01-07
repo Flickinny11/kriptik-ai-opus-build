@@ -1,12 +1,12 @@
 /**
  * Open Source Studio Billing Service
- * 
+ *
  * Manages Stripe products and metered pricing for Open Source Studio features:
  * - Training: GPU-hour billing per GPU class
  * - Fine-tuning: Training-step billing
  * - Inference: Per-request billing
  * - Storage: GB-hour billing
- * 
+ *
  * Implements metered billing with automatic usage recording and Stripe integration.
  */
 
@@ -217,7 +217,7 @@ export async function setupOpenSourceStudioProducts(): Promise<{
         try {
             // Check if product already exists
             const existing = await findExistingProduct(stripe, product.id);
-            
+
             if (existing) {
                 // Product exists, get its prices
                 const prices = await stripe.prices.list({
@@ -266,7 +266,7 @@ export async function setupOpenSourceStudioProducts(): Promise<{
 
             for (const tier of product.tiers) {
                 const tierKey = tier.gpuClass || 'default';
-                
+
                 const price = await stripe.prices.create({
                     product: stripeProduct.id,
                     currency: 'usd',
@@ -351,7 +351,7 @@ export interface MeteredUsageParams {
 
 /**
  * Record metered usage to Stripe
- * 
+ *
  * Note: In production, this would record to Stripe's subscription items usage records.
  * For now, we track usage internally and sync to Stripe during billing cycle.
  */
@@ -363,13 +363,13 @@ export async function recordMeteredUsage(params: MeteredUsageParams): Promise<{
     try {
         // For KripTik, we use our internal credit system rather than Stripe's metered billing
         // This function is designed to be compatible with both approaches
-        
+
         // Generate a local usage record ID for tracking
         const usageRecordId = `oss_${params.productId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
         // If we have a Stripe subscription item ID, we could record to Stripe
         // For now, we rely on our internal credit system which is already integrated
-        
+
         // Log usage for analytics
         console.log(`[OSS Usage] User: ${params.userId}, Product: ${params.productId}, Tier: ${params.tier || 'default'}, Quantity: ${params.quantity}`);
 
@@ -569,7 +569,7 @@ export async function getOSSProducts(): Promise<{
 
     for (const product of OSS_PRODUCTS) {
         const cached = stripeProductCache.get(product.id);
-        
+
         let stripeProductId: string | undefined;
         let stripePriceIds: Record<string, string> = {};
 

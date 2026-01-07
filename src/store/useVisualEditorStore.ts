@@ -21,13 +21,17 @@ import { API_URL, authenticatedFetch } from '../lib/api-config';
 
 export interface ElementStyles {
   // Layout
-  display?: 'flex' | 'grid' | 'block' | 'inline' | 'inline-flex' | 'inline-grid' | 'none';
+  display?: 'flex' | 'grid' | 'block' | 'inline' | 'inline-flex' | 'inline-grid' | 'inline-block' | 'none';
   flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
+  flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
   justifyContent?: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around' | 'space-evenly';
   alignItems?: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline';
   gap?: string;
   gridTemplateColumns?: string;
   gridTemplateRows?: string;
+  position?: 'static' | 'relative' | 'absolute' | 'fixed' | 'sticky';
+  zIndex?: string;
+  overflow?: 'visible' | 'hidden' | 'scroll' | 'auto' | 'clip';
 
   // Spacing
   padding?: string;
@@ -55,11 +59,14 @@ export interface ElementStyles {
   borderColor?: string;
 
   // Typography
+  fontFamily?: string;
   fontSize?: string;
   fontWeight?: string;
+  fontStyle?: 'normal' | 'italic' | 'oblique';
   lineHeight?: string;
   letterSpacing?: string;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
+  textDecoration?: string;
 
   // Borders
   borderWidth?: string;
@@ -116,10 +123,12 @@ export interface PromptHistoryEntry {
 }
 
 export interface AntiSlopWarning {
+  id: string;
   type: 'color' | 'gradient' | 'pattern' | 'soul-mismatch';
   message: string;
   suggestion: string;
-  severity: 'warning' | 'error';
+  severity: 'warning' | 'error' | 'critical' | 'info';
+  pattern?: string;
 }
 
 // ============================================================================
@@ -512,8 +521,6 @@ export const useVisualEditorStore = create<VisualEditorState & VisualEditorActio
     },
 
     revertPendingChanges: () => {
-      const state = get();
-
       // Revert element styles to before pending changes
       set(state => ({
         selectedElements: state.selectedElements.map(el => {
@@ -656,18 +663,22 @@ export const useVisualEditorStore = create<VisualEditorState & VisualEditorActio
       if (styles.backgroundColor) {
         if (SLOP_PATTERNS.patterns.flatWhite.test(styles.backgroundColor)) {
           warnings.push({
+            id: crypto.randomUUID(),
             type: 'color',
             message: 'Flat white/light backgrounds are not allowed',
             suggestion: 'Use dark backgrounds like #0a0a0f or rgba(10, 10, 15, 0.95)',
             severity: 'error',
+            pattern: 'flatWhite',
           });
         }
         if (SLOP_PATTERNS.colors.genericGray.test(styles.backgroundColor)) {
           warnings.push({
+            id: crypto.randomUUID(),
             type: 'color',
             message: 'Generic gray colors lack design intent',
             suggestion: 'Use themed colors from your design tokens',
             severity: 'warning',
+            pattern: 'genericGray',
           });
         }
       }
@@ -679,18 +690,22 @@ export const useVisualEditorStore = create<VisualEditorState & VisualEditorActio
         const classString = element.tailwindClasses.join(' ');
         if (SLOP_PATTERNS.colors.purplePink.test(classString)) {
           warnings.push({
+            id: crypto.randomUUID(),
             type: 'gradient',
             message: 'Purple-to-pink gradients are banned',
             suggestion: 'Use amber/orange gradients: from-amber-500 to-orange-500',
             severity: 'error',
+            pattern: 'purplePink',
           });
         }
         if (SLOP_PATTERNS.colors.bluePurple.test(classString)) {
           warnings.push({
+            id: crypto.randomUUID(),
             type: 'gradient',
             message: 'Blue-to-purple gradients are banned',
             suggestion: 'Use cyan/teal gradients: from-cyan-500 to-teal-500',
             severity: 'error',
+            pattern: 'bluePurple',
           });
         }
       }

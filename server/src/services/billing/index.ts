@@ -12,7 +12,7 @@ export * from './gpu-cost-tracker.js';
 export * from './billing-context.js';
 export * from './gpu-billing.js';
 // Re-export specific items from usage-service to avoid conflicts with usage.js
-export { 
+export {
     getUsageService,
     UsageService,
     type UsageRecord as UsageServiceRecord,

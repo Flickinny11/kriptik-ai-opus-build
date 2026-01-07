@@ -1,9 +1,9 @@
 /**
  * Training Orchestrator - Multi-Job Training Management
- * 
+ *
  * Manages training jobs on RunPod, including provisioning, monitoring, and cleanup.
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 4).
- * 
+ *
  * Integrated with GPU Billing Service for:
  * - Pre-authorization before job starts
  * - Real-time cost tracking during training
@@ -84,7 +84,7 @@ export class TrainingOrchestrator extends EventEmitter {
    */
   async initialize(userId: string): Promise<void> {
     const vault = getCredentialVault();
-    
+
     // Get RunPod credentials
     const runpodCredential = await vault.getCredential(userId, 'runpod');
     if (runpodCredential && runpodCredential.oauthAccessToken) {
@@ -106,7 +106,7 @@ export class TrainingOrchestrator extends EventEmitter {
    */
   private startPolling(): void {
     if (this.pollingInterval) return;
-    
+
     this.pollingInterval = setInterval(() => {
       this.processQueue();
       this.updateActiveJobs();
@@ -125,7 +125,7 @@ export class TrainingOrchestrator extends EventEmitter {
 
   /**
    * Create a new training job
-   * 
+   *
    * @param userId - The user ID
    * @param config - Training job configuration
    * @param projectId - Optional project ID
@@ -139,7 +139,7 @@ export class TrainingOrchestrator extends EventEmitter {
     isUserInitiated: boolean = true
   ): Promise<TrainingJob> {
     const job = new TrainingJob(userId, config, projectId);
-    
+
     // Set GPU cost tracking
     const gpuInfo = GPU_PRICING[config.gpuType] || GPU_PRICING[this.config.defaultGpuType];
     job.setCostPerHour(gpuInfo.hourlyCost);

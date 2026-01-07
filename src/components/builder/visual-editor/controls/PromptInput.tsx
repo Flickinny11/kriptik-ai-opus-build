@@ -87,8 +87,9 @@ export function PromptInput() {
   const {
     selectedElements,
     promptHistory,
-    isProcessingPrompt,
-    addPromptHistory,
+    isPromptProcessing,
+    submitPrompt,
+    setPromptInput,
   } = useVisualEditorStore();
 
   const [prompt, setPrompt] = useState('');
@@ -146,16 +147,16 @@ export function PromptInput() {
   }, [prompt]);
 
   const handleSubmit = useCallback(async () => {
-    if (!prompt.trim() || !element || isProcessingPrompt) return;
+    if (!prompt.trim() || !element || isPromptProcessing) return;
 
-    // Add to history and process
-    addPromptHistory(prompt.trim());
+    // Set the prompt input in the store and trigger submission
+    setPromptInput(prompt.trim());
     setPrompt('');
     setShowSuggestions(false);
 
-    // The actual AI processing happens in the store's processPrompt action
-    // which is triggered by the submit
-  }, [prompt, element, isProcessingPrompt, addPromptHistory]);
+    // The actual AI processing happens in the store's submitPrompt action
+    await submitPrompt();
+  }, [prompt, element, isPromptProcessing, setPromptInput, submitPrompt]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -302,17 +303,17 @@ export function PromptInput() {
             }
           }}
           placeholder={`Describe how to style this ${element.componentName || element.tagName}...`}
-          disabled={isProcessingPrompt}
+          disabled={isPromptProcessing}
           rows={1}
         />
         <motion.button
           className="vpp-prompt__submit"
           onClick={handleSubmit}
-          disabled={!prompt.trim() || isProcessingPrompt}
+          disabled={!prompt.trim() || isPromptProcessing}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {isProcessingPrompt ? (
+          {isPromptProcessing ? (
             <span className="vpp-prompt__spinner" />
           ) : (
             <SendIcon />
@@ -322,7 +323,7 @@ export function PromptInput() {
 
       {/* Processing indicator */}
       <AnimatePresence>
-        {isProcessingPrompt && (
+        {isPromptProcessing && (
           <motion.div
             className="vpp-prompt__processing"
             initial={{ opacity: 0, height: 0 }}

@@ -71,10 +71,12 @@ const FixIcon = () => (
 function getSeverityIcon(severity: AntiSlopWarning['severity']) {
   switch (severity) {
     case 'critical':
+    case 'error':
       return <CriticalIcon />;
     case 'warning':
       return <WarningIcon />;
     case 'info':
+    default:
       return <InfoIcon />;
   }
 }
@@ -82,10 +84,12 @@ function getSeverityIcon(severity: AntiSlopWarning['severity']) {
 function getSeverityColor(severity: AntiSlopWarning['severity']): string {
   switch (severity) {
     case 'critical':
+    case 'error':
       return 'var(--vpp-danger, #ef4444)';
     case 'warning':
       return 'var(--vpp-warning, #f59e0b)';
     case 'info':
+    default:
       return 'var(--vpp-info, #3b82f6)';
   }
 }
@@ -244,7 +248,7 @@ export function AntiSlopWarnings({ warnings }: AntiSlopWarningsProps) {
             {/* Critical warnings first */}
             {warnings
               .sort((a, b) => {
-                const order = { critical: 0, warning: 1, info: 2 };
+                const order: Record<AntiSlopWarning['severity'], number> = { critical: 0, error: 0, warning: 1, info: 2 };
                 return order[a.severity] - order[b.severity];
               })
               .map((warning) => (

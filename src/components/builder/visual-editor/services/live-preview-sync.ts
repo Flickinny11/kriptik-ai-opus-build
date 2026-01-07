@@ -9,7 +9,7 @@
  * - Coordinate transformations for overlay positioning
  */
 
-import type { ElementStyles, SelectedElement, PendingStyleChange } from '../../../../store/useVisualEditorStore';
+import type { ElementStyles, PendingStyleChange } from '../../../../store/useVisualEditorStore';
 
 // Preview iframe message types
 export type PreviewMessageType =
@@ -161,8 +161,14 @@ class LivePreviewSync {
   }
 
   // Debounced version for real-time editing
-  applyStylesDebounced = debounce(
-    (elementId: string, styles: Partial<ElementStyles>) => {
+  applyStylesDebounced = (elementId: string, styles: Partial<ElementStyles>) => {
+    // Use internal debounced call to apply styles
+    this.debouncedApply(elementId, styles);
+  };
+
+  private debouncedApply = debounce(
+    (...args: unknown[]) => {
+      const [elementId, styles] = args as [string, Partial<ElementStyles>];
       this.applyStyles(elementId, styles);
     },
     50
