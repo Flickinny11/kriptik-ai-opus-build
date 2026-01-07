@@ -1,2630 +1,2459 @@
-# Final KripTik Enhancements - Unified Implementation Plan
-## Ultra-Synthesis of VL-JEPA + Hyper-Thinking + Model Enhancements + KripTik Cloud
+# KripTik AI Enhancement Plan v3.0
+## Production-Ready Implementation Prompts for Opus 4.5
+### Last Updated: January 6, 2026
+### Changes: v3.0 - Removed KripToeNite (merged into main flow), updated all model IDs to Jan 2026, corrected 8-Phase Build Loop, corrected 13-agent verification swarm, added two-stage Intent Lock, added Tournament Mode, enhanced Component 28 with VL-JEPA per ultimate plan
 
-> **Vision**: Transform KripTik AI into the world's most capable AI builder by unifying three revolutionary capabilities into a single, synergistic architecture that amplifies each enhancement through strategic integration.
+---
+
+## Critical Implementation Notes
+
+> **API ROUTING ARCHITECTURE (CRITICAL)**:
+> - **OpenAI Models (GPT-5.2)** → Direct OpenAI API (api.openai.com)
+> - **Anthropic Models (Claude)** → Direct Anthropic API (api.anthropic.com)
+> - **All Other Models** → OpenRouter (openrouter.ai) - DeepSeek, Llama, Qwen, Mistral, GLM, Kimi
 >
-> **Date**: January 2, 2026
-> **Status**: Ready for Implementation via Opus 4.5 in Cursor 2.2
-> **Auth Protection**: All auth files are LOCKED per AUTH-IMMUTABLE-SPECIFICATION.md - DO NOT MODIFY
+> **INFRASTRUCTURE OWNERSHIP MODEL**:
+> - **KripTik's Account**: Training, testing, sandboxes (metered billing to users)
+> - **User's Account**: Production deployment option (user manages own costs)
+> - **Cleanup Required**: Auto-archive 30 days, auto-delete 90 days for abandoned apps
+>
+> **MODEL ROUTING CLARIFICATION**:
+> The existing model-router.ts and openrouter-client.ts handle all routing.
+> No new ModelOrchestrator needed. ENHANCE existing routing with new model IDs.
+> The Build Loop calls existing routing services - all existing features remain unchanged.
+>
+> **NO MODEL SELECTOR ON BUILDER VIEW**:
+> Users enter their NLP request and receive the BEST experience automatically.
+> KripTik routes to optimal models based on task type - users don't choose models.
 
 ---
 
-## EXECUTIVE SYNTHESIS
-
-This unified plan integrates **three transformative implementation plans** into a cohesive architecture:
-
-| Source Plan | Core Capability | Synergy Role |
-|-------------|-----------------|--------------|
-| **implementation-plan-kriptik-ultimate.md** | VL-JEPA semantic understanding + KripTik Cloud | The Foundation Layer - provides semantic embeddings that ALL other systems consume |
-| **implementation-plan-hyper-thinking.md** | 6-phase cognitive enhancement pipeline | The Intelligence Amplifier - makes every AI call 30-50% better using semantic context |
-| **implementation-plan-model-enhancements-jan2026.md** | Latest Anthropic/OpenAI API features | The Capability Backbone - provides the raw AI power that other systems orchestrate |
-
-### The Compound Effect Formula
-
-```
-SYNERGY = VL-JEPA Semantics × Hyper-Thinking Cognition × Model Enhancements × KripTik Cloud
-        = Understanding × Reasoning × Power × Deployment
-        = Complete Production Apps from Single Prompt
-```
-
----
-
-## ARCHITECTURE SYNTHESIS
-
-### How The Three Plans Enhance Each Other
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                           UNIFIED KRIPTIK ENHANCEMENT ARCHITECTURE                           │
-│                                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                              LAYER 1: SEMANTIC FOUNDATION                                ││
-│  │                          (VL-JEPA from kriptik-ultimate.md)                              ││
-│  │                                                                                          ││
-│  │   User Input ──► VL-JEPA Intent Embedding ──► Semantic Understanding                    ││
-│  │                         │                            │                                   ││
-│  │                         ▼                            ▼                                   ││
-│  │   ┌──────────────────────────────────────────────────────────────────────────┐          ││
-│  │   │ FEEDS INTO: Hyper-Thinking (decomposition uses semantics)                │          ││
-│  │   │ FEEDS INTO: Model Selection (complexity from semantic analysis)         │          ││
-│  │   │ FEEDS INTO: Pattern Matching (embedding similarity for shortcuts)       │          ││
-│  │   │ FEEDS INTO: Intent Satisfaction (semantic match vs. visual output)      │          ││
-│  │   └──────────────────────────────────────────────────────────────────────────┘          ││
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘│
-│                                              │                                               │
-│                                              ▼                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                           LAYER 2: COGNITIVE ENHANCEMENT                                 ││
-│  │                      (Hyper-Thinking from hyper-thinking.md)                             ││
-│  │                                                                                          ││
-│  │   Phase 1: DECOMPOSITION ──► Uses VL-JEPA semantic components                           ││
-│  │   Phase 2: PRIOR KNOWLEDGE ──► Embedding-based pattern retrieval (faster)               ││
-│  │   Phase 3: EXPLORATION ──► Multiple approaches with Interleaved Thinking                ││
-│  │   Phase 4: CRITIQUE ──► Deliberative Alignment specs injection                          ││
-│  │   Phase 5: SYNTHESIS ──► o3 xhigh effort for critical synthesis                         ││
-│  │   Phase 6: VERIFICATION ──► VL-JEPA visual verification (50x faster)                    ││
-│  │                                                                                          ││
-│  │   ┌──────────────────────────────────────────────────────────────────────────┐          ││
-│  │   │ ENHANCED BY: Extended Thinking (preserved blocks across phases)          │          ││
-│  │   │ ENHANCED BY: Interleaved Thinking (reason between tool calls)            │          ││
-│  │   │ ENHANCED BY: Responses API (reasoning summaries for transparency)        │          ││
-│  │   └──────────────────────────────────────────────────────────────────────────┘          ││
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘│
-│                                              │                                               │
-│                                              ▼                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                           LAYER 3: API POWER BACKBONE                                    ││
-│  │                    (Model Enhancements from jan2026.md)                                  ││
-│  │                                                                                          ││
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              ││
-│  │   │ Responses   │    │ Interleaved │    │   xhigh     │    │  Context    │              ││
-│  │   │    API      │    │  Thinking   │    │   Effort    │    │ Compaction  │              ││
-│  │   │  (OpenAI)   │    │ (Anthropic) │    │ (o3/o4-mini)│    │(GPT-5.2-Cdx)│              ││
-│  │   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘              ││
-│  │                                                                                          ││
-│  │   ┌──────────────────────────────────────────────────────────────────────────┐          ││
-│  │   │ POWERS: Hyper-Thinking phases with maximum reasoning capability          │          ││
-│  │   │ POWERS: Intent Lock with 64K extended thinking                           │          ││
-│  │   │ POWERS: Error Escalation with preserved context                          │          ││
-│  │   │ ENABLES: 24-hour builds via context compaction                           │          ││
-│  │   └──────────────────────────────────────────────────────────────────────────┘          ││
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘│
-│                                              │                                               │
-│                                              ▼                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                           LAYER 4: PRODUCTION DEPLOYMENT                                 ││
-│  │                       (KripTik Cloud from kriptik-ultimate.md)                           ││
-│  │                                                                                          ││
-│  │   Frontend: Vercel/Cloudflare ◄── Enhanced by Hyper-Thinking code quality              ││
-│  │   Backend: AWS ECS Fargate ◄── Auto-configured by Hyper-Thinking architecture          ││
-│  │   AI/ML: RunPod/Vast.ai GPU ◄── Model selection optimized by VL-JEPA complexity        ││
-│  │   Integrations: Nango OAuth ◄── Integration selection via Hyper-Thinking analysis      ││
-│  │                                                                                          ││
-│  │   ┌──────────────────────────────────────────────────────────────────────────┐          ││
-│  │   │ RESULT: Complete production apps, not just code                          │          ││
-│  │   │ RESULT: Backends actually deployed and running                           │          ││
-│  │   │ RESULT: AI models hosted and serving                                     │          ││
-│  │   └──────────────────────────────────────────────────────────────────────────┘          ││
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘│
-│                                              │                                               │
-│                                              ▼                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                           LAYER 5: LEARNING & EVOLUTION                                  ││
-│  │              (Component 28 Enhanced by ALL THREE PLANS)                                  ││
-│  │                                                                                          ││
-│  │   L1: Experience Capture ◄── VL-JEPA embeddings + Hyper-Thinking traces                ││
-│  │   L2: AI Judgment ◄── Embedding comparison (50x faster) + Reasoning chains             ││
-│  │   L3: Shadow Models ◄── Sentence Transformers v5 trained on semantic data             ││
-│  │   L4: Pattern Library ◄── Qdrant embedding clusters for instant recall                 ││
-│  │   L5: Evolution ◄── Hyper-Thinking pattern capture + Model performance data            ││
-│  │                                                                                          ││
-│  │   ┌──────────────────────────────────────────────────────────────────────────┐          ││
-│  │   │ FLYWHEEL: Every build makes the next build better                        │          ││
-│  │   │ FLYWHEEL: Hyper-Thinking patterns accelerate future Hyper-Thinking       │          ││
-│  │   │ FLYWHEEL: VL-JEPA embeddings enable instant pattern matching             │          ││
-│  │   └──────────────────────────────────────────────────────────────────────────┘          ││
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+> **EXISTING FEATURES (DO NOT REPLACE)**:
+> KripTik AI already has these features fully implemented:
+> - Modal Sandboxing & Multi-Sandbox Orchestrator (20 parallel sandboxes)
+> - AI Lab with 5 parallel orchestrations
+> - Open Source Studio with HuggingFace integration (100K+ models)
+> - Context Bridge (Redis-based real-time sharing)
+> - RunPod GPU integration
+> - Vercel deployment
+> - Automated deployment workflows
+> - Harness System (Artifact Manager, InitializerAgent, Context Loader)
+> - **8-Phase Build Loop** (Init → Plan → Implement → Verify → Test → Deploy → Monitor → Learn)
+> - **13-Agent Verification Swarm** (6 core + 7 gap closers)
+> - **5-Layer Learning Engine** (L1-L5)
+> - **Existing model-router.ts** (cost optimization routing)
+> - **Existing openrouter-client.ts** (600+ lines, full OpenRouter integration)
+>
+> **NEW FEATURES (TO BE ADDED)**:
+> - VL-JEPA semantic embedding system (dramatically enhances Component 28)
+> - Hyper-Thinking cognitive pipeline
+> - Qdrant vector database for embeddings (NO existing vector DB)
+> - Extended/Interleaved Thinking integration
+> - OpenAI Responses API integration (GPT-5.2 variants)
+> - Two-Stage Intent Lock System (Plan Approval + Final Contract)
+> - Tournament Mode with Hyper-Thinking (optional, costs more)
+> - Context Compaction for 24-hour builds
+> - Cleanup mechanism for abandoned apps
+>
+> **ENHANCEMENTS (EXTEND EXISTING)**:
+> - Update model-router.ts with January 2026 model IDs
+> - Add semantic verification as 14th agent in swarm
+> - Error escalation enhances existing 4-Level system
+>
+> Always review existing code before implementing. Preserve existing functionality.
 
 ---
 
-## SYNERGY INTEGRATION POINTS
+## Verified Model IDs (January 6, 2026)
 
-### Critical Cross-Plan Integrations
-
-| Integration Point | Plans Involved | Synergy Effect |
-|-------------------|----------------|----------------|
-| **Semantic Decomposition** | VL-JEPA + Hyper-Thinking | Decomposition phase uses semantic embeddings instead of text analysis - 10x more accurate sub-problem identification |
-| **Embedding Pattern Shortcuts** | VL-JEPA + Hyper-Thinking + Component 28 | Pattern matching via embedding similarity enables instant shortcuts, reducing Hyper-Thinking from 15s to 2s |
-| **xhigh Effort Synthesis** | Model Enhancements + Hyper-Thinking | Synthesis phase uses o3 xhigh effort for critical decisions - 95% reasoning depth |
-| **Interleaved Critique** | Model Enhancements + Hyper-Thinking | Adversarial critique uses Interleaved Thinking for multi-step tool-based verification |
-| **Semantic Intent Satisfaction** | VL-JEPA + Model Enhancements | Phase 5 uses VL-JEPA embeddings + o3 xhigh for semantic match verification - cannot cheat |
-| **Visual Verification Speedup** | VL-JEPA + Verification Swarm | 50-100x faster verification via embedding comparison vs. LLM analysis |
-| **Deliberative Quality Specs** | Model Enhancements + Hyper-Thinking | Critique phase injects Deliberative Alignment specs for 8.7% → 0.3% problematic outputs |
-| **Context Compaction + Learning** | Model Enhancements + Component 28 | 24-hour builds via GPT-5.2-Codex compaction while preserving learning data |
-| **Cloud Deployment Intelligence** | KripTik Cloud + Hyper-Thinking | Infrastructure decisions use Hyper-Thinking for optimal provider selection |
+| Model | Model ID | Provider | API Route | Best For | Cost (per 1M tokens) |
+|-------|----------|----------|-----------|----------|---------------------|
+| **Claude Opus 4.5** | `claude-opus-4-5-20251101` | Anthropic | Direct | Complex coding, extended thinking | $15 in / $75 out |
+| **Claude Sonnet 4.5** | `claude-sonnet-4-5-20250929` | Anthropic | Direct | Balanced quality/cost | $3 in / $15 out |
+| **Claude Haiku 4.5** | `claude-haiku-4-5` | Anthropic | Direct | Fast responses, simple tasks | $0.25 in / $1.25 out |
+| **GPT-5.2 Thinking** | `gpt-5.2` | OpenAI | Direct | Complex reasoning, planning | $15 in / $60 out |
+| **GPT-5.2 Instant** | `gpt-5.2-instant` | OpenAI | Direct | Fast responses | $1.75 in / $14 out |
+| **GPT-5.2 Pro** | `gpt-5.2-pro` | OpenAI | Direct | Maximum reasoning (xhigh effort) | $30 in / $120 out |
+| **DeepSeek V3.2** | `deepseek-chat` | DeepSeek | OpenRouter | Cost-effective general | $0.028 in / $0.14 out |
+| **DeepSeek Reasoner** | `deepseek-reasoner` | DeepSeek | OpenRouter | Thinking mode | $0.55 in / $2.19 out |
+| **GLM 4.7** | `glm-4-plus` | Zhipu AI | OpenRouter | 73.8% SWE-bench | ~$0.50 in / $0.75 out |
+| **Kimi K2** | `moonshot/kimi-k2` | Moonshot AI | OpenRouter | 256K context, thinking | ~$0.60 in / $1.20 out |
+| **Llama 3.3 70B** | `meta-llama/llama-3.3-70b-instruct` | Meta | OpenRouter | Open source, self-hostable | ~$0.50 in / $0.75 out |
 
 ---
 
-## IMPLEMENTATION PHASES (UNIFIED ORDER)
+## Table of Contents
 
-### Phase 1: Foundation Layer (Week 1-2)
-**Goal**: Establish the semantic understanding infrastructure that ALL other systems depend on.
+1. [Architecture Overview & Integration Map](#section-1-architecture-overview--integration-map)
+2. [VL-JEPA Semantic Understanding & Component 28 Enhancement](#section-2-vl-jepa-semantic-understanding--component-28-enhancement)
+3. [Hyper-Thinking Cognitive Pipeline](#section-3-hyper-thinking-cognitive-pipeline)
+4. [Model Enhancement Integration (2026 APIs)](#section-4-model-enhancement-integration-2026-apis)
+5. [KripTik Cloud Infrastructure](#section-5-kriptik-cloud-infrastructure)
+6. [Quality & Verification Enhancements](#section-6-quality--verification-enhancements)
+7. [Two-Stage Intent Lock System](#section-7-two-stage-intent-lock-system)
+8. [Tournament Mode with Hyper-Thinking](#section-8-tournament-mode-with-hyper-thinking)
+9. [Context Compaction System](#section-9-context-compaction-system)
+10. [Implementation Sequence & Dependencies](#section-10-implementation-sequence--dependencies)
 
+---
+
+# Section 1: Architecture Overview & Integration Map
+
+## Current KripTik AI Architecture (As Implemented)
+
+### Core Components
+- **Frontend**: React 18.3.1 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Express 5 + TypeScript + Drizzle ORM
+- **Database**: Turso (SQLite) with 25+ tables
+- **State**: TanStack Query + Zustand
+
+### 8-Phase Build Loop (CORRECTED)
 ```
-Week 1:
-├── Day 1-2: Qdrant vector database + Docker setup
-├── Day 3-4: Embedding service infrastructure (Sentence Transformers + CLIP)
-├── Day 5-6: Shadow data collection hooks throughout KripTik
-└── Day 7: Database schema updates for embeddings + Hyper-Thinking
-
-Week 2:
-├── Day 1-2: VL-JEPA service wrapper (semantic understanding)
-├── Day 3-4: Intent Lock enhancement with VL-JEPA embeddings
-├── Day 5-6: Intent embedding generation + uncertainty quantification
-└── Day 7: Qdrant integration tests + validation
-```
-
-### Phase 2: API Power Backbone (Week 3)
-**Goal**: Implement the latest Anthropic/OpenAI capabilities that power everything else.
-
-```
-Week 3:
-├── Day 1-2: OpenAI Responses API integration (reasoning summaries)
-├── Day 3: Reasoning effort xhigh level for o3/o4-mini
-├── Day 4-5: Interleaved Thinking Beta implementation
-├── Day 6: Preserved Thinking Blocks across turns
-└── Day 7: Model configuration updates (January 2026 IDs)
-```
-
-### Phase 3: Cognitive Enhancement (Week 4-5)
-**Goal**: Implement Hyper-Thinking with semantic awareness from Phase 1 and API power from Phase 2.
-
-```
-Week 4:
-├── Day 1-2: Hyper-Thinking Engine core + Mode Controller
-├── Day 3-4: Trigger Classifier with semantic complexity analysis
-├── Day 5-6: Phase 1-2 (Decomposition + Prior Knowledge Injection)
-└── Day 7: Embedding-based pattern retrieval for Phase 2
-
-Week 5:
-├── Day 1-2: Phase 3 (Parallel Exploration with Interleaved Thinking)
-├── Day 3-4: Phase 4 (Adversarial Critique with Deliberative Alignment)
-├── Day 5: Phase 5 (Synthesis with xhigh effort)
-├── Day 6: Phase 6 (VL-JEPA Verification Bridge)
-└── Day 7: Build Loop integration + Shadow Mode activation
+Phase 0: Initialization (Modal sandbox, project scaffold)
+Phase 1: Planning (AI analysis, task breakdown)
+Phase 2: Implementation (Code generation, file writes)
+Phase 3: Verification (13-agent swarm validation)
+Phase 4: Testing (Unit, integration, E2E)
+Phase 5: Delivery (Build, deploy, artifacts)
+Phase 6: Monitoring (Performance, errors, health)
+Phase 7: Learning (Pattern extraction, L1-L5 updates)
 ```
 
-### Phase 4: Enhanced Verification (Week 6)
-**Goal**: Supercharge the Verification Swarm with semantic capabilities.
+### 13-Agent Verification Swarm (CORRECTED)
 
+**6 Core Agents:**
+1. Error Checker Agent
+2. Code Quality Agent
+3. Visual Verifier Agent
+4. Security Scanner Agent
+5. Placeholder Eliminator Agent
+6. Design Style Agent
+
+**7 Gap Closer Agents:**
+7. Dependency Validator Agent
+8. API Contract Agent
+9. Type Safety Agent
+10. Performance Profiler Agent
+11. Accessibility Checker Agent
+12. Documentation Agent
+13. Test Coverage Agent
+
+**NEW (14th Agent):**
+14. Semantic Verifier Agent (VL-JEPA based)
+
+### 5-Layer Learning Engine (Component 28)
 ```
-Week 6:
-├── Day 1-2: Visual Verifier with VL-JEPA (embedding comparison)
-├── Day 3-4: Anti-Slop detection via embedding distance
-├── Day 5: Intent Satisfaction with semantic matching
-├── Day 6: Gap Closers VL-JEPA integration
-└── Day 7: Performance validation (50x speedup target)
-```
-
-### Phase 5: Context & Memory Enhancement (Week 7-8)
-**Goal**: Implement advanced memory systems that combine all three plans.
-
-```
-Week 7:
-├── Day 1-2: Context Compaction service (24-hour builds)
-├── Day 3-4: Tree of Clarifications for disambiguation
-├── Day 5-6: SAMEP encrypted context sharing
-└── Day 7: Deliberative Alignment quality specs
-
-Week 8:
-├── Day 1-3: Graphiti bi-temporal memory service
-├── Day 4-5: Component 28 L1-L2 embedding enhancement
-├── Day 6: Component 28 L4 embedding clustering
-└── Day 7: Evolution flywheel updates
-```
-
-### Phase 6: KripTik Cloud (Week 9-10)
-**Goal**: Deploy complete production stacks with intelligent infrastructure decisions.
-
-```
-Week 9:
-├── Day 1-2: RunPod/Vast.ai serverless GPU integration
-├── Day 3-4: AWS ECS Fargate container deployment
-├── Day 5-6: Nango OAuth 500+ integrations
-└── Day 7: Stack wiring + environment configuration
-
-Week 10:
-├── Day 1-2: MCP server infrastructure
-├── Day 3-4: Hyper-Thinking infrastructure analysis integration
-├── Day 5: Cost estimation + optimization
-├── Day 6-7: End-to-end deployment testing
+L1: Session Memory (immediate context, current build)
+L2: Pattern Library (extracted patterns, error→fix mappings)
+L3: Project Intelligence (project-specific knowledge)
+L4: User Preferences (individual user patterns)
+L5: Global Evolution (cross-project, cross-user learning)
 ```
 
-### Phase 7: Advanced Features & Polish (Week 11-12)
-**Goal**: Complete advanced capabilities and production hardening.
+### Existing Advanced Features
+1. **Modal Sandboxing** - Cloud-hosted ephemeral execution environments
+2. **Multi-Sandbox Orchestrator** - Up to 20 parallel build sandboxes
+3. **AI Lab** - 5 parallel orchestrations for multi-agent research
+4. **Open Source Studio** - HuggingFace integration, 100K+ models
+5. **Context Bridge** - Redis-based real-time context sharing
+6. **Harness System** - Artifact Manager, InitializerAgent, Context Loader
+7. **4-Level Error Escalation** - L1 (auto-fix) → L2 (context expand) → L3 (human assist) → L4 (full restart)
+8. **Existing model-router.ts** - Intelligent model routing with cost optimization
+9. **Existing openrouter-client.ts** - Full OpenRouter integration for non-OpenAI/Anthropic models
+10. **Speculative Parallel Execution** - (from KripToeNite, now merged into main flow)
+
+### Integration Points for Enhancements
 
 ```
-Week 11:
-├── Day 1-2: Clone Mode with VL-JEPA video understanding
-├── Day 3-4: Image-to-Code enhancement
-├── Day 5-6: Fix My App visual analysis
-└── Day 7: Multi-agent semantic coordination
-
-Week 12:
-├── Day 1-2: Performance optimization
-├── Day 3-4: Hyper-Thinking pattern export (portable data)
-├── Day 5: UI enhancements for new features
-├── Day 6: Documentation updates
-└── Day 7: Production readiness validation
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    KRIPTIK AI ENHANCED ARCHITECTURE v3.0                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────┐   │
+│  │   VL-JEPA    │───▶│ HYPER-THINK  │───▶│   TWO-STAGE INTENT LOCK      │   │
+│  │  Embeddings  │    │   Pipeline   │    │ [Plan Approval→Final Contract]│   │
+│  └──────────────┘    └──────────────┘    └──────────────────────────────┘   │
+│         │                   │                         │                      │
+│         ▼                   ▼                         ▼                      │
+│  ┌──────────────────────────────────────────────────────────────────┐       │
+│  │                    8-PHASE BUILD LOOP                             │       │
+│  │  [Init]→[Plan]→[Impl]→[Verify]→[Test]→[Deploy]→[Monitor]→[Learn] │       │
+│  └──────────────────────────────────────────────────────────────────┘       │
+│         │                   │                         │                      │
+│         ▼                   ▼                         ▼                      │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                   │
+│  │   13-AGENT   │    │  TOURNAMENT  │    │  COMPONENT   │                   │
+│  │    SWARM     │    │    MODE      │    │     28       │                   │
+│  │  + Semantic  │    │  (Optional)  │    │  VL-JEPA     │                   │
+│  │   Verifier   │    │              │    │  Enhanced    │                   │
+│  └──────────────┘    └──────────────┘    └──────────────┘                   │
+│         │                   │                         │                      │
+│         ▼                   ▼                         ▼                      │
+│  ┌──────────────────────────────────────────────────────────────────┐       │
+│  │           KRIPTIK CLOUD (RunPod + Qdrant + Modal)                 │       │
+│  │  [GPU Inference] [Vector Storage] [Session State] [Sandboxes]     │       │
+│  └──────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────┐       │
+│  │              NO MODEL SELECTOR - AUTO BEST EXPERIENCE             │       │
+│  │     User enters NLP → KripTik routes to optimal model(s)          │       │
+│  └──────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## UNIFIED NLP PROMPTS
+# Section 2: VL-JEPA Semantic Understanding & Component 28 Enhancement
 
-Each prompt below is designed for **Claude Opus 4.5 in Cursor 2.2**. Execute in order within each phase.
-
----
-
-### PHASE 1 PROMPTS: Foundation Layer
-
----
-
-#### NLP PROMPT 1.1: Vector Database Infrastructure (Qdrant)
+## Implementation Prompt 2.1: VL-JEPA Core Integration (Dramatically Enhances Component 28)
 
 ```
-TASK: Create the Qdrant vector database infrastructure for KripTik AI's unified embedding storage.
+PROMPT FOR OPUS 4.5 - VL-JEPA SEMANTIC EMBEDDINGS FOR COMPONENT 28
 
-CONTEXT:
-This is the FOUNDATION for all three enhancement plans:
-- VL-JEPA needs embedding storage for intent/visual understanding
-- Hyper-Thinking needs embedding retrieval for pattern shortcuts
-- Component 28 needs embedding clusters for learning
+Context: KripTik AI has an existing 5-Layer Learning Engine (Component 28). VL-JEPA
+semantic embeddings will DRAMATICALLY enhance this learning system by adding:
+- Semantic similarity for pattern matching (L2)
+- Embedding-based experience capture (L1)
+- Embedding cluster patterns via Qdrant (L4)
+- Evolution flywheel with vector-based insights (L5)
 
-We use Qdrant (self-hosted via Docker) for flexibility and cost control.
+Current Files to Integrate With:
+- server/src/services/ai/modal-sandbox-service.ts (Modal integration)
+- server/src/services/verification/verification-swarm.ts (13-agent verification)
+- server/src/services/build/intent-lock-service.ts (Intent Lock - will be enhanced to two-stage)
+- server/src/db/schema.ts (Database schema)
+- server/src/services/learning/ (Existing 5-Layer Learning Engine)
 
-REQUIREMENTS:
+Task: Implement VL-JEPA semantic embedding system that dramatically enhances Component 28
 
-1. Create `server/src/services/embeddings/qdrant-client.ts`:
-   - Initialize Qdrant client (use @qdrant/js-client-rest v1.12+)
-   - Create collections for ALL embedding types (see below)
-   - Implement CRUD operations for embeddings
-   - Support batch upsert for efficiency
-   - Add similarity search with filters
-   - Implement embedding clustering for Component 28 L4
+Requirements:
+1. Create server/src/services/ai/vl-jepa/embedding-service.ts:
+   - Use HuggingFace Inference API with Qwen3-Embedding-8B model (SOTA as of Jan 2026)
+   - Endpoint: https://api-inference.huggingface.co/models/Alibaba-NLP/Qwen3-Embedding-8B
+   - Generate 4096-dimensional embeddings for:
+     a. User intent text (from Intent Lock sacred contracts)
+     b. Generated code (per-file and aggregate)
+     c. UI component descriptions
+     d. Test case specifications
+     e. Error patterns (for L2 pattern matching)
+     f. Successful resolution patterns (for learning)
+   - Implement cosine similarity scoring between intent and output embeddings
+   - Cache embeddings in Turso with table: intent_embeddings (id, project_id, embedding_type,
+     vector_blob, created_at, metadata_json)
 
-2. Create `server/src/services/embeddings/types.ts`:
-   - IntentEmbedding interface (VL-JEPA)
-   - VisualEmbedding interface (VL-JEPA)
-   - CodePatternEmbedding interface (Component 28)
-   - ErrorFixEmbedding interface (Component 28)
-   - HyperThinkingChainEmbedding interface (Hyper-Thinking)
-   - DecompositionPatternEmbedding interface (Hyper-Thinking)
+2. Create server/src/services/ai/vl-jepa/semantic-drift-detector.ts:
+   - Monitor embedding drift during build phases
+   - Alert when cosine similarity drops below 0.85 threshold
+   - Integrate with 4-Level Error Escalation:
+     * Drift 0.85-0.80: L1 auto-correction prompt
+     * Drift 0.80-0.70: L2 context expansion with original intent
+     * Drift below 0.70: L3 human review required
+   - Log all drift events to learning_events table for L2 pattern extraction
 
-3. Create `server/src/services/embeddings/index.ts`:
-   - Export unified embedding service
-   - Provide singleton access
+3. Create server/src/services/ai/vl-jepa/visual-embedding-service.ts:
+   - Use Modal sandbox to run screenshot comparisons
+   - Generate embeddings from Playwright screenshots during verification
+   - Compare visual embeddings against design intent embeddings
+   - Integration point: verification-swarm.ts Visual Verifier agent
 
-4. Create/Update `docker-compose.yml`:
-   - Add Qdrant service
-   - Configure persistent storage volume
-   - Set appropriate memory limits (2GB minimum)
+4. **COMPONENT 28 ENHANCEMENT - L1 Session Memory:**
+   Update server/src/services/learning/l1-session-memory.ts:
+   - Store embeddings for all session artifacts (intent, code, errors, fixes)
+   - Enable semantic retrieval of relevant context
+   - Use embeddings to find similar past problems within session
 
-5. Create initialization script `scripts/init-qdrant.ts`:
-   - Create ALL collections on startup
-   - Set up indexes for common filters
-   - Verify connectivity
+5. **COMPONENT 28 ENHANCEMENT - L2 Pattern Library:**
+   Update server/src/services/learning/l2-pattern-library.ts:
+   - Store error→fix patterns with embeddings
+   - When new error occurs, find semantically similar past errors
+   - Apply successful fix patterns based on embedding similarity (not just text matching)
+   - Dramatically improves pattern matching accuracy
 
-COLLECTION SCHEMAS (Create ALL):
+6. **COMPONENT 28 ENHANCEMENT - L4 User Preferences:**
+   Update server/src/services/learning/l4-user-preferences.ts:
+   - Build embedding clusters per user
+   - Identify user's coding style patterns via embeddings
+   - Personalize suggestions based on semantic similarity to user's past work
 
-```typescript
-// 1. Intent embeddings (VL-JEPA)
-{
-  name: 'intent_embeddings',
-  vectors: { size: 1024, distance: 'Cosine' },
-  payload_schema: {
-    projectId: 'keyword',
-    userId: 'keyword',
-    intentId: 'keyword',
-    appSoul: 'keyword',
-    uncertainty: 'float',
-    timestamp: 'datetime',
-  }
-}
+7. **COMPONENT 28 ENHANCEMENT - L5 Global Evolution:**
+   Update server/src/services/learning/l5-global-evolution.ts:
+   - Cross-project embedding analysis
+   - Discover global patterns via embedding clustering in Qdrant
+   - Feed successful patterns back to all users
+   - Evolution flywheel: more users → more embeddings → better patterns → better results
 
-// 2. Visual embeddings (VL-JEPA)
-{
-  name: 'visual_embeddings',
-  vectors: { size: 1024, distance: 'Cosine' },
-  payload_schema: {
-    projectId: 'keyword',
-    componentPath: 'keyword',
-    appSoul: 'keyword',
-    designScore: 'float',
-    antiSlopScore: 'float',
-    timestamp: 'datetime',
-  }
-}
+8. Update server/src/services/verification/verification-swarm.ts:
+   - Add VL-JEPA semantic verification as 14th agent in swarm
+   - Agent role: Compare intent embeddings vs output embeddings
+   - Failure criteria: cosine_similarity < 0.85
+   - Pass embedding scores to build_artifacts for traceability
 
-// 3. Code pattern embeddings (Component 28 + Hyper-Thinking)
-{
-  name: 'code_pattern_embeddings',
-  vectors: { size: 768, distance: 'Cosine' },
-  payload_schema: {
-    category: 'keyword',
-    patternId: 'keyword',
-    taskType: 'keyword',
-    successRate: 'float',
-    usageCount: 'integer',
-    isHyperThinkingPattern: 'bool',
-  }
-}
+9. Database migrations (server/src/db/migrations/):
+   - Add intent_embeddings table
+   - Add embedding_comparisons table (intent_id, output_id, similarity_score, phase, timestamp)
+   - Add pattern_embeddings table for L2 patterns
+   - Add user_embedding_clusters table for L4
+   - Add indexes on project_id and similarity_score for drift queries
 
-// 4. Error fix embeddings (Component 28)
-{
-  name: 'error_fix_embeddings',
-  vectors: { size: 768, distance: 'Cosine' },
-  payload_schema: {
-    errorType: 'keyword',
-    fixPatternId: 'keyword',
-    successRate: 'float',
-    escalationLevel: 'integer',
-  }
-}
+API Configuration (use environment variables):
+- HUGGINGFACE_API_KEY: For Qwen3-Embedding-8B access
+- VL_JEPA_SIMILARITY_THRESHOLD: 0.85 default
+- VL_JEPA_CACHE_TTL: 3600 seconds
 
-// 5. Hyper-Thinking chain embeddings (Hyper-Thinking)
-{
-  name: 'hyper_thinking_chains',
-  vectors: { size: 768, distance: 'Cosine' },
-  payload_schema: {
-    taskType: 'keyword',
-    decisionType: 'keyword',
-    qualityScore: 'float',
-    modelUsed: 'keyword',
-    phasesCaptured: 'keyword',
-  }
-}
-
-// 6. Decomposition pattern embeddings (Hyper-Thinking shortcuts)
-{
-  name: 'decomposition_patterns',
-  vectors: { size: 768, distance: 'Cosine' },
-  payload_schema: {
-    taskType: 'keyword',
-    complexity: 'integer',
-    confidence: 'float',
-    successRate: 'float',
-  }
-}
-
-// 7. Reasoning skeleton embeddings (Hyper-Thinking)
-{
-  name: 'reasoning_skeletons',
-  vectors: { size: 768, distance: 'Cosine' },
-  payload_schema: {
-    taskType: 'keyword',
-    decisionType: 'keyword',
-    sourceModel: 'keyword',
-    successRate: 'float',
-  }
-}
+Do not use placeholders. Implement complete, production-ready code with proper error
+handling, TypeScript types, and integration with existing KripTik services.
 ```
 
-CRITICAL INTEGRATIONS:
-- This enables Hyper-Thinking Phase 2 (Prior Knowledge) to do embedding retrieval instead of text search
-- This enables VL-JEPA semantic verification in Phase 5 (Intent Satisfaction)
-- This enables Component 28 L4 to use embedding clustering for pattern discovery
-
-VALIDATION:
-- npm run build must pass
-- Test Qdrant connection locally
-- Verify ALL 7 collections created
-- Test similarity search returns relevant results
-
-DO NOT:
-- Use deprecated Qdrant client methods
-- Store embeddings in SQLite (too slow for similarity search)
-- Skip any collection (all are needed for full synergy)
-- Modify any auth files
-```
-
----
-
-#### NLP PROMPT 1.2: Embedding Model Infrastructure
+## Implementation Prompt 2.2: Intent-to-Output Semantic Verification
 
 ```
-TASK: Create the embedding model infrastructure for generating embeddings across all three enhancement plans.
+PROMPT FOR OPUS 4.5 - SEMANTIC VERIFICATION PIPELINE
 
-CONTEXT:
-This service generates embeddings for:
-1. VL-JEPA: Intent understanding (text) and visual understanding (images)
-2. Hyper-Thinking: Task decomposition, reasoning chains, pattern matching
-3. Component 28: Code patterns, error fixes, decision traces
+Context: VL-JEPA embedding service is implemented. Now integrate semantic verification
+into the 8-Phase Build Loop to ensure generated outputs match user intent.
 
-REQUIREMENTS:
+Existing Integration Points:
+- server/src/services/ai/vl-jepa/embedding-service.ts (from Prompt 2.1)
+- server/src/services/build/build-loop-orchestrator.ts (8-phase loop)
+- server/src/services/build/intent-lock-service.ts (will become two-stage)
 
-1. Create `server/src/services/embeddings/sentence-transformer-client.ts`:
-   - Use HuggingFace Inference API for initial deployment
-   - Support multiple models for different use cases:
-     - `all-MiniLM-L6-v2` (384 dim, fast) - for quick Hyper-Thinking shortcuts
-     - `all-mpnet-base-v2` (768 dim, quality) - for code patterns
-     - `BAAI/bge-large-en-v1.5` (1024 dim, SOTA) - for intent embeddings
-   - Implement text embedding generation
-   - Implement code embedding generation (same models work)
-   - Add Redis caching layer for repeated embeddings
-   - Support batch embedding for efficiency (critical for shadow mode)
+Task: Create semantic verification pipeline that runs at each phase transition
 
-2. Create `server/src/services/embeddings/vision-embedding-client.ts`:
-   - Use OpenAI CLIP API via OpenRouter initially
-   - Implement image embedding from base64
-   - Implement image embedding from URL
-   - Add screenshot-to-embedding pipeline (for VL-JEPA verification)
-   - Implement video frame embedding (for Clone Mode)
+**CRITICAL DECISION: Semantic Verification Position in Swarm**
 
-3. Create `server/src/services/embeddings/embedding-service.ts`:
-   - Unified embedding service that routes to appropriate model
-   - Input types: text, code, image, screenshot, video_frame
-   - Handle errors gracefully with fallbacks
-   - Add observability/logging with [Embedding] prefix
-   - Support async batch processing (critical for Hyper-Thinking shadow mode)
+The Semantic Verifier Agent should run AFTER the core verification agents but BEFORE
+the gap closer agents. This allows it to:
+1. Benefit from cleaned-up code (placeholders removed, errors fixed)
+2. Provide drift feedback before gap closers run
+3. Trigger re-verification if semantic drift exceeds threshold
 
-4. Create `server/src/services/embeddings/embedding-cache.ts`:
-   - Redis-based caching for embeddings
-   - TTL of 24 hours for text embeddings
-   - TTL of 1 hour for visual embeddings
-   - Cache key includes model version for invalidation
+Verification Order:
+1. Error Checker Agent (catches compilation errors)
+2. Code Quality Agent (cleans up code)
+3. Security Scanner Agent (security checks)
+4. Placeholder Eliminator Agent (removes placeholders)
+5. **SEMANTIC VERIFIER AGENT** (VL-JEPA drift detection) ← NEW POSITION
+6. Design Style Agent
+7-13. Gap Closer Agents (run after semantic verification passes)
 
-5. Update `.env.example`:
-   - HUGGINGFACE_API_KEY
-   - EMBEDDING_MODEL (default: all-mpnet-base-v2)
-   - VISION_EMBEDDING_MODEL (default: clip-vit-large-patch14)
-   - EMBEDDING_CACHE_TTL_HOURS
+Requirements:
+1. Create server/src/services/ai/vl-jepa/semantic-verification-pipeline.ts:
 
-API PATTERNS:
+   interface SemanticVerificationResult {
+     phase: BuildPhase;
+     intentEmbedding: Float32Array;
+     outputEmbedding: Float32Array;
+     similarityScore: number;
+     driftDetected: boolean;
+     correctionSuggestions: string[];
+     timestamp: Date;
+   }
 
-```typescript
-// Text/Code embedding (for Hyper-Thinking + Component 28)
-const embedding = await embeddingService.embedText(
-  'Create a login form with email and password',
-  { model: 'bge-large-en-v1.5', purpose: 'intent' }
-);
+   class SemanticVerificationPipeline {
+     // Run after each phase completes
+     async verifyPhaseOutput(
+       projectId: string,
+       phase: BuildPhase,
+       intentContract: IntentContract,
+       phaseOutput: PhaseOutput
+     ): Promise<SemanticVerificationResult>
 
-// Code-specific embedding (for Component 28 patterns)
-const codeEmbedding = await embeddingService.embedCode(
-  codeSnippet,
-  { language: 'typescript', model: 'all-mpnet-base-v2' }
-);
+     // Aggregate verification across all phases
+     async getFinalSemanticScore(projectId: string): Promise<number>
 
-// Image embedding (for VL-JEPA visual verification)
-const visualEmbedding = await embeddingService.embedImage(
-  base64Screenshot,
-  { model: 'clip-vit-large-patch14' }
-);
+     // Generate correction prompts when drift detected
+     async generateCorrectionPrompt(
+       originalIntent: string,
+       driftedOutput: string,
+       similarityScore: number
+     ): Promise<string>
+   }
 
-// Batch embedding (for Hyper-Thinking shadow mode)
-const embeddings = await embeddingService.embedBatch([
-  { type: 'text', content: 'prompt 1', purpose: 'decomposition' },
-  { type: 'text', content: 'prompt 2', purpose: 'pattern' },
-  { type: 'image', content: base64Image, purpose: 'verification' },
-]);
+2. Update server/src/services/build/build-loop-orchestrator.ts:
+   - Add semantic verification hook after each phase
+   - If drift detected, trigger appropriate escalation level
+   - Store verification results in build_phase_metrics table
+   - Add semantic_score column to builds table
 
-// Async batch for shadow mode (non-blocking)
-embeddingService.embedBatchAsync(items).then(results => {
-  // Store for learning
-});
+3. Create server/src/services/ai/vl-jepa/correction-generator.ts:
+   - Generate targeted correction prompts when semantic drift occurs
+   - Use original intent embedding as anchor
+   - Provide specific guidance to bring output back to intent
+   - Format corrections for consumption by build loop retry logic
+
+4. Integration with Two-Stage Intent Lock (Section 7):
+   - When first intent lock (plan approval) is created, immediately generate intent embedding
+   - When second intent lock (final contract) is created, verify embedding matches plan
+   - Store embedding hash in intent_locks table for integrity verification
+   - On any contract modification attempt, compare embeddings to detect unauthorized changes
+
+5. Metrics and Observability:
+   - Emit semantic_verification_completed event to event bus
+   - Track average similarity scores per project, user, workflow type
+   - Dashboard integration: Add semantic health indicator to build status
+
+Implementation must be fully typed, use existing Drizzle ORM patterns, and integrate
+with the TanStack Query frontend state management.
 ```
 
-CRITICAL INTEGRATIONS:
-- Hyper-Thinking Phase 2 uses this for pattern retrieval
-- VL-JEPA Intent Lock uses this for semantic embeddings
-- Component 28 L1-L4 uses this for experience/pattern storage
-- Shadow Mode uses batch async for non-blocking learning
+## Implementation Prompt 2.3: Visual Semantic Comparison
 
-VALIDATION:
-- npm run build must pass
-- Test text embedding with sample prompt
-- Test image embedding with sample screenshot
-- Verify embedding dimensions match collection schemas
-- Test batch processing doesn't block
+```
+PROMPT FOR OPUS 4.5 - VISUAL EMBEDDING COMPARISON
 
-DO NOT:
-- Run Sentence Transformers locally (use API for now)
-- Skip caching (embeddings are expensive)
-- Block on async batch operations
-- Modify any auth files
+Context: KripTik AI uses Playwright for screenshot verification in the Visual Verifier
+agent. Enhance this with VL-JEPA visual embeddings for semantic UI comparison.
+
+Existing Files:
+- server/src/services/verification/agents/visual-verifier-agent.ts
+- server/src/services/sandbox/modal-sandbox-service.ts
+- server/src/services/ai/vl-jepa/embedding-service.ts
+
+Task: Add visual embedding comparison to the verification pipeline
+
+Requirements:
+1. Update server/src/services/ai/vl-jepa/visual-embedding-service.ts:
+   - Use CLIP model via HuggingFace for image embeddings
+   - Model: openai/clip-vit-large-patch14-336
+   - Generate 768-dimensional embeddings from screenshots
+   - Compare against design mockup embeddings (if provided)
+   - Compare against textual UI intent descriptions
+
+2. Create server/src/services/verification/agents/semantic-visual-verifier-agent.ts:
+   interface VisualSemanticVerification {
+     screenshotPath: string;
+     designIntent: string;
+     visualEmbedding: Float32Array;
+     intentEmbedding: Float32Array;
+     crossModalSimilarity: number;
+     layoutConsistency: number;
+     colorSchemeMatch: number;
+     componentPresence: Record<string, boolean>;
+   }
+
+   - Inherit from base VerificationAgent class
+   - Run Playwright screenshot capture in Modal sandbox
+   - Generate visual embedding from screenshot
+   - Generate text embedding from UI intent description
+   - Calculate cross-modal similarity (visual vs text intent)
+   - Report detailed breakdown: layout, colors, components
+
+3. Update verification-swarm.ts:
+   - Replace basic Visual Verifier with Semantic Visual Verifier
+   - Add visual_semantic_score to verification results
+   - Threshold: cross_modal_similarity >= 0.80 for pass
+
+4. Create server/src/services/ai/vl-jepa/design-intent-parser.ts:
+   - Parse natural language UI descriptions into structured intent
+   - Extract: components, layout, color scheme, interactions
+   - Generate separate embeddings for each aspect
+   - Enable granular comparison (e.g., "colors match but layout differs")
+
+5. Frontend Integration (client/src/components/):
+   - Add VisualVerificationReport component
+   - Show side-by-side: expected (from intent) vs actual (screenshot)
+   - Display similarity heatmap overlay
+   - Allow user to approve/reject with feedback
+
+Use Modal sandbox for all screenshot operations. Integrate with existing
+verification-swarm event emission patterns.
 ```
 
 ---
 
-#### NLP PROMPT 1.3: Unified Database Schema Updates
+# Section 3: Hyper-Thinking Cognitive Pipeline
+
+## Implementation Prompt 3.1: 6-Phase Cognitive Pipeline Core
 
 ```
-TASK: Update the database schema to support ALL THREE enhancement plans with unified tables.
+PROMPT FOR OPUS 4.5 - HYPER-THINKING PIPELINE
 
-CONTEXT:
-This schema update supports:
-1. VL-JEPA: Embedding references for intents and visuals
-2. Hyper-Thinking: Run tracking, patterns, skeletons, critiques
-3. Model Enhancements: Reasoning metadata, context compaction history
+Context: KripTik AI has an 8-Phase Build Loop. We're adding a Hyper-Thinking cognitive
+pipeline that runs BEFORE the build loop to deeply analyze requirements and plan
+optimal implementation strategies.
 
-CRITICAL: These tables must be designed for CROSS-PLAN SYNERGY.
+Current Architecture:
+- 8-Phase Build Loop: Init → Plan → Impl → Verify → Test → Deploy → Monitor → Learn
+- Two-Stage Intent Lock: Plan approval (modifiable) + Final contract (immutable)
+- AI Lab: 5 parallel orchestrations for research
 
-REQUIREMENTS:
+Task: Implement 6-phase Hyper-Thinking cognitive pipeline
 
-1. Update `server/src/schema.ts` with new tables and columns:
+Requirements:
+1. Create server/src/services/cognition/hyper-thinking-pipeline.ts:
 
-```typescript
-// =============================================================================
-// VL-JEPA TABLES (from kriptik-ultimate.md)
-// =============================================================================
+   enum CognitivePhase {
+     DECOMPOSE = 'decompose',     // Break down request into atomic requirements
+     PRIOR_KNOWLEDGE = 'prior',   // Query learning layers for relevant patterns
+     EXPLORE = 'explore',         // Generate multiple implementation approaches
+     CRITIQUE = 'critique',       // Evaluate and score each approach
+     SYNTHESIZE = 'synthesize',   // Combine best elements into optimal plan
+     VERIFY = 'verify'            // Verify plan completeness and feasibility
+   }
 
-// VL-JEPA embedding metadata
-export const vljepaEmbeddings = sqliteTable('vljepa_embeddings', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  qdrantPointId: text('qdrant_point_id').notNull(),
-  collectionName: text('collection_name').notNull(),
-  sourceType: text('source_type').notNull(),  // 'intent', 'screenshot', 'video_frame'
-  sourceId: text('source_id'),
-  projectId: text('project_id'),
-  uncertainty: real('uncertainty'),  // VL-JEPA confidence
-  embeddingDimension: integer('embedding_dimension'),
-  modelVersion: text('model_version'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
+   interface CognitiveResult {
+     phase: CognitivePhase;
+     insights: string[];
+     artifacts: Record<string, unknown>;
+     confidence: number;
+     duration: number;
+   }
 
-// =============================================================================
-// HYPER-THINKING TABLES (from hyper-thinking.md)
-// =============================================================================
+   class HyperThinkingPipeline {
+     async execute(
+       userRequest: string,
+       projectContext: ProjectContext,
+       constraints: BuildConstraints
+     ): Promise<HyperThinkingResult>
 
-// Track every Hyper-Thinking run
-export const hyperThinkingRuns = sqliteTable('hyper_thinking_runs', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  runId: text('run_id').unique().notNull(),
-  buildId: text('build_id'),
-  projectId: text('project_id'),
-  userId: text('user_id').notNull(),
-  taskType: text('task_type').notNull(),
-  taskHash: text('task_hash'),
+     private async decompose(input: CognitiveInput): Promise<CognitiveResult>
+     private async priorKnowledge(decomposition: CognitiveResult): Promise<CognitiveResult>
+     private async explore(knowledge: CognitiveResult): Promise<CognitiveResult>
+     private async critique(exploration: CognitiveResult): Promise<CognitiveResult>
+     private async synthesize(critique: CognitiveResult): Promise<CognitiveResult>
+     private async verify(synthesis: CognitiveResult): Promise<CognitiveResult>
+   }
 
-  // Configuration
-  mode: text('mode').notNull(),  // 'shadow', 'active', 'accelerated'
-  modelUsed: text('model_used').notNull(),
-  depth: text('depth').notNull(),  // 'light', 'standard', 'deep'
+2. Phase Implementations:
 
-  // Results (JSON)
-  phasesRun: text('phases_run'),
-  decomposition: text('decomposition'),
-  explorations: text('explorations'),
-  critiques: text('critiques'),
-  synthesisResult: text('synthesis_result'),
+   DECOMPOSE Phase:
+   - Break user request into atomic requirements
+   - Identify explicit and implicit requirements
+   - Extract success criteria
+   - Output: Structured requirement document
 
-  // SYNERGY: VL-JEPA embedding references
-  intentEmbeddingId: text('intent_embedding_id'),  // Links to vljepaEmbeddings
-  decompositionEmbeddingId: text('decomposition_embedding_id'),  // For pattern matching
+   PRIOR_KNOWLEDGE Phase:
+   - Query L2-L5 learning layers for relevant patterns
+   - Find similar past projects via VL-JEPA embeddings
+   - Identify applicable error→fix patterns
+   - Output: Relevant knowledge compilation
 
-  // Metrics
-  tokensUsed: integer('tokens_used'),
-  durationMs: integer('duration_ms'),
-  qualityScore: real('quality_score'),
-  qualityImprovement: real('quality_improvement'),
+   EXPLORE Phase:
+   - Generate 3-5 distinct implementation approaches
+   - Each approach: architecture, file changes, estimated complexity
+   - Use AI Lab parallel orchestration for concurrent exploration
+   - Output: Ranked list of implementation hypotheses
 
-  // Shadow mode comparison
-  shadowRun: integer('shadow_run', { mode: 'boolean' }).default(false),
-  rawOutput: text('raw_output'),
-  rawQualityScore: real('raw_quality_score'),
+   CRITIQUE Phase:
+   - Score each hypothesis against criteria:
+     * Intent alignment (VL-JEPA similarity to original request)
+     * Code quality (maintainability, testability)
+     * Risk level (breaking changes, security implications)
+     * Effort estimate (file count, complexity score)
+   - Output: Evaluation matrix with scores
 
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
+   SYNTHESIZE Phase:
+   - Select winning approach or combine best elements
+   - Generate detailed implementation plan
+   - Create FIRST Intent Lock (Plan Approval - modifiable)
+   - Output: Implementation plan ready for user approval
 
-// Learned decomposition patterns (with embedding reference)
-export const hyperThinkingDecompositionPatterns = sqliteTable('hyper_thinking_decomposition_patterns', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  taskType: text('task_type').notNull(),
-  taskSignature: text('task_signature'),
-  decompositionTemplate: text('decomposition_template').notNull(),
-  subProblemTypes: text('sub_problem_types').notNull(),
+   VERIFY Phase:
+   - Verify plan covers all requirements from DECOMPOSE
+   - Check for missing edge cases
+   - Ensure plan is executable within constraints
+   - Generate VL-JEPA embedding for plan verification
+   - Output: Validated plan with confidence score
 
-  // SYNERGY: Qdrant embedding ID for instant retrieval
-  embeddingId: text('embedding_id'),  // Qdrant point ID in decomposition_patterns collection
+3. Integration with Build Loop:
+   - Hyper-Thinking runs before Phase 0 (Init)
+   - Output feeds into Phase 1 (Planning) after user approves
+   - Store cognitive artifacts in cognition_sessions table
+   - Link to build via cognition_session_id foreign key
 
-  timesUsed: integer('times_used').default(0),
-  successCount: integer('success_count').default(0),
-  avgQualityScore: real('avg_quality_score'),
-  avgQualityImprovement: real('avg_quality_improvement'),
-  confidence: real('confidence').default(0.5),
+4. Database Schema:
+   CREATE TABLE cognition_sessions (
+     id TEXT PRIMARY KEY,
+     project_id TEXT REFERENCES projects(id),
+     user_request TEXT NOT NULL,
+     phases_completed TEXT[], -- Array of completed phase names
+     final_plan JSONB,
+     confidence_score REAL,
+     duration_ms INTEGER,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
 
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-});
+   CREATE TABLE cognitive_artifacts (
+     id TEXT PRIMARY KEY,
+     session_id TEXT REFERENCES cognition_sessions(id),
+     phase TEXT NOT NULL,
+     artifact_type TEXT,
+     content JSONB,
+     created_at TIMESTAMP
+   );
 
-// Effective adversarial critique questions
-export const hyperThinkingCritiqueLibrary = sqliteTable('hyper_thinking_critique_library', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  taskType: text('task_type').notNull(),
-  critiqueQuestion: text('critique_question').notNull(),
-  catchesCategory: text('catches_category'),
-  exampleFinding: text('example_finding'),
-
-  // SYNERGY: Deliberative Alignment integration
-  alignsWithSpec: text('aligns_with_spec'),  // Which quality spec this enforces
-
-  embeddingId: text('embedding_id'),
-  timesAsked: integer('times_asked').default(0),
-  timesLedToChange: integer('times_led_to_change').default(0),
-  avgQualityImpact: real('avg_quality_impact'),
-  falsePositiveRate: real('false_positive_rate').default(0),
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// Reasoning skeletons (how Opus thinks)
-export const hyperThinkingSkeletons = sqliteTable('hyper_thinking_skeletons', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  taskType: text('task_type').notNull(),
-  decisionType: text('decision_type'),
-  skeletonTemplate: text('skeleton_template').notNull(),
-  thinkingSteps: text('thinking_steps').notNull(),
-  qualityIndicators: text('quality_indicators'),
-  antiPatterns: text('anti_patterns'),
-
-  // SYNERGY: Extended Thinking metadata
-  thinkingBudgetUsed: integer('thinking_budget_used'),
-  preservedBlocksCount: integer('preserved_blocks_count'),
-
-  sourceModel: text('source_model'),
-  sourceRunId: text('source_run_id'),
-  embeddingId: text('embedding_id'),
-  timesUsed: integer('times_used').default(0),
-  successRate: real('success_rate').default(0.5),
-  avgQualityScore: real('avg_quality_score'),
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// Model performance with Hyper-Thinking (for equalization)
-export const hyperThinkingModelPerformance = sqliteTable('hyper_thinking_model_performance', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  model: text('model').notNull(),
-  taskType: text('task_type').notNull(),
-  withHyperThinking: integer('with_hyper_thinking', { mode: 'boolean' }).notNull(),
-
-  runs: integer('runs').default(0),
-  avgQualityScore: real('avg_quality_score'),
-  avgTokensUsed: real('avg_tokens_used'),
-  avgDurationMs: real('avg_duration_ms'),
-  qualityPerToken: real('quality_per_token'),
-  qualityPerSecond: real('quality_per_second'),
-
-  optimalCompensationLevel: text('optimal_compensation_level'),
-  optimalStructureDepth: text('optimal_structure_depth'),
-  patternDependencyScore: real('pattern_dependency_score'),
-
-  // SYNERGY: Effort level effectiveness
-  bestEffortLevel: text('best_effort_level'),  // 'low', 'medium', 'high', 'xhigh'
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// =============================================================================
-// MODEL ENHANCEMENTS TABLES (from jan2026.md)
-// =============================================================================
-
-// Context compaction history
-export const contextCompactionHistory = sqliteTable('context_compaction_history', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  sessionId: text('session_id').notNull(),
-  projectId: text('project_id'),
-
-  originalTokens: integer('original_tokens').notNull(),
-  compactedTokens: integer('compacted_tokens').notNull(),
-  compressionRatio: real('compression_ratio'),
-
-  summaryHash: text('summary_hash'),  // For recovery
-  preservedContextKeys: text('preserved_context_keys'),  // JSON array
-
-  compactedAt: text('compacted_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// Reasoning summaries (from Responses API)
-export const reasoningSummaries = sqliteTable('reasoning_summaries', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  responseId: text('response_id').notNull(),  // OpenAI response ID
-  buildId: text('build_id'),
-  phase: text('phase'),
-
-  summary: text('summary').notNull(),
-  reasoningTokensUsed: integer('reasoning_tokens_used'),
-  effortLevel: text('effort_level'),  // 'minimal', 'low', 'medium', 'high', 'xhigh'
-
-  // SYNERGY: Link to Hyper-Thinking run if applicable
-  hyperThinkingRunId: text('hyper_thinking_run_id'),
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// Preserved thinking blocks across turns
-export const preservedThinkingBlocks = sqliteTable('preserved_thinking_blocks', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  sessionId: text('session_id').notNull(),
-  turnNumber: integer('turn_number').notNull(),
-
-  thinkingContent: text('thinking_content').notNull(),
-  tokensUsed: integer('tokens_used'),
-  phase: text('phase'),
-
-  // SYNERGY: Hyper-Thinking integration
-  hyperThinkingPhase: text('hyper_thinking_phase'),  // Which HT phase produced this
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-// =============================================================================
-// SHADOW DATA COLLECTION TABLES (for learning)
-// =============================================================================
-
-export const shadowIntentSamples = sqliteTable('shadow_intent_samples', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  prompt: text('prompt').notNull(),
-  generatedContract: text('generated_contract'),
-  appSoul: text('app_soul'),
-  satisfactionResult: text('satisfaction_result'),
-  buildSuccess: integer('build_success', { mode: 'boolean' }),
-
-  // SYNERGY: VL-JEPA embedding reference
-  intentEmbeddingId: text('intent_embedding_id'),
-  uncertainty: real('uncertainty'),
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
-
-export const shadowVisualSamples = sqliteTable('shadow_visual_samples', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  screenshotHash: text('screenshot_hash').notNull(),
-  screenshotUrl: text('screenshot_url'),
-  designScore: real('design_score'),
-  antiSlopScore: real('anti_slop_score'),
-  appSoul: text('app_soul'),
-  componentType: text('component_type'),
-
-  // SYNERGY: VL-JEPA embedding reference
-  visualEmbeddingId: text('visual_embedding_id'),
-
-  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-});
+Implement complete pipeline with proper error handling, logging, and metrics emission.
 ```
 
-2. Update existing tables with embedding references:
-
-```typescript
-// Add to buildIntents table
-intentEmbeddingId: text('intent_embedding_id'),
-visualEmbeddingId: text('visual_embedding_id'),
-embeddingModelVersion: text('embedding_model_version'),
-hyperThinkingRunId: text('hyper_thinking_run_id'),
-hyperThinkingDepth: text('hyper_thinking_depth'),
-reasoningChainSummary: text('reasoning_chain_summary'),
-
-// Add to verificationResults table
-visualEmbeddingId: text('visual_embedding_id'),
-visualSimilarityScore: real('visual_similarity_score'),
-embeddingVerified: integer('embedding_verified', { mode: 'boolean' }),
-embeddingConfidence: real('embedding_confidence'),
-
-// Add to learnedPatterns table
-patternEmbeddingId: text('pattern_embedding_id'),
-embeddingModelVersion: text('embedding_model_version'),
-clusterId: text('cluster_id'),
-clusterCentroidDistance: real('cluster_centroid_distance'),
-```
-
-3. Create migration script `server/src/migrations/add-unified-enhancement-tables.ts`
-
-VALIDATION:
-- npm run build must pass
-- Run migrations successfully
-- Verify all new columns/tables exist
-- Test relations between tables
-
-DO NOT:
-- Modify existing column types (Turso limitation)
-- Remove any existing columns
-- Change primary key structures
-- Modify any auth files or auth tables
-```
-
----
-
-### PHASE 2 PROMPTS: API Power Backbone
-
----
-
-#### NLP PROMPT 2.1: OpenAI Responses API Integration
+## Implementation Prompt 3.2: Anthropic Extended Thinking Integration
 
 ```
-TASK: Implement OpenAI Responses API for reasoning models in KripTik AI with Hyper-Thinking integration.
+PROMPT FOR OPUS 4.5 - EXTENDED THINKING INTEGRATION
 
-CONTEXT:
-The Responses API is the NEW standard for agentic tasks (replaces Chat Completions).
-Benefits:
-- 3% SWE-bench improvement
-- 40-80% cache utilization improvement
-- Reasoning summaries for transparency
-- Preserved reasoning tokens around function calls
+Context: Anthropic Claude API now supports Extended Thinking which allows
+models to use additional compute for complex reasoning. Integrate this into the
+Hyper-Thinking pipeline for deeper analysis.
 
-CRITICAL SYNERGY: This API powers Hyper-Thinking Phase 5 (Synthesis) with maximum reasoning.
+API Reference (January 2026):
+- Extended Thinking: thinking.budget_tokens parameter
+- Budget can exceed max_tokens (e.g., 128K thinking + 64K output)
+- Interleaved Thinking Beta: anthropic-beta: interleaved-thinking-2025-05-14
+- Enables thinking blocks interleaved with tool use
 
-REQUIREMENTS:
+Model IDs (Verified January 6, 2026):
+- claude-opus-4-5-20251101 (primary for extended thinking)
+- claude-sonnet-4-5-20250929 (balanced)
+- claude-haiku-4-5 (fast)
 
-1. Create `server/src/services/ai/openai-responses-client.ts`:
+Task: Integrate Extended Thinking into Hyper-Thinking cognitive phases
 
-```typescript
-/**
- * OpenAI Responses API Client
- *
- * Implements the new Responses API for o3, o3-pro, and o4-mini models.
- * Provides reasoning summaries and preserved reasoning for tool calls.
- *
- * SYNERGY: Powers Hyper-Thinking synthesis and critical decisions.
- */
+Requirements:
+1. Create server/src/services/cognition/extended-thinking-client.ts:
 
-import OpenAI from 'openai';
+   interface ExtendedThinkingConfig {
+     budgetTokens: number;        // Thinking budget (can exceed max_tokens)
+     streamThinking: boolean;     // Stream thinking blocks
+     interleavedThinking: boolean; // Use interleaved-thinking beta
+   }
 
-export interface ResponsesAPIConfig {
-  model: 'o3' | 'o3-pro' | 'o4-mini';
-  reasoning: {
-    effort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-    summary: 'auto' | 'none';
-  };
-  max_output_tokens: number;
-  tools?: ToolDefinition[];
-  previous_response_id?: string;  // For context continuity
-}
+   class ExtendedThinkingClient {
+     constructor(private anthropicApiKey: string) {}
 
-export interface ResponsesAPIResult {
-  responseId: string;
-  output: string;
-  reasoningSummary?: string;  // From reasoning.summary: 'auto'
-  reasoningTokensUsed: number;
-  outputTokensUsed: number;
-  totalTokensUsed: number;
-  functionCalls?: FunctionCallWithReasoning[];
-}
+     async think(
+       prompt: string,
+       config: ExtendedThinkingConfig
+     ): Promise<ThinkingResult> {
+       // Use Anthropic SDK with extended thinking
+       const response = await anthropic.messages.create({
+         model: 'claude-opus-4-5-20251101',
+         max_tokens: 16000,
+         thinking: {
+           type: 'enabled',
+           budget_tokens: config.budgetTokens // e.g., 50000
+         },
+         messages: [{ role: 'user', content: prompt }]
+       });
 
-export interface FunctionCallWithReasoning {
-  name: string;
-  arguments: Record<string, any>;
-  reasoningBeforeCall?: string;  // Preserved reasoning before this call
-}
+       // Extract thinking blocks and final response
+       return this.parseThinkingResponse(response);
+     }
 
-export class OpenAIResponsesClient {
-  private client: OpenAI;
+     async thinkWithTools(
+       prompt: string,
+       tools: Tool[],
+       config: ExtendedThinkingConfig
+     ): Promise<ThinkingResult> {
+       // Use interleaved thinking beta for tool-use scenarios
+       const response = await anthropic.beta.messages.create({
+         model: 'claude-opus-4-5-20251101',
+         betas: ['interleaved-thinking-2025-05-14'],
+         max_tokens: 16000,
+         thinking: {
+           type: 'enabled',
+           budget_tokens: config.budgetTokens
+         },
+         tools: tools,
+         messages: [{ role: 'user', content: prompt }]
+       });
 
-  constructor() {
-    this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
+       return this.parseInterleavedResponse(response);
+     }
+   }
 
-  async create(config: ResponsesAPIConfig, input: string): Promise<ResponsesAPIResult> {
-    // Implementation using new Responses API
-    const response = await this.client.responses.create({
-      model: config.model,
-      input,
-      reasoning: config.reasoning,
-      max_output_tokens: config.max_output_tokens,
-      tools: config.tools,
-      previous_response_id: config.previous_response_id,
-    });
+2. Update Hyper-Thinking phases to use Extended Thinking:
 
-    // Extract reasoning summary
-    const reasoningSummary = response.output.find(
-      item => item.type === 'reasoning' && item.summary
-    )?.summary;
+   DECOMPOSE Phase:
+   - Use 30,000 token thinking budget
+   - Deep requirement analysis
+   - Identify hidden requirements
 
-    // Return structured result
-    return {
-      responseId: response.id,
-      output: this.extractOutput(response),
-      reasoningSummary,
-      reasoningTokensUsed: response.usage.reasoning_tokens,
-      outputTokensUsed: response.usage.output_tokens,
-      totalTokensUsed: response.usage.total_tokens,
-      functionCalls: this.extractFunctionCalls(response),
-    };
-  }
+   PRIOR_KNOWLEDGE Phase:
+   - Use 20,000 token thinking budget
+   - Reason about pattern applicability
+   - Connect disparate knowledge
 
-  /**
-   * For Hyper-Thinking Synthesis - uses xhigh effort
-   */
-  async synthesize(
-    explorations: string[],
-    critiques: string[],
-    originalTask: string,
-    previousResponseId?: string
-  ): Promise<ResponsesAPIResult> {
-    const input = this.formatSynthesisPrompt(explorations, critiques, originalTask);
+   EXPLORE Phase:
+   - Use 80,000 token thinking budget
+   - Generate diverse implementation approaches
+   - Consider non-obvious solutions
 
-    return this.create({
-      model: 'o3',
-      reasoning: { effort: 'xhigh', summary: 'auto' },  // Maximum effort for synthesis
-      max_output_tokens: 16000,
-      previous_response_id: previousResponseId,
-    }, input);
-  }
+   CRITIQUE Phase:
+   - Use interleaved thinking with evaluation tools
+   - Tools: code_complexity_analyzer, security_scanner, effort_estimator
+   - 40,000 token thinking budget
 
-  /**
-   * For Intent Satisfaction verification - uses xhigh effort
-   */
-  async verifyIntentSatisfaction(
-    intent: string,
-    currentOutput: string,
-    previousResponseId?: string
-  ): Promise<ResponsesAPIResult> {
-    const input = this.formatVerificationPrompt(intent, currentOutput);
+3. Create server/src/services/cognition/thinking-budget-manager.ts:
+   - Allocate thinking budgets based on task complexity
+   - Track token usage across cognitive sessions
+   - Adaptive budget: increase for failed builds, decrease for simple tasks
+   - Cost tracking integration with existing billing system
 
-    return this.create({
-      model: 'o3',
-      reasoning: { effort: 'xhigh', summary: 'auto' },
-      max_output_tokens: 8000,
-      previous_response_id: previousResponseId,
-    }, input);
-  }
+4. Streaming Integration:
+   - Stream thinking blocks to frontend during Hyper-Thinking
+   - Display real-time cognitive progress
+   - Allow user to see AI reasoning process
+   - Update client/src/components/build/CognitiveProgress.tsx
 
-  // Helper methods...
-}
+5. Configuration:
+   ANTHROPIC_API_KEY: Required
+   EXTENDED_THINKING_DEFAULT_BUDGET: 50000
+   EXTENDED_THINKING_MAX_BUDGET: 128000
+   INTERLEAVED_THINKING_ENABLED: true
 
-export function getOpenAIResponsesClient(): OpenAIResponsesClient;
+Ensure proper error handling for API rate limits and token budget exhaustion.
 ```
 
-2. Create `server/src/services/ai/openai-responses-types.ts`:
-   - Full type definitions for Responses API
-   - ReasoningItem interface
-   - FunctionCallWithReasoning interface
+## Implementation Prompt 3.3: Parallel Cognitive Processing with AI Lab
 
-3. Modify `server/src/services/ai/openrouter-client.ts`:
-   - Add RESPONSES_API_MODELS constant
-   - Update PHASE_CONFIGS to use Responses API for o3/o4-mini
-   - Add getResponsesClient() factory function
-
-4. Integrate with Hyper-Thinking:
-   - Phase 5 (Synthesis) uses Responses API with xhigh effort
-   - Reasoning summaries stored for learning
-   - Previous response ID passed between phases for context continuity
-
-PHASE CONFIG UPDATES:
-
-```typescript
-'intent_satisfaction': {
-    model: ANTHROPIC_MODELS.OPUS_4_5,
-    provider: 'anthropic',
-    effort: 'high',
-    thinkingBudget: 64000,
-    // NEW: Use Responses API for verification
-    verificationModel: OPENAI_MODELS.O3,
-    verificationProvider: 'openai_responses',
-    verificationEffort: 'xhigh',
-    verificationSummary: 'auto',
-},
-
-'hyper_thinking_synthesis': {
-    model: OPENAI_MODELS.O3,
-    provider: 'openai_responses',
-    effort: 'xhigh',
-    summary: 'auto',
-    description: 'Maximum reasoning for synthesis phase',
-},
 ```
+PROMPT FOR OPUS 4.5 - PARALLEL COGNITIVE PROCESSING
 
-VALIDATION:
-- npm run build must pass
-- Test with Hyper-Thinking synthesis phase
-- Verify reasoning summaries are captured
-- Test previous_response_id context continuity
-- Store reasoning summaries in reasoningSummaries table
+Context: KripTik AI has AI Lab with 5 parallel orchestrations. Enhance Hyper-Thinking
+to use parallel processing for faster, more comprehensive cognitive analysis.
 
-DO NOT MODIFY: Auth files
+Existing Integration Points:
+- server/src/services/ai-lab/orchestration-manager.ts (5 parallel orchestrations)
+- server/src/services/cognition/hyper-thinking-pipeline.ts (from Prompt 3.1)
+- server/src/services/sandbox/multi-sandbox-orchestrator.ts (20 parallel sandboxes)
+
+Task: Implement parallel cognitive processing for Hyper-Thinking
+
+Requirements:
+1. Update server/src/services/cognition/hyper-thinking-pipeline.ts:
+
+   class ParallelHyperThinking extends HyperThinkingPipeline {
+     constructor(
+       private aiLabOrchestrator: OrchestrationManager,
+       private extendedThinkingClient: ExtendedThinkingClient
+     ) {}
+
+     async exploreParallel(
+       knowledge: CognitiveResult
+     ): Promise<CognitiveResult[]> {
+       // Use AI Lab's 5 parallel orchestrations
+       // Each generates a distinct implementation hypothesis
+       const explorationPrompts = this.generateExplorationPrompts(knowledge, 5);
+
+       const results = await this.aiLabOrchestrator.executeParallel(
+         explorationPrompts.map(prompt => ({
+           type: 'exploration',
+           prompt,
+           thinkingBudget: 30000
+         }))
+       );
+
+       return results;
+     }
+
+     async critiqueParallel(
+       explorations: CognitiveResult[]
+     ): Promise<EvaluationMatrix> {
+       // Parallel evaluation of each exploration
+       // Each evaluator focuses on different criteria
+       const evaluators = [
+         'intent_alignment_evaluator',
+         'code_quality_evaluator',
+         'security_evaluator',
+         'performance_evaluator',
+         'maintainability_evaluator'
+       ];
+
+       const evaluationResults = await Promise.all(
+         evaluators.map(evaluator =>
+           this.aiLabOrchestrator.evaluate(explorations, evaluator)
+         )
+       );
+
+       return this.aggregateEvaluations(evaluationResults);
+     }
+   }
+
+2. Create server/src/services/cognition/cognitive-orchestrator.ts:
+   - Coordinate parallel cognitive processes
+   - Manage resource allocation across AI Lab slots
+   - Handle partial failures gracefully
+   - Merge parallel results into coherent output
+
+3. Implement Cognitive Agents:
+
+   server/src/services/cognition/agents/requirement-decomposer-agent.ts
+   - Deep requirement analysis
+   - Dependency mapping
+   - Ambiguity detection
+
+   server/src/services/cognition/agents/knowledge-retriever-agent.ts
+   - Query learning layers
+   - Find similar patterns via embeddings
+   - Compile relevant knowledge
+
+   server/src/services/cognition/agents/approach-explorer-agent.ts
+   - Generate architectural approaches
+   - Consider existing patterns
+   - Propose file structure changes
+
+   server/src/services/cognition/agents/approach-critic-agent.ts
+   - Security risk assessment
+   - Breaking change detection
+   - Performance impact analysis
+
+   server/src/services/cognition/agents/synthesis-agent.ts
+   - Combine best elements from explorations
+   - Resolve conflicts between approaches
+   - Generate final implementation plan
+
+4. Integration with Multi-Sandbox Orchestrator:
+   - Use sandboxes for exploration validation
+   - Spin up test environments to verify feasibility
+   - Run quick prototype tests for complex explorations
+   - Max 5 sandboxes for cognitive validation (reserve 15 for build)
+
+5. Metrics and Monitoring:
+   - Track parallel efficiency (time saved vs sequential)
+   - Monitor exploration diversity score
+   - Log winning approach selection patterns
+   - Feed into L3 project learning layer
+
+Implement with proper TypeScript types, error boundaries, and integration with
+existing AI Lab infrastructure.
 ```
 
 ---
 
-#### NLP PROMPT 2.2: Interleaved Thinking Beta
+# Section 4: Model Enhancement Integration (2026 APIs)
+
+## API Routing Architecture (CRITICAL)
+
+> **IMPORTANT: API Routing Rules**
+>
+> KripTik AI uses DIRECT API calls for providers we have direct relationships with:
+> - **OpenAI Models** → Direct OpenAI API (api.openai.com)
+> - **Anthropic Models** → Direct Anthropic API (api.anthropic.com)
+>
+> For all other models, use OpenRouter as the unified gateway:
+> - **DeepSeek Models** → OpenRouter (openrouter.ai)
+> - **Llama Models** → OpenRouter (openrouter.ai)
+> - **Qwen Models** → OpenRouter (openrouter.ai)
+> - **Mistral Models** → OpenRouter (openrouter.ai)
+> - **GLM Models** → OpenRouter (openrouter.ai)
+> - **Kimi/Moonshot Models** → OpenRouter (openrouter.ai)
+>
+> This ensures optimal pricing, reliability, and direct support from primary providers.
+
+## Implementation Prompt 4.1: Update Existing Model Router with January 2026 Models
 
 ```
-TASK: Implement Anthropic Interleaved Thinking Beta for multi-step tool use with Hyper-Thinking integration.
+PROMPT FOR OPUS 4.5 - UPDATE MODEL ROUTER WITH 2026 MODELS
 
-CONTEXT:
-Interleaved Thinking (anthropic-beta: interleaved-thinking-2025-05-14) allows Claude to:
-- Think BETWEEN tool calls (not just before)
-- Have budget_tokens exceed max_tokens
-- Better reasoning for multi-step operations
+Context: KripTik AI already has:
+- server/src/services/ai/model-router.ts (400+ lines, cost optimization routing)
+- server/src/services/ai/openrouter-client.ts (600+ lines, full OpenRouter integration)
 
-CRITICAL SYNERGY: This powers Hyper-Thinking Phase 3 (Parallel Exploration) and Phase 4 (Critique).
+DO NOT create a new ModelOrchestrator. UPDATE existing model-router.ts with new model IDs.
 
-REQUIREMENTS:
+Verified Model IDs (January 6, 2026):
+- Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5
+- OpenAI: gpt-5.2 (thinking), gpt-5.2-instant, gpt-5.2-pro (xhigh effort)
+- DeepSeek: deepseek-chat, deepseek-reasoner
+- Zhipu AI: glm-4-plus (GLM 4.7)
+- Moonshot AI: moonshot/kimi-k2
 
-1. Modify `server/src/services/ai/openrouter-client.ts`:
-   - Add INTERLEAVED_THINKING_2025 to OPENROUTER_BETAS
-   - Update getBetaHeaders() to include interleaved thinking
+Task: Update existing model-router.ts with January 2026 model configurations
 
-2. Modify `server/src/services/ai/claude-service.ts`:
+Requirements:
+1. Update server/src/services/ai/model-router.ts:
 
-```typescript
-interface GenerateOptions {
-  // ... existing options
+   // Update model configurations
+   const MODEL_CONFIGS = {
+     // Anthropic (Direct API)
+     'claude-opus-4-5': {
+       modelId: 'claude-opus-4-5-20251101',
+       provider: 'anthropic',
+       apiRoute: 'direct',
+       costPer1MInput: 15.00,
+       costPer1MOutput: 75.00,
+       contextWindow: 200000,
+       bestFor: ['complex_coding', 'extended_thinking', 'verification'],
+       supportsExtendedThinking: true,
+       supportsInterleavedThinking: true
+     },
+     'claude-sonnet-4-5': {
+       modelId: 'claude-sonnet-4-5-20250929',
+       provider: 'anthropic',
+       apiRoute: 'direct',
+       costPer1MInput: 3.00,
+       costPer1MOutput: 15.00,
+       contextWindow: 200000,
+       bestFor: ['balanced', 'general_coding', 'analysis'],
+       supportsExtendedThinking: true
+     },
+     'claude-haiku-4-5': {
+       modelId: 'claude-haiku-4-5',
+       provider: 'anthropic',
+       apiRoute: 'direct',
+       costPer1MInput: 0.25,
+       costPer1MOutput: 1.25,
+       contextWindow: 200000,
+       bestFor: ['fast', 'simple_tasks', 'summarization'],
+       supportsExtendedThinking: false
+     },
 
-  // NEW: Interleaved Thinking
-  interleavedThinking?: boolean;
-  thinkingBudget?: number;  // Can exceed max_tokens with interleaved
-}
+     // OpenAI (Direct API)
+     'gpt-5.2-thinking': {
+       modelId: 'gpt-5.2',
+       provider: 'openai',
+       apiRoute: 'direct',
+       costPer1MInput: 15.00,
+       costPer1MOutput: 60.00,
+       contextWindow: 128000,
+       bestFor: ['reasoning', 'planning', 'analysis'],
+       supportsReasoningEffort: true
+     },
+     'gpt-5.2-instant': {
+       modelId: 'gpt-5.2-instant',
+       provider: 'openai',
+       apiRoute: 'direct',
+       costPer1MInput: 1.75,
+       costPer1MOutput: 14.00,
+       contextWindow: 128000,
+       bestFor: ['fast_responses', 'simple_queries']
+     },
+     'gpt-5.2-pro': {
+       modelId: 'gpt-5.2-pro',
+       provider: 'openai',
+       apiRoute: 'direct',
+       costPer1MInput: 30.00,
+       costPer1MOutput: 120.00,
+       contextWindow: 128000,
+       bestFor: ['maximum_reasoning', 'complex_problems'],
+       supportsReasoningEffort: true,
+       defaultEffort: 'xhigh'
+     },
 
-async generate(prompt: string, options: GenerateOptions): Promise<GenerateResult> {
-  const headers: Record<string, string> = {};
+     // DeepSeek (OpenRouter)
+     'deepseek-v3.2': {
+       modelId: 'deepseek-chat',
+       provider: 'deepseek',
+       apiRoute: 'openrouter',
+       costPer1MInput: 0.028,
+       costPer1MOutput: 0.14,
+       contextWindow: 64000,
+       bestFor: ['cost_optimized', 'general_tasks', 'bulk_processing']
+     },
+     'deepseek-reasoner': {
+       modelId: 'deepseek-reasoner',
+       provider: 'deepseek',
+       apiRoute: 'openrouter',
+       costPer1MInput: 0.55,
+       costPer1MOutput: 2.19,
+       contextWindow: 64000,
+       bestFor: ['reasoning', 'thinking_mode', 'complex_analysis']
+     },
 
-  if (options.interleavedThinking) {
-    headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
-  }
+     // GLM (OpenRouter)
+     'glm-4-7': {
+       modelId: 'glm-4-plus',
+       provider: 'zhipu',
+       apiRoute: 'openrouter',
+       costPer1MInput: 0.50,
+       costPer1MOutput: 0.75,
+       contextWindow: 128000,
+       bestFor: ['coding', 'swe_bench_tasks'],
+       sweBenchScore: 73.8
+     },
 
-  const response = await client.messages.create({
-    model: options.model,
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: options.maxTokens,
-    thinking: options.interleavedThinking ? {
-      type: 'enabled',
-      budget_tokens: options.thinkingBudget || 64000,  // Can exceed max_tokens
-    } : undefined,
-    tools: options.tools,
-  }, { headers });
+     // Kimi (OpenRouter)
+     'kimi-k2': {
+       modelId: 'moonshot/kimi-k2',
+       provider: 'moonshot',
+       apiRoute: 'openrouter',
+       costPer1MInput: 0.60,
+       costPer1MOutput: 1.20,
+       contextWindow: 256000,
+       bestFor: ['long_context', 'thinking_mode', 'complex_analysis']
+     },
 
-  // Parse interleaved thinking blocks
-  const thinkingBlocks = this.parseInterleavedThinking(response);
+     // Llama (OpenRouter)
+     'llama-3.3-70b': {
+       modelId: 'meta-llama/llama-3.3-70b-instruct',
+       provider: 'meta',
+       apiRoute: 'openrouter',
+       costPer1MInput: 0.50,
+       costPer1MOutput: 0.75,
+       contextWindow: 128000,
+       bestFor: ['open_source', 'self_hostable', 'general_tasks']
+     }
+   };
 
-  return {
-    content: this.extractContent(response),
-    thinkingBlocks,  // Array of thinking between tool calls
-    usage: response.usage,
-  };
-}
+2. Update routing logic for task types:
+
+   const TASK_ROUTING = {
+     // Primary code generation
+     CODE_GENERATION: {
+       primary: 'claude-opus-4-5',
+       fallback: ['gpt-5.2-pro', 'glm-4-7', 'deepseek-v3.2']
+     },
+
+     // Complex reasoning/planning
+     COMPLEX_REASONING: {
+       primary: 'gpt-5.2-pro',
+       fallback: ['claude-opus-4-5', 'deepseek-reasoner', 'kimi-k2']
+     },
+
+     // Verification tasks
+     VERIFICATION: {
+       primary: 'claude-opus-4-5',
+       fallback: ['claude-sonnet-4-5', 'gpt-5.2-thinking']
+     },
+
+     // Fast responses
+     QUICK_RESPONSE: {
+       primary: 'gpt-5.2-instant',
+       fallback: ['claude-haiku-4-5', 'deepseek-v3.2']
+     },
+
+     // Cost optimized (high volume)
+     COST_OPTIMIZED: {
+       primary: 'deepseek-v3.2',
+       fallback: ['llama-3.3-70b', 'claude-haiku-4-5']
+     },
+
+     // Extended thinking tasks
+     EXTENDED_THINKING: {
+       primary: 'claude-opus-4-5',
+       fallback: ['gpt-5.2-pro', 'deepseek-reasoner']
+     },
+
+     // Long context tasks
+     LONG_CONTEXT: {
+       primary: 'kimi-k2',
+       fallback: ['claude-opus-4-5', 'claude-sonnet-4-5']
+     }
+   };
+
+3. Ensure NO model selector appears on builder view:
+   - Remove any UI for model selection
+   - User enters NLP request
+   - KripTik auto-routes to optimal model based on task analysis
+   - Model used is shown in build logs (for transparency) but not selectable
+
+4. Update cost tracking:
+   - Track costs per model per user
+   - Apply appropriate pricing based on model used
+   - Alert when approaching budget limits
 ```
 
-3. Create `server/src/services/ai/interleaved-thinking-handler.ts`:
-   - Parse thinking blocks between tool calls
-   - Aggregate total thinking tokens across interleaved blocks
-   - Provide reasoning trace for Hyper-Thinking learning
-
-4. Integrate with Hyper-Thinking phases:
-
-```typescript
-// Phase 3: Parallel Exploration with Interleaved Thinking
-async runParallelExploration(task, decomposition, priorKnowledge, config) {
-  const explorations = await Promise.all([
-    this.exploreWithInterleaved(task, 'approach_1', { temperature: 0.7 }),
-    this.exploreWithInterleaved(task, 'approach_2', { temperature: 0.5 }),
-    this.exploreWithInterleaved(task, 'approach_3', { temperature: 0.3 }),
-  ]);
-
-  return explorations;
-}
-
-private async exploreWithInterleaved(task, approach, options) {
-  const result = await this.claudeService.generate(
-    this.formatExplorationPrompt(task, approach),
-    {
-      model: 'claude-opus-4-5-20251101',
-      interleavedThinking: true,
-      thinkingBudget: 32000,  // Budget for thinking between tool calls
-      tools: this.getExplorationTools(),
-      temperature: options.temperature,
-    }
-  );
-
-  // Capture thinking blocks for learning
-  await this.captureInterleavedThinking(result.thinkingBlocks);
-
-  return result;
-}
-
-// Phase 4: Adversarial Critique with Interleaved Thinking
-async runAdversarialCritique(explorations, taskType) {
-  const result = await this.claudeService.generate(
-    this.formatCritiquePrompt(explorations),
-    {
-      model: 'claude-opus-4-5-20251101',
-      interleavedThinking: true,
-      thinkingBudget: 24000,
-      tools: [
-        { name: 'analyze_security', ... },
-        { name: 'check_performance', ... },
-        { name: 'verify_completeness', ... },
-      ],
-    }
-  );
-
-  // Interleaved thinking shows reasoning BETWEEN each analysis tool call
-  return this.parseCritiqueResults(result);
-}
-```
-
-PHASES TO ENABLE INTERLEAVED THINKING:
-- build_agent_complex (multi-step architecture changes)
-- error_level_3 (component rewrite with tool use)
-- error_level_4 (full feature rebuild)
-- hyper_thinking_exploration (parallel exploration)
-- hyper_thinking_critique (adversarial critique)
-
-VALIDATION:
-- npm run build must pass
-- Test with multi-step tool-use scenario
-- Verify thinking blocks appear between tool calls
-- Capture thinking blocks in preservedThinkingBlocks table
-
-DO NOT MODIFY: Auth files
-```
-
----
-
-#### NLP PROMPT 2.3: Deliberative Alignment Quality Specs
+## Implementation Prompt 4.2: OpenAI Responses API Integration (GPT-5.2)
 
 ```
-TASK: Implement Deliberative Alignment for code quality with Hyper-Thinking Phase 4 integration.
+PROMPT FOR OPUS 4.5 - OPENAI RESPONSES API WITH GPT-5.2
 
-CONTEXT:
-Deliberative Alignment reduces problematic outputs from 8.7% to 0.3% by:
-1. Teaching models explicit quality specifications
-2. Having them reason over specs before generation
-3. Verifying compliance in the output
+Context: OpenAI released GPT-5.2 on December 11, 2025 with multiple variants:
+- GPT-5.2 (thinking): Complex reasoning with effort parameter
+- GPT-5.2 Instant: Fast responses, low latency
+- GPT-5.2 Pro: Maximum reasoning depth (xhigh effort)
 
-CRITICAL SYNERGY: This powers Hyper-Thinking Phase 4 (Adversarial Critique).
+The Responses API is the recommended approach for production applications.
 
-REQUIREMENTS:
+API Updates (January 2026):
+- Responses API: POST /v1/responses
+- Built-in tools: web_search, code_interpreter, file_search
+- Reasoning models: GPT-5.2 with reasoning_effort parameter
+- xhigh effort: 0.95 compute ratio for maximum reasoning depth
+- Reasoning summaries: reasoning.summary for cost-effective reasoning traces
 
-1. Create `server/src/services/ai/quality-specs.ts`:
+Task: Integrate OpenAI Responses API with GPT-5.2 models
 
-```typescript
-/**
- * KripTik Code Quality Specifications
- *
- * These specs are injected into system prompts and used by
- * Hyper-Thinking Phase 4 (Adversarial Critique) to verify compliance.
- */
+Requirements:
+1. Create server/src/services/ai/openai/responses-client.ts:
 
-export interface QualitySpec {
-  id: string;
-  name: string;
-  rule: string;
-  severity: 'blocking' | 'major' | 'minor';
-  examples?: {
-    violation: string;
-    correct: string;
-  };
-  critiqueQuestion?: string;  // For Hyper-Thinking critique
-}
+   interface ResponsesConfig {
+     model: 'gpt-5.2' | 'gpt-5.2-instant' | 'gpt-5.2-pro';
+     reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh'; // For thinking models
+     tools?: ('web_search' | 'code_interpreter' | 'file_search')[];
+     includeReasoningSummary?: boolean;
+   }
 
-export const CODE_QUALITY_SPECS: QualitySpec[] = [
-  {
-    id: 'no-placeholders',
-    name: 'No Placeholder Content',
-    rule: 'NEVER use TODO, FIXME, lorem ipsum, "Coming soon", mock data, or placeholder comments',
-    severity: 'blocking',
-    examples: {
-      violation: 'function getData() { /* TODO: implement */ return []; }',
-      correct: 'async function getData() { return await db.select().from(items); }',
-    },
-    critiqueQuestion: 'Does this code contain any TODO, FIXME, or placeholder content?',
-  },
-  {
-    id: 'complete-implementations',
-    name: 'Complete Implementations',
-    rule: 'Every function must be fully implemented, no stubs or partial code',
-    severity: 'blocking',
-    critiqueQuestion: 'Are all functions fully implemented with real logic?',
-  },
-  {
-    id: 'proper-error-handling',
-    name: 'Proper Error Handling',
-    rule: 'All async operations must have try/catch, all errors must be handled meaningfully',
-    severity: 'major',
-    critiqueQuestion: 'Are all async operations wrapped in try/catch with meaningful error handling?',
-  },
-  {
-    id: 'no-exposed-secrets',
-    name: 'No Exposed Secrets',
-    rule: 'Never hardcode API keys, passwords, or secrets. Use environment variables.',
-    severity: 'blocking',
-    critiqueQuestion: 'Are there any hardcoded secrets or API keys?',
-  },
-  {
-    id: 'proper-input-validation',
-    name: 'Proper Input Validation',
-    rule: 'All user inputs must be validated before use',
-    severity: 'major',
-    critiqueQuestion: 'Is all user input properly validated?',
-  },
-  {
-    id: 'anti-slop-design',
-    name: 'Anti-Slop Design',
-    rule: 'No purple-pink gradients, no flat designs, use depth and premium aesthetics',
-    severity: 'major',
-    critiqueQuestion: 'Does the design avoid common AI slop patterns (flat, purple-pink, emoji)?',
-  },
-  {
-    id: 'custom-icons',
-    name: 'Custom Icons Only',
-    rule: 'Use src/components/icons/ custom icons, never Lucide or other generic icon libraries',
-    severity: 'minor',
-    critiqueQuestion: 'Are custom icons used instead of generic icon libraries?',
-  },
-  {
-    id: 'integration-complete',
-    name: 'Integration Complete',
-    rule: 'All components must be wired up and integrated, no orphan code',
-    severity: 'blocking',
-    critiqueQuestion: 'Are all components properly integrated with no orphan code?',
-  },
-  {
-    id: 'type-safety',
-    name: 'Type Safety',
-    rule: 'Use proper TypeScript types, avoid any, define interfaces for all data structures',
-    severity: 'major',
-    critiqueQuestion: 'Is the code properly typed with no "any" types?',
-  },
-  {
-    id: 'responsive-design',
-    name: 'Responsive Design',
-    rule: 'All UI must be responsive with mobile-first approach',
-    severity: 'major',
-    critiqueQuestion: 'Is the UI responsive and mobile-friendly?',
-  },
-];
+   class OpenAIResponsesClient {
+     async createResponse(
+       input: string | Message[],
+       config: ResponsesConfig
+     ): Promise<ResponseResult> {
+       const response = await fetch('https://api.openai.com/v1/responses', {
+         method: 'POST',
+         headers: {
+           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+           model: config.model,
+           input: input,
+           reasoning: config.reasoningEffort ? {
+             effort: config.reasoningEffort,
+             summary: config.includeReasoningSummary ? 'auto' : 'none'
+           } : undefined,
+           tools: config.tools?.map(tool => ({ type: tool }))
+         })
+       });
 
-// Get specs by severity for phased enforcement
-export function getBlockingSpecs(): QualitySpec[] {
-  return CODE_QUALITY_SPECS.filter(s => s.severity === 'blocking');
-}
+       return response.json();
+     }
 
-export function getCritiqueQuestions(taskType: string): string[] {
-  return CODE_QUALITY_SPECS.map(s => s.critiqueQuestion).filter(Boolean) as string[];
-}
+     async createResponseStream(
+       input: string | Message[],
+       config: ResponsesConfig
+     ): AsyncGenerator<ResponseChunk> {
+       // Streaming implementation for real-time output
+     }
+   }
+
+2. Create server/src/services/ai/openai/reasoning-orchestrator.ts:
+   - Use GPT-5.2 Pro with xhigh effort for complex architectural decisions
+   - Use GPT-5.2 Instant for routine tasks and quick responses
+   - Dynamic effort selection based on task complexity
+   - Cost tracking: xhigh uses ~0.95 compute ratio
+
+3. Integration with Hyper-Thinking:
+
+   EXPLORE Phase:
+   - Use GPT-5.2 Pro with xhigh effort for novel architectural approaches
+   - Request reasoning summaries for explainability
+
+   CRITIQUE Phase:
+   - Use GPT-5.2 (thinking) for evaluation iterations
+   - Medium-high effort for scoring tasks requiring reasoning
+
+4. Integration with Build Loop:
+
+   Phase 1 (Planning):
+   - Use Responses API with code_interpreter for dependency analysis
+   - GPT-5.2 (thinking) for requirement analysis
+
+   Phase 2 (Implementation):
+   - Route code generation to Claude Opus 4.5 (primary) or GPT-5.2 Pro (fallback)
+
+   Phase 4 (Testing):
+   - Use code_interpreter for test execution analysis
+   - GPT-5.2 (thinking) for test case generation
+
+5. Configuration:
+   OPENAI_API_KEY: Required
+   OPENAI_DEFAULT_MODEL: gpt-5.2
+   OPENAI_REASONING_MODEL: gpt-5.2-pro
+   OPENAI_FAST_MODEL: gpt-5.2-instant
+   OPENAI_MAX_REASONING_EFFORT: xhigh
+
+Implement with proper error handling, rate limiting, and cost tracking integration.
 ```
 
-2. Create `server/src/services/ai/deliberative-alignment.ts`:
-
-```typescript
-/**
- * Deliberative Alignment Service
- *
- * Injects quality specs into prompts and verifies compliance.
- * Integrates with Hyper-Thinking Phase 4 for automated critique.
- */
-
-import { CODE_QUALITY_SPECS, QualitySpec, getBlockingSpecs, getCritiqueQuestions } from './quality-specs.js';
-
-export class DeliberativeAlignmentService {
-  /**
-   * Inject quality specs into system prompt
-   */
-  injectSpecs(systemPrompt: string, taskType: string): string {
-    const specs = this.getRelevantSpecs(taskType);
-    const specsBlock = this.formatSpecsForPrompt(specs);
-
-    return `${systemPrompt}
-
-## Code Quality Specifications (MUST FOLLOW)
-
-Before generating ANY code, you MUST:
-1. Review each specification below
-2. Explicitly reason about how your code will comply
-3. Verify compliance before outputting
-
-${specsBlock}
-
-CRITICAL: If you cannot comply with a BLOCKING specification, explain why and propose an alternative.`;
-  }
-
-  /**
-   * Generate critique questions for Hyper-Thinking Phase 4
-   */
-  getCritiquePrompt(explorations: string[], taskType: string): string {
-    const questions = getCritiqueQuestions(taskType);
-
-    return `You are a senior engineer reviewing code for production readiness.
-
-## Explorations to Review
-${explorations.map((e, i) => `### Approach ${i + 1}\n${e}`).join('\n\n')}
-
-## Quality Verification Questions
-For each exploration, answer these questions:
-
-${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
-
-## Output Format
-For each question, provide:
-- Answer: Yes/No/Partial
-- Finding: What you observed
-- Severity: blocking/major/minor/none
-- Suggestion: How to fix (if applicable)
-
-Be skeptical. Look for subtle issues. Better to catch problems now than in production.`;
-  }
-
-  /**
-   * Verify spec compliance in generated output
-   */
-  async verifyCompliance(output: string, specs: QualitySpec[]): Promise<{
-    compliant: boolean;
-    violations: Array<{ spec: QualitySpec; issue: string }>;
-  }> {
-    // Implementation: Check output against each spec
-    // Use pattern matching and heuristics
-  }
-
-  private formatSpecsForPrompt(specs: QualitySpec[]): string {
-    return specs.map(spec => `
-### ${spec.name} (${spec.severity.toUpperCase()})
-${spec.rule}
-${spec.examples ? `
-**Violation Example:**
-\`\`\`
-${spec.examples.violation}
-\`\`\`
-
-**Correct Example:**
-\`\`\`
-${spec.examples.correct}
-\`\`\`
-` : ''}`).join('\n');
-  }
-
-  private getRelevantSpecs(taskType: string): QualitySpec[] {
-    // All specs apply, but order by relevance to task type
-    return CODE_QUALITY_SPECS;
-  }
-}
-
-export function getDeliberativeAlignmentService(): DeliberativeAlignmentService;
-```
-
-3. Integrate with Hyper-Thinking Phase 4:
-
-```typescript
-// In hyper-thinking-engine.ts Phase 4
-async runAdversarialCritique(explorations: ExplorationTrack[], taskType: TaskType): Promise<CritiqueResult[]> {
-  const alignmentService = getDeliberativeAlignmentService();
-
-  // Generate critique prompt with Deliberative Alignment questions
-  const critiquePrompt = alignmentService.getCritiquePrompt(
-    explorations.map(e => e.output),
-    taskType
-  );
-
-  const response = await this.claudeService.generate(critiquePrompt, {
-    model: 'claude-opus-4-5-20251101',
-    interleavedThinking: true,
-    thinkingBudget: 24000,
-    temperature: 0.2,  // Lower temp for skeptical analysis
-  });
-
-  // Parse critique results
-  const critiques = this.parseCritiqueResults(response.content);
-
-  // Store effective critiques for learning
-  await this.storeEffectiveCritiques(critiques);
-
-  return critiques;
-}
-```
-
-4. Integrate with claude-service.ts:
-   - Inject specs into system prompt for code generation phases
-   - Parse spec compliance from reasoning blocks
-   - Score spec adherence in responses
-
-VALIDATION:
-- npm run build must pass
-- Test with known "slop" patterns, verify rejection
-- Test Hyper-Thinking Phase 4 uses critique questions
-- Measure reduction in placeholder content
-
-DO NOT MODIFY: Auth files
-```
-
----
-
-### PHASE 3 PROMPTS: Cognitive Enhancement (Hyper-Thinking)
-
----
-
-#### NLP PROMPT 3.1: Hyper-Thinking Engine with VL-JEPA Integration
+## Implementation Prompt 4.3: Anthropic Interleaved Thinking Integration
 
 ```
-TASK: Create the Hyper-Thinking Engine with VL-JEPA semantic awareness and Model Enhancement power.
-
-CONTEXT:
-The Hyper-Thinking Engine is a 6-phase cognitive pipeline that makes ANY AI model produce higher quality outputs. This implementation INTEGRATES with:
-1. VL-JEPA: Semantic embeddings for decomposition and pattern matching
-2. Model Enhancements: Responses API, Interleaved Thinking, xhigh effort
-3. Deliberative Alignment: Quality specs for critique phase
-
-REQUIREMENTS:
-
-1. Create `server/src/services/ai/hyper-thinking/hyper-thinking-engine.ts`:
-
-```typescript
-/**
- * Hyper-Thinking Engine
- *
- * A cognitive enhancement system that improves any AI model's output
- * through structured thinking phases with semantic awareness.
- *
- * SYNERGY INTEGRATIONS:
- * - VL-JEPA: Semantic embeddings for decomposition and pattern matching
- * - Responses API: xhigh effort for synthesis phase
- * - Interleaved Thinking: Multi-step reasoning in exploration/critique
- * - Deliberative Alignment: Quality specs in critique phase
- * - Component 28: Pattern storage and retrieval
- *
- * Modes:
- * - Shadow: Runs in parallel, collects data, doesn't block
- * - Active: Full pipeline, blocks until complete
- * - Accelerated: Uses embedding-based pattern shortcuts
- */
-
-import { EventEmitter } from 'events';
-import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../../../db.js';
-import { hyperThinkingRuns } from '../../../../schema.js';
-import { HyperThinkingModeController } from './mode-controller.js';
-import { HyperThinkingTriggerClassifier } from './trigger-classifier.js';
-import { getClaudeService } from '../claude-service.js';
-import { getOpenAIResponsesClient } from '../openai-responses-client.js';
-import { getVLJEPAService } from '../../vljepa/index.js';
-import { getEmbeddingService } from '../../embeddings/index.js';
-import { getQdrantClient } from '../../embeddings/qdrant-client.js';
-import { getDeliberativeAlignmentService } from '../deliberative-alignment.js';
-import type {
-  HyperThinkingConfig,
-  HyperThinkingResult,
-  HyperThinkingMode,
-  TaskType,
-  DecompositionResult,
-  ExplorationTrack,
-  CritiqueResult,
-  SynthesisResult,
-} from './types.js';
-
-const DEFAULT_CONFIG: HyperThinkingConfig = {
-  mode: 'shadow',
-  depth: 'standard',
-  model: 'claude-sonnet-4-5-20241022',
-  enableParallelExploration: true,
-  explorationTracks: 3,
-  enableCritique: true,
-  enableSynthesis: true,
-  maxTokens: 32000,
-  timeoutMs: 60000,
-  // SYNERGY OPTIONS
-  useVLJEPADecomposition: true,     // Use semantic embeddings for decomposition
-  useEmbeddingPatterns: true,       // Use embedding similarity for pattern shortcuts
-  useInterleavedThinking: true,     // Use Interleaved Thinking in exploration/critique
-  useResponsesAPISynthesis: true,   // Use o3 xhigh for synthesis
-  useDeliberativeCritique: true,    // Use Deliberative Alignment in critique
-};
-
-export class HyperThinkingEngine extends EventEmitter {
-  private modeController: HyperThinkingModeController;
-  private triggerClassifier: HyperThinkingTriggerClassifier;
-  private claudeService: ReturnType<typeof getClaudeService>;
-  private responsesClient: ReturnType<typeof getOpenAIResponsesClient>;
-  private vljepaService: ReturnType<typeof getVLJEPAService>;
-  private embeddingService: ReturnType<typeof getEmbeddingService>;
-  private qdrantClient: ReturnType<typeof getQdrantClient>;
-  private alignmentService: ReturnType<typeof getDeliberativeAlignmentService>;
-
-  constructor() {
-    super();
-    this.modeController = new HyperThinkingModeController();
-    this.triggerClassifier = new HyperThinkingTriggerClassifier();
-    this.claudeService = getClaudeService();
-    this.responsesClient = getOpenAIResponsesClient();
-    this.vljepaService = getVLJEPAService();
-    this.embeddingService = getEmbeddingService();
-    this.qdrantClient = getQdrantClient();
-    this.alignmentService = getDeliberativeAlignmentService();
-  }
-
-  /**
-   * Main entry point - process a task through Hyper-Thinking
-   */
-  async process(
-    task: string,
-    taskType: TaskType,
-    options?: Partial<HyperThinkingConfig>
-  ): Promise<HyperThinkingResult> {
-    const config = { ...DEFAULT_CONFIG, ...options };
-    const runId = `ht_${uuidv4()}`;
-    const startTime = Date.now();
-
-    // SYNERGY: Get VL-JEPA semantic embedding for the task
-    let intentEmbedding;
-    if (config.useVLJEPADecomposition) {
-      intentEmbedding = await this.vljepaService.embedIntent(task);
-    }
-
-    // Classify the trigger with semantic awareness
-    const trigger = await this.triggerClassifier.classify({
-      taskType,
-      prompt: task,
-      complexity: this.triggerClassifier.estimateComplexity(task),
-      model: config.model,
-      semanticUncertainty: intentEmbedding?.uncertainty,
-    });
-
-    // Get optimal mode
-    const modeDecision = await this.modeController.getOptimalMode(taskType);
-    const mode = trigger.runInShadowMode ? 'shadow' : modeDecision.mode;
-
-    this.emit('process_started', { runId, taskType, mode, hasSemanticContext: !!intentEmbedding });
-
-    // SYNERGY: Check for embedding-based pattern shortcuts
-    if (config.useEmbeddingPatterns && trigger.canUsePatternShortcut && modeDecision.canUsePatternShortcuts) {
-      const patternMatch = await this.findPatternByEmbedding(task, taskType, intentEmbedding);
-      if (patternMatch && patternMatch.confidence > 0.9) {
-        return this.runWithPatternShortcut(runId, task, taskType, config, patternMatch);
-      }
-    }
-
-    // Shadow mode: run in parallel
-    if (mode === 'shadow') {
-      return this.runShadowMode(runId, task, taskType, config, intentEmbedding);
-    }
-
-    // Full pipeline
-    return this.runFullPipeline(runId, task, taskType, config, mode, intentEmbedding);
-  }
-
-  /**
-   * Full 6-phase pipeline with all synergy integrations
-   */
-  private async runFullPipeline(
-    runId: string,
-    task: string,
-    taskType: TaskType,
-    config: HyperThinkingConfig,
-    mode: HyperThinkingMode,
-    intentEmbedding?: any
-  ): Promise<HyperThinkingResult> {
-    const startTime = Date.now();
-    let totalTokens = 0;
-
-    // Phase 1: DECOMPOSITION (with VL-JEPA semantic awareness)
-    this.emit('phase_started', { runId, phase: 'decomposition' });
-    const decomposition = await this.runDecomposition(task, taskType, config, intentEmbedding);
-    totalTokens += decomposition.tokensUsed;
-    this.emit('phase_completed', { runId, phase: 'decomposition' });
-
-    // Phase 2: PRIOR KNOWLEDGE INJECTION (embedding-based retrieval)
-    this.emit('phase_started', { runId, phase: 'prior_knowledge' });
-    const priorKnowledge = await this.loadPriorKnowledgeByEmbedding(
-      task, taskType, decomposition.result, intentEmbedding
-    );
-    this.emit('phase_completed', { runId, phase: 'prior_knowledge' });
-
-    // Phase 3: PARALLEL EXPLORATION (with Interleaved Thinking)
-    this.emit('phase_started', { runId, phase: 'exploration' });
-    const explorations = await this.runParallelExplorationWithInterleaved(
-      task, decomposition.result, priorKnowledge, config
-    );
-    totalTokens += explorations.reduce((sum, e) => sum + e.tokensUsed, 0);
-    this.emit('phase_completed', { runId, phase: 'exploration' });
-
-    // Phase 4: ADVERSARIAL CRITIQUE (with Deliberative Alignment)
-    let critiques: CritiqueResult[] = [];
-    if (config.enableCritique) {
-      this.emit('phase_started', { runId, phase: 'critique' });
-      critiques = await this.runCritiqueWithDeliberativeAlignment(explorations, taskType);
-      this.emit('phase_completed', { runId, phase: 'critique' });
-    }
-
-    // Phase 5: SYNTHESIS (with Responses API xhigh effort)
-    let synthesis: SynthesisResult;
-    if (config.enableSynthesis && config.useResponsesAPISynthesis) {
-      this.emit('phase_started', { runId, phase: 'synthesis' });
-      synthesis = await this.runSynthesisWithResponsesAPI(explorations, critiques, task);
-      totalTokens += synthesis.tokensUsed;
-      this.emit('phase_completed', { runId, phase: 'synthesis' });
-    } else {
-      // Fallback: use best exploration
-      const bestExploration = this.selectBestExploration(explorations);
-      synthesis = {
-        output: bestExploration.output,
-        approachUsed: bestExploration.approach,
-        critiquesAddressed: [],
-        qualityScore: 0,
-        tokensUsed: 0,
-        reasoningSummary: '',
-      };
-    }
-
-    // Phase 6: VERIFICATION BRIDGE (with VL-JEPA visual verification)
-    this.emit('phase_started', { runId, phase: 'verification' });
-    const qualityScore = await this.runVerificationWithVLJEPA(
-      synthesis.output, task, critiques, intentEmbedding
-    );
-    this.emit('phase_completed', { runId, phase: 'verification' });
-
-    // Store run with all synergy data
-    await this.storeRun(runId, {
-      taskType,
-      mode,
-      decomposition: decomposition.result,
-      explorations,
-      critiques,
-      synthesis,
-      tokensUsed: totalTokens,
-      durationMs: Date.now() - startTime,
-      qualityScore,
-      intentEmbeddingId: intentEmbedding?.id,
-      usedSynergies: {
-        vljepa: config.useVLJEPADecomposition,
-        embeddingPatterns: config.useEmbeddingPatterns,
-        interleaved: config.useInterleavedThinking,
-        responsesAPI: config.useResponsesAPISynthesis,
-        deliberative: config.useDeliberativeCritique,
-      },
-    });
-
-    this.emit('process_completed', { runId, qualityScore });
-
-    return {
-      runId,
-      mode,
-      phases: {
-        decomposition: decomposition.result,
-        explorations,
-        critiques,
-        synthesis,
-      },
-      output: synthesis.output,
-      tokensUsed: totalTokens,
-      durationMs: Date.now() - startTime,
-      qualityScore,
-      qualityImprovement: 0,
-      reasoningSummary: synthesis.reasoningSummary,
-    };
-  }
-
-  // =========================================================================
-  // SYNERGY-ENHANCED PHASE IMPLEMENTATIONS
-  // =========================================================================
-
-  /**
-   * Phase 1: Decomposition with VL-JEPA semantic analysis
-   */
-  private async runDecomposition(
-    task: string,
-    taskType: TaskType,
-    config: HyperThinkingConfig,
-    intentEmbedding?: any
-  ): Promise<{ result: DecompositionResult; tokensUsed: number }> {
-    // Use VL-JEPA semantic components for smarter decomposition
-    const semanticContext = intentEmbedding ? `
-## Semantic Analysis (VL-JEPA)
-- Action intent: ${intentEmbedding.semanticComponents?.action || 'unknown'}
-- Target intent: ${intentEmbedding.semanticComponents?.target || 'unknown'}
-- Constraints: ${intentEmbedding.semanticComponents?.constraints?.join(', ') || 'none'}
-- Uncertainty: ${intentEmbedding.uncertainty || 0}
-` : '';
-
-    const decompositionPrompt = `You are a cognitive analyst breaking down a complex problem.
-
-## Task
-${task}
-
-## Task Type
-${taskType}
-
-${semanticContext}
-
-## Instructions
-1. Identify 2-5 distinct sub-problems
-2. For each sub-problem:
-   - Give it a unique ID (sp_1, sp_2, etc.)
-   - Classify its type
-   - Describe what needs to be solved
-   - List dependencies on other sub-problems
-3. Estimate overall complexity (1-10)
-4. List what prior knowledge would help
-
-Output JSON format...`;
-
-    const response = await this.claudeService.generate(decompositionPrompt, {
-      model: 'claude-haiku-3-5-20241022',
-      maxTokens: 2000,
-      temperature: 0.3,
-    });
-
-    // Store decomposition embedding for pattern matching
-    if (config.useEmbeddingPatterns) {
-      const decompositionEmbedding = await this.embeddingService.embedText(
-        JSON.stringify(response.content),
-        { purpose: 'decomposition' }
-      );
-      await this.qdrantClient.upsert('decomposition_patterns', {
-        vector: decompositionEmbedding,
-        payload: { taskType, task, runId: uuidv4() },
-      });
-    }
-
-    return {
-      result: this.parseDecomposition(response.content),
-      tokensUsed: response.usage?.total_tokens || 0,
-    };
-  }
-
-  /**
-   * Phase 2: Prior Knowledge with embedding-based retrieval (50x faster)
-   */
-  private async loadPriorKnowledgeByEmbedding(
-    task: string,
-    taskType: TaskType,
-    decomposition: DecompositionResult,
-    intentEmbedding?: any
-  ): Promise<any> {
-    // Use embedding similarity for instant pattern retrieval
-    const taskEmbedding = intentEmbedding?.embedding ||
-      await this.embeddingService.embedText(task, { purpose: 'pattern_match' });
-
-    // Search code patterns by embedding similarity
-    const patterns = await this.qdrantClient.search('code_pattern_embeddings', {
-      vector: taskEmbedding,
-      filter: { taskType },
-      limit: 5,
-      with_payload: true,
-    });
-
-    // Search reasoning skeletons by embedding similarity
-    const skeletons = await this.qdrantClient.search('reasoning_skeletons', {
-      vector: taskEmbedding,
-      filter: { taskType },
-      limit: 1,
-      with_payload: true,
-    });
-
-    return {
-      patterns: patterns.map(p => p.payload),
-      skeleton: skeletons[0]?.payload || null,
-      retrievalMethod: 'embedding_similarity',
-    };
-  }
-
-  /**
-   * Phase 3: Parallel Exploration with Interleaved Thinking
-   */
-  private async runParallelExplorationWithInterleaved(
-    task: string,
-    decomposition: DecompositionResult,
-    priorKnowledge: any,
-    config: HyperThinkingConfig
-  ): Promise<ExplorationTrack[]> {
-    const explorationPromises = [0.7, 0.5, 0.3].map(async (temperature, index) => {
-      const approach = `approach_${index + 1}`;
-
-      const result = await this.claudeService.generate(
-        this.formatExplorationPrompt(task, decomposition, priorKnowledge, approach),
-        {
-          model: 'claude-opus-4-5-20251101',
-          interleavedThinking: config.useInterleavedThinking,
-          thinkingBudget: 32000,
-          maxTokens: 8000,
-          temperature,
-          tools: this.getExplorationTools(),
-        }
-      );
-
-      return {
-        trackId: `track_${index + 1}`,
-        approach,
-        temperature,
-        output: result.content,
-        tokensUsed: result.usage?.total_tokens || 0,
-        thinkingBlocks: result.thinkingBlocks,
-        earlyTerminated: false,
-      };
-    });
-
-    // Race for speed, collect all for comparison
-    const explorations = await Promise.all(explorationPromises);
-
-    // Store interleaved thinking for learning
-    for (const exp of explorations) {
-      if (exp.thinkingBlocks?.length) {
-        await this.storeThinkingBlocks(exp.thinkingBlocks, 'exploration');
-      }
-    }
-
-    return explorations;
-  }
-
-  /**
-   * Phase 4: Adversarial Critique with Deliberative Alignment
-   */
-  private async runCritiqueWithDeliberativeAlignment(
-    explorations: ExplorationTrack[],
-    taskType: TaskType
-  ): Promise<CritiqueResult[]> {
-    // Get critique prompt with Deliberative Alignment questions
-    const critiquePrompt = this.alignmentService.getCritiquePrompt(
-      explorations.map(e => e.output),
-      taskType
-    );
-
-    const response = await this.claudeService.generate(critiquePrompt, {
-      model: 'claude-opus-4-5-20251101',
-      interleavedThinking: true,
-      thinkingBudget: 24000,
-      maxTokens: 4000,
-      temperature: 0.2,
-    });
-
-    const critiques = this.parseCritiqueResults(response.content);
-
-    // Store effective critiques in library
-    for (const critique of critiques) {
-      if (critique.severity !== 'none') {
-        await this.storeCritique(critique, taskType);
-      }
-    }
-
-    return critiques;
-  }
-
-  /**
-   * Phase 5: Synthesis with Responses API xhigh effort
-   */
-  private async runSynthesisWithResponsesAPI(
-    explorations: ExplorationTrack[],
-    critiques: CritiqueResult[],
-    originalTask: string
-  ): Promise<SynthesisResult> {
-    const result = await this.responsesClient.synthesize(
-      explorations.map(e => e.output),
-      critiques.map(c => `${c.question}: ${c.finding}`),
-      originalTask
-    );
-
-    return {
-      output: result.output,
-      approachUsed: 'synthesized',
-      critiquesAddressed: critiques.filter(c => c.ledToChange).map(c => c.question),
-      qualityScore: 0,
-      tokensUsed: result.totalTokensUsed,
-      reasoningSummary: result.reasoningSummary || '',
-    };
-  }
-
-  /**
-   * Phase 6: Verification with VL-JEPA visual matching
-   */
-  private async runVerificationWithVLJEPA(
-    output: string,
-    task: string,
-    critiques: CritiqueResult[],
-    intentEmbedding?: any
-  ): Promise<number> {
-    // If no blocking critiques, quick pass
-    const blockingCritiques = critiques.filter(c => c.severity === 'critical');
-    if (blockingCritiques.length > 0) {
-      return 0.3; // Failed
-    }
-
-    // VL-JEPA semantic match (if available)
-    if (intentEmbedding) {
-      const outputEmbedding = await this.vljepaService.embedIntent(output);
-      const similarity = await this.vljepaService.compareIntents(
-        intentEmbedding,
-        outputEmbedding
-      );
-      return similarity.score;
-    }
-
-    // Fallback: heuristic quality check
-    return 0.8;
-  }
-
-  // Helper methods...
-}
-
-export function getHyperThinkingEngine(): HyperThinkingEngine;
-```
-
-2. Create supporting files:
-   - `mode-controller.ts` - Mode switching logic
-   - `trigger-classifier.ts` - When to activate
-   - `types.ts` - Type definitions
-
-3. Create phase implementation files in `phases/`:
-   - `decomposition.ts`
-   - `prior-knowledge-injector.ts`
-   - `parallel-explorer.ts`
-   - `adversarial-critique.ts`
-   - `synthesis.ts`
-   - `verification-bridge.ts`
-
-4. Create learning files in `learning/`:
-   - `hyper-thinking-learning.ts`
-   - `decomposition-patterns.ts`
-   - `critique-library.ts`
-   - `reasoning-skeletons.ts`
-
-VALIDATION:
-- npm run build must pass
-- Test shadow mode doesn't block
-- Test all synergy integrations work
-- Measure quality improvement
-
-DO NOT MODIFY: Auth files
+PROMPT FOR OPUS 4.5 - INTERLEAVED THINKING
+
+Context: Anthropic's Interleaved Thinking Beta (interleaved-thinking-2025-05-14) allows
+thinking blocks to be interleaved with tool use, enabling deeper reasoning during
+complex multi-step operations.
+
+Current KripTik Integration Points:
+- server/src/services/ai/anthropic-client.ts (existing Claude integration)
+- server/src/services/verification/verification-swarm.ts (tool-using agents)
+- server/src/services/cognition/extended-thinking-client.ts (from Prompt 3.2)
+
+Model IDs (Verified January 6, 2026):
+- claude-opus-4-5-20251101 (primary)
+- claude-sonnet-4-5-20250929 (balanced)
+- claude-haiku-4-5 (fast)
+
+Task: Implement Interleaved Thinking for verification and complex reasoning tasks
+
+Requirements:
+1. Update server/src/services/ai/anthropic-client.ts:
+
+   class AnthropicClient {
+     async createMessageWithInterleavedThinking(
+       messages: Message[],
+       tools: Tool[],
+       thinkingBudget: number
+     ): Promise<InterleavedResponse> {
+       const response = await this.client.beta.messages.create({
+         model: 'claude-opus-4-5-20251101',
+         betas: ['interleaved-thinking-2025-05-14'],
+         max_tokens: 16000,
+         thinking: {
+           type: 'enabled',
+           budget_tokens: thinkingBudget
+         },
+         tools: tools,
+         messages: messages
+       });
+
+       return this.parseInterleavedResponse(response);
+     }
+
+     private parseInterleavedResponse(response: BetaMessage): InterleavedResponse {
+       // Response contains interleaved: thinking → tool_use → thinking → tool_result → ...
+       const blocks: ContentBlock[] = [];
+
+       for (const block of response.content) {
+         if (block.type === 'thinking') {
+           blocks.push({ type: 'thinking', content: block.thinking });
+         } else if (block.type === 'tool_use') {
+           blocks.push({ type: 'tool_use', id: block.id, name: block.name, input: block.input });
+         } else if (block.type === 'text') {
+           blocks.push({ type: 'text', content: block.text });
+         }
+       }
+
+       return { blocks, usage: response.usage };
+     }
+   }
+
+2. Create server/src/services/verification/thinking-verification-agent.ts:
+   - Base class for verification agents that use interleaved thinking
+   - Define standard tools: read_file, analyze_code, check_pattern, run_test
+   - Thinking between tool calls for deeper analysis
+
+3. Update Verification Swarm agents to use Interleaved Thinking:
+
+   Error Checker Agent:
+   - Tools: read_file, parse_ast, find_pattern
+   - Thinking budget: 20000 tokens
+   - Think between file reads to connect error patterns
+
+   Code Quality Agent:
+   - Tools: analyze_complexity, check_standards, measure_coverage
+   - Thinking budget: 15000 tokens
+   - Reason about quality trade-offs
+
+   Security Scanner Agent:
+   - Tools: scan_vulnerabilities, check_dependencies, analyze_flow
+   - Thinking budget: 30000 tokens (security requires deep analysis)
+   - Think about attack vectors between scans
+
+   Semantic Verifier Agent (new from VL-JEPA):
+   - Tools: generate_embedding, compare_embeddings, calculate_drift
+   - Thinking budget: 25000 tokens
+   - Reason about semantic alignment
+
+4. Create server/src/services/ai/thinking-stream-handler.ts:
+   - Stream thinking blocks to frontend in real-time
+   - Allow users to observe AI reasoning process
+   - Provide "peek behind the curtain" UX
+   - Store thinking traces for debugging and learning
+
+5. Frontend Integration:
+   - Update client/src/components/verification/VerificationProgress.tsx
+   - Show collapsible thinking traces per agent
+   - Real-time streaming of reasoning process
+   - Toggle: "Show AI Thinking" preference
+
+6. Metrics:
+   - Track thinking_tokens_used per verification
+   - Measure correlation: more thinking → better verification accuracy
+   - Feed into cost optimization (right-size thinking budgets)
+
+Implement with TypeScript, integrate with existing verification infrastructure.
 ```
 
 ---
 
-### PHASE 4 PROMPTS: VL-JEPA Visual Verification
+# Section 5: KripTik Cloud Infrastructure
 
----
+## Infrastructure Ownership Model (CRITICAL)
 
-#### NLP PROMPT 4.1: VL-JEPA Service with Semantic Understanding
+> **IMPORTANT: Understanding KripTik vs User Infrastructure**
+>
+> KripTik AI operates on a dual-infrastructure model where both KripTik and users
+> have their own cloud accounts. Understanding who owns what is critical:
+>
+> ### KripTik's Infrastructure (Billed to Users via Metered Billing)
+> - **Training/Fine-tuning**: Models are trained on KripTik's RunPod/Modal accounts
+> - **Testing/Verification**: Build verification runs on KripTik's infrastructure
+> - **AI Lab Orchestrations**: 5 parallel orchestrations on KripTik's account
+> - **Sandbox Execution**: Modal sandboxes during development on KripTik's account
+> - **All usage is metered and billed to the user**
+>
+> ### User's Infrastructure (User's Own Accounts)
+> - **Production Deployment**: Users can deploy to THEIR OWN RunPod/Modal accounts
+> - **Backend Hosting**: User apps can run on user's infrastructure
+> - **Open Source Models**: Deployed to user's account for inference
+> - **User provides their own API keys/secrets for their accounts**
+>
+> ### Deployment Flow
+> 1. **Development Phase**: Uses KripTik's infrastructure (metered billing)
+> 2. **Testing Phase**: Uses KripTik's infrastructure (metered billing)
+> 3. **Production Deployment**: User chooses:
+>    - Option A: Deploy to KripTik's infrastructure (continued metered billing)
+>    - Option B: Deploy to USER'S OWN accounts (user manages their own costs)
+>
+> ### Easy Deploy Feature
+> - Allow users to connect their own RunPod/Modal/Vercel accounts
+> - One-click deployment to user's infrastructure
+> - User's secrets stored securely, never on KripTik's servers
+>
+> ### Cleanup Mechanism (REQUIRED)
+> - Abandoned apps on KripTik's infrastructure must be cleaned up
+> - Auto-archive after 30 days of inactivity
+> - Auto-delete after 90 days (with warnings)
+> - Prevents orphaned GPU/storage costs from abandoned projects
 
-```
-TASK: Create the VL-JEPA service for semantic understanding of intents and visuals.
-
-CONTEXT:
-VL-JEPA (Vision-Language Joint Embedding Predictive Architecture) predicts abstract embeddings rather than tokens. This enables:
-1. Semantic understanding of intent (not just keywords)
-2. Visual understanding of design (not just pixels)
-3. Uncertainty quantification (know when to ask questions)
-
-CRITICAL SYNERGY: This powers Hyper-Thinking decomposition and verification phases.
-
-REQUIREMENTS:
-
-1. Create `server/src/services/vljepa/vljepa-service.ts`:
-
-```typescript
-/**
- * VL-JEPA Service - Semantic Understanding Engine
- *
- * Provides semantic embeddings for:
- * - Intent understanding (user prompts → meaning)
- * - Visual understanding (screenshots → design semantics)
- * - Video understanding (for Clone Mode)
- *
- * SYNERGY INTEGRATIONS:
- * - Hyper-Thinking: Semantic decomposition and pattern matching
- * - Intent Lock: Semantic contracts that can't be "gamed"
- * - Verification Swarm: 50x faster visual verification
- * - Component 28: Embedding-based pattern storage
- */
-
-import { getEmbeddingService } from '../embeddings/index.js';
-import { getQdrantClient } from '../embeddings/qdrant-client.js';
-
-export interface IntentEmbedding {
-  id: string;
-  embedding: number[];
-  uncertainty: number;  // 0-1, lower is more confident
-  semanticComponents: {
-    action: string;     // What to do (verb)
-    target: string;     // What to build (noun)
-    constraints: string[];  // How (adjectives)
-  };
-  qdrantPointId?: string;
-}
-
-export interface VisualEmbedding {
-  id: string;
-  embedding: number[];
-  uncertainty: number;
-  semanticComponents: {
-    layout: string;     // Spatial structure
-    style: string;      // Visual aesthetics
-    components: string[];  // UI elements
-  };
-  qdrantPointId?: string;
-}
-
-export interface SemanticSimilarity {
-  score: number;  // 0-1
-  confidence: number;  // 0-1
-  alignedComponents: string[];
-  misalignedComponents: string[];
-}
-
-export class VLJEPAService {
-  private embeddingService: ReturnType<typeof getEmbeddingService>;
-  private qdrantClient: ReturnType<typeof getQdrantClient>;
-
-  constructor() {
-    this.embeddingService = getEmbeddingService();
-    this.qdrantClient = getQdrantClient();
-  }
-
-  /**
-   * Create semantic embedding of user intent
-   */
-  async embedIntent(prompt: string): Promise<IntentEmbedding> {
-    // Generate embedding
-    const embedding = await this.embeddingService.embedText(prompt, {
-      model: 'bge-large-en-v1.5',
-      purpose: 'intent',
-    });
-
-    // Extract semantic components (action, target, constraints)
-    const components = await this.extractSemanticComponents(prompt);
-
-    // Calculate uncertainty based on component clarity
-    const uncertainty = this.calculateUncertainty(components);
-
-    const intentEmbedding: IntentEmbedding = {
-      id: `intent_${Date.now()}`,
-      embedding,
-      uncertainty,
-      semanticComponents: components,
-    };
-
-    // Store in Qdrant for similarity search
-    const qdrantPointId = await this.qdrantClient.upsert('intent_embeddings', {
-      vector: embedding,
-      payload: {
-        prompt,
-        ...components,
-        uncertainty,
-        timestamp: new Date().toISOString(),
-      },
-    });
-
-    intentEmbedding.qdrantPointId = qdrantPointId;
-
-    return intentEmbedding;
-  }
-
-  /**
-   * Create semantic embedding of visual (screenshot)
-   */
-  async embedVisual(imageBase64: string): Promise<VisualEmbedding> {
-    // Generate CLIP embedding
-    const embedding = await this.embeddingService.embedImage(imageBase64, {
-      model: 'clip-vit-large-patch14',
-    });
-
-    // Extract visual semantic components
-    const components = await this.extractVisualComponents(imageBase64);
-
-    const visualEmbedding: VisualEmbedding = {
-      id: `visual_${Date.now()}`,
-      embedding,
-      uncertainty: 0.1,  // Lower uncertainty for visual
-      semanticComponents: components,
-    };
-
-    // Store in Qdrant
-    const qdrantPointId = await this.qdrantClient.upsert('visual_embeddings', {
-      vector: embedding,
-      payload: {
-        ...components,
-        timestamp: new Date().toISOString(),
-      },
-    });
-
-    visualEmbedding.qdrantPointId = qdrantPointId;
-
-    return visualEmbedding;
-  }
-
-  /**
-   * Compare intent to visual output (for Intent Satisfaction)
-   */
-  async compareIntentToVisual(
-    intent: IntentEmbedding,
-    visual: VisualEmbedding
-  ): Promise<SemanticSimilarity> {
-    // Calculate embedding similarity
-    const score = this.cosineSimilarity(intent.embedding, visual.embedding);
-
-    // Compare semantic components
-    const { aligned, misaligned } = this.compareComponents(
-      intent.semanticComponents,
-      visual.semanticComponents
-    );
-
-    return {
-      score,
-      confidence: 1 - (intent.uncertainty + visual.uncertainty) / 2,
-      alignedComponents: aligned,
-      misalignedComponents: misaligned,
-    };
-  }
-
-  /**
-   * Compare two intents (for pattern matching)
-   */
-  async compareIntents(
-    intent1: IntentEmbedding,
-    intent2: IntentEmbedding
-  ): Promise<SemanticSimilarity> {
-    const score = this.cosineSimilarity(intent1.embedding, intent2.embedding);
-
-    return {
-      score,
-      confidence: 1 - Math.max(intent1.uncertainty, intent2.uncertainty),
-      alignedComponents: [],
-      misalignedComponents: [],
-    };
-  }
-
-  /**
-   * Find similar intents in history (for pattern shortcuts)
-   */
-  async findSimilarIntents(
-    embedding: IntentEmbedding,
-    limit: number = 5
-  ): Promise<Array<{ intent: IntentEmbedding; similarity: number }>> {
-    const results = await this.qdrantClient.search('intent_embeddings', {
-      vector: embedding.embedding,
-      limit,
-      with_payload: true,
-    });
-
-    return results.map(r => ({
-      intent: {
-        id: r.id,
-        embedding: r.vector,
-        uncertainty: r.payload.uncertainty,
-        semanticComponents: {
-          action: r.payload.action,
-          target: r.payload.target,
-          constraints: r.payload.constraints,
-        },
-        qdrantPointId: r.id,
-      },
-      similarity: r.score,
-    }));
-  }
-
-  /**
-   * Should we ask clarifying questions? (uncertainty-aware)
-   */
-  shouldAskClarification(uncertainty: number): boolean {
-    return uncertainty > 0.4;  // High uncertainty = ask questions
-  }
-
-  // Helper methods
-  private async extractSemanticComponents(prompt: string): Promise<{
-    action: string;
-    target: string;
-    constraints: string[];
-  }> {
-    // Use LLM to extract semantic components
-    // Or use NLP heuristics for speed
-    return {
-      action: 'build',
-      target: 'application',
-      constraints: [],
-    };
-  }
-
-  private async extractVisualComponents(imageBase64: string): Promise<{
-    layout: string;
-    style: string;
-    components: string[];
-  }> {
-    // Use vision model to extract components
-    return {
-      layout: 'standard',
-      style: 'modern',
-      components: [],
-    };
-  }
-
-  private calculateUncertainty(components: any): number {
-    // Higher uncertainty if components are vague
-    if (!components.action || components.action === 'build') return 0.5;
-    if (!components.target) return 0.6;
-    return 0.2;
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
-
-  private compareComponents(intent: any, visual: any): {
-    aligned: string[];
-    misaligned: string[];
-  } {
-    // Compare semantic components
-    return { aligned: [], misaligned: [] };
-  }
-}
-
-// Singleton
-let vljepaService: VLJEPAService | null = null;
-
-export function getVLJEPAService(): VLJEPAService {
-  if (!vljepaService) {
-    vljepaService = new VLJEPAService();
-  }
-  return vljepaService;
-}
-```
-
-2. Integrate with Intent Lock:
-   - Create semantic embedding of intent contract
-   - Store embedding for Phase 5 verification
-   - Use uncertainty for clarification questions
-
-3. Integrate with Verification Swarm:
-   - Visual Verifier uses embedding comparison (50x faster)
-   - Anti-Slop detection via embedding distance from known good designs
-
-VALIDATION:
-- npm run build must pass
-- Test intent embedding generation
-- Test visual embedding generation
-- Test similarity comparison accuracy
-
-DO NOT MODIFY: Auth files
-```
-
----
-
-### PHASE 6 PROMPTS: KripTik Cloud
-
----
-
-#### NLP PROMPT 6.1: KripTik Cloud Full-Stack Deployment
+## Implementation Prompt 5.1: Qdrant Vector Database (New Addition)
 
 ```
-TASK: Create KripTik Cloud infrastructure for full-stack production deployment with Hyper-Thinking integration.
+PROMPT FOR OPUS 4.5 - QDRANT INTEGRATION
 
-CONTEXT:
-KripTik Cloud enables complete production deployments:
-- Frontend: Vercel/Cloudflare Edge
-- Backend: AWS ECS Fargate containers
-- AI/ML: RunPod/Vast.ai serverless GPUs
-- Storage: S3/R2 + Turso + Qdrant
-- Auth: Nango OAuth (500+ services)
+Context: VL-JEPA generates embeddings that need efficient storage and retrieval.
+This is a NEW integration (Qdrant is not currently in KripTik). Qdrant v1.16 offers
+tiered multitenancy, ACORN search, and excellent performance for embedding storage.
 
-CRITICAL SYNERGY: Hyper-Thinking makes infrastructure decisions for optimal deployment.
+Qdrant Features (January 2026):
+- v1.16: Tiered multitenancy, ACORN search algorithm
+- Cloud: Managed service with auto-scaling
+- Hybrid search: Dense + sparse vectors
+- Filtering: Payload-based with indexes
 
-REQUIREMENTS:
+Task: Integrate Qdrant for VL-JEPA embedding storage and similarity search
 
-1. Create `server/src/services/cloud/kriptik-cloud.ts`:
+Requirements:
+1. Create server/src/services/vector/qdrant-client.ts:
 
-```typescript
-/**
- * KripTik Cloud - Full-Stack Production Deployment
- *
- * Orchestrates deployment across multiple cloud providers.
- *
- * SYNERGY INTEGRATIONS:
- * - Hyper-Thinking: Infrastructure decisions use cognitive pipeline
- * - VL-JEPA: Complexity analysis for resource sizing
- * - Component 28: Learn optimal configurations over time
- */
+   interface QdrantConfig {
+     url: string;
+     apiKey: string;
+     defaultCollection: string;
+   }
 
-import { getHyperThinkingEngine } from '../ai/hyper-thinking/index.js';
+   interface VectorPoint {
+     id: string;
+     vector: number[];
+     payload: Record<string, unknown>;
+   }
 
-export interface CloudStack {
-  frontend: {
-    provider: 'vercel' | 'cloudflare';
-    url: string;
-    deploymentId: string;
-  };
-  backend?: {
-    provider: 'ecs' | 'runpod' | 'vastai';
-    url: string;
-    containerId: string;
-    resources: {
-      cpu: string;
-      memory: string;
-      gpu?: string;
-    };
-  };
-  storage?: {
-    files: { provider: 's3' | 'r2'; bucket: string };
-    database: { provider: 'turso'; url: string };
-    vectors?: { provider: 'qdrant'; url: string };
-  };
-  integrations: {
-    provider: 'nango';
-    connectedServices: string[];
-  };
-}
+   class QdrantClient {
+     async createCollection(
+       name: string,
+       vectorSize: number,
+       distance: 'Cosine' | 'Euclid' | 'Dot'
+     ): Promise<void> {
+       await fetch(`${this.url}/collections/${name}`, {
+         method: 'PUT',
+         headers: this.headers,
+         body: JSON.stringify({
+           vectors: { size: vectorSize, distance },
+           optimizers_config: {
+             indexing_threshold: 20000,
+             memmap_threshold: 50000
+           },
+           // Enable ACORN search for better accuracy
+           hnsw_config: {
+             m: 16,
+             ef_construct: 100,
+             full_scan_threshold: 10000
+           }
+         })
+       });
+     }
 
-export interface StackConfig {
-  projectId: string;
-  userId: string;
-  frontend: {
-    framework: 'next' | 'vite' | 'remix';
-    buildCommand: string;
-  };
-  backend?: {
-    type: 'container' | 'serverless';
-    dockerfile?: string;
-    port?: number;
-    env?: Record<string, string>;
-    requiresGPU?: boolean;
-    gpuType?: string;
-  };
-  storage?: {
-    files: boolean;
-    database: boolean;
-    vectors: boolean;
-  };
-  integrations?: string[];  // ['stripe', 'twilio', etc.]
-}
+     async upsertPoints(collection: string, points: VectorPoint[]): Promise<void> {
+       // Batch upsert with optimized batching
+     }
 
-export class KripTikCloud {
-  private hyperThinking: ReturnType<typeof getHyperThinkingEngine>;
+     async search(
+       collection: string,
+       vector: number[],
+       limit: number,
+       filter?: PayloadFilter
+     ): Promise<SearchResult[]> {
+       const response = await fetch(`${this.url}/collections/${collection}/points/search`, {
+         method: 'POST',
+         headers: this.headers,
+         body: JSON.stringify({
+           vector,
+           limit,
+           filter,
+           with_payload: true,
+           with_vectors: false,
+           // Use ACORN for better accuracy on large collections
+           params: { exact: false, hnsw_ef: 128 }
+         })
+       });
+       return response.json();
+     }
 
-  constructor() {
-    this.hyperThinking = getHyperThinkingEngine();
-  }
+     async searchWithTenancy(
+       collection: string,
+       vector: number[],
+       tenantId: string,
+       limit: number
+     ): Promise<SearchResult[]> {
+       // Tiered multitenancy: efficient per-tenant search
+       return this.search(collection, vector, limit, {
+         must: [{ key: 'tenant_id', match: { value: tenantId } }]
+       });
+     }
+   }
 
-  /**
-   * Deploy a complete stack with Hyper-Thinking infrastructure decisions
-   */
-  async deployStack(config: StackConfig): Promise<CloudStack> {
-    // Use Hyper-Thinking for infrastructure decisions
-    const infraDecision = await this.hyperThinking.process(
-      `Determine optimal infrastructure for:
-       - Frontend: ${config.frontend.framework}
-       - Backend: ${config.backend?.type || 'none'}
-       - Requires GPU: ${config.backend?.requiresGPU || false}
-       - Integrations: ${config.integrations?.join(', ') || 'none'}
+2. Create server/src/services/vector/embedding-store.ts:
 
-       Consider cost, performance, and scalability.`,
-      'architecture_decision'
-    );
+   class EmbeddingStore {
+     constructor(private qdrant: QdrantClient) {}
 
-    // Parse infrastructure decision
-    const infraConfig = this.parseInfraDecision(infraDecision.output);
+     // Collections for different embedding types
+     private collections = {
+       intent: 'kriptik_intent_embeddings',      // 4096-dim (Qwen3)
+       code: 'kriptik_code_embeddings',          // 4096-dim (Qwen3)
+       visual: 'kriptik_visual_embeddings',      // 768-dim (CLIP)
+       patterns: 'kriptik_pattern_embeddings',   // L2 learning patterns
+       combined: 'kriptik_combined_embeddings'   // Multi-vector
+     };
 
-    // Deploy each component
-    const stack: CloudStack = {
-      frontend: await this.deployFrontend(config, infraConfig),
-      integrations: { provider: 'nango', connectedServices: [] },
-    };
+     async storeIntentEmbedding(
+       projectId: string,
+       intentId: string,
+       embedding: Float32Array,
+       metadata: IntentMetadata
+     ): Promise<void> {
+       await this.qdrant.upsertPoints(this.collections.intent, [{
+         id: intentId,
+         vector: Array.from(embedding),
+         payload: {
+           tenant_id: projectId,
+           type: 'intent',
+           ...metadata,
+           created_at: new Date().toISOString()
+         }
+       }]);
+     }
 
-    if (config.backend) {
-      stack.backend = await this.deployBackend(config, infraConfig);
-    }
+     async findSimilarIntents(
+       projectId: string,
+       queryEmbedding: Float32Array,
+       limit: number = 10
+     ): Promise<SimilarIntent[]> {
+       return this.qdrant.searchWithTenancy(
+         this.collections.intent,
+         Array.from(queryEmbedding),
+         projectId,
+         limit
+       );
+     }
 
-    if (config.storage) {
-      stack.storage = await this.setupStorage(config);
-    }
+     async findSimilarPatterns(
+       queryEmbedding: Float32Array,
+       limit: number = 10
+     ): Promise<SimilarPattern[]> {
+       // Cross-project pattern search (L5 global)
+       return this.qdrant.search(
+         this.collections.patterns,
+         Array.from(queryEmbedding),
+         limit
+       );
+     }
 
-    if (config.integrations?.length) {
-      stack.integrations = await this.connectIntegrations(config);
-    }
+     async calculateSemanticDrift(
+       intentEmbedding: Float32Array,
+       outputEmbedding: Float32Array
+     ): Promise<number> {
+       // Cosine similarity calculation
+       const dotProduct = intentEmbedding.reduce(
+         (sum, a, i) => sum + a * outputEmbedding[i], 0
+       );
+       const normA = Math.sqrt(intentEmbedding.reduce((sum, a) => sum + a * a, 0));
+       const normB = Math.sqrt(outputEmbedding.reduce((sum, a) => sum + a * a, 0));
+       return dotProduct / (normA * normB);
+     }
+   }
 
-    // Wire everything together
-    await this.wireStack(stack, config);
+3. Create server/src/services/vector/semantic-search-service.ts:
+   - Search across all embedding types
+   - Hybrid search: combine intent + code + visual similarity
+   - Support for "find similar projects" feature
+   - Pattern discovery from historical embeddings
 
-    return stack;
-  }
+4. Integration with VL-JEPA:
+   - Store all embeddings in Qdrant immediately after generation
+   - Use Qdrant for similarity comparisons (faster than recomputing)
+   - Enable historical drift analysis across builds
 
-  /**
-   * Deploy frontend to Vercel/Cloudflare
-   */
-  private async deployFrontend(
-    config: StackConfig,
-    infraConfig: any
-  ): Promise<CloudStack['frontend']> {
-    // Implementation...
-    return {
-      provider: infraConfig.frontendProvider || 'vercel',
-      url: '',
-      deploymentId: '',
-    };
-  }
+5. Integration with Learning Engine (Component 28):
+   - L2 (Pattern): Query similar past patterns for new errors
+   - L3 (Project): Project-specific embedding index
+   - L5 (Global): Cross-project pattern discovery
 
-  /**
-   * Deploy backend to ECS Fargate or RunPod
-   */
-  private async deployBackend(
-    config: StackConfig,
-    infraConfig: any
-  ): Promise<CloudStack['backend']> {
-    if (config.backend?.requiresGPU) {
-      // Use RunPod serverless for GPU workloads
-      return this.deployToRunPod(config);
-    } else {
-      // Use ECS Fargate for standard containers
-      return this.deployToECS(config);
-    }
-  }
+6. Database Schema Updates:
+   - Add qdrant_point_ids to relevant tables
+   - Enable sync between Turso metadata and Qdrant vectors
+   - Implement consistency checks
 
-  /**
-   * Deploy GPU workload to RunPod serverless
-   */
-  private async deployToRunPod(config: StackConfig): Promise<CloudStack['backend']> {
-    // RunPod serverless deployment
-    // December 2025 API
-    return {
-      provider: 'runpod',
-      url: '',
-      containerId: '',
-      resources: {
-        cpu: '4',
-        memory: '16GB',
-        gpu: config.backend?.gpuType || 'RTX_4090',
-      },
-    };
-  }
+7. Configuration:
+   QDRANT_URL: https://your-cluster.qdrant.tech
+   QDRANT_API_KEY: Required
+   QDRANT_COLLECTION_PREFIX: kriptik_
+   QDRANT_BATCH_SIZE: 100
 
-  /**
-   * Deploy container to AWS ECS Fargate
-   */
-  private async deployToECS(config: StackConfig): Promise<CloudStack['backend']> {
-    // ECS Express Mode (re:Invent 2025)
-    return {
-      provider: 'ecs',
-      url: '',
-      containerId: '',
-      resources: {
-        cpu: '256',
-        memory: '512',
-      },
-    };
-  }
-
-  /**
-   * Connect integrations via Nango OAuth
-   */
-  private async connectIntegrations(config: StackConfig): Promise<CloudStack['integrations']> {
-    // Nango handles OAuth for 500+ services
-    return {
-      provider: 'nango',
-      connectedServices: config.integrations || [],
-    };
-  }
-
-  /**
-   * Wire all stack components together
-   */
-  private async wireStack(stack: CloudStack, config: StackConfig): Promise<void> {
-    // Set frontend env vars to point to backend
-    // Set backend env vars for storage
-    // Inject Nango credentials for integrations
-  }
-
-  private parseInfraDecision(output: string): any {
-    // Parse Hyper-Thinking output
-    return {};
-  }
-}
-
-export function getKripTikCloud(): KripTikCloud;
+Implement with proper batching, error handling, and consistency guarantees.
 ```
 
-2. Create provider clients:
-   - `runpod-client.ts` - RunPod serverless API
-   - `ecs-client.ts` - AWS ECS Fargate API
-   - `nango-integration.ts` - Nango OAuth API
+## Implementation Prompt 5.2: RunPod GPU Enhancement (Extend Existing)
 
-3. Create API routes `server/src/routes/cloud.ts`:
-   - POST /api/cloud/deploy-stack
-   - POST /api/cloud/deploy-gpu
-   - GET /api/cloud/stack/:projectId
-   - DELETE /api/cloud/stack/:projectId
+```
+PROMPT FOR OPUS 4.5 - RUNPOD ENHANCEMENT
 
-VALIDATION:
-- npm run build must pass
-- Test ECS deployment with sample container
-- Test RunPod endpoint creation
-- Test Nango OAuth connection
+Context: KripTik AI ALREADY HAS RunPod integration. This prompt enhances the existing
+implementation with new 2026 API features, NOT replaces it.
 
-DO NOT MODIFY: Auth files
+RunPod API (January 2026):
+- Serverless endpoints: Sub-250ms cold starts (48% of requests)
+- REST API for automation
+- GPU options: RTX 4090, A100, H100
+- Pay-per-second billing
+
+Task: Enhance existing RunPod integration for GPU-accelerated AI workloads
+
+Requirements:
+1. Update existing RunPod client with new endpoint templates:
+
+   embedding-generator:
+   - GPU: A100
+   - Model: Qwen3-Embedding-8B
+   - Min workers: 0, Max workers: 5
+
+   code-analyzer:
+   - GPU: RTX 4090
+   - Model: Fine-tuned code model
+   - Min workers: 1, Max workers: 3
+
+   visual-processor:
+   - GPU: A100
+   - Model: CLIP + custom vision models
+   - Min workers: 0, Max workers: 2
+
+2. Create server/src/services/cloud/runpod/gpu-workload-router.ts:
+   - Route VL-JEPA batch embedding generation to RunPod
+   - 10x faster than CPU-based inference
+   - Cost-effective for high-volume embedding tasks
+
+3. Configuration:
+   RUNPOD_API_KEY: Required
+   RUNPOD_DEFAULT_GPU: A100
+   RUNPOD_MAX_SPEND_DAILY: 100 (USD)
+   RUNPOD_AUTO_SCALE_THRESHOLD: 5 (queue depth)
+```
+
+## Implementation Prompt 5.3: Abandoned App Cleanup Mechanism (NEW)
+
+```
+PROMPT FOR OPUS 4.5 - CLEANUP MECHANISM FOR ABANDONED APPS
+
+Context: KripTik AI operates a dual-infrastructure model where development/testing runs
+on KripTik's accounts (metered to users) and production can optionally run on user accounts.
+Apps abandoned on KripTik's infrastructure accumulate storage and GPU costs. We need an
+automated cleanup mechanism to prevent orphaned resources.
+
+Task: Implement automated cleanup for abandoned apps on KripTik's infrastructure
+
+Requirements:
+1. Create server/src/services/infrastructure/cleanup-service.ts:
+
+   interface CleanupPolicy {
+     inactiveDays: number;        // Days before archival (default: 30)
+     deleteDays: number;          // Days before deletion (default: 90)
+     warningDays: number;         // Days before deletion to warn (default: 7)
+     exemptTiers: string[];       // User tiers exempt from auto-cleanup
+   }
+
+   class CleanupService {
+     async scanForInactiveApps(): Promise<InactiveApp[]> {
+       // Query apps with no activity in CLEANUP_INACTIVE_DAYS
+     }
+
+     async archiveApp(appId: string): Promise<ArchiveResult> {
+       // 1. Create snapshot of app state
+       // 2. Export to cold storage (S3/GCS)
+       // 3. Stop all running services
+       // 4. Mark as archived in database
+       // 5. Send notification to user
+     }
+
+     async deleteApp(appId: string): Promise<DeleteResult> {
+       // 1. Verify app has been archived
+       // 2. Delete from RunPod, Modal, Qdrant
+       // 3. Delete from Turso
+       // 4. Final notification to user
+     }
+
+     async restoreApp(appId: string, userId: string): Promise<RestoreResult> {
+       // Restore from archive within 60 days of deletion
+     }
+   }
+
+2. User Notifications:
+   - Email/in-app notification at 23 days (7 days before archive)
+   - Email/in-app notification at archive (30 days)
+   - Email/in-app notification at 83 days (7 days before delete)
+   - Final email at deletion (90 days)
+   - All notifications include one-click restore/extend option
+
+3. Configuration:
+   CLEANUP_INACTIVE_DAYS=30
+   CLEANUP_DELETE_DAYS=90
+   CLEANUP_WARNING_DAYS=7
+   CLEANUP_EXEMPT_TIERS=enterprise,premium
 ```
 
 ---
 
-## SUCCESS METRICS
+# Section 6: Quality & Verification Enhancements
 
-### Unified Metrics Across All Three Plans
-
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| Intent understanding accuracy | ~70% | 95%+ | VL-JEPA semantic match score |
-| Verification speed | 30-60s | 0.5-1s | VL-JEPA embedding comparison |
-| Hyper-Thinking quality boost | N/A | 30-50% | Comparative quality scoring |
-| Pattern shortcut activation | N/A | 60%+ | Embedding similarity > 0.9 |
-| First-time-right rate | ~60% | 90%+ | Builds without rework |
-| Complete deployment rate | ~30% | 95%+ | Full stack deployed and running |
-| Context compaction efficiency | N/A | 50%+ | Token reduction with semantic preservation |
-| Deliberative spec compliance | N/A | 99%+ | No blocking spec violations |
-| Learning acceleration | 1000s builds | 100s builds | Pattern maturity time |
-
-### The Compound Effect
-
-Each system multiplies the others:
+## Implementation Prompt 6.1: Deliberative Alignment Quality Specs
 
 ```
-VL-JEPA Semantic Understanding (10x better intent capture)
-  × Hyper-Thinking Cognitive Enhancement (30-50% quality boost)
-  × Model Enhancements (xhigh effort + interleaved thinking)
-  × Embedding-Based Learning (50x faster pattern matching)
-  × KripTik Cloud Deployment (complete production apps)
-  ─────────────────────────────────────────────────────────
-  = "Holy Shit" User Reaction
-  = Production-Ready Apps from Single Prompt
-  = The World's Most Capable AI Builder
+PROMPT FOR OPUS 4.5 - DELIBERATIVE ALIGNMENT
+
+Context: KripTik AI needs a system to define, track, and enforce quality specifications
+across all builds. This "Deliberative Alignment" system ensures outputs meet explicit
+quality criteria defined upfront.
+
+Task: Implement Deliberative Alignment quality specification system
+
+Requirements:
+1. Create server/src/services/quality/deliberative-alignment.ts:
+
+   interface QualitySpec {
+     id: string;
+     name: string;
+     category: QualityCategory;
+     criteria: QualityCriterion[];
+     weight: number;
+     required: boolean;
+   }
+
+   enum QualityCategory {
+     CODE_QUALITY = 'code_quality',
+     SECURITY = 'security',
+     PERFORMANCE = 'performance',
+     ACCESSIBILITY = 'accessibility',
+     MAINTAINABILITY = 'maintainability',
+     INTENT_ALIGNMENT = 'intent_alignment'
+   }
+
+2. Create default quality specs:
+   - No console.log in production code
+   - No any types in TypeScript
+   - Maximum cyclomatic complexity: 10
+   - Input validation on all endpoints
+   - VL-JEPA similarity >= 0.85
+
+3. Integration with Verification Swarm:
+   - Each verification agent receives relevant quality specs
+   - Agents evaluate against specs, not just general rules
+   - Spec violations trigger specific error escalation
+```
+
+## Implementation Prompt 6.2: Enhanced Error Escalation
+
+```
+PROMPT FOR OPUS 4.5 - ENHANCED ERROR ESCALATION
+
+Context: KripTik AI has a 4-Level Error Escalation system. Enhance it with smarter
+escalation decisions, better auto-fix capabilities, and learning from past errors.
+
+Task: Enhance error escalation with ML-powered decisions and improved auto-fix
+
+Requirements:
+1. Update escalation to use VL-JEPA pattern matching:
+   - Find similar past errors via embedding similarity
+   - Apply successful fix patterns based on semantic matching
+   - Dramatically improves auto-fix success rate
+
+2. Integration with Extended Thinking:
+   - L2 escalation: Use extended thinking for deeper analysis
+   - 30,000 token thinking budget for complex errors
+   - Generate comprehensive fix suggestions
+
+3. Integration with VL-JEPA:
+   - Check if error indicates semantic drift
+   - If drift detected, suggest intent realignment
+   - Generate correction prompts to bring back on track
 ```
 
 ---
 
-## VERIFICATION CHECKLIST
+# Section 7: Two-Stage Intent Lock System
 
-After implementing each prompt:
+## Implementation Prompt 7.1: Two-Stage Intent Lock
 
 ```
-[ ] npm run build passes
-[ ] No TypeScript errors
-[ ] No auth files modified (auth.ts, middleware/auth.ts, auth-client.ts)
-[ ] Synergy integrations work correctly
-[ ] Database migrations run successfully
-[ ] Qdrant collections created
-[ ] Test with relevant build phase
-[ ] Measure improvement vs baseline
-[ ] Update .claude/rules/01-session-context.md
-[ ] Commit with descriptive message
-[ ] Push to branch
+PROMPT FOR OPUS 4.5 - TWO-STAGE INTENT LOCK SYSTEM
+
+Context: KripTik AI currently has a single Intent Lock (sacred contract) system.
+We need to enhance this to a TWO-STAGE system:
+
+Stage 1 - Plan Approval Lock (MODIFIABLE):
+- Created after Hyper-Thinking SYNTHESIZE phase
+- User can review and MODIFY the implementation plan
+- Changes are tracked and re-analyzed
+- User must explicitly approve before proceeding
+- This is the "living document" phase
+
+Stage 2 - Final Contract Lock (IMMUTABLE):
+- Created AFTER user approves the plan
+- Created AFTER user confirms production features, GPU, OAuth options
+- This is the TRUE sacred contract
+- IMMUTABLE once locked
+- Any changes require starting a new build
+
+Current Files to Modify:
+- server/src/services/build/intent-lock-service.ts
+- server/src/db/schema.ts
+
+Task: Implement two-stage Intent Lock system
+
+Requirements:
+1. Update server/src/services/build/intent-lock-service.ts:
+
+   enum IntentLockStage {
+     PLAN_APPROVAL = 'plan_approval',    // Stage 1 - modifiable
+     FINAL_CONTRACT = 'final_contract'   // Stage 2 - immutable
+   }
+
+   interface PlanApprovalLock {
+     id: string;
+     projectId: string;
+     stage: IntentLockStage.PLAN_APPROVAL;
+     plan: ImplementationPlan;
+     userModifications: Modification[];
+     approved: boolean;
+     approvedAt: Date | null;
+     embedding: Float32Array;  // VL-JEPA embedding of plan
+     createdAt: Date;
+   }
+
+   interface FinalContractLock {
+     id: string;
+     projectId: string;
+     stage: IntentLockStage.FINAL_CONTRACT;
+     planApprovalId: string;  // Reference to approved plan
+     sacredContract: SacredContract;
+     productionFeatures: ProductionFeatures;
+     gpuConfig: GPUConfig | null;
+     oauthConfig: OAuthConfig | null;
+     embedding: Float32Array;
+     embeddingHash: string;  // For integrity verification
+     lockedAt: Date;
+     immutable: true;  // Always true for final contract
+   }
+
+   interface ProductionFeatures {
+     deploymentTarget: 'kriptik' | 'user_infrastructure';
+     scalingConfig: ScalingConfig;
+     domainConfig: DomainConfig;
+     sslConfig: SSLConfig;
+   }
+
+   class TwoStageIntentLockService {
+     // Stage 1: Create plan approval lock
+     async createPlanApproval(
+       projectId: string,
+       hyperThinkingResult: HyperThinkingResult
+     ): Promise<PlanApprovalLock> {
+       const plan = hyperThinkingResult.synthesizedPlan;
+       const embedding = await this.vlJepa.generateEmbedding(plan);
+
+       return this.db.insert({
+         projectId,
+         stage: IntentLockStage.PLAN_APPROVAL,
+         plan,
+         userModifications: [],
+         approved: false,
+         embedding,
+         createdAt: new Date()
+       });
+     }
+
+     // Stage 1: User modifies plan (allowed)
+     async modifyPlan(
+       lockId: string,
+       modifications: Modification[]
+     ): Promise<PlanApprovalLock> {
+       const lock = await this.getLock(lockId);
+       if (lock.stage !== IntentLockStage.PLAN_APPROVAL) {
+         throw new Error('Cannot modify final contract');
+       }
+       if (lock.approved) {
+         throw new Error('Cannot modify approved plan - create new build');
+       }
+
+       // Apply modifications and re-analyze
+       const modifiedPlan = this.applyModifications(lock.plan, modifications);
+       const newEmbedding = await this.vlJepa.generateEmbedding(modifiedPlan);
+
+       return this.db.update(lockId, {
+         plan: modifiedPlan,
+         userModifications: [...lock.userModifications, ...modifications],
+         embedding: newEmbedding
+       });
+     }
+
+     // Stage 1: User approves plan
+     async approvePlan(lockId: string): Promise<PlanApprovalLock> {
+       const lock = await this.getLock(lockId);
+       if (lock.stage !== IntentLockStage.PLAN_APPROVAL) {
+         throw new Error('Not a plan approval lock');
+       }
+
+       return this.db.update(lockId, {
+         approved: true,
+         approvedAt: new Date()
+       });
+     }
+
+     // Stage 2: Create final contract (after plan approval + production config)
+     async createFinalContract(
+       planApprovalId: string,
+       productionFeatures: ProductionFeatures,
+       gpuConfig: GPUConfig | null,
+       oauthConfig: OAuthConfig | null
+     ): Promise<FinalContractLock> {
+       const planApproval = await this.getLock(planApprovalId);
+
+       if (!planApproval.approved) {
+         throw new Error('Plan must be approved before final contract');
+       }
+
+       const sacredContract = this.buildSacredContract(
+         planApproval.plan,
+         productionFeatures,
+         gpuConfig,
+         oauthConfig
+       );
+
+       const embedding = await this.vlJepa.generateEmbedding(sacredContract);
+       const embeddingHash = this.hashEmbedding(embedding);
+
+       return this.db.insert({
+         projectId: planApproval.projectId,
+         stage: IntentLockStage.FINAL_CONTRACT,
+         planApprovalId,
+         sacredContract,
+         productionFeatures,
+         gpuConfig,
+         oauthConfig,
+         embedding,
+         embeddingHash,
+         lockedAt: new Date(),
+         immutable: true
+       });
+     }
+
+     // Stage 2: Verify integrity (no modifications allowed)
+     async verifyIntegrity(lockId: string): Promise<IntegrityResult> {
+       const lock = await this.getLock(lockId);
+       if (lock.stage !== IntentLockStage.FINAL_CONTRACT) {
+         throw new Error('Not a final contract');
+       }
+
+       const currentHash = this.hashEmbedding(lock.embedding);
+       return {
+         valid: currentHash === lock.embeddingHash,
+         contract: lock.sacredContract
+       };
+     }
+
+     // Reject any modification to final contract
+     async modifyFinalContract(lockId: string): Promise<never> {
+       throw new Error('Final contract is IMMUTABLE. Create a new build to make changes.');
+     }
+   }
+
+2. Database Schema Updates:
+
+   CREATE TABLE intent_locks (
+     id TEXT PRIMARY KEY,
+     project_id TEXT REFERENCES projects(id),
+     stage TEXT NOT NULL,  -- 'plan_approval' or 'final_contract'
+     plan_approval_id TEXT REFERENCES intent_locks(id),  -- For final contracts
+     content JSONB NOT NULL,
+     embedding BLOB,
+     embedding_hash TEXT,
+     approved BOOLEAN DEFAULT false,
+     approved_at TIMESTAMP,
+     locked_at TIMESTAMP,
+     immutable BOOLEAN DEFAULT false,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+
+   CREATE INDEX idx_intent_locks_project ON intent_locks(project_id, stage);
+
+3. UI Flow:
+
+   Step 1: User enters NLP request
+   Step 2: Hyper-Thinking runs → Plan generated
+   Step 3: Plan Approval Lock created
+   Step 4: User reviews plan in UI
+   Step 5: User can MODIFY plan (changes tracked)
+   Step 6: User clicks "Approve Plan" → Plan locked
+   Step 7: User configures production features, GPU, OAuth
+   Step 8: User clicks "Start Build" → Final Contract created (IMMUTABLE)
+   Step 9: Build loop executes against immutable contract
+
+4. Integration with Build Loop:
+   - Build loop receives final_contract_id
+   - All verification checks against final contract
+   - Semantic drift detection uses final contract embedding
+   - Any detected modifications abort build with integrity error
+
+5. Audit Trail:
+   - Log all plan modifications with user, timestamp, diff
+   - Log final contract creation
+   - Log any integrity check failures
+   - Feed into L4 user learning for pattern analysis
+
+Implement with comprehensive validation, audit logging, and VL-JEPA integration.
 ```
 
 ---
 
-## SOURCES
+# Section 8: Tournament Mode with Hyper-Thinking
 
-### From implementation-plan-kriptik-ultimate.md
-- VL-JEPA architecture and semantic understanding
-- KripTik Cloud deployment infrastructure
-- Component 28 embedding enhancement
-- Qdrant vector database setup
+## Implementation Prompt 8.1: Tournament Mode
 
-### From implementation-plan-hyper-thinking.md
-- 6-phase cognitive pipeline
-- Shadow/Active/Accelerated modes
-- Pattern learning and shortcuts
-- Model equalization
+```
+PROMPT FOR OPUS 4.5 - TOURNAMENT MODE WITH HYPER-THINKING
 
-### From implementation-plan-model-enhancements-jan2026.md
-- OpenAI Responses API
-- Anthropic Interleaved Thinking
-- xhigh effort reasoning
-- Context compaction
-- Deliberative Alignment
+Context: Tournament Mode is an OPTIONAL feature that creates code multiple times
+and selects the best result. It costs more but produces higher quality output.
+When combined with Hyper-Thinking, it uses the full cognitive pipeline for each
+tournament participant.
 
-### Additional Research
-- [VL-JEPA Paper (December 2025)](https://arxiv.org/abs/2512.10942)
-- [OpenAI Reasoning Models](https://platform.openai.com/docs/guides/reasoning)
-- [Claude Extended Thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)
-- [RunPod Serverless](https://docs.runpod.io/serverless/overview)
-- [Nango OAuth](https://nango.dev/auth)
+Task: Implement Tournament Mode as optional user-enabled feature
+
+Requirements:
+1. Create server/src/services/tournament/tournament-orchestrator.ts:
+
+   interface TournamentConfig {
+     enabled: boolean;
+     participants: number;  // 2-5 parallel implementations
+     useHyperThinking: boolean;  // Use full cognitive pipeline per participant
+     evaluationCriteria: EvaluationCriterion[];
+     userBudget: number;  // Max cost user willing to spend
+   }
+
+   interface TournamentParticipant {
+     id: string;
+     approach: string;  // From Hyper-Thinking EXPLORE phase
+     implementation: Implementation;
+     scores: EvaluationScores;
+     cost: number;
+     duration: number;
+   }
+
+   interface TournamentResult {
+     winner: TournamentParticipant;
+     allParticipants: TournamentParticipant[];
+     totalCost: number;
+     improvementOverSingle: number;  // % improvement vs single implementation
+   }
+
+   class TournamentOrchestrator {
+     async runTournament(
+       projectId: string,
+       userRequest: string,
+       config: TournamentConfig
+     ): Promise<TournamentResult> {
+       // 1. Run Hyper-Thinking to generate N approaches
+       const hyperThinking = await this.hyperThinkingPipeline.execute(userRequest);
+       const approaches = hyperThinking.explorations.slice(0, config.participants);
+
+       // 2. Run parallel implementations (using AI Lab)
+       const implementations = await this.runParallelImplementations(approaches);
+
+       // 3. Evaluate each implementation
+       const evaluations = await this.evaluateImplementations(
+         implementations,
+         config.evaluationCriteria
+       );
+
+       // 4. Select winner
+       const winner = this.selectWinner(evaluations);
+
+       // 5. Optionally combine best elements (synthesis)
+       if (config.synthesizeBest) {
+         const synthesized = await this.synthesizeBestElements(evaluations);
+         return { winner: synthesized, ... };
+       }
+
+       return { winner, allParticipants: evaluations, ... };
+     }
+
+     private async runParallelImplementations(
+       approaches: Approach[]
+     ): Promise<Implementation[]> {
+       // Use AI Lab 5 parallel orchestrations
+       // Each approach gets its own build loop execution
+       return Promise.all(
+         approaches.map(approach =>
+           this.aiLabOrchestrator.executeWithApproach(approach)
+         )
+       );
+     }
+
+     private async evaluateImplementations(
+       implementations: Implementation[],
+       criteria: EvaluationCriterion[]
+     ): Promise<TournamentParticipant[]> {
+       return Promise.all(
+         implementations.map(async impl => {
+           const scores = await this.evaluateAgainstCriteria(impl, criteria);
+           return {
+             id: impl.id,
+             approach: impl.approach,
+             implementation: impl,
+             scores,
+             cost: impl.cost,
+             duration: impl.duration
+           };
+         })
+       );
+     }
+
+     private selectWinner(participants: TournamentParticipant[]): TournamentParticipant {
+       // Weighted scoring based on criteria importance
+       const scored = participants.map(p => ({
+         participant: p,
+         totalScore: this.calculateWeightedScore(p.scores)
+       }));
+
+       return scored.sort((a, b) => b.totalScore - a.totalScore)[0].participant;
+     }
+   }
+
+2. Evaluation Criteria:
+
+   interface EvaluationCriterion {
+     name: string;
+     weight: number;
+     evaluator: (impl: Implementation) => Promise<number>;
+   }
+
+   const DEFAULT_CRITERIA: EvaluationCriterion[] = [
+     {
+       name: 'intent_alignment',
+       weight: 0.30,
+       evaluator: async (impl) => {
+         // VL-JEPA semantic similarity to original request
+         return this.vlJepa.calculateSimilarity(impl.output, impl.intent);
+       }
+     },
+     {
+       name: 'code_quality',
+       weight: 0.25,
+       evaluator: async (impl) => {
+         // Code quality metrics
+         return this.codeQualityAnalyzer.analyze(impl.code);
+       }
+     },
+     {
+       name: 'test_coverage',
+       weight: 0.20,
+       evaluator: async (impl) => {
+         // Test coverage percentage
+         return impl.testCoverage;
+       }
+     },
+     {
+       name: 'security_score',
+       weight: 0.15,
+       evaluator: async (impl) => {
+         // Security scan results
+         return this.securityScanner.getScore(impl.code);
+       }
+     },
+     {
+       name: 'performance',
+       weight: 0.10,
+       evaluator: async (impl) => {
+         // Bundle size, load time, etc.
+         return this.performanceAnalyzer.analyze(impl);
+       }
+     }
+   ];
+
+3. Cost Estimation:
+
+   class TournamentCostEstimator {
+     estimateCost(config: TournamentConfig): CostEstimate {
+       const singleBuildCost = this.estimateSingleBuild();
+       const hyperThinkingCost = config.useHyperThinking
+         ? this.estimateHyperThinking() * config.participants
+         : 0;
+
+       return {
+         totalEstimate: (singleBuildCost * config.participants) + hyperThinkingCost,
+         breakdown: {
+           implementations: singleBuildCost * config.participants,
+           hyperThinking: hyperThinkingCost,
+           evaluation: this.estimateEvaluation(config.participants)
+         },
+         confidenceRange: { low: 0.8, high: 1.3 }  // Cost can vary ±30%
+       };
+     }
+   }
+
+4. UI Integration:
+
+   // client/src/components/build/TournamentModeToggle.tsx
+   interface TournamentModeToggleProps {
+     enabled: boolean;
+     onToggle: (enabled: boolean) => void;
+     config: TournamentConfig;
+     onConfigChange: (config: TournamentConfig) => void;
+     costEstimate: CostEstimate;
+   }
+
+   // Show clear cost warning
+   // "Tournament Mode: ~3x cost, typically 15-25% better results"
+   // User must explicitly enable and confirm cost
+
+5. Integration with Two-Stage Intent Lock:
+   - Tournament runs AFTER plan approval (Stage 1)
+   - Each participant uses same approved plan as base
+   - Winner's implementation becomes basis for final contract (Stage 2)
+
+6. Metrics and Learning:
+   - Track tournament win patterns
+   - Learn which approaches tend to win for which task types
+   - Feed into Hyper-Thinking EXPLORE phase optimization
+   - Store in L5 global learning for cross-user benefit
+
+7. Configuration:
+   TOURNAMENT_MAX_PARTICIPANTS: 5
+   TOURNAMENT_DEFAULT_PARTICIPANTS: 3
+   TOURNAMENT_HYPER_THINKING_DEFAULT: true
+   TOURNAMENT_COST_MULTIPLIER_WARNING: 2.5
+
+Implement with clear cost communication and user consent for higher costs.
+```
 
 ---
 
-*This unified implementation plan synthesizes three transformative capability sets into a single, synergistic architecture. Each enhancement amplifies the others, creating compound improvements that make KripTik AI the world's most capable AI builder.*
+# Section 9: Context Compaction System
 
-*Total Implementation Time: 10-12 weeks*
-*Expected Result: Complete production apps from single NLP prompts*
+## Implementation Prompt 9.1: 24-Hour Build Context Management
 
-*Last Updated: January 2, 2026*
+```
+PROMPT FOR OPUS 4.5 - CONTEXT COMPACTION
+
+Context: KripTik AI builds can run for extended periods (up to 24 hours for complex
+projects). Context windows fill up, causing loss of critical information. Implement
+a context compaction system to maintain relevant context throughout long builds.
+
+Task: Implement context compaction for extended build sessions
+
+Requirements:
+1. Create server/src/services/context/context-compaction-service.ts:
+
+   interface ContextWindow {
+     maxTokens: number;
+     currentTokens: number;
+     segments: ContextSegment[];
+   }
+
+   interface ContextSegment {
+     id: string;
+     type: ContextType;
+     content: string;
+     tokenCount: number;
+     importance: number;
+     timestamp: Date;
+     embedding?: Float32Array;
+   }
+
+   enum ContextType {
+     INTENT = 'intent',
+     SACRED_CONTRACT = 'sacred',  // From Two-Stage Intent Lock (Stage 2)
+     PLAN_APPROVAL = 'plan',      // From Two-Stage Intent Lock (Stage 1)
+     CODE_GENERATED = 'code',
+     VERIFICATION = 'verify',
+     ERROR = 'error',
+     LEARNING = 'learning',
+     CONVERSATION = 'convo'
+   }
+
+   class ContextCompactionService {
+     async compact(
+       window: ContextWindow,
+       targetTokens: number
+     ): Promise<ContextWindow> {
+       // NEVER remove INTENT, SACRED_CONTRACT, or PLAN_APPROVAL segments
+       const protected = window.segments.filter(
+         s => s.type === ContextType.INTENT ||
+              s.type === ContextType.SACRED_CONTRACT ||
+              s.type === ContextType.PLAN_APPROVAL
+       );
+
+       // Sort compactable by importance * recency
+       // Summarize instead of dropping
+       // Use VL-JEPA embeddings for semantic retrieval
+     }
+   }
+
+2. Protected Context Rules:
+   - Intent Lock contracts (both stages): NEVER compact or summarize
+   - Critical errors: Keep full detail for 1 hour
+   - Verification failures: Keep until resolved
+   - User feedback: Keep for entire session
+
+3. Integration with Qdrant:
+   - Store context segments with embeddings in Qdrant
+   - Enable semantic retrieval of relevant context
+   - Dynamic context loading: only load what's needed
+
+4. Configuration:
+   CONTEXT_MAX_TOKENS: 128000
+   CONTEXT_COMPACT_THRESHOLD: 0.8
+   CONTEXT_TARGET_UTILIZATION: 0.6
+```
+
+---
+
+# Section 10: Implementation Sequence & Dependencies
+
+## Dependency Graph
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      IMPLEMENTATION DEPENDENCY GRAPH v3.0                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  PHASE 1: Foundation (Parallel)                                             │
+│  ├── 2.1 VL-JEPA Core + Component 28 Enhancement ────┐                      │
+│  ├── 4.1 Update Model Router with Jan 2026 IDs ──────┼───────┐              │
+│  ├── 4.2 OpenAI Responses API (GPT-5.2) ─────────────┤       │              │
+│  ├── 4.3 Anthropic Interleaved Thinking ─────────────┤       │              │
+│  └── 5.1 Qdrant Integration ─────────────────────────┘       │              │
+│                                                               │              │
+│  PHASE 2: Cognitive Layer (Sequential)                       │              │
+│  ├── 3.1 Hyper-Thinking Core ◀───────────────────────────────┘              │
+│  ├── 3.2 Extended Thinking (depends on 3.1, 4.3)                            │
+│  └── 3.3 Parallel Cognitive (depends on 3.1, 3.2)                           │
+│                                                                              │
+│  PHASE 3: Intent Lock & Semantic (Sequential)                               │
+│  ├── 7.1 Two-Stage Intent Lock (depends on 2.1, 3.1)                        │
+│  ├── 2.2 Semantic Verification (depends on 2.1, 5.1, 7.1)                   │
+│  └── 2.3 Visual Semantic (depends on 2.1, 2.2)                              │
+│                                                                              │
+│  PHASE 4: Infrastructure & Tournament (Parallel)                            │
+│  ├── 5.2 RunPod Enhancement                                                  │
+│  ├── 5.3 Cleanup Mechanism                                                   │
+│  └── 8.1 Tournament Mode (depends on 3.1, 7.1)                              │
+│                                                                              │
+│  PHASE 5: Quality & Context (Parallel)                                       │
+│  ├── 6.1 Deliberative Alignment (depends on 2.2)                            │
+│  ├── 6.2 Enhanced Escalation (depends on 3.1, 2.1)                          │
+│  └── 9.1 Context Compaction (depends on 5.1, 7.1)                           │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Implementation Order
+
+### Phase 1: Foundation
+Execute these prompts in parallel:
+1. **Prompt 2.1**: VL-JEPA Core Integration + Component 28 Enhancement
+2. **Prompt 4.1**: Update Model Router with January 2026 Model IDs
+3. **Prompt 4.2**: OpenAI Responses API Integration (GPT-5.2)
+4. **Prompt 4.3**: Anthropic Interleaved Thinking Integration
+5. **Prompt 5.1**: Qdrant Vector Database Integration
+
+### Phase 2: Cognitive Layer
+Execute sequentially:
+1. **Prompt 3.1**: Hyper-Thinking Pipeline Core
+2. **Prompt 3.2**: Extended Thinking Integration
+3. **Prompt 3.3**: Parallel Cognitive Processing
+
+### Phase 3: Intent Lock & Semantic Layer
+Execute sequentially:
+1. **Prompt 7.1**: Two-Stage Intent Lock System
+2. **Prompt 2.2**: Intent-to-Output Semantic Verification
+3. **Prompt 2.3**: Visual Semantic Comparison
+
+### Phase 4: Infrastructure & Tournament
+Execute in parallel:
+1. **Prompt 5.2**: RunPod GPU Enhancement
+2. **Prompt 5.3**: Abandoned App Cleanup Mechanism
+3. **Prompt 8.1**: Tournament Mode with Hyper-Thinking
+
+### Phase 5: Quality & Context
+Execute in parallel:
+1. **Prompt 6.1**: Deliberative Alignment Quality Specs
+2. **Prompt 6.2**: Enhanced Error Escalation
+3. **Prompt 9.1**: Context Compaction System
+
+## Verification Checkpoints
+
+After each phase, verify:
+
+1. **Phase 1 Complete**:
+   - [ ] Embeddings generate correctly (Qwen3-Embedding-8B)
+   - [ ] Qdrant stores and retrieves vectors
+   - [ ] Model router uses correct January 2026 model IDs
+   - [ ] OpenAI Responses API calls work
+   - [ ] Interleaved thinking produces thinking blocks
+   - [ ] Component 28 (L1-L5) enhanced with embeddings
+
+2. **Phase 2 Complete**:
+   - [ ] Hyper-Thinking produces cognitive artifacts
+   - [ ] Extended thinking budgets are respected
+   - [ ] AI Lab parallel orchestration works with cognitive agents
+
+3. **Phase 3 Complete**:
+   - [ ] Two-stage intent lock works (plan approval → final contract)
+   - [ ] Plan modifications tracked and re-analyzed
+   - [ ] Final contract is truly immutable
+   - [ ] Semantic drift detection triggers at threshold
+   - [ ] Semantic verifier is 14th agent in swarm (after core, before gap closers)
+
+4. **Phase 4 Complete**:
+   - [ ] RunPod endpoints enhanced for VL-JEPA workloads
+   - [ ] Cleanup mechanism archives after 30 days
+   - [ ] Tournament mode produces N implementations and selects winner
+
+5. **Phase 5 Complete**:
+   - [ ] Quality specs evaluate builds
+   - [ ] Error escalation uses embedding similarity for pattern matching
+   - [ ] Context compaction preserves sacred contracts
+
+## Environment Variables Summary
+
+```bash
+# ============================================
+# DIRECT API PROVIDERS (Primary)
+# ============================================
+
+# Anthropic (Direct API - api.anthropic.com)
+ANTHROPIC_API_KEY=
+EXTENDED_THINKING_DEFAULT_BUDGET=50000
+INTERLEAVED_THINKING_ENABLED=true
+
+# OpenAI (Direct API - api.openai.com)
+OPENAI_API_KEY=
+OPENAI_DEFAULT_MODEL=gpt-5.2
+OPENAI_REASONING_MODEL=gpt-5.2-pro
+OPENAI_FAST_MODEL=gpt-5.2-instant
+
+# ============================================
+# OPENROUTER (Gateway for Other Providers)
+# ============================================
+
+# OpenRouter (for DeepSeek, Llama, Qwen, GLM, Kimi, etc.)
+OPENROUTER_API_KEY=
+OPENROUTER_DEFAULT_MODEL=deepseek-chat
+OPENROUTER_FALLBACK_MODEL=meta-llama/llama-3.3-70b-instruct
+
+# ============================================
+# EMBEDDINGS & VECTOR DATABASE
+# ============================================
+
+# HuggingFace (Embeddings)
+HUGGINGFACE_API_KEY=
+VL_JEPA_SIMILARITY_THRESHOLD=0.85
+
+# Qdrant (Vector Database - NEW)
+QDRANT_URL=
+QDRANT_API_KEY=
+QDRANT_COLLECTION_PREFIX=kriptik_
+
+# ============================================
+# GPU COMPUTE (KripTik + User Infrastructure)
+# ============================================
+
+# RunPod (KripTik's account - metered to users)
+RUNPOD_API_KEY=
+RUNPOD_DEFAULT_GPU=A100
+RUNPOD_MAX_SPEND_DAILY=100
+
+# Modal (KripTik's account - metered to users)
+MODAL_TOKEN_ID=
+MODAL_TOKEN_SECRET=
+
+# ============================================
+# DATABASE & DEPLOYMENT
+# ============================================
+
+# Turso (existing)
+DATABASE_URL=
+DATABASE_AUTH_TOKEN=
+
+# Vercel
+VERCEL_TOKEN=
+
+# ============================================
+# COST MANAGEMENT
+# ============================================
+
+DAILY_COST_LIMIT=100
+PER_BUILD_COST_LIMIT=10
+COST_OPTIMIZED_THRESHOLD=0.5
+
+# ============================================
+# CONTEXT MANAGEMENT
+# ============================================
+
+CONTEXT_MAX_TOKENS=128000
+CONTEXT_COMPACT_THRESHOLD=0.8
+
+# ============================================
+# CLEANUP MECHANISM (for abandoned apps)
+# ============================================
+
+CLEANUP_INACTIVE_DAYS=30
+CLEANUP_DELETE_DAYS=90
+CLEANUP_WARNING_DAYS=7
+
+# ============================================
+# TOURNAMENT MODE
+# ============================================
+
+TOURNAMENT_MAX_PARTICIPANTS=5
+TOURNAMENT_DEFAULT_PARTICIPANTS=3
+TOURNAMENT_HYPER_THINKING_DEFAULT=true
+```
+
+---
+
+## Final Notes
+
+This enhancement plan v3.0 integrates with KripTik AI's existing architecture:
+
+**Corrected Architecture:**
+- **8-Phase Build Loop** (not 6): Init → Plan → Impl → Verify → Test → Deploy → Monitor → Learn
+- **13-Agent Verification Swarm** (6 core + 7 gap closers) + new Semantic Verifier (14th)
+- **5-Layer Learning Engine** (Component 28) dramatically enhanced with VL-JEPA embeddings
+- **Existing model-router.ts** updated with January 2026 model IDs
+- **Existing openrouter-client.ts** for non-OpenAI/Anthropic models
+
+**Key Changes from v2.1:**
+- Removed KripToeNite entirely (speculative execution merged into main flow)
+- No model selector on builder view (auto best experience)
+- Two-Stage Intent Lock (Plan Approval → Final Contract)
+- Tournament Mode with Hyper-Thinking (optional, higher cost)
+- All model IDs verified as of January 6, 2026
+- Semantic verification positioned after core agents, before gap closers
+- Component 28 dramatically enhanced with embedding-based learning
+
+**Verified Model IDs (January 6, 2026):**
+- Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5
+- GPT-5.2: gpt-5.2, gpt-5.2-instant, gpt-5.2-pro
+- DeepSeek: deepseek-chat, deepseek-reasoner
+- GLM: glm-4-plus (GLM 4.7)
+- Kimi: moonshot/kimi-k2
+
+All prompts are production-ready for Opus 4.5 in Cursor or Claude Code. Each prompt contains complete requirements, TypeScript interfaces, and integration points.
+
+---
+
+*Generated: January 6, 2026*
+*Version: 3.0*
+*Target: Claude Opus 4.5 (claude-opus-4-5-20251101)*

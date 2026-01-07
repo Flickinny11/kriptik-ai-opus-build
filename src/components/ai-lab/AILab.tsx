@@ -404,10 +404,10 @@ export const AILab: React.FC = () => {
             }
 
             const data = await response.json();
-            
+
             // Start the session immediately
             await handleStartSession(data.sessionId);
-            
+
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -431,7 +431,7 @@ export const AILab: React.FC = () => {
 
             // Set up SSE for progress updates
             const es = new EventSource(`/api/ai-lab/sessions/${sessionId}/progress`);
-            
+
             es.onmessage = (event) => {
                 const progress = JSON.parse(event.data);
                 setCurrentSession({
@@ -511,7 +511,7 @@ export const AILab: React.FC = () => {
                     <h2>AI Lab</h2>
                     <span className="subtitle">Multi-Agent Research Orchestration</span>
                 </div>
-                
+
                 <div className="header-tabs">
                     <button
                         className={`tab-btn ${activeTab === 'research' ? 'active' : ''}`}

@@ -134,7 +134,7 @@ export class ResearchAgent extends EventEmitter {
         // In production, this would use Claude to understand the research intent
         // For now, we simulate the phase
         await this.simulateWork(500);
-        
+
         this.emitPhaseUpdate(0, 100, 'completed');
     }
 
@@ -143,7 +143,7 @@ export class ResearchAgent extends EventEmitter {
 
         // Set up research context based on focus area
         await this.simulateWork(300);
-        
+
         this.emitPhaseUpdate(1, 100, 'completed');
     }
 
@@ -152,16 +152,16 @@ export class ResearchAgent extends EventEmitter {
 
         // Main research phase - generate findings based on focus area
         const numFindings = Math.floor(Math.random() * 3) + 2; // 2-4 findings
-        
+
         for (let i = 0; i < numFindings; i++) {
             if (!this.isRunning || this.isPaused) break;
 
             await this.simulateWork(400);
-            
+
             const finding = this.generateFinding(i);
             this.findings.push(finding);
             this.emit('finding', finding);
-            
+
             // Update progress
             this.emitPhaseUpdate(2, Math.floor(((i + 1) / numFindings) * 100), 'running');
         }
@@ -174,7 +174,7 @@ export class ResearchAgent extends EventEmitter {
 
         // Integrate findings and check for conflicts with other agents
         await this.simulateWork(300);
-        
+
         this.emitPhaseUpdate(3, 100, 'completed');
     }
 
@@ -183,7 +183,7 @@ export class ResearchAgent extends EventEmitter {
 
         // Verify findings accuracy
         await this.simulateWork(300);
-        
+
         this.emitPhaseUpdate(4, 100, 'completed');
     }
 
@@ -192,7 +192,7 @@ export class ResearchAgent extends EventEmitter {
 
         // Check if research goal has been met
         await this.simulateWork(200);
-        
+
         this.emitPhaseUpdate(5, 100, 'completed');
     }
 
@@ -201,7 +201,7 @@ export class ResearchAgent extends EventEmitter {
 
         // Generate final conclusion
         await this.simulateWork(300);
-        
+
         this.emitPhaseUpdate(6, 100, 'completed');
 
         return this.getResult();
@@ -224,7 +224,7 @@ export class ResearchAgent extends EventEmitter {
         // In production, this would be actual AI processing
         const duration = baseMs + Math.random() * 200;
         await new Promise(resolve => setTimeout(resolve, duration));
-        
+
         // Simulate token usage and cost
         const tokens = Math.floor(duration / 10);
         this.tokensUsed += tokens;
@@ -235,7 +235,7 @@ export class ResearchAgent extends EventEmitter {
 
     private generateFinding(index: number): ResearchFinding {
         const categories: ResearchFinding['category'][] = ['insight', 'recommendation', 'warning', 'question', 'resource'];
-        
+
         return {
             id: uuidv4(),
             category: categories[Math.floor(Math.random() * categories.length)],
@@ -248,7 +248,7 @@ export class ResearchAgent extends EventEmitter {
     }
 
     private getResult(): ResearchResult {
-        const durationSeconds = this.startTime 
+        const durationSeconds = this.startTime
             ? Math.floor((Date.now() - this.startTime.getTime()) / 1000)
             : 0;
 

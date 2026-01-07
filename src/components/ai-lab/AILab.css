@@ -1,6 +1,6 @@
 /**
  * AI Lab Styles (PROMPT 6)
- * 
+ *
  * Premium glassmorphic design with amber accents
  * Matches Feature Agent tile styling
  */
@@ -14,7 +14,7 @@
     --lab-accent-glow: rgba(245, 158, 11, 0.3);
     --lab-text: #fef3c7;
     --lab-text-secondary: rgba(254, 243, 199, 0.7);
-    
+
     /* Status colors */
     --status-queued: #6b7280;
     --status-initializing: #3b82f6;
@@ -23,7 +23,7 @@
     --status-failed: #ef4444;
     --status-stopped: #8b5cf6;
     --status-paused: #f97316;
-    
+
     /* Message type colors */
     --msg-focus: #3b82f6;
     --msg-finding: #10b981;
@@ -42,7 +42,7 @@
     border-radius: 16px;
     border: 1px solid var(--lab-border);
     backdrop-filter: blur(20px);
-    box-shadow: 
+    box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.5),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -784,7 +784,7 @@
     .results-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .config-row {
         grid-template-columns: 1fr;
     }
@@ -796,18 +796,18 @@
         gap: 1rem;
         align-items: flex-start;
     }
-    
+
     .header-tabs {
         width: 100%;
         overflow-x: auto;
     }
-    
+
     .problem-type-selector {
         flex-wrap: nowrap;
         overflow-x: auto;
         padding-bottom: 0.5rem;
     }
-    
+
     .orchestration-grid {
         grid-template-columns: 1fr;
     }

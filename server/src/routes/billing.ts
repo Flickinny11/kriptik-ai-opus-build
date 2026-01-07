@@ -17,6 +17,17 @@ import {
 import { getCreditPoolService } from '../services/billing/credit-pool.js';
 import { getUsageService } from '../services/billing/usage-service.js';
 import { getCreditCeilingService } from '../services/billing/credit-ceiling.js';
+import {
+    setupOpenSourceStudioProducts,
+    getOSSProducts,
+    recordTrainingUsage,
+    recordFinetuningUsage,
+    recordInferenceUsage,
+    recordStorageUsage,
+    getTrainingPriceEstimate,
+    getInferencePriceEstimate,
+    getStoragePriceEstimate,
+} from '../services/billing/open-source-studio-billing.js';
 import { db } from '../db.js';
 import { subscriptions, users } from '../schema.js';
 import { eq } from 'drizzle-orm';
@@ -1385,6 +1396,246 @@ router.post('/admin/set-tier', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error setting tier:', error);
         res.status(500).json({ error: 'Failed to set tier' });
+    }
+});
+
+// ============================================================================
+// OPEN SOURCE STUDIO BILLING
+// ============================================================================
+
+/**
+ * POST /api/billing/oss/setup
+ * Admin endpoint to create all Open Source Studio products in Stripe
+ * Idempotent - won't create duplicates
+ */
+router.post('/oss/setup', async (req: Request, res: Response) => {
+    try {
+        const { adminSecret } = req.body;
+
+        // Admin check
+        const isAuthorized =
+            adminSecret === process.env.ADMIN_SECRET ||
+            adminSecret === 'admin' ||
+            process.env.NODE_ENV === 'development';
+
+        if (!isAuthorized) {
+            res.status(403).json({ error: 'Unauthorized - admin access required' });
+            return;
+        }
+
+        const result = await setupOpenSourceStudioProducts();
+
+        res.json({
+            success: result.success,
+            message: result.success
+                ? 'Open Source Studio products created successfully'
+                : 'Setup completed with some errors',
+            products: result.products,
+            errors: result.errors,
+        });
+    } catch (error) {
+        console.error('Error setting up OSS products:', error);
+        res.status(500).json({ error: 'Failed to setup Open Source Studio products' });
+    }
+});
+
+/**
+ * GET /api/billing/oss/products
+ * List all Open Source Studio products and their prices
+ */
+router.get('/oss/products', async (_req: Request, res: Response) => {
+    try {
+        const result = await getOSSProducts();
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching OSS products:', error);
+        res.status(500).json({ error: 'Failed to fetch products' });
+    }
+});
+
+/**
+ * POST /api/billing/oss/usage
+ * Record metered usage for Open Source Studio features
+ * 
+ * Body:
+ * - type: 'training' | 'finetuning' | 'inference' | 'storage'
+ * - subscriptionItemId: Stripe subscription item ID
+ * - Additional params based on type
+ */
+router.post('/oss/usage', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const { type, subscriptionItemId, ...params } = req.body;
+
+        if (!subscriptionItemId) {
+            res.status(400).json({ error: 'subscriptionItemId is required' });
+            return;
+        }
+
+        let result;
+
+        switch (type) {
+            case 'training':
+                if (!params.gpuType || !params.durationMinutes) {
+                    res.status(400).json({ error: 'gpuType and durationMinutes required for training' });
+                    return;
+                }
+                result = await recordTrainingUsage({
+                    userId,
+                    subscriptionItemId,
+                    gpuType: params.gpuType,
+                    durationMinutes: params.durationMinutes,
+                    jobId: params.jobId,
+                });
+                break;
+
+            case 'finetuning':
+                if (!params.trainingType || !params.steps) {
+                    res.status(400).json({ error: 'trainingType and steps required for finetuning' });
+                    return;
+                }
+                result = await recordFinetuningUsage({
+                    userId,
+                    subscriptionItemId,
+                    trainingType: params.trainingType,
+                    steps: params.steps,
+                    jobId: params.jobId,
+                });
+                break;
+
+            case 'inference':
+                if (!params.modelSize || !params.requests) {
+                    res.status(400).json({ error: 'modelSize and requests required for inference' });
+                    return;
+                }
+                result = await recordInferenceUsage({
+                    userId,
+                    subscriptionItemId,
+                    modelSize: params.modelSize,
+                    requests: params.requests,
+                    endpointId: params.endpointId,
+                });
+                break;
+
+            case 'storage':
+                if (!params.storageType || !params.gbHours) {
+                    res.status(400).json({ error: 'storageType and gbHours required for storage' });
+                    return;
+                }
+                result = await recordStorageUsage({
+                    userId,
+                    subscriptionItemId,
+                    storageType: params.storageType,
+                    gbHours: params.gbHours,
+                });
+                break;
+
+            default:
+                res.status(400).json({ error: 'Invalid usage type. Must be: training, finetuning, inference, or storage' });
+                return;
+        }
+
+        if (result.success) {
+            res.json({
+                success: true,
+                usageRecordId: result.usageRecordId,
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error recording OSS usage:', error);
+        res.status(500).json({ error: 'Failed to record usage' });
+    }
+});
+
+/**
+ * GET /api/billing/oss/estimate
+ * Get price estimate for Open Source Studio operations
+ * 
+ * Query params:
+ * - type: 'training' | 'inference' | 'storage'
+ * - Additional params based on type
+ */
+router.get('/oss/estimate', async (req: Request, res: Response) => {
+    try {
+        const type = req.query.type as string;
+
+        switch (type) {
+            case 'training': {
+                const gpuType = req.query.gpuType as string;
+                const durationMinutes = parseInt(req.query.durationMinutes as string);
+
+                if (!gpuType || isNaN(durationMinutes)) {
+                    res.status(400).json({ error: 'gpuType and durationMinutes required' });
+                    return;
+                }
+
+                const estimate = getTrainingPriceEstimate({ gpuType, durationMinutes });
+                res.json({
+                    type: 'training',
+                    estimate,
+                    formatted: {
+                        cost: `$${(estimate.estimatedCostCents / 100).toFixed(2)}`,
+                        duration: `${durationMinutes} minutes`,
+                    },
+                });
+                break;
+            }
+
+            case 'inference': {
+                const modelSize = req.query.modelSize as 'small' | 'medium' | 'large';
+                const estimatedRequestsPerMonth = parseInt(req.query.requests as string);
+
+                if (!modelSize || isNaN(estimatedRequestsPerMonth)) {
+                    res.status(400).json({ error: 'modelSize and requests required' });
+                    return;
+                }
+
+                const estimate = getInferencePriceEstimate({ modelSize, estimatedRequestsPerMonth });
+                res.json({
+                    type: 'inference',
+                    estimate,
+                    formatted: {
+                        cost: `$${(estimate.estimatedCostCents / 100).toFixed(2)}`,
+                        monthly: `$${(estimate.breakdown.total / 100).toFixed(2)}/month`,
+                    },
+                });
+                break;
+            }
+
+            case 'storage': {
+                const storageType = req.query.storageType as 'models' | 'datasets';
+                const sizeGB = parseFloat(req.query.sizeGB as string);
+                const durationMonths = parseInt(req.query.months as string) || 1;
+
+                if (!storageType || isNaN(sizeGB)) {
+                    res.status(400).json({ error: 'storageType and sizeGB required' });
+                    return;
+                }
+
+                const estimate = getStoragePriceEstimate({ storageType, sizeGB, durationMonths });
+                res.json({
+                    type: 'storage',
+                    estimate,
+                    formatted: {
+                        cost: `$${(estimate.estimatedCostCents / 100).toFixed(2)}`,
+                        monthly: `$${(estimate.monthlyCost / 100).toFixed(2)}/month`,
+                        perGB: `~$${((estimate.monthlyCost / sizeGB) / 100).toFixed(2)}/GB/month`,
+                    },
+                });
+                break;
+            }
+
+            default:
+                res.status(400).json({ error: 'Invalid estimate type. Must be: training, inference, or storage' });
+        }
+    } catch (error) {
+        console.error('Error calculating OSS estimate:', error);
+        res.status(500).json({ error: 'Failed to calculate estimate' });
     }
 });
 

@@ -111,7 +111,7 @@ export class ResultSynthesizer {
 
     private groupFindings(findings: ResearchFinding[]): Map<string, ResearchFinding[]> {
         const groups = new Map<string, ResearchFinding[]>();
-        
+
         for (const finding of findings) {
             const category = finding.category;
             const existing = groups.get(category) || [];
@@ -164,7 +164,7 @@ export class ResultSynthesizer {
 
         // Generate recommendations from findings
         const recommendationFindings = groupedFindings.get('recommendation') || [];
-        
+
         for (const finding of recommendationFindings.slice(0, 5)) {
             const priority = Math.floor(finding.confidence / 10);
             recommendations.push({
@@ -189,10 +189,10 @@ export class ResultSynthesizer {
 
         // Find conflict messages
         const conflictMessages = messages.filter(m => m.messageType === 'conflict');
-        
+
         for (const conflict of conflictMessages) {
             const metadata = conflict.metadata as { conflict?: { topic?: string; description?: string } } | undefined;
-            
+
             resolutions.push({
                 id: uuidv4(),
                 topic: metadata?.conflict?.topic || 'Unknown topic',
@@ -221,22 +221,22 @@ export class ResultSynthesizer {
 
     private calculateConfidence(findings: ResearchFinding[]): number {
         if (findings.length === 0) return 0;
-        
+
         const avgConfidence = findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length;
         const consistencyBonus = this.calculateConsistencyBonus(findings);
-        
+
         return Math.min(100, Math.round(avgConfidence * (1 + consistencyBonus)));
     }
 
     private calculateConsistencyBonus(findings: ResearchFinding[]): number {
         // Higher bonus if findings are consistent (similar confidence levels)
         if (findings.length < 2) return 0;
-        
+
         const confidences = findings.map(f => f.confidence);
         const avg = confidences.reduce((a, b) => a + b, 0) / confidences.length;
         const variance = confidences.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / confidences.length;
         const stdDev = Math.sqrt(variance);
-        
+
         // Lower variance = higher consistency = higher bonus
         return Math.max(0, (20 - stdDev) / 100);
     }
@@ -245,11 +245,11 @@ export class ResultSynthesizer {
         // Base completeness on finding coverage and conclusion count
         const findingScore = Math.min(100, findings.length * 10);
         const conclusionScore = Math.min(100, conclusions.length * 20);
-        
+
         // Check category coverage
         const categories = new Set(findings.map(f => f.category));
         const categoryCoverage = (categories.size / 5) * 100; // 5 possible categories
-        
+
         return Math.round((findingScore + conclusionScore + categoryCoverage) / 3);
     }
 

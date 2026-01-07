@@ -70,7 +70,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
         const orchestrator = await createLabOrchestrator(config);
         const sessionId = (orchestrator as any).sessionId;
-        
+
         // Store orchestrator for later use
         activeOrchestrators.set(sessionId, orchestrator);
 

@@ -5847,7 +5847,7 @@ NEXT STEPS (GPU & AI Lab Implementation Plan):
 
 ═══ 2026-01-06T17:25:00Z ═══
 COMPLETED: PROMPT 3: HuggingFace Token Connection Flow
-FILES MODIFIED: 
+FILES MODIFIED:
 - server/src/routes/huggingface-auth.ts (NEW - Token validation endpoint)
 - server/src/services/ml/huggingface.ts (Added validateToken method)
 - server/src/index.ts (Registered huggingface-auth routes)
@@ -5869,7 +5869,7 @@ CURRENT STATE: Build passes. HuggingFace connection flow implemented:
 
 NEXT: Continue with PROMPT 2 (Open Source Studio UI) or integrate HF flow into Dev Toolbar
 
-CONTEXT: 
+CONTEXT:
 - Token stored encrypted using AES-256-GCM in userCredentials table
 - Uses existing schema fields: encryptedData, iv, authTag
 - Write access required for model uploads (validated via API)
@@ -5928,24 +5928,24 @@ FRONTEND COMPONENTS CREATED:
    - LoRA parameters (rank, alpha, dropout, target modules)
    - Budget limits
    - Output settings with HuggingFace Hub integration
-   
+
 2. src/components/open-source-studio/TrainingCostEstimator.tsx - Cost estimation panel
    - GPU recommendation based on VRAM requirements
    - Hourly cost calculation
    - Budget tracking with visual progress bar
-   
+
 3. src/components/open-source-studio/TrainingProgress.tsx - Real-time training display
    - Progress bar with percentage
    - Metrics grid (epoch, step, loss, learning rate, GPU utilization)
    - Time tracking and cost tracking
    - Live log viewer
    - Stop training button
-   
+
 4. src/components/open-source-studio/DatasetSelector.tsx - Dataset selection UI
    - HuggingFace dataset search
    - Custom dataset upload support
    - Task-based filtering
-   
+
 5. src/components/open-source-studio/TrainingModule.tsx - Main training workflow container
    - Multi-step wizard (Dataset → Config → Training → Complete)
    - Job polling for live updates
@@ -6068,7 +6068,7 @@ PROMPTS COMPLETED:
 ✅ PROMPT 1: GPU Resource Classifier - Intent Lock Integration
 ✅ PROMPT 2: Open Source Studio - HuggingFace Model Browser
 ✅ PROMPT 3: HuggingFace Token Connection Flow
-✅ PROMPT 4: Training & Fine-Tuning Module  
+✅ PROMPT 4: Training & Fine-Tuning Module
 ✅ PROMPT 5: Inference Endpoint Deployment
 ✅ PROMPT 6: AI Lab - Multi-Agent Research Orchestration
 ✅ PROMPT 7: GPU Build Loop Integration
@@ -6156,3 +6156,205 @@ NEXT STEPS:
 4. Test AI Lab multi-agent orchestration
 5. Monitor cost tracking accuracy
 
+═══ [2026-01-07 STRIPE BILLING INFRASTRUCTURE - PHASES 1-3] ═══
+COMPLETED: Implemented billing context system, GPU billing integration, and Open Source Studio Stripe products
+
+IMPLEMENTATION SUMMARY:
+The Stripe billing infrastructure has been partially implemented to support metered billing
+for GPU usage, training costs, and Open Source Studio features while maintaining profitability.
+
+PROMPTS COMPLETED:
+✅ PROMPT 1: Billing Context System
+✅ PROMPT 2: GPU Billing Integration
+✅ PROMPT 3: Open Source Studio Stripe Products
+🔄 PROMPT 4: Integration with Training Orchestrator (In Progress)
+⏳ PROMPT 5: API Routes for GPU Billing (Pending)
+⏳ PROMPT 6: Database Schema Updates (Pending)
+
+FILES CREATED:
+1. server/src/services/billing/billing-context.ts
+   - BillingContext enum for determining who pays
+   - determineBillingContext() function for billing decisions
+   - Utility functions: isUserBillable(), getMarginPercent(), formatBillingContext()
+
+2. server/src/services/billing/gpu-billing.ts
+   - GPUBillingService class connecting GPU costs to credits
+   - authorizeGPUUsage() - Pre-authorize before job starts
+   - finalizeGPUUsage() - Charge user when job completes
+   - getActiveJobCost() - Real-time cost tracking
+   - estimateTrainingCost() and estimateInferenceCost()
+   - 20% margin calculation, minimum charge enforcement
+   - Round-up billing in 1-minute increments
+
+3. server/src/services/billing/open-source-studio-billing.ts
+   - OSS_PRODUCTS catalog for training, fine-tuning, inference, storage
+   - setupOpenSourceStudioProducts() - Create products in Stripe (idempotent)
+   - recordMeteredUsage() - Track usage for billing
+   - Helper functions for training, fine-tuning, inference, storage usage
+   - Price estimation functions for all product types
+   - GPU class mapping (consumer, professional, datacenter)
+
+FILES MODIFIED:
+1. server/src/services/billing/index.ts
+   - Added exports for new billing services
+   - Fixed name conflicts with usage-service exports
+
+2. server/src/routes/billing.ts
+   - Added OSS billing routes:
+     - POST /api/billing/oss/setup (admin only)
+     - GET /api/billing/oss/products
+     - POST /api/billing/oss/usage
+     - GET /api/billing/oss/estimate
+
+BILLING CONTEXT CATEGORIES:
+- KRIPTIK_BUILDING: App building (included in subscription)
+- KRIPTIK_VERIFICATION: Quality verification (included)
+- KRIPTIK_SANDBOX: Sandbox previews (included)
+- USER_TRAINING: User training on KripTik infra (bill with 20% margin)
+- USER_FINETUNING: User fine-tuning (bill with 20% margin)
+- USER_INFERENCE: User inference on KripTik endpoints (bill with 20% margin)
+- USER_DEPLOYED: User's own cloud account (no KripTik billing)
+
+OSS PRODUCTS CREATED:
+Training:
+- oss_training_consumer (RTX 3090/4080/4090)
+- oss_training_professional (RTX A4000/A5000/A6000/A40/L40)
+- oss_training_datacenter (A100/H100)
+
+Fine-tuning:
+- oss_finetuning_lora
+- oss_finetuning_qlora
+- oss_finetuning_full
+
+Inference:
+- oss_inference_serverless (per-request billing)
+- oss_inference_dedicated (GPU-hour billing)
+
+Storage:
+- oss_storage_models (GB-hour billing)
+- oss_storage_datasets (GB-hour billing)
+
+COMPILE STATUS: ✅ Both frontend and backend compile successfully
+
+NEXT: Continue with PROMPT 4 - Integration with Training Orchestrator
+
+═══ [2026-01-07 STRIPE BILLING INFRASTRUCTURE - PHASES 1-3] ═══
+COMPLETED: Implemented billing context system, GPU billing integration, and Open Source Studio Stripe products
+
+IMPLEMENTATION SUMMARY:
+The Stripe billing infrastructure has been partially implemented to support metered billing
+for GPU usage, training costs, and Open Source Studio features while maintaining profitability.
+
+PROMPTS COMPLETED:
+✅ PROMPT 1: Billing Context System
+✅ PROMPT 2: GPU Billing Integration
+✅ PROMPT 3: Open Source Studio Stripe Products
+🔄 PROMPT 4: Integration with Training Orchestrator (In Progress)
+⏳ PROMPT 5: API Routes for GPU Billing (Pending)
+⏳ PROMPT 6: Database Schema Updates (Pending)
+
+FILES CREATED:
+1. server/src/services/billing/billing-context.ts
+   - BillingContext enum for determining who pays
+   - determineBillingContext() function for billing decisions
+   - Utility functions: isUserBillable(), getMarginPercent(), formatBillingContext()
+   
+2. server/src/services/billing/gpu-billing.ts
+   - GPUBillingService class connecting GPU costs to credits
+   - authorizeGPUUsage() - Pre-authorize before job starts
+   - finalizeGPUUsage() - Charge user when job completes
+   - getActiveJobCost() - Real-time cost tracking
+   - estimateTrainingCost() and estimateInferenceCost()
+   - 20% margin calculation, minimum charge enforcement
+   - Round-up billing in 1-minute increments
+
+3. server/src/services/billing/open-source-studio-billing.ts
+   - OSS_PRODUCTS catalog for training, fine-tuning, inference, storage
+   - setupOpenSourceStudioProducts() - Create products in Stripe (idempotent)
+   - recordMeteredUsage() - Track usage for billing
+   - Helper functions for training, fine-tuning, inference, storage usage
+   - Price estimation functions for all product types
+   - GPU class mapping (consumer, professional, datacenter)
+
+FILES MODIFIED:
+1. server/src/services/billing/index.ts
+   - Added exports for new billing services
+   - Fixed name conflicts with usage-service exports
+
+2. server/src/routes/billing.ts
+   - Added OSS billing routes:
+     - POST /api/billing/oss/setup (admin only)
+     - GET /api/billing/oss/products
+     - POST /api/billing/oss/usage
+     - GET /api/billing/oss/estimate
+
+COMPILE STATUS: ✅ Both frontend and backend compile successfully
+
+NEXT: Continue with PROMPT 4 - Integration with Training Orchestrator
+
+═══ [2026-01-07 STRIPE BILLING INFRASTRUCTURE COMPLETE] ═══
+COMPLETED: All 6 prompts of the Stripe Billing Infrastructure implementation
+
+FINAL IMPLEMENTATION SUMMARY:
+The complete Stripe billing infrastructure has been implemented for metered billing
+of GPU usage, training costs, and Open Source Studio features.
+
+ALL PROMPTS COMPLETED:
+✅ PROMPT 1: Billing Context System - billing-context.ts
+✅ PROMPT 2: GPU Billing Integration - gpu-billing.ts  
+✅ PROMPT 3: Open Source Studio Stripe Products - open-source-studio-billing.ts
+✅ PROMPT 4: Integration with Training Orchestrator - training-orchestrator.ts updated
+✅ PROMPT 5: API Routes for GPU Billing - gpu-costs.ts updated
+✅ PROMPT 6: Database Schema Updates - gpuBillingRecords table added
+
+FILES CREATED:
+1. server/src/services/billing/billing-context.ts
+   - BillingContext enum (7 contexts)
+   - determineBillingContext() function
+   - Helper utilities
+
+2. server/src/services/billing/gpu-billing.ts
+   - GPUBillingService class
+   - Pre-authorization, finalization, real-time tracking
+   - 20% margin, minimum charge, round-up billing
+
+3. server/src/services/billing/open-source-studio-billing.ts
+   - 11 OSS products for training/fine-tuning/inference/storage
+   - Stripe product setup (idempotent)
+   - Usage recording and price estimation
+
+FILES MODIFIED:
+1. server/src/services/billing/index.ts
+   - Added exports for all new billing services
+
+2. server/src/services/ml/training-orchestrator.ts
+   - Integrated GPU billing authorization
+   - Job duration estimation
+   - Billing finalization on job completion/stop
+   - Real-time billing cost tracking
+
+3. server/src/routes/billing.ts
+   - POST /api/billing/oss/setup (admin)
+   - GET /api/billing/oss/products
+   - POST /api/billing/oss/usage
+   - GET /api/billing/oss/estimate
+
+4. server/src/routes/gpu-costs.ts
+   - POST /api/gpu-costs/billing/authorize
+   - POST /api/gpu-costs/billing/finalize
+   - GET /api/gpu-costs/billing/active/:trackingId
+   - GET /api/gpu-costs/billing/context
+   - POST /api/gpu-costs/billing/estimate
+   - GET /api/gpu-costs/billing/config
+
+5. server/src/schema.ts
+   - Added gpuBillingRecords table with all fields
+
+BILLING FLOW:
+1. Job created → authorizeGPUUsage() checks credits, starts tracking
+2. Job runs → getActiveJobCost() provides real-time updates
+3. Job ends → finalizeGPUUsage() charges user with 20% margin
+
+COMPILE STATUS: ✅ Both frontend and backend compile successfully
+
+READY FOR: Git commit and push

@@ -56,12 +56,12 @@ export interface GPUMetrics {
     endpointStatus?: 'running' | 'deploying' | 'stopped' | 'failed';
     endpointLatencyMs?: number;
     endpointAvailable?: boolean;
-    
+
     // Cost metrics
     estimatedCostCents?: number;
     actualCostCents?: number;
     costVariancePercent?: number;
-    
+
     // Performance metrics
     requestLatencyMs?: number;
     throughputRps?: number;
@@ -217,7 +217,7 @@ export class GPUVerificationService extends EventEmitter {
 
             if (endpoints.length === 0) {
                 // No endpoints to check - might be expected
-                return this.createResult('gpu_endpoint_checker', true, 100, [], 
+                return this.createResult('gpu_endpoint_checker', true, 100, [],
                     'No GPU endpoints deployed for this project', Date.now() - startTime, metrics);
             }
 
@@ -394,7 +394,7 @@ export class GPUVerificationService extends EventEmitter {
 
             const score = passed ? 100 : Math.max(0, 100 - (issues.length * 20));
             return this.createResult('cost_validator', passed, score, issues,
-                passed ? `Costs within expected range (variance: ${(metrics.costVariancePercent || 0).toFixed(1)}%)` 
+                passed ? `Costs within expected range (variance: ${(metrics.costVariancePercent || 0).toFixed(1)}%)`
                       : `${issues.length} cost issue(s) found`,
                 Date.now() - startTime, metrics);
 

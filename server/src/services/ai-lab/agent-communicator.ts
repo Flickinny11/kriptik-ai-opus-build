@@ -119,7 +119,7 @@ export class AgentCommunicator extends EventEmitter {
      */
     subscribe(orchestrationId: string, callback: (message: AgentMessage) => void): () => void {
         this.subscribers.set(orchestrationId, callback);
-        
+
         // Return unsubscribe function
         return () => {
             this.subscribers.delete(orchestrationId);

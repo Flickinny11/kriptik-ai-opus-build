@@ -17,12 +17,15 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getGPUCostTracker, GPU_PRICING } from '../services/billing/gpu-cost-tracker.js';
+import { getGPUBillingService } from '../services/billing/gpu-billing.js';
+import { BillingContext, formatBillingContext, determineBillingContext } from '../services/billing/billing-context.js';
 import { db } from '../db.js';
 import { users } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 const router = Router();
 const costTracker = getGPUCostTracker();
+const billingService = getGPUBillingService();
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -319,6 +322,299 @@ router.post('/budget', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error setting budget:', error);
         res.status(500).json({ error: 'Failed to set budget' });
+    }
+});
+
+// ============================================================================
+// GPU BILLING ROUTES
+// ============================================================================
+
+/**
+ * POST /api/gpu-costs/billing/authorize
+ * Pre-authorize GPU usage before starting a job
+ * Returns tracking ID if authorized, error if insufficient credits
+ */
+router.post('/billing/authorize', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        const {
+            gpuType,
+            estimatedDurationMinutes,
+            operationType,
+            projectId,
+            isUserInitiated = true,
+        } = req.body;
+
+        if (!gpuType || !estimatedDurationMinutes || !operationType) {
+            return res.status(400).json({
+                error: 'Missing required parameters',
+                required: ['gpuType', 'estimatedDurationMinutes', 'operationType'],
+            });
+        }
+
+        if (!['training', 'inference'].includes(operationType)) {
+            return res.status(400).json({
+                error: 'Invalid operation type',
+                validTypes: ['training', 'inference'],
+            });
+        }
+
+        const authorization = await billingService.authorizeGPUUsage({
+            userId,
+            projectId,
+            gpuType,
+            estimatedDurationMinutes: parseInt(estimatedDurationMinutes),
+            operationType,
+            isUserInitiated,
+        });
+
+        res.json({
+            success: true,
+            authorization: {
+                trackingId: authorization.trackingId,
+                estimatedCostCents: authorization.estimatedCostCents,
+                estimatedCostFormatted: costTracker.formatCost(authorization.estimatedCostCents),
+                estimatedCredits: authorization.estimatedCredits,
+                billingContext: authorization.billingContext,
+                billingContextLabel: formatBillingContext(authorization.billingContext),
+            },
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Authorization failed';
+        console.error('Error authorizing GPU usage:', error);
+        res.status(402).json({
+            error: 'insufficient_credits',
+            message: errorMessage,
+        });
+    }
+});
+
+/**
+ * POST /api/gpu-costs/billing/finalize
+ * Finalize GPU usage and charge the user
+ */
+router.post('/billing/finalize', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        const {
+            trackingId,
+            operationType,
+            projectId,
+            success = true,
+            isUserInitiated = true,
+        } = req.body;
+
+        if (!trackingId || !operationType) {
+            return res.status(400).json({
+                error: 'Missing required parameters',
+                required: ['trackingId', 'operationType'],
+            });
+        }
+
+        const result = await billingService.finalizeGPUUsage({
+            trackingId,
+            userId,
+            projectId,
+            success,
+            operationType,
+            isUserInitiated,
+        });
+
+        res.json({
+            success: result.success,
+            billing: {
+                actualCostCents: result.actualCostCents,
+                actualCostFormatted: costTracker.formatCost(result.actualCostCents),
+                chargedCents: result.chargedCents,
+                chargedFormatted: costTracker.formatCost(result.chargedCents),
+                creditsDeducted: result.creditsDeducted,
+                remainingBalance: result.remainingBalance,
+                billingContext: result.billingContext,
+                billingContextLabel: formatBillingContext(result.billingContext),
+            },
+            error: result.error,
+        });
+    } catch (error) {
+        console.error('Error finalizing GPU billing:', error);
+        res.status(500).json({ error: 'Failed to finalize billing' });
+    }
+});
+
+/**
+ * GET /api/gpu-costs/billing/active/:trackingId
+ * Get real-time cost for an active job
+ */
+router.get('/billing/active/:trackingId', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        const { trackingId } = req.params;
+        const activeCost = billingService.getActiveJobCost(trackingId);
+
+        res.json({
+            success: true,
+            cost: {
+                actualCostCents: activeCost.actualCostCents,
+                actualCostFormatted: costTracker.formatCost(activeCost.actualCostCents),
+                chargedCents: activeCost.chargedCents,
+                chargedFormatted: costTracker.formatCost(activeCost.chargedCents),
+                estimatedCredits: activeCost.estimatedCredits,
+            },
+        });
+    } catch (error) {
+        console.error('Error getting active job cost:', error);
+        res.status(500).json({ error: 'Failed to get active job cost' });
+    }
+});
+
+/**
+ * GET /api/gpu-costs/billing/context
+ * Determine billing context for an operation type
+ */
+router.get('/billing/context', async (req: Request, res: Response) => {
+    try {
+        const {
+            operationType,
+            isUserInitiated,
+            deploymentTarget,
+        } = req.query;
+
+        if (!operationType) {
+            return res.status(400).json({
+                error: 'Missing operationType parameter',
+                validTypes: ['training', 'inference', 'building', 'verification', 'sandbox', 'deployed', 'finetuning', 'storage'],
+            });
+        }
+
+        const decision = determineBillingContext({
+            operationType: operationType as any,
+            isUserInitiated: isUserInitiated === 'true',
+            deploymentTarget: (deploymentTarget as 'kriptik' | 'user_account') || 'kriptik',
+        });
+
+        res.json({
+            success: true,
+            decision: {
+                context: decision.context,
+                contextLabel: formatBillingContext(decision.context),
+                billUser: decision.billUser,
+                creditMultiplier: decision.creditMultiplier,
+                marginPercent: Math.round((decision.creditMultiplier - 1) * 100),
+                reason: decision.reason,
+            },
+        });
+    } catch (error) {
+        console.error('Error determining billing context:', error);
+        res.status(500).json({ error: 'Failed to determine billing context' });
+    }
+});
+
+/**
+ * POST /api/gpu-costs/billing/estimate
+ * Get detailed cost estimate with billing context
+ */
+router.post('/billing/estimate', async (req: Request, res: Response) => {
+    try {
+        const {
+            operationType,
+            modelSizeGB,
+            datasetSizeGB,
+            epochs,
+            batchSize,
+            gpuType,
+            trainingType,
+            isUserInitiated = true,
+        } = req.body;
+
+        if (!operationType || !gpuType) {
+            return res.status(400).json({
+                error: 'Missing required parameters',
+                required: ['operationType', 'gpuType'],
+            });
+        }
+
+        // Determine billing context
+        const decision = determineBillingContext({
+            operationType,
+            isUserInitiated,
+            deploymentTarget: 'kriptik',
+        });
+
+        let estimate;
+
+        if (operationType === 'training' || operationType === 'finetuning') {
+            estimate = billingService.estimateTrainingCost({
+                modelSizeGB: parseFloat(modelSizeGB) || 7,
+                datasetSizeGB: parseFloat(datasetSizeGB) || 1,
+                epochs: parseInt(epochs) || 3,
+                batchSize: parseInt(batchSize) || 4,
+                gpuType,
+                trainingType: trainingType || 'lora',
+            });
+        } else {
+            estimate = billingService.estimateInferenceCost({
+                gpuType,
+                minWorkers: 0,
+                maxWorkers: 1,
+                estimatedRequestsPerHour: 100,
+                avgLatencyMs: 500,
+                hoursPerDay: 24,
+            });
+        }
+
+        res.json({
+            success: true,
+            estimate: {
+                ...estimate,
+                actualCostFormatted: costTracker.formatCost(estimate.actualCostCents),
+                chargedFormatted: costTracker.formatCost(estimate.chargedCents),
+            },
+            billing: {
+                context: decision.context,
+                contextLabel: formatBillingContext(decision.context),
+                billUser: decision.billUser,
+                marginPercent: Math.round((decision.creditMultiplier - 1) * 100),
+                reason: decision.reason,
+            },
+        });
+    } catch (error) {
+        console.error('Error estimating billing:', error);
+        res.status(500).json({ error: 'Failed to estimate billing' });
+    }
+});
+
+/**
+ * GET /api/gpu-costs/billing/config
+ * Get current billing configuration
+ */
+router.get('/billing/config', async (req: Request, res: Response) => {
+    try {
+        const config = billingService.getConfig();
+
+        res.json({
+            success: true,
+            config: {
+                marginPercent: config.marginPercent,
+                minimumChargeCents: config.minimumChargeCents,
+                minimumChargeFormatted: costTracker.formatCost(config.minimumChargeCents),
+                roundUpSeconds: config.roundUpSeconds,
+                roundUpDescription: `Billing rounds up to ${config.roundUpSeconds / 60} minute(s)`,
+            },
+        });
+    } catch (error) {
+        console.error('Error getting billing config:', error);
+        res.status(500).json({ error: 'Failed to get billing config' });
     }
 });
 

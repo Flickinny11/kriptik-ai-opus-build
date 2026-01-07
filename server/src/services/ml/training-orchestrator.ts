@@ -3,6 +3,11 @@
  * 
  * Manages training jobs on RunPod, including provisioning, monitoring, and cleanup.
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 4).
+ * 
+ * Integrated with GPU Billing Service for:
+ * - Pre-authorization before job starts
+ * - Real-time cost tracking during training
+ * - Final billing when job completes
  */
 
 import { EventEmitter } from 'events';
@@ -11,8 +16,10 @@ import { RunPodProvider, createRunPodProvider } from '../cloud/runpod.js';
 import { HuggingFaceService } from './huggingface.js';
 import { db } from '../../db.js';
 import { trainingJobs } from '../../schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { getCredentialVault } from '../security/credential-vault.js';
+import { getGPUBillingService, type GPUChargeResult } from '../billing/gpu-billing.js';
+import { BillingContext } from '../billing/billing-context.js';
 
 // =============================================================================
 // TYPES
@@ -22,12 +29,23 @@ interface TrainingOrchestratorConfig {
   maxConcurrentJobs: number;
   defaultGpuType: string;
   pollingIntervalMs: number;
+  enableBilling: boolean; // Enable/disable billing integration
+}
+
+// Billing tracking for each job
+interface JobBillingInfo {
+  trackingId: string;
+  estimatedCostCents: number;
+  estimatedCredits: number;
+  billingContext: BillingContext;
+  isUserInitiated: boolean;
 }
 
 const DEFAULT_CONFIG: TrainingOrchestratorConfig = {
   maxConcurrentJobs: 3,
   defaultGpuType: 'NVIDIA GeForce RTX 4090',
   pollingIntervalMs: 5000,
+  enableBilling: true,
 };
 
 // GPU pricing from RunPod
@@ -53,6 +71,8 @@ export class TrainingOrchestrator extends EventEmitter {
   private hfService: HuggingFaceService | null = null;
   private pollingInterval: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
+  private billingService = getGPUBillingService();
+  private jobBillingInfo: Map<string, JobBillingInfo> = new Map();
 
   constructor(config: Partial<TrainingOrchestratorConfig> = {}) {
     super();
@@ -105,17 +125,57 @@ export class TrainingOrchestrator extends EventEmitter {
 
   /**
    * Create a new training job
+   * 
+   * @param userId - The user ID
+   * @param config - Training job configuration
+   * @param projectId - Optional project ID
+   * @param isUserInitiated - Whether this is a user-initiated training (default: true)
+   *                          If false, KripTik absorbs the cost (e.g., for build verification)
    */
   async createJob(
     userId: string,
     config: TrainingJobConfig,
-    projectId?: string
+    projectId?: string,
+    isUserInitiated: boolean = true
   ): Promise<TrainingJob> {
     const job = new TrainingJob(userId, config, projectId);
     
     // Set GPU cost tracking
     const gpuInfo = GPU_PRICING[config.gpuType] || GPU_PRICING[this.config.defaultGpuType];
     job.setCostPerHour(gpuInfo.hourlyCost);
+
+    // Estimate duration for billing
+    const estimatedDurationMinutes = this.estimateJobDuration(config);
+
+    // Authorize GPU usage with billing service (will throw if insufficient credits)
+    if (this.config.enableBilling) {
+      try {
+        const authorization = await this.billingService.authorizeGPUUsage({
+          userId,
+          projectId,
+          gpuType: config.gpuType,
+          estimatedDurationMinutes,
+          operationType: 'training',
+          isUserInitiated,
+        });
+
+        // Store billing info for this job
+        this.jobBillingInfo.set(job.id, {
+          trackingId: authorization.trackingId,
+          estimatedCostCents: authorization.estimatedCostCents,
+          estimatedCredits: authorization.estimatedCredits,
+          billingContext: authorization.billingContext,
+          isUserInitiated,
+        });
+
+        job.addLog(`Billing authorized: ${authorization.estimatedCredits} credits estimated (context: ${authorization.billingContext})`);
+        console.log(`[TrainingOrchestrator] Billing authorized for job ${job.id}: ${authorization.estimatedCredits} credits`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Billing authorization failed';
+        job.fail(errorMessage);
+        throw new Error(errorMessage);
+      }
+    }
 
     // Set up event listeners
     this.setupJobEventListeners(job);
@@ -134,6 +194,39 @@ export class TrainingOrchestrator extends EventEmitter {
     await this.processQueue();
 
     return job;
+  }
+
+  /**
+   * Estimate job duration in minutes based on configuration
+   */
+  private estimateJobDuration(config: TrainingJobConfig): number {
+    // Base time varies by training type
+    let baseMinutes: number;
+    switch (config.trainingType) {
+      case 'lora':
+        baseMinutes = 30;
+        break;
+      case 'qlora':
+        baseMinutes = 45;
+        break;
+      case 'full':
+        baseMinutes = 120;
+        break;
+      default:
+        baseMinutes = 60;
+    }
+
+    // Adjust for epochs
+    baseMinutes *= Math.max(1, config.epochs || 1);
+
+    // Adjust for batch size (smaller batch = longer time)
+    const batchFactor = 8 / Math.max(1, config.batchSize || 4);
+    baseMinutes *= Math.sqrt(batchFactor);
+
+    // Add buffer for setup/download/save
+    baseMinutes += 15;
+
+    return Math.ceil(baseMinutes);
   }
 
   /**
@@ -176,6 +269,18 @@ export class TrainingOrchestrator extends EventEmitter {
     }
 
     job.stop('user_requested');
+
+    // Finalize billing for stopped job (user still pays for time used)
+    const billingInfo = this.jobBillingInfo.get(jobId);
+    if (billingInfo && this.config.enableBilling) {
+      const billingResult = await this.finalizeBilling(job, billingInfo, false);
+      if (billingResult) {
+        job.addLog(`Billing finalized (stopped early): ${billingResult.creditsDeducted} credits charged`);
+        this.emit('jobBilled', job.id, billingResult);
+      }
+      this.jobBillingInfo.delete(jobId);
+    }
+
     await this.updateJobInDatabase(job);
   }
 
@@ -328,6 +433,16 @@ export class TrainingOrchestrator extends EventEmitter {
       job.fail(data.error || 'Unknown error');
     }
 
+    // Finalize billing
+    const billingInfo = this.jobBillingInfo.get(jobId);
+    if (billingInfo && this.config.enableBilling) {
+      const billingResult = await this.finalizeBilling(job, billingInfo, data.status === 'completed');
+      if (billingResult) {
+        job.addLog(`Billing finalized: ${billingResult.creditsDeducted} credits charged`);
+        this.emit('jobBilled', job.id, billingResult);
+      }
+    }
+
     // Cleanup RunPod resources
     if (job.runpodPodId && this.runpodProvider) {
       try {
@@ -339,6 +454,41 @@ export class TrainingOrchestrator extends EventEmitter {
 
     await this.updateJobInDatabase(job);
     this.emit('jobCompleted', job);
+
+    // Clean up billing info
+    this.jobBillingInfo.delete(jobId);
+  }
+
+  /**
+   * Finalize billing for a completed/failed job
+   */
+  private async finalizeBilling(
+    job: TrainingJob,
+    billingInfo: JobBillingInfo,
+    success: boolean
+  ): Promise<GPUChargeResult | null> {
+    try {
+      const result = await this.billingService.finalizeGPUUsage({
+        trackingId: billingInfo.trackingId,
+        userId: job.userId,
+        projectId: job.projectId,
+        success,
+        operationType: 'training',
+        isUserInitiated: billingInfo.isUserInitiated,
+      });
+
+      console.log(`[TrainingOrchestrator] Billing finalized for job ${job.id}:`, {
+        actualCost: `$${(result.actualCostCents / 100).toFixed(2)}`,
+        charged: `$${(result.chargedCents / 100).toFixed(2)}`,
+        credits: result.creditsDeducted,
+        context: result.billingContext,
+      });
+
+      return result;
+    } catch (error) {
+      console.error(`[TrainingOrchestrator] Billing finalization failed for job ${job.id}:`, error);
+      return null;
+    }
   }
 
   /**
@@ -361,6 +511,32 @@ export class TrainingOrchestrator extends EventEmitter {
 
     job.addLog(log);
     this.emit('jobLog', job.id, log);
+  }
+
+  /**
+   * Get real-time billing cost for an active job
+   */
+  getJobBillingCost(jobId: string): {
+    actualCostCents: number;
+    chargedCents: number;
+    estimatedCredits: number;
+    billingContext: BillingContext;
+  } | null {
+    const billingInfo = this.jobBillingInfo.get(jobId);
+    if (!billingInfo) return null;
+
+    const activeCost = this.billingService.getActiveJobCost(billingInfo.trackingId);
+    return {
+      ...activeCost,
+      billingContext: billingInfo.billingContext,
+    };
+  }
+
+  /**
+   * Check if billing is enabled
+   */
+  isBillingEnabled(): boolean {
+    return this.config.enableBilling;
   }
 
   // =============================================================================

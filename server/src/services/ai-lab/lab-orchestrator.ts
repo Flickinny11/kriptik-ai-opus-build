@@ -112,7 +112,7 @@ export class LabOrchestrator extends EventEmitter {
      */
     static async createSession(config: AILabSessionConfig): Promise<LabOrchestrator> {
         const sessionId = uuidv4();
-        
+
         // Insert session into database
         await db.insert(aiLabSessions).values({
             id: sessionId,
@@ -161,9 +161,9 @@ export class LabOrchestrator extends EventEmitter {
 
             // Check if we exceeded budget during execution
             if (this.budgetUsedCents >= (this.config.budgetLimitCents || 10000)) {
-                this.emit('budget_exceeded', { 
-                    sessionId: this.sessionId, 
-                    budgetUsed: this.budgetUsedCents 
+                this.emit('budget_exceeded', {
+                    sessionId: this.sessionId,
+                    budgetUsed: this.budgetUsedCents
                 });
             }
 
@@ -182,9 +182,9 @@ export class LabOrchestrator extends EventEmitter {
                 })
                 .where(eq(aiLabSessions.id, this.sessionId));
 
-            this.emit('session_completed', { 
-                sessionId: this.sessionId, 
-                result: synthesizedResult 
+            this.emit('session_completed', {
+                sessionId: this.sessionId,
+                result: synthesizedResult
             });
 
         } catch (error) {
@@ -192,9 +192,9 @@ export class LabOrchestrator extends EventEmitter {
                 .set({ status: 'failed', updatedAt: nowSQLite() })
                 .where(eq(aiLabSessions.id, this.sessionId));
 
-            this.emit('session_failed', { 
-                sessionId: this.sessionId, 
-                error: (error as Error).message 
+            this.emit('session_failed', {
+                sessionId: this.sessionId,
+                error: (error as Error).message
             });
             throw error;
         } finally {
@@ -253,7 +253,7 @@ export class LabOrchestrator extends EventEmitter {
             .from(aiLabMessages)
             .where(eq(aiLabMessages.sessionId, this.sessionId));
 
-        const elapsedMinutes = this.startTime 
+        const elapsedMinutes = this.startTime
             ? (Date.now() - this.startTime.getTime()) / (1000 * 60)
             : 0;
 
@@ -416,15 +416,15 @@ export class LabOrchestrator extends EventEmitter {
 
         agent.on('cost_update', (costCents: number) => {
             this.budgetUsedCents += costCents;
-            
+
             // Check budget at 80%
             if (this.budgetUsedCents >= (this.config.budgetLimitCents || 10000) * 0.8) {
-                this.emit('budget_warning', { 
-                    sessionId: this.sessionId, 
-                    budgetUsedPercent: (this.budgetUsedCents / (this.config.budgetLimitCents || 10000)) * 100 
+                this.emit('budget_warning', {
+                    sessionId: this.sessionId,
+                    budgetUsedPercent: (this.budgetUsedCents / (this.config.budgetLimitCents || 10000)) * 100
                 });
             }
-            
+
             // Hard stop at 100%
             if (this.budgetUsedCents >= (this.config.budgetLimitCents || 10000)) {
                 this.stop();
@@ -470,10 +470,10 @@ export class LabOrchestrator extends EventEmitter {
 
         } catch (error) {
             await db.update(aiLabOrchestrations)
-                .set({ 
-                    status: 'failed', 
+                .set({
+                    status: 'failed',
                     phaseStatus: 'failed',
-                    updatedAt: nowSQLite() 
+                    updatedAt: nowSQLite()
                 })
                 .where(eq(aiLabOrchestrations.id, orchestrationId));
 

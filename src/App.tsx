@@ -150,7 +150,7 @@ function App() {
                             </Suspense>
                         </PageErrorBoundary>
                     } />
-                    
+
                     {/* GPU & AI Lab Routes (PROMPT 9) */}
                     <Route path="/ai-lab" element={
                         <PageErrorBoundary>

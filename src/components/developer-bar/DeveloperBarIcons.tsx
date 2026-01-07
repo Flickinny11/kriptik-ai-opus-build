@@ -1034,7 +1034,7 @@ const icons: Record<IconName, (props: { isActive: boolean; isHovered: boolean })
       <motion.path
         d="M6 16 L7.5 13 H16.5 L18 16 C18.3 17 17.7 18 17 18 H7 C6.3 18 5.7 17 6 16 Z"
         fill={isActive ? 'url(#activeGlow)' : 'url(#darkMetallic)'}
-        animate={{ 
+        animate={{
           y: isHovered ? [0, -1, 0] : 0,
           opacity: isHovered ? [1, 0.8, 1] : 1,
         }}

@@ -351,6 +351,62 @@ export const aiLabMessages = sqliteTable('ai_lab_messages', {
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 
+// ============================================================================
+// GPU BILLING RECORDS - Stripe Billing Infrastructure
+// ============================================================================
+
+/**
+ * GPU Billing Records
+ * Tracks all GPU usage for billing purposes, including:
+ * - Training jobs
+ * - Inference endpoints
+ * - Storage usage
+ * 
+ * Supports both KripTik-absorbed costs (building/verification) and user-billed costs (training/inference)
+ */
+export const gpuBillingRecords = sqliteTable('gpu_billing_records', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+
+    // Tracking reference (links to cost tracker)
+    trackingId: text('tracking_id').notNull(),
+
+    // Operation details
+    operationType: text('operation_type').notNull(), // 'training' | 'inference' | 'storage'
+    gpuType: text('gpu_type'),
+    provider: text('provider').default('runpod'), // 'runpod' | 'modal' | 'huggingface'
+
+    // Timing
+    startTime: text('start_time').notNull(),
+    endTime: text('end_time'),
+    durationSeconds: integer('duration_seconds'),
+
+    // Cost breakdown
+    actualCostCents: integer('actual_cost_cents').notNull().default(0), // Raw provider cost
+    marginPercent: integer('margin_percent').notNull().default(20), // Profit margin
+    chargedCents: integer('charged_cents').notNull().default(0), // Amount charged to user
+    creditsDeducted: integer('credits_deducted').notNull().default(0), // Credits deducted from user
+
+    // Billing context
+    billingContext: text('billing_context').notNull(), // 'kriptik_building' | 'kriptik_verification' | 'user_training' | etc.
+    billUser: integer('bill_user', { mode: 'boolean' }).notNull().default(true),
+
+    // Status
+    status: text('status').default('pending'), // 'pending' | 'completed' | 'failed' | 'refunded'
+
+    // Reference to related resources
+    trainingJobId: text('training_job_id').references(() => trainingJobs.id),
+    endpointId: text('endpoint_id').references(() => deployedEndpoints.id),
+
+    // Metadata for additional context
+    metadata: text('metadata', { mode: 'json' }),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
 // Orchestration runs
 export const orchestrationRuns = sqliteTable('orchestration_runs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -769,7 +825,7 @@ export const buildIntents = sqliteTable('build_intents', {
     originalPrompt: text('original_prompt').notNull(),
     generatedBy: text('generated_by').default('claude-opus-4.5'),
     thinkingTokensUsed: integer('thinking_tokens_used').default(0),
-    
+
     // GPU Requirements - Added for AI Lab Integration
     requiresGPU: integer('requires_gpu', { mode: 'boolean' }).default(false),
     gpuWorkloadType: text('gpu_workload_type'), // inference-only, training, fine-tuning, video-generation, etc.
@@ -800,7 +856,7 @@ export const buildIntents = sqliteTable('build_intents', {
     }[]>(),
     gpuClassificationConfidence: real('gpu_classification_confidence'),
     gpuClassificationReasoning: text('gpu_classification_reasoning'),
-    
+
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
 

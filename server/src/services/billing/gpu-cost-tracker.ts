@@ -11,11 +11,11 @@
  */
 
 import { db } from '../../db.js';
-import { 
-    trainingJobs, 
-    deployedEndpoints, 
+import {
+    trainingJobs,
+    deployedEndpoints,
     users,
-    projects 
+    projects
 } from '../../schema.js';
 import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -84,7 +84,7 @@ export const GPU_PRICING: Record<string, { pricePerHour: number; pricePerSecond:
     'NVIDIA GeForce RTX 3090': { pricePerHour: 0.44, pricePerSecond: 0.000122, vram: 24 },
     'NVIDIA GeForce RTX 3090 Ti': { pricePerHour: 0.49, pricePerSecond: 0.000136, vram: 24 },
     'NVIDIA GeForce RTX 4080': { pricePerHour: 0.54, pricePerSecond: 0.000150, vram: 16 },
-    
+
     // Professional GPUs
     'NVIDIA RTX A4000': { pricePerHour: 0.39, pricePerSecond: 0.000108, vram: 16 },
     'NVIDIA RTX A5000': { pricePerHour: 0.49, pricePerSecond: 0.000136, vram: 24 },
@@ -92,17 +92,17 @@ export const GPU_PRICING: Record<string, { pricePerHour: number; pricePerSecond:
     'NVIDIA A40': { pricePerHour: 0.79, pricePerSecond: 0.000219, vram: 48 },
     'NVIDIA L40': { pricePerHour: 0.99, pricePerSecond: 0.000275, vram: 48 },
     'NVIDIA L40S': { pricePerHour: 1.14, pricePerSecond: 0.000317, vram: 48 },
-    
+
     // Datacenter GPUs
     'NVIDIA A100-SXM4-40GB': { pricePerHour: 1.89, pricePerSecond: 0.000525, vram: 40 },
     'NVIDIA A100 80GB PCIe': { pricePerHour: 2.21, pricePerSecond: 0.000614, vram: 80 },
     'NVIDIA A100-SXM4-80GB': { pricePerHour: 2.49, pricePerSecond: 0.000692, vram: 80 },
     'NVIDIA H100 PCIe': { pricePerHour: 3.29, pricePerSecond: 0.000914, vram: 80 },
     'NVIDIA H100 SXM': { pricePerHour: 4.29, pricePerSecond: 0.001192, vram: 80 },
-    
+
     // Storage pricing (per GB per hour)
     'STORAGE_VOLUME': { pricePerHour: 0.00015, pricePerSecond: 0.0000000417, vram: 0 },
-    
+
     // Default/Unknown
     'DEFAULT': { pricePerHour: 0.50, pricePerSecond: 0.000139, vram: 16 },
 };
@@ -159,7 +159,7 @@ export class GPUCostTracker {
         const record = this.activeJobs.get(trackingId);
         if (record) {
             record.costCents += additionalCostCents;
-            
+
             // Notify listeners
             const callback = this.costUpdateCallbacks.get(trackingId);
             if (callback) {
@@ -230,11 +230,11 @@ export class GPUCostTracker {
         trainingType: 'lora' | 'qlora' | 'full';
     }): CostEstimate {
         const pricing = GPU_PRICING[params.gpuType] || GPU_PRICING['DEFAULT'];
-        
+
         // Estimate based on model size, dataset, and training type
         let baseTimeMinutes: number;
         let storageGB: number;
-        
+
         switch (params.trainingType) {
             case 'lora':
                 baseTimeMinutes = params.modelSizeGB * 5 * params.epochs;
@@ -249,19 +249,19 @@ export class GPUCostTracker {
                 storageGB = params.modelSizeGB * 2; // Full model + checkpoints
                 break;
         }
-        
+
         // Adjust for dataset size
         baseTimeMinutes *= Math.log2(Math.max(1, params.datasetSizeGB)) + 1;
-        
+
         // Adjust for batch size (larger = faster but more VRAM)
         baseTimeMinutes /= Math.sqrt(params.batchSize / 4);
-        
+
         const computeHours = baseTimeMinutes / 60;
         const computeCostCents = Math.ceil(computeHours * pricing.pricePerHour * 100);
         const storageCostCents = Math.ceil((storageGB * 0.00015 * baseTimeMinutes / 60) * 100);
-        
+
         const totalCostCents = computeCostCents + storageCostCents;
-        
+
         // Determine confidence based on how well we know this workload
         let confidence: 'high' | 'medium' | 'low' = 'medium';
         if (params.modelSizeGB < 10 && params.trainingType === 'lora') {
@@ -269,7 +269,7 @@ export class GPUCostTracker {
         } else if (params.modelSizeGB > 50 || params.trainingType === 'full') {
             confidence = 'low';
         }
-        
+
         return {
             estimatedCostCents: totalCostCents,
             estimatedDurationMinutes: Math.ceil(baseTimeMinutes),
@@ -295,12 +295,12 @@ export class GPUCostTracker {
         hoursPerDay: number;
     }): CostEstimate {
         const pricing = GPU_PRICING[params.gpuType] || GPU_PRICING['DEFAULT'];
-        
+
         // With serverless, we pay for actual compute time
         const avgWorkersActive = (params.minWorkers + params.maxWorkers) / 2;
         const computeTimeHours = params.hoursPerDay * avgWorkersActive;
         const computeCostCents = Math.ceil(computeTimeHours * pricing.pricePerHour * 100);
-        
+
         return {
             estimatedCostCents: computeCostCents,
             estimatedDurationMinutes: Math.ceil(params.hoursPerDay * 60),
@@ -320,7 +320,7 @@ export class GPUCostTracker {
     async getCostSummary(userId: string, period: CostSummary['period'] = 'month'): Promise<CostSummary> {
         let startDate: Date;
         const now = new Date();
-        
+
         switch (period) {
             case 'today':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -335,9 +335,9 @@ export class GPUCostTracker {
             default:
                 startDate = new Date(0);
         }
-        
+
         const startDateStr = startDate.toISOString();
-        
+
         // Get training jobs - cost is stored in the config JSON
         const trainingJobsData = await db
             .select({
@@ -349,7 +349,7 @@ export class GPUCostTracker {
                 eq(trainingJobs.userId, userId),
                 gte(trainingJobs.createdAt, startDateStr)
             ));
-        
+
         // Get endpoint costs
         const endpointCosts = await db
             .select({
@@ -363,7 +363,7 @@ export class GPUCostTracker {
                 gte(deployedEndpoints.createdAt, startDateStr)
             ))
             .groupBy(deployedEndpoints.gpuType, deployedEndpoints.projectId);
-        
+
         // Aggregate results
         const breakdown = {
             training: 0,
@@ -373,20 +373,20 @@ export class GPUCostTracker {
         };
         const byGPU: Record<string, number> = {};
         const byProject: Record<string, number> = {};
-        
+
         // Process training jobs (extract cost from config JSON)
         for (const job of trainingJobsData) {
             const config = job.config as { gpuType?: string; estimatedCostCents?: number } | null;
             const cost = config?.estimatedCostCents || 0;
             const gpuType = config?.gpuType || 'unknown';
-            
+
             breakdown.training += cost;
             byGPU[gpuType] = (byGPU[gpuType] || 0) + cost;
             if (job.projectId) {
                 byProject[job.projectId] = (byProject[job.projectId] || 0) + cost;
             }
         }
-        
+
         for (const cost of endpointCosts) {
             breakdown.inference += cost.totalCost || 0;
             if (cost.gpuType) {
@@ -396,7 +396,7 @@ export class GPUCostTracker {
                 byProject[cost.projectId] = (byProject[cost.projectId] || 0) + (cost.totalCost || 0);
             }
         }
-        
+
         // Add active job costs
         for (const job of this.activeJobs.values()) {
             if (job.userId === userId) {
@@ -416,9 +416,9 @@ export class GPUCostTracker {
                 }
             }
         }
-        
+
         const totalCostCents = breakdown.training + breakdown.inference + breakdown.storage + breakdown.api;
-        
+
         return {
             period,
             totalCostCents,
@@ -435,7 +435,7 @@ export class GPUCostTracker {
         const summary = await this.getCostSummary(userId, 'month');
         const currentSpend = summary.totalCostCents;
         const ratio = currentSpend / budgetLimitCents;
-        
+
         if (ratio >= BUDGET_THRESHOLDS.exceeded) {
             return {
                 level: 'exceeded',
@@ -461,7 +461,7 @@ export class GPUCostTracker {
                 message: `Warning: You've used 80% of your monthly GPU budget ($${(currentSpend / 100).toFixed(2)} / $${(budgetLimitCents / 100).toFixed(2)}).`,
             };
         }
-        
+
         return null;
     }
 
@@ -477,12 +477,12 @@ export class GPUCostTracker {
     }>> {
         const history: Array<{ date: string; training: number; inference: number; storage: number; total: number }> = [];
         const now = new Date();
-        
+
         for (let i = days - 1; i >= 0; i--) {
             const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
             const dateStr = date.toISOString().split('T')[0];
             const nextDateStr = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            
+
             // Get training jobs for this day and extract cost from config
             const trainingJobsData = await db
                 .select({
@@ -494,13 +494,13 @@ export class GPUCostTracker {
                     gte(trainingJobs.createdAt, dateStr),
                     lte(trainingJobs.createdAt, nextDateStr)
                 ));
-            
+
             // Calculate total from config JSON
             const trainingTotal = trainingJobsData.reduce((sum, job) => {
                 const config = job.config as { estimatedCostCents?: number } | null;
                 return sum + (config?.estimatedCostCents || 0);
             }, 0);
-            
+
             // Get endpoint costs for this day
             const endpointCosts = await db
                 .select({
@@ -512,11 +512,11 @@ export class GPUCostTracker {
                     gte(deployedEndpoints.updatedAt, dateStr),
                     lte(deployedEndpoints.updatedAt, nextDateStr)
                 ));
-            
+
             const training = trainingTotal;
             const inference = endpointCosts[0]?.total || 0;
             const storage = 0; // Would calculate from volume usage
-            
+
             history.push({
                 date: dateStr,
                 training,
@@ -525,7 +525,7 @@ export class GPUCostTracker {
                 total: training + inference + storage,
             });
         }
-        
+
         return history;
     }
 

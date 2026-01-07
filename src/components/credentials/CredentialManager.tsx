@@ -161,11 +161,11 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                     body: JSON.stringify({ token }),
                 });
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     throw new Error(data.error || 'Invalid HuggingFace token');
                 }
-                
+
                 if (!data.userInfo.hasWriteAccess) {
                     throw new Error('Token requires write access for training. Please generate a token with write permissions.');
                 }
@@ -180,7 +180,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                     }),
                 });
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     throw new Error(data.error || 'Failed to store RunPod API key');
                 }
@@ -222,7 +222,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
             });
             const data = await response.json();
             await fetchCredentials();
-            
+
             if (!data.valid) {
                 setError(data.error || 'Credential validation failed');
             }
@@ -281,7 +281,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                         exit={{ opacity: 0, height: 0 }}
                     >
                         <svg viewBox="0 0 24 24" fill="none" className="alert-icon">
-                            <path d="M12 9v4M12 17h.01M4.93 19h14.14c1.14 0 1.86-1.24 1.29-2.22L13.29 4.15a1.5 1.5 0 0 0-2.58 0L3.64 16.78c-.57.98.15 2.22 1.29 2.22z" 
+                            <path d="M12 9v4M12 17h.01M4.93 19h14.14c1.14 0 1.86-1.24 1.29-2.22L13.29 4.15a1.5 1.5 0 0 0-2.58 0L3.64 16.78c-.57.98.15 2.22 1.29 2.22z"
                                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
                         <span>{budgetAlert.message}</span>
@@ -354,7 +354,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                     </div>
                                 </div>
                                 {!hasHuggingFace && addingCredential !== 'huggingface' && (
-                                    <button 
+                                    <button
                                         className="credential-connect-btn"
                                         onClick={() => setAddingCredential('huggingface')}
                                     >
@@ -362,7 +362,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                     </button>
                                 )}
                                 {addingCredential === 'huggingface' && (
-                                    <motion.div 
+                                    <motion.div
                                         className="credential-input-area"
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
@@ -381,7 +381,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                             </a>
                                         </p>
                                         <div className="input-actions">
-                                            <button 
+                                            <button
                                                 className="btn-cancel"
                                                 onClick={() => {
                                                     setAddingCredential(null);
@@ -390,7 +390,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                             >
                                                 Cancel
                                             </button>
-                                            <button 
+                                            <button
                                                 className="btn-connect"
                                                 onClick={() => handleAddCredential('huggingface', tokenInput)}
                                                 disabled={!tokenInput || isValidating}
@@ -402,13 +402,13 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                 )}
                                 {hasHuggingFace && (
                                     <div className="credential-actions">
-                                        <button 
+                                        <button
                                             className="btn-test"
                                             onClick={() => handleTestCredential('huggingface')}
                                         >
                                             Test Connection
                                         </button>
-                                        <button 
+                                        <button
                                             className="btn-disconnect"
                                             onClick={() => handleDeleteCredential('huggingface')}
                                         >
@@ -435,7 +435,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                     </div>
                                 </div>
                                 {!hasRunPod && addingCredential !== 'runpod' && (
-                                    <button 
+                                    <button
                                         className="credential-connect-btn"
                                         onClick={() => setAddingCredential('runpod')}
                                     >
@@ -443,7 +443,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                     </button>
                                 )}
                                 {addingCredential === 'runpod' && (
-                                    <motion.div 
+                                    <motion.div
                                         className="credential-input-area"
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
@@ -462,7 +462,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                             </a>
                                         </p>
                                         <div className="input-actions">
-                                            <button 
+                                            <button
                                                 className="btn-cancel"
                                                 onClick={() => {
                                                     setAddingCredential(null);
@@ -471,7 +471,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                             >
                                                 Cancel
                                             </button>
-                                            <button 
+                                            <button
                                                 className="btn-connect"
                                                 onClick={() => handleAddCredential('runpod', tokenInput)}
                                                 disabled={!tokenInput || isValidating}
@@ -483,13 +483,13 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                 )}
                                 {hasRunPod && (
                                     <div className="credential-actions">
-                                        <button 
+                                        <button
                                             className="btn-test"
                                             onClick={() => handleTestCredential('runpod')}
                                         >
                                             Test Connection
                                         </button>
-                                        <button 
+                                        <button
                                             className="btn-disconnect"
                                             onClick={() => handleDeleteCredential('runpod')}
                                         >
@@ -512,19 +512,19 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                                                 {renderIcon(credential.integrationId)}
                                                 <div className="credential-item-info">
                                                     <span className="credential-name">{credential.integrationName}</span>
-                                                    <span 
+                                                    <span
                                                         className="credential-item-status"
                                                         style={{ color: getStatusColor(credential.validationStatus) }}
                                                     >
                                                         {credential.validationStatus}
                                                     </span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     className="btn-icon"
                                                     onClick={() => handleDeleteCredential(credential.integrationId)}
                                                 >
                                                     <svg viewBox="0 0 24 24" fill="none">
-                                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                                             stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                                                     </svg>
                                                 </button>
@@ -603,7 +603,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                         {/* Audit log would be fetched from /api/credentials/audit */}
                         <div className="audit-placeholder">
                             <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                                <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                     stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                             </svg>
                             <span>Audit logging tracks all credential access for security compliance.</span>

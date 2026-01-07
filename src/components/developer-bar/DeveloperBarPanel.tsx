@@ -45,25 +45,25 @@ const BrowserPermissionsWrapper = ({ isActive, onClose }: { isActive: boolean; o
 // Panel wrapper for Open Source Studio (opens as full-screen modal)
 const OpenSourceStudioWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
   const { setOpen } = useOpenSourceStudioStore();
-  
+
   // Open the studio when this panel is mounted
   useEffect(() => {
     setOpen(true);
   }, [setOpen]);
-  
+
   // Handle close from the store
   const handleClose = () => {
     setOpen(false);
     onClose();
   };
-  
+
   return <OpenSourceStudio onClose={handleClose} />;
 };
 
 // Panel wrapper for AI Lab (opens as full-screen modal)
 const AILabWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
   const { setOpen } = useAILabStore();
-  
+
   // Open the lab when this panel is mounted
   useEffect(() => {
     setOpen(true);
@@ -74,7 +74,7 @@ const AILabWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onC
     setOpen(false);
     onClose();
   };
-  
+
   return (
     <div className="ai-lab-panel-wrapper">
       <button className="ai-lab-close-btn" onClick={handleClose}>×</button>

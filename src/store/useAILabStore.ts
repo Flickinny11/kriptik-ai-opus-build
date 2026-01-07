@@ -83,26 +83,26 @@ export interface AILabState {
     // UI state
     isOpen: boolean;
     activeTab: 'research' | 'history' | 'results';
-    
+
     // Session state
     currentSession: AILabSession | null;
     sessionHistory: AILabSession[];
-    
+
     // Form state
     researchPrompt: string;
     selectedProblemType: AILabSession['problemType'];
     budgetLimitDollars: number;
     maxOrchestrations: number;
-    
+
     // Loading states
     isCreating: boolean;
     isStarting: boolean;
     isStopping: boolean;
     isLoadingHistory: boolean;
-    
+
     // Error state
     error: string | null;
-    
+
     // Actions
     setOpen: (isOpen: boolean) => void;
     setActiveTab: (tab: AILabState['activeTab']) => void;
@@ -150,23 +150,23 @@ export const useAILabStore = create<AILabState>()(
     persist(
         (set) => ({
             ...DEFAULT_STATE,
-            
+
             setOpen: (isOpen) => set({ isOpen }),
             setActiveTab: (activeTab) => set({ activeTab }),
             setResearchPrompt: (researchPrompt) => set({ researchPrompt }),
             setSelectedProblemType: (selectedProblemType) => set({ selectedProblemType }),
             setBudgetLimitDollars: (budgetLimitDollars) => set({ budgetLimitDollars }),
             setMaxOrchestrations: (maxOrchestrations) => set({ maxOrchestrations }),
-            
+
             setCurrentSession: (currentSession) => set({ currentSession }),
-            
+
             updateOrchestration: (orchestrationId, updates) => set((state) => {
                 if (!state.currentSession) return state;
-                
+
                 const orchestrations = state.currentSession.orchestrations.map(o =>
                     o.id === orchestrationId ? { ...o, ...updates } : o
                 );
-                
+
                 return {
                     currentSession: {
                         ...state.currentSession,
@@ -174,10 +174,10 @@ export const useAILabStore = create<AILabState>()(
                     },
                 };
             }),
-            
+
             addMessage: (message) => set((state) => {
                 if (!state.currentSession) return state;
-                
+
                 return {
                     currentSession: {
                         ...state.currentSession,
@@ -185,14 +185,14 @@ export const useAILabStore = create<AILabState>()(
                     },
                 };
             }),
-            
+
             setSessionHistory: (sessionHistory) => set({ sessionHistory }),
             setError: (error) => set({ error }),
             setIsCreating: (isCreating) => set({ isCreating }),
             setIsStarting: (isStarting) => set({ isStarting }),
             setIsStopping: (isStopping) => set({ isStopping }),
             setIsLoadingHistory: (isLoadingHistory) => set({ isLoadingHistory }),
-            
+
             reset: () => set(DEFAULT_STATE),
         }),
         {

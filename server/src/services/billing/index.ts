@@ -9,4 +9,15 @@ export * from './usage.js';
 export * from './credits.js';
 export * from './stripe-integration.js';
 export * from './gpu-cost-tracker.js';
+export * from './billing-context.js';
+export * from './gpu-billing.js';
+// Re-export specific items from usage-service to avoid conflicts with usage.js
+export { 
+    getUsageService,
+    UsageService,
+    type UsageRecord as UsageServiceRecord,
+    type UsageSummary as UsageServiceSummary,
+} from './usage-service.js';
+export * from './credit-pool.js';
+export * from './open-source-studio-billing.js';
 
