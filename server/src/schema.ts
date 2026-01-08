@@ -308,14 +308,20 @@ export const deployedEndpoints = sqliteTable('deployed_endpoints', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull(),
     projectId: text('project_id').references(() => projects.id),
+    // Training job link (PROMPT 7 addition)
+    trainingJobId: text('training_job_id'),
     // Model info
-    modelId: text('model_id').notNull(), // HuggingFace model ID
-    modelName: text('model_name').notNull(), // Display name
+    modelId: text('model_id'), // HuggingFace model ID (made optional)
+    modelName: text('model_name'), // Display name (made optional)
+    // Provider info (PROMPT 7 addition)
+    provider: text('provider').default('runpod'), // 'runpod' | 'modal'
+    endpointId: text('endpoint_id'), // Provider-specific endpoint ID
+    modality: text('modality'), // 'llm' | 'image' | 'video' | 'audio'
     // Status
-    status: text('status').default('scaling').notNull(), // scaling | active | idle | error | stopped
+    status: text('status').default('scaling').notNull(), // scaling | active | idle | error | stopped | deleted
     // Endpoint configuration
     endpointUrl: text('endpoint_url').notNull(),
-    gpuType: text('gpu_type').notNull(),
+    gpuType: text('gpu_type'),
     minWorkers: integer('min_workers').default(0).notNull(),
     maxWorkers: integer('max_workers').default(3).notNull(),
     currentWorkers: integer('current_workers').default(0),
@@ -323,6 +329,15 @@ export const deployedEndpoints = sqliteTable('deployed_endpoints', {
     volumePersistence: integer('volume_persistence').default(0), // boolean as int
     volumeSizeGB: integer('volume_size_gb').default(20),
     customEnvVars: text('custom_env_vars').default('{}'), // JSON
+    // Connection code (PROMPT 7 addition)
+    connectionCode: text('connection_code', { mode: 'json' }).$type<{
+        python: string;
+        typescript: string;
+        curl: string;
+    }>(),
+    // Cost tracking (PROMPT 7 addition)
+    costPerHour: real('cost_per_hour'),
+    costPerRequest: real('cost_per_request'),
     // Metrics
     totalRequests: integer('total_requests').default(0),
     avgLatencyMs: integer('avg_latency_ms').default(0),

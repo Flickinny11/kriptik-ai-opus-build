@@ -458,7 +458,7 @@ export class GPUVerificationService extends EventEmitter {
                 }
 
                 // Check GPU requirements match if we have them
-                if (this.gpuRequirements) {
+                if (this.gpuRequirements && endpoint.gpuType) {
                     const endpointVram = this.getVramForGpuType(endpoint.gpuType);
                     if (endpointVram < this.gpuRequirements.minVRAM) {
                         issues.push({

@@ -31,11 +31,11 @@ export interface DeploymentConfig {
 export interface EndpointInfo {
   id: string;
   userId: string;
-  modelId: string;
-  modelName: string;
+  modelId: string | null;
+  modelName: string | null;
   status: string;
   endpointUrl: string;
-  gpuType: string;
+  gpuType: string | null;
   minWorkers: number;
   maxWorkers: number;
   currentWorkers: number;
@@ -44,7 +44,7 @@ export interface EndpointInfo {
   costToday: number;
   costTotal: number;
   createdAt: string;
-  lastActiveAt: string;
+  lastActiveAt: string | null;
   testWindowEndsAt: string | null;
   runpodEndpointId: string | null;
 }

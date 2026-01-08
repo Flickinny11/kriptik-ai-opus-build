@@ -817,6 +817,10 @@ app.use("/api/model-testing", modelTestingRouter);
 import { mediaRouter } from './routes/media.js';
 app.use("/api/media", mediaRouter);
 
+// One-Click Deployment API (Deploy models to RunPod/Modal - Training Platform PROMPT 7)
+import { deploymentRouter } from './routes/deployment.js';
+app.use("/api/deployment", deploymentRouter);
+
 // Inference Endpoints API (Deploy & manage endpoints - PROMPT 5)
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);
