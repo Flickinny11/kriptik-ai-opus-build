@@ -3630,3 +3630,98 @@ export const orchestrationCheckpoints = sqliteTable('orchestration_checkpoints',
     // Timestamps
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// ============================================================================
+// Hyper-Thinking System Tables
+// ============================================================================
+
+/**
+ * Hyper-Thinking Sessions - Track reasoning sessions
+ * Stores metadata about each hyper-thinking operation for analytics and debugging
+ */
+export const hyperThinkingSessions = sqliteTable('hyper_thinking_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    projectId: text('project_id').references(() => projects.id),
+
+    // Session configuration
+    strategy: text('strategy').notNull().$type<
+        'chain_of_thought' | 'tree_of_thought' | 'multi_agent' | 'hybrid'
+    >(),
+    status: text('status').notNull().$type<
+        'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+    >(),
+
+    // Problem and context
+    problem: text('problem').notNull(),
+    context: text('context'),
+
+    // Result storage (JSON)
+    result: text('result', { mode: 'json' }).$type<{
+        success: boolean;
+        strategy: string;
+        finalAnswer: string;
+        confidence: number;
+        reasoningPath?: Array<{
+            id: string;
+            thought: string;
+            evaluation?: { score: number; reasoning: string };
+        }>;
+        metadata?: Record<string, unknown>;
+    }>(),
+
+    // Metrics
+    tokensUsed: integer('tokens_used').default(0),
+    latencyMs: integer('latency_ms').default(0),
+    creditsUsed: integer('credits_used').default(0),
+
+    // Model info
+    primaryModel: text('primary_model'),
+    modelsUsed: text('models_used', { mode: 'json' }).$type<string[]>(),
+
+    // Timestamps
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Hyper-Thinking Artifacts - Store reasoning patterns in DB with Qdrant references
+ * Links database records to Qdrant vector embeddings for semantic search
+ */
+export const hyperThinkingArtifacts = sqliteTable('hyper_thinking_artifacts', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    qdrantId: text('qdrant_id').notNull(), // Reference to Qdrant point ID
+
+    // Artifact type
+    type: text('type').notNull().$type<
+        'thought' | 'decision' | 'insight' | 'pattern' | 'skeleton' | 'decomposition'
+    >(),
+
+    // Problem context (for similarity matching)
+    problemContext: text('problem_context').notNull(),
+    domain: text('domain').$type<
+        'api' | 'integration' | 'architecture' | 'database' | 'ui' | 'security' | 'performance'
+    >(),
+
+    // Strategy used
+    strategy: text('strategy').$type<
+        'chain_of_thought' | 'tree_of_thought' | 'multi_agent' | 'hybrid'
+    >(),
+
+    // Success metrics
+    successRate: real('success_rate').default(0.5), // 0-1 scale
+    usageCount: integer('usage_count').default(0),
+    avgExecutionTimeMs: integer('avg_execution_time_ms'),
+
+    // Content preview (full content in Qdrant)
+    contentPreview: text('content_preview'),
+
+    // Tags for filtering
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
+
+    // Timestamps
+    lastUsedAt: text('last_used_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});

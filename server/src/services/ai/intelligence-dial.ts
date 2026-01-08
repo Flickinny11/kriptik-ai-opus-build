@@ -306,6 +306,110 @@ export const INTELLIGENCE_PRESETS: Record<string, IntelligencePreset> = {
             enableStructuredOutput: true,
         },
     },
+
+    // =========================================================================
+    // HYPER-THINKING PRESETS (Advanced Multi-Model Reasoning)
+    // =========================================================================
+
+    hyper_reasoning: {
+        name: 'Hyper-Thinking Maximum',
+        description: 'Maximum reasoning with ToT + multi-agent swarm. 128K thinking budget.',
+        settings: {
+            thinkingEnabled: true,
+            thinkingDepth: 'maximum',
+            thinkingBudget: 128000, // Maximum budget for hyper-thinking
+            powerLevel: 'maximum',
+            speedPriority: 'maximum-quality',
+            creativityLevel: 'balanced',
+            temperature: 0.1,
+            codeVerbosity: 'verbose',
+            commentStyle: 'educational',
+            errorHandling: 'paranoid',
+            designDetail: 'premium',
+            animationLevel: 'smooth',
+            contextWindow: 'maximum',
+            includeExamples: true,
+            enableStreaming: false, // Wait for complete multi-agent synthesis
+            enableToolUse: true,
+            enableVision: true,
+            enableStructuredOutput: true,
+        },
+    },
+
+    deep_analysis: {
+        name: 'Deep Analysis',
+        description: 'Tree-of-Thought with maximum depth. 64K thinking budget.',
+        settings: {
+            thinkingEnabled: true,
+            thinkingDepth: 'maximum',
+            thinkingBudget: 64000, // Deep ToT budget
+            powerLevel: 'performance',
+            speedPriority: 'quality',
+            creativityLevel: 'balanced',
+            temperature: 0.2,
+            codeVerbosity: 'standard',
+            commentStyle: 'detailed',
+            errorHandling: 'defensive',
+            designDetail: 'polished',
+            animationLevel: 'subtle',
+            contextWindow: 'large',
+            includeExamples: true,
+            enableStreaming: true,
+            enableToolUse: true,
+            enableVision: true,
+            enableStructuredOutput: true,
+        },
+    },
+
+    consensus_building: {
+        name: 'Consensus Building',
+        description: 'Multi-agent reasoning with debate. 48K thinking budget.',
+        settings: {
+            thinkingEnabled: true,
+            thinkingDepth: 'deep',
+            thinkingBudget: 48000, // Multi-agent debate budget
+            powerLevel: 'performance',
+            speedPriority: 'balanced',
+            creativityLevel: 'creative', // Allow diverse perspectives
+            temperature: 0.4,
+            codeVerbosity: 'standard',
+            commentStyle: 'detailed',
+            errorHandling: 'defensive',
+            designDetail: 'polished',
+            animationLevel: 'smooth',
+            contextWindow: 'large',
+            includeExamples: true,
+            enableStreaming: true,
+            enableToolUse: true,
+            enableVision: true,
+            enableStructuredOutput: true,
+        },
+    },
+
+    rapid_reasoning: {
+        name: 'Rapid Reasoning',
+        description: 'Fast chain-of-thought with Gemini 3 Flash. 16K thinking budget.',
+        settings: {
+            thinkingEnabled: true,
+            thinkingDepth: 'normal',
+            thinkingBudget: 16000, // Fast reasoning budget
+            powerLevel: 'balanced',
+            speedPriority: 'fast',
+            creativityLevel: 'balanced',
+            temperature: 0.3,
+            codeVerbosity: 'standard',
+            commentStyle: 'key-points',
+            errorHandling: 'standard',
+            designDetail: 'standard',
+            animationLevel: 'subtle',
+            contextWindow: 'medium',
+            includeExamples: false,
+            enableStreaming: true,
+            enableToolUse: true,
+            enableVision: false,
+            enableStructuredOutput: true,
+        },
+    },
 };
 
 // ============================================================================

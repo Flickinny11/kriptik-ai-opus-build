@@ -732,6 +732,7 @@ import embeddingsRouter from './routes/embeddings.js';
 import semanticIntentRouter from './routes/semantic-intent.js';
 import semanticSatisfactionRouter from './routes/semantic-satisfaction.js';
 import visualUnderstandingRouter from './routes/visual-understanding.js';
+import hyperThinkingRouter from './routes/hyper-thinking.js';
 
 // Core functionality
 app.use("/api/projects", projectsRouter);
@@ -757,6 +758,9 @@ app.use("/api/semantic-satisfaction", aiRateLimiter, requireCredits(15), semanti
 
 // Visual Understanding API (VL-JEPA visual analysis with Gemini) - 20 credits per request
 app.use("/api/visual", aiRateLimiter, requireCredits(20), visualUnderstandingRouter);
+
+// Hyper-Thinking API (Advanced Multi-Model Reasoning) - 25 credits per request
+app.use("/api/hyper-thinking", aiRateLimiter, requireCredits(25), hyperThinkingRouter);
 
 // Implementation planning
 app.use("/api/plan", planRouter);
