@@ -35,9 +35,7 @@ export {
   type ModalDeployConfig,
   type ModalDeployResult,
   type ModalAppStatus,
-} from './modal-deployer.js';
-
-// Unified Deployer
+} from './modal-deployer.js';// Unified Deployer
 export {
   UnifiedDeployer,
   getUnifiedDeployer,

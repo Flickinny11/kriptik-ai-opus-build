@@ -1,6 +1,6 @@
 /**
  * GitHub Pusher Service for External App Integration
- * 
+ *
  * Handles pushing wiring changes back to GitHub repositories,
  * including creating branches and pull requests.
  */

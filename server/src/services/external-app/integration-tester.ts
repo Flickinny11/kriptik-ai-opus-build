@@ -1,6 +1,6 @@
 /**
  * Integration Testing Service for External App Integration
- * 
+ *
  * Tests the integration between external apps and deployed AI models
  * by spinning up sandboxed environments and validating responses.
  */
@@ -85,7 +85,7 @@ export class IntegrationTester {
     ): Promise<IntegrationTestReport> {
         const startTime = Date.now();
         this.logs = [];
-        
+
         const report: IntegrationTestReport = {
             id: uuidv4(),
             appId: app.id,

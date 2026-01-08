@@ -1,6 +1,6 @@
 /**
  * App Importer Service for External App Integration
- * 
+ *
  * Imports external applications from GitHub, detects frameworks,
  * and identifies integration points for AI model wiring.
  */

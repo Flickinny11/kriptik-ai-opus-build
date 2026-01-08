@@ -1,6 +1,6 @@
 /**
  * Model Wiring Service for External App Integration
- * 
+ *
  * Generates and applies code to connect deployed AI models
  * to external applications at identified integration points.
  */
@@ -71,11 +71,11 @@ export async function generateText(prompt: string, options?: { maxTokens?: numbe
       temperature: options?.temperature ?? 0.7,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   return response.json();
 }
 `,
@@ -100,11 +100,11 @@ export async function generateImage(prompt: string, options?: { width?: number; 
       num_images: options?.numImages ?? 1,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.images; // Returns array of base64 encoded images
 }
@@ -129,11 +129,11 @@ export async function generateVideo(prompt: string, options?: { duration?: numbe
       fps: options?.fps ?? 24,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.video_url;
 }
@@ -158,11 +158,11 @@ export async function generateAudio(text: string, options?: { voice?: string; sp
       speed: options?.speed ?? 1.0,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.audio_url;
 }
@@ -183,11 +183,11 @@ export async function analyzeMultimodal(inputs: { text?: string; imageUrl?: stri
     },
     body: JSON.stringify(inputs),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   return response.json();
 }
 `,
@@ -208,7 +208,7 @@ export function useAIText() {
   const generate = useCallback(async (prompt, options = {}) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // External model endpoint - credentials: omit for external APIs
       const res = await fetch(AI_ENDPOINT, {
@@ -224,9 +224,9 @@ export function useAIText() {
           temperature: options.temperature ?? 0.7,
         }),
       });
-      
+
       if (!res.ok) throw new Error(res.statusText);
-      
+
       const data = await res.json();
       setResponse(data);
       return data;
@@ -256,7 +256,7 @@ export function useAIImage() {
   const generate = useCallback(async (prompt, options = {}) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // External model endpoint - credentials: omit for external APIs
       const res = await fetch(AI_ENDPOINT, {
@@ -273,9 +273,9 @@ export function useAIImage() {
           num_images: options.numImages ?? 1,
         }),
       });
-      
+
       if (!res.ok) throw new Error(res.statusText);
-      
+
       const data = await res.json();
       setImages(data.images);
       return data.images;
@@ -305,7 +305,7 @@ export function useAIVideo() {
   const generate = useCallback(async (prompt, options = {}) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // External model endpoint - credentials: omit for external APIs
       const res = await fetch(AI_ENDPOINT, {
@@ -321,9 +321,9 @@ export function useAIVideo() {
           fps: options.fps ?? 24,
         }),
       });
-      
+
       if (!res.ok) throw new Error(res.statusText);
-      
+
       const data = await res.json();
       setVideoUrl(data.video_url);
       return data.video_url;
@@ -353,7 +353,7 @@ export function useAIAudio() {
   const generate = useCallback(async (text, options = {}) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // External model endpoint - credentials: omit for external APIs
       const res = await fetch(AI_ENDPOINT, {
@@ -369,9 +369,9 @@ export function useAIAudio() {
           speed: options.speed ?? 1.0,
         }),
       });
-      
+
       if (!res.ok) throw new Error(res.statusText);
-      
+
       const data = await res.json();
       setAudioUrl(data.audio_url);
       return data.audio_url;
@@ -401,7 +401,7 @@ export function useAIMultimodal() {
   const analyze = useCallback(async (inputs) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // External model endpoint - credentials: omit for external APIs
       const res = await fetch(AI_ENDPOINT, {
@@ -413,9 +413,9 @@ export function useAIMultimodal() {
         },
         body: JSON.stringify(inputs),
       });
-      
+
       if (!res.ok) throw new Error(res.statusText);
-      
+
       const data = await res.json();
       setResult(data);
       return data;
@@ -452,11 +452,11 @@ async function generateText(prompt, options = {}) {
       temperature: options.temperature ?? 0.7,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   return response.json();
 }
 
@@ -483,11 +483,11 @@ async function generateImage(prompt, options = {}) {
       num_images: options.numImages ?? 1,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.images;
 }
@@ -495,7 +495,7 @@ async function generateImage(prompt, options = {}) {
 module.exports = { generateImage };
 `,
         video: `
-// AI Video Client - Generated by KripTik AI  
+// AI Video Client - Generated by KripTik AI
 const AI_ENDPOINT = process.env.KRIPTIK_AI_ENDPOINT;
 const AI_API_KEY = process.env.KRIPTIK_AI_API_KEY;
 
@@ -514,11 +514,11 @@ async function generateVideo(prompt, options = {}) {
       fps: options.fps ?? 24,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.video_url;
 }
@@ -545,11 +545,11 @@ async function generateAudio(text, options = {}) {
       speed: options.speed ?? 1.0,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   const data = await response.json();
   return data.audio_url;
 }
@@ -572,11 +572,11 @@ async function analyzeMultimodal(inputs) {
     },
     body: JSON.stringify(inputs),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   return response.json();
 }
 
@@ -604,11 +604,11 @@ async function generateText(prompt, options = {}) {
       temperature: options.temperature ?? 0.7,
     }),
   });
-  
+
   if (!response.ok) {
     throw new Error(\`AI request failed: \${response.statusText}\`);
   }
-  
+
   return response.json();
 }
 

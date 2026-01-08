@@ -1,6 +1,6 @@
 /**
  * External App Integration API Routes
- * 
+ *
  * Handles importing external apps, wiring AI models, testing, and GitHub push.
  */
 
@@ -438,7 +438,7 @@ router.post('/workflow', generalRateLimiter, async (req: Request, res: Response)
         res.end();
     } catch (error) {
         console.error('Workflow error:', error);
-        
+
         // If headers already sent, write error as SSE
         if (res.headersSent) {
             res.write(`data: ${JSON.stringify({ step: 'error', error: error instanceof Error ? error.message : 'Workflow failed' })}\n\n`);

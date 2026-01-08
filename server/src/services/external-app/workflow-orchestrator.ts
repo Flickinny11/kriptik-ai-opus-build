@@ -1,6 +1,6 @@
 /**
  * External App Workflow Orchestrator
- * 
+ *
  * Orchestrates the full workflow of importing an external app,
  * deploying a model, wiring the integration, testing, and pushing to GitHub.
  */
@@ -202,7 +202,7 @@ export class ExternalAppWorkflowOrchestrator extends EventEmitter {
 
                 const deployer = getUnifiedDeployer();
                 const deployment = await deployer.getDeploymentStatus(deploymentId, config.userId);
-                
+
                 if (deployment) {
                     endpointUrl = deployment.endpointUrl || null;
                     // apiKey is not available from getDeploymentStatus - user should provide it

@@ -1,6 +1,6 @@
 /**
  * External App Integration Services
- * 
+ *
  * Provides functionality for importing external applications,
  * wiring deployed AI models, testing integrations, and pushing to GitHub.
  */
