@@ -1,6 +1,6 @@
 /**
  * Training Report Viewer - Display comprehensive training reports
- * 
+ *
  * Shows metrics, charts, model info, and usage code.
  */
 
@@ -32,7 +32,7 @@ interface TrainingReport {
   jobId: string;
   createdAt: string;
   completedAt: string;
-  
+
   config: {
     modality: string;
     method: string;
@@ -40,7 +40,7 @@ interface TrainingReport {
     baseModelName: string;
     outputModelName: string;
   };
-  
+
   metrics: {
     finalLoss: number;
     bestLoss: number;
@@ -50,31 +50,31 @@ interface TrainingReport {
     trainingDuration: number;
     samplesProcessed: number;
   };
-  
+
   dataset: {
     source: string;
     totalSamples: number;
     description: string;
   };
-  
+
   model: {
     huggingFaceRepo?: string;
     huggingFaceUrl?: string;
     s3Url?: string;
   };
-  
+
   cost: {
     gpuHours: number;
     gpuCost: number;
     totalCost: number;
   };
-  
+
   usageCode: {
     python: string;
     typescript: string;
     curl: string;
   };
-  
+
   recommendations: string[];
 }
 
@@ -98,16 +98,16 @@ export function TrainingReportViewer({ trainingJobId }: TrainingReportViewerProp
   const fetchReport = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/training/jobs/${trainingJobId}/report`
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to load report');
       }
-      
+
       const data = await response.json();
       setReport(data);
     } catch (err) {
@@ -172,7 +172,7 @@ export function TrainingReportViewer({ trainingJobId }: TrainingReportViewerProp
             </p>
           </div>
         </div>
-        
+
         <a
           href={`${API_URL}/api/training/jobs/${trainingJobId}/report/download`}
           className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
@@ -262,7 +262,7 @@ export function TrainingReportViewer({ trainingJobId }: TrainingReportViewerProp
             </div>
           </div>
         </div>
-        
+
         {/* Loss curve */}
         {report.metrics.lossHistory.length > 1 && (
           <div className="p-4 bg-black/20 rounded-lg">
@@ -317,7 +317,7 @@ export function TrainingReportViewer({ trainingJobId }: TrainingReportViewerProp
             </button>
           ))}
         </div>
-        
+
         <div className="relative">
           <pre className="p-4 bg-black/30 rounded-lg overflow-x-auto max-h-[300px]">
             <code className="text-sm text-white/80 font-mono">
@@ -417,20 +417,20 @@ function CollapsibleSection({
 
 function LossChart({ data }: { data: number[] }) {
   if (data.length < 2) return null;
-  
+
   const minLoss = Math.min(...data);
   const maxLoss = Math.max(...data);
   const range = maxLoss - minLoss || 1;
-  
+
   const points = data.map((value, idx) => ({
     x: (idx / (data.length - 1)) * 100,
     y: 100 - ((value - minLoss) / range) * 100,
   }));
-  
-  const pathD = points.map((p, i) => 
+
+  const pathD = points.map((p, i) =>
     `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
   ).join(' ');
-  
+
   return (
     <div className="relative h-32">
       <svg

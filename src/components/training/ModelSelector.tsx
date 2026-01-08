@@ -1,13 +1,22 @@
 /**
  * Model Selector - Search and select base models from HuggingFace
- * 
+ *
  * Allows users to search for models by task type, view details,
  * and select for fine-tuning.
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, Download, Check, ExternalLink, Loader2, Filter, X } from 'lucide-react';
+import {
+  Search3D,
+  Star3D,
+  Download3D,
+  Check3D,
+  ExternalLink3D,
+  LoadingSpinner3D,
+  Filter3D,
+  X3D
+} from '@/components/icons';
 import { useTrainingStore, type ModelModality, type TrainingMethod, type ModelInfo } from '@/store/useTrainingStore';
 
 interface ModelSelectorProps {
@@ -68,11 +77,11 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [licenseFilter, setLicenseFilter] = useState<string | null>(null);
-  
+
   const { modelSearchResults, isSearching } = useTrainingStore();
-  
+
   const debouncedSearch = useDebounce(searchQuery, 300);
-  
+
   // Trigger search when debounced query changes
   useEffect(() => {
     if (debouncedSearch && onSearch) {
@@ -107,7 +116,9 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
       {/* Search and filters */}
       <div className="flex gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2">
+            <Search3D size={16} color="rgba(255,255,255,0.4)" animated={false} />
+          </span>
           <input
             type="text"
             value={searchQuery}
@@ -120,7 +131,7 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10"
             >
-              <X className="w-4 h-4 text-white/40" />
+              <X3D size={16} color="rgba(255,255,255,0.4)" animated={false} />
             </button>
           )}
         </div>
@@ -132,7 +143,7 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
               : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
           }`}
         >
-          <Filter className="w-5 h-5" />
+          <Filter3D size={20} animated={false} />
         </button>
       </div>
 
@@ -170,7 +181,7 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
       {/* Loading state */}
       {isSearching && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+          <LoadingSpinner3D size={24} color="#60a5fa" />
           <span className="ml-2 text-white/60">Searching HuggingFace...</span>
         </div>
       )}
@@ -199,7 +210,7 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
                   </div>
                   {isSelected && (
                     <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center ml-2">
-                      <Check className="w-4 h-4 text-white" />
+                      <Check3D size={16} color="#ffffff" animated={false} />
                     </div>
                   )}
                 </div>
@@ -207,13 +218,13 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
                 <div className="flex items-center gap-4 text-xs text-white/60 mb-3">
                   {model.downloads !== undefined && (
                     <span className="flex items-center gap-1">
-                      <Download className="w-3 h-3" />
+                      <Download3D size={12} color="currentColor" animated={false} />
                       {formatNumber(model.downloads)}
                     </span>
                   )}
                   {model.likes !== undefined && (
                     <span className="flex items-center gap-1">
-                      <Star className="w-3 h-3" />
+                      <Star3D size={12} animated={false} />
                       {formatNumber(model.likes)}
                     </span>
                   )}
@@ -273,7 +284,7 @@ export function ModelSelector({ modality, method: _method, selectedModel, onSele
               className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white/80 transition-colors"
             >
               View on HF
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink3D size={12} color="currentColor" animated={false} />
             </a>
           </div>
           {selectedModel.description && (

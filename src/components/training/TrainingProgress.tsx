@@ -7,19 +7,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Activity,
-  Cpu,
-  Timer,
-  DollarSign,
-  CheckCircle,
-  XCircle,
-  Pause,
-  Play,
-  Square,
-  Download,
-  TrendingDown,
-  Zap
-} from 'lucide-react';
+  Activity3D,
+  Cpu3D,
+  Timer3D,
+  DollarSign3D,
+  CheckCircle3D,
+  XCircle3D,
+  Pause3D,
+  Play3D,
+  Square3D,
+  Download3D,
+  TrendingDown3D,
+  Zap3D
+} from '@/components/icons';
 import type { TrainingProgressData, LogEntry } from './types';
 
 interface TrainingProgressProps {
@@ -31,13 +31,13 @@ interface TrainingProgressProps {
 }
 
 const statusConfig = {
-  pending: { icon: Timer, color: 'text-white/60', bg: 'bg-white/10', label: 'Pending' },
-  starting: { icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Starting' },
-  running: { icon: Activity, color: 'text-green-400', bg: 'bg-green-500/20', label: 'Running' },
-  paused: { icon: Pause, color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Paused' },
-  completed: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20', label: 'Completed' },
-  failed: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/20', label: 'Failed' },
-  cancelled: { icon: Square, color: 'text-white/60', bg: 'bg-white/10', label: 'Cancelled' },
+  pending: { icon: Timer3D, color: 'text-white/60', bg: 'bg-white/10', label: 'Pending' },
+  starting: { icon: Zap3D, color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Starting' },
+  running: { icon: Activity3D, color: 'text-green-400', bg: 'bg-green-500/20', label: 'Running' },
+  paused: { icon: Pause3D, color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Paused' },
+  completed: { icon: CheckCircle3D, color: 'text-green-400', bg: 'bg-green-500/20', label: 'Completed' },
+  failed: { icon: XCircle3D, color: 'text-red-400', bg: 'bg-red-500/20', label: 'Failed' },
+  cancelled: { icon: Square3D, color: 'text-white/60', bg: 'bg-white/10', label: 'Cancelled' },
 };
 
 export function TrainingProgress({ progress, onPause, onResume, onStop, onDownload }: TrainingProgressProps) {
@@ -63,7 +63,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${status.bg}`}>
-            <StatusIcon className={`w-5 h-5 ${status.color}`} />
+            <StatusIcon size={20} animated={false} />
           </div>
           <div>
             <h3 className="font-medium text-white">{status.label}</h3>
@@ -82,7 +82,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
               title="Pause training"
             >
-              <Pause className="w-5 h-5 text-white/60" />
+              <Pause3D size={20} color="rgba(255,255,255,0.6)" animated={false} />
             </button>
           )}
           {progress.status === 'paused' && onResume && (
@@ -91,7 +91,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
               className="p-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 transition-colors"
               title="Resume training"
             >
-              <Play className="w-5 h-5 text-blue-400" />
+              <Play3D size={20} color="#60a5fa" animated={false} />
             </button>
           )}
           {(progress.status === 'running' || progress.status === 'paused') && onStop && (
@@ -100,7 +100,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
               className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors"
               title="Stop training"
             >
-              <Square className="w-5 h-5 text-red-400" />
+              <Square3D size={20} color="#f87171" animated={false} />
             </button>
           )}
           {progress.status === 'completed' && onDownload && (
@@ -109,7 +109,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
               className="p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 transition-colors"
               title="Download model"
             >
-              <Download className="w-5 h-5 text-green-400" />
+              <Download3D size={20} color="#4ade80" animated={false} />
             </button>
           )}
         </div>
@@ -139,24 +139,24 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
-          icon={TrendingDown}
+          icon={TrendingDown3D}
           label="Loss"
           value={progress.loss.toFixed(4)}
           trend={progress.metrics.loss.length > 1 ? 'down' : undefined}
         />
         <MetricCard
-          icon={Activity}
+          icon={Activity3D}
           label="Learning Rate"
           value={progress.learningRate.toExponential(2)}
         />
         <MetricCard
-          icon={Cpu}
+          icon={Cpu3D}
           label="GPU Usage"
           value={`${progress.gpuUtilization}%`}
           sublabel={`${progress.gpuMemoryUsed}/${progress.gpuMemoryTotal} GB`}
         />
         <MetricCard
-          icon={DollarSign}
+          icon={DollarSign3D}
           label="Cost"
           value={`$${progress.cost.totalCost.toFixed(2)}`}
           sublabel={`~$${progress.cost.estimatedRemaining.toFixed(2)} remaining`}
@@ -221,7 +221,7 @@ export function TrainingProgress({ progress, onPause, onResume, onStop, onDownlo
 }
 
 interface MetricCardProps {
-  icon: typeof Activity;
+  icon: React.FC<{ size?: number; color?: string; animated?: boolean }>;
   label: string;
   value: string;
   sublabel?: string;
@@ -232,7 +232,7 @@ function MetricCard({ icon: Icon, label, value, sublabel, trend }: MetricCardPro
   return (
     <div className="p-4 bg-white/5 rounded-xl border border-white/10">
       <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-4 h-4 text-white/40" />
+        <Icon size={16} color="rgba(255,255,255,0.4)" animated={false} />
         <span className="text-xs text-white/60">{label}</span>
       </div>
       <div className="flex items-baseline gap-2">

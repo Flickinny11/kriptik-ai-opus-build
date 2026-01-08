@@ -6,7 +6,17 @@
  */
 
 import { useState } from 'react';
-import { Cpu, Zap, Timer, Settings, ChevronDown, ChevronUp, Sparkles, HardDrive, AlertCircle } from 'lucide-react';
+import {
+  Cpu3D,
+  Zap3D,
+  Timer3D,
+  Settings3D,
+  ChevronDown3D,
+  ChevronUp3D,
+  Sparkles3D,
+  HardDrive3D,
+  AlertCircle3D
+} from '@/components/icons';
 import type { ModelModality, TrainingMethod } from '@/store/useTrainingStore';
 import type { GPURecommendation } from './types';
 
@@ -149,7 +159,7 @@ const GPU_OPTIONS = [
 
 export function TrainingConfig({ modality, method, config, gpuRecommendation, onChange }: TrainingConfigProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   const handleChange = (field: keyof TrainingConfigValues, value: unknown) => {
     onChange({ ...config, [field]: value });
   };
@@ -162,7 +172,7 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
       {gpuRecommendation && (
         <div className="p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-blue-400 mt-0.5" />
+            <span className="mt-0.5"><Sparkles3D size={20} color="#60a5fa" animated={false} /></span>
             <div className="flex-1">
               <h4 className="text-sm font-medium text-white mb-1">
                 Recommended: {gpuRecommendation.gpuType}
@@ -186,8 +196,8 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
       {/* Basic Training Parameters */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
-            <Timer className="w-4 h-4 inline-block mr-2 opacity-60" />
+          <label className="block text-sm font-medium text-white/80 mb-2 flex items-center gap-2">
+            <Timer3D size={16} animated={false} />
             Epochs
           </label>
           <input
@@ -201,8 +211,8 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
-            <Zap className="w-4 h-4 inline-block mr-2 opacity-60" />
+          <label className="block text-sm font-medium text-white/80 mb-2 flex items-center gap-2">
+            <Zap3D size={16} animated={false} />
             Batch Size
           </label>
           <input
@@ -253,8 +263,8 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
 
       {/* GPU Selection */}
       <div>
-        <label className="block text-sm font-medium text-white/80 mb-3">
-          <Cpu className="w-4 h-4 inline-block mr-2 opacity-60" />
+        <label className="block text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
+          <Cpu3D size={16} animated={false} />
           GPU Selection
         </label>
         <div className="grid grid-cols-3 gap-3">
@@ -289,7 +299,7 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
       {isLoRAMethod && (
         <div className="p-4 bg-white/5 rounded-xl border border-white/10">
           <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
-            <Settings className="w-4 h-4 opacity-60" />
+            <Settings3D size={16} animated={false} />
             LoRA Configuration
           </h4>
           <div className="grid grid-cols-3 gap-4">
@@ -420,7 +430,7 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
         >
-          {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {showAdvanced ? <ChevronUp3D size={16} animated={false} /> : <ChevronDown3D size={16} animated={false} />}
           Advanced Options
         </button>
 
@@ -477,7 +487,7 @@ export function TrainingConfig({ modality, method, config, gpuRecommendation, on
       {/* HuggingFace Publishing */}
       <div className="p-4 bg-white/5 rounded-xl border border-white/10">
         <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
-          <HardDrive className="w-4 h-4 opacity-60" />
+          <HardDrive3D size={16} animated={false} />
           Model Output
         </h4>
         <div className="space-y-4">
@@ -539,7 +549,7 @@ function VRAMWarning({ selectedGpu, requiredVram }: { selectedGpu: string; requi
   return (
     <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
       <div className="flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5" />
+        <span className="mt-0.5"><AlertCircle3D size={20} color="#facc15" animated={false} /></span>
         <div>
           <h4 className="text-sm font-medium text-yellow-400">
             Insufficient VRAM

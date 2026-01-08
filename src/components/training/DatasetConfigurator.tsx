@@ -6,7 +6,16 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, Database, FileText, Image as ImageIcon, Music, Video, Eye, X } from 'lucide-react';
+import {
+  Upload3D,
+  Database3D,
+  FileText3D,
+  Image3D,
+  Music3D,
+  Video3D,
+  Eye3D,
+  X3D
+} from '@/components/icons';
 import type { ModelModality, DatasetConfig } from '@/store/useTrainingStore';
 
 interface DatasetConfiguratorProps {
@@ -32,13 +41,13 @@ const formatDescriptions: Record<DatasetConfig['format'], string> = {
   video: 'Video - MP4/WebM files with descriptions',
 };
 
-const formatIcons: Record<DatasetConfig['format'], typeof FileText> = {
-  jsonl: FileText,
-  csv: FileText,
-  parquet: Database,
-  images: ImageIcon,
-  audio: Music,
-  video: Video,
+const formatIcons: Record<DatasetConfig['format'], React.FC<{ size?: number; color?: string; animated?: boolean }>> = {
+  jsonl: FileText3D,
+  csv: FileText3D,
+  parquet: Database3D,
+  images: Image3D,
+  audio: Music3D,
+  video: Video3D,
 };
 
 export function DatasetConfigurator({ modality, config, onChange }: DatasetConfiguratorProps) {
@@ -167,7 +176,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
                 : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
             }`}
           >
-            <Upload className="w-5 h-5 text-white/60" />
+            <Upload3D size={20} color="rgba(255,255,255,0.6)" animated={false} />
             <div className="text-left">
               <div className="font-medium text-white">Upload Files</div>
               <div className="text-xs text-white/60">Upload your own data</div>
@@ -181,7 +190,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
                 : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
             }`}
           >
-            <Database className="w-5 h-5 text-white/60" />
+            <Database3D size={20} color="rgba(255,255,255,0.6)" animated={false} />
             <div className="text-left">
               <div className="font-medium text-white">HuggingFace</div>
               <div className="text-xs text-white/60">Use existing dataset</div>
@@ -209,7 +218,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
                       : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
                 >
-                  <Icon className="w-6 h-6 text-white/60" />
+                  <Icon size={24} color="rgba(255,255,255,0.6)" animated={false} />
                   <span className="text-sm font-medium text-white uppercase">{format}</span>
                 </button>
               );
@@ -243,7 +252,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
               onChange={(e) => handleFileSelect(e.target.files)}
               className="hidden"
             />
-            <Upload className="w-10 h-10 text-white/40 mx-auto mb-3" />
+            <div className="mx-auto mb-3"><Upload3D size={40} color="rgba(255,255,255,0.4)" animated={false} /></div>
             <p className="text-white/80">
               {isDragging ? 'Drop files here...' : 'Drag & drop files, or click to select'}
             </p>
@@ -261,7 +270,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
                   className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <FileText className="w-4 h-4 text-white/40" />
+                    <FileText3D size={16} color="rgba(255,255,255,0.4)" animated={false} />
                     <span className="text-sm text-white">{file.name}</span>
                     <span className="text-xs text-white/40">
                       {formatFileSize(file.size)}
@@ -272,13 +281,13 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
                       onClick={(e) => { e.stopPropagation(); previewFile(file); }}
                       className="p-1.5 rounded hover:bg-white/10 transition-colors"
                     >
-                      <Eye className="w-4 h-4 text-white/40" />
+                      <Eye3D size={16} color="rgba(255,255,255,0.4)" animated={false} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFile(index); }}
                       className="p-1.5 rounded hover:bg-red-500/20 transition-colors"
                     >
-                      <X className="w-4 h-4 text-red-400" />
+                      <X3D size={16} color="#f87171" animated={false} />
                     </button>
                   </div>
                 </div>
@@ -412,7 +421,7 @@ export function DatasetConfigurator({ modality, config, onChange }: DatasetConfi
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h3 className="font-medium text-white">Data Preview</h3>
               <button onClick={() => setPreviewData(null)} className="p-1 hover:bg-white/10 rounded">
-                <X className="w-5 h-5 text-white/60" />
+                <X3D size={20} color="rgba(255,255,255,0.6)" animated={false} />
               </button>
             </div>
             <pre className="p-4 overflow-auto text-sm text-white/80 font-mono">
