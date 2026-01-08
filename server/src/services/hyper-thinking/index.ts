@@ -182,6 +182,46 @@ export {
   createSkeletonLibrary,
 } from './artifacts/index.js';
 
+// Streaming & Hallucination Detection
+export {
+  // Types
+  type StreamEventType,
+  type StreamingEvent,
+  type StreamingEventMetadata,
+  type HallucinationSignal,
+  type HallucinationIndicators,
+  type SuggestedAction,
+  type HallucinationDetectorConfig,
+  type StreamingManagerConfig,
+  type StreamState,
+  type AutoCorrectionConfig,
+  type CorrectionAttempt,
+  type CorrectionResult,
+  type CorrectionStrategy,
+  type StepAnalysis,
+  type ChainAnalysis,
+  type MonitoringEvent,
+  DEFAULT_HALLUCINATION_DETECTOR_CONFIG,
+  DEFAULT_STREAMING_MANAGER_CONFIG,
+  DEFAULT_AUTO_CORRECTION_CONFIG,
+  // Hallucination Detector
+  HallucinationDetector,
+  getHallucinationDetector,
+  resetHallucinationDetector,
+  createHallucinationDetector,
+  // Streaming Manager
+  StreamingManager,
+  getStreamingManager,
+  resetStreamingManager,
+  createStreamingManager,
+  // Auto-Correction Engine
+  AutoCorrectionEngine,
+  getAutoCorrectionEngine,
+  resetAutoCorrectionEngine,
+  createAutoCorrectionEngine,
+  type CorrectionContext,
+} from './streaming/index.js';
+
 // Convenience function for quick reasoning
 export async function reason(
   prompt: string,
