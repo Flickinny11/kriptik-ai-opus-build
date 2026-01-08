@@ -2,483 +2,355 @@
 
 > **Problem**: AI models use stale knowledge (~1 year training cutoff). KripTik must ensure ALL AI interactions use current, accurate information about APIs, libraries, frameworks, and best practices.
 
-> **Goal**: Implement comprehensive knowledge currency system that affects ALL NLP inputs, caches data efficiently for all users, integrates with training pipeline, and minimizes speed impact.
+> **Goal**: Implement comprehensive knowledge currency system that:
+> 1. Affects ALL NLP inputs across ALL entry points
+> 2. Caches data efficiently with 3-tier cache (memory → Redis → database)
+> 3. **CROSS-USER COLLECTIVE LEARNING**: All learning benefits ALL users globally
+> 4. Integrates with training pipeline for continuous improvement
+> 5. Supports viral traffic scale with millisecond Redis KV transfers
 
 **Created**: 2026-01-08
+**Updated**: 2026-01-08 (Cross-User Architecture + Cursor 2.2 Prompts)
 **Status**: Implementation Plan (Ready for Development)
+**Format**: Cursor 2.2 Prompts for Opus 4.5
 
 ---
 
-## EXECUTIVE SUMMARY
+## CRITICAL: CROSS-USER COLLECTIVE LEARNING ARCHITECTURE
 
-### Current State Analysis
+### The Vision
 
-**What Exists (But Doesn't Work)**:
-1. `dynamic-model-discovery.ts` - Generates date-aware search queries but **never executes them**
-2. `provisioning/research-agent.ts` - Uses **hardcoded static SERVICE_KNOWLEDGE** (stale)
-3. `ai-lab/research-agent.ts` - Uses **simulateWork()** instead of actual research
-4. `unified-context.ts` - Loads 14 context sections, **ALL internal** - zero external knowledge
+When users A, B, C enter 100 NLPs that improve KripTik's knowledge, patterns, and accuracy:
+- User D (who logs in later) **immediately benefits** from ALL that learning
+- Learning is **cumulative across ALL users** - not siloed per-user
+- Real-time propagation via **Redis pubsub** (milliseconds, not seconds)
+- Viral traffic scale ready - handles millions of concurrent users
 
-**Critical Gap**: KripTik has NO real-time knowledge acquisition. All 81 files making AI calls operate on stale model knowledge.
+### Current Architecture Analysis
 
-### What This Plan Delivers
+**✅ ALREADY GLOBAL (Working for cross-user):**
+- `learningPatterns` table → NO userId column (global)
+- `learningStrategies` table → NO userId column (global)
+- `PatternLibraryService` → Singleton, shared across all users
+- `StrategyEvolutionService` → Singleton, shared across all users
 
-1. **Real-Time Knowledge Layer** - Fresh API/library/framework information injected into every AI call
-2. **Intelligent Caching System** - 3-tier cache (memory → Redis → database) with smart TTLs
-3. **Training Pipeline Integration** - Knowledge captured and stored for model fine-tuning
-4. **Minimal Speed Impact** - Parallel fetching, pre-warming, and intelligent caching
+**⚠️ USER-SCOPED but feeds GLOBAL (Correct design):**
+- `ExperienceCaptureService` → Captures per-user traces → Extracts to global patterns
+- Evolution cycles run per-user but output to global storage
 
----
+**❌ GAP: ContextSyncService is BUILD-SCOPED (Not Global):**
+```typescript
+// Current: BUILD-SCOPED (only within one build)
+static getInstance(buildId: string, projectId: string): ContextSyncService {
+    const key = `${buildId}:${projectId}`;  // Scoped to single build
+}
+```
 
-## PART 1: ARCHITECTURE OVERVIEW
+**Needed: GLOBAL cross-user knowledge propagation layer**
 
-### Knowledge Currency Service Architecture
+### Cross-User Architecture Design
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         NLP INPUT (Any Entry Point)                          │
-│   Builder View | Feature Agent | Training | Open Source Studio | Iteration   │
-└────────────────────────────────────┬────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     KNOWLEDGE CURRENCY GATEWAY                               │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    TOPIC EXTRACTION                                  │    │
-│  │  • Parse NLP for technologies (React, Stripe, Supabase, etc.)       │    │
-│  │  • Identify API integrations mentioned                               │    │
-│  │  • Detect library/framework references                               │    │
-│  │  • Extract version requirements                                      │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                     │                                        │
-│                                     ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    3-TIER CACHE LOOKUP                               │    │
-│  │                                                                      │    │
-│  │  ┌──────────┐    ┌──────────┐    ┌──────────┐                       │    │
-│  │  │ TIER 1   │ →  │ TIER 2   │ →  │ TIER 3   │                       │    │
-│  │  │ Memory   │    │ Redis    │    │ Database │                       │    │
-│  │  │ (5 min)  │    │ (1 hour) │    │ (24 hrs) │                       │    │
-│  │  └──────────┘    └──────────┘    └──────────┘                       │    │
-│  │                                                                      │    │
-│  │  If MISS at all tiers → Trigger Knowledge Fetch                     │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                     │                                        │
-│                                     ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    KNOWLEDGE FETCHER (Parallel)                      │    │
-│  │                                                                      │    │
-│  │  • WebSearch (latest docs, changelogs, deprecations)                │    │
-│  │  • Official API docs crawling                                        │    │
-│  │  • npm/PyPI version checking                                         │    │
-│  │  • GitHub release notes                                              │    │
-│  │  • Community best practices (Stack Overflow, Dev.to)                 │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                     │                                        │
-│                                     ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    KNOWLEDGE COMPILER                                │    │
-│  │                                                                      │    │
-│  │  • Synthesize findings into structured context                      │    │
-│  │  • Version-aware information (current vs deprecated)                │    │
-│  │  • Breaking changes highlighted                                      │    │
-│  │  • Migration guides extracted                                        │    │
-│  │  • Store in all cache tiers                                          │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-└────────────────────────────────────┬────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    UNIFIED CONTEXT INJECTION                                 │
-│                                                                              │
-│  Existing 14 sections + NEW Section 15: External Knowledge                  │
-│                                                                              │
-│  Format:                                                                     │
-│  ## CURRENT TECHNOLOGY KNOWLEDGE (As of 2026-01-08)                         │
-│  ### React v19.1 (Latest)                                                   │
-│  - New: Server Components are now default                                   │
-│  - Deprecated: Legacy context API                                           │
-│  - Breaking: useEffect behavior changed                                     │
-│  ### Stripe API v2024-12                                                    │
-│  - New: Payment Intents v3 endpoints                                        │
-│  - Deprecated: /v1/charges endpoint                                         │
-│  - Migration: Use PaymentIntent.create() instead                            │
-└────────────────────────────────────┬────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    AI CODE GENERATION                                        │
-│                                                                              │
-│  Now generates code using CURRENT APIs, libraries, and best practices       │
+│                     CROSS-USER COLLECTIVE LEARNING                          │
+│                                                                             │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐          │
+│  │   USER A         │  │   USER B         │  │   USER C         │          │
+│  │   Build Session  │  │   Build Session  │  │   Build Session  │          │
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘          │
+│           │                     │                     │                     │
+│           ▼                     ▼                     ▼                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                  GLOBAL KNOWLEDGE PUBSUB (Redis)                     │   │
+│  │                                                                      │   │
+│  │  Channel: kriptik:knowledge:global                                   │   │
+│  │  • New patterns discovered                                           │   │
+│  │  • API version changes detected                                      │   │
+│  │  • Best practices learned                                            │   │
+│  │  • Error solutions found                                             │   │
+│  │  • Security vulnerabilities identified                               │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                │                                            │
+│                                ▼                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                  GLOBAL KNOWLEDGE STORE                              │   │
+│  │                                                                      │   │
+│  │  Tier 1: Redis (milliseconds) - Hot knowledge, ALL users            │   │
+│  │  Tier 2: Database (persistent) - All patterns, strategies, currency │   │
+│  │                                                                      │   │
+│  │  NO USER SCOPING - Everything is global                             │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                │                                            │
+│                                ▼                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                  ALL USERS BENEFIT IMMEDIATELY                       │   │
+│  │                                                                      │   │
+│  │  User D logs in → Gets ALL knowledge from A, B, C instantly          │   │
+│  │  User E starts build → Has all patterns learned by everyone          │   │
+│  │  User F makes query → Current API knowledge from all previous users  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## PART 2: COMPLETE GAP ANALYSIS
+## CURSOR 2.2 PROMPTS FOR OPUS 4.5
 
-### A. Current Context System (unified-context.ts)
-
-**What It Loads** (14 sections - ALL internal):
-
-| # | Section | Source | Knowledge Type |
-|---|---------|--------|----------------|
-| 1 | Intent Lock Contract | Database | Internal |
-| 2 | App Soul Template | Database | Internal |
-| 3 | Anti-Slop Rules | Hardcoded | Static |
-| 4 | Build Phase Status | Database | Internal |
-| 5 | Verification Results | Database | Internal |
-| 6 | Tournament Results | Database | Internal |
-| 7 | Error History | Database | Internal |
-| 8 | Learned Patterns | Database | Internal |
-| 9 | Active Strategies | Database | Internal |
-| 10 | Judge Decisions | Database | Internal |
-| 11 | Project Analysis | Database | Internal |
-| 12 | Project Rules | Files | Internal |
-| 13 | User Preferences | Database | Internal |
-| 14 | Provider Hints | Hardcoded | Static/Stale |
-
-**MISSING**: Section 15 - External Knowledge Currency (real-time, fresh)
-
-### B. All NLP Entry Points (81 Files Requiring Integration)
-
-#### Tier 1: Critical Entry Points (Must Have Knowledge Currency)
-
-| File | Purpose | Current Knowledge Source |
-|------|---------|-------------------------|
-| `krip-toe-nite/facade.ts` | Main AI gateway | Unified Context (internal only) |
-| `krip-toe-nite/executor.ts` | Code execution | None |
-| `build-loop.ts` | 6-phase orchestration | Unified Context (internal only) |
-| `feature-agent-service.ts` | Feature building | Unified Context (internal only) |
-| `fix-my-app/orchestrator.ts` | Fix broken apps | Static knowledge |
-| `intent-lock.ts` | Sacred contracts | None |
-| `coding-agent-wrapper.ts` | Direct coding | File context only |
-| `worker-agent.ts` | Build workers | Unified Context (internal only) |
-
-#### Tier 2: Planning & Research (Requires Fresh Knowledge)
-
-| File | Purpose | Current Knowledge Source |
-|------|---------|-------------------------|
-| `provisioning/research-agent.ts` | Service research | **Hardcoded SERVICE_KNOWLEDGE** |
-| `ai-lab/research-agent.ts` | AI lab research | **simulateWork() - fake** |
-| `dynamic-model-discovery.ts` | Model discovery | **Queries generated, never executed** |
-| `market-fit-oracle.ts` | Market analysis | None |
-| `api-autopilot.ts` | API discovery | None |
-
-#### Tier 3: Verification & Quality (Needs Current Standards)
-
-| File | Purpose | Current Knowledge Source |
-|------|---------|-------------------------|
-| `swarm.ts` | Verification swarm | Internal rules only |
-| `anti-slop-detector.ts` | Design quality | Hardcoded rules |
-| `security-scanner.ts` | Security checks | OWASP (potentially stale) |
-| `code-quality.ts` | Quality scoring | Static patterns |
-| `accessibility-verifier.ts` | A11y checking | WCAG (static) |
-
-#### Tier 4: Training Pipeline (Requires Knowledge for Fine-Tuning)
-
-| File | Purpose | Current Knowledge Source |
-|------|---------|-------------------------|
-| `evolution-flywheel.ts` | Learning orchestrator | Internal traces only |
-| `pattern-library.ts` | Pattern storage | Internal patterns only |
-| `ai-judgment.ts` | RLAIF scoring | Internal judgments |
-| `experience-capture.ts` | Trace collection | Internal builds only |
-| `strategy-evolution.ts` | Strategy optimization | Internal strategies |
-
-### C. Caching Infrastructure Analysis
-
-**Existing Cache Mechanisms**:
-
-1. **pattern-library.ts** (5-minute memory cache):
-   ```typescript
-   private patternCache: Map<string, LearnedPattern[]> = new Map();
-   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-   ```
-
-2. **Redis** (already in codebase for multi-sandbox):
-   - Used by `context-bridge.ts` with 24-hour TTL
-   - Can be extended for knowledge currency
-
-3. **Database**:
-   - `learningPatterns` table exists for pattern storage
-   - Need new `knowledgeCurrency` table for external knowledge
-
-**Cache Strategy Recommendation**:
-- Tier 1 (Memory): 5 minutes - hot data, per-instance
-- Tier 2 (Redis): 1 hour - shared across instances
-- Tier 3 (Database): 24 hours - persistent, survives restarts
+> **Instructions**: Execute these prompts in Cursor 2.2 using Agent mode with Claude Opus 4.5.
+> Each prompt is self-contained and should be executed sequentially.
+> After each prompt, verify the changes work before proceeding to the next.
 
 ---
 
-## PART 3: IMPLEMENTATION SPECIFICATION
+### PROMPT 1: Create Global Knowledge Currency Service
 
-### New Files to Create
+**Model**: Claude Opus 4.5 (claude-opus-4-5-20251101)
+**Mode**: Agent
+**Estimated Time**: 15-20 minutes
 
-#### 1. `server/src/services/knowledge/knowledge-currency-service.ts`
+```
+@workspace
 
-**Purpose**: Central service for fetching, caching, and injecting external knowledge.
+Create a new Knowledge Currency Service at `server/src/services/knowledge/knowledge-currency-service.ts` that:
+
+## Requirements
+
+1. **GLOBAL SERVICE** - Singleton pattern, shared across ALL users (not per-user, not per-build)
+
+2. **Core Interface**:
+   ```typescript
+   interface KnowledgeCurrencyService {
+     // Fetch knowledge for topics (with 3-tier cache)
+     fetchKnowledge(topics: string[]): Promise<KnowledgeBundle>;
+
+     // Extract technology topics from any NLP prompt
+     extractTopics(prompt: string): string[];
+
+     // Inject knowledge into unified context
+     injectIntoContext(context: UnifiedContext, prompt: string): Promise<UnifiedContext>;
+
+     // Global pubsub for cross-user learning
+     publishKnowledge(topic: string, knowledge: TopicKnowledge): Promise<void>;
+     subscribeToKnowledge(callback: (topic: string, knowledge: TopicKnowledge) => void): void;
+
+     // Training pipeline integration
+     storeForTraining(knowledge: KnowledgeBundle, buildId: string): Promise<void>;
+
+     // Cache management
+     warmCache(topics: string[]): Promise<void>;
+     getGlobalStats(): Promise<KnowledgeStats>;
+   }
+   ```
+
+3. **Topic Extraction Patterns** - Detect these technologies from NLP:
+   - Frameworks: react, vue, angular, svelte, next.js, nuxt, remix, astro
+   - Services: stripe, supabase, firebase, auth0, clerk, vercel, aws, openai, anthropic
+   - Libraries: prisma, drizzle, zod, tailwind, shadcn, radix, framer-motion, three.js
+   - Runtimes: typescript, node.js, deno, bun, python, rust
+   - Patterns: oauth, jwt, websocket, graphql, rest, trpc
+
+4. **3-Tier Cache** (use existing Redis from `services/infrastructure/redis.ts`):
+   - Tier 1: Memory - 5 minute TTL (CacheTTL.MEDIUM from redis.ts)
+   - Tier 2: Redis - 1 hour TTL (CacheTTL.LONG)
+   - Tier 3: Database - 24 hour TTL (CacheTTL.DAY)
+
+5. **Global Pubsub** (for cross-user learning):
+   - Use Redis pubsub channel `kriptik:knowledge:global`
+   - When ANY user discovers new knowledge, publish to ALL users
+   - All active builds subscribe to channel and update their context
+
+6. **WebSearch Integration**:
+   - Use the existing WebSearch tool pattern
+   - Generate date-aware queries: `${topic} latest changes January 2026`
+   - Parse results into structured TopicKnowledge
+
+## Types to Define
 
 ```typescript
-interface KnowledgeCurrencyService {
-  // Core methods
-  fetchKnowledge(topics: string[]): Promise<KnowledgeBundle>;
-  getCachedKnowledge(topics: string[]): Promise<KnowledgeBundle | null>;
-  injectIntoContext(context: UnifiedContext, topics: string[]): Promise<UnifiedContext>;
-
-  // Topic extraction
-  extractTopics(prompt: string): string[];
-
-  // Cache management
-  warmCache(commonTopics: string[]): Promise<void>;
-  invalidateCache(topic: string): void;
-
-  // Training integration
-  storeForTraining(knowledge: KnowledgeBundle): Promise<void>;
+interface TopicKnowledge {
+  topic: string;
+  currentVersion: string;
+  latestChanges: { type: 'NEW' | 'CHANGE' | 'FIX'; description: string; date: string }[];
+  deprecations: { what: string; useInstead: string; deadline?: string }[];
+  bestPractices: string[];
+  codeExamples: { title: string; code: string }[];
+  officialDocs: string;
+  fetchedAt: Date;
+  confidence: number; // 0-1
+  sources: string[];
 }
 
 interface KnowledgeBundle {
   topics: TopicKnowledge[];
   fetchedAt: Date;
-  sources: string[];
-  confidence: number;
+  isGlobal: true; // Always true - this is cross-user
 }
 
-interface TopicKnowledge {
-  topic: string;           // e.g., "stripe-api"
-  currentVersion: string;  // e.g., "2024-12-01"
-  latestChanges: Change[];
-  deprecations: Deprecation[];
-  migrationGuides: string[];
-  bestPractices: string[];
-  codeExamples: CodeExample[];
-  officialDocs: string;
-  lastVerified: Date;
+interface KnowledgeStats {
+  totalTopics: number;
+  cacheHitRate: number;
+  lastGlobalUpdate: Date;
+  activeSubscribers: number;
 }
 ```
 
-#### 2. `server/src/services/knowledge/topic-extractor.ts`
+## Implementation Notes
 
-**Purpose**: Extract technology topics from NLP prompts.
+- Use singleton pattern: `getKnowledgeCurrencyService(): KnowledgeCurrencyService`
+- Import Redis from `../infrastructure/redis.js`
+- All knowledge is GLOBAL - no userId anywhere
+- On server start, warm cache with common topics
+- Export from `services/knowledge/index.ts`
+
+Create the complete implementation file. Make it production-ready with proper error handling and logging.
+```
+
+---
+
+### PROMPT 2: Add Database Schema for Knowledge Currency
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 5 minutes
+
+```
+@workspace
+
+Add a new table to `server/src/schema.ts` for storing knowledge currency:
+
+## Schema to Add
 
 ```typescript
-// Technology patterns to detect
-const TOPIC_PATTERNS = {
-  // Frameworks
-  frameworks: /\b(react|vue|angular|svelte|next\.?js|nuxt|remix|astro)\b/gi,
+// Knowledge Currency Storage (GLOBAL - no userId)
+export const knowledgeCurrency = sqliteTable('knowledge_currency', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  topic: text('topic').notNull().unique(),
+  currentVersion: text('current_version'),
+  latestChanges: text('latest_changes', { mode: 'json' }), // JSON array
+  deprecations: text('deprecations', { mode: 'json' }), // JSON array
+  bestPractices: text('best_practices', { mode: 'json' }), // JSON array
+  codeExamples: text('code_examples', { mode: 'json' }), // JSON array
+  officialDocs: text('official_docs'),
+  sources: text('sources', { mode: 'json' }), // JSON array
+  confidence: real('confidence').default(0.8),
+  fetchedAt: text('fetched_at').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
 
-  // APIs & Services
-  services: /\b(stripe|supabase|firebase|auth0|clerk|vercel|aws|gcp|azure|openai|anthropic|replicate|twilio|sendgrid|resend|neon|turso|planetscale|upstash)\b/gi,
-
-  // Libraries
-  libraries: /\b(prisma|drizzle|sequelize|mongoose|typeorm|zod|yup|joi|tailwind|shadcn|radix|framer-motion|three\.?js|socket\.io|redis|bull|agenda)\b/gi,
-
-  // Languages & Runtimes
-  runtimes: /\b(typescript|node\.?js|deno|bun|python|rust|go)\b/gi,
-
-  // Patterns
-  patterns: /\b(oauth|jwt|websocket|graphql|rest|trpc|grpc|sse|webhook)\b/gi,
-};
-
-function extractTopics(prompt: string): string[] {
-  const topics = new Set<string>();
-
-  for (const [category, pattern] of Object.entries(TOPIC_PATTERNS)) {
-    const matches = prompt.match(pattern);
-    if (matches) {
-      matches.forEach(m => topics.add(m.toLowerCase()));
-    }
-  }
-
-  return Array.from(topics);
-}
+// Knowledge Usage Tracking (for training pipeline)
+export const knowledgeUsage = sqliteTable('knowledge_usage', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  topicId: text('topic_id').notNull().references(() => knowledgeCurrency.id),
+  buildId: text('build_id'),
+  usedAt: text('used_at').default(sql`(datetime('now'))`).notNull(),
+  buildSuccess: integer('build_success', { mode: 'boolean' }),
+  // NO userId - this is GLOBAL cross-user learning
+});
 ```
 
-#### 3. `server/src/services/knowledge/knowledge-fetcher.ts`
+## Notes
 
-**Purpose**: Fetch fresh knowledge from multiple sources in parallel.
+- NO userId columns - this is intentionally global for cross-user learning
+- Add indexes for topic and expiresAt for fast queries
+- Place near the other learning tables (learningPatterns, learningStrategies)
+```
+
+---
+
+### PROMPT 3: Integrate Knowledge Currency into Unified Context
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
+
+```
+@workspace
+
+Modify `server/src/services/ai/unified-context.ts` to integrate knowledge currency:
+
+## Changes Required
+
+1. **Add knowledgeCurrency to UnifiedContext interface**:
+   ```typescript
+   export interface UnifiedContext {
+     // ... existing 14 sections ...
+
+     // NEW Section 15: External Knowledge Currency (GLOBAL - benefits ALL users)
+     knowledgeCurrency: {
+       topics: TopicKnowledge[];
+       fetchedAt: string;
+       sources: string[];
+       isGlobal: true;
+     } | null;
+   }
+   ```
+
+2. **Modify loadUnifiedContext() function**:
+   - Import `getKnowledgeCurrencyService` from `../knowledge/knowledge-currency-service.js`
+   - Extract topics from the prompt parameter
+   - Fetch knowledge in parallel with other context loading
+   - Add to returned context
+
+3. **Update formatUnifiedContextForCodeGen() function**:
+   - Add section 15 formatting for knowledge currency
+   - Format with clear headers like:
+     ```
+     ## CURRENT TECHNOLOGY KNOWLEDGE (As of 2026-01-08)
+     ### React v19.1 (Latest)
+     - New: Server Components default
+     - Deprecated: Legacy context API
+     ### Stripe API v2024-12
+     - New: PaymentIntent v3
+     - Deprecated: /v1/charges
+     ```
+
+## Key Implementation Details
 
 ```typescript
-interface KnowledgeFetcher {
-  // Source-specific fetchers (run in parallel)
-  fetchFromWebSearch(topic: string): Promise<WebSearchResult>;
-  fetchFromNpmRegistry(packageName: string): Promise<NpmInfo>;
-  fetchFromGitHubReleases(repo: string): Promise<Release[]>;
-  fetchFromOfficialDocs(topic: string): Promise<DocContent>;
-
-  // Aggregator
-  fetchAll(topic: string): Promise<AggregatedKnowledge>;
-}
-
-// Example implementation
-async function fetchAll(topic: string): Promise<AggregatedKnowledge> {
-  // Run all fetches in parallel for speed
-  const [webSearch, npm, github, docs] = await Promise.allSettled([
-    fetchFromWebSearch(`${topic} latest changes ${getCurrentDate()}`),
-    fetchFromNpmRegistry(topic),
-    fetchFromGitHubReleases(getRepoForTopic(topic)),
-    fetchFromOfficialDocs(topic),
-  ]);
-
-  return synthesize(webSearch, npm, github, docs);
-}
-```
-
-#### 4. `server/src/services/knowledge/knowledge-cache.ts`
-
-**Purpose**: 3-tier caching system for knowledge currency.
-
-```typescript
-class KnowledgeCache {
-  private memoryCache: Map<string, CachedKnowledge> = new Map();
-  private redis: Redis;
-
-  private readonly MEMORY_TTL = 5 * 60 * 1000;      // 5 minutes
-  private readonly REDIS_TTL = 60 * 60;             // 1 hour (seconds)
-  private readonly DB_TTL = 24 * 60 * 60 * 1000;    // 24 hours
-
-  async get(topic: string): Promise<TopicKnowledge | null> {
-    // Tier 1: Memory (fastest)
-    const memCached = this.memoryCache.get(topic);
-    if (memCached && !this.isExpired(memCached, this.MEMORY_TTL)) {
-      return memCached.knowledge;
-    }
-
-    // Tier 2: Redis (shared across instances)
-    const redisCached = await this.redis.get(`knowledge:${topic}`);
-    if (redisCached) {
-      const parsed = JSON.parse(redisCached);
-      this.memoryCache.set(topic, { knowledge: parsed, cachedAt: new Date() });
-      return parsed;
-    }
-
-    // Tier 3: Database (persistent)
-    const dbCached = await this.getFromDatabase(topic);
-    if (dbCached && !this.isExpired(dbCached, this.DB_TTL)) {
-      await this.redis.setex(`knowledge:${topic}`, this.REDIS_TTL, JSON.stringify(dbCached.knowledge));
-      this.memoryCache.set(topic, dbCached);
-      return dbCached.knowledge;
-    }
-
-    return null; // Cache miss at all tiers
-  }
-
-  async set(topic: string, knowledge: TopicKnowledge): Promise<void> {
-    const cached = { knowledge, cachedAt: new Date() };
-
-    // Store in all tiers
-    this.memoryCache.set(topic, cached);
-    await this.redis.setex(`knowledge:${topic}`, this.REDIS_TTL, JSON.stringify(knowledge));
-    await this.saveToDatabase(topic, knowledge);
+// In loadUnifiedContext():
+let knowledgeCurrency = null;
+if (options?.prompt) {
+  const knowledgeService = getKnowledgeCurrencyService();
+  const topics = knowledgeService.extractTopics(options.prompt);
+  if (topics.length > 0) {
+    // This pulls from GLOBAL cache - benefits ALL users
+    knowledgeCurrency = await knowledgeService.fetchKnowledge(topics);
   }
 }
-```
 
-### Database Schema Addition
-
-```sql
--- New table for knowledge currency storage
-CREATE TABLE knowledge_currency (
-  id TEXT PRIMARY KEY,
-  topic TEXT NOT NULL UNIQUE,
-  current_version TEXT,
-  latest_changes JSON,        -- Array of changes
-  deprecations JSON,          -- Array of deprecations
-  migration_guides JSON,      -- Array of migration guides
-  best_practices JSON,        -- Array of best practices
-  code_examples JSON,         -- Array of code examples
-  official_docs TEXT,         -- URL to official docs
-  sources JSON,               -- Array of sources used
-  confidence REAL,            -- 0-1 confidence score
-  fetched_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE INDEX idx_knowledge_topic ON knowledge_currency(topic);
-CREATE INDEX idx_knowledge_expires ON knowledge_currency(expires_at);
-```
-
-### Integration Points
-
-#### 1. Unified Context Integration (unified-context.ts)
-
-```typescript
-// Add to UnifiedContext interface
-export interface UnifiedContext {
-  // ... existing 14 sections ...
-
-  // NEW Section 15: External Knowledge Currency
-  knowledgeCurrency: {
-    topics: TopicKnowledge[];
-    fetchedAt: string;
-    sources: string[];
-  } | null;
-}
-
-// Modify loadUnifiedContext() function
-export async function loadUnifiedContext(
-  projectId: string,
-  userId: string,
-  projectPath: string,
-  options?: ContextLoadOptions
-): Promise<UnifiedContext> {
-  // ... existing loading logic ...
-
-  // NEW: Load knowledge currency if topics detected
-  let knowledgeCurrency = null;
-  if (options?.prompt) {
-    const knowledgeService = getKnowledgeCurrencyService();
-    const topics = knowledgeService.extractTopics(options.prompt);
-    if (topics.length > 0) {
-      knowledgeCurrency = await knowledgeService.fetchKnowledge(topics);
-    }
-  }
-
-  return {
-    // ... existing sections ...
-    knowledgeCurrency,
-  };
-}
-
-// Modify formatUnifiedContextForCodeGen() function
-export function formatUnifiedContextForCodeGen(context: UnifiedContext): string {
-  const sections: string[] = [];
-
-  // ... existing section formatting ...
-
-  // NEW: Format knowledge currency section
-  if (context.knowledgeCurrency?.topics.length) {
-    sections.push(formatKnowledgeCurrencySection(context.knowledgeCurrency));
-  }
-
-  return sections.join('\n\n');
-}
-
+// Formatting function
 function formatKnowledgeCurrencySection(knowledge: KnowledgeBundle): string {
   const lines = [
-    '## CURRENT TECHNOLOGY KNOWLEDGE',
-    `As of: ${knowledge.fetchedAt}`,
+    '## CURRENT TECHNOLOGY KNOWLEDGE (GLOBAL - Cross-User Learning)',
+    `Last Updated: ${knowledge.fetchedAt}`,
+    `Sources: ${knowledge.sources.length} verified sources`,
     '',
   ];
 
   for (const topic of knowledge.topics) {
-    lines.push(`### ${topic.topic} (v${topic.currentVersion})`);
+    lines.push(`### ${topic.topic.toUpperCase()} v${topic.currentVersion || 'latest'}`);
 
-    if (topic.latestChanges.length) {
+    if (topic.latestChanges?.length) {
       lines.push('**Recent Changes:**');
-      topic.latestChanges.forEach(c => lines.push(`- ${c.type}: ${c.description}`));
+      topic.latestChanges.slice(0, 5).forEach(c =>
+        lines.push(`- ${c.type}: ${c.description}`)
+      );
     }
 
-    if (topic.deprecations.length) {
-      lines.push('**Deprecations:**');
-      topic.deprecations.forEach(d => lines.push(`- ⚠️ ${d.what}: ${d.useInstead}`));
+    if (topic.deprecations?.length) {
+      lines.push('**⚠️ Deprecations:**');
+      topic.deprecations.forEach(d =>
+        lines.push(`- ${d.what} → Use: ${d.useInstead}`)
+      );
     }
 
-    if (topic.bestPractices.length) {
-      lines.push('**Current Best Practices:**');
-      topic.bestPractices.forEach(bp => lines.push(`- ${bp}`));
+    if (topic.bestPractices?.length) {
+      lines.push('**Best Practices:**');
+      topic.bestPractices.slice(0, 3).forEach(bp =>
+        lines.push(`- ${bp}`)
+      );
     }
 
     lines.push('');
@@ -488,364 +360,881 @@ function formatKnowledgeCurrencySection(knowledge: KnowledgeBundle): string {
 }
 ```
 
-#### 2. KripToeNite Facade Integration (krip-toe-nite/facade.ts)
-
-```typescript
-// Modify generate() method to include knowledge currency
-async generate(prompt: string, ctx: RequestContext): Promise<KTNResult> {
-  // Extract topics from prompt
-  const knowledgeService = getKnowledgeCurrencyService();
-  const topics = knowledgeService.extractTopics(prompt);
-
-  // Fetch knowledge in parallel with other setup
-  const [context, knowledge] = await Promise.all([
-    loadUnifiedContext(ctx.projectId, ctx.userId, ctx.projectPath || ''),
-    topics.length > 0 ? knowledgeService.fetchKnowledge(topics) : null,
-  ]);
-
-  // Inject knowledge into context
-  if (knowledge) {
-    context.knowledgeCurrency = knowledge;
-  }
-
-  // ... rest of generation logic ...
-}
-```
-
-#### 3. Build Loop Integration (build-loop.ts)
-
-```typescript
-// At start of each phase, refresh knowledge for relevant topics
-private async refreshKnowledgeForPhase(phase: BuildPhase): Promise<void> {
-  const knowledgeService = getKnowledgeCurrencyService();
-
-  // Extract topics from current feature requirements
-  const features = await this.getCurrentFeatures();
-  const allTopics = new Set<string>();
-
-  for (const feature of features) {
-    const topics = knowledgeService.extractTopics(feature.description);
-    topics.forEach(t => allTopics.add(t));
-  }
-
-  // Pre-fetch knowledge for all detected topics
-  if (allTopics.size > 0) {
-    await knowledgeService.warmCache(Array.from(allTopics));
-  }
-}
-```
-
-#### 4. Training Pipeline Integration (evolution-flywheel.ts)
-
-```typescript
-// Store knowledge alongside build traces for training
-async captureExperienceWithKnowledge(trace: BuildTrace): Promise<void> {
-  const knowledgeService = getKnowledgeCurrencyService();
-
-  // Get knowledge that was used during this build
-  const knowledgeUsed = trace.knowledgeCurrency;
-
-  if (knowledgeUsed) {
-    // Store for training data generation
-    await knowledgeService.storeForTraining({
-      traceId: trace.id,
-      topics: knowledgeUsed.topics,
-      usedAt: new Date(),
-      buildSuccess: trace.success,
-    });
-  }
-}
-
-// Generate training pairs that include knowledge context
-async generateTrainingPairs(): Promise<PreferencePair[]> {
-  const pairs: PreferencePair[] = [];
-
-  // Include knowledge currency in training prompts
-  for (const trace of recentTraces) {
-    const knowledgeContext = await getKnowledgeUsedInTrace(trace.id);
-
-    pairs.push({
-      prompt: `${trace.originalPrompt}\n\n${formatKnowledgeForTraining(knowledgeContext)}`,
-      chosen: trace.successfulCode,
-      rejected: trace.failedAttempts[0]?.code,
-    });
-  }
-
-  return pairs;
-}
-```
-
-#### 5. Verification Swarm Integration (swarm.ts)
-
-```typescript
-// Security scanner uses current vulnerability databases
-async runSecurityScan(code: string): Promise<SecurityResult> {
-  const knowledgeService = getKnowledgeCurrencyService();
-
-  // Get current security knowledge
-  const securityKnowledge = await knowledgeService.fetchKnowledge([
-    'owasp-top-10-2024',
-    'cve-database-current',
-    'npm-advisories',
-  ]);
-
-  // Use current knowledge in security analysis
-  const prompt = `
-    Analyze this code for security vulnerabilities.
-
-    CURRENT SECURITY KNOWLEDGE:
-    ${formatKnowledgeForSecurity(securityKnowledge)}
-
-    CODE:
-    ${code}
-  `;
-
-  // ... rest of security scanning ...
-}
+Make these changes to unified-context.ts. Ensure backward compatibility with existing code that doesn't pass a prompt.
 ```
 
 ---
 
-## PART 4: SPEED OPTIMIZATION STRATEGIES
+### PROMPT 4: Integrate Knowledge Currency into KripToeNite Facade
 
-### 1. Parallel Fetching
-All knowledge sources fetched simultaneously using `Promise.allSettled()`.
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
 
-### 2. Cache Pre-Warming
-```typescript
-// Warm cache for common topics on server start
-const COMMON_TOPICS = [
-  'react', 'next.js', 'typescript', 'tailwind',
-  'stripe', 'supabase', 'clerk', 'vercel',
-  'prisma', 'drizzle', 'zod',
-];
-
-async function warmCacheOnStartup(): Promise<void> {
-  const knowledgeService = getKnowledgeCurrencyService();
-  await knowledgeService.warmCache(COMMON_TOPICS);
-}
 ```
+@workspace
 
-### 3. Background Refresh
-```typescript
-// Refresh expiring knowledge in background
-setInterval(async () => {
-  const expiringTopics = await getTopicsExpiringWithin(15 * 60 * 1000); // 15 min
-  for (const topic of expiringTopics) {
-    await refreshKnowledge(topic);
-  }
-}, 5 * 60 * 1000); // Every 5 minutes
-```
+Modify `server/src/services/ai/krip-toe-nite/facade.ts` to use knowledge currency:
 
-### 4. Speculative Fetching
-```typescript
-// When user starts typing, speculatively fetch likely topics
-onPromptChange(partialPrompt: string) {
-  const likelyTopics = extractTopics(partialPrompt);
-  // Fire and forget - cache will be warm when needed
-  knowledgeService.warmCache(likelyTopics);
-}
-```
+## Requirements
 
-### 5. Request Coalescing
-```typescript
-// Multiple requests for same topic share single fetch
-private pendingFetches = new Map<string, Promise<TopicKnowledge>>();
+1. **Import knowledge currency service**:
+   ```typescript
+   import { getKnowledgeCurrencyService } from '../../knowledge/knowledge-currency-service.js';
+   ```
 
-async fetchKnowledge(topic: string): Promise<TopicKnowledge> {
-  if (this.pendingFetches.has(topic)) {
-    return this.pendingFetches.get(topic)!;
-  }
+2. **Modify generate() method**:
+   - Extract topics from prompt FIRST
+   - Fetch knowledge in PARALLEL with context loading (for speed)
+   - Inject knowledge into context before generation
+   - Store knowledge usage for training pipeline
 
-  const fetchPromise = this.doFetch(topic);
-  this.pendingFetches.set(topic, fetchPromise);
+3. **Implementation Pattern**:
+   ```typescript
+   async generate(prompt: string, ctx: RequestContext): Promise<KTNResult> {
+     const knowledgeService = getKnowledgeCurrencyService();
 
-  try {
-    return await fetchPromise;
-  } finally {
-    this.pendingFetches.delete(topic);
-  }
-}
+     // Extract topics immediately
+     const topics = knowledgeService.extractTopics(prompt);
+
+     // Fetch knowledge AND context in PARALLEL (speed optimization)
+     const [context, knowledge] = await Promise.all([
+       loadUnifiedContext(ctx.projectId, ctx.userId, ctx.projectPath || '', { prompt }),
+       topics.length > 0 ? knowledgeService.fetchKnowledge(topics) : null,
+     ]);
+
+     // Inject knowledge into context (this is GLOBAL - benefits all users)
+     if (knowledge) {
+       context.knowledgeCurrency = knowledge;
+     }
+
+     // ... rest of generation logic uses knowledge-enhanced context ...
+
+     // After successful generation, track usage for training
+     if (knowledge && ctx.buildId) {
+       await knowledgeService.storeForTraining(knowledge, ctx.buildId);
+     }
+   }
+   ```
+
+4. **Speed Consideration**:
+   - Use `Promise.all` for parallel fetching
+   - Knowledge comes from cache 85%+ of the time (milliseconds)
+   - Only web search on cache miss
+
+Make these changes to the facade. KripToeNite is the main entry point for most AI operations, so this integration affects ALL NLP inputs.
 ```
 
 ---
 
-## PART 5: TOPIC-SPECIFIC KNOWLEDGE SOURCES
+### PROMPT 5: Integrate Knowledge Currency into Build Loop
 
-### Technology → Source Mapping
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
 
-| Topic Category | Primary Sources | Refresh Interval |
-|----------------|-----------------|------------------|
-| **React Ecosystem** | React blog, GitHub releases, npm | 6 hours |
-| **Next.js** | Vercel blog, GitHub, npm | 6 hours |
-| **Stripe** | Stripe changelog, API docs | 12 hours |
-| **Supabase** | Supabase blog, GitHub | 12 hours |
-| **Auth (Clerk, Auth0)** | Official changelogs | 24 hours |
-| **ORMs (Prisma, Drizzle)** | GitHub releases, npm | 12 hours |
-| **AI APIs (OpenAI, Anthropic)** | API changelogs | 6 hours |
-| **Security (OWASP)** | OWASP feeds, CVE database | 24 hours |
-| **Cloud (AWS, GCP, Vercel)** | Service changelogs | 24 hours |
+```
+@workspace
 
-### Example Knowledge Entry (Stripe)
+Modify `server/src/services/automation/build-loop.ts` to use knowledge currency:
 
-```json
-{
-  "topic": "stripe",
-  "currentVersion": "2024-12-18",
-  "latestChanges": [
-    {
-      "type": "NEW",
-      "description": "Payment Intent confirmation now supports 3DS2 by default",
-      "date": "2024-12-15"
+## Requirements
+
+1. **Import knowledge currency service** at top of file
+
+2. **Pre-warm cache at Phase 1 start**:
+   - Extract topics from all features in the build
+   - Pre-fetch knowledge for ALL detected topics
+   - This ensures cache is hot for Phase 2 parallel building
+
+3. **Subscribe to global knowledge updates**:
+   - On orchestrator initialization, subscribe to global pubsub
+   - When ANY user discovers new knowledge, update our build's context
+   - This enables real-time cross-user learning
+
+4. **Implementation Points**:
+
+   ```typescript
+   // In constructor or start():
+   private async initializeKnowledgeCurrency(): Promise<void> {
+     const knowledgeService = getKnowledgeCurrencyService();
+
+     // Extract topics from all features
+     const allTopics = new Set<string>();
+     for (const feature of this.state.features) {
+       const topics = knowledgeService.extractTopics(feature.description);
+       topics.forEach(t => allTopics.add(t));
+     }
+
+     // Pre-warm cache for all detected topics
+     if (allTopics.size > 0) {
+       await knowledgeService.warmCache(Array.from(allTopics));
+       this.log(`[Knowledge] Pre-warmed cache for ${allTopics.size} topics`);
+     }
+
+     // Subscribe to GLOBAL knowledge updates (cross-user learning)
+     knowledgeService.subscribeToKnowledge((topic, knowledge) => {
+       this.log(`[Knowledge] Global update received: ${topic}`);
+       // Automatically available to our agents via unified context
+     });
+   }
+
+   // Call in start() method
+   await this.initializeKnowledgeCurrency();
+   ```
+
+5. **At each phase transition**:
+   - Check if any new topics were mentioned in artifacts
+   - Pre-warm cache for new topics
+
+Make these changes to build-loop.ts. The build loop orchestrates 3-5 parallel agents, so knowledge currency must be available to ALL of them via shared context.
+```
+
+---
+
+### PROMPT 6: Integrate Knowledge Currency into Feature Agent Service
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
+
+```
+@workspace
+
+Modify `server/src/services/feature-agent/feature-agent-service.ts` to use knowledge currency:
+
+## Requirements
+
+1. **Import knowledge currency service**
+
+2. **Initialize knowledge currency when agent deploys**:
+   - Extract topics from feature prompt
+   - Pre-fetch knowledge before implementation starts
+   - Subscribe to global updates
+
+3. **Share knowledge between parallel Feature Agents**:
+   - If user deploys 6 Feature Agents, they all share knowledge
+   - When one agent discovers something, others benefit immediately
+
+4. **Implementation**:
+
+   ```typescript
+   async startImplementation(agentId: string): Promise<void> {
+     const runtime = this.agents.get(agentId);
+     if (!runtime) throw new Error('Agent not found');
+
+     const knowledgeService = getKnowledgeCurrencyService();
+
+     // Extract and fetch knowledge for this feature
+     const topics = knowledgeService.extractTopics(runtime.prompt);
+     if (topics.length > 0) {
+       await knowledgeService.warmCache(topics);
+       this.emit('knowledge_loaded', { agentId, topics });
+     }
+
+     // Subscribe to global updates (cross-user + cross-agent learning)
+     knowledgeService.subscribeToKnowledge((topic, knowledge) => {
+       // Emit to all active agents in this session
+       for (const [id, agent] of this.agents) {
+         if (agent.status === 'running') {
+           this.emit('knowledge_update', { agentId: id, topic, knowledge });
+         }
+       }
+     });
+
+     // ... rest of implementation ...
+   }
+   ```
+
+5. **Track knowledge usage for training**:
+   - On successful feature completion, record which knowledge was used
+   - This feeds into training pipeline for model improvement
+
+Make these changes to feature-agent-service.ts. Feature agents can run in parallel (up to 6), so knowledge sharing is critical.
+```
+
+---
+
+### PROMPT 7: Integrate Knowledge Currency into Evolution Flywheel (Training Pipeline)
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 15 minutes
+
+```
+@workspace
+
+Modify `server/src/services/learning/evolution-flywheel.ts` to integrate knowledge currency into the training pipeline:
+
+## Requirements
+
+1. **Store knowledge alongside build traces**:
+   - When capturing experiences, include which knowledge was used
+   - This creates training pairs that include knowledge context
+
+2. **Generate knowledge-enriched preference pairs**:
+   - Training prompts should include the knowledge that was available
+   - Model learns to use current knowledge effectively
+
+3. **Feed back discovered patterns to knowledge currency**:
+   - When pattern library learns new patterns, publish to global knowledge
+   - Cross-user learning: patterns learned by user A benefit user B
+
+4. **Implementation**:
+
+   ```typescript
+   // In collectTraces():
+   async collectTraces(userId: string): Promise<BuildTrace[]> {
+     const experienceCapture = new ExperienceCaptureService(userId);
+     const traces = await experienceCapture.getRecentTraces();
+
+     // Enrich traces with knowledge that was used
+     const knowledgeService = getKnowledgeCurrencyService();
+     for (const trace of traces) {
+       const topics = knowledgeService.extractTopics(trace.originalPrompt);
+       trace.knowledgeUsed = await knowledgeService.fetchKnowledge(topics);
+     }
+
+     return traces;
+   }
+
+   // In generatePreferencePairs():
+   async generatePreferencePairs(traces: BuildTrace[]): Promise<PreferencePair[]> {
+     const pairs: PreferencePair[] = [];
+
+     for (const trace of traces) {
+       // Include knowledge in training prompt
+       const knowledgeContext = trace.knowledgeUsed
+         ? formatKnowledgeForTraining(trace.knowledgeUsed)
+         : '';
+
+       pairs.push({
+         prompt: `${trace.originalPrompt}\n\n${knowledgeContext}`,
+         chosen: trace.successfulCode,
+         rejected: trace.failedAttempts?.[0]?.code,
+       });
+     }
+
+     return pairs;
+   }
+
+   // In extractPatterns():
+   async extractPatterns(traces: BuildTrace[]): Promise<void> {
+     const patternLibrary = getPatternLibrary();
+     const knowledgeService = getKnowledgeCurrencyService();
+
+     for (const trace of traces) {
+       const patterns = await patternLibrary.extractFromTrace(trace);
+
+       for (const pattern of patterns) {
+         // Persist pattern (already GLOBAL via pattern library)
+         await patternLibrary.persistPattern(pattern);
+
+         // ALSO publish to knowledge pubsub for cross-user real-time sharing
+         await knowledgeService.publishKnowledge(`pattern:${pattern.category}`, {
+           topic: `learned-pattern:${pattern.name}`,
+           currentVersion: '1.0',
+           latestChanges: [{ type: 'NEW', description: pattern.description, date: new Date().toISOString() }],
+           deprecations: [],
+           bestPractices: [pattern.solution],
+           codeExamples: pattern.codeExamples || [],
+           officialDocs: '',
+           fetchedAt: new Date(),
+           confidence: pattern.confidence,
+           sources: ['kriptik-learning-engine'],
+         });
+       }
+     }
+   }
+   ```
+
+5. **Global Knowledge Stats**:
+   - Track how knowledge currency affects build success rate
+   - Report in evolution cycle results
+
+Make these changes to evolution-flywheel.ts. This is the core of the training pipeline - knowledge integration here ensures models learn to use current information.
+```
+
+---
+
+### PROMPT 8: Integrate Knowledge Currency into Verification Swarm
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
+
+```
+@workspace
+
+Modify `server/src/services/verification/swarm.ts` to use knowledge currency for up-to-date verification:
+
+## Requirements
+
+1. **Security Scanner uses current vulnerability knowledge**:
+   - Fetch OWASP, CVE database info before scanning
+   - Detect vulnerabilities discovered recently (not in model training data)
+
+2. **Code Quality uses current best practices**:
+   - Libraries change their recommended patterns
+   - Use knowledge currency to check against current standards
+
+3. **Implementation for Security Scanner**:
+
+   ```typescript
+   async runSecurityScan(code: string): Promise<SecurityResult> {
+     const knowledgeService = getKnowledgeCurrencyService();
+
+     // Fetch current security knowledge
+     const securityKnowledge = await knowledgeService.fetchKnowledge([
+       'owasp-top-10',
+       'npm-security-advisories',
+       'node-security',
+     ]);
+
+     // Include in security analysis prompt
+     const prompt = `
+       Analyze this code for security vulnerabilities.
+
+       CURRENT SECURITY KNOWLEDGE (January 2026):
+       ${formatSecurityKnowledge(securityKnowledge)}
+
+       CODE TO ANALYZE:
+       \`\`\`
+       ${code}
+       \`\`\`
+
+       Check for:
+       - Recent vulnerabilities in dependencies
+       - Deprecated security patterns
+       - Current best practices for auth, input validation, etc.
+     `;
+
+     // ... rest of security scanning ...
+   }
+   ```
+
+4. **Implementation for Code Quality**:
+
+   ```typescript
+   async runCodeQualityCheck(code: string, framework: string): Promise<QualityResult> {
+     const knowledgeService = getKnowledgeCurrencyService();
+
+     // Fetch current best practices for detected framework
+     const knowledge = await knowledgeService.fetchKnowledge([framework]);
+
+     // Use current best practices in quality check
+     const currentPractices = knowledge?.topics[0]?.bestPractices || [];
+
+     // ... include in quality analysis prompt ...
+   }
+   ```
+
+Make these changes to swarm.ts. The verification swarm runs continuously during builds, so it needs current knowledge to catch issues with deprecated patterns.
+```
+
+---
+
+### PROMPT 9: Create Global Knowledge Pubsub Service
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 15 minutes
+
+```
+@workspace
+
+Create `server/src/services/knowledge/global-knowledge-pubsub.ts` for cross-user real-time learning:
+
+## Requirements
+
+1. **Redis Pubsub for GLOBAL knowledge sharing**:
+   - Channel: `kriptik:knowledge:global`
+   - When ANY user's build discovers knowledge, publish
+   - ALL active builds receive updates immediately
+
+2. **Interface**:
+   ```typescript
+   interface GlobalKnowledgePubsub {
+     // Publish new knowledge (available to ALL users instantly)
+     publish(topic: string, knowledge: TopicKnowledge): Promise<void>;
+
+     // Subscribe to global knowledge updates
+     subscribe(callback: KnowledgeCallback): () => void; // Returns unsubscribe function
+
+     // Get subscriber count (for stats)
+     getSubscriberCount(): number;
+
+     // Publish pattern discovered
+     publishPattern(pattern: LearnedPattern): Promise<void>;
+
+     // Publish API change detected
+     publishAPIChange(topic: string, change: APIChange): Promise<void>;
+
+     // Publish error solution found
+     publishSolution(error: string, solution: string): Promise<void>;
+   }
+   ```
+
+3. **Implementation using existing Redis**:
+   ```typescript
+   import { getRedis } from '../infrastructure/redis.js';
+
+   class GlobalKnowledgePubsubService {
+     private readonly CHANNEL = 'kriptik:knowledge:global';
+     private subscribers: Set<KnowledgeCallback> = new Set();
+     private redis: Redis;
+
+     constructor() {
+       this.redis = getRedis();
+       this.startSubscriber();
+     }
+
+     private async startSubscriber(): Promise<void> {
+       // Subscribe to Redis channel
+       // Note: Upstash REST Redis doesn't support traditional pub/sub
+       // Use polling or server-sent events pattern instead
+
+       // For Upstash, use a polling approach with LPOP from a list
+       setInterval(async () => {
+         const message = await this.redis.lpop(`${this.CHANNEL}:queue`);
+         if (message) {
+           const { topic, knowledge } = JSON.parse(message);
+           this.notifySubscribers(topic, knowledge);
+         }
+       }, 100); // 100ms polling - very fast
+     }
+
+     async publish(topic: string, knowledge: TopicKnowledge): Promise<void> {
+       const message = JSON.stringify({ topic, knowledge, timestamp: Date.now() });
+
+       // Push to queue for subscribers to receive
+       await this.redis.rpush(`${this.CHANNEL}:queue`, message);
+
+       // Also update the global cache
+       await this.redis.set(`knowledge:${topic}`, JSON.stringify(knowledge), { ex: 3600 });
+
+       console.log(`[GlobalKnowledge] Published: ${topic}`);
+     }
+
+     subscribe(callback: KnowledgeCallback): () => void {
+       this.subscribers.add(callback);
+       return () => this.subscribers.delete(callback);
+     }
+
+     private notifySubscribers(topic: string, knowledge: TopicKnowledge): void {
+       for (const callback of this.subscribers) {
+         try {
+           callback(topic, knowledge);
+         } catch (error) {
+           console.error('[GlobalKnowledge] Subscriber error:', error);
+         }
+       }
+     }
+   }
+
+   // Singleton
+   let instance: GlobalKnowledgePubsubService | null = null;
+   export function getGlobalKnowledgePubsub(): GlobalKnowledgePubsubService {
+     if (!instance) {
+       instance = new GlobalKnowledgePubsubService();
+     }
+     return instance;
+   }
+   ```
+
+4. **Cross-User Learning Flow**:
+   - User A's build discovers Stripe API changed → publish
+   - User B's build (running in parallel) receives update
+   - User B's context now includes Stripe change
+   - User C's next request gets cached knowledge from A+B
+
+Create the complete implementation. This is the core of cross-user real-time learning - ALL users benefit from ALL other users' discoveries instantly.
+```
+
+---
+
+### PROMPT 10: Create Knowledge Currency Warming Service
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
+
+```
+@workspace
+
+Create `server/src/services/knowledge/knowledge-warmer.ts` for proactive cache warming:
+
+## Requirements
+
+1. **Warm cache on server startup**:
+   - Pre-fetch knowledge for most common technologies
+   - Ensures first requests are cache hits (fast)
+
+2. **Background refresh of expiring knowledge**:
+   - Check for knowledge expiring in next 15 minutes
+   - Refresh in background before expiry
+
+3. **Speculative warming from NLP patterns**:
+   - When user starts typing, extract likely topics
+   - Pre-warm cache speculatively
+
+4. **Common topics to warm**:
+   ```typescript
+   const COMMON_TOPICS = [
+     // Frameworks
+     'react', 'next.js', 'vue', 'nuxt', 'svelte', 'astro',
+     // Backend
+     'express', 'fastify', 'hono', 'node.js', 'bun', 'deno',
+     // Databases
+     'prisma', 'drizzle', 'supabase', 'turso', 'postgres', 'mongodb',
+     // Auth
+     'better-auth', 'clerk', 'auth0', 'next-auth',
+     // Payments
+     'stripe', 'lemonsqueezy', 'paddle',
+     // AI
+     'openai', 'anthropic', 'claude', 'gpt-4', 'replicate',
+     // Styling
+     'tailwind', 'shadcn', 'radix', 'framer-motion',
+     // Validation
+     'zod', 'yup', 'valibot',
+     // Deployment
+     'vercel', 'cloudflare', 'aws', 'railway',
+   ];
+   ```
+
+5. **Implementation**:
+   ```typescript
+   class KnowledgeWarmerService {
+     private knowledgeService: KnowledgeCurrencyService;
+     private refreshInterval: NodeJS.Timer | null = null;
+
+     async startWarming(): Promise<void> {
+       // Initial warm on startup
+       console.log('[KnowledgeWarmer] Starting initial cache warm...');
+       await this.warmCommonTopics();
+
+       // Background refresh every 5 minutes
+       this.refreshInterval = setInterval(async () => {
+         await this.refreshExpiring();
+       }, 5 * 60 * 1000);
+     }
+
+     private async warmCommonTopics(): Promise<void> {
+       // Warm in batches of 5 for speed
+       for (let i = 0; i < COMMON_TOPICS.length; i += 5) {
+         const batch = COMMON_TOPICS.slice(i, i + 5);
+         await Promise.all(batch.map(t => this.knowledgeService.warmCache([t])));
+       }
+       console.log(`[KnowledgeWarmer] Warmed ${COMMON_TOPICS.length} topics`);
+     }
+
+     private async refreshExpiring(): Promise<void> {
+       const expiring = await this.getTopicsExpiringWithin(15 * 60 * 1000);
+       if (expiring.length > 0) {
+         console.log(`[KnowledgeWarmer] Refreshing ${expiring.length} expiring topics`);
+         await Promise.all(expiring.map(t => this.knowledgeService.warmCache([t])));
+       }
+     }
+
+     // Called speculatively as user types
+     async warmSpeculative(partialPrompt: string): Promise<void> {
+       const topics = this.knowledgeService.extractTopics(partialPrompt);
+       if (topics.length > 0) {
+         // Fire and forget - cache will be ready when user submits
+         this.knowledgeService.warmCache(topics).catch(() => {});
+       }
+     }
+   }
+   ```
+
+Create the complete implementation. This ensures cache is always warm and requests are fast.
+```
+
+---
+
+### PROMPT 11: Wire Knowledge Currency to All Entry Points
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 15 minutes
+
+```
+@workspace
+
+Wire knowledge currency to ALL remaining entry points that make AI calls:
+
+## Files to Modify
+
+1. **`server/src/services/ai/intent-lock.ts`**:
+   - Extract topics from user's NLP prompt
+   - Include current technology knowledge in intent generation
+   - Sacred Contract should reflect CURRENT capabilities, not stale ones
+
+2. **`server/src/services/ai/coding-agent-wrapper.ts`**:
+   - Inject knowledge into every coding call
+   - Agents work with current API patterns
+
+3. **`server/src/services/automation/worker-agent.ts`**:
+   - Workers need current knowledge for accurate code generation
+
+4. **`server/src/services/fix-my-app/orchestrator.ts`**:
+   - Fix My App needs current knowledge to fix imported projects
+   - Detect outdated patterns in imported code
+
+5. **`server/src/services/provisioning/research-agent.ts`**:
+   - Replace hardcoded SERVICE_KNOWLEDGE with live knowledge currency
+   - This was identified as using stale static data
+
+6. **`server/src/services/ai-lab/research-agent.ts`**:
+   - Replace simulateWork() with real knowledge fetching
+   - This was identified as completely fake
+
+## Pattern for Each File
+
+```typescript
+// At start of AI operation:
+const knowledgeService = getKnowledgeCurrencyService();
+const topics = knowledgeService.extractTopics(prompt);
+const knowledge = topics.length > 0
+  ? await knowledgeService.fetchKnowledge(topics)
+  : null;
+
+// Inject into context or prompt:
+const enrichedPrompt = knowledge
+  ? `${prompt}\n\n${formatKnowledge(knowledge)}`
+  : prompt;
+```
+
+## Special: Fix research-agent.ts Static Knowledge
+
+The `SERVICE_KNOWLEDGE` constant in provisioning/research-agent.ts is completely static:
+```typescript
+const SERVICE_KNOWLEDGE = {
+  stripe: { /* stale info */ },
+  supabase: { /* stale info */ },
+  // etc
+};
+```
+
+Replace with:
+```typescript
+async function getServiceKnowledge(service: string): Promise<ServiceInfo> {
+  const knowledgeService = getKnowledgeCurrencyService();
+  const knowledge = await knowledgeService.fetchKnowledge([service]);
+  return transformToServiceInfo(knowledge);
+}
+```
+
+Make all these changes. After this, ALL 81 files making AI calls will have access to current knowledge.
+```
+
+---
+
+### PROMPT 12: Add Knowledge Currency Stats Endpoint
+
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 10 minutes
+
+```
+@workspace
+
+Add API endpoints for knowledge currency stats and management:
+
+## Create `server/src/routes/knowledge.ts`
+
+```typescript
+import { Router } from 'express';
+import { getKnowledgeCurrencyService } from '../services/knowledge/knowledge-currency-service.js';
+import { authMiddleware } from '../middleware/auth.js';
+
+const router = Router();
+
+// Get global knowledge stats (no auth needed - public stats)
+router.get('/stats', async (req, res) => {
+  const knowledgeService = getKnowledgeCurrencyService();
+  const stats = await knowledgeService.getGlobalStats();
+
+  res.json({
+    success: true,
+    stats: {
+      totalTopics: stats.totalTopics,
+      cacheHitRate: `${(stats.cacheHitRate * 100).toFixed(1)}%`,
+      lastGlobalUpdate: stats.lastGlobalUpdate,
+      activeSubscribers: stats.activeSubscribers,
+      isGlobal: true, // Always true - cross-user learning
     },
-    {
-      "type": "CHANGE",
-      "description": "Webhook signatures now use SHA-512",
-      "date": "2024-12-01"
-    }
-  ],
-  "deprecations": [
-    {
-      "what": "/v1/charges endpoint",
-      "useInstead": "PaymentIntent.create()",
-      "deadline": "2025-06-01"
-    }
-  ],
-  "bestPractices": [
-    "Always use PaymentIntent for new integrations",
-    "Implement idempotency keys for all POST requests",
-    "Use webhooks for async payment confirmation"
-  ],
-  "codeExamples": [
-    {
-      "title": "Create PaymentIntent (Current)",
-      "code": "const paymentIntent = await stripe.paymentIntents.create({\n  amount: 1000,\n  currency: 'usd',\n  automatic_payment_methods: { enabled: true },\n});"
-    }
-  ],
-  "officialDocs": "https://stripe.com/docs/api",
-  "fetchedAt": "2026-01-08T10:30:00Z"
-}
+  });
+});
+
+// Get knowledge for specific topics (for debugging/inspection)
+router.get('/topics/:topic', async (req, res) => {
+  const knowledgeService = getKnowledgeCurrencyService();
+  const knowledge = await knowledgeService.fetchKnowledge([req.params.topic]);
+
+  res.json({
+    success: true,
+    knowledge: knowledge?.topics[0] || null,
+    isGlobal: true,
+  });
+});
+
+// Manually trigger cache warm (admin only)
+router.post('/warm', authMiddleware, async (req, res) => {
+  const { topics } = req.body;
+  const knowledgeService = getKnowledgeCurrencyService();
+
+  await knowledgeService.warmCache(topics || []);
+
+  res.json({
+    success: true,
+    message: `Warmed cache for ${topics?.length || 0} topics`,
+  });
+});
+
+// Force refresh a topic (admin only)
+router.post('/refresh/:topic', authMiddleware, async (req, res) => {
+  const knowledgeService = getKnowledgeCurrencyService();
+
+  // Clear cache and refetch
+  await knowledgeService.invalidateCache(req.params.topic);
+  const knowledge = await knowledgeService.fetchKnowledge([req.params.topic]);
+
+  res.json({
+    success: true,
+    knowledge: knowledge?.topics[0] || null,
+    refreshedAt: new Date().toISOString(),
+  });
+});
+
+export default router;
 ```
 
----
-
-## PART 6: IMPLEMENTATION ORDER
-
-### Phase 1: Foundation (Week 1)
-1. Create `knowledge-currency-service.ts`
-2. Create `topic-extractor.ts`
-3. Create `knowledge-cache.ts`
-4. Add database schema for knowledge storage
-5. Basic WebSearch integration
-
-### Phase 2: Integration (Week 2)
-1. Integrate with `unified-context.ts` (Section 15)
-2. Integrate with `krip-toe-nite/facade.ts`
-3. Integrate with `build-loop.ts`
-4. Add cache pre-warming
-
-### Phase 3: Optimization (Week 3)
-1. Parallel fetching implementation
-2. Background refresh system
-3. Request coalescing
-4. Speculative fetching
-
-### Phase 4: Training Pipeline (Week 4)
-1. Integrate with `evolution-flywheel.ts`
-2. Store knowledge with build traces
-3. Include knowledge in training pairs
-4. Add knowledge-aware pattern extraction
-
-### Phase 5: Verification & Quality (Week 5)
-1. Integrate with `swarm.ts`
-2. Integrate with `security-scanner.ts`
-3. Integrate with `code-quality.ts`
-4. Add knowledge freshness monitoring
-
----
-
-## PART 7: SUCCESS METRICS
-
-### Quantitative Metrics
-
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Knowledge Cache Hit Rate | >85% | Cache tier where request was served |
-| Knowledge Fetch Latency | <500ms | P95 for cache miss scenarios |
-| API Correctness Rate | >95% | Code using current vs deprecated APIs |
-| Training Data Quality | >90% | Knowledge-enriched pairs vs baseline |
-| Build Success Rate | +10% | Before/after knowledge currency |
-
-### Qualitative Metrics
-
-- Generated code uses current API patterns (not deprecated)
-- Security scans catch recent vulnerabilities
-- Integrations use latest SDK methods
-- Error messages reference current documentation
-
----
-
-## PART 8: FALLBACK STRATEGIES
-
-### When Knowledge Fetch Fails
-
-1. **Use cached knowledge** (even if expired) - better than nothing
-2. **Fall back to model knowledge** - with warning annotation
-3. **Generate conservative code** - using well-known stable patterns
-4. **Log failure for review** - track knowledge fetch reliability
+## Register in server/src/index.ts or main routes file:
 
 ```typescript
-async function getKnowledgeWithFallback(topic: string): Promise<TopicKnowledge | null> {
-  try {
-    // Try fresh fetch
-    return await fetchKnowledge(topic);
-  } catch (error) {
-    // Try expired cache
-    const expired = await getCachedKnowledge(topic, { ignoreExpiry: true });
-    if (expired) {
-      console.warn(`[Knowledge] Using expired cache for ${topic}`);
-      return { ...expired, isStale: true };
-    }
+import knowledgeRoutes from './routes/knowledge.js';
+app.use('/api/knowledge', knowledgeRoutes);
+```
 
-    // Log failure
-    console.error(`[Knowledge] Failed to fetch ${topic}:`, error);
-    return null;
-  }
-}
+Create these files. The stats endpoint lets us monitor knowledge currency effectiveness.
 ```
 
 ---
 
-## APPENDIX: FILE MODIFICATION SUMMARY
+### PROMPT 13: Initialize Knowledge Currency on Server Start
 
-### New Files to Create
+**Model**: Claude Opus 4.5
+**Mode**: Agent
+**Estimated Time**: 5 minutes
 
-| File | Purpose | Lines (Est.) |
-|------|---------|--------------|
-| `services/knowledge/knowledge-currency-service.ts` | Main service | ~400 |
-| `services/knowledge/topic-extractor.ts` | Topic extraction | ~150 |
-| `services/knowledge/knowledge-cache.ts` | 3-tier caching | ~250 |
-| `services/knowledge/knowledge-fetcher.ts` | Source fetching | ~300 |
-| `services/knowledge/types.ts` | Type definitions | ~100 |
-| `services/knowledge/index.ts` | Exports | ~20 |
+```
+@workspace
 
-### Existing Files to Modify
+Modify server startup to initialize knowledge currency system:
 
-| File | Changes | Impact |
-|------|---------|--------|
-| `unified-context.ts` | Add Section 15 | Medium |
-| `krip-toe-nite/facade.ts` | Inject knowledge | Low |
-| `build-loop.ts` | Pre-warm cache | Low |
-| `evolution-flywheel.ts` | Training integration | Medium |
-| `swarm.ts` | Verification integration | Low |
-| `schema.ts` | New table | Low |
+## Find the main server file (likely `server/src/index.ts` or similar)
 
-### Total Estimated New Code
-~1,200 lines of new implementation code
+Add initialization:
+
+```typescript
+import { getKnowledgeCurrencyService } from './services/knowledge/knowledge-currency-service.js';
+import { getKnowledgeWarmerService } from './services/knowledge/knowledge-warmer.js';
+import { getGlobalKnowledgePubsub } from './services/knowledge/global-knowledge-pubsub.js';
+
+// During server startup:
+async function initializeKnowledgeCurrency(): Promise<void> {
+  console.log('[Server] Initializing Knowledge Currency System...');
+
+  // Initialize singleton services
+  getKnowledgeCurrencyService();
+  getGlobalKnowledgePubsub();
+
+  // Start cache warming
+  const warmer = getKnowledgeWarmerService();
+  await warmer.startWarming();
+
+  console.log('[Server] Knowledge Currency System ready (GLOBAL - benefits ALL users)');
+}
+
+// Call during startup
+await initializeKnowledgeCurrency();
+```
+
+## Also add graceful shutdown:
+
+```typescript
+process.on('SIGTERM', async () => {
+  // ... existing shutdown logic ...
+
+  // Stop knowledge warmer
+  const warmer = getKnowledgeWarmerService();
+  warmer.stop();
+});
+```
+
+Make these changes. This ensures knowledge currency is ready before handling any requests.
+```
 
 ---
 
-*This implementation plan provides the blueprint for comprehensive knowledge currency integration into KripTik AI. The system ensures all AI interactions use current information while maintaining speed through intelligent caching.*
+## PART 3: VERIFICATION CHECKLIST
+
+After implementing all prompts, verify:
+
+### Cross-User Learning
+- [ ] Knowledge currency has NO userId - it's truly global
+- [ ] Pattern library entries benefit ALL users
+- [ ] Redis pubsub broadcasts to all active builds
+- [ ] User A's discovery immediately helps User B's build
+
+### All Entry Points Covered
+- [ ] KripToeNite facade uses knowledge currency
+- [ ] Build loop pre-warms cache and subscribes to updates
+- [ ] Feature agent service shares knowledge between parallel agents
+- [ ] Intent lock uses current technology knowledge
+- [ ] Verification swarm uses current security knowledge
+- [ ] Training pipeline captures knowledge usage
+
+### Performance
+- [ ] Cache hit rate > 85%
+- [ ] Knowledge fetch < 500ms on cache miss
+- [ ] Cache warming completes on server start
+- [ ] Background refresh prevents cache expiry
+
+### Training Integration
+- [ ] Knowledge usage tracked in knowledge_usage table
+- [ ] Preference pairs include knowledge context
+- [ ] Patterns learned are published to global knowledge
+
+---
+
+## APPENDIX: Architecture Decisions
+
+### Why Global (Not Per-User)?
+
+1. **Learning Multiplier**: 1000 users = 1000x learning, not 1x isolated learning
+2. **Viral Ready**: New users instantly benefit from all previous knowledge
+3. **Cost Efficient**: One cache serves all users (not N caches)
+4. **Pattern Library Already Global**: Maintaining consistency with existing design
+
+### Why Redis Pubsub (Not Database Polling)?
+
+1. **Speed**: Milliseconds vs seconds
+2. **Real-time**: Updates propagate immediately
+3. **Scalable**: Redis handles millions of pub/sub operations
+4. **Existing Infrastructure**: Already using Redis for other features
+
+### Why 3-Tier Cache?
+
+1. **Memory (5 min)**: Ultra-fast for hot topics within single request
+2. **Redis (1 hour)**: Shared across all server instances
+3. **Database (24 hours)**: Survives server restarts, persistent knowledge
+
+---
+
+*This implementation plan provides Cursor 2.2 prompts for Opus 4.5 to implement comprehensive knowledge currency with cross-user collective learning into KripTik AI.*
 
 *Created: 2026-01-08*
+*Updated: 2026-01-08 (Cross-User Architecture + Cursor 2.2 Prompts)*
 *Author: Claude (Analysis Session)*
