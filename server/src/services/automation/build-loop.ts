@@ -387,6 +387,57 @@ import {
     type ComplexityLevel,
 } from '../hyper-thinking/index.js';
 
+// ============================================================================
+// CONTINUOUS LEARNING ENGINE INTEGRATION (Meta-Integration Layer)
+// Ties together billing, VL-JEPA, hyper-thinking, training, and Component 28
+// ============================================================================
+import {
+    getContinuousLearningEngine,
+    getBillingLearningBridge,
+    getVectorContextProvider,
+    getHyperThinkingIntegrator,
+    getModelDeploymentPipeline,
+    getUnifiedMetricsCollector,
+    getLearningFeedbackLoop,
+    getAutoOptimizationSystem,
+    getProductionHealthMonitor,
+    type ContinuousLearningEngine,
+    type BillingLearningBridge,
+    type VectorContextProvider,
+    type HyperThinkingIntegrator,
+    type ModelDeploymentPipeline,
+    type UnifiedMetricsCollector,
+    type LearningFeedbackLoop,
+    type AutoOptimizationSystem,
+    type ProductionHealthMonitor,
+    type LearningSession,
+    type SessionOutcome,
+} from '../continuous-learning/index.js';
+
+// ============================================================================
+// COMPONENT 28 ENHANCEMENT SERVICES (Advanced Learning Capabilities)
+// ============================================================================
+import {
+    getDirectRLAIF,
+    getMultiJudge,
+    getReflexion,
+    getRealtimeLearning,
+    getCrossBuildTransfer,
+    getVisionRLAIF,
+    getAgentNetwork,
+    getContextPriority,
+    getShadowModelDeployer,
+    type DirectRLAIFService,
+    type MultiJudgeService,
+    type ReflexionService,
+    type RealtimeLearningService,
+    type CrossBuildTransferService,
+    type VisionRLAIFService,
+    type AgentNetworkService,
+    type ContextPriorityService,
+    type ShadowModelDeployerService,
+} from '../learning/index.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -744,6 +795,33 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private cachedStrategies: Map<string, string> = new Map(); // domain -> strategyName
     private learningCacheLoaded: boolean = false;
 
+    // =========================================================================
+    // CONTINUOUS LEARNING ENGINE (Meta-Integration Layer)
+    // =========================================================================
+    private continuousLearningEngine: ContinuousLearningEngine | null = null;
+    private billingLearningBridge: BillingLearningBridge | null = null;
+    private vectorContextProvider: VectorContextProvider | null = null;
+    private hyperThinkingIntegrator: HyperThinkingIntegrator | null = null;
+    private modelDeploymentPipeline: ModelDeploymentPipeline | null = null;
+    private unifiedMetricsCollector: UnifiedMetricsCollector | null = null;
+    private learningFeedbackLoop: LearningFeedbackLoop | null = null;
+    private autoOptimization: AutoOptimizationSystem | null = null;
+    private productionHealthMonitor: ProductionHealthMonitor | null = null;
+    private clSessionId: string | null = null; // Continuous Learning session ID
+
+    // =========================================================================
+    // COMPONENT 28 ENHANCEMENT SERVICES
+    // =========================================================================
+    private directRLAIF: DirectRLAIFService | null = null;
+    private multiJudge: MultiJudgeService | null = null;
+    private reflexionService: ReflexionService | null = null;
+    private realtimeLearning: RealtimeLearningService | null = null;
+    private crossBuildTransfer: CrossBuildTransferService | null = null;
+    private visionRLAIF: VisionRLAIFService | null = null;
+    private agentNetwork: AgentNetworkService | null = null;
+    private contextPriority: ContextPriorityService | null = null;
+    private shadowModelDeployer: ShadowModelDeployerService | null = null;
+
     // Memory Harness - Context Loading & Artifact Updates
     private initializerAgent: InitializerAgent | null = null;
     private projectPath: string;
@@ -967,6 +1045,40 @@ export class BuildLoopOrchestrator extends EventEmitter {
         this.evolutionFlywheel = getEvolutionFlywheel();
 
         // =====================================================================
+        // INITIALIZE CONTINUOUS LEARNING ENGINE (Meta-Integration Layer)
+        // Note: Async services are initialized in initializeContinuousLearning()
+        // =====================================================================
+        try {
+            this.continuousLearningEngine = getContinuousLearningEngine();
+            this.billingLearningBridge = getBillingLearningBridge();
+            this.vectorContextProvider = getVectorContextProvider();
+            this.unifiedMetricsCollector = getUnifiedMetricsCollector();
+            this.learningFeedbackLoop = getLearningFeedbackLoop();
+            this.productionHealthMonitor = getProductionHealthMonitor();
+            console.log('[BuildLoop] Continuous Learning Engine initialized (Meta-Integration Layer - sync services)');
+        } catch (error) {
+            console.warn('[BuildLoop] Continuous Learning Engine initialization failed (non-fatal):', error);
+        }
+
+        // =====================================================================
+        // INITIALIZE COMPONENT 28 ENHANCEMENT SERVICES
+        // Note: Async services are initialized in initializeContinuousLearning()
+        // =====================================================================
+        try {
+            this.directRLAIF = getDirectRLAIF();
+            this.multiJudge = getMultiJudge();
+            this.reflexionService = getReflexion();
+            this.realtimeLearning = getRealtimeLearning();
+            this.crossBuildTransfer = getCrossBuildTransfer();
+            this.visionRLAIF = getVisionRLAIF();
+            this.agentNetwork = getAgentNetwork();
+            this.shadowModelDeployer = getShadowModelDeployer();
+            console.log('[BuildLoop] Component 28 Enhancement services initialized (sync services)');
+        } catch (error) {
+            console.warn('[BuildLoop] Component 28 Enhancement services initialization failed (non-fatal):', error);
+        }
+
+        // =====================================================================
         // INITIALIZE CURSOR 2.1+ SERVICES
         // =====================================================================
         const config = BUILD_MODE_CONFIGS[mode];
@@ -1150,6 +1262,66 @@ export class BuildLoopOrchestrator extends EventEmitter {
                 });
 
                 console.log(`[BuildLoop] Learning Engine activated for build ${this.state.id}`);
+            }
+
+            // =====================================================================
+            // CONTINUOUS LEARNING ENGINE: Start unified learning session
+            // Connects billing, vectors, hyper-thinking, and Component 28
+            // =====================================================================
+            if (this.continuousLearningEngine) {
+                try {
+                    // Initialize async services if not already initialized
+                    if (!this.hyperThinkingIntegrator) {
+                        this.hyperThinkingIntegrator = await getHyperThinkingIntegrator().catch(() => null);
+                    }
+                    if (!this.modelDeploymentPipeline) {
+                        this.modelDeploymentPipeline = await getModelDeploymentPipeline().catch(() => null);
+                    }
+                    if (!this.autoOptimization) {
+                        this.autoOptimization = await getAutoOptimizationSystem().catch(() => null);
+                    }
+                    if (!this.contextPriority) {
+                        this.contextPriority = await getContextPriority().catch(() => null);
+                    }
+
+                    const clSession = await this.continuousLearningEngine.startSession({
+                        userId: this.state.userId,
+                        projectId: this.state.projectId,
+                        taskType: 'build',
+                    });
+                    this.clSessionId = clSession.id;
+
+                    // Apply cross-build knowledge transfer
+                    if (this.crossBuildTransfer) {
+                        await this.crossBuildTransfer.getKnowledgeGraph(this.state.id, 2)
+                            .catch((err: Error) => console.warn('[BuildLoop] Cross-build transfer failed (non-fatal):', err));
+                    }
+
+                    // Register build with agent network for parallel learning
+                    if (this.agentNetwork) {
+                        this.agentNetwork.registerAgent(
+                            this.buildLoopAgentId,
+                            this.state.id,
+                            { subscriptions: ['PATTERN_FOUND', 'ERROR_SOLUTION', 'OPTIMIZATION'] }
+                        );
+                        await this.agentNetwork.broadcastDiscovery(
+                            this.buildLoopAgentId,
+                            {
+                                type: 'PATTERN_FOUND',
+                                content: `Build started: ${this.state.projectId}`,
+                                context: {
+                                    projectId: this.state.projectId,
+                                    mode: this.state.config.mode,
+                                },
+                                confidence: 1.0,
+                            }
+                        ).catch((err: Error) => console.warn('[BuildLoop] Agent network broadcast failed (non-fatal):', err));
+                    }
+
+                    console.log(`[BuildLoop] Continuous Learning session ${this.clSessionId} started`);
+                } catch (error) {
+                    console.warn('[BuildLoop] Failed to start Continuous Learning session (non-fatal):', error);
+                }
             }
 
             // =====================================================================
@@ -5471,6 +5643,67 @@ Would the user be satisfied with this result?`;
                 }
             }
             this.pendingDecisionTraces.clear();
+
+            // =====================================================================
+            // CONTINUOUS LEARNING ENGINE: End unified learning session
+            // =====================================================================
+            if (this.continuousLearningEngine && this.clSessionId) {
+                try {
+                    const sessionOutcome: SessionOutcome = buildSucceeded ? 'success' : 'failure';
+
+                    await this.continuousLearningEngine.endSession(this.clSessionId, {
+                        success: buildSucceeded,
+                        cost: 0, // Will be tracked by billing
+                        artifacts: [],
+                        isSignificant: this.state.errorCount > 0 || (this.state.featureSummary?.passRate || 0) < 100,
+                    });
+
+                    // Generate reflexion notes from errors if build failed
+                    if (!buildSucceeded && this.reflexionService && this.state.errorCount > 0 && this.state.lastError) {
+                        await this.reflexionService.reflectOnFailure(
+                            `Build failed at phase: ${this.state.currentPhase}`,
+                            `Attempted build with ${this.state.errorCount} errors`,
+                            this.state.lastError,
+                            undefined,
+                            { buildId: this.state.id, phase: this.state.currentPhase }
+                        ).catch((err: Error) => console.warn('[BuildLoop] Reflexion generation failed:', err));
+                    }
+
+                    // Broadcast build completion to agent network
+                    if (this.agentNetwork) {
+                        await this.agentNetwork.broadcastDiscovery(
+                            this.buildLoopAgentId,
+                            {
+                                type: buildSucceeded ? 'PATTERN_FOUND' : 'ERROR_SOLUTION',
+                                content: `Build ${buildSucceeded ? 'completed' : 'failed'}: ${this.state.id}`,
+                                context: {
+                                    success: buildSucceeded,
+                                    passRate: this.state.featureSummary?.passRate || 0,
+                                    patterns: this.cachedPatterns.map(p => p.patternId).slice(0, 10),
+                                },
+                                confidence: buildSucceeded ? 1.0 : 0.5,
+                            }
+                        ).catch((err: Error) => console.warn('[BuildLoop] Agent network broadcast failed:', err));
+                    }
+
+                    // Update context priorities based on outcome
+                    if (this.contextPriority) {
+                        // Start tracking and record outcome
+                        const taskId = `build_${this.state.id}`;
+                        this.contextPriority.startTracking(taskId, this.state.id, ['CODEBASE_STRUCTURE', 'SIMILAR_CODE', 'ERROR_HISTORY']);
+                        await this.contextPriority.recordOutcome(
+                            taskId,
+                            'FEATURE_IMPLEMENTATION',
+                            { success: buildSucceeded, score: this.state.featureSummary?.passRate || 0 }
+                        ).catch((err: Error) => console.warn('[BuildLoop] Context priority update failed:', err));
+                    }
+
+                    console.log(`[BuildLoop] Continuous Learning session ${this.clSessionId} ended`);
+                    this.clSessionId = null;
+                } catch (error) {
+                    console.warn('[BuildLoop] Failed to end Continuous Learning session:', error);
+                }
+            }
 
             // Check if we should run an evolution cycle
             const status = await this.evolutionFlywheel.getSystemStatus();

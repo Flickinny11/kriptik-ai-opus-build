@@ -93,6 +93,18 @@ import {
     type BuildMode,
 } from '../automation/build-loop.js';
 
+// Continuous Learning Engine Integration
+import {
+    getContinuousLearningEngine,
+    type ContinuousLearningEngine,
+} from '../continuous-learning/index.js';
+
+// Component 28 Enhancement Services - Agent Network for parallel agent learning
+import {
+    getAgentNetwork,
+    type AgentNetworkService,
+} from '../learning/index.js';
+
 // Git Branch Manager for actual merge operations
 import {
     GitBranchManager,
@@ -153,6 +165,9 @@ type FeatureAgentRuntime = {
     contextSyncUnsubscribe: (() => void) | null;
     /** Deep Intent Contract ID for precise DONE verification */
     deepIntentId: string | null;
+    // Continuous Learning Engine integration
+    /** Continuous Learning session ID for this feature agent */
+    clSessionId: string | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -225,8 +240,24 @@ export class FeatureAgentService extends EventEmitter {
     private ghost = new GhostModeController();
     private notifications = getNotificationService();
 
+    // Continuous Learning Engine integration
+    private continuousLearningEngine: ContinuousLearningEngine | null = null;
+    private agentNetwork: AgentNetworkService | null = null;
+
     /** Max escalation attempts before giving up on a feature agent */
     private static readonly MAX_ESCALATION_ROUNDS = 3;
+
+    constructor() {
+        super();
+        // Initialize Continuous Learning Engine
+        try {
+            this.continuousLearningEngine = getContinuousLearningEngine();
+            this.agentNetwork = getAgentNetwork();
+            console.log('[FeatureAgentService] Continuous Learning Engine initialized');
+        } catch (error) {
+            console.warn('[FeatureAgentService] CL Engine initialization failed (non-fatal):', error);
+        }
+    }
 
     private emitStream(agentId: string, msg: StreamMessage): void {
         this.emit('feature-agent:stream', { agentId, message: msg });
@@ -553,6 +584,38 @@ ${basePrompt}`;
                 rt.contextSyncService.unregisterAgent(agentId);
                 rt.contextSyncService.updateAgentStatus(agentId, status === 'complete' ? 'completed' : 'error');
             }
+
+            // CONTINUOUS LEARNING ENGINE: End unified learning session
+            if (this.continuousLearningEngine && rt.clSessionId) {
+                this.continuousLearningEngine.endSession(rt.clSessionId, {
+                    success: status === 'complete',
+                    cost: 0, // Tracked by billing
+                    artifacts: [],
+                    isSignificant: true, // Feature agents are always significant
+                }).catch((err: Error) => console.warn('[FeatureAgent] CL session end failed:', err));
+
+                // Broadcast completion to agent network
+                if (this.agentNetwork) {
+                    this.agentNetwork.broadcastDiscovery(
+                        agentId,
+                        {
+                            type: status === 'complete' ? 'PATTERN_FOUND' : 'ERROR_SOLUTION',
+                            content: `Feature Agent ${status}: ${rt.config.name}`,
+                            context: {
+                                projectId: rt.config.projectId,
+                                success: status === 'complete',
+                                taskPrompt: rt.config.taskPrompt.slice(0, 200),
+                            },
+                            confidence: status === 'complete' ? 1.0 : 0.5,
+                        }
+                    ).catch((err: Error) => console.warn('[FeatureAgent] Agent network broadcast failed:', err));
+
+                    // Unregister from agent network
+                    this.agentNetwork.unregisterAgent(agentId);
+                }
+
+                rt.clSessionId = null;
+            }
         }
 
         // Ghost Mode notifications: decision needed when awaiting plan approval/credentials
@@ -707,6 +770,8 @@ ${basePrompt}`;
             contextSyncUnsubscribe: unsubscribe,
             // Deep Intent for precise DONE verification
             deepIntentId: null,
+            // Continuous Learning Engine integration
+            clSessionId: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -1022,6 +1087,50 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                 integrations: deepIntent.integrationRequirements.length,
             }
         });
+
+        // =============================================================================
+        // CONTINUOUS LEARNING ENGINE: Start unified learning session for Feature Agent
+        // =============================================================================
+        if (this.continuousLearningEngine) {
+            try {
+                const clSession = await this.continuousLearningEngine.startSession({
+                    userId: rt.config.userId,
+                    projectId: rt.config.projectId,
+                    taskType: 'feature_agent',
+                });
+                rt.clSessionId = clSession.id;
+
+                // Register with agent network for parallel learning across Feature Agents
+                if (this.agentNetwork) {
+                    this.agentNetwork.registerAgent(
+                        agentId,
+                        buildId,
+                        { subscriptions: ['PATTERN_FOUND', 'ERROR_SOLUTION', 'OPTIMIZATION'] }
+                    );
+                    await this.agentNetwork.broadcastDiscovery(
+                        agentId,
+                        {
+                            type: 'PATTERN_FOUND',
+                            content: `Feature Agent started: ${rt.config.name}`,
+                            context: {
+                                projectId: rt.config.projectId,
+                                taskPrompt: rt.config.taskPrompt.slice(0, 200),
+                                deepIntentId: deepIntent.id,
+                            },
+                            confidence: 1.0,
+                        }
+                    );
+                }
+
+                this.emitStream(agentId, {
+                    type: 'status',
+                    content: `Continuous Learning session started: ${clSession.id}`,
+                    timestamp: Date.now(),
+                });
+            } catch (clError) {
+                console.warn(`[FeatureAgent] CL session start failed (non-fatal):`, clError);
+            }
+        }
 
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
