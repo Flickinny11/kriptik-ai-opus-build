@@ -117,14 +117,14 @@ async function trackCreditsUsage(
         const creditService = getCreditService();
         // Estimate credits: roughly 1000 tokens = 1 credit for hyper-thinking
         const creditsNeeded = Math.ceil(tokensUsed / 1000);
-        
+
         const result = await creditService.deductCredits(
             userId,
             creditsNeeded,
             `hyper-thinking:${operation}`,
             { tokensUsed }
         );
-        
+
         return {
             success: result.success,
             creditsDeducted: result.success ? creditsNeeded : 0,
@@ -757,7 +757,7 @@ router.get('/artifacts', async (req: Request, res: Response) => {
 
         const artifacts = await db.select()
             .from(hyperThinkingArtifacts)
-            .where(artifactType 
+            .where(artifactType
                 ? eq(hyperThinkingArtifacts.type, artifactType as 'thought' | 'decision' | 'insight' | 'pattern' | 'skeleton' | 'decomposition')
                 : undefined
             )

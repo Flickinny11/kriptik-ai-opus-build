@@ -10,9 +10,8 @@
  * Uses liquid glass styling consistent with KripTik dashboard.
  */
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import { motion } from 'framer-motion';
+import {
   User,
   Users,
   Lightbulb,
@@ -164,8 +163,8 @@ function AgentCard({ agent }: { agent: SwarmAgent }) {
       animate={{ opacity: 1, scale: 1 }}
       className={`
         relative p-3 rounded-xl border transition-all duration-300
-        ${agent.status === 'thinking' 
-          ? 'bg-white/10 border-lime-500/30 shadow-lg shadow-lime-500/10' 
+        ${agent.status === 'thinking'
+          ? 'bg-white/10 border-lime-500/30 shadow-lg shadow-lime-500/10'
           : agent.status === 'complete'
             ? 'bg-white/5 border-emerald-500/30'
             : 'bg-white/5 border-white/10'
@@ -245,8 +244,8 @@ function ConflictCard({ conflict }: { conflict: AgentConflict }) {
       animate={{ opacity: 1, x: 0 }}
       className={`
         p-3 rounded-lg border transition-all
-        ${conflict.resolved 
-          ? 'bg-emerald-500/10 border-emerald-500/30' 
+        ${conflict.resolved
+          ? 'bg-emerald-500/10 border-emerald-500/30'
           : 'bg-orange-500/10 border-orange-500/30'
         }
       `}
@@ -306,13 +305,13 @@ export function AgentSwarm({
 }: AgentSwarmProps) {
   const phaseConfig = PHASE_CONFIG[phase];
   const PhaseIcon = phaseConfig.icon;
-  
+
   const activeAgents = agents.filter(a => a.status === 'thinking' || a.status === 'contributing');
   const completedAgents = agents.filter(a => a.status === 'complete');
   const unresolvedConflicts = conflicts.filter(c => !c.resolved);
 
   return (
-    <div 
+    <div
       className={`relative ${className}`}
       style={{
         background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',

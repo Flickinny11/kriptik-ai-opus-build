@@ -12,11 +12,11 @@
 
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronRight, 
-  ChevronDown, 
-  Sparkles, 
-  Ban, 
+import {
+  ChevronRight,
+  ChevronDown,
+  Sparkles,
+  Ban,
   Star,
   GitBranch,
   Target,
@@ -86,18 +86,21 @@ interface TreeNodeProps {
   isLast?: boolean;
 }
 
-function TreeNode({ 
-  node, 
-  bestPathIds, 
-  onNodeClick, 
-  depth, 
+function TreeNode({
+  node,
+  bestPathIds,
+  onNodeClick,
+  depth,
   maxVisibleDepth,
-  isLast = false,
+  isLast: _isLast = false, // Prefixed with underscore to indicate intentionally unused
 }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(
     depth < maxVisibleDepth || bestPathIds.has(node.id)
   );
-  
+
+  // Note: isLast prop available as _isLast for future use (e.g., special styling for last node)
+  void _isLast;
+
   const hasChildren = node.children && node.children.length > 0;
   const isBestPath = bestPathIds.has(node.id);
   const isPruned = node.isPruned;
@@ -115,14 +118,14 @@ function TreeNode({
     <div className={`relative ${depth > 0 ? 'ml-4' : ''}`}>
       {/* Connection line */}
       {depth > 0 && (
-        <div 
+        <div
           className={`
             absolute left-[-16px] top-0 w-[16px] h-[20px]
             border-l-2 border-b-2 rounded-bl-lg
-            ${isBestPath 
-              ? 'border-lime-500/50' 
-              : isPruned 
-                ? 'border-red-500/20' 
+            ${isBestPath
+              ? 'border-lime-500/50'
+              : isPruned
+                ? 'border-red-500/20'
                 : 'border-white/10'
             }
           `}
@@ -137,8 +140,8 @@ function TreeNode({
         className={`
           group relative flex items-start gap-2 p-2.5 rounded-lg cursor-pointer
           transition-all duration-200
-          ${isBestPath 
-            ? 'bg-lime-500/10 border border-lime-500/30 hover:bg-lime-500/15' 
+          ${isBestPath
+            ? 'bg-lime-500/10 border border-lime-500/30 hover:bg-lime-500/15'
             : isPruned
               ? 'bg-red-500/5 border border-red-500/20 opacity-60 hover:opacity-80'
               : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
@@ -249,8 +252,8 @@ function TreeNode({
 // Main Component
 // ============================================================================
 
-export function ReasoningTree({ 
-  tree, 
+export function ReasoningTree({
+  tree,
   bestPathIds = [],
   onNodeClick,
   className = '',
@@ -262,7 +265,7 @@ export function ReasoningTree({
   const countNodes = (node: ThoughtNode): number => {
     return 1 + (node.children?.reduce((sum, child) => sum + countNodes(child), 0) || 0);
   };
-  
+
   const countPruned = (node: ThoughtNode): number => {
     const selfPruned = node.isPruned ? 1 : 0;
     return selfPruned + (node.children?.reduce((sum, child) => sum + countPruned(child), 0) || 0);
@@ -273,7 +276,7 @@ export function ReasoningTree({
   const exploredNodes = totalNodes - prunedNodes;
 
   return (
-    <div 
+    <div
       className={`relative ${className}`}
       style={{
         background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',

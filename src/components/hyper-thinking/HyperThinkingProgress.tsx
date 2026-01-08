@@ -10,7 +10,7 @@
  * Uses liquid glass styling consistent with KripTik dashboard.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Sparkles, Clock, Zap, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -178,7 +178,7 @@ export function HyperThinkingProgress({
   isActive,
   strategy,
   steps,
-  currentStep,
+  currentStep: _currentStep, // Prefixed with underscore to indicate intentionally unused
   totalTokensUsed,
   estimatedTokensRemaining,
   confidence,
@@ -186,18 +186,21 @@ export function HyperThinkingProgress({
 }: HyperThinkingProgressProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const config = STRATEGY_CONFIG[strategy];
-  
+
+  // Note: currentStep prop available as _currentStep for future use
+  void _currentStep;
+
   const completedSteps = steps.filter(s => s.status === 'completed').length;
   const activeSteps = steps.filter(s => s.status === 'active').length;
 
   // Timer for elapsed time
   useEffect(() => {
     if (!isActive) return;
-    
+
     const interval = setInterval(() => {
       setElapsedTime(prev => prev + 1);
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [isActive]);
 
@@ -290,7 +293,7 @@ export function HyperThinkingProgress({
             <motion.div
               className={`h-full bg-gradient-to-r ${config.color}`}
               initial={{ width: 0 }}
-              animate={{ 
+              animate={{
                 width: `${steps.length > 0 ? (completedSteps / steps.length) * 100 : 0}%`,
               }}
               transition={{ duration: 0.5, ease: 'easeOut' }}

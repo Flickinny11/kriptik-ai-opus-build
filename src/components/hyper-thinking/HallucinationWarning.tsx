@@ -11,9 +11,9 @@
  * Uses liquid glass styling consistent with KripTik dashboard.
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   AlertTriangle,
   AlertOctagon,
   Activity,
@@ -31,10 +31,10 @@ import {
 // Types
 // ============================================================================
 
-export type HallucinationIndicator = 
-  | 'semanticDrift' 
-  | 'factualInconsistency' 
-  | 'logicalContradiction' 
+export type HallucinationIndicator =
+  | 'semanticDrift'
+  | 'factualInconsistency'
+  | 'logicalContradiction'
   | 'confidenceDrop';
 
 export interface HallucinationSignal {
@@ -202,8 +202,8 @@ function SignalCard({
       exit={{ opacity: 0, x: 20, scale: 0.95 }}
       className={`
         relative p-4 rounded-xl border
-        ${isCritical 
-          ? 'bg-red-500/10 border-red-500/30' 
+        ${isCritical
+          ? 'bg-red-500/10 border-red-500/30'
           : 'bg-yellow-500/10 border-yellow-500/30'
         }
       `}
@@ -347,7 +347,7 @@ export function HallucinationWarning({
 
   if (signals.length === 0) {
     return (
-      <div 
+      <div
         className={`p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 ${className}`}
       >
         <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ export function HallucinationWarning({
   }
 
   return (
-    <div 
+    <div
       className={`relative ${className}`}
       style={{
         background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',
