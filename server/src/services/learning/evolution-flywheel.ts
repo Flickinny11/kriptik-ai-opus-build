@@ -1,12 +1,21 @@
 /**
- * Evolution Flywheel Orchestrator (Layer 5)
+ * Evolution Flywheel Orchestrator (Layer 5) - Enhanced v2
  *
  * The central coordinator that ties all learning layers together:
  * 1. Experience Capture → Collects build traces
  * 2. AI Judgment → Evaluates and generates preference pairs
+ *    - Direct-RLAIF for real-time reward signals
+ *    - Multi-Judge Consensus for robust evaluation
+ *    - Vision RLAIF for Anti-Slop detection
  * 3. Shadow Models → Trains on accumulated data
+ *    - Auto-Deployer for seamless deployment to RunPod/Modal
  * 4. Meta-Learning → Evolves strategies and patterns
+ *    - Reflexion-Based Learning from failures
+ *    - Cross-Build Knowledge Transfer
+ *    - Context Priority Learning
  * 5. Flywheel → Orchestrates cycles and measures improvement
+ *    - Real-Time Learning during builds
+ *    - Agent Network for parallel discovery sharing
  *
  * The flywheel runs continuously, each cycle improving on the previous.
  */
@@ -25,6 +34,18 @@ import { AIJudgmentService, getAIJudgmentService } from './ai-judgment.js';
 import { PatternLibraryService, getPatternLibrary } from './pattern-library.js';
 import { StrategyEvolutionService, getStrategyEvolution } from './strategy-evolution.js';
 import { ShadowModelRegistry, getShadowModelRegistry, SHADOW_MODEL_CONFIGS, ShadowModelType } from './shadow-model-registry.js';
+
+// Component 28 v2 Enhancements
+import { DirectRLAIFService, getDirectRLAIF } from './direct-rlaif.js';
+import { MultiJudgeService, getMultiJudge } from './multi-judge.js';
+import { VisionRLAIFService, getVisionRLAIF } from './vision-rlaif.js';
+import { ShadowModelDeployerService, getShadowModelDeployer } from './shadow-model-deployer.js';
+import { ReflexionService, getReflexion } from './reflexion.js';
+import { CrossBuildTransferService, getCrossBuildTransfer } from './cross-build-transfer.js';
+import { ContextPriorityService, getContextPriority } from './context-priority.js';
+import { RealtimeLearningService, getRealtimeLearning } from './real-time-learning.js';
+import { AgentNetworkService, getAgentNetwork } from './agent-network.js';
+
 import type {
     EvolutionCycle,
     CycleMetrics,
@@ -64,6 +85,17 @@ export class EvolutionFlywheel extends EventEmitter {
     private strategyEvolution: StrategyEvolutionService;
     private shadowRegistry: ShadowModelRegistry;
 
+    // Component 28 v2 Enhanced Services
+    private directRLAIF: DirectRLAIFService;
+    private multiJudge: MultiJudgeService;
+    private visionRLAIF: VisionRLAIFService;
+    private shadowDeployer: ShadowModelDeployerService;
+    private reflexion: ReflexionService;
+    private crossBuildTransfer: CrossBuildTransferService;
+    private contextPriority: ContextPriorityService | null = null;
+    private realtimeLearning: RealtimeLearningService;
+    private agentNetwork: AgentNetworkService;
+
     private isRunning: boolean = false;
     private currentCycleId: string | null = null;
 
@@ -74,6 +106,27 @@ export class EvolutionFlywheel extends EventEmitter {
         this.patternLibrary = getPatternLibrary();
         this.strategyEvolution = getStrategyEvolution();
         this.shadowRegistry = getShadowModelRegistry();
+
+        // Initialize Component 28 v2 Enhanced Services
+        this.directRLAIF = getDirectRLAIF();
+        this.multiJudge = getMultiJudge();
+        this.visionRLAIF = getVisionRLAIF();
+        this.shadowDeployer = getShadowModelDeployer();
+        this.reflexion = getReflexion();
+        this.crossBuildTransfer = getCrossBuildTransfer();
+        this.realtimeLearning = getRealtimeLearning();
+        this.agentNetwork = getAgentNetwork();
+
+        // Async initialization
+        this.initializeAsyncServices();
+    }
+
+    private async initializeAsyncServices(): Promise<void> {
+        try {
+            this.contextPriority = await getContextPriority();
+        } catch (error) {
+            console.error('[EvolutionFlywheel] Failed to initialize context priority:', error);
+        }
     }
 
     // =========================================================================
@@ -105,8 +158,8 @@ export class EvolutionFlywheel extends EventEmitter {
             // Phase 1: Collect recent traces
             const traces = await this.collectTraces(userId);
 
-            // Phase 2: Run AI judgments
-            const judgments = await this.runJudgments(traces, userId);
+            // Phase 2: Run AI judgments (enhanced with Direct-RLAIF and Multi-Judge)
+            const judgments = await this.runEnhancedJudgments(traces, userId);
 
             // Phase 3: Generate preference pairs
             const pairs = await this.generatePairs(traces);
@@ -117,11 +170,20 @@ export class EvolutionFlywheel extends EventEmitter {
             // Phase 5: Evolve strategies
             const strategies = await this.evolveStrategies(traces.decisions, judgments);
 
-            // Phase 6: Queue training if threshold met
+            // Phase 6: Run reflexion on recent errors
+            const reflexionNotes = await this.runReflexion();
+
+            // Phase 7: Transfer cross-build knowledge
+            const crossBuildStats = await this.runCrossBuildTransfer(userId);
+
+            // Phase 8: Check and deploy eligible shadow models
+            const deploymentStats = await this.checkAndDeployModels();
+
+            // Phase 9: Queue training if threshold met
             const trainingQueued = await this.queueTrainingIfNeeded(pairs);
 
-            // Phase 7: Collect end metrics and calculate improvement
-            const endMetrics = await this.collectMetrics();
+            // Phase 10: Collect end metrics and calculate improvement
+            const endMetrics = await this.collectEnhancedMetrics();
             const improvement = this.calculateImprovement(startMetrics, endMetrics);
 
             // Update cycle record
@@ -134,6 +196,12 @@ export class EvolutionFlywheel extends EventEmitter {
                 endMetrics,
                 improvement,
             });
+
+            // Log enhanced stats
+            console.log(`[EvolutionFlywheel] Enhanced cycle stats:`);
+            console.log(`  - Reflexion notes: ${reflexionNotes}`);
+            console.log(`  - Cross-build transfers: ${crossBuildStats.patternsTransferred} patterns`);
+            console.log(`  - Models deployed: ${deploymentStats.deployed}`);
 
             const completedCycle = await this.getCycle(cycleId);
 
@@ -312,7 +380,129 @@ export class EvolutionFlywheel extends EventEmitter {
     }
 
     /**
-     * Phase 6: Queue training if needed
+     * Phase 2 Enhanced: Run judgments with Direct-RLAIF and Multi-Judge
+     */
+    private async runEnhancedJudgments(
+        traces: {
+            decisions: DecisionTrace[];
+            codeArtifacts: CodeArtifactTrace[];
+            designChoices: DesignChoiceTrace[];
+            errorRecoveries: ErrorRecoveryTrace[];
+        },
+        userId: string
+    ): Promise<Array<{ type: string; score: number }>> {
+        const judgments: Array<{ type: string; score: number }> = [];
+
+        // Use Direct-RLAIF for code artifacts
+        for (const artifact of traces.codeArtifacts.slice(0, 10)) {
+            try {
+                // Get latest version code from the artifact
+                const latestCode = artifact.versions.length > 0
+                    ? artifact.versions[artifact.versions.length - 1].code
+                    : '';
+
+                if (latestCode) {
+                    const reward = await this.directRLAIF.getDirectReward(
+                        'code',
+                        latestCode,
+                        `Build: ${artifact.buildId || 'unknown'}`
+                    );
+                    judgments.push({ type: 'code_quality_direct', score: reward.rewardScore });
+                }
+            } catch (error) {
+                console.error('[EvolutionFlywheel] Direct RLAIF code judgment failed:', error);
+            }
+        }
+
+        // Use Multi-Judge for design choices
+        for (const choice of traces.designChoices.slice(0, 5)) {
+            try {
+                const consensus = await this.multiJudge.evaluateWithConsensus(
+                    'design_quality',
+                    JSON.stringify(choice.typography),
+                    { judgmentId: choice.choiceId }
+                );
+                judgments.push({ type: 'design_quality_consensus', score: consensus.consensusScore });
+            } catch (error) {
+                console.error('[EvolutionFlywheel] Multi-Judge design judgment failed:', error);
+            }
+        }
+
+        // Fall back to standard AI judgment for remaining
+        const standardJudgments = await this.runJudgments(traces, userId);
+        judgments.push(...standardJudgments);
+
+        return judgments;
+    }
+
+    /**
+     * Phase 6 Enhanced: Run reflexion on recent errors
+     */
+    private async runReflexion(): Promise<number> {
+        try {
+            const notes = await this.reflexion.reflectOnRecentErrors(10);
+            return notes.length;
+        } catch (error) {
+            console.error('[EvolutionFlywheel] Reflexion failed:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Phase 7 Enhanced: Transfer cross-build knowledge
+     */
+    private async runCrossBuildTransfer(userId: string): Promise<{
+        patternsTransferred: number;
+        strategiesTransferred: number;
+    }> {
+        try {
+            // Get recent build sessions for this user
+            const capture = createExperienceCaptureService(userId);
+            const recentTraces = await capture.getRecentDecisionTraces(50);
+
+            // Get unique build IDs (using buildId from traces)
+            const buildIds = [...new Set(recentTraces.map(t => t.buildId).filter((id): id is string => !!id))].slice(0, 5);
+
+            let totalPatterns = 0;
+            let totalStrategies = 0;
+
+            for (const buildId of buildIds) {
+                const result = await this.crossBuildTransfer.transferPatterns(buildId);
+                totalPatterns += result.patternsTransferred;
+                totalStrategies += result.strategiesTransferred;
+            }
+
+            return {
+                patternsTransferred: totalPatterns,
+                strategiesTransferred: totalStrategies,
+            };
+        } catch (error) {
+            console.error('[EvolutionFlywheel] Cross-build transfer failed:', error);
+            return { patternsTransferred: 0, strategiesTransferred: 0 };
+        }
+    }
+
+    /**
+     * Phase 8 Enhanced: Check and deploy eligible shadow models
+     */
+    private async checkAndDeployModels(): Promise<{
+        checked: number;
+        deployed: number;
+    }> {
+        try {
+            const result = await this.shadowDeployer.checkAndDeployEligible();
+            return {
+                checked: result.checked,
+                deployed: result.deployed,
+            };
+        } catch (error) {
+            console.error('[EvolutionFlywheel] Shadow model deployment check failed:', error);
+            return { checked: 0, deployed: 0 };
+        }
+    }
+
+    /**
+     * Phase 9: Queue training if needed
      */
     private async queueTrainingIfNeeded(pairs: PreferencePair[]): Promise<boolean> {
         const stats = await this.aiJudgment.getPreferencePairStats();
@@ -352,6 +542,43 @@ export class EvolutionFlywheel extends EventEmitter {
     // =========================================================================
     // METRICS & ANALYSIS
     // =========================================================================
+
+    /**
+     * Collect enhanced metrics including all new services
+     */
+    private async collectEnhancedMetrics(): Promise<CycleMetrics> {
+        const baseMetrics = await this.collectMetrics();
+
+        // Add metrics from enhanced services
+        try {
+            const [
+                directRLAIFStats,
+                multiJudgeStats,
+                reflexionStats,
+                crossBuildStats,
+                deployerStats,
+                realtimeStats,
+            ] = await Promise.all([
+                this.directRLAIF.getStats(),
+                this.multiJudge.getStats(),
+                this.reflexion.getStats(),
+                this.crossBuildTransfer.getStats(),
+                this.shadowDeployer.getStats(),
+                this.realtimeLearning.getStats(),
+            ]);
+
+            // Enhance base metrics with additional data
+            return {
+                ...baseMetrics,
+                // Store enhanced stats in a compatible way
+                totalTraces: baseMetrics.totalTraces + realtimeStats.totalEvents,
+                totalPairs: baseMetrics.totalPairs + directRLAIFStats.totalEvals,
+            };
+        } catch (error) {
+            console.error('[EvolutionFlywheel] Enhanced metrics collection failed:', error);
+            return baseMetrics;
+        }
+    }
 
     /**
      * Collect current metrics
@@ -495,7 +722,7 @@ export class EvolutionFlywheel extends EventEmitter {
     // =========================================================================
 
     /**
-     * Get comprehensive learning system status
+     * Get comprehensive learning system status (enhanced with all v2 services)
      */
     async getSystemStatus(): Promise<{
         isRunning: boolean;
@@ -508,6 +735,15 @@ export class EvolutionFlywheel extends EventEmitter {
         pairStats: Awaited<ReturnType<AIJudgmentService['getPreferencePairStats']>>;
         modelStats: Awaited<ReturnType<ShadowModelRegistry['getRegistryStats']>>;
         recentInsights: LearningInsight[];
+        // Component 28 v2 Enhanced Stats
+        directRLAIFStats: Awaited<ReturnType<DirectRLAIFService['getStats']>>;
+        multiJudgeStats: Awaited<ReturnType<MultiJudgeService['getStats']>>;
+        visionRLAIFStats: Awaited<ReturnType<VisionRLAIFService['getStats']>>;
+        reflexionStats: Awaited<ReturnType<ReflexionService['getStats']>>;
+        crossBuildStats: Awaited<ReturnType<CrossBuildTransferService['getStats']>>;
+        deployerStats: Awaited<ReturnType<ShadowModelDeployerService['getStats']>>;
+        realtimeStats: Awaited<ReturnType<RealtimeLearningService['getStats']>>;
+        agentNetworkState: ReturnType<AgentNetworkService['getNetworkState']>;
     }> {
         const cycles = await this.getRecentCycles(100);
         const lastCycle = cycles[0] || null;
@@ -518,11 +754,38 @@ export class EvolutionFlywheel extends EventEmitter {
             overallImprovement += cycle.improvementPercent || 0;
         }
 
-        const patternStats = await this.patternLibrary.getPatternStats();
-        const strategyStats = await this.strategyEvolution.getStrategyStats();
-        const pairStats = await this.aiJudgment.getPreferencePairStats();
-        const modelStats = await this.shadowRegistry.getRegistryStats();
-        const recentInsights = await this.strategyEvolution.getRecentInsights(10);
+        // Collect all stats in parallel
+        const [
+            patternStats,
+            strategyStats,
+            pairStats,
+            modelStats,
+            recentInsights,
+            // Enhanced stats
+            directRLAIFStats,
+            multiJudgeStats,
+            visionRLAIFStats,
+            reflexionStats,
+            crossBuildStats,
+            deployerStats,
+            realtimeStats,
+        ] = await Promise.all([
+            this.patternLibrary.getPatternStats(),
+            this.strategyEvolution.getStrategyStats(),
+            this.aiJudgment.getPreferencePairStats(),
+            this.shadowRegistry.getRegistryStats(),
+            this.strategyEvolution.getRecentInsights(10),
+            // Enhanced service stats
+            this.directRLAIF.getStats(),
+            this.multiJudge.getStats(),
+            this.visionRLAIF.getStats(),
+            this.reflexion.getStats(),
+            this.crossBuildTransfer.getStats(),
+            this.shadowDeployer.getStats(),
+            this.realtimeLearning.getStats(),
+        ]);
+
+        const agentNetworkState = this.agentNetwork.getNetworkState();
 
         return {
             isRunning: this.isRunning,
@@ -535,6 +798,15 @@ export class EvolutionFlywheel extends EventEmitter {
             pairStats,
             modelStats,
             recentInsights,
+            // Enhanced stats
+            directRLAIFStats,
+            multiJudgeStats,
+            visionRLAIFStats,
+            reflexionStats,
+            crossBuildStats,
+            deployerStats,
+            realtimeStats,
+            agentNetworkState,
         };
     }
 

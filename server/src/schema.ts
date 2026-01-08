@@ -3961,3 +3961,294 @@ export const appIntegrationWorkflows = sqliteTable('app_integration_workflows', 
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// Component 28 Enhancement - Autonomous Learning Engine v2
+// =============================================================================
+
+/**
+ * Reflexion Notes - Self-reflection notes for continuous improvement
+ * Captures lessons learned from failures to improve future attempts
+ */
+export const learningReflexionNotes = sqliteTable('learning_reflexion_notes', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    reflexionId: text('reflexion_id').notNull().unique(),
+    buildId: text('build_id'),
+    agentId: text('agent_id'),
+    phase: text('phase').notNull(),
+
+    // What happened
+    failureDescription: text('failure_description').notNull(),
+    errorType: text('error_type'),
+    errorMessage: text('error_message'),
+    attemptsMade: integer('attempts_made').default(1),
+
+    // Analysis
+    rootCauseAnalysis: text('root_cause_analysis').notNull(),
+    whatWentWrong: text('what_went_wrong'),
+    whatShouldHaveDone: text('what_should_have_done'),
+
+    // Learning
+    lessonLearned: text('lesson_learned').notNull(),
+    suggestedApproach: text('suggested_approach').notNull(),
+    codePatternToAvoid: text('code_pattern_to_avoid'),
+    codePatternToUse: text('code_pattern_to_use'),
+
+    // Tracking
+    appliedInBuild: text('applied_in_build'),
+    effectiveness: integer('effectiveness'),
+    timesRetrieved: integer('times_retrieved').default(0),
+    timesApplied: integer('times_applied').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Cross-Build Knowledge Links - Knowledge transfer between builds
+ */
+export const learningKnowledgeLinks = sqliteTable('learning_knowledge_links', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    linkId: text('link_id').notNull().unique(),
+    sourceBuildId: text('source_build_id').notNull(),
+    targetBuildId: text('target_build_id'),
+
+    // Knowledge details
+    knowledgeType: text('knowledge_type').notNull().$type<'pattern' | 'strategy' | 'reflexion' | 'preference'>(),
+    knowledgeId: text('knowledge_id').notNull(),
+    relevanceScore: real('relevance_score'),
+
+    // Transfer tracking
+    usedAt: text('used_at'),
+    effectivenessScore: integer('effectiveness_score'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Multi-Judge Consensus Records - Ensemble judge decisions
+ */
+export const learningJudgeConsensus = sqliteTable('learning_judge_consensus', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    consensusId: text('consensus_id').notNull().unique(),
+    judgmentId: text('judgment_id').notNull(),
+    artifactId: text('artifact_id'),
+
+    // Judge details
+    judges: text('judges', { mode: 'json' }).$type<Array<{
+        model: string;
+        weight: number;
+    }>>().notNull(),
+    individualScores: text('individual_scores', { mode: 'json' }).$type<Array<{
+        model: string;
+        score: number;
+        reasoning: string;
+    }>>().notNull(),
+    consensusScore: real('consensus_score').notNull(),
+    disagreementLevel: real('disagreement_level'),
+
+    // Verdict
+    finalVerdict: text('final_verdict').notNull(),
+    reasoning: text('reasoning'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Real-Time Learning Events - Continuous learning during builds
+ */
+export const learningRealtimeEvents = sqliteTable('learning_realtime_events', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    eventId: text('event_id').notNull().unique(),
+    buildId: text('build_id').notNull(),
+    userId: text('user_id').notNull(),
+
+    // Event details
+    eventType: text('event_type').notNull().$type<
+        'decision_made' | 'code_generated' | 'error_occurred' | 'error_fixed' |
+        'verification_passed' | 'verification_failed' | 'user_feedback' | 'phase_completed'
+    >(),
+    eventData: text('event_data', { mode: 'json' }).notNull(),
+
+    // Learning application
+    learningApplied: text('learning_applied', { mode: 'json' }),
+    outcome: text('outcome').$type<'success' | 'failure' | 'partial'>(),
+
+    // Timing
+    processingTimeMs: integer('processing_time_ms'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Vision RLAIF Training Data - Visual learning pairs
+ */
+export const learningVisionPairs = sqliteTable('learning_vision_pairs', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    pairId: text('pair_id').notNull().unique(),
+    buildId: text('build_id'),
+    componentPath: text('component_path'),
+
+    // Screenshots
+    screenshotBefore: text('screenshot_before'),
+    screenshotAfter: text('screenshot_after'),
+    codeChanges: text('code_changes').notNull(),
+
+    // Scores
+    visualScoreBefore: integer('visual_score_before'),
+    visualScoreAfter: integer('visual_score_after'),
+    antiSlopScoreBefore: integer('anti_slop_score_before'),
+    antiSlopScoreAfter: integer('anti_slop_score_after'),
+    improvement: integer('improvement'),
+
+    // Judgment
+    judgmentReasoning: text('judgment_reasoning'),
+    categories: text('categories', { mode: 'json' }).$type<Record<string, number>>(),
+
+    // Training
+    usedInTraining: integer('used_in_training', { mode: 'boolean' }).default(false),
+    trainingRunId: text('training_run_id'),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Deployed Shadow Models - Endpoints for trained models
+ */
+export const learningDeployedModels = sqliteTable('learning_deployed_models', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    deploymentId: text('deployment_id').notNull().unique(),
+
+    // Model identity
+    modelName: text('model_name').notNull(),
+    modelVersion: text('model_version').notNull(),
+    baseModel: text('base_model').notNull(),
+
+    // Deployment details
+    provider: text('provider').notNull().$type<'runpod' | 'modal' | 'together'>(),
+    endpointUrl: text('endpoint_url').notNull(),
+    status: text('status').notNull().$type<'deploying' | 'active' | 'stopped' | 'failed' | 'scaling'>(),
+
+    // Configuration
+    deploymentConfig: text('deployment_config', { mode: 'json' }),
+    gpuType: text('gpu_type'),
+    replicas: integer('replicas').default(1),
+
+    // Health tracking
+    lastHealthCheck: text('last_health_check'),
+    healthStatus: text('health_status').$type<'healthy' | 'unhealthy' | 'unknown'>(),
+
+    // Usage metrics
+    requestCount: integer('request_count').default(0),
+    avgLatencyMs: real('avg_latency_ms'),
+    errorRate: real('error_rate').default(0),
+    totalCost: real('total_cost').default(0),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Agent Network Broadcasts - Learning shared between agents
+ */
+export const learningAgentBroadcasts = sqliteTable('learning_agent_broadcasts', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    broadcastId: text('broadcast_id').notNull().unique(),
+
+    // Source agent
+    sourceAgentId: text('source_agent_id').notNull(),
+    sourceBuildId: text('source_build_id').notNull(),
+
+    // Learning content
+    learningType: text('learning_type').notNull().$type<'pattern' | 'error_fix' | 'strategy' | 'warning' | 'discovery'>(),
+    summary: text('summary').notNull(),
+    details: text('details', { mode: 'json' }).notNull(),
+    applicability: text('applicability', { mode: 'json' }).$type<string[]>(),
+    confidence: real('confidence').notNull(),
+
+    // Reception tracking
+    receivedBy: text('received_by', { mode: 'json' }).$type<string[]>(),
+    appliedBy: text('applied_by', { mode: 'json' }).$type<string[]>(),
+    effectivenessScores: text('effectiveness_scores', { mode: 'json' }).$type<Record<string, number>>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Context Priority Weights - Learned context importance
+ */
+export const learningContextPriorities = sqliteTable('learning_context_priorities', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    priorityId: text('priority_id').notNull().unique(),
+
+    // Context category
+    category: text('category').notNull().$type<
+        'intent_contract' | 'current_code' | 'error_message' | 'past_pattern' |
+        'past_reflexion' | 'past_strategy' | 'file_structure' | 'related_files' |
+        'user_preference' | 'verification_result'
+    >(),
+    taskType: text('task_type').notNull().$type<
+        'code_generation' | 'error_fixing' | 'design' | 'architecture' | 'verification'
+    >(),
+
+    // Weights
+    baseWeight: integer('base_weight').notNull().default(50),
+    learnedWeight: real('learned_weight').notNull().default(50),
+
+    // Learning stats
+    usageCount: integer('usage_count').default(0),
+    successCount: integer('success_count').default(0),
+    successRate: real('success_rate').default(0.5),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Direct RLAIF Evaluations - Direct reward scoring
+ */
+export const learningDirectRLAIFEvals = sqliteTable('learning_direct_rlaif_evals', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    evalId: text('eval_id').notNull().unique(),
+
+    // Context
+    buildId: text('build_id'),
+    artifactId: text('artifact_id'),
+    evaluationType: text('evaluation_type').notNull().$type<'code' | 'design' | 'error_fix' | 'architecture'>(),
+
+    // Input/Output
+    prompt: text('prompt').notNull(),
+    response: text('response').notNull(),
+    context: text('context', { mode: 'json' }),
+
+    // Scoring
+    rewardScore: integer('reward_score').notNull(),
+    categoryScores: text('category_scores', { mode: 'json' }).$type<Record<string, number>>(),
+    reasoning: text('reasoning').notNull(),
+
+    // Model used
+    labelerModel: text('labeler_model').notNull(),
+
+    // Usage tracking
+    usedInTraining: integer('used_in_training', { mode: 'boolean' }).default(false),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Build Similarity Cache - For cross-build matching
+ */
+export const learningBuildSimilarity = sqliteTable('learning_build_similarity', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+
+    buildIdA: text('build_id_a').notNull(),
+    buildIdB: text('build_id_b').notNull(),
+
+    // Similarity scores
+    overallSimilarity: real('overall_similarity').notNull(),
+    soulSimilarity: real('soul_similarity'),
+    featureSimilarity: real('feature_similarity'),
+    techStackSimilarity: real('tech_stack_similarity'),
+
+    // Metadata
+    computedAt: text('computed_at').default(sql`(datetime('now'))`).notNull(),
+});

@@ -473,3 +473,434 @@ export interface EvolutionConfig {
     regressionTolerance: number; // 0-1
 }
 
+// =============================================================================
+// COMPONENT 28 ENHANCEMENT - NEW TYPES
+// =============================================================================
+
+// Direct RLAIF Types
+export type DirectRLAIFEvaluationType = 'code' | 'design' | 'error_fix' | 'architecture';
+
+export interface DirectRewardResult {
+    evalId: string;
+    rewardScore: number; // 0-100
+    categoryScores: Record<string, number>;
+    reasoning: string;
+    labelerModel: string;
+    processingTimeMs: number;
+}
+
+export interface DirectRLAIFConfig {
+    labelerModel: string;
+    enableCache: boolean;
+    cacheTTLMs: number;
+    maxConcurrentEvals: number;
+}
+
+// Multi-Judge Types
+export interface JudgeConfig {
+    model: string;
+    weight: number;
+    timeout?: number;
+}
+
+export interface IndividualJudgeScore {
+    model: string;
+    score: number;
+    reasoning: string;
+    latencyMs: number;
+}
+
+export interface ConsensusResult {
+    consensusId: string;
+    judgmentId: string;
+    judges: JudgeConfig[];
+    individualScores: IndividualJudgeScore[];
+    consensusScore: number;
+    disagreementLevel: number;
+    finalVerdict: string;
+    reasoning: string;
+}
+
+export interface MultiJudgeConfig {
+    enableConsensus: boolean;
+    disagreementThreshold: number;
+    tieBreakModel: string;
+}
+
+// Reflexion Types
+export interface ReflexionNote {
+    reflexionId: string;
+    buildId?: string;
+    agentId?: string;
+    phase: string;
+
+    // What happened
+    failureDescription: string;
+    errorType?: string;
+    errorMessage?: string;
+    attemptsMade: number;
+
+    // Analysis
+    rootCauseAnalysis: string;
+    whatWentWrong?: string;
+    whatShouldHaveDone?: string;
+
+    // Learning
+    lessonLearned: string;
+    suggestedApproach: string;
+    codePatternToAvoid?: string;
+    codePatternToUse?: string;
+
+    // Tracking
+    appliedInBuild?: string;
+    effectiveness?: number;
+    timesRetrieved: number;
+    timesApplied: number;
+
+    createdAt: Date;
+}
+
+export interface ReflexionConfig {
+    autoGenerateOnEscalation: boolean;
+    minEscalationLevel: number;
+    maxReflexionsPerBuild: number;
+    retrievalLimit: number;
+}
+
+// Real-Time Learning Types
+export type LearningEventType =
+    | 'decision_made'
+    | 'code_generated'
+    | 'error_occurred'
+    | 'error_fixed'
+    | 'verification_passed'
+    | 'verification_failed'
+    | 'user_feedback'
+    | 'phase_completed';
+
+export interface LearningEvent {
+    eventId: string;
+    buildId: string;
+    userId: string;
+    eventType: LearningEventType;
+    eventData: Record<string, unknown>;
+    timestamp: Date;
+}
+
+export interface LearningApplication {
+    patterns: LearnedPattern[];
+    strategies: LearnedStrategy[];
+    reflexions: ReflexionNote[];
+    warnings: string[];
+}
+
+export interface RealTimeLearningConfig {
+    enableQuickLearn: boolean;
+    quickLearnMaxMs: number;
+    enableBackgroundProcessing: boolean;
+    batchSize: number;
+}
+
+// Cross-Build Transfer Types
+export type KnowledgeType = 'pattern' | 'strategy' | 'reflexion' | 'preference';
+
+export interface TransferableKnowledge {
+    knowledgeId: string;
+    knowledgeType: KnowledgeType;
+    content: unknown;
+    transferabilityScore: number;
+    factors: {
+        universality: number;
+        successRate: number;
+        contextSimilarity: number;
+        recency: number;
+        uniqueness: number;
+    };
+}
+
+export interface KnowledgeLink {
+    linkId: string;
+    sourceBuildId: string;
+    targetBuildId?: string;
+    knowledgeType: KnowledgeType;
+    knowledgeId: string;
+    relevanceScore: number;
+    usedAt?: Date;
+    effectivenessScore?: number;
+    createdAt: Date;
+}
+
+export interface BuildSimilarity {
+    buildIdA: string;
+    buildIdB: string;
+    overallSimilarity: number;
+    soulSimilarity: number;
+    featureSimilarity: number;
+    techStackSimilarity: number;
+}
+
+export interface CrossBuildConfig {
+    enableTransfer: boolean;
+    minTransferabilityScore: number;
+    maxKnowledgePerBuild: number;
+    similarityThreshold: number;
+}
+
+// Vision RLAIF Types
+export interface VisualPair {
+    pairId: string;
+    buildId?: string;
+    componentPath?: string;
+
+    screenshotBefore?: string;
+    screenshotAfter?: string;
+    codeChanges: string;
+
+    visualScoreBefore?: number;
+    visualScoreAfter?: number;
+    antiSlopScoreBefore?: number;
+    antiSlopScoreAfter?: number;
+    improvement: number;
+
+    judgmentReasoning?: string;
+    categories?: Record<string, number>;
+
+    usedInTraining: boolean;
+    trainingRunId?: string;
+    createdAt: Date;
+}
+
+export interface VisionRLAIFConfig {
+    enableVisualCapture: boolean;
+    minImprovementForPair: number;
+    maxPairsPerBuild: number;
+    screenshotCompression: number;
+}
+
+// Agent Network Types
+export type NetworkLearningType = 'pattern' | 'error_fix' | 'strategy' | 'warning' | 'discovery';
+
+export interface NetworkLearning {
+    learningId: string;
+    sourceAgentId: string;
+    buildId: string;
+    learningType: NetworkLearningType;
+    content: {
+        summary: string;
+        details: unknown;
+        applicability: string[];
+        confidence: number;
+    };
+    timestamp: Date;
+}
+
+export interface AgentInfo {
+    agentId: string;
+    buildId: string;
+    currentTask?: string;
+    capabilities: string[];
+    status: 'active' | 'idle' | 'completed';
+}
+
+export interface NetworkQuery {
+    queryId: string;
+    askingAgentId: string;
+    question: string;
+    context: string;
+    targetCapabilities?: string[];
+}
+
+export interface NetworkResponse {
+    respondingAgentId: string;
+    answer: string;
+    confidence: number;
+    relevantLearnings: NetworkLearning[];
+}
+
+export interface AgentNetworkConfig {
+    enableBroadcasting: boolean;
+    enableQuerying: boolean;
+    maxBroadcastAge: number;
+    relevanceThreshold: number;
+}
+
+// Context Priority Types
+export type ContextCategory =
+    | 'intent_contract'
+    | 'current_code'
+    | 'error_message'
+    | 'past_pattern'
+    | 'past_reflexion'
+    | 'past_strategy'
+    | 'file_structure'
+    | 'related_files'
+    | 'user_preference'
+    | 'verification_result';
+
+export type TaskType =
+    | 'code_generation'
+    | 'error_fixing'
+    | 'design'
+    | 'architecture'
+    | 'verification';
+
+export interface ContextItem {
+    itemId: string;
+    category: ContextCategory;
+    content: string;
+    tokenCount: number;
+    sourceFile?: string;
+    recency: Date;
+    relevanceScore?: number;
+    usageCount?: number;
+    successRate?: number;
+}
+
+export interface ContextPriority {
+    priorityId: string;
+    category: ContextCategory;
+    taskType: TaskType;
+    baseWeight: number;
+    learnedWeight: number;
+    usageCount: number;
+    successCount: number;
+    successRate: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface ContextPriorityConfig {
+    enableLearning: boolean;
+    weightDecayRate: number;
+    minWeight: number;
+    maxWeight: number;
+}
+
+// Shadow Model Deployer Types
+export type DeploymentProvider = 'runpod' | 'modal' | 'together';
+export type DeploymentStatus = 'deploying' | 'active' | 'stopped' | 'failed' | 'scaling';
+export type HealthStatus = 'healthy' | 'unhealthy' | 'unknown';
+
+export interface DeployedModel {
+    deploymentId: string;
+    modelName: string;
+    modelVersion: string;
+    baseModel: string;
+    provider: DeploymentProvider;
+    endpointUrl: string;
+    status: DeploymentStatus;
+    deploymentConfig?: Record<string, unknown>;
+    gpuType?: string;
+    replicas: number;
+    lastHealthCheck?: Date;
+    healthStatus?: HealthStatus;
+    requestCount: number;
+    avgLatencyMs?: number;
+    errorRate: number;
+    totalCost: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface DeploymentConfig {
+    provider: DeploymentProvider;
+    gpuType: string;
+    containerImage: string;
+    minReplicas: number;
+    maxReplicas: number;
+    scaleDownDelay: number;
+    healthCheckPath: string;
+    envVars?: Record<string, string>;
+}
+
+export interface InferenceRequest {
+    prompt: string;
+    maxTokens?: number;
+    temperature?: number;
+    systemPrompt?: string;
+}
+
+export interface InferenceResponse {
+    response: string;
+    tokensUsed: number;
+    latencyMs: number;
+    modelUsed: string;
+}
+
+export interface ShadowModelDeployerConfig {
+    enableAutoDeploy: boolean;
+    minEvalScoreForDeploy: number;
+    healthCheckIntervalMs: number;
+    scaleToZeroAfterMs: number;
+}
+
+// Enhanced Evolution Flywheel Types
+export interface EnhancedCycleMetrics extends CycleMetrics {
+    directRLAIFScores: number[];
+    multiJudgeConsensus: number;
+    reflexionCount: number;
+    crossBuildTransfers: number;
+    visionPairsGenerated: number;
+    shadowModelsDeployed: number;
+    agentNetworkBroadcasts: number;
+    contextPriorityUpdates: number;
+}
+
+export interface EnhancedLearningStatus {
+    isRunning: boolean;
+    currentCycleId: string | null;
+    lastCycle: EvolutionCycle | null;
+    totalCycles: number;
+    overallImprovement: number;
+    directRLAIF: {
+        totalEvals: number;
+        avgScore: number;
+        recentScores: number[];
+    };
+    multiJudge: {
+        totalConsensus: number;
+        avgConsensusScore: number;
+        avgDisagreement: number;
+    };
+    reflexion: {
+        totalNotes: number;
+        avgEffectiveness: number;
+        recentApplications: number;
+    };
+    realTimeLearning: {
+        eventsProcessed: number;
+        quickLearnings: number;
+        backgroundQueued: number;
+    };
+    crossBuildTransfer: {
+        totalLinks: number;
+        successfulTransfers: number;
+        avgEffectiveness: number;
+    };
+    visionRLAIF: {
+        totalPairs: number;
+        avgImprovement: number;
+        pairsInTraining: number;
+    };
+    deployedModels: {
+        activeDeployments: number;
+        totalRequests: number;
+        avgLatency: number;
+    };
+    agentNetwork: {
+        activeBroadcasts: number;
+        totalLearningsShared: number;
+        avgConfidence: number;
+    };
+    contextPriority: {
+        prioritiesLearned: number;
+        avgSuccessRate: number;
+    };
+}
+
+export interface AutoTriggerThresholds {
+    newTraces: number;
+    newReflexions: number;
+    newVisualPairs: number;
+    timeElapsedSeconds: number;
+}

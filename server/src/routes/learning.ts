@@ -16,6 +16,16 @@ import {
     getStrategyEvolution,
     getAIJudgmentService,
     getShadowModelRegistry,
+    // Component 28 v2 Enhanced Services
+    getDirectRLAIF,
+    getMultiJudge,
+    getVisionRLAIF,
+    getReflexion,
+    getCrossBuildTransfer,
+    getContextPriority,
+    getRealtimeLearning,
+    getAgentNetwork,
+    getShadowModelDeployer,
 } from '../services/learning/index.js';
 import { getTrainingPipelineService } from '../services/learning/training-pipeline.js';
 import type {
@@ -729,6 +739,756 @@ router.post('/training/trigger', async (req, res) => {
         res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Failed to trigger training'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - DIRECT RLAIF
+// =============================================================================
+
+/**
+ * POST /api/learning/direct-rlaif/evaluate
+ * Get direct reward score for an artifact
+ */
+router.post('/direct-rlaif/evaluate', async (req, res) => {
+    try {
+        const { category, artifact, context } = req.body;
+        if (!category || !artifact) {
+            return res.status(400).json({
+                success: false,
+                error: 'category and artifact are required'
+            });
+        }
+
+        const directRLAIF = getDirectRLAIF();
+        const result = await directRLAIF.getDirectReward(category, artifact, context);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Direct-RLAIF evaluation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to evaluate artifact'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/direct-rlaif/batch
+ * Batch evaluate multiple artifacts
+ */
+router.post('/direct-rlaif/batch', async (req, res) => {
+    try {
+        const { category, prompt, artifacts, context } = req.body;
+        if (!category || !prompt || !Array.isArray(artifacts)) {
+            return res.status(400).json({
+                success: false,
+                error: 'category, prompt, and artifacts array are required'
+            });
+        }
+
+        const directRLAIF = getDirectRLAIF();
+        const results = await directRLAIF.batchEvaluate(category, prompt, artifacts, context);
+        res.json({ success: true, data: results });
+    } catch (error) {
+        console.error('[Learning API] Direct-RLAIF batch evaluation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to batch evaluate artifacts'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/direct-rlaif/stats
+ * Get Direct-RLAIF statistics
+ */
+router.get('/direct-rlaif/stats', async (req, res) => {
+    try {
+        const directRLAIF = getDirectRLAIF();
+        const stats = await directRLAIF.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get Direct-RLAIF stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get Direct-RLAIF stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - MULTI-JUDGE CONSENSUS
+// =============================================================================
+
+/**
+ * POST /api/learning/multi-judge/evaluate
+ * Evaluate artifact with multiple judges
+ */
+router.post('/multi-judge/evaluate', async (req, res) => {
+    try {
+        const { category, artifact, context } = req.body;
+        if (!category || !artifact) {
+            return res.status(400).json({
+                success: false,
+                error: 'category and artifact are required'
+            });
+        }
+
+        const multiJudge = getMultiJudge();
+        const result = await multiJudge.evaluateWithConsensus(category, artifact, context);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Multi-judge evaluation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to evaluate with multi-judge'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/multi-judge/stats
+ * Get Multi-Judge statistics
+ */
+router.get('/multi-judge/stats', async (req, res) => {
+    try {
+        const multiJudge = getMultiJudge();
+        const stats = await multiJudge.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get multi-judge stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get multi-judge stats'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/multi-judge/recent
+ * Get recent consensus records
+ */
+router.get('/multi-judge/recent', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 50;
+        const multiJudge = getMultiJudge();
+        const consensus = await multiJudge.getRecentConsensus(limit);
+        res.json({ success: true, data: consensus });
+    } catch (error) {
+        console.error('[Learning API] Failed to get recent consensus:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get recent consensus'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - VISION RLAIF
+// =============================================================================
+
+/**
+ * POST /api/learning/vision/evaluate
+ * Evaluate a screenshot for Anti-Slop
+ */
+router.post('/vision/evaluate', async (req, res) => {
+    try {
+        const { imageSource, context } = req.body;
+        if (!imageSource) {
+            return res.status(400).json({
+                success: false,
+                error: 'imageSource is required (base64, URL, or file path)'
+            });
+        }
+
+        const visionRLAIF = getVisionRLAIF();
+        const result = await visionRLAIF.evaluateScreenshot(imageSource, context);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Vision evaluation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to evaluate screenshot'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/vision/compare
+ * Compare two designs
+ */
+router.post('/vision/compare', async (req, res) => {
+    try {
+        const { imageA, imageB, context } = req.body;
+        if (!imageA || !imageB) {
+            return res.status(400).json({
+                success: false,
+                error: 'imageA and imageB are required'
+            });
+        }
+
+        const visionRLAIF = getVisionRLAIF();
+        const result = await visionRLAIF.compareDesigns(imageA, imageB, context);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Vision comparison failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to compare designs'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/vision/stats
+ * Get Vision RLAIF statistics
+ */
+router.get('/vision/stats', async (req, res) => {
+    try {
+        const visionRLAIF = getVisionRLAIF();
+        const stats = await visionRLAIF.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get vision stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get vision stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - REFLEXION
+// =============================================================================
+
+/**
+ * POST /api/learning/reflexion/failure
+ * Generate reflection from a failure
+ */
+router.post('/reflexion/failure', async (req, res) => {
+    try {
+        const { task, failedAttempt, error, resolution, context } = req.body;
+        if (!task || !failedAttempt || !error) {
+            return res.status(400).json({
+                success: false,
+                error: 'task, failedAttempt, and error are required'
+            });
+        }
+
+        const reflexion = getReflexion();
+        const note = await reflexion.reflectOnFailure(task, failedAttempt, error, resolution, context);
+        res.json({ success: true, data: note });
+    } catch (error) {
+        console.error('[Learning API] Reflexion failure analysis failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate failure reflection'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/reflexion/auto-reflect
+ * Auto-reflect on recent error recoveries
+ */
+router.post('/reflexion/auto-reflect', async (req, res) => {
+    try {
+        const { limit = 10 } = req.body;
+
+        const reflexion = getReflexion();
+        const notes = await reflexion.reflectOnRecentErrors(limit);
+        res.json({ success: true, data: notes, count: notes.length });
+    } catch (error) {
+        console.error('[Learning API] Auto-reflection failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to auto-reflect on recent errors'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/reflexion/relevant
+ * Get relevant reflection notes for a task
+ */
+router.get('/reflexion/relevant', async (req, res) => {
+    try {
+        const task = req.query.task as string;
+        if (!task) {
+            return res.status(400).json({
+                success: false,
+                error: 'task query parameter is required'
+            });
+        }
+
+        const reflexion = getReflexion();
+        const notes = await reflexion.getRelevantNotes(task, {
+            phase: req.query.phase as string,
+            errorType: req.query.errorType as string,
+        });
+        res.json({ success: true, data: notes });
+    } catch (error) {
+        console.error('[Learning API] Failed to get relevant notes:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get relevant reflection notes'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/reflexion/stats
+ * Get Reflexion statistics
+ */
+router.get('/reflexion/stats', async (req, res) => {
+    try {
+        const reflexion = getReflexion();
+        const stats = await reflexion.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get reflexion stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get reflexion stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - CROSS-BUILD TRANSFER
+// =============================================================================
+
+/**
+ * POST /api/learning/cross-build/link
+ * Create a knowledge link between builds
+ */
+router.post('/cross-build/link', async (req, res) => {
+    try {
+        const { sourceBuildId, targetBuildId, linkType, metadata } = req.body;
+        if (!sourceBuildId || !targetBuildId || !linkType) {
+            return res.status(400).json({
+                success: false,
+                error: 'sourceBuildId, targetBuildId, and linkType are required'
+            });
+        }
+
+        const crossBuild = getCrossBuildTransfer();
+        const link = await crossBuild.createLink(sourceBuildId, targetBuildId, linkType, metadata);
+        res.json({ success: true, data: link });
+    } catch (error) {
+        console.error('[Learning API] Cross-build link creation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create cross-build link'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/cross-build/transfer
+ * Transfer patterns to a target build
+ */
+router.post('/cross-build/transfer', async (req, res) => {
+    try {
+        const { targetBuildId } = req.body;
+        if (!targetBuildId) {
+            return res.status(400).json({
+                success: false,
+                error: 'targetBuildId is required'
+            });
+        }
+
+        const crossBuild = getCrossBuildTransfer();
+        const result = await crossBuild.transferPatterns(targetBuildId);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Cross-build transfer failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to transfer patterns'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/cross-build/graph/:buildId
+ * Get knowledge graph around a build
+ */
+router.get('/cross-build/graph/:buildId', async (req, res) => {
+    try {
+        const depth = parseInt(req.query.depth as string) || 2;
+        const crossBuild = getCrossBuildTransfer();
+        const graph = await crossBuild.getKnowledgeGraph(req.params.buildId, depth);
+        res.json({ success: true, data: graph });
+    } catch (error) {
+        console.error('[Learning API] Failed to get knowledge graph:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get knowledge graph'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/cross-build/stats
+ * Get Cross-Build Transfer statistics
+ */
+router.get('/cross-build/stats', async (req, res) => {
+    try {
+        const crossBuild = getCrossBuildTransfer();
+        const stats = await crossBuild.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get cross-build stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get cross-build stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - CONTEXT PRIORITY
+// =============================================================================
+
+/**
+ * GET /api/learning/context-priority/weights/:taskCategory
+ * Get context weights for a task category
+ */
+router.get('/context-priority/weights/:taskCategory', async (req, res) => {
+    try {
+        const contextPriority = await getContextPriority();
+        const weights = contextPriority.getWeights(req.params.taskCategory as any);
+        res.json({ success: true, data: weights });
+    } catch (error) {
+        console.error('[Learning API] Failed to get context weights:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get context weights'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/context-priority/order/:taskCategory
+ * Get recommended context retrieval order
+ */
+router.get('/context-priority/order/:taskCategory', async (req, res) => {
+    try {
+        const tokenBudget = parseInt(req.query.tokenBudget as string) || 8000;
+        const contextPriority = await getContextPriority();
+        const order = contextPriority.getContextRetrievalOrder(req.params.taskCategory as any, tokenBudget);
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('[Learning API] Failed to get context order:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get context order'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/context-priority/outcome
+ * Record context usage outcome
+ */
+router.post('/context-priority/outcome', async (req, res) => {
+    try {
+        const { taskId, taskCategory, outcome } = req.body;
+        if (!taskId || !taskCategory || !outcome) {
+            return res.status(400).json({
+                success: false,
+                error: 'taskId, taskCategory, and outcome are required'
+            });
+        }
+
+        const contextPriority = await getContextPriority();
+        await contextPriority.recordOutcome(taskId, taskCategory, outcome);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Learning API] Failed to record context outcome:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to record context outcome'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/context-priority/stats
+ * Get Context Priority statistics
+ */
+router.get('/context-priority/stats', async (req, res) => {
+    try {
+        const contextPriority = await getContextPriority();
+        const stats = await contextPriority.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get context priority stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get context priority stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - REAL-TIME LEARNING
+// =============================================================================
+
+/**
+ * POST /api/learning/realtime/event
+ * Capture a real-time learning event
+ */
+router.post('/realtime/event', async (req, res) => {
+    try {
+        const { eventType, buildSessionId, data, metadata } = req.body;
+        if (!eventType || !buildSessionId || !data) {
+            return res.status(400).json({
+                success: false,
+                error: 'eventType, buildSessionId, and data are required'
+            });
+        }
+
+        const realtimeLearning = getRealtimeLearning();
+        const event = await realtimeLearning.captureEvent(eventType, buildSessionId, data, metadata);
+        res.json({ success: true, data: event });
+    } catch (error) {
+        console.error('[Learning API] Failed to capture realtime event:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to capture realtime event'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/realtime/session/:buildSessionId
+ * Get aggregated events for a session
+ */
+router.get('/realtime/session/:buildSessionId', async (req, res) => {
+    try {
+        const realtimeLearning = getRealtimeLearning();
+        const aggregation = await realtimeLearning.getSessionAggregation(req.params.buildSessionId);
+        res.json({ success: true, data: aggregation });
+    } catch (error) {
+        console.error('[Learning API] Failed to get session aggregation:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get session aggregation'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/realtime/velocity/:buildSessionId
+ * Get learning velocity for a session
+ */
+router.get('/realtime/velocity/:buildSessionId', async (req, res) => {
+    try {
+        const realtimeLearning = getRealtimeLearning();
+        const velocity = await realtimeLearning.getLearningVelocity(req.params.buildSessionId);
+        res.json({ success: true, data: velocity });
+    } catch (error) {
+        console.error('[Learning API] Failed to get learning velocity:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get learning velocity'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/realtime/stats
+ * Get Real-Time Learning statistics
+ */
+router.get('/realtime/stats', async (req, res) => {
+    try {
+        const realtimeLearning = getRealtimeLearning();
+        const stats = await realtimeLearning.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get realtime stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get realtime stats'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - AGENT NETWORK
+// =============================================================================
+
+/**
+ * POST /api/learning/agent-network/register
+ * Register an agent with the network
+ */
+router.post('/agent-network/register', async (req, res) => {
+    try {
+        const { agentId, buildSessionId, options } = req.body;
+        if (!agentId || !buildSessionId) {
+            return res.status(400).json({
+                success: false,
+                error: 'agentId and buildSessionId are required'
+            });
+        }
+
+        const agentNetwork = getAgentNetwork();
+        agentNetwork.registerAgent(agentId, buildSessionId, options);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Learning API] Failed to register agent:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to register agent'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/agent-network/broadcast
+ * Broadcast a discovery to the network
+ */
+router.post('/agent-network/broadcast', async (req, res) => {
+    try {
+        const { sourceAgentId, discovery } = req.body;
+        if (!sourceAgentId || !discovery) {
+            return res.status(400).json({
+                success: false,
+                error: 'sourceAgentId and discovery are required'
+            });
+        }
+
+        const agentNetwork = getAgentNetwork();
+        const result = await agentNetwork.broadcastDiscovery(sourceAgentId, discovery);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Failed to broadcast discovery:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to broadcast discovery'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/agent-network/insights/:buildSessionId
+ * Get network insights for a build
+ */
+router.get('/agent-network/insights/:buildSessionId', async (req, res) => {
+    try {
+        const agentNetwork = getAgentNetwork();
+        const insights = await agentNetwork.getNetworkInsights(req.params.buildSessionId);
+        res.json({ success: true, data: insights });
+    } catch (error) {
+        console.error('[Learning API] Failed to get network insights:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get network insights'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/agent-network/state
+ * Get current network state
+ */
+router.get('/agent-network/state', async (req, res) => {
+    try {
+        const agentNetwork = getAgentNetwork();
+        const state = agentNetwork.getNetworkState();
+        res.json({ success: true, data: state });
+    } catch (error) {
+        console.error('[Learning API] Failed to get network state:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get network state'
+        });
+    }
+});
+
+// =============================================================================
+// COMPONENT 28 V2 - SHADOW MODEL DEPLOYER
+// =============================================================================
+
+/**
+ * POST /api/learning/deployer/check
+ * Check and deploy eligible shadow models
+ */
+router.post('/deployer/check', async (req, res) => {
+    try {
+        const deployer = getShadowModelDeployer();
+        const result = await deployer.checkAndDeployEligible();
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Learning API] Failed to check deployments:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to check deployments'
+        });
+    }
+});
+
+/**
+ * POST /api/learning/deployer/deploy
+ * Deploy a specific model
+ */
+router.post('/deployer/deploy', async (req, res) => {
+    try {
+        const { shadowModelId, modelType, version, provider, modelPath } = req.body;
+        if (!shadowModelId || !modelType || !version || !provider) {
+            return res.status(400).json({
+                success: false,
+                error: 'shadowModelId, modelType, version, and provider are required'
+            });
+        }
+
+        const deployer = getShadowModelDeployer();
+        const deployment = await deployer.deployModel(shadowModelId, modelType, version, provider, modelPath);
+        res.json({ success: true, data: deployment });
+    } catch (error) {
+        console.error('[Learning API] Failed to deploy model:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to deploy model'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/deployer/active
+ * Get active deployments
+ */
+router.get('/deployer/active', async (req, res) => {
+    try {
+        const deployer = getShadowModelDeployer();
+        const deployments = await deployer.getActiveDeployments();
+        res.json({ success: true, data: deployments });
+    } catch (error) {
+        console.error('[Learning API] Failed to get active deployments:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get active deployments'
+        });
+    }
+});
+
+/**
+ * GET /api/learning/deployer/stats
+ * Get deployer statistics
+ */
+router.get('/deployer/stats', async (req, res) => {
+    try {
+        const deployer = getShadowModelDeployer();
+        const stats = await deployer.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('[Learning API] Failed to get deployer stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get deployer stats'
         });
     }
 });
