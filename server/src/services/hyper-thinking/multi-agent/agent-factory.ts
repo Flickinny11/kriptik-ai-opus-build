@@ -1,6 +1,6 @@
 /**
  * Agent Factory
- * 
+ *
  * Creates and configures reasoning agents for the multi-agent swarm.
  */
 
@@ -85,24 +85,24 @@ Be balanced and comprehensive. Honor all valuable contributions.`,
 
 export class AgentFactory {
   private config: SwarmConfig;
-  
+
   constructor(config: SwarmConfig) {
     this.config = config;
   }
-  
+
   /**
    * Create a single agent with specified role
    */
   createAgent(role: AgentRole | string, customPrompt?: string, customTier?: ModelTier): SwarmAgent {
     // Handle custom roles as 'analyst' type
     const normalizedRole: AgentRole = this.isAgentRole(role) ? role : 'analyst';
-    
+
     const modelTier = customTier || (
       normalizedRole === 'lead' || normalizedRole === 'synthesizer'
         ? this.config.leadModelTier
         : this.config.agentModelTier
     );
-    
+
     return {
       id: uuidv4(),
       role: normalizedRole,
@@ -124,28 +124,28 @@ export class AgentFactory {
       },
     };
   }
-  
+
   /**
    * Check if a string is a valid AgentRole
    */
   private isAgentRole(role: string): role is AgentRole {
     return ['lead', 'analyst', 'critic', 'creative', 'implementer', 'synthesizer'].includes(role);
   }
-  
+
   /**
    * Create a swarm of agents with specified roles
    */
   createSwarm(roles: AgentRole[]): Map<string, SwarmAgent> {
     const agents = new Map<string, SwarmAgent>();
-    
+
     for (const role of roles) {
       const agent = this.createAgent(role);
       agents.set(agent.id, agent);
     }
-    
+
     return agents;
   }
-  
+
   /**
    * Spawn a team of agents based on problem analysis
    * Returns an array of agents instead of a Map
@@ -154,12 +154,12 @@ export class AgentFactory {
     // Analyze problem complexity based on length and keywords
     const isComplex = problem.length > 500 ||
       /architect|design|implement|build|create|develop|system|complex|multiple|integrate/i.test(problem);
-    
+
     const isModerate = problem.length > 200 ||
       /analyze|optimize|improve|fix|debug|refactor|update/i.test(problem);
-    
+
     let roles: AgentRole[];
-    
+
     if (isComplex) {
       // Full team for complex problems
       roles = ['lead', 'analyst', 'critic', 'creative', 'implementer', 'synthesizer'];
@@ -170,14 +170,14 @@ export class AgentFactory {
       // Minimal team for simple problems
       roles = ['analyst', 'implementer'];
     }
-    
+
     // Limit to configured max
     roles = roles.slice(0, this.config.maxAgents);
-    
+
     // Create agents
     return roles.map(role => this.createAgent(role));
   }
-  
+
   /**
    * Create default swarm configuration
    */
@@ -186,13 +186,13 @@ export class AgentFactory {
     const roles: AgentRole[] = ['lead', 'analyst', 'critic', 'implementer', 'synthesizer'];
     return this.createSwarm(roles.slice(0, this.config.maxAgents));
   }
-  
+
   /**
    * Create swarm based on problem complexity
    */
   createSwarmForProblem(problemComplexity: 'simple' | 'moderate' | 'complex'): Map<string, SwarmAgent> {
     let roles: AgentRole[];
-    
+
     switch (problemComplexity) {
       case 'simple':
         roles = ['analyst', 'implementer'];
@@ -205,42 +205,42 @@ export class AgentFactory {
         roles = ['lead', 'analyst', 'critic', 'creative', 'implementer', 'synthesizer'];
         break;
     }
-    
+
     // Limit to configured max
     roles = roles.slice(0, this.config.maxAgents);
-    
+
     return this.createSwarm(roles);
   }
-  
+
   /**
    * Get system prompt for a role
    */
   static getSystemPromptForRole(role: AgentRole): string {
     return ROLE_SYSTEM_PROMPTS[role];
   }
-  
+
   /**
    * Build task prompt for an agent
    */
   buildTaskPrompt(input: AgentPromptInput): string {
     let prompt = `# Problem\n${input.problem}\n\n`;
-    
+
     if (input.task) {
       prompt += `# Your Task\n${input.task}\n\n`;
     }
-    
+
     if (input.sharedContext) {
       prompt += `# Shared Context\n${input.sharedContext}\n\n`;
     }
-    
+
     if (input.otherInsights && input.otherInsights.length > 0) {
       prompt += `# Insights from Other Agents\n${input.otherInsights.map(i => `- ${i}`).join('\n')}\n\n`;
     }
-    
+
     if (input.otherConcerns && input.otherConcerns.length > 0) {
       prompt += `# Concerns Raised\n${input.otherConcerns.map(c => `- ${c}`).join('\n')}\n\n`;
     }
-    
+
     prompt += `# Expected Output
 Please provide:
 1. Your analysis/reasoning
@@ -250,10 +250,10 @@ Please provide:
 5. Confidence level (0-1)
 
 Format your response clearly with these sections.`;
-    
+
     return prompt;
   }
-  
+
   /**
    * Build debate prompt for an agent
    */
@@ -265,7 +265,7 @@ Format your response clearly with these sections.`;
   ): string {
     let prompt = `# Debate Topic\n${topic}\n\n`;
     prompt += `# Original Problem\n${problem}\n\n`;
-    
+
     if (otherArguments.length > 0) {
       prompt += `# Arguments from Other Agents\n`;
       for (const arg of otherArguments) {
@@ -273,7 +273,7 @@ Format your response clearly with these sections.`;
       }
       prompt += '\n';
     }
-    
+
     prompt += `# Your Task
 As the ${role.toUpperCase()}, provide your perspective on this topic.
 If you disagree with other agents, explain why.
@@ -283,7 +283,7 @@ Format:
 ARGUMENT: [Your main point]
 REBUTTALS: [Any disagreements with other agents]
 CONCESSIONS: [Points you agree with]`;
-    
+
     return prompt;
   }
 }

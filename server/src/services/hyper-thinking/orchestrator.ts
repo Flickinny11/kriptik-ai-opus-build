@@ -1,6 +1,6 @@
 /**
  * Hyper-Thinking Orchestrator
- * 
+ *
  * Central coordinator for all hyper-thinking operations.
  * Features:
  * - Complexity analysis and strategy selection
@@ -72,17 +72,17 @@ export class HyperThinkingOrchestrator {
     routing: RoutingDecision;
     startedAt: Date;
   }> = new Map();
-  
+
   constructor() {
     this.complexityAnalyzer = getComplexityAnalyzer();
     this.modelRouter = getModelRouter();
     this.budgetManager = getBudgetManager();
   }
-  
+
   // ============================================================================
   // Main Entry Points
   // ============================================================================
-  
+
   /**
    * Primary reasoning method - automatically selects best strategy
    */
@@ -90,16 +90,16 @@ export class HyperThinkingOrchestrator {
     const sessionId = uuidv4();
     const startedAt = new Date();
     const config = this.mergeConfig(input.config);
-    
+
     try {
       // Analyze complexity
       const analysis = await this.complexityAnalyzer.analyze(input.prompt, input.context);
-      
+
       // Override strategy if specified in config
       const strategy = config.strategy !== DEFAULT_HYPER_THINKING_CONFIG.strategy
         ? config.strategy
         : analysis.recommendedStrategy;
-      
+
       // Route to model
       const routing = await this.modelRouter.route(analysis, {
         forceModel: config.forceModel,
@@ -109,7 +109,7 @@ export class HyperThinkingOrchestrator {
           : undefined,
         maxBudget: config.maxThinkingBudget,
       });
-      
+
       // Create budget session
       const budgetSession = this.budgetManager.createSession(
         sessionId,
@@ -117,7 +117,7 @@ export class HyperThinkingOrchestrator {
         routing.model.tier,
         { maxBudget: routing.thinkingBudget }
       );
-      
+
       // Track active session
       this.activeSessions.set(sessionId, {
         sessionId,
@@ -125,10 +125,10 @@ export class HyperThinkingOrchestrator {
         routing,
         startedAt,
       });
-      
+
       // Execute strategy
       let result: HyperThinkingResult;
-      
+
       switch (strategy) {
         case 'chain_of_thought':
           result = await this.chainOfThought(sessionId, input, config, routing);
@@ -145,21 +145,21 @@ export class HyperThinkingOrchestrator {
         default:
           result = await this.chainOfThought(sessionId, input, config, routing);
       }
-      
+
       // Complete budget session
       this.budgetManager.completeSession(sessionId);
       this.activeSessions.delete(sessionId);
-      
+
       return result;
     } catch (error) {
       // Clean up on error
       this.budgetManager.cancelSession(sessionId);
       this.activeSessions.delete(sessionId);
-      
+
       throw error;
     }
   }
-  
+
   /**
    * Streaming reasoning - yields events during processing
    */
@@ -167,32 +167,32 @@ export class HyperThinkingOrchestrator {
     const sessionId = uuidv4();
     const startedAt = new Date();
     const config = this.mergeConfig(input.config);
-    
+
     try {
       // Analyze complexity
       const analysis = await this.complexityAnalyzer.analyze(input.prompt, input.context);
-      
+
       yield {
         type: 'thinking_start',
         content: `Analyzing task complexity: ${analysis.level} (score: ${analysis.score})`,
         metadata: { progress: 0.05 },
         timestamp: new Date(),
       };
-      
+
       // Route to model
       const routing = await this.modelRouter.route(analysis, {
         forceModel: config.forceModel,
         forceProvider: config.forceProvider,
         maxBudget: config.maxThinkingBudget,
       });
-      
+
       yield {
         type: 'thinking_step',
         content: `Selected model: ${routing.model.displayName} (${routing.model.tier} tier)`,
         metadata: { progress: 0.1 },
         timestamp: new Date(),
       };
-      
+
       // Create budget session
       const budgetSession = this.budgetManager.createSession(
         sessionId,
@@ -200,17 +200,17 @@ export class HyperThinkingOrchestrator {
         routing.model.tier,
         { maxBudget: routing.thinkingBudget }
       );
-      
+
       this.activeSessions.set(sessionId, {
         sessionId,
         budgetSession,
         routing,
         startedAt,
       });
-      
+
       // Get provider
       const provider = getProvider(routing.model.provider);
-      
+
       // Build request
       const request: ReasoningRequest = {
         prompt: this.buildPrompt(input),
@@ -221,25 +221,25 @@ export class HyperThinkingOrchestrator {
         stream: true,
         previousContext: input.context,
       };
-      
+
       // Execute with streaming
       const { stream, response } = provider.reasonStream(request);
-      
+
       // Yield streaming events
       for await (const event of stream) {
         yield event;
       }
-      
+
       // Wait for final response
       const finalResponse = await response;
-      
+
       // Record usage
       this.budgetManager.recordUsage(sessionId, 'main', finalResponse.tokenUsage);
-      
+
       // Complete session
       this.budgetManager.completeSession(sessionId);
       this.activeSessions.delete(sessionId);
-      
+
       // Build result
       const result = this.buildResult(
         sessionId,
@@ -248,7 +248,7 @@ export class HyperThinkingOrchestrator {
         [],
         startedAt
       );
-      
+
       yield {
         type: 'thinking_complete',
         content: 'Reasoning complete',
@@ -258,27 +258,27 @@ export class HyperThinkingOrchestrator {
         },
         timestamp: new Date(),
       };
-      
+
       return result;
     } catch (error) {
       this.budgetManager.cancelSession(sessionId);
       this.activeSessions.delete(sessionId);
-      
+
       yield {
         type: 'error',
         content: error instanceof Error ? error.message : 'Unknown error',
         metadata: {},
         timestamp: new Date(),
       };
-      
+
       throw error;
     }
   }
-  
+
   // ============================================================================
   // Reasoning Strategies
   // ============================================================================
-  
+
   /**
    * Chain-of-Thought reasoning - sequential thinking
    */
@@ -290,7 +290,7 @@ export class HyperThinkingOrchestrator {
   ): Promise<HyperThinkingResult> {
     const startedAt = new Date();
     const provider = getProvider(routing.model.provider);
-    
+
     // Build prompt with CoT instructions
     const cotPrompt = `${this.buildPrompt(input)}
 
@@ -301,7 +301,7 @@ Think through this step by step:
 4. Synthesize your findings into a coherent answer
 
 Provide your reasoning and final answer.`;
-    
+
     const request: ReasoningRequest = {
       prompt: cotPrompt,
       systemPrompt: input.systemPrompt || CONFIG.systemPrompt,
@@ -310,12 +310,12 @@ Provide your reasoning and final answer.`;
       temperature: config.temperature,
       previousContext: input.context,
     };
-    
+
     const response = await provider.reason(request);
-    
+
     // Record usage
     this.budgetManager.recordUsage(sessionId, 'cot-main', response.tokenUsage);
-    
+
     // Create reasoning step
     const step: ReasoningStep = {
       id: uuidv4(),
@@ -330,7 +330,7 @@ Provide your reasoning and final answer.`;
       children: [],
       metadata: { strategy: 'chain_of_thought' },
     };
-    
+
     return this.buildResult(
       sessionId,
       'chain_of_thought',
@@ -339,7 +339,7 @@ Provide your reasoning and final answer.`;
       startedAt
     );
   }
-  
+
   /**
    * Tree-of-Thought reasoning - parallel path exploration
    * Uses the full ToT engine with beam search, evaluation, and synthesis
@@ -351,7 +351,7 @@ Provide your reasoning and final answer.`;
     routing: RoutingDecision
   ): Promise<HyperThinkingResult> {
     const startedAt = new Date();
-    
+
     // Create ToT engine with configuration
     const totEngine = createToTEngine(routing.model, {
       strategy: 'beam',
@@ -364,16 +364,16 @@ Provide your reasoning and final answer.`;
       evaluationTemperature: 0.3,
       minSuccessScore: 0.7,
     });
-    
+
     // Run ToT
     const totResult = await totEngine.solve(
       this.buildPrompt(input),
       input.hints
     );
-    
+
     // Record usage
     this.budgetManager.recordUsage(sessionId, 'tot-main', totResult.totalTokens);
-    
+
     // Convert ToT result to reasoning steps
     const steps: ReasoningStep[] = totResult.tree.bestPath.map((nodeId, index) => {
       const node = totResult.tree.nodes.get(nodeId)!;
@@ -397,17 +397,17 @@ Provide your reasoning and final answer.`;
         latencyMs: node.latencyMs,
         createdAt: node.createdAt,
         children: node.children,
-        metadata: { 
+        metadata: {
           strategy: 'tree_of_thought',
           generationStrategy: node.generationStrategy,
           pruned: node.pruned,
         },
       };
     });
-    
+
     // Build final result
     const completedAt = new Date();
-    
+
     return {
       success: totResult.success,
       strategy: 'tree_of_thought',
@@ -434,7 +434,7 @@ Provide your reasoning and final answer.`;
       },
     };
   }
-  
+
   /**
    * Multi-Agent reasoning - parallel agents with synthesis
    * Uses the full Swarm Engine with conflict detection and resolution
@@ -446,7 +446,7 @@ Provide your reasoning and final answer.`;
     routing: RoutingDecision
   ): Promise<HyperThinkingResult> {
     const startedAt = new Date();
-    
+
     // Create swarm engine with configuration based on routing
     const swarmEngine = createSwarmEngine({
       config: {
@@ -466,16 +466,16 @@ Provide your reasoning and final answer.`;
         console.log(`[Swarm] ${event.type}: ${event.message}`);
       },
     });
-    
+
     // Execute swarm reasoning
     const swarmResult = await swarmEngine.reason({
       problem: this.buildPrompt(input),
       context: input.context,
     });
-    
+
     // Record total token usage
     this.budgetManager.recordUsage(sessionId, 'multi-agent-swarm', swarmResult.tokenUsage);
-    
+
     // Convert swarm reasoning steps to hyper-thinking format
     const steps: ReasoningStep[] = swarmResult.reasoning.map((step, index) => ({
       id: uuidv4(),
@@ -502,17 +502,17 @@ Provide your reasoning and final answer.`;
       latencyMs: Math.floor(swarmResult.latencyMs / swarmResult.reasoning.length),
       createdAt: new Date(),
       children: [],
-      metadata: { 
+      metadata: {
         strategy: 'multi_agent',
         agentCount: swarmResult.contributingAgents.length,
         phase: step.thought,
       },
     }));
-    
+
     // Build result
     const completedAt = new Date();
     const session = this.activeSessions.get(sessionId);
-    
+
     return {
       success: swarmResult.confidence > 0.5,
       strategy: 'multi_agent',
@@ -545,7 +545,7 @@ Provide your reasoning and final answer.`;
       },
     };
   }
-  
+
   /**
    * Hybrid reasoning - combines strategies
    */
@@ -557,21 +557,21 @@ Provide your reasoning and final answer.`;
   ): Promise<HyperThinkingResult> {
     const startedAt = new Date();
     const provider = getProvider(routing.model.provider);
-    
+
     // Allocate budget across phases
     const decompositionBudget = Math.floor(routing.thinkingBudget * 0.2);
     const explorationBudget = Math.floor(routing.thinkingBudget * 0.4);
     const synthesisBudget = Math.floor(routing.thinkingBudget * 0.4);
-    
+
     const steps: ReasoningStep[] = [];
     let context = input.context || '';
-    
+
     // Phase 1: Decomposition
     const decompositionPrompt = `Decompose this task into clear subtasks:
 ${this.buildPrompt(input)}
 
 List 3-5 subtasks that need to be solved.`;
-    
+
     const decompositionResponse = await provider.reason({
       prompt: decompositionPrompt,
       systemPrompt: 'You are a task decomposition expert.',
@@ -579,9 +579,9 @@ List 3-5 subtasks that need to be solved.`;
       thinkingBudget: decompositionBudget,
       temperature: 0.5,
     });
-    
+
     this.budgetManager.recordUsage(sessionId, 'hybrid-decomp', decompositionResponse.tokenUsage);
-    
+
     steps.push({
       id: uuidv4(),
       parentId: null,
@@ -595,9 +595,9 @@ List 3-5 subtasks that need to be solved.`;
       children: [],
       metadata: { phase: 'decomposition' },
     });
-    
+
     context += `\n\nDecomposition:\n${decompositionResponse.content}`;
-    
+
     // Phase 2: Exploration (ToT-style)
     const explorationPrompt = `Given this decomposition:
 ${decompositionResponse.content}
@@ -606,7 +606,7 @@ Now explore solutions using Tree-of-Thought:
 1. Generate 2 different approaches
 2. Evaluate each approach
 3. Select the best one`;
-    
+
     const explorationResponse = await provider.reason({
       prompt: explorationPrompt,
       systemPrompt: 'You are an expert problem solver.',
@@ -615,9 +615,9 @@ Now explore solutions using Tree-of-Thought:
       temperature: 0.8,
       previousContext: context,
     });
-    
+
     this.budgetManager.recordUsage(sessionId, 'hybrid-explore', explorationResponse.tokenUsage);
-    
+
     steps.push({
       id: uuidv4(),
       parentId: steps[0].id,
@@ -631,15 +631,15 @@ Now explore solutions using Tree-of-Thought:
       children: [],
       metadata: { phase: 'exploration' },
     });
-    
+
     context += `\n\nExploration:\n${explorationResponse.content}`;
-    
+
     // Phase 3: Synthesis
     const synthesisPrompt = `Given the decomposition and exploration above, synthesize a final solution.
 Original task: ${input.prompt}
 
 Provide a comprehensive, well-structured answer.`;
-    
+
     const synthesisResponse = await provider.reason({
       prompt: synthesisPrompt,
       systemPrompt: 'You are a synthesis expert. Combine insights into a coherent solution.',
@@ -648,9 +648,9 @@ Provide a comprehensive, well-structured answer.`;
       temperature: 0.5,
       previousContext: context,
     });
-    
+
     this.budgetManager.recordUsage(sessionId, 'hybrid-synth', synthesisResponse.tokenUsage);
-    
+
     steps.push({
       id: uuidv4(),
       parentId: steps[1].id,
@@ -664,14 +664,14 @@ Provide a comprehensive, well-structured answer.`;
       children: [],
       metadata: { phase: 'synthesis' },
     });
-    
+
     return this.buildResult(sessionId, 'hybrid', synthesisResponse, steps, startedAt);
   }
-  
+
   // ============================================================================
   // Helper Methods
   // ============================================================================
-  
+
   /**
    * Merge user config with defaults
    */
@@ -681,17 +681,17 @@ Provide a comprehensive, well-structured answer.`;
       ...userConfig,
     };
   }
-  
+
   /**
    * Build prompt from input
    */
   private buildPrompt(input: HyperThinkingInput): string {
     let prompt = input.prompt;
-    
+
     if (input.hints && input.hints.length > 0) {
       prompt += `\n\nHints:\n${input.hints.map(h => `- ${h}`).join('\n')}`;
     }
-    
+
     if (input.outputFormat === 'json') {
       prompt += '\n\nProvide your response in valid JSON format.';
       if (input.outputSchema) {
@@ -702,10 +702,10 @@ Provide a comprehensive, well-structured answer.`;
     } else if (input.outputFormat === 'structured') {
       prompt += '\n\nProvide your response in a clear, structured format with headers and sections.';
     }
-    
+
     return prompt;
   }
-  
+
   /**
    * Build final result
    */
@@ -718,7 +718,7 @@ Provide a comprehensive, well-structured answer.`;
   ): HyperThinkingResult {
     const completedAt = new Date();
     const session = this.activeSessions.get(sessionId);
-    
+
     // Calculate total token usage
     const totalTokens: TokenUsage = {
       promptTokens: 0,
@@ -726,14 +726,14 @@ Provide a comprehensive, well-structured answer.`;
       thinkingTokens: 0,
       totalTokens: 0,
     };
-    
+
     for (const step of steps) {
       totalTokens.promptTokens += step.tokenUsage.promptTokens;
       totalTokens.completionTokens += step.tokenUsage.completionTokens;
       totalTokens.thinkingTokens += step.tokenUsage.thinkingTokens;
       totalTokens.totalTokens += step.tokenUsage.totalTokens;
     }
-    
+
     // Get budget status
     const budgetStatus = session?.budgetSession.currentBudget || {
       totalTokens: 0,
@@ -743,10 +743,10 @@ Provide a comprehensive, well-structured answer.`;
       maxSteps: 0,
       estimatedCreditCost: 0,
     };
-    
+
     // Calculate confidence based on response quality indicators
     const confidence = this.calculateConfidence(response, steps);
-    
+
     return {
       success: true,
       strategy,
@@ -765,43 +765,43 @@ Provide a comprehensive, well-structured answer.`;
       },
     };
   }
-  
+
   /**
    * Calculate confidence score
    */
   private calculateConfidence(response: ReasoningResponse, steps: ReasoningStep[]): number {
     let confidence = 0.7; // Base confidence
-    
+
     // Extended thinking increases confidence
     if (response.thinking && response.thinking.length > 500) {
       confidence += 0.1;
     }
-    
+
     // More steps with evaluation increases confidence
     const evaluatedSteps = steps.filter(s => s.evaluation);
     if (evaluatedSteps.length > 0) {
       confidence += 0.1 * Math.min(evaluatedSteps.length / 3, 1);
     }
-    
+
     // Longer, more detailed responses suggest more thorough reasoning
     if (response.content.length > 1000) {
       confidence += 0.05;
     }
-    
+
     return Math.min(confidence, 0.95); // Cap at 0.95
   }
-  
+
   // ============================================================================
   // Session Management
   // ============================================================================
-  
+
   /**
    * Get active session
    */
   getActiveSession(sessionId: string) {
     return this.activeSessions.get(sessionId);
   }
-  
+
   /**
    * Cancel active session
    */
@@ -814,7 +814,7 @@ Provide a comprehensive, well-structured answer.`;
     }
     return false;
   }
-  
+
   /**
    * Get all active sessions for a user
    */
@@ -823,7 +823,7 @@ Provide a comprehensive, well-structured answer.`;
       s => s.budgetSession.userId === userId
     );
   }
-  
+
   /**
    * Health check
    */
@@ -837,7 +837,7 @@ Provide a comprehensive, well-structured answer.`;
       getProvider('openai').healthCheck(),
       getProvider('openrouter').healthCheck(),
     ]);
-    
+
     return {
       healthy: anthropic || openai || openrouter,
       providers: { anthropic, openai, openrouter },

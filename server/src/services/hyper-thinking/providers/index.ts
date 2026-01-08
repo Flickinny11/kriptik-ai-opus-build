@@ -1,6 +1,6 @@
 /**
  * Hyper-Thinking Provider Clients
- * 
+ *
  * Unified interfaces for reasoning providers:
  * - Anthropic: Direct SDK with extended thinking (budget_tokens, interleaved thinking)
  * - OpenAI: Direct SDK with reasoning effort (low/medium/high)
@@ -76,16 +76,16 @@ export interface StreamingReasoningResponse {
 export interface ReasoningProvider {
   /** Provider type */
   readonly provider: ProviderType;
-  
+
   /** Check if provider is available */
   isAvailable(): boolean;
-  
+
   /** Execute reasoning request */
   reason(request: ReasoningRequest): Promise<ReasoningResponse>;
-  
+
   /** Execute streaming reasoning request */
   reasonStream(request: ReasoningRequest): StreamingReasoningResponse;
-  
+
   /** Health check */
   healthCheck(): Promise<boolean>;
 }
@@ -97,11 +97,11 @@ export interface ReasoningProvider {
 class AnthropicReasoningClient implements ReasoningProvider {
   readonly provider: ProviderType = 'anthropic';
   private client: Anthropic | null = null;
-  
+
   constructor() {
     this.initializeClient();
   }
-  
+
   private initializeClient(): void {
     if (process.env.ANTHROPIC_API_KEY) {
       this.client = new Anthropic({
@@ -109,21 +109,21 @@ class AnthropicReasoningClient implements ReasoningProvider {
       });
     }
   }
-  
+
   isAvailable(): boolean {
     return !!process.env.ANTHROPIC_API_KEY && !!this.client;
   }
-  
+
   async reason(request: ReasoningRequest): Promise<ReasoningResponse> {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'Anthropic client not available');
     }
-    
+
     const startTime = Date.now();
-    
+
     // Build messages
     const messages: Anthropic.MessageParam[] = [];
-    
+
     if (request.previousContext) {
       messages.push({
         role: 'user',
@@ -134,12 +134,12 @@ class AnthropicReasoningClient implements ReasoningProvider {
         content: 'I understand the context. Please continue.',
       });
     }
-    
+
     messages.push({
       role: 'user',
       content: request.prompt,
     });
-    
+
     // Build request with extended thinking
     const response = await this.client.messages.create({
       model: request.model.modelId,
@@ -153,13 +153,13 @@ class AnthropicReasoningClient implements ReasoningProvider {
         budget_tokens: request.thinkingBudget,
       },
     } as Anthropic.MessageCreateParamsNonStreaming);
-    
+
     const latencyMs = Date.now() - startTime;
-    
+
     // Extract content and thinking
     let content = '';
     let thinking = '';
-    
+
     for (const block of response.content) {
       if (block.type === 'text') {
         content += block.text;
@@ -167,7 +167,7 @@ class AnthropicReasoningClient implements ReasoningProvider {
         thinking += (block as unknown as { thinking: string }).thinking || '';
       }
     }
-    
+
     // Build token usage
     const tokenUsage: TokenUsage = {
       promptTokens: response.usage.input_tokens,
@@ -177,7 +177,7 @@ class AnthropicReasoningClient implements ReasoningProvider {
       cacheWriteTokens: (response.usage as unknown as { cache_creation_input_tokens?: number }).cache_creation_input_tokens,
       totalTokens: response.usage.input_tokens + response.usage.output_tokens,
     };
-    
+
     return {
       content,
       thinking,
@@ -188,21 +188,21 @@ class AnthropicReasoningClient implements ReasoningProvider {
       stopReason: response.stop_reason || undefined,
     };
   }
-  
+
   reasonStream(request: ReasoningRequest): StreamingReasoningResponse {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'Anthropic client not available');
     }
-    
+
     const self = this;
     let resolveResponse: (response: ReasoningResponse) => void;
     let rejectResponse: (error: Error) => void;
-    
+
     const responsePromise = new Promise<ReasoningResponse>((resolve, reject) => {
       resolveResponse = resolve;
       rejectResponse = reject;
     });
-    
+
     const streamGenerator = async function* (): AsyncGenerator<StreamingEvent> {
       const startTime = Date.now();
       let content = '';
@@ -213,11 +213,11 @@ class AnthropicReasoningClient implements ReasoningProvider {
         thinkingTokens: 0,
         totalTokens: 0,
       };
-      
+
       try {
         // Build messages
         const messages: Anthropic.MessageParam[] = [];
-        
+
         if (request.previousContext) {
           messages.push({
             role: 'user',
@@ -228,12 +228,12 @@ class AnthropicReasoningClient implements ReasoningProvider {
             content: 'I understand the context. Please continue.',
           });
         }
-        
+
         messages.push({
           role: 'user',
           content: request.prompt,
         });
-        
+
         // Create streaming request
         const stream = await self.client!.messages.stream({
           model: request.model.modelId,
@@ -246,14 +246,14 @@ class AnthropicReasoningClient implements ReasoningProvider {
             budget_tokens: request.thinkingBudget,
           },
         } as Anthropic.MessageStreamParams);
-        
+
         yield {
           type: 'thinking_start',
           content: 'Starting reasoning...',
           metadata: {},
           timestamp: new Date(),
         };
-        
+
         for await (const event of stream) {
           if (event.type === 'content_block_delta') {
             const delta = event.delta;
@@ -285,16 +285,16 @@ class AnthropicReasoningClient implements ReasoningProvider {
             }
           }
         }
-        
+
         const latencyMs = Date.now() - startTime;
-        
+
         yield {
           type: 'thinking_complete',
           content: 'Reasoning complete.',
           metadata: { tokensUsed: tokenUsage.totalTokens },
           timestamp: new Date(),
         };
-        
+
         resolveResponse({
           content,
           thinking,
@@ -313,13 +313,13 @@ class AnthropicReasoningClient implements ReasoningProvider {
         rejectResponse(error instanceof Error ? error : new Error('Unknown error'));
       }
     };
-    
+
     return {
       stream: streamGenerator(),
       response: responsePromise,
     };
   }
-  
+
   async healthCheck(): Promise<boolean> {
     if (!this.client) return false;
     try {
@@ -343,11 +343,11 @@ class AnthropicReasoningClient implements ReasoningProvider {
 class OpenAIReasoningClient implements ReasoningProvider {
   readonly provider: ProviderType = 'openai';
   private client: OpenAI | null = null;
-  
+
   constructor() {
     this.initializeClient();
   }
-  
+
   private initializeClient(): void {
     if (process.env.OPENAI_API_KEY) {
       this.client = new OpenAI({
@@ -355,34 +355,34 @@ class OpenAIReasoningClient implements ReasoningProvider {
       });
     }
   }
-  
+
   isAvailable(): boolean {
     return !!process.env.OPENAI_API_KEY && !!this.client;
   }
-  
+
   private getReasoningEffort(thinkingBudget: number): 'low' | 'medium' | 'high' {
     if (thinkingBudget >= 64000) return 'high';
     if (thinkingBudget >= 32000) return 'medium';
     return 'low';
   }
-  
+
   async reason(request: ReasoningRequest): Promise<ReasoningResponse> {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'OpenAI client not available');
     }
-    
+
     const startTime = Date.now();
-    
+
     // Build messages
     const messages: OpenAI.ChatCompletionMessageParam[] = [];
-    
+
     if (request.systemPrompt) {
       messages.push({
         role: 'system',
         content: request.systemPrompt,
       });
     }
-    
+
     if (request.previousContext) {
       messages.push({
         role: 'user',
@@ -393,15 +393,15 @@ class OpenAIReasoningClient implements ReasoningProvider {
         content: 'I understand the context. Please continue.',
       });
     }
-    
+
     messages.push({
       role: 'user',
       content: request.prompt,
     });
-    
+
     // Check if this is an o3/o3-mini model (reasoning models)
     const isReasoningModel = request.model.modelId.includes('o3') || request.model.modelId.includes('o4');
-    
+
     // Build request parameters
     const params: Record<string, unknown> = {
       model: request.model.modelId,
@@ -409,19 +409,19 @@ class OpenAIReasoningClient implements ReasoningProvider {
       max_tokens: request.maxOutputTokens || 8192,
       temperature: request.temperature,
     };
-    
+
     // Add reasoning effort for o3/o3-mini models
     if (isReasoningModel) {
       params.reasoning_effort = this.getReasoningEffort(request.thinkingBudget);
     }
-    
+
     const response = await this.client.chat.completions.create(params as unknown as OpenAI.ChatCompletionCreateParamsNonStreaming);
-    
+
     const latencyMs = Date.now() - startTime;
-    
+
     // Extract content
     const content = response.choices[0]?.message?.content || '';
-    
+
     // Build token usage
     const tokenUsage: TokenUsage = {
       promptTokens: response.usage?.prompt_tokens || 0,
@@ -429,7 +429,7 @@ class OpenAIReasoningClient implements ReasoningProvider {
       thinkingTokens: (response.usage as unknown as { reasoning_tokens?: number })?.reasoning_tokens || 0,
       totalTokens: response.usage?.total_tokens || 0,
     };
-    
+
     return {
       content,
       tokenUsage,
@@ -439,21 +439,21 @@ class OpenAIReasoningClient implements ReasoningProvider {
       stopReason: response.choices[0]?.finish_reason || undefined,
     };
   }
-  
+
   reasonStream(request: ReasoningRequest): StreamingReasoningResponse {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'OpenAI client not available');
     }
-    
+
     const self = this;
     let resolveResponse: (response: ReasoningResponse) => void;
     let rejectResponse: (error: Error) => void;
-    
+
     const responsePromise = new Promise<ReasoningResponse>((resolve, reject) => {
       resolveResponse = resolve;
       rejectResponse = reject;
     });
-    
+
     const streamGenerator = async function* (): AsyncGenerator<StreamingEvent> {
       const startTime = Date.now();
       let content = '';
@@ -463,18 +463,18 @@ class OpenAIReasoningClient implements ReasoningProvider {
         thinkingTokens: 0,
         totalTokens: 0,
       };
-      
+
       try {
         // Build messages
         const messages: OpenAI.ChatCompletionMessageParam[] = [];
-        
+
         if (request.systemPrompt) {
           messages.push({
             role: 'system',
             content: request.systemPrompt,
           });
         }
-        
+
         if (request.previousContext) {
           messages.push({
             role: 'user',
@@ -485,14 +485,14 @@ class OpenAIReasoningClient implements ReasoningProvider {
             content: 'I understand the context. Please continue.',
           });
         }
-        
+
         messages.push({
           role: 'user',
           content: request.prompt,
         });
-        
+
         const isReasoningModel = request.model.modelId.includes('o3') || request.model.modelId.includes('o4');
-        
+
         const params: Record<string, unknown> = {
           model: request.model.modelId,
           messages,
@@ -501,20 +501,20 @@ class OpenAIReasoningClient implements ReasoningProvider {
           stream: true,
           stream_options: { include_usage: true },
         };
-        
+
         if (isReasoningModel) {
           params.reasoning_effort = self.getReasoningEffort(request.thinkingBudget);
         }
-        
+
         const stream = await self.client!.chat.completions.create(params as unknown as OpenAI.ChatCompletionCreateParamsStreaming);
-        
+
         yield {
           type: 'thinking_start',
           content: 'Starting reasoning...',
           metadata: {},
           timestamp: new Date(),
         };
-        
+
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content;
           if (delta) {
@@ -526,7 +526,7 @@ class OpenAIReasoningClient implements ReasoningProvider {
               timestamp: new Date(),
             };
           }
-          
+
           if (chunk.usage) {
             tokenUsage = {
               promptTokens: chunk.usage.prompt_tokens || 0,
@@ -536,16 +536,16 @@ class OpenAIReasoningClient implements ReasoningProvider {
             };
           }
         }
-        
+
         const latencyMs = Date.now() - startTime;
-        
+
         yield {
           type: 'thinking_complete',
           content: 'Reasoning complete.',
           metadata: { tokensUsed: tokenUsage.totalTokens },
           timestamp: new Date(),
         };
-        
+
         resolveResponse({
           content,
           tokenUsage,
@@ -563,13 +563,13 @@ class OpenAIReasoningClient implements ReasoningProvider {
         rejectResponse(error instanceof Error ? error : new Error('Unknown error'));
       }
     };
-    
+
     return {
       stream: streamGenerator(),
       response: responsePromise,
     };
   }
-  
+
   async healthCheck(): Promise<boolean> {
     if (!this.client) return false;
     try {
@@ -592,11 +592,11 @@ class OpenAIReasoningClient implements ReasoningProvider {
 class OpenRouterReasoningClient implements ReasoningProvider {
   readonly provider: ProviderType = 'openrouter';
   private client: OpenAI | null = null;
-  
+
   constructor() {
     this.initializeClient();
   }
-  
+
   private initializeClient(): void {
     if (process.env.OPENROUTER_API_KEY) {
       this.client = new OpenAI({
@@ -609,35 +609,35 @@ class OpenRouterReasoningClient implements ReasoningProvider {
       });
     }
   }
-  
+
   isAvailable(): boolean {
     return !!process.env.OPENROUTER_API_KEY && !!this.client;
   }
-  
+
   private getThinkingLevel(thinkingBudget: number): 'minimal' | 'low' | 'medium' | 'high' {
     if (thinkingBudget >= 64000) return 'high';
     if (thinkingBudget >= 32000) return 'medium';
     if (thinkingBudget >= 16000) return 'low';
     return 'minimal';
   }
-  
+
   async reason(request: ReasoningRequest): Promise<ReasoningResponse> {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'OpenRouter client not available');
     }
-    
+
     const startTime = Date.now();
-    
+
     // Build messages
     const messages: OpenAI.ChatCompletionMessageParam[] = [];
-    
+
     if (request.systemPrompt) {
       messages.push({
         role: 'system',
         content: request.systemPrompt,
       });
     }
-    
+
     if (request.previousContext) {
       messages.push({
         role: 'user',
@@ -648,17 +648,17 @@ class OpenRouterReasoningClient implements ReasoningProvider {
         content: 'I understand the context. Please continue.',
       });
     }
-    
+
     messages.push({
       role: 'user',
       content: request.prompt,
     });
-    
+
     // Check if model supports thinking (Gemini, DeepSeek-R1)
-    const supportsThinking = request.model.modelId.includes('gemini') || 
+    const supportsThinking = request.model.modelId.includes('gemini') ||
                             request.model.modelId.includes('deepseek-reasoner') ||
                             request.model.modelId.includes('qwen');
-    
+
     // Build request with OpenRouter-specific parameters
     const params: Record<string, unknown> = {
       model: request.model.modelId,
@@ -666,7 +666,7 @@ class OpenRouterReasoningClient implements ReasoningProvider {
       max_tokens: request.maxOutputTokens || 8192,
       temperature: request.temperature,
     };
-    
+
     // Add thinking/reasoning for supported models
     if (supportsThinking) {
       if (request.model.modelId.includes('gemini')) {
@@ -675,17 +675,17 @@ class OpenRouterReasoningClient implements ReasoningProvider {
         params.reasoning = true;
       }
     }
-    
+
     // Server-side external API call, credentials not needed
     const response = await this.client.chat.completions.create(
       params as unknown as OpenAI.ChatCompletionCreateParamsNonStreaming
     );
-    
+
     const latencyMs = Date.now() - startTime;
-    
+
     // Extract content
     const content = response.choices[0]?.message?.content || '';
-    
+
     // Build token usage
     const tokenUsage: TokenUsage = {
       promptTokens: response.usage?.prompt_tokens || 0,
@@ -693,7 +693,7 @@ class OpenRouterReasoningClient implements ReasoningProvider {
       thinkingTokens: 0,
       totalTokens: response.usage?.total_tokens || 0,
     };
-    
+
     return {
       content,
       tokenUsage,
@@ -703,21 +703,21 @@ class OpenRouterReasoningClient implements ReasoningProvider {
       stopReason: response.choices[0]?.finish_reason || undefined,
     };
   }
-  
+
   reasonStream(request: ReasoningRequest): StreamingReasoningResponse {
     if (!this.client) {
       throw new HyperThinkingError('MODEL_UNAVAILABLE', 'OpenRouter client not available');
     }
-    
+
     const self = this;
     let resolveResponse: (response: ReasoningResponse) => void;
     let rejectResponse: (error: Error) => void;
-    
+
     const responsePromise = new Promise<ReasoningResponse>((resolve, reject) => {
       resolveResponse = resolve;
       rejectResponse = reject;
     });
-    
+
     const streamGenerator = async function* (): AsyncGenerator<StreamingEvent> {
       const startTime = Date.now();
       let content = '';
@@ -727,17 +727,17 @@ class OpenRouterReasoningClient implements ReasoningProvider {
         thinkingTokens: 0,
         totalTokens: 0,
       };
-      
+
       try {
         const messages: OpenAI.ChatCompletionMessageParam[] = [];
-        
+
         if (request.systemPrompt) {
           messages.push({
             role: 'system',
             content: request.systemPrompt,
           });
         }
-        
+
         if (request.previousContext) {
           messages.push({
             role: 'user',
@@ -748,15 +748,15 @@ class OpenRouterReasoningClient implements ReasoningProvider {
             content: 'I understand the context. Please continue.',
           });
         }
-        
+
         messages.push({
           role: 'user',
           content: request.prompt,
         });
-        
-        const supportsThinking = request.model.modelId.includes('gemini') || 
+
+        const supportsThinking = request.model.modelId.includes('gemini') ||
                                 request.model.modelId.includes('deepseek-reasoner');
-        
+
         const params: Record<string, unknown> = {
           model: request.model.modelId,
           messages,
@@ -764,7 +764,7 @@ class OpenRouterReasoningClient implements ReasoningProvider {
           temperature: request.temperature,
           stream: true,
         };
-        
+
         if (supportsThinking) {
           if (request.model.modelId.includes('gemini')) {
             params.thinking_level = self.getThinkingLevel(request.thinkingBudget);
@@ -772,18 +772,18 @@ class OpenRouterReasoningClient implements ReasoningProvider {
             params.reasoning = true;
           }
         }
-        
+
         const stream = await self.client!.chat.completions.create(
           params as unknown as OpenAI.ChatCompletionCreateParamsStreaming
         );
-        
+
         yield {
           type: 'thinking_start',
           content: 'Starting reasoning...',
           metadata: {},
           timestamp: new Date(),
         };
-        
+
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content;
           if (delta) {
@@ -796,9 +796,9 @@ class OpenRouterReasoningClient implements ReasoningProvider {
             };
           }
         }
-        
+
         const latencyMs = Date.now() - startTime;
-        
+
         // Estimate token usage (OpenRouter doesn't always provide this in streams)
         tokenUsage = {
           promptTokens: Math.ceil(request.prompt.length / 4),
@@ -806,14 +806,14 @@ class OpenRouterReasoningClient implements ReasoningProvider {
           thinkingTokens: 0,
           totalTokens: Math.ceil((request.prompt.length + content.length) / 4),
         };
-        
+
         yield {
           type: 'thinking_complete',
           content: 'Reasoning complete.',
           metadata: { tokensUsed: tokenUsage.totalTokens },
           timestamp: new Date(),
         };
-        
+
         resolveResponse({
           content,
           tokenUsage,
@@ -831,13 +831,13 @@ class OpenRouterReasoningClient implements ReasoningProvider {
         rejectResponse(error instanceof Error ? error : new Error('Unknown error'));
       }
     };
-    
+
     return {
       stream: streamGenerator(),
       response: responsePromise,
     };
   }
-  
+
   async healthCheck(): Promise<boolean> {
     if (!this.client) return false;
     try {

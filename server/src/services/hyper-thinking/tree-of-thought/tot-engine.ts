@@ -1,6 +1,6 @@
 /**
  * Tree-of-Thought Engine
- * 
+ *
  * Main orchestrator for ToT reasoning.
  * Coordinates search, evaluation, and synthesis.
  */
@@ -28,23 +28,23 @@ export class ToTEngine {
   private searchStrategy: SearchStrategy;
   private synthesisEngine: SynthesisEngine;
   private currentTree: ThoughtTree | null = null;
-  
+
   constructor(model: ModelConfig, config?: Partial<ToTConfig>) {
     this.model = model;
     this.config = { ...defaultConfig, ...config };
     this.searchStrategy = createSearchStrategy(this.config.strategy);
     this.synthesisEngine = new SynthesisEngine(model);
   }
-  
+
   /**
    * Solve a problem using Tree-of-Thought
    */
   async solve(problem: string, successCriteria?: string[]): Promise<ToTResult> {
     const startTime = Date.now();
-    
+
     // Execute search
     const searchGen = this.searchStrategy.search(problem, this.config, this.model);
-    
+
     let tree: ThoughtTree | undefined;
     for await (const _event of searchGen) {
       // Collect events but don't emit (non-streaming mode)
@@ -53,17 +53,17 @@ export class ToTEngine {
         tree = result.value;
       }
     }
-    
+
     if (!tree) {
       throw new Error('Search did not produce a tree');
     }
-    
+
     this.currentTree = tree;
-    
+
     // Synthesize answer
     const bestPathNodes = this.getBestPathNodes(tree);
     const alternativePaths = this.getAlternativePaths(tree, 2);
-    
+
     const synthesisResult = await this.synthesisEngine.synthesize({
       problem,
       tree,
@@ -71,12 +71,12 @@ export class ToTEngine {
       alternativePaths,
       prunedInsights: this.getPrunedInsights(tree),
     });
-    
+
     const totalLatencyMs = Date.now() - startTime;
-    
+
     // Calculate total tokens
     const totalTokens = this.calculateTotalTokens(tree, synthesisResult.tokenUsage);
-    
+
     return {
       success: tree.bestScore >= this.config.minSuccessScore,
       tree,
@@ -100,7 +100,7 @@ export class ToTEngine {
       },
     };
   }
-  
+
   /**
    * Solve with streaming progress events
    */
@@ -109,12 +109,12 @@ export class ToTEngine {
     successCriteria?: string[]
   ): AsyncGenerator<ToTProgressEvent, ToTResult> {
     const startTime = Date.now();
-    
+
     // Execute search with streaming
     const searchGen = this.searchStrategy.search(problem, this.config, this.model);
-    
+
     let tree: ThoughtTree | undefined;
-    
+
     while (true) {
       const result = await searchGen.next();
       if (result.done) {
@@ -123,13 +123,13 @@ export class ToTEngine {
       }
       yield result.value;
     }
-    
+
     if (!tree) {
       throw new Error('Search did not produce a tree');
     }
-    
+
     this.currentTree = tree;
-    
+
     // Synthesis phase
     yield {
       type: 'synthesis_start',
@@ -143,10 +143,10 @@ export class ToTEngine {
       },
       timestamp: new Date(),
     };
-    
+
     const bestPathNodes = this.getBestPathNodes(tree);
     const alternativePaths = this.getAlternativePaths(tree, 2);
-    
+
     const synthesisResult = await this.synthesisEngine.synthesize({
       problem,
       tree,
@@ -154,10 +154,10 @@ export class ToTEngine {
       alternativePaths,
       prunedInsights: this.getPrunedInsights(tree),
     });
-    
+
     const totalLatencyMs = Date.now() - startTime;
     const totalTokens = this.calculateTotalTokens(tree, synthesisResult.tokenUsage);
-    
+
     yield {
       type: 'tree_complete',
       message: `ToT complete. Final confidence: ${synthesisResult.confidence}`,
@@ -170,7 +170,7 @@ export class ToTEngine {
       },
       timestamp: new Date(),
     };
-    
+
     return {
       success: tree.bestScore >= this.config.minSuccessScore,
       tree,
@@ -194,14 +194,14 @@ export class ToTEngine {
       },
     };
   }
-  
+
   /**
    * Get current tree (if available)
    */
   getTree(): ThoughtTree | null {
     return this.currentTree;
   }
-  
+
   /**
    * Continue from a partial tree
    */
@@ -213,7 +213,7 @@ export class ToTEngine {
     const leafNodes = Array.from(tree.nodes.values()).filter(
       n => n.children.length === 0 && !n.pruned && n.evaluation?.shouldExpand
     );
-    
+
     if (leafNodes.length === 0) {
       // No more expansion possible, just synthesize
       const bestPathNodes = this.getBestPathNodes(tree);
@@ -221,7 +221,7 @@ export class ToTEngine {
         problem,
         bestPathNodes
       );
-      
+
       return {
         success: tree.bestScore >= this.config.minSuccessScore,
         tree,
@@ -242,19 +242,19 @@ export class ToTEngine {
         },
       };
     }
-    
+
     // Continue search with existing tree
     // For simplicity, start fresh but could be optimized to continue
     return this.solve(problem);
   }
-  
+
   /**
    * Get best path nodes from tree
    */
   private getBestPathNodes(tree: ThoughtTree): ThoughtNode[] {
     return tree.bestPath.map(id => tree.nodes.get(id)!).filter(Boolean);
   }
-  
+
   /**
    * Get alternative paths (top paths excluding best)
    */
@@ -263,18 +263,18 @@ export class ToTEngine {
     const leafNodes = Array.from(tree.nodes.values()).filter(
       n => n.children.length === 0 && !n.pruned && n.evaluation
     );
-    
+
     // Sort by score
     leafNodes.sort((a, b) => (b.evaluation?.score || 0) - (a.evaluation?.score || 0));
-    
+
     // Get paths for top nodes (excluding best path)
     const paths: ThoughtNode[][] = [];
     const bestPathSet = new Set(tree.bestPath);
-    
+
     for (const leaf of leafNodes) {
       if (paths.length >= count) break;
       if (bestPathSet.has(leaf.id)) continue;
-      
+
       // Build path to this leaf
       const path: ThoughtNode[] = [];
       let current: ThoughtNode | undefined = leaf;
@@ -282,13 +282,13 @@ export class ToTEngine {
         path.unshift(current);
         current = current.parentId ? tree.nodes.get(current.parentId) : undefined;
       }
-      
+
       paths.push(path);
     }
-    
+
     return paths;
   }
-  
+
   /**
    * Get insights from pruned but interesting branches
    */
@@ -296,7 +296,7 @@ export class ToTEngine {
     const prunedNodes = Array.from(tree.nodes.values()).filter(
       n => n.pruned && n.evaluation && n.evaluation.score >= 0.4
     );
-    
+
     // Get suggestions from pruned nodes
     const insights: string[] = [];
     for (const node of prunedNodes) {
@@ -308,11 +308,11 @@ export class ToTEngine {
         insights.push(`Alternative approach: ${node.thought.slice(0, 200)}...`);
       }
     }
-    
+
     // Deduplicate and limit
     return [...new Set(insights)].slice(0, 5);
   }
-  
+
   /**
    * Calculate total token usage
    */
@@ -320,13 +320,13 @@ export class ToTEngine {
     let promptTokens = synthesisTokens.promptTokens;
     let completionTokens = synthesisTokens.completionTokens;
     let thinkingTokens = synthesisTokens.thinkingTokens;
-    
+
     for (const node of tree.nodes.values()) {
       promptTokens += node.tokenUsage.promptTokens;
       completionTokens += node.tokenUsage.completionTokens;
       thinkingTokens += node.tokenUsage.thinkingTokens;
     }
-    
+
     return {
       promptTokens,
       completionTokens,
@@ -334,7 +334,7 @@ export class ToTEngine {
       totalTokens: promptTokens + completionTokens + thinkingTokens,
     };
   }
-  
+
   /**
    * Update configuration
    */
@@ -344,7 +344,7 @@ export class ToTEngine {
       this.searchStrategy = createSearchStrategy(config.strategy);
     }
   }
-  
+
   /**
    * Get current configuration
    */

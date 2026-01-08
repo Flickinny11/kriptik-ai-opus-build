@@ -1,6 +1,6 @@
 /**
  * Synthesis Engine
- * 
+ *
  * Synthesizes final answer from Tree-of-Thought exploration.
  * Combines best path with insights from alternative branches.
  */
@@ -28,7 +28,7 @@ ${input.bestPath.map((node, i) => `Step ${i + 1}: ${node.thought}`).join('\n')}
 
 ${input.alternativePaths.length > 0 ? `
 ALTERNATIVE PATHS CONSIDERED:
-${input.alternativePaths.map((path, pathIdx) => 
+${input.alternativePaths.map((path, pathIdx) =>
   `Alternative ${pathIdx + 1}:\n${path.map((node, i) => `  Step ${i + 1}: ${node.thought}`).join('\n')}`
 ).join('\n\n')}
 ` : ''}
@@ -55,18 +55,18 @@ INCORPORATED_INSIGHTS: [List any insights you incorporated from alternatives, or
 
 export class SynthesisEngine {
   private model: ModelConfig;
-  
+
   constructor(model: ModelConfig) {
     this.model = model;
   }
-  
+
   /**
    * Synthesize final answer from tree exploration
    */
   async synthesize(input: SynthesisInput): Promise<SynthesisResult> {
     const provider = getProvider(this.model.provider);
     const startTime = Date.now();
-    
+
     const response = await provider.reason({
       prompt: SYNTHESIS_PROMPT(input),
       systemPrompt: `You are a synthesis expert. Your job is to combine multiple lines of reasoning
@@ -76,19 +76,19 @@ reasoning path but incorporate valuable insights from alternatives.`,
       thinkingBudget: 8000,
       temperature: 0.5,
     });
-    
+
     const latencyMs = Date.now() - startTime;
-    
+
     // Parse synthesis response
     const result = this.parseSynthesis(response.content);
-    
+
     return {
       ...result,
       tokenUsage: response.tokenUsage,
       latencyMs,
     };
   }
-  
+
   /**
    * Quick synthesis (less thorough, faster)
    */
@@ -98,7 +98,7 @@ reasoning path but incorporate valuable insights from alternatives.`,
   ): Promise<SynthesisResult> {
     const provider = getProvider(this.model.provider);
     const startTime = Date.now();
-    
+
     const prompt = `Problem: ${problem}
 
 Reasoning path:
@@ -107,7 +107,7 @@ ${bestPath.map((n, i) => `${i + 1}. ${n.thought}`).join('\n')}
 Synthesize a clear final answer based on this reasoning. Be concise.
 
 ANSWER:`;
-    
+
     const response = await provider.reason({
       prompt,
       systemPrompt: 'Synthesize the reasoning into a clear answer.',
@@ -115,9 +115,9 @@ ANSWER:`;
       thinkingBudget: 4000,
       temperature: 0.5,
     });
-    
+
     const latencyMs = Date.now() - startTime;
-    
+
     return {
       answer: response.content.replace(/^ANSWER:\s*/i, '').trim(),
       reasoning: bestPath.map(n => n.thought).join(' → '),
@@ -127,7 +127,7 @@ ANSWER:`;
       latencyMs,
     };
   }
-  
+
   /**
    * Parse synthesis response
    */
@@ -136,25 +136,25 @@ ANSWER:`;
     let reasoning = '';
     let confidence = 0.7;
     let incorporatedInsights: string[] = [];
-    
+
     // Parse ANSWER
     const answerMatch = content.match(/ANSWER:\s*(.+?)(?=REASONING:|CONFIDENCE:|INCORPORATED_INSIGHTS:|$)/is);
     if (answerMatch) {
       answer = answerMatch[1].trim();
     }
-    
+
     // Parse REASONING
     const reasoningMatch = content.match(/REASONING:\s*(.+?)(?=CONFIDENCE:|INCORPORATED_INSIGHTS:|$)/is);
     if (reasoningMatch) {
       reasoning = reasoningMatch[1].trim();
     }
-    
+
     // Parse CONFIDENCE
     const confidenceMatch = content.match(/CONFIDENCE:\s*([\d.]+)/i);
     if (confidenceMatch) {
       confidence = Math.min(1, Math.max(0, parseFloat(confidenceMatch[1])));
     }
-    
+
     // Parse INCORPORATED_INSIGHTS
     const insightsMatch = content.match(/INCORPORATED_INSIGHTS:\s*(.+?)$/is);
     if (insightsMatch) {
@@ -166,7 +166,7 @@ ANSWER:`;
           .filter(i => i.length > 0);
       }
     }
-    
+
     return {
       answer,
       reasoning,

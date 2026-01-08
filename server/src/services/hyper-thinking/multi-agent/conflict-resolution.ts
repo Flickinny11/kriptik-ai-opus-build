@@ -1,6 +1,6 @@
 /**
  * Conflict Resolution
- * 
+ *
  * Detects and resolves conflicts between agent outputs.
  * Uses multiple strategies: voting, synthesis, arbitration.
  */
@@ -42,11 +42,11 @@ export type ResolutionStrategy = 'voting' | 'synthesis' | 'arbitration' | 'hybri
 
 export class ConflictDetector {
   private config: SwarmConfig;
-  
+
   constructor(config: SwarmConfig) {
     this.config = config;
   }
-  
+
   /**
    * Detect conflicts between agent results
    */
@@ -54,9 +54,9 @@ export class ConflictDetector {
     if (results.length < 2) {
       return { conflicts: [], severity: 'none', summary: 'Single agent, no conflicts possible' };
     }
-    
+
     const conflicts: Conflict[] = [];
-    
+
     // Compare each pair of agents
     for (let i = 0; i < results.length; i++) {
       for (let j = i + 1; j < results.length; j++) {
@@ -64,17 +64,17 @@ export class ConflictDetector {
         conflicts.push(...pairConflicts);
       }
     }
-    
+
     // Determine overall severity
     const severity = this.calculateSeverity(conflicts);
-    
+
     return {
       conflicts,
       severity,
       summary: this.summarizeConflicts(conflicts, severity),
     };
   }
-  
+
   /**
    * Detect conflicts between two agents
    */
@@ -83,7 +83,7 @@ export class ConflictDetector {
     resultB: AgentResult
   ): Promise<Conflict[]> {
     const conflicts: Conflict[] = [];
-    
+
     // 1. Check for contradictory insights
     for (const insightA of resultA.insights) {
       for (const insightB of resultB.insights) {
@@ -102,7 +102,7 @@ export class ConflictDetector {
         }
       }
     }
-    
+
     // 2. Check for significant confidence disparity
     const confidenceDiff = Math.abs(resultA.confidence - resultB.confidence);
     if (confidenceDiff > 0.3) {
@@ -118,22 +118,22 @@ export class ConflictDetector {
         ],
       });
     }
-    
+
     // 3. Check for approach conflicts
     const approachConflict = this.detectApproachConflict(resultA, resultB);
     if (approachConflict) {
       conflicts.push(approachConflict);
     }
-    
+
     // 4. Check for missing coverage
     const coverageConflict = this.detectCoverageConflict(resultA, resultB);
     if (coverageConflict) {
       conflicts.push(coverageConflict);
     }
-    
+
     return conflicts;
   }
-  
+
   /**
    * Check if two statements are contradictory
    */
@@ -148,7 +148,7 @@ export class ConflictDetector {
       { positive: /\bbetter\b/i, negative: /\bworse\b/i },
       { positive: /\befficient\b/i, negative: /\binefficient\b/i },
     ];
-    
+
     for (const pattern of contradictionPatterns) {
       if (
         (pattern.positive.test(stmtA) && pattern.negative.test(stmtB)) ||
@@ -157,32 +157,32 @@ export class ConflictDetector {
         // Check if they're talking about similar topics
         const wordsA = new Set(stmtA.toLowerCase().split(/\W+/).filter(w => w.length > 3));
         const wordsB = new Set(stmtB.toLowerCase().split(/\W+/).filter(w => w.length > 3));
-        
+
         const commonWords = [...wordsA].filter(w => wordsB.has(w));
-        
+
         if (commonWords.length >= 2) {
           return true;
         }
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * Assess severity of contradiction
    */
   private assessContradictionSeverity(stmtA: string, stmtB: string): 'low' | 'medium' | 'high' {
     const criticalKeywords = ['security', 'critical', 'must', 'never', 'always', 'essential', 'required'];
-    
+
     const hasA = criticalKeywords.some(k => stmtA.toLowerCase().includes(k));
     const hasB = criticalKeywords.some(k => stmtB.toLowerCase().includes(k));
-    
+
     if (hasA && hasB) return 'high';
     if (hasA || hasB) return 'medium';
     return 'low';
   }
-  
+
   /**
    * Detect approach conflicts
    */
@@ -195,7 +195,7 @@ export class ConflictDetector {
         conservative: ['minimal', 'careful', 'safe', 'preserve'],
         aggressive: ['aggressive', 'fast', 'quick', 'immediate'],
       };
-      
+
       const getApproach = (suggestions: string[]): string | null => {
         const combined = suggestions.join(' ').toLowerCase();
         for (const [approach, keywords] of Object.entries(approachKeywords)) {
@@ -203,16 +203,16 @@ export class ConflictDetector {
         }
         return null;
       };
-      
+
       const approachA = getApproach(resultA.suggestions);
       const approachB = getApproach(resultB.suggestions);
-      
+
       if (approachA && approachB && approachA !== approachB) {
         const conflictingPairs = [
           ['incremental', 'radical'],
           ['conservative', 'aggressive'],
         ];
-        
+
         for (const pair of conflictingPairs) {
           if (pair.includes(approachA) && pair.includes(approachB)) {
             return {
@@ -230,26 +230,26 @@ export class ConflictDetector {
         }
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Detect coverage conflicts (one agent covers what another misses)
    */
   private detectCoverageConflict(resultA: AgentResult, resultB: AgentResult): Conflict | null {
     // Check if one agent raised concerns the other didn't address
     for (const concernA of resultA.concerns) {
-      const addressed = resultB.insights.some(i => 
-        this.topicsOverlap(concernA, i) || 
+      const addressed = resultB.insights.some(i =>
+        this.topicsOverlap(concernA, i) ||
         resultB.suggestions.some(s => this.topicsOverlap(concernA, s))
       );
-      
+
       if (!addressed) {
         // Check if it's a significant concern
         const significantKeywords = ['risk', 'problem', 'issue', 'danger', 'vulnerability', 'flaw'];
         const isSignificant = significantKeywords.some(k => concernA.toLowerCase().includes(k));
-        
+
         if (isSignificant) {
           return {
             id: `conflict-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -264,10 +264,10 @@ export class ConflictDetector {
         }
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Check if two statements have overlapping topics
    */
@@ -279,30 +279,30 @@ export class ConflictDetector {
           .filter(w => w.length > 4)
       );
     };
-    
+
     const keywordsA = extractKeywords(stmtA);
     const keywordsB = extractKeywords(stmtB);
-    
+
     const overlap = [...keywordsA].filter(w => keywordsB.has(w)).length;
-    
+
     return overlap >= 2;
   }
-  
+
   /**
    * Calculate overall severity
    */
   private calculateSeverity(conflicts: Conflict[]): 'none' | 'minor' | 'moderate' | 'major' {
     if (conflicts.length === 0) return 'none';
-    
+
     const highCount = conflicts.filter(c => c.severity === 'high').length;
     const mediumCount = conflicts.filter(c => c.severity === 'medium').length;
-    
+
     if (highCount >= 2) return 'major';
     if (highCount >= 1 || mediumCount >= 3) return 'moderate';
     if (mediumCount >= 1 || conflicts.length >= 2) return 'minor';
     return 'minor';
   }
-  
+
   /**
    * Summarize conflicts
    */
@@ -310,16 +310,16 @@ export class ConflictDetector {
     if (conflicts.length === 0) {
       return 'No conflicts detected between agents';
     }
-    
+
     const byType = conflicts.reduce((acc, c) => {
       acc[c.type] = (acc[c.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const typeSummary = Object.entries(byType)
       .map(([type, count]) => `${count} ${type}`)
       .join(', ');
-    
+
     return `${conflicts.length} conflicts detected (${severity} severity): ${typeSummary}`;
   }
 }
@@ -330,11 +330,11 @@ export class ConflictDetector {
 
 export class ConflictResolver {
   private config: SwarmConfig;
-  
+
   constructor(config: SwarmConfig) {
     this.config = config;
   }
-  
+
   /**
    * Resolve conflicts using specified strategy
    */
@@ -345,7 +345,7 @@ export class ConflictResolver {
     strategy: ResolutionStrategy = 'hybrid'
   ): Promise<ConflictResolution[]> {
     const resolutions: ConflictResolution[] = [];
-    
+
     for (const conflict of conflicts) {
       const resolution = await this.resolveConflict(
         conflict,
@@ -355,10 +355,10 @@ export class ConflictResolver {
       );
       resolutions.push(resolution);
     }
-    
+
     return resolutions;
   }
-  
+
   /**
    * Resolve a single conflict
    */
@@ -370,7 +370,7 @@ export class ConflictResolver {
   ): Promise<ConflictResolution> {
     // Choose strategy based on conflict type and severity
     const effectiveStrategy = this.chooseStrategy(conflict, strategy);
-    
+
     switch (effectiveStrategy) {
       case 'voting':
         return this.resolveByVoting(conflict, results);
@@ -382,32 +382,32 @@ export class ConflictResolver {
         return this.resolveBySynthesis(conflict, results, problem);
     }
   }
-  
+
   /**
    * Choose best resolution strategy
    */
   private chooseStrategy(conflict: Conflict, preferred: ResolutionStrategy): ResolutionStrategy {
     // For hybrid, choose based on conflict characteristics
     if (preferred !== 'hybrid') return preferred;
-    
+
     // High severity or contradictions need arbitration
     if (conflict.severity === 'high' || conflict.type === 'contradiction') {
       return 'arbitration';
     }
-    
+
     // Approach conflicts benefit from synthesis
     if (conflict.type === 'approach') {
       return 'synthesis';
     }
-    
+
     // Coverage and confidence conflicts can use voting
     if (conflict.type === 'coverage' || conflict.type === 'confidence_disparity') {
       return 'voting';
     }
-    
+
     return 'synthesis';
   }
-  
+
   /**
    * Resolve by voting (confidence-weighted)
    */
@@ -420,10 +420,10 @@ export class ConflictResolver {
         weight: result ? result.confidence : 0.5,
       };
     });
-    
+
     // Find highest weighted position
     const winner = votes.reduce((a, b) => a.weight > b.weight ? a : b);
-    
+
     return {
       conflictId: conflict.id,
       strategy: 'voting',
@@ -432,7 +432,7 @@ export class ConflictResolver {
       reasoning: `Resolved by confidence-weighted voting. Winner: ${winner.position.slice(0, 50)}... with weight ${winner.weight.toFixed(2)}`,
     };
   }
-  
+
   /**
    * Resolve by synthesis (combine perspectives)
    */
@@ -445,7 +445,7 @@ export class ConflictResolver {
       const result = results.find(r => r.agentId === p.agentId);
       return `${result?.role || 'Agent'}: ${p.position}`;
     }).join('\n');
-    
+
     const prompt = `You are resolving a conflict between AI reasoning agents.
 
 PROBLEM: ${problem}
@@ -465,21 +465,21 @@ Respond with:
 SYNTHESIS: [Your unified position]
 CONFIDENCE: [0.0-1.0]
 REASONING: [Why this synthesis works]`;
-    
+
     const model = HYPER_THINKING_MODELS[DEFAULT_MODEL_BY_TIER.maximum];
     const provider = getProvider(model.provider);
-    
+
     const response = await provider.reason({
       prompt,
       model,
       thinkingBudget: 8000,
       temperature: 0.7,
     });
-    
+
     const synthesisMatch = response.content.match(/SYNTHESIS:\s*([\s\S]*?)(?=CONFIDENCE:|$)/i);
     const confidenceMatch = response.content.match(/CONFIDENCE:\s*([\d.]+)/i);
     const reasoningMatch = response.content.match(/REASONING:\s*([\s\S]*?)$/i);
-    
+
     return {
       conflictId: conflict.id,
       strategy: 'synthesis',
@@ -488,7 +488,7 @@ REASONING: [Why this synthesis works]`;
       reasoning: reasoningMatch ? reasoningMatch[1].trim() : 'Synthesized from multiple perspectives',
     };
   }
-  
+
   /**
    * Resolve by arbitration (use higher-tier model)
    */
@@ -507,7 +507,7 @@ REASONING: [Why this synthesis works]`;
         concerns: result?.concerns || [],
       };
     });
-    
+
     const prompt = `You are a senior arbitrator resolving a disagreement between AI reasoning agents.
 
 PROBLEM: ${problem}
@@ -536,22 +536,22 @@ DECISION: [Your final ruling]
 WINNER: [Which position is more correct, if applicable]
 CONFIDENCE: [0.0-1.0 in your decision]
 REASONING: [Detailed justification]`;
-    
+
     // Use highest tier model for arbitration
     const model = HYPER_THINKING_MODELS[DEFAULT_MODEL_BY_TIER.maximum];
     const provider = getProvider(model.provider);
-    
+
     const response = await provider.reason({
       prompt,
       model,
       thinkingBudget: 16000,
       temperature: 0.5, // Lower for more decisive arbitration
     });
-    
+
     const decisionMatch = response.content.match(/DECISION:\s*([\s\S]*?)(?=WINNER:|CONFIDENCE:|$)/i);
     const confidenceMatch = response.content.match(/CONFIDENCE:\s*([\d.]+)/i);
     const reasoningMatch = response.content.match(/REASONING:\s*([\s\S]*?)$/i);
-    
+
     return {
       conflictId: conflict.id,
       strategy: 'arbitration',

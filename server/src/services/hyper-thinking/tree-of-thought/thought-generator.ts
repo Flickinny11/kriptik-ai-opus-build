@@ -1,6 +1,6 @@
 /**
  * Thought Generator
- * 
+ *
  * Generates diverse thoughts for Tree-of-Thought reasoning.
  * Uses multiple generation strategies for diverse exploration.
  */
@@ -98,12 +98,12 @@ ${prompt.numThoughts > 1 ? `THOUGHT 2: [Different creative approach]
 export class ThoughtGenerator {
   private model: ModelConfig;
   private config: ToTConfig;
-  
+
   constructor(model: ModelConfig, config: ToTConfig) {
     this.model = model;
     this.config = config;
   }
-  
+
   /**
    * Generate thoughts using a specific strategy
    */
@@ -112,7 +112,7 @@ export class ThoughtGenerator {
   ): Promise<GeneratedThought[]> {
     const strategyPrompt = STRATEGY_PROMPTS[prompt.strategy](prompt);
     const provider = getProvider(this.model.provider);
-    
+
     const response = await provider.reason({
       prompt: strategyPrompt,
       systemPrompt: `You are an expert reasoner helping to explore solutions to a problem.
@@ -125,11 +125,11 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
       thinkingBudget: Math.floor(this.config.beamWidth * 2000), // Budget per generation
       temperature: this.config.generationTemperature,
     });
-    
+
     // Parse thoughts from response
     return this.parseThoughts(response, prompt.strategy);
   }
-  
+
   /**
    * Generate diverse thoughts using multiple strategies
    */
@@ -138,7 +138,7 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
   ): Promise<GeneratedThought[]> {
     // Use different strategies for diversity
     const strategies: GenerationStrategy[] = ['direct', 'analogy', 'decomposition', 'constraint', 'creative'];
-    
+
     // Select strategies based on depth
     let selectedStrategies: GenerationStrategy[];
     if (prompt.depth === 0) {
@@ -149,7 +149,7 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
       const focusedStrategies: GenerationStrategy[] = ['direct', 'decomposition', 'constraint'];
       selectedStrategies = focusedStrategies.slice(0, prompt.numThoughts);
     }
-    
+
     // Generate in parallel
     const thoughtPromises = selectedStrategies.map(strategy =>
       this.generateThoughts({
@@ -158,22 +158,22 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
         numThoughts: 1, // One thought per strategy for diversity
       })
     );
-    
+
     const results = await Promise.all(thoughtPromises);
     return results.flat();
   }
-  
+
   /**
    * Parse thoughts from model response
    */
   private parseThoughts(response: ReasoningResponse, strategy: GenerationStrategy): GeneratedThought[] {
     const thoughts: GeneratedThought[] = [];
     const content = response.content;
-    
+
     // Parse THOUGHT N: patterns
     const thoughtPattern = /THOUGHT\s*\d*:\s*(.+?)(?=THOUGHT\s*\d*:|$)/gis;
     let match;
-    
+
     while ((match = thoughtPattern.exec(content)) !== null) {
       const thoughtText = match[1].trim();
       if (thoughtText.length > 10) { // Filter out very short/empty thoughts
@@ -190,7 +190,7 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
         });
       }
     }
-    
+
     // If pattern didn't match, treat whole response as one thought
     if (thoughts.length === 0 && content.trim().length > 10) {
       thoughts.push({
@@ -200,10 +200,10 @@ Generate distinct, high-quality reasoning steps. Each thought should be:
         latencyMs: response.latencyMs,
       });
     }
-    
+
     return thoughts;
   }
-  
+
   /**
    * Generate continuation thoughts for a specific path
    */

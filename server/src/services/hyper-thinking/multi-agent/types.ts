@@ -1,6 +1,6 @@
 /**
  * Multi-Agent Reasoning Swarm Types
- * 
+ *
  * Types for parallel reasoning with multiple specialized agents.
  * Based on Anthropic's multi-agent research system patterns.
  */

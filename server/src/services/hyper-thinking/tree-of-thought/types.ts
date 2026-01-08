@@ -1,6 +1,6 @@
 /**
  * Tree-of-Thought Types
- * 
+ *
  * Types for ToT reasoning - parallel exploration of multiple solution paths.
  * Based on "Tree of Thoughts" paper (Yao et al., 2023):
  * - Game of 24: GPT-4 CoT = 4% success, GPT-4 ToT = 74% success (18.5x improvement)
@@ -20,7 +20,7 @@ export type ToTStrategy = 'bfs' | 'dfs' | 'beam';
 /**
  * Generation strategy for diverse thoughts
  */
-export type GenerationStrategy = 
+export type GenerationStrategy =
   | 'direct'        // Direct approach to problem
   | 'analogy'       // Solve by analogy to similar problems
   | 'decomposition' // Break into smaller parts

@@ -1,6 +1,6 @@
 /**
  * Hyper-Thinking Types
- * 
+ *
  * Comprehensive type definitions for KripTik AI's advanced multi-model reasoning system.
  * Supports:
  * - Extended thinking orchestration
@@ -22,7 +22,7 @@ export type ComplexityLevel = 'trivial' | 'simple' | 'moderate' | 'complex' | 'e
 /**
  * Reasoning strategies available
  */
-export type ReasoningStrategy = 
+export type ReasoningStrategy =
   | 'chain_of_thought'   // Sequential CoT - straightforward tasks
   | 'tree_of_thought'    // ToT - parallel path exploration
   | 'multi_agent'        // Swarm - parallel agents with synthesis

@@ -1,6 +1,6 @@
 /**
  * Hyper-Thinking Module Index
- * 
+ *
  * Advanced multi-model reasoning system for KripTik AI.
  * Exports all hyper-thinking services and types.
  */
@@ -103,6 +103,36 @@ export {
   type ContributingAgent,
 } from './multi-agent/index.js';
 
+// Task Decomposition Engine
+export {
+  DecompositionEngine,
+  getDecompositionEngine,
+  createDecompositionEngine,
+  resetDecompositionEngine,
+  DependencyAnalyzer,
+  createDependencyAnalyzer,
+  FunctionalDecomposition,
+  DataFlowDecomposition,
+  ArchitecturalDecomposition,
+  TemporalDecomposition,
+  HybridDecomposition,
+  getDecompositionStrategy,
+  selectBestStrategy,
+  DEFAULT_DECOMPOSITION_CONFIG,
+  type DecompositionConfig,
+  type DecompositionResult,
+  type DecompositionTree,
+  type DecompositionSummary,
+  type DecompositionProgressEvent,
+  type Subtask,
+  type SubtaskResult,
+  type SubtaskExecutor,
+  type ExecutionContext,
+  type DependencyGraph,
+  type DecompositionStrategy,
+  type IDecompositionStrategy,
+} from './decomposition/index.js';
+
 // Convenience function for quick reasoning
 export async function reason(
   prompt: string,
@@ -153,7 +183,7 @@ export async function* reasonStream(
       userId: options?.userId,
     },
   });
-  
+
   let result: import('./types.js').HyperThinkingResult;
   for await (const event of generator) {
     const res = yield event;

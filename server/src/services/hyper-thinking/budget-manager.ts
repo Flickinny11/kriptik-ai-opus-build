@@ -1,6 +1,6 @@
 /**
  * Thinking Budget Manager
- * 
+ *
  * Manages thinking token budget allocation and tracking for hyper-thinking.
  * Features:
  * - Budget allocation across reasoning steps
@@ -76,7 +76,7 @@ export interface BudgetSession {
 
 export class BudgetManager {
   private sessions: Map<string, BudgetSession> = new Map();
-  
+
   /**
    * Create a new budget session
    */
@@ -93,21 +93,21 @@ export class BudgetManager {
     const tierBudget = DEFAULT_THINKING_BUDGETS[modelTier];
     const requestedBudget = options?.customAllocation || options?.maxBudget || tierBudget;
     const totalTokens = Math.min(requestedBudget, CONFIG.maxBudget);
-    
+
     // Reserve tokens for synthesis
     const synthesisReserve = Math.floor(totalTokens * CONFIG.synthesisReserve);
     const availableForSteps = totalTokens - synthesisReserve;
-    
+
     // Calculate budget per step
     const budgetPerStep = Math.max(
       Math.floor(availableForSteps / CONFIG.maxSteps),
       CONFIG.minBudgetPerStep
     );
     const maxSteps = Math.floor(availableForSteps / budgetPerStep);
-    
+
     // Estimate credit cost
     const estimatedCreditCost = Math.ceil(totalTokens * CONFIG.creditsPerKTokens / 1000);
-    
+
     const budget: ThinkingBudget = {
       totalTokens,
       usedTokens: 0,
@@ -116,7 +116,7 @@ export class BudgetManager {
       maxSteps,
       estimatedCreditCost,
     };
-    
+
     const session: BudgetSession = {
       id: sessionId,
       userId,
@@ -128,18 +128,18 @@ export class BudgetManager {
       updatedAt: new Date(),
       completed: false,
     };
-    
+
     this.sessions.set(sessionId, session);
     return session;
   }
-  
+
   /**
    * Get session by ID
    */
   getSession(sessionId: string): BudgetSession | undefined {
     return this.sessions.get(sessionId);
   }
-  
+
   /**
    * Record token usage for a step
    */
@@ -158,17 +158,17 @@ export class BudgetManager {
         `Budget session not found: ${sessionId}`
       );
     }
-    
+
     if (session.completed) {
       throw new HyperThinkingError(
         'INVALID_CONFIG',
         `Budget session already completed: ${sessionId}`
       );
     }
-    
+
     // Record step usage
     session.stepUsage.set(stepId, usage);
-    
+
     // Update budget
     const totalUsed = usage.totalTokens;
     session.currentBudget.usedTokens += totalUsed;
@@ -177,11 +177,11 @@ export class BudgetManager {
       session.currentBudget.totalTokens - session.currentBudget.usedTokens
     );
     session.updatedAt = new Date();
-    
+
     // Check thresholds
     const usageRatio = session.currentBudget.usedTokens / session.currentBudget.totalTokens;
     let warning: 'approaching_limit' | 'critical' | 'exceeded' | undefined;
-    
+
     if (usageRatio >= 1) {
       warning = 'exceeded';
     } else if (usageRatio >= CONFIG.criticalThreshold) {
@@ -189,13 +189,13 @@ export class BudgetManager {
     } else if (usageRatio >= CONFIG.warningThreshold) {
       warning = 'approaching_limit';
     }
-    
+
     return {
       budget: session.currentBudget,
       warning,
     };
   }
-  
+
   /**
    * Check if budget allows more steps
    */
@@ -204,11 +204,11 @@ export class BudgetManager {
     if (!session || session.completed) {
       return false;
     }
-    
+
     // Need at least minBudgetPerStep remaining
     return session.currentBudget.remainingTokens >= CONFIG.minBudgetPerStep;
   }
-  
+
   /**
    * Get remaining budget for next step
    */
@@ -217,14 +217,14 @@ export class BudgetManager {
     if (!session) {
       return 0;
     }
-    
+
     // Return min of standard step budget or remaining budget
     return Math.min(
       session.currentBudget.budgetPerStep,
       session.currentBudget.remainingTokens
     );
   }
-  
+
   /**
    * Dynamically reallocate budget based on progress
    */
@@ -246,7 +246,7 @@ export class BudgetManager {
         `Budget session not found: ${sessionId}`
       );
     }
-    
+
     // Add additional tokens if requested
     if (options.additionalTokens && options.additionalTokens > 0) {
       const additional = Math.min(
@@ -259,7 +259,7 @@ export class BudgetManager {
         session.currentBudget.totalTokens * CONFIG.creditsPerKTokens / 1000
       );
     }
-    
+
     // Recalculate step budget if requested
     if (options.increaseStepBudget) {
       const stepsCompleted = session.stepUsage.size;
@@ -268,11 +268,11 @@ export class BudgetManager {
         session.currentBudget.remainingTokens / estimatedRemainingSteps
       );
     }
-    
+
     session.updatedAt = new Date();
     return session.currentBudget;
   }
-  
+
   /**
    * Reserve budget for synthesis step
    */
@@ -281,16 +281,16 @@ export class BudgetManager {
     if (!session) {
       return 0;
     }
-    
+
     // Reserve minimum of 15% of original budget or remaining budget
     const synthesisReserve = Math.min(
       Math.floor(session.initialBudget.totalTokens * CONFIG.synthesisReserve),
       session.currentBudget.remainingTokens
     );
-    
+
     return synthesisReserve;
   }
-  
+
   /**
    * Complete a budget session
    */
@@ -299,14 +299,14 @@ export class BudgetManager {
     if (!session) {
       return undefined;
     }
-    
+
     // Calculate final usage
     let totalPrompt = 0;
     let totalCompletion = 0;
     let totalThinking = 0;
     let totalCacheRead = 0;
     let totalCacheWrite = 0;
-    
+
     for (const usage of session.stepUsage.values()) {
       totalPrompt += usage.promptTokens;
       totalCompletion += usage.completionTokens;
@@ -314,7 +314,7 @@ export class BudgetManager {
       totalCacheRead += usage.cacheReadTokens || 0;
       totalCacheWrite += usage.cacheWriteTokens || 0;
     }
-    
+
     session.finalUsage = {
       promptTokens: totalPrompt,
       completionTokens: totalCompletion,
@@ -323,20 +323,20 @@ export class BudgetManager {
       cacheWriteTokens: totalCacheWrite,
       totalTokens: totalPrompt + totalCompletion + totalThinking,
     };
-    
+
     session.completed = true;
     session.updatedAt = new Date();
-    
+
     return session;
   }
-  
+
   /**
    * Estimate credits needed for a budget
    */
   estimateCredits(budget: ThinkingBudget): number {
     return Math.ceil(budget.totalTokens * CONFIG.creditsPerKTokens / 1000);
   }
-  
+
   /**
    * Check if user has sufficient credits
    */
@@ -346,18 +346,18 @@ export class BudgetManager {
   ): Promise<{ sufficient: boolean; available: number; required: number }> {
     // Import credit service dynamically to avoid circular dependencies
     const { getCreditService } = await import('../billing/credits.js');
-    
+
     const creditService = getCreditService();
     const credits = await creditService.getCredits(userId);
     const required = Math.ceil(requiredTokens * CONFIG.creditsPerKTokens / 1000);
-    
+
     return {
       sufficient: credits.balance >= required,
       available: credits.balance,
       required,
     };
   }
-  
+
   /**
    * Deduct credits for used tokens
    */
@@ -368,22 +368,22 @@ export class BudgetManager {
   ): Promise<{ success: boolean; creditsDeducted: number }> {
     // Import credit service dynamically
     const { getCreditService } = await import('../billing/credits.js');
-    
+
     const creditService = getCreditService();
     const creditsToDeduct = Math.ceil(tokensUsed * CONFIG.creditsPerKTokens / 1000);
-    
+
     const result = await creditService.deductCredits(
       userId,
       creditsToDeduct,
       `Hyper-Thinking: ${description}`
     );
-    
+
     return {
       success: result.success,
       creditsDeducted: creditsToDeduct,
     };
   }
-  
+
   /**
    * Get usage statistics for a session
    */
@@ -399,14 +399,14 @@ export class BudgetManager {
     if (!session) {
       return undefined;
     }
-    
+
     const totalSteps = session.stepUsage.size;
     const totalTokensUsed = session.currentBudget.usedTokens;
     const averageTokensPerStep = totalSteps > 0 ? Math.round(totalTokensUsed / totalSteps) : 0;
     const remainingBudget = session.currentBudget.remainingTokens;
     const budgetUtilization = totalTokensUsed / session.currentBudget.totalTokens;
     const estimatedCreditsUsed = Math.ceil(totalTokensUsed * CONFIG.creditsPerKTokens / 1000);
-    
+
     return {
       totalSteps,
       totalTokensUsed,
@@ -416,24 +416,24 @@ export class BudgetManager {
       estimatedCreditsUsed,
     };
   }
-  
+
   /**
    * Clean up old completed sessions
    */
   cleanup(maxAgeMs: number = 3600000): number {
     const now = Date.now();
     let cleaned = 0;
-    
+
     for (const [id, session] of this.sessions) {
       if (session.completed && (now - session.updatedAt.getTime()) > maxAgeMs) {
         this.sessions.delete(id);
         cleaned++;
       }
     }
-    
+
     return cleaned;
   }
-  
+
   /**
    * Get all active sessions for a user
    */
@@ -442,7 +442,7 @@ export class BudgetManager {
       s => s.userId === userId && !s.completed
     );
   }
-  
+
   /**
    * Cancel a session (release budget without completion)
    */
@@ -451,7 +451,7 @@ export class BudgetManager {
     if (!session) {
       return false;
     }
-    
+
     session.completed = true;
     session.updatedAt = new Date();
     return true;

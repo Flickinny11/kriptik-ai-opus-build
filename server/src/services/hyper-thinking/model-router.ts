@@ -1,15 +1,15 @@
 /**
  * Model Router for Hyper-Thinking
- * 
+ *
  * Routes reasoning tasks to optimal models based on:
  * - Task complexity and requirements
  * - Model tier (maximum, deep, standard, fast)
  * - Available providers (Anthropic direct, OpenAI direct, OpenRouter fallback)
  * - Cost and performance considerations
- * 
+ *
  * Dual Architecture:
  * - PRIMARY: Anthropic SDK (direct) for Claude models
- * - PRIMARY: OpenAI SDK (direct) for GPT-5.2/o3 models  
+ * - PRIMARY: OpenAI SDK (direct) for GPT-5.2/o3 models
  * - FALLBACK: OpenRouter for Gemini, DeepSeek, Qwen
  */
 
@@ -34,7 +34,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
   // ========================================================================
   // TIER 1: MAXIMUM REASONING
   // ========================================================================
-  
+
   // Claude Opus 4.5 - Direct Anthropic SDK
   'claude-opus-4.5': {
     modelId: 'claude-opus-4-5-20251101',
@@ -50,7 +50,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['complex architecture', 'code generation', 'deep analysis', 'critical decisions'],
     tier: 'maximum',
   },
-  
+
   // o3-pro - Direct OpenAI SDK
   'o3-pro': {
     modelId: 'o3-pro',
@@ -66,7 +66,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['advanced reasoning', 'mathematical proofs', 'complex logic'],
     tier: 'maximum',
   },
-  
+
   // GPT-5.2 Pro - Direct OpenAI SDK
   'gpt-5.2-pro': {
     modelId: 'gpt-5.2-pro',
@@ -81,11 +81,11 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['verification', 'ensemble validation', 'high accuracy'],
     tier: 'maximum',
   },
-  
+
   // ========================================================================
   // TIER 2: DEEP REASONING
   // ========================================================================
-  
+
   // o3 - Direct OpenAI SDK
   'o3': {
     modelId: 'o3',
@@ -101,7 +101,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['complex reasoning', 'problem solving', 'code debugging'],
     tier: 'deep',
   },
-  
+
   // GPT-5.2 Thinking - Direct OpenAI SDK
   'gpt-5.2-thinking': {
     modelId: 'gpt-5.2',
@@ -116,7 +116,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['structured thinking', 'analysis', 'planning'],
     tier: 'deep',
   },
-  
+
   // Gemini 3 Pro Deep Think - OpenRouter
   'gemini-3-pro': {
     modelId: 'google/gemini-3-pro-preview',
@@ -131,7 +131,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['multimodal reasoning', 'long context', 'video analysis'],
     tier: 'deep',
   },
-  
+
   // DeepSeek-R1-0528 - OpenRouter
   'deepseek-r1': {
     modelId: 'deepseek/deepseek-reasoner',
@@ -146,11 +146,11 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['cost-effective reasoning', 'math', 'code'],
     tier: 'deep',
   },
-  
+
   // ========================================================================
   // TIER 3: STANDARD REASONING
   // ========================================================================
-  
+
   // Claude Sonnet 4.5 - Direct Anthropic SDK
   'claude-sonnet-4.5': {
     modelId: 'claude-sonnet-4-5-20250929',
@@ -166,7 +166,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['coding', 'analysis', 'general tasks'],
     tier: 'standard',
   },
-  
+
   // o3-mini (high effort) - Direct OpenAI SDK
   'o3-mini-high': {
     modelId: 'o3-mini',
@@ -181,7 +181,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['efficient reasoning', 'math', 'code generation'],
     tier: 'standard',
   },
-  
+
   // Qwen3-235B-Thinking - OpenRouter
   'qwen3-thinking': {
     modelId: 'qwen/qwen3-235b-a22b-thinking',
@@ -196,11 +196,11 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['open-source alternative', 'math reasoning'],
     tier: 'standard',
   },
-  
+
   // ========================================================================
   // TIER 4: FAST REASONING
   // ========================================================================
-  
+
   // Gemini 3 Flash - OpenRouter
   'gemini-3-flash': {
     modelId: 'google/gemini-3-flash-preview',
@@ -215,7 +215,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['fast reasoning', 'simple tasks', 'high volume'],
     tier: 'fast',
   },
-  
+
   // o3-mini (medium effort) - Direct OpenAI SDK
   'o3-mini-medium': {
     modelId: 'o3-mini',
@@ -230,7 +230,7 @@ export const HYPER_THINKING_MODELS: Record<string, ModelConfig> = {
     bestFor: ['balanced speed/quality', 'routine tasks'],
     tier: 'fast',
   },
-  
+
   // Claude Haiku 4.5 - Direct Anthropic SDK
   'claude-haiku-4.5': {
     modelId: 'claude-haiku-4-5-20251001',
@@ -290,51 +290,51 @@ export class ModelRouter {
       const model = HYPER_THINKING_MODELS[options.forceModel];
       return this.createDecision(model, analysis, options?.maxBudget);
     }
-    
+
     // Determine tier (forced or from analysis)
     const tier = options?.forceTier || analysis.recommendedModelTier;
-    
+
     // Get available models for tier
     const availableModels = this.getAvailableModels(tier, options?.forceProvider);
-    
+
     if (availableModels.length === 0) {
       // Fallback to next best available tier
       const fallbackModel = this.getFallbackModel(tier, options?.forceProvider);
       return this.createDecision(fallbackModel, analysis, options?.maxBudget);
     }
-    
+
     // Select best model based on task
     const selectedModel = options?.preferCost
       ? this.selectCheapestModel(availableModels)
       : this.selectBestModel(availableModels, analysis);
-    
+
     return this.createDecision(selectedModel, analysis, options?.maxBudget);
   }
-  
+
   /**
    * Get available models for a tier
    */
   private getAvailableModels(tier: ModelTier, forceProvider?: ProviderType): ModelConfig[] {
     const modelIds = MODELS_BY_TIER[tier];
     const models: ModelConfig[] = [];
-    
+
     for (const id of modelIds) {
       const model = HYPER_THINKING_MODELS[id];
-      
+
       // Skip if provider forced and doesn't match
       if (forceProvider && model.provider !== forceProvider) {
         continue;
       }
-      
+
       // Check if provider is available
       if (this.isProviderAvailable(model.provider)) {
         models.push(model);
       }
     }
-    
+
     return models;
   }
-  
+
   /**
    * Check if a provider is available (has API key)
    */
@@ -350,7 +350,7 @@ export class ModelRouter {
         return false;
     }
   }
-  
+
   /**
    * Get fallback model when preferred tier unavailable
    */
@@ -358,7 +358,7 @@ export class ModelRouter {
     // Try tiers in order of capability (descending)
     const tierOrder: ModelTier[] = ['maximum', 'deep', 'standard', 'fast'];
     const startIndex = tierOrder.indexOf(preferredTier);
-    
+
     // First try lower tiers
     for (let i = startIndex + 1; i < tierOrder.length; i++) {
       const models = this.getAvailableModels(tierOrder[i], forceProvider);
@@ -366,7 +366,7 @@ export class ModelRouter {
         return models[0];
       }
     }
-    
+
     // Then try higher tiers
     for (let i = startIndex - 1; i >= 0; i--) {
       const models = this.getAvailableModels(tierOrder[i], forceProvider);
@@ -374,11 +374,11 @@ export class ModelRouter {
         return models[0];
       }
     }
-    
+
     // Ultimate fallback - return Sonnet as default
     return HYPER_THINKING_MODELS['claude-sonnet-4.5'];
   }
-  
+
   /**
    * Select best model based on task analysis
    */
@@ -386,20 +386,20 @@ export class ModelRouter {
     // Score each model based on fit for task
     let bestModel = models[0];
     let bestScore = 0;
-    
+
     for (const model of models) {
       let score = 0;
-      
+
       // Higher thinking budget = better for complex tasks
       if (analysis.level === 'complex' || analysis.level === 'extreme') {
         score += model.maxThinkingBudget / 10000;
       }
-      
+
       // Extended thinking support
       if (model.supportsExtendedThinking) {
         score += 5;
       }
-      
+
       // Match task type to model strengths
       const taskLower = analysis.reasoning.toLowerCase();
       for (const strength of model.bestFor) {
@@ -407,21 +407,21 @@ export class ModelRouter {
           score += 3;
         }
       }
-      
+
       // Prefer direct SDK providers for reliability
       if (model.provider === 'anthropic' || model.provider === 'openai') {
         score += 2;
       }
-      
+
       if (score > bestScore) {
         bestScore = score;
         bestModel = model;
       }
     }
-    
+
     return bestModel;
   }
-  
+
   /**
    * Select cheapest available model
    */
@@ -432,7 +432,7 @@ export class ModelRouter {
       return currentCost < cheapestCost ? current : cheapest;
     });
   }
-  
+
   /**
    * Create routing decision with all details
    */
@@ -447,24 +447,24 @@ export class ModelRouter {
       maxBudget || defaultBudget,
       model.maxThinkingBudget
     );
-    
+
     // Estimate cost based on expected tokens
     const estimatedInputTokens = analysis.estimatedTokensNeeded * 0.3;
     const estimatedOutputTokens = analysis.estimatedTokensNeeded * 0.3;
     const estimatedThinkingTokens = analysis.estimatedTokensNeeded * 0.4;
-    
+
     const estimatedCost = (
       (estimatedInputTokens / 1000) * model.costPerInputK +
       (estimatedOutputTokens / 1000) * model.costPerOutputK +
       (estimatedThinkingTokens / 1000) * (model.costPerThinkingK || model.costPerOutputK)
     );
-    
+
     // Generate fallback chain
     const fallbacks = this.generateFallbackChain(model);
-    
+
     // Generate reasoning
     const reasoning = this.generateRoutingReasoning(model, analysis, thinkingBudget);
-    
+
     return {
       model,
       fallbacks,
@@ -473,13 +473,13 @@ export class ModelRouter {
       estimatedCost: Math.round(estimatedCost * 100) / 100,
     };
   }
-  
+
   /**
    * Generate fallback model chain
    */
   private generateFallbackChain(primary: ModelConfig): ModelConfig[] {
     const fallbacks: ModelConfig[] = [];
-    
+
     // Same tier, different provider
     const sameTier = MODELS_BY_TIER[primary.tier];
     for (const id of sameTier) {
@@ -488,11 +488,11 @@ export class ModelRouter {
         fallbacks.push(model);
       }
     }
-    
+
     // Lower tier fallbacks
     const tierOrder: ModelTier[] = ['maximum', 'deep', 'standard', 'fast'];
     const currentIndex = tierOrder.indexOf(primary.tier);
-    
+
     for (let i = currentIndex + 1; i < tierOrder.length; i++) {
       const lowerTier = MODELS_BY_TIER[tierOrder[i]];
       for (const id of lowerTier) {
@@ -503,10 +503,10 @@ export class ModelRouter {
         }
       }
     }
-    
+
     return fallbacks;
   }
-  
+
   /**
    * Generate routing reasoning explanation
    */
@@ -516,25 +516,25 @@ export class ModelRouter {
     thinkingBudget: number
   ): string {
     const parts: string[] = [];
-    
+
     parts.push(`Selected ${model.displayName} (${model.tier} tier) via ${model.provider} SDK.`);
     parts.push(`Task complexity: ${analysis.level} (score: ${analysis.score}).`);
     parts.push(`Allocated thinking budget: ${thinkingBudget.toLocaleString()} tokens.`);
-    
+
     if (model.bestFor.length > 0) {
       parts.push(`Model strengths: ${model.bestFor.slice(0, 3).join(', ')}.`);
     }
-    
+
     return parts.join(' ');
   }
-  
+
   /**
    * Get model by ID
    */
   getModel(modelId: string): ModelConfig | undefined {
     return HYPER_THINKING_MODELS[modelId];
   }
-  
+
   /**
    * Get all available models
    */
@@ -543,7 +543,7 @@ export class ModelRouter {
       this.isProviderAvailable(model.provider)
     );
   }
-  
+
   /**
    * Get models by provider
    */
@@ -552,7 +552,7 @@ export class ModelRouter {
       model => model.provider === provider && this.isProviderAvailable(provider)
     );
   }
-  
+
   /**
    * Calculate thinking budget for a model and config
    */
@@ -566,14 +566,14 @@ export class ModelRouter {
       maxBudget || defaultBudget,
       model.maxThinkingBudget
     );
-    
+
     // Estimate steps based on budget
     const budgetPerStep = Math.floor(totalTokens / 10); // ~10 steps max
     const maxSteps = Math.ceil(totalTokens / budgetPerStep);
-    
+
     // Estimate credit cost (rough: 1 credit per 1000 tokens)
     const estimatedCreditCost = Math.ceil(totalTokens / 1000);
-    
+
     return {
       totalTokens,
       usedTokens: 0,
