@@ -235,15 +235,59 @@ curl http://localhost:3001/api/hyper-thinking/health
 
 ---
 
-## Next Steps
+## Build Loop Integration
 
-1. **Integration Testing**: Test full end-to-end flows through UI
-2. **Build Loop Integration**: Wire hyper-thinking into build phases
-3. **Error Escalation Integration**: Connect to Level 3-4 error handling
-4. **Performance Optimization**: Cache frequently-used reasoning patterns
-5. **UI Integration**: Connect React components to the API endpoints
+### File: `server/src/services/automation/build-loop.ts`
+
+Added Hyper-Thinking imports for potential future use:
+- Phase 0 (Intent Lock): Can use maximum reasoning for complex intent analysis
+- Phase 2 (Parallel Build): Can use ToT for complex features
+- Phase 5 (Intent Satisfaction): Can use Multi-Agent for verification
+
+```typescript
+import {
+    getHyperThinkingOrchestrator,
+    ComplexityAnalyzer,
+    type HyperThinkingResult,
+    type ReasoningStrategy,
+    type ComplexityLevel,
+} from '../hyper-thinking/index.js';
+```
 
 ---
 
-*Document Version: 1.0*
+## Error Escalation Integration
+
+### File: `server/src/services/automation/error-escalation.ts`
+
+Added Hyper-Thinking enhanced fix methods for Level 3-4 errors:
+
+1. **Level 3 (Component Rewrite)**: Uses Tree-of-Thought reasoning
+   - Explores multiple solution approaches before committing
+   - Falls back to standard Claude fix if HT fails
+
+2. **Level 4 (Feature Rebuild)**: Uses Multi-Agent Swarm
+   - Multiple agents debate and reach consensus
+   - Nuclear option for persistent errors
+
+New methods:
+- `setHyperThinkingEnabled(enabled: boolean)` - Toggle HT usage
+- `level3HyperThinkingFix()` - ToT-based component rewrite
+- `level4HyperThinkingFix()` - Multi-Agent feature rebuild
+
+The `attemptFix()` method now checks `useHyperThinking` flag and routes to enhanced methods for Level 3-4.
+
+---
+
+## Next Steps
+
+1. **Integration Testing**: Test full end-to-end flows through UI
+2. **Performance Optimization**: Cache frequently-used reasoning patterns
+3. **UI Integration**: Connect React components to the API endpoints
+4. **Build Loop Deep Integration**: Use HT in Phase 0/2/5 for complex projects
+5. **Metrics Dashboard**: Track HT usage, success rates, and cost savings
+
+---
+
+*Document Version: 1.1*
 *Last Updated: January 8, 2026*

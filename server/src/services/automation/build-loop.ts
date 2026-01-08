@@ -372,6 +372,21 @@ import {
     type TaskProgress,
 } from './build-freeze-service.js';
 
+// ============================================================================
+// HYPER-THINKING INTEGRATION (Advanced Multi-Model Reasoning)
+// Used for:
+// - Phase 0: Maximum reasoning for complex intent analysis
+// - Phase 2: Tree-of-Thought for complex features
+// - Phase 5: Multi-Agent reasoning for verification and problem-solving
+// ============================================================================
+import {
+    getHyperThinkingOrchestrator,
+    ComplexityAnalyzer,
+    type HyperThinkingResult,
+    type ReasoningStrategy,
+    type ComplexityLevel,
+} from '../hyper-thinking/index.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================

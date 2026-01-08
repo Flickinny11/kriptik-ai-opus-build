@@ -39,6 +39,15 @@ import { ArtifactManager, createArtifactManager } from '../ai/artifacts.js';
 import type { IntentContract } from '../ai/intent-lock.js';
 import type { Feature } from '../ai/feature-list.js';
 import { selectFallback, type FallbackCategory, type DeviceCapabilities } from '../ai/premium-fallback.js';
+// ============================================================================
+// HYPER-THINKING INTEGRATION (Advanced Multi-Model Reasoning)
+// Used for Level 3-4 errors that require complex reasoning
+// ============================================================================
+import {
+    getHyperThinkingOrchestrator,
+    ComplexityAnalyzer,
+    type HyperThinkingResult,
+} from '../hyper-thinking/index.js';
 
 // =============================================================================
 // TYPES
@@ -340,13 +349,25 @@ export class ErrorEscalationEngine extends EventEmitter {
                     result = await this.level2DeepAnalysis(error, fileContents);
                     break;
                 case 3:
-                    result = await this.level3ComponentRewrite(error, fileContents);
+                    // Use Hyper-Thinking for Level 3 if enabled
+                    if (this.useHyperThinking) {
+                        console.log('[ErrorEscalation] Using Hyper-Thinking Tree-of-Thought for Level 3');
+                        result = await this.level3HyperThinkingFix(error, fileContents);
+                    } else {
+                        result = await this.level3ComponentRewrite(error, fileContents);
+                    }
                     break;
                 case 4:
                     if (!this.intent || !feature) {
                         throw new Error('Intent Contract and Feature required for Level 4');
                     }
-                    result = await this.level4FeatureRebuild(error, fileContents, feature);
+                    // Use Hyper-Thinking for Level 4 if enabled
+                    if (this.useHyperThinking) {
+                        console.log('[ErrorEscalation] Using Hyper-Thinking Multi-Agent Swarm for Level 4');
+                        result = await this.level4HyperThinkingFix(error, fileContents, feature);
+                    } else {
+                        result = await this.level4FeatureRebuild(error, fileContents, feature);
+                    }
                     break;
                 default:
                     throw new Error(`Invalid escalation level: ${level}`);
@@ -646,6 +667,202 @@ Respond with JSON:
             tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
             thinkingTokens: response.usage.thinkingTokens || 0,
         };
+    }
+
+    // =========================================================================
+    // HYPER-THINKING ENHANCED FIX METHODS
+    // Used for Level 3-4 errors that require advanced multi-model reasoning
+    // =========================================================================
+
+    /** Flag to enable/disable Hyper-Thinking for complex errors */
+    private useHyperThinking: boolean = true;
+
+    /**
+     * Enable or disable Hyper-Thinking for Level 3-4 errors
+     */
+    setHyperThinkingEnabled(enabled: boolean): void {
+        this.useHyperThinking = enabled;
+    }
+
+    /**
+     * Use Hyper-Thinking Tree-of-Thought for Level 3 complex rewrites
+     * Explores multiple solution approaches before committing to one
+     */
+    private async level3HyperThinkingFix(
+        error: BuildError,
+        fileContents: Map<string, string>
+    ): Promise<{ changes: FileChange[]; strategy: string; tokensUsed: number; thinkingTokens: number }> {
+        try {
+            const orchestrator = getHyperThinkingOrchestrator();
+
+            // Build context string from error history
+            const contextStr = `Project: ${this.projectId}
+Error History: ${this.state.escalationHistory.slice(-5).map(h => `Level ${h.level}: ${h.success ? 'success' : 'failed'}`).join(', ')}`;
+
+            const problem = `Component rewrite required for error that persisted through Level 2.
+
+Error: ${error.message}
+Category: ${error.category}
+File: ${error.file || 'Unknown'}
+
+Current component code:
+\`\`\`
+${error.file ? (fileContents.get(error.file) || 'File not found').substring(0, 3000) : 'No file specified'}
+\`\`\`
+
+Related files context:
+${Array.from(fileContents.entries()).slice(0, 3).map(([path, content]) => `
+### ${path}
+\`\`\`
+${content.substring(0, 1500)}
+\`\`\`
+`).join('\n')}
+
+Requirements:
+1. Identify MINIMUM scope for rewrite
+2. PRESERVE all interfaces
+3. Create fresh implementation avoiding the error
+4. Consider multiple approaches and choose the best
+
+Respond with JSON containing:
+- scope: minimum files/components to rewrite
+- preservedInterfaces: list of interfaces kept
+- strategy: chosen approach with reasoning
+- changes: array of file changes with path, action (create|update|delete), newContent`;
+
+            const result = await orchestrator.think({
+                prompt: problem,
+                config: {
+                    strategy: 'tree_of_thought', // Use ToT for exploring multiple solutions
+                    maxThinkingBudget: 48000,
+                    modelTier: 'deep', // 'deep' is a valid ModelTier
+                },
+                context: contextStr,
+            });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Hyper-Thinking failed');
+            }
+
+            // Parse the result
+            const fixResult = this.parseFixResponse(result.finalAnswer);
+
+            return {
+                changes: fixResult.changes,
+                strategy: `Hyper-Thinking ToT: ${fixResult.strategy || 'Component rewrite with multi-path exploration'}`,
+                tokensUsed: result.totalTokens.totalTokens,
+                thinkingTokens: result.totalTokens.thinkingTokens || 0,
+            };
+        } catch (htError) {
+            console.warn('[ErrorEscalation] Hyper-Thinking L3 failed, falling back to standard:', htError);
+            // Fallback to standard Level 3 fix
+            return this.level3ComponentRewrite(error, fileContents);
+        }
+    }
+
+    /**
+     * Use Hyper-Thinking Multi-Agent Swarm for Level 4 full feature rebuild
+     * Multiple agents debate and reach consensus on the best rebuild approach
+     */
+    private async level4HyperThinkingFix(
+        error: BuildError,
+        fileContents: Map<string, string>,
+        feature: Feature
+    ): Promise<{ changes: FileChange[]; strategy: string; tokensUsed: number; thinkingTokens: number }> {
+        if (!this.intent) {
+            throw new Error('Intent Contract required for Level 4 rebuild');
+        }
+
+        try {
+            const orchestrator = getHyperThinkingOrchestrator();
+
+            // Build context string with all relevant information
+            const contextStr = `Intent Contract:
+- App Type: ${this.intent.appType}
+- App Soul: ${this.intent.appSoul}
+- Core Value Prop: ${this.intent.coreValueProp}
+
+Feature to Rebuild:
+- ID: ${feature.featureId}
+- Description: ${feature.description}
+
+Error History:
+${this.state.escalationHistory.slice(-10).map(h => `Level ${h.level}: ${h.success ? 'success' : 'failed'} (${h.errorId})`).join('\n')}`;
+
+            const problem = `NUCLEAR OPTION: Full feature rebuild required.
+Previous fix attempts at Levels 1-3 have failed.
+
+## Original Intent Contract (Sacred Contract):
+App Type: ${this.intent.appType}
+Core Value Prop: ${this.intent.coreValueProp}
+App Soul: ${this.intent.appSoul}
+
+## Feature to Rebuild:
+ID: ${feature.featureId}
+Description: ${feature.description}
+Category: ${feature.category}
+Priority: ${feature.priority}
+
+Implementation Steps:
+${feature.implementationSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Visual Requirements:
+${feature.visualRequirements.map(r => `- ${r}`).join('\n')}
+
+## Previous Error:
+${error.message}
+
+## Error History (what didn't work):
+${this.state.escalationHistory.slice(-5).map(h => `- Level ${h.level}: ${h.success ? 'succeeded' : 'failed'}`).join('\n')}
+
+## Instructions:
+1. Analyze why previous implementations failed
+2. Completely rebuild this feature from scratch
+3. Use ONLY the Intent Contract as guide
+4. Create production-ready code
+5. Follow Anti-Slop Design Manifesto
+
+Respond with JSON:
+{
+  "strategy": "Complete rebuild approach",
+  "reasoning": "Why previous implementations failed and how this fixes it",
+  "changes": [
+    {
+      "path": "file path",
+      "action": "create | update | delete",
+      "newContent": "complete new file content"
+    }
+  ]
+}`;
+
+            const result = await orchestrator.think({
+                prompt: problem,
+                config: {
+                    strategy: 'multi_agent', // Use multi-agent swarm for consensus
+                    maxThinkingBudget: 64000,
+                    modelTier: 'maximum',
+                },
+                context: contextStr,
+            });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Hyper-Thinking failed');
+            }
+
+            // Parse the result
+            const fixResult = this.parseFixResponse(result.finalAnswer);
+
+            return {
+                changes: fixResult.changes,
+                strategy: `Hyper-Thinking Multi-Agent Swarm: ${fixResult.strategy || 'Full feature rebuild with consensus'}`,
+                tokensUsed: result.totalTokens.totalTokens,
+                thinkingTokens: result.totalTokens.thinkingTokens || 0,
+            };
+        } catch (htError) {
+            console.warn('[ErrorEscalation] Hyper-Thinking L4 failed, falling back to standard:', htError);
+            // Fallback to standard Level 4 fix
+            return this.level4FeatureRebuild(error, fileContents, feature);
+        }
     }
 
     // =========================================================================
