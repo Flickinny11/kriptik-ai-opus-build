@@ -86,6 +86,29 @@ export {
   type CompletionEvent,
 } from './completion-handler.js';
 
+// Usage Code Generator
+export {
+  UsageCodeGenerator,
+  getUsageCodeGenerator,
+  type UsageCodeOptions,
+  type GeneratedCode,
+} from './usage-code-generator.js';
+
+// Report Templates
+export {
+  ReportTemplates,
+  getReportTemplates,
+  type ReportTemplateData,
+} from './report-templates.js';
+
+// Training Report Generator
+export {
+  TrainingReportGenerator,
+  getTrainingReportGenerator,
+  type TrainingReportData,
+  type GeneratedReport,
+} from './report-generator.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================

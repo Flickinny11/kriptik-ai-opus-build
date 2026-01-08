@@ -242,6 +242,24 @@ export const trainingJobs = sqliteTable('training_jobs', {
 });
 
 /**
+ * Training Reports
+ * Stores generated training reports in HTML and JSON formats
+ */
+export const trainingReports = sqliteTable('training_reports', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    trainingJobId: text('training_job_id').references(() => trainingJobs.id).notNull(),
+    userId: text('user_id').references(() => users.id).notNull(),
+    
+    // Report content
+    htmlReport: text('html_report').notNull(), // Full HTML report
+    jsonReport: text('json_report').notNull(), // JSON report data
+    pdfUrl: text('pdf_url'), // URL to PDF version if generated
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
  * Deployed Inference Endpoints
  * Tracks deployed inference endpoints on RunPod for GPU & AI Lab
  */

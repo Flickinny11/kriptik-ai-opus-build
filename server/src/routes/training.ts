@@ -697,4 +697,208 @@ trainingRouter.get('/default-config/:modality', authMiddleware, async (req: Requ
   }
 });
 
+// =============================================================================
+// TRAINING REPORTS
+// =============================================================================
+
+import { getTrainingReportGenerator, getUsageCodeGenerator } from '../services/training/index.js';
+import { trainingReports } from '../schema.js';
+
+/**
+ * GET /api/training/jobs/:id/report
+ * Get training report for a job
+ */
+trainingRouter.get('/jobs/:id/report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id: jobId } = req.params;
+    const { format } = req.query; // 'html' | 'json' | 'both'
+
+    // Check if job belongs to user
+    const job = await db.query.trainingJobs.findFirst({
+      where: eq(trainingJobs.id, jobId),
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Training job not found' });
+    }
+
+    if (job.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if report already exists
+    const existingReport = await db.query.trainingReports.findFirst({
+      where: eq(trainingReports.trainingJobId, jobId),
+    });
+
+    if (existingReport) {
+      if (format === 'html') {
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(existingReport.htmlReport);
+      } else if (format === 'json') {
+        return res.json(JSON.parse(existingReport.jsonReport));
+      }
+      return res.json({
+        id: existingReport.id,
+        htmlReport: existingReport.htmlReport,
+        jsonReport: JSON.parse(existingReport.jsonReport),
+        pdfUrl: existingReport.pdfUrl,
+        createdAt: existingReport.createdAt,
+      });
+    }
+
+    // Generate new report
+    if (job.status !== 'completed') {
+      return res.status(400).json({ 
+        error: 'Training job not completed. Report can only be generated for completed jobs.' 
+      });
+    }
+
+    const reportGenerator = getTrainingReportGenerator();
+    const report = await reportGenerator.generateFromJobId(jobId);
+
+    // Save report
+    const reportId = await reportGenerator.saveReport(jobId, userId, report);
+
+    if (format === 'html') {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(report.htmlReport);
+    } else if (format === 'json') {
+      return res.json(JSON.parse(report.jsonReport));
+    }
+
+    res.json({
+      id: reportId,
+      htmlReport: report.htmlReport,
+      jsonReport: JSON.parse(report.jsonReport),
+      recommendations: report.recommendations,
+    });
+  } catch (error) {
+    console.error('[Training API] Get report error:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Failed to get training report' 
+    });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:id/report/download
+ * Download training report as HTML file
+ */
+trainingRouter.get('/jobs/:id/report/download', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id: jobId } = req.params;
+
+    // Check if job belongs to user
+    const job = await db.query.trainingJobs.findFirst({
+      where: eq(trainingJobs.id, jobId),
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Training job not found' });
+    }
+
+    if (job.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get or generate report
+    let htmlReport: string;
+    const existingReport = await db.query.trainingReports.findFirst({
+      where: eq(trainingReports.trainingJobId, jobId),
+    });
+
+    if (existingReport) {
+      htmlReport = existingReport.htmlReport;
+    } else {
+      if (job.status !== 'completed') {
+        return res.status(400).json({ 
+          error: 'Training job not completed. Report can only be generated for completed jobs.' 
+        });
+      }
+
+      const reportGenerator = getTrainingReportGenerator();
+      const report = await reportGenerator.generateFromJobId(jobId);
+      await reportGenerator.saveReport(jobId, userId, report);
+      htmlReport = report.htmlReport;
+    }
+
+    // Get output model name for filename
+    const config = job.config as { outputModelName?: string };
+    const filename = `training-report-${config.outputModelName || jobId}.html`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(htmlReport);
+  } catch (error) {
+    console.error('[Training API] Download report error:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Failed to download report' 
+    });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:id/usage-code
+ * Get usage code snippets for a trained model
+ */
+trainingRouter.get('/jobs/:id/usage-code', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id: jobId } = req.params;
+    const { language } = req.query; // 'python' | 'typescript' | 'curl' | 'all'
+
+    // Check if job belongs to user
+    const job = await db.query.trainingJobs.findFirst({
+      where: eq(trainingJobs.id, jobId),
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Training job not found' });
+    }
+
+    if (job.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const config = job.config as TrainingConfig;
+    const modelUrl = job.huggingFaceRepoUrl || config.hubRepoName || config.outputModelName;
+    
+    const usageCodeGenerator = getUsageCodeGenerator();
+    const code = usageCodeGenerator.generateAll(config, {
+      modelUrl: modelUrl || '',
+      endpoint: (job.outputModelUrl as string) || undefined,
+    });
+
+    if (language === 'python') {
+      return res.json({ python: code.python });
+    } else if (language === 'typescript') {
+      return res.json({ typescript: code.typescript });
+    } else if (language === 'curl' && code.curl) {
+      return res.json({ curl: code.curl });
+    }
+
+    res.json(code);
+  } catch (error) {
+    console.error('[Training API] Get usage code error:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Failed to get usage code' 
+    });
+  }
+});
+
 export default trainingRouter;
