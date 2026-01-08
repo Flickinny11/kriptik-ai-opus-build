@@ -88,7 +88,7 @@ RESPONSE:
 
 Rate on these criteria (each 0-100):
 1. **Depth** (25%): Visual layering, backgrounds, shadows
-2. **Typography** (20%): Font choices, hierarchy, distinctiveness  
+2. **Typography** (20%): Font choices, hierarchy, distinctiveness
 3. **Color** (20%): Palette intentionality, contrast, NO AI slop gradients
 4. **Motion** (15%): Animation quality, purposeful movement
 5. **Soul Match** (20%): Does design embody app's personality?

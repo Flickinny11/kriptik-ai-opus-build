@@ -4252,3 +4252,236 @@ export const learningBuildSimilarity = sqliteTable('learning_build_similarity', 
     // Metadata
     computedAt: text('computed_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// CONTINUOUS LEARNING ENGINE TABLES
+// =============================================================================
+
+/**
+ * Continuous Learning Sessions - Unified session tracking across all systems
+ */
+export const continuousLearningSessions = sqliteTable('continuous_learning_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    projectId: text('project_id'),
+    sessionType: text('session_type').notNull().$type<'build' | 'feature_agent' | 'training' | 'fix_my_app' | 'ghost_mode'>(),
+    startedAt: text('started_at').default(sql`(datetime('now'))`).notNull(),
+    completedAt: text('completed_at'),
+
+    // Billing tracking
+    billingSessionId: text('billing_session_id'),
+    totalCostUsd: real('total_cost_usd').default(0),
+    creditsUsed: integer('credits_used').default(0),
+
+    // Vector context tracking
+    vectorQueriesCount: integer('vector_queries_count').default(0),
+    vectorHitsCount: integer('vector_hits_count').default(0),
+    contextRelevanceScore: real('context_relevance_score'),
+
+    // Hyper-thinking tracking
+    hyperThinkingUsed: integer('hyper_thinking_used', { mode: 'boolean' }).default(false),
+    totPathsExplored: integer('tot_paths_explored').default(0),
+    marsAgentsUsed: integer('mars_agents_used').default(0),
+    reasoningQuality: real('reasoning_quality'),
+
+    // Learning tracking
+    learningEventsCount: integer('learning_events_count').default(0),
+    patternsApplied: integer('patterns_applied').default(0),
+    strategiesUsed: text('strategies_used', { mode: 'json' }).$type<string[]>(),
+
+    // Outcome
+    outcome: text('outcome').$type<'success' | 'partial' | 'failure' | 'cancelled'>(),
+    userSatisfaction: integer('user_satisfaction'),
+    improvementScore: real('improvement_score'),
+
+    metadata: text('metadata', { mode: 'json' }),
+});
+
+/**
+ * Learning Correlations - Cross-system learning correlations
+ */
+export const learningCorrelations = sqliteTable('learning_correlations', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').notNull(),
+    correlationType: text('correlation_type').notNull().$type<'cost_reduction' | 'quality_improvement' | 'speed_increase'>(),
+
+    // What triggered the correlation
+    triggerSystem: text('trigger_system').notNull(),
+    triggerEvent: text('trigger_event').notNull(),
+
+    // What improved
+    improvedSystem: text('improved_system').notNull(),
+    improvementMetric: text('improvement_metric').notNull(),
+    improvementValue: real('improvement_value').notNull(),
+
+    // Confidence
+    confidence: real('confidence').notNull(),
+    samplesCount: integer('samples_count').default(1),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Production Model Deployments - Shadow model deployments to production
+ */
+export const productionModelDeployments = sqliteTable('production_model_deployments', {
+    id: text('id').primaryKey(),
+    modelName: text('model_name').notNull(),
+    modelVersion: text('model_version').notNull(),
+
+    // Deployment status
+    status: text('status').notNull().$type<'testing' | 'promoted' | 'rolled_back' | 'pending'>(),
+
+    // Traffic routing
+    trafficPercentage: integer('traffic_percentage').default(5),
+    baselineModel: text('baseline_model'),
+
+    // Timing
+    startedAt: text('started_at').notNull(),
+    promotedAt: text('promoted_at'),
+
+    // Metrics (JSON object)
+    metrics: text('metrics', { mode: 'json' }).$type<{
+        requestCount: number;
+        successRate: number;
+        avgLatency: number;
+        errorRate: number;
+    }>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Optimization Parameters - Auto-tunable parameters across all systems
+ */
+export const learningOptimizationParams = sqliteTable('learning_optimization_params', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    parameterName: text('parameter_name').notNull().unique(),
+    currentValue: real('current_value').notNull(),
+    minValue: real('min_value').notNull(),
+    maxValue: real('max_value').notNull(),
+
+    // Auto-tuning
+    autoTuneEnabled: integer('auto_tune_enabled', { mode: 'boolean' }).default(true),
+    lastTunedAt: text('last_tuned_at'),
+    tuningHistory: text('tuning_history', { mode: 'json' }),
+
+    // Performance impact
+    correlatedMetrics: text('correlated_metrics', { mode: 'json' }).$type<string[]>(),
+
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning User Feedback - User feedback for learning improvement
+ */
+export const learningUserFeedback = sqliteTable('learning_user_feedback', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id'),
+    buildId: text('build_id'),
+    userId: text('user_id').notNull(),
+
+    // Feedback type
+    feedbackType: text('feedback_type').notNull().$type<'implicit' | 'explicit'>(),
+    action: text('action').$type<'accept' | 'reject' | 'modify' | 'abandon' | 'retry'>(),
+    rating: integer('rating'),
+    comment: text('comment'),
+
+    // Context
+    phase: text('phase'),
+    feature: text('feature'),
+    artifact: text('artifact'),
+    previousAttempts: integer('previous_attempts').default(0),
+
+    // Processing
+    processed: integer('processed', { mode: 'boolean' }).default(false),
+    qualityScore: real('quality_score'),
+    propagatedTo: text('propagated_to', { mode: 'json' }),
+
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Health Checks - System health over time
+ */
+export const learningHealthChecks = sqliteTable('learning_health_checks', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    component: text('component').notNull(),
+    status: text('status').notNull().$type<'healthy' | 'degraded' | 'unhealthy'>(),
+    responseTimeMs: real('response_time_ms'),
+    errorRate: real('error_rate'),
+    details: text('details', { mode: 'json' }),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Health Alerts - Health alerts
+ */
+export const learningHealthAlerts = sqliteTable('learning_health_alerts', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    component: text('component').notNull(),
+    severity: text('severity').notNull().$type<'info' | 'warning' | 'error' | 'critical'>(),
+    message: text('message').notNull(),
+    acknowledged: integer('acknowledged', { mode: 'boolean' }).default(false),
+    resolvedAt: text('resolved_at'),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Anomalies - Detected anomalies in metrics
+ */
+export const learningAnomalies = sqliteTable('learning_anomalies', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    anomalyType: text('anomaly_type').notNull().$type<'spike' | 'drop' | 'drift' | 'error_surge'>(),
+    severity: text('severity').notNull().$type<'low' | 'medium' | 'high' | 'critical'>(),
+    system: text('system').notNull(),
+    metric: text('metric').notNull(),
+    currentValue: real('current_value').notNull(),
+    expectedValue: real('expected_value').notNull(),
+    deviation: real('deviation').notNull(),
+    resolved: integer('resolved', { mode: 'boolean' }).default(false),
+    resolvedAt: text('resolved_at'),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Metrics History - Time-series metrics storage
+ */
+export const learningMetricsHistory = sqliteTable('learning_metrics_history', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    metricName: text('metric_name').notNull(),
+    metricValue: real('metric_value').notNull(),
+    dimensions: text('dimensions', { mode: 'json' }),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning AB Test Results - A/B test results for model deployments
+ */
+export const learningAbTestResults = sqliteTable('learning_ab_test_results', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    deploymentId: text('deployment_id').notNull(),
+    isDeployment: integer('is_deployment', { mode: 'boolean' }).notNull(),
+    qualityScore: real('quality_score').notNull(),
+    latencyMs: real('latency_ms').notNull(),
+    errorOccurred: integer('error_occurred', { mode: 'boolean' }).default(false),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Learning Reasoning Sessions - Tracks ToT and MARS reasoning sessions
+ */
+export const learningReasoningSessions = sqliteTable('learning_reasoning_sessions', {
+    id: text('id').primaryKey(),
+    sessionType: text('session_type').notNull().$type<'tot' | 'mars' | 'hybrid'>(),
+    buildId: text('build_id'),
+    phase: text('phase').notNull(),
+    feature: text('feature'),
+    prompt: text('prompt').notNull(),
+    result: text('result', { mode: 'json' }),
+    confidence: real('confidence').notNull(),
+    duration: integer('duration').notNull(),
+    timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
+});

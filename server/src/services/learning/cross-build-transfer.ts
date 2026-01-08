@@ -257,7 +257,7 @@ export class CrossBuildTransferService extends EventEmitter {
             .orderBy(desc(learningPatterns.successRate))
             .limit(50);
 
-        // Get strategies with good success rates  
+        // Get strategies with good success rates
         const strategies = await db.select()
             .from(learningStrategies)
             .orderBy(desc(learningStrategies.successRate))
