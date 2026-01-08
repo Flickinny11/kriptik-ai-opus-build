@@ -56,6 +56,36 @@ export {
   TRAINING_PRESETS,
 } from './trainers/index.js';
 
+// HuggingFace Upload Service
+export {
+  HuggingFaceUploadService,
+  getHuggingFaceUploadService,
+  type HFUploadConfig,
+  type HFUploadResult,
+  type ModelCard,
+  type HFRepoInfo,
+} from './huggingface-upload.js';
+
+// Model Preservation Service
+export {
+  ModelPreservationService,
+  getModelPreservationService,
+  type ModelVersion,
+  type PreservationConfig,
+  type StorageInfo,
+  type ModelRegistry,
+  type PreservationResult,
+} from './model-preservation.js';
+
+// Training Completion Handler
+export {
+  TrainingCompletionHandler,
+  getTrainingCompletionHandler,
+  type CompletionConfig,
+  type CompletionResult,
+  type CompletionEvent,
+} from './completion-handler.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================
