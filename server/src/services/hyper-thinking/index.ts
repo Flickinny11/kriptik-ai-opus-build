@@ -133,6 +133,55 @@ export {
   type IDecompositionStrategy,
 } from './decomposition/index.js';
 
+// Thought Artifact System
+export {
+  // Types
+  type ArtifactType,
+  type SkeletonType,
+  type ProblemPattern,
+  type ThinkingDomain,
+  type ThoughtArtifact,
+  type ThoughtArtifactMetadata,
+  type ReasoningSkeleton,
+  type ReasoningStep as SkeletonReasoningStep,
+  type MemoryEntry,
+  type MemoryContext,
+  type ContextChunk,
+  type AggregatedContext,
+  type ContextAggregationStrategy,
+  type ArtifactStorageConfig,
+  type SkeletonLibraryConfig,
+  type ArtifactSearchOptions,
+  type SkeletonSearchOptions,
+  type SearchResult as ArtifactSearchResult,
+  type ConsolidationCandidate,
+  type ConsolidationResult,
+  DEFAULT_ARTIFACT_STORAGE_CONFIG,
+  DEFAULT_SKELETON_LIBRARY_CONFIG,
+  // Artifact Storage
+  ArtifactStorage,
+  getArtifactStorage,
+  resetArtifactStorage,
+  createArtifactStorage,
+  // Context Aggregator
+  ContextAggregator,
+  createContextAggregator,
+  type ContextAggregatorConfig,
+  DEFAULT_CONTEXT_AGGREGATOR_CONFIG,
+  // Reasoning Memory
+  ReasoningMemory,
+  getReasoningMemory,
+  resetReasoningMemory,
+  createReasoningMemory,
+  type ReasoningMemoryConfig,
+  DEFAULT_REASONING_MEMORY_CONFIG,
+  // Skeleton Library
+  SkeletonLibrary,
+  getSkeletonLibrary,
+  resetSkeletonLibrary,
+  createSkeletonLibrary,
+} from './artifacts/index.js';
+
 // Convenience function for quick reasoning
 export async function reason(
   prompt: string,
