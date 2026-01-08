@@ -813,6 +813,10 @@ app.use("/api/training", trainingRouter);
 import modelTestingRouter from './routes/model-testing.js';
 app.use("/api/model-testing", modelTestingRouter);
 
+// Media API (Upload, Processing, Preview - Training Platform PROMPT 6)
+import { mediaRouter } from './routes/media.js';
+app.use("/api/media", mediaRouter);
+
 // Inference Endpoints API (Deploy & manage endpoints - PROMPT 5)
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);
