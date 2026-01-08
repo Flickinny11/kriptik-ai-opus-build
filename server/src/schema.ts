@@ -260,6 +260,47 @@ export const trainingReports = sqliteTable('training_reports', {
 });
 
 /**
+ * Test Sessions
+ * Tracks model testing sessions for side-by-side comparison
+ */
+export const testSessions = sqliteTable('test_sessions', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').references(() => users.id).notNull(),
+    trainingJobId: text('training_job_id').references(() => trainingJobs.id).notNull(),
+    
+    // Model info
+    pretrainedModelId: text('pretrained_model_id').notNull(),
+    finetunedModelId: text('finetuned_model_id').notNull(),
+    modality: text('modality').notNull(), // 'llm' | 'image' | 'video' | 'audio'
+    
+    // Session state
+    totalCost: real('total_cost').default(0).notNull(),
+    status: text('status').default('active').notNull(), // 'active' | 'ended'
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    endedAt: text('ended_at'),
+});
+
+/**
+ * Test Results
+ * Stores individual test results from model comparison sessions
+ */
+export const testResults = sqliteTable('test_results', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    sessionId: text('session_id').references(() => testSessions.id).notNull(),
+    
+    // Test data
+    input: text('input', { mode: 'json' }).notNull(), // Input sent to models
+    pretrainedOutput: text('pretrained_output', { mode: 'json' }).notNull(), // Response from pretrained
+    finetunedOutput: text('finetuned_output', { mode: 'json' }).notNull(), // Response from finetuned
+    comparison: text('comparison', { mode: 'json' }), // Comparison metrics
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
  * Deployed Inference Endpoints
  * Tracks deployed inference endpoints on RunPod for GPU & AI Lab
  */

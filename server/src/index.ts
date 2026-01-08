@@ -809,6 +809,10 @@ app.use("/api/open-source-studio", openSourceStudioRouter);
 import trainingRouter from './routes/training.js';
 app.use("/api/training", trainingRouter);
 
+// Model Testing API (Side-by-side comparison - Training Platform)
+import modelTestingRouter from './routes/model-testing.js';
+app.use("/api/model-testing", modelTestingRouter);
+
 // Inference Endpoints API (Deploy & manage endpoints - PROMPT 5)
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);

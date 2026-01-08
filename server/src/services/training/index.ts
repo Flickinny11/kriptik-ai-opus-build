@@ -109,6 +109,46 @@ export {
   type GeneratedReport,
 } from './report-generator.js';
 
+// Model Inference Service
+export {
+  ModelInferenceService,
+  getModelInferenceService,
+  type InferenceRequest,
+  type InferenceResponse,
+  type ComparisonMetrics,
+  type ComparisonResult,
+  type InferenceConfig,
+} from './model-inference.js';
+
+// Comparison Engine
+export {
+  ComparisonEngine,
+  getComparisonEngine,
+  type LLMComparisonResult,
+  type ImageComparisonResult,
+  type VideoComparisonResult,
+  type AudioComparisonResult,
+} from './comparison-engine.js';
+
+// Test Session Manager
+export {
+  TestSessionManager,
+  getTestSessionManager,
+  type TestSession,
+  type TestResult,
+  type SessionSummary,
+} from './test-session.js';
+
+// Test Billing Service
+export {
+  TestBillingService,
+  getTestBillingService,
+  TEST_PRICING,
+  type UsageMetrics,
+  type BillingResult,
+  type UsageRecord,
+} from './test-billing.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================
