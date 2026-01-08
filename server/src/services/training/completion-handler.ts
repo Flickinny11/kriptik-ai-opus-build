@@ -121,7 +121,7 @@ export class TrainingCompletionHandler extends EventEmitter {
             maxCheckpoints: 3,
           }
         );
-        
+
         if (preserveResult.success) {
           result.preservationResult = {
             modelPath: preserveResult.paths.model,
@@ -153,7 +153,7 @@ export class TrainingCompletionHandler extends EventEmitter {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       result.error = errorMessage;
       this.emitEvent('error', job.id, { error: errorMessage });
-      
+
       // Update job with error
       await db.update(trainingJobs)
         .set({
@@ -179,7 +179,7 @@ export class TrainingCompletionHandler extends EventEmitter {
   ): Promise<void> {
     // Build a failure report with available data
     const now = new Date().toISOString();
-    const duration = job.startedAt 
+    const duration = job.startedAt
       ? (new Date().getTime() - job.startedAt.getTime()) / 1000
       : 0;
 
@@ -230,7 +230,7 @@ export class TrainingCompletionHandler extends EventEmitter {
         updatedAt: new Date().toISOString(),
       })
       .where(eq(trainingJobs.id, job.id));
-    
+
     // Still try to preserve any partial results
     if (partialReport?.modelLocation?.localPath) {
       try {
@@ -272,7 +272,7 @@ export class TrainingCompletionHandler extends EventEmitter {
         job.userId,
         'huggingface'
       );
-      
+
       if (!hfCredential || !hfCredential.oauthAccessToken) {
         return {
           success: false,
@@ -283,7 +283,7 @@ export class TrainingCompletionHandler extends EventEmitter {
       const uploadService = getHuggingFaceUploadService(hfCredential.oauthAccessToken);
 
       // Determine repo name
-      const repoName = job.config.hubRepoName || 
+      const repoName = job.config.hubRepoName ||
         `${job.config.outputModelName}-${job.config.method}`;
 
       // Create repo and upload model card

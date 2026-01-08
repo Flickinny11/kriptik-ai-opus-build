@@ -41,13 +41,13 @@ const BASE_STYLES = `
     --text-muted: #94a3b8;
     --border: #475569;
   }
-  
+
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-  
+
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--background);
@@ -55,30 +55,30 @@ const BASE_STYLES = `
     line-height: 1.6;
     padding: 2rem;
   }
-  
+
   .container {
     max-width: 1200px;
     margin: 0 auto;
   }
-  
+
   .header {
     background: linear-gradient(135deg, var(--primary-dark), var(--primary));
     padding: 2rem;
     border-radius: 1rem;
     margin-bottom: 2rem;
   }
-  
+
   .header h1 {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
   }
-  
+
   .header .subtitle {
     color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
   }
-  
+
   .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -87,12 +87,12 @@ const BASE_STYLES = `
     font-weight: 600;
     text-transform: uppercase;
   }
-  
+
   .badge-success { background: var(--success); color: white; }
   .badge-warning { background: var(--warning); color: black; }
   .badge-error { background: var(--error); color: white; }
   .badge-primary { background: var(--primary); color: white; }
-  
+
   .section {
     background: var(--surface);
     border-radius: 1rem;
@@ -100,7 +100,7 @@ const BASE_STYLES = `
     margin-bottom: 1.5rem;
     border: 1px solid var(--border);
   }
-  
+
   .section h2 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -110,60 +110,60 @@ const BASE_STYLES = `
     align-items: center;
     gap: 0.5rem;
   }
-  
+
   .grid {
     display: grid;
     gap: 1rem;
   }
-  
+
   .grid-2 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
   .grid-4 { grid-template-columns: repeat(4, 1fr); }
-  
+
   @media (max-width: 768px) {
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   }
-  
+
   .stat-card {
     background: var(--surface-light);
     border-radius: 0.75rem;
     padding: 1rem;
     text-align: center;
   }
-  
+
   .stat-value {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary);
   }
-  
+
   .stat-label {
     font-size: 0.875rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
   }
-  
+
   table {
     width: 100%;
     border-collapse: collapse;
   }
-  
+
   th, td {
     padding: 0.75rem;
     text-align: left;
     border-bottom: 1px solid var(--border);
   }
-  
+
   th {
     font-weight: 600;
     color: var(--text-muted);
     font-size: 0.875rem;
   }
-  
+
   td {
     color: var(--text);
   }
-  
+
   pre {
     background: var(--background);
     border: 1px solid var(--border);
@@ -174,7 +174,7 @@ const BASE_STYLES = `
     font-size: 0.875rem;
     line-height: 1.5;
   }
-  
+
   code {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     background: var(--surface-light);
@@ -182,7 +182,7 @@ const BASE_STYLES = `
     border-radius: 0.25rem;
     font-size: 0.875rem;
   }
-  
+
   .tabs {
     display: flex;
     gap: 0.5rem;
@@ -190,7 +190,7 @@ const BASE_STYLES = `
     border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
   }
-  
+
   .tab {
     padding: 0.5rem 1rem;
     border: none;
@@ -200,19 +200,19 @@ const BASE_STYLES = `
     border-radius: 0.5rem;
     font-size: 0.875rem;
   }
-  
+
   .tab.active {
     background: var(--primary);
     color: white;
   }
-  
+
   .chart-container {
     background: var(--surface-light);
     border-radius: 0.75rem;
     padding: 1rem;
     min-height: 300px;
   }
-  
+
   .recommendation {
     display: flex;
     align-items: flex-start;
@@ -222,21 +222,21 @@ const BASE_STYLES = `
     border-radius: 0.5rem;
     margin-bottom: 0.75rem;
   }
-  
+
   .recommendation-icon {
     font-size: 1.25rem;
     flex-shrink: 0;
   }
-  
+
   .link {
     color: var(--primary);
     text-decoration: none;
   }
-  
+
   .link:hover {
     text-decoration: underline;
   }
-  
+
   .footer {
     text-align: center;
     padding: 2rem;
@@ -256,7 +256,7 @@ export class ReportTemplates {
    */
   generateHTML(data: ReportTemplateData): string {
     const { report, usageCode, recommendations } = data;
-    
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -287,10 +287,10 @@ export class ReportTemplates {
    * Generate header section
    */
   private generateHeader(report: TrainingReport): string {
-    const statusBadge = report.metrics.finalLoss < 1.0 
+    const statusBadge = report.metrics.finalLoss < 1.0
       ? '<span class="badge badge-success">Successful</span>'
       : '<span class="badge badge-warning">Review Recommended</span>';
-    
+
     return `
     <div class="header">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -341,7 +341,7 @@ export class ReportTemplates {
    */
   private generateConfigSection(report: TrainingReport): string {
     const config = report.config;
-    
+
     let modalitySpecific = '';
     if (config.modality === 'llm') {
       const llmConfig = config as import('./types.js').LLMTrainingConfig;
@@ -393,7 +393,7 @@ export class ReportTemplates {
    */
   private generateMetricsSection(report: TrainingReport): string {
     const metrics = report.metrics;
-    
+
     return `
     <div class="section">
       <h2>📈 Training Metrics</h2>
@@ -420,7 +420,7 @@ export class ReportTemplates {
    */
   private generateDatasetSection(report: TrainingReport): string {
     const dataset = report.datasetInfo;
-    
+
     return `
     <div class="section">
       <h2>📁 Dataset Information</h2>
@@ -439,7 +439,7 @@ export class ReportTemplates {
    */
   private generateModelSection(report: TrainingReport): string {
     const location = report.modelLocation;
-    
+
     return `
     <div class="section">
       <h2>🤖 Model Information</h2>
@@ -458,7 +458,7 @@ export class ReportTemplates {
    */
   private generateCostSection(report: TrainingReport): string {
     const cost = report.cost;
-    
+
     return `
     <div class="section">
       <h2>💰 Cost Breakdown</h2>
@@ -519,7 +519,7 @@ export class ReportTemplates {
    */
   private generateRecommendationsSection(recommendations: string[]): string {
     if (recommendations.length === 0) return '';
-    
+
     return `
     <div class="section">
       <h2>💡 Recommendations</h2>
@@ -549,7 +549,7 @@ export class ReportTemplates {
   private generateChartScript(report: TrainingReport): string {
     const lossHistory = report.metrics.lossHistory || [];
     const labels = lossHistory.map((_, i) => i + 1);
-    
+
     return `
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

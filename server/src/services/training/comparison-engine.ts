@@ -225,9 +225,9 @@ export class ComparisonEngine {
   private calculateVocabularyDiversity(text: string): number {
     const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const uniqueWords = new Set(words);
-    
+
     if (words.length === 0) return 0;
-    
+
     // Type-Token Ratio (TTR)
     return (uniqueWords.size / words.length) * 100;
   }
@@ -239,7 +239,7 @@ export class ComparisonEngine {
     // 3. Reasonable sentence lengths
 
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
+
     if (sentences.length === 0) return 0;
 
     let score = 70; // Base score
@@ -267,7 +267,7 @@ export class ComparisonEngine {
       prompt.toLowerCase().split(/\s+/).filter(w => w.length > 3)
     );
     const responseWords = response.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-    
+
     if (promptWords.size === 0 || responseWords.length === 0) {
       return 50; // Default middle score
     }
@@ -292,7 +292,7 @@ export class ComparisonEngine {
 
   private estimateStyleMatch(pretrained: string, finetuned: string): number {
     // Compare stylistic features between responses
-    
+
     // Average word length
     const pretrainedAvgWordLen = this.calculateAvgWordLength(pretrained);
     const finetunedAvgWordLen = this.calculateAvgWordLength(finetuned);

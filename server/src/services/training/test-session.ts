@@ -90,8 +90,8 @@ export class TestSessionManager {
       throw new Error('Access denied to training job');
     }
 
-    const config = job.config as { 
-      modality: ModelModality; 
+    const config = job.config as {
+      modality: ModelModality;
       baseModelId: string;
       outputModelName: string;
       hubRepoName?: string;
@@ -354,7 +354,7 @@ export class TestSessionManager {
 
   private calculateSessionSummary(session: TestSession): SessionSummary {
     const tests = session.tests;
-    
+
     if (tests.length === 0) {
       return {
         totalTests: 0,

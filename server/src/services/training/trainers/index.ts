@@ -24,10 +24,10 @@ import { LLMTrainer, type LLMTrainerResult } from './llm-trainer.js';
 
 export type Trainer = ImageTrainer | VideoTrainer | AudioTrainer | LLMTrainer;
 
-export type TrainerResult = 
-  | ImageTrainerResult 
-  | VideoTrainerResult 
-  | AudioTrainerResult 
+export type TrainerResult =
+  | ImageTrainerResult
+  | VideoTrainerResult
+  | AudioTrainerResult
   | LLMTrainerResult;
 
 export interface TrainerConfig {

@@ -11,11 +11,11 @@ import { eq } from 'drizzle-orm';
 import { trainingJobs, trainingReports } from '../../schema.js';
 import { UsageCodeGenerator, getUsageCodeGenerator } from './usage-code-generator.js';
 import { ReportTemplates, getReportTemplates, type ReportTemplateData } from './report-templates.js';
-import type { 
-  TrainingConfig, 
-  TrainingReport, 
+import type {
+  TrainingConfig,
+  TrainingReport,
   GPUConfig,
-  MultiModalTrainingJob 
+  MultiModalTrainingJob
 } from './types.js';
 
 // =============================================================================
@@ -209,7 +209,7 @@ export class TrainingReportGenerator {
     // Convert DB job to MultiModalTrainingJob format
     const config = job.config as TrainingConfig;
     const trainingReport = job.trainingReport as TrainingReport | null;
-    
+
     const multiModalJob: MultiModalTrainingJob = {
       id: job.id,
       userId: job.userId,
@@ -245,7 +245,7 @@ export class TrainingReportGenerator {
     report: GeneratedReport
   ): Promise<string> {
     const reportId = `report-${jobId}-${Date.now()}`;
-    
+
     await db.insert(trainingReports).values({
       id: reportId,
       trainingJobId: jobId,
@@ -307,7 +307,7 @@ export class TrainingReportGenerator {
         if (i === 0) return sum;
         return sum + Math.abs(val - lastLosses[i - 1]);
       }, 0) / (lastLosses.length - 1);
-      
+
       if (avgChange < 0.001) {
         recommendations.push(
           'Training appears to have plateaued. Consider using a learning rate scheduler or early stopping.'
@@ -318,13 +318,13 @@ export class TrainingReportGenerator {
     // Modality-specific recommendations
     if (config.modality === 'llm') {
       const llmConfig = config as import('./types.js').LLMTrainingConfig;
-      
+
       if (llmConfig.loraConfig && llmConfig.loraConfig.rank > 64) {
         recommendations.push(
           'High LoRA rank detected. Consider reducing rank for faster inference with minimal quality loss.'
         );
       }
-      
+
       if (!llmConfig.quantization || llmConfig.quantization === 'none') {
         recommendations.push(
           'Consider using quantization (4-bit or 8-bit) for faster inference with reduced memory usage.'
@@ -334,13 +334,13 @@ export class TrainingReportGenerator {
 
     if (config.modality === 'image') {
       const imageConfig = config as import('./types.js').ImageTrainingConfig;
-      
+
       if (imageConfig.steps < 500) {
         recommendations.push(
           'Consider training for more steps (1000+) for better image quality and style transfer.'
         );
       }
-      
+
       if (!imageConfig.triggerWord) {
         recommendations.push(
           'Consider adding a unique trigger word to make the style easier to invoke in prompts.'

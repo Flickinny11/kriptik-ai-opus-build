@@ -101,7 +101,7 @@ export class DeploymentRecommender {
   ): DeploymentRecommendation {
     // Estimate model requirements
     const requirements = this.estimateModelRequirements(modelId, modality, modelSizeGB);
-    
+
     // Find suitable GPUs
     const suitableGPUs = this.findSuitableGPUs(requirements.vramRequired);
     if (suitableGPUs.length === 0) {
@@ -126,7 +126,7 @@ export class DeploymentRecommender {
     // Calculate costs
     const gpuSpec = GPU_SPECS[gpu];
     const costPerHour = provider === 'runpod' ? gpuSpec.costPerHourRunPod : gpuSpec.costPerHourModal;
-    
+
     // Estimate requests per hour and cost per request
     const avgSecondsPerRequest = this.estimateInferenceTime(modality, latencyRequirement);
     const requestsPerHour = 3600 / avgSecondsPerRequest;
@@ -194,7 +194,7 @@ export class DeploymentRecommender {
   ): ModelRequirements {
     // Determine model size category
     let sizeCategory: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
-    
+
     if (modelSizeGB) {
       if (modelSizeGB < 2) sizeCategory = 'small';
       else if (modelSizeGB < 8) sizeCategory = 'medium';
@@ -251,7 +251,7 @@ export class DeploymentRecommender {
     // - Generally cheaper
     // - Good for batch processing
     // - More GPU variety (RTX series)
-    
+
     // Modal advantages:
     // - Better scale-to-zero
     // - Better for bursty traffic
@@ -359,9 +359,9 @@ export class DeploymentRecommender {
     // Add alternatives from other GPUs
     for (const gpu of suitableGPUs) {
       if (gpu === selectedGPU) continue;
-      
+
       const spec = GPU_SPECS[gpu];
-      
+
       // RunPod alternative
       if (spec.costPerHourRunPod > 0) {
         alternatives.push({
@@ -371,7 +371,7 @@ export class DeploymentRecommender {
           tradeoff: this.getTradeoff(gpu, selectedGPU, 'runpod', selectedProvider),
         });
       }
-      
+
       // Modal alternative (if available)
       if (spec.costPerHourModal > 0 && gpu !== 'RTX3090' && gpu !== 'RTX4090') {
         alternatives.push({
@@ -408,7 +408,7 @@ export class DeploymentRecommender {
     // Cost comparison
     const altCost = altProvider === 'runpod' ? altSpec.costPerHourRunPod : altSpec.costPerHourModal;
     const selectedCost = selectedProvider === 'runpod' ? selectedSpec.costPerHourRunPod : selectedSpec.costPerHourModal;
-    
+
     if (altCost > selectedCost) {
       parts.push(`$${(altCost - selectedCost).toFixed(2)}/hr more expensive`);
     } else if (altCost < selectedCost) {

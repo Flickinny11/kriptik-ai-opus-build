@@ -124,7 +124,7 @@ export class MediaUploadService {
     await fs.mkdir(userDir, { recursive: true });
 
     const originalPath = path.join(userDir, `${id}_${sanitizedFileName}`);
-    
+
     // Write file
     await fs.writeFile(originalPath, buffer);
 
@@ -212,7 +212,7 @@ export class MediaUploadService {
   ): Promise<ChunkedUploadSession> {
     const id = crypto.randomUUID();
     const tempPath = path.join(this.tempDir, `chunked_${id}`);
-    
+
     await fs.mkdir(tempPath, { recursive: true });
 
     const session: ChunkedUploadSession = {

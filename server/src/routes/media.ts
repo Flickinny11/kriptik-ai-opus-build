@@ -480,7 +480,7 @@ router.post(
       const path = await import('path');
       const originalPath = path.join('/tmp', `orig_${Date.now()}_${files.original[0].originalname}`);
       const processedPath = path.join('/tmp', `proc_${Date.now()}_${files.processed[0].originalname}`);
-      
+
       await fs.writeFile(originalPath, files.original[0].buffer);
       await fs.writeFile(processedPath, files.processed[0].buffer);
 

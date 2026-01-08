@@ -38,7 +38,7 @@ export const GPU_SPECS: GPUSpec[] = [
   { id: 'rtx3090', name: 'NVIDIA GeForce RTX 3090', vramGB: 24, provider: 'runpod', hourlyCost: 0.44, tier: 'consumer', available: true, tensorCores: 328 },
   { id: 'rtx4080', name: 'NVIDIA GeForce RTX 4080', vramGB: 16, provider: 'runpod', hourlyCost: 0.55, tier: 'consumer', available: true, tensorCores: 304 },
   { id: 'rtx4090', name: 'NVIDIA GeForce RTX 4090', vramGB: 24, provider: 'runpod', hourlyCost: 0.69, tier: 'consumer', available: true, tensorCores: 512 },
-  
+
   // Professional GPUs (RunPod)
   { id: 'a4000', name: 'NVIDIA RTX A4000', vramGB: 16, provider: 'runpod', hourlyCost: 0.39, tier: 'professional', available: true, tensorCores: 192 },
   { id: 'a5000', name: 'NVIDIA RTX A5000', vramGB: 24, provider: 'runpod', hourlyCost: 0.59, tier: 'professional', available: true, tensorCores: 256 },
@@ -46,12 +46,12 @@ export const GPU_SPECS: GPUSpec[] = [
   { id: 'a40', name: 'NVIDIA A40', vramGB: 48, provider: 'runpod', hourlyCost: 0.79, tier: 'professional', available: true, tensorCores: 336 },
   { id: 'l40', name: 'NVIDIA L40', vramGB: 48, provider: 'runpod', hourlyCost: 0.99, tier: 'professional', available: true, tensorCores: 568 },
   { id: 'l40s', name: 'NVIDIA L40S', vramGB: 48, provider: 'runpod', hourlyCost: 1.14, tier: 'professional', available: true, tensorCores: 568 },
-  
+
   // Datacenter GPUs (RunPod)
   { id: 'a100-40gb', name: 'NVIDIA A100-SXM4-40GB', vramGB: 40, provider: 'runpod', hourlyCost: 1.89, tier: 'datacenter', available: true, tensorCores: 432 },
   { id: 'a100-80gb', name: 'NVIDIA A100 80GB PCIe', vramGB: 80, provider: 'runpod', hourlyCost: 2.49, tier: 'datacenter', available: true, tensorCores: 432, bandwidth: 2039 },
   { id: 'h100', name: 'NVIDIA H100 PCIe', vramGB: 80, provider: 'runpod', hourlyCost: 3.99, tier: 'datacenter', available: true, tensorCores: 528, bandwidth: 3350 },
-  
+
   // Modal GPUs
   { id: 'modal-t4', name: 'NVIDIA T4', vramGB: 16, provider: 'modal', hourlyCost: 0.30, tier: 'consumer', available: true, tensorCores: 320 },
   { id: 'modal-l4', name: 'NVIDIA L4', vramGB: 24, provider: 'modal', hourlyCost: 0.75, tier: 'professional', available: true, tensorCores: 568 },
@@ -71,21 +71,21 @@ const LLM_MODEL_SIZES: Record<string, number> = {
   'microsoft/phi-3.5-mini-instruct': 3.8,
   'Qwen/Qwen2.5-3B-Instruct': 3,
   'meta-llama/Llama-3.2-3B-Instruct': 3,
-  
+
   // Medium models
   'mistralai/Mistral-7B-Instruct-v0.3': 7,
   'meta-llama/Llama-3.1-8B-Instruct': 8,
   'Qwen/Qwen2.5-7B-Instruct': 7,
   'google/gemma-2-9b-it': 9,
   'deepseek-ai/DeepSeek-V3': 37, // 37B active in MoE
-  
+
   // Large models
   'Qwen/Qwen2.5-14B-Instruct': 14,
   'Qwen/Qwen2.5-32B-Instruct': 32,
   'meta-llama/Llama-3.1-70B-Instruct': 70,
   'meta-llama/Llama-3.3-70B-Instruct': 70,
   'Qwen/Qwen2.5-72B-Instruct': 72,
-  
+
   // Scout models (MoE)
   'meta-llama/Llama-4-Scout-17B': 17, // 17B active
   'mistralai/Mistral-Large-3': 122, // ~122B active in MoE
@@ -151,10 +151,10 @@ export class GPURecommender {
   recommendForLLM(config: LLMTrainingConfig): GPURecommendation {
     // Estimate model size
     const modelSizeB = this.estimateLLMSize(config.baseModelId);
-    
+
     // Calculate VRAM requirements
     let vramRequired: number;
-    
+
     if (config.method === 'qlora') {
       // QLoRA: ~4-6GB per billion params with 4-bit quantization + LoRA weights + activations
       vramRequired = modelSizeB * 1.5 + 4; // Base + overhead
@@ -214,7 +214,7 @@ export class GPURecommender {
   recommendForImage(config: ImageTrainingConfig): GPURecommendation {
     // Get base model VRAM requirement
     const baseVram = IMAGE_MODEL_VRAM[config.baseModel] || 16;
-    
+
     // Adjust for resolution
     let resolutionMultiplier = 1;
     if (config.resolution > 1024) {
@@ -399,15 +399,15 @@ export class GPURecommender {
   private estimateLLMTrainingTime(config: LLMTrainingConfig, modelSizeB: number, gpu: GPUSpec): number {
     // Base time estimation (very rough)
     // Factors: model size, dataset size, batch size, epochs, GPU speed
-    
+
     const baseTimePerEpoch = modelSizeB * 0.5; // hours per epoch for baseline
     const gpuSpeedMultiplier = this.getGPUSpeedMultiplier(gpu);
     const methodMultiplier = config.method === 'qlora' ? 0.5 : config.method === 'lora' ? 0.7 : 1.0;
     const unslothMultiplier = config.useUnsloth ? 0.5 : 1.0; // Unsloth is ~2x faster
-    
+
     const timePerEpoch = baseTimePerEpoch * methodMultiplier * unslothMultiplier / gpuSpeedMultiplier;
     const totalTime = timePerEpoch * config.epochs;
-    
+
     // Add setup time (downloading model, dataset prep)
     return totalTime + 0.25;
   }
@@ -419,7 +419,7 @@ export class GPURecommender {
     const baseStepsPerHour = 600; // baseline for 1024px SDXL on RTX 4090
     const gpuMultiplier = this.getGPUSpeedMultiplier(gpu);
     const resolutionMultiplier = Math.pow(1024 / config.resolution, 1.5);
-    
+
     return baseStepsPerHour * gpuMultiplier * resolutionMultiplier;
   }
 
@@ -430,7 +430,7 @@ export class GPURecommender {
     const baseStepsPerHour = 30; // Video training is much slower
     const gpuMultiplier = this.getGPUSpeedMultiplier(gpu);
     const frameMultiplier = 24 / config.frameCount;
-    
+
     return baseStepsPerHour * gpuMultiplier * frameMultiplier;
   }
 
@@ -440,7 +440,7 @@ export class GPURecommender {
   private estimateAudioStepsPerHour(config: AudioTrainingConfig, gpu: GPUSpec): number {
     const baseStepsPerHour = 1000;
     const gpuMultiplier = this.getGPUSpeedMultiplier(gpu);
-    
+
     return baseStepsPerHour * gpuMultiplier;
   }
 
@@ -483,7 +483,7 @@ export class GPURecommender {
   ): string {
     const method = config.method === 'qlora' ? 'QLoRA (4-bit)' : config.method === 'lora' ? 'LoRA' : 'Full fine-tune';
     const unsloth = config.useUnsloth ? ' with Unsloth acceleration' : '';
-    
+
     return `${modelSizeB}B parameter model with ${method}${unsloth} requires ~${Math.ceil(vramRequired)}GB VRAM. ${gpu.name} (${gpu.vramGB}GB) provides optimal balance of cost ($${gpu.hourlyCost}/hr) and performance.`;
   }
 

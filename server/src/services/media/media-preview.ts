@@ -393,7 +393,7 @@ export class MediaPreviewService {
 
     const sampled: T[] = [];
     const step = array.length / size;
-    
+
     for (let i = 0; i < size; i++) {
       const index = Math.floor(i * step);
       sampled.push(array[index]);

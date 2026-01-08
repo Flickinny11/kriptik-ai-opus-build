@@ -85,7 +85,7 @@ export class UsageCodeGenerator {
    */
   generateCurlExample(endpoint: string, apiKey?: string): string {
     const authHeader = apiKey ? `\n  -H "Authorization: Bearer ${apiKey}" \\` : '';
-    
+
     return `# Example cURL request to the model endpoint
 curl -X POST "${endpoint}" \\${authHeader}
   -H "Content-Type: application/json" \\
@@ -103,7 +103,7 @@ curl -X POST "${endpoint}" \\${authHeader}
    */
   generateAPIUsage(endpoint: string, modality: ModelModality): string {
     const modalityParams = this.getModalityParams(modality);
-    
+
     return `## API Endpoint
 
 **URL:** \`${endpoint}\`
@@ -142,7 +142,7 @@ ${modalityParams}
 
   private generateLLMPython(config: TrainingConfig, modelUrl: string): string {
     const isLora = config.method === 'lora' || config.method === 'qlora';
-    
+
     if (isLora) {
       return `"""
 Fine-tuned LLM model usage example
@@ -178,7 +178,7 @@ model = PeftModel.from_pretrained(
 # Generate text
 def generate_response(prompt: str, max_new_tokens: int = 256) -> str:
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    
+
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
@@ -188,7 +188,7 @@ def generate_response(prompt: str, max_new_tokens: int = 256) -> str:
             do_sample=True,
             pad_token_id=tokenizer.pad_token_id
         )
-    
+
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Example usage
@@ -221,7 +221,7 @@ if tokenizer.pad_token is None:
 # Generate text
 def generate_response(prompt: str, max_new_tokens: int = 256) -> str:
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    
+
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
@@ -231,7 +231,7 @@ def generate_response(prompt: str, max_new_tokens: int = 256) -> str:
             do_sample=True,
             pad_token_id=tokenizer.pad_token_id
         )
-    
+
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Example usage
@@ -294,11 +294,11 @@ main().catch(console.error);`;
   private generateImagePython(config: TrainingConfig, modelUrl: string): string {
     const imageConfig = config as import('./types.js').ImageTrainingConfig;
     const baseModel = imageConfig.baseModel || 'sdxl';
-    
-    const pipelineClass = baseModel.includes('flux') ? 'FluxPipeline' : 
+
+    const pipelineClass = baseModel.includes('flux') ? 'FluxPipeline' :
       baseModel.includes('sd3') ? 'StableDiffusion3Pipeline' :
       'StableDiffusionXLPipeline';
-    
+
     return `"""
 Fine-tuned Image model usage example
 Model: ${config.outputModelName}
@@ -336,7 +336,7 @@ def generate_image(
         width=width,
         height=height,
     ).images[0]
-    
+
     return image
 
 # Example usage
@@ -344,7 +344,7 @@ if __name__ == "__main__":
 ${imageConfig.triggerWord ? `    # Include the trigger word in your prompt
     prompt = "${imageConfig.triggerWord} your description here"` : '    prompt = "Your description here"'}
     negative_prompt = "blurry, low quality, distorted"
-    
+
     image = generate_image(prompt, negative_prompt)
     image.save("output.png")
     print("Image saved to output.png")`;
@@ -395,7 +395,7 @@ async function generateImage(
 async function main() {
   const prompt = 'Your description here';
   const imageBlob = await generateImage(prompt);
-  
+
   // Save the image
   const buffer = Buffer.from(await imageBlob.arrayBuffer());
   fs.writeFileSync('output.png', buffer);
@@ -411,7 +411,7 @@ main().catch(console.error);`;
 
   private generateVideoPython(config: TrainingConfig, modelUrl: string): string {
     const videoConfig = config as import('./types.js').VideoTrainingConfig;
-    
+
     return `"""
 Fine-tuned Video model usage example
 Model: ${config.outputModelName}
@@ -440,14 +440,14 @@ def generate_video(
 ):
     """
     Generate a video from a text prompt.
-    
+
     Args:
         prompt: Text description of the video
         num_frames: Number of frames to generate
         width: Video width
         height: Video height
         fps: Frames per second
-    
+
     Returns:
         Video tensor or path to saved video
     """
@@ -458,10 +458,10 @@ def generate_video(
     #     width=width,
     #     height=height,
     # )
-    # 
+    #
     # # Save video
     # model.save_video(video, "output.mp4", fps=fps)
-    
+
     print(f"Video generation placeholder for: {prompt}")
     print(f"Frames: {num_frames}, Resolution: {width}x{height}, FPS: {fps}")
     return None
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     return `/**
  * Fine-tuned Video model usage example
  * Model: ${config.outputModelName}
- * 
+ *
  * Note: Video generation typically requires server-side processing
  * Use the API endpoint or Python SDK for actual generation
  */
@@ -531,7 +531,7 @@ main().catch(console.error);`;
   private generateAudioPython(config: TrainingConfig, modelUrl: string): string {
     const audioConfig = config as import('./types.js').AudioTrainingConfig;
     const baseModel = audioConfig.baseModel || 'xtts2';
-    
+
     if (baseModel.includes('xtts')) {
       return `"""
 Fine-tuned Audio model usage example (XTTS)
@@ -557,13 +557,13 @@ def generate_speech(
 ):
     """
     Generate speech from text.
-    
+
     Args:
         text: Text to convert to speech
         output_path: Path to save the audio file
         speaker_wav: Reference audio for voice cloning (if applicable)
         language: Language code
-    
+
     Returns:
         Path to the generated audio file
     """
@@ -600,19 +600,19 @@ def generate_audio(
 ):
     """
     Generate audio from text or transform audio.
-    
+
     Args:
         text: Input text or audio path
         output_path: Path to save the output
         sample_rate: Audio sample rate
-    
+
     Returns:
         Path to the generated audio file
     """
     # Example generation (implementation varies)
     # audio = model.generate(text)
     # model.save_audio(audio, output_path, sample_rate=sample_rate)
-    
+
     print(f"Audio generation for: {text}")
     return output_path
 
@@ -626,7 +626,7 @@ if __name__ == "__main__":
     return `/**
  * Fine-tuned Audio model usage example
  * Model: ${config.outputModelName}
- * 
+ *
  * Note: Audio generation typically requires server-side processing
  */
 
@@ -660,7 +660,7 @@ async function generateAudio(
 // Example usage
 async function main() {
   const audioBuffer = await generateAudio('Hello, this is a test.');
-  
+
   // Save or play the audio
   // For Node.js: fs.writeFileSync('output.wav', Buffer.from(audioBuffer));
   console.log('Audio generated, size:', audioBuffer.byteLength, 'bytes');

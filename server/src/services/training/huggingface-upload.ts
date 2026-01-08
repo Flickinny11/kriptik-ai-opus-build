@@ -153,9 +153,9 @@ export class HuggingFaceUploadService {
     commitMessage: string = 'Upload via KripTik AI'
   ): Promise<void> {
     const url = `${this.baseUrl}/models/${repoId}/upload/${encodeURIComponent(remotePath)}`;
-    
+
     const body = typeof content === 'string' ? content : content.toString('base64');
-    
+
     // Server-side external API call to HuggingFace (credentials: omit for external APIs)
     const response = await fetch(url, {
       method: 'POST',
@@ -188,7 +188,7 @@ export class HuggingFaceUploadService {
     // For large files, we use the Git LFS protocol
     // This is typically handled by the huggingface_hub library on the RunPod container
     // Here we provide a fallback using the API
-    
+
     // The actual LFS upload would happen in the training container
     // This method tracks the upload in the database
     console.log(`[HFUpload] Large file upload tracked: ${filePath} -> ${remotePath}`);
@@ -207,16 +207,16 @@ export class HuggingFaceUploadService {
     }
   ): string {
     const { modality, method, baseModelId, outputModelName } = config;
-    
+
     // Determine license based on base model
     const license = this.inferLicense(baseModelId);
-    
+
     // Generate tags
     const tags = this.generateTags(config);
-    
+
     // Generate usage example
     const usageExample = this.generateUsageExample(config);
-    
+
     // Build the model card markdown
     let card = `---
 license: ${license}
@@ -392,7 +392,7 @@ ${additionalInfo?.trainedBy ? `Trained by: ${additionalInfo.trainedBy}` : ''}
 
   private inferLicense(baseModelId: string): string {
     const modelLower = baseModelId.toLowerCase();
-    
+
     if (modelLower.includes('llama')) {
       return 'llama3.2';
     } else if (modelLower.includes('mistral')) {
@@ -406,13 +406,13 @@ ${additionalInfo?.trainedBy ? `Trained by: ${additionalInfo.trainedBy}` : ''}
     } else if (modelLower.includes('stable-diffusion')) {
       return 'creativeml-openrail-m';
     }
-    
+
     return 'apache-2.0'; // Default
   }
 
   private generateTags(config: TrainingConfig): string[] {
     const tags: string[] = ['kriptik-ai', config.modality, config.method];
-    
+
     // Add modality-specific tags
     switch (config.modality) {
       case 'llm':
@@ -435,13 +435,13 @@ ${additionalInfo?.trainedBy ? `Trained by: ${additionalInfo.trainedBy}` : ''}
         tags.push('text-to-speech', 'audio');
         break;
     }
-    
+
     return tags;
   }
 
   private generateUsageExample(config: TrainingConfig): string {
     const repoId = config.hubRepoName || config.outputModelName;
-    
+
     switch (config.modality) {
       case 'llm':
         if (config.method === 'lora' || config.method === 'qlora') {

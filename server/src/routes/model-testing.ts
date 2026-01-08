@@ -41,7 +41,7 @@ modelTestingRouter.post('/sessions', authMiddleware, async (req: Request, res: R
     const billingService = getTestBillingService();
     const balance = await billingService.getBalance(userId);
     if (balance < 10) { // Minimum 10 credits to start a session
-      return res.status(402).json({ 
+      return res.status(402).json({
         error: 'Insufficient credits',
         required: 10,
         current: balance,
@@ -90,7 +90,7 @@ modelTestingRouter.post('/sessions/:id/test', authMiddleware, async (req: Reques
     }
 
     const sessionManager = getTestSessionManager();
-    
+
     // Verify session ownership
     const session = await sessionManager.getSession(sessionId);
     if (!session) {

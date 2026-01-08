@@ -154,7 +154,7 @@ export class MediaProcessor {
 
     // Get original size (would use sharp in production)
     const originalSize = await this.getImageSize(inputPath);
-    
+
     // Calculate new size
     let newWidth = originalSize.width;
     let newHeight = originalSize.height;
@@ -172,7 +172,7 @@ export class MediaProcessor {
     if (aspectRatio) {
       const targetAspect = aspectRatio;
       const currentAspect = newWidth / newHeight;
-      
+
       if (currentAspect > targetAspect) {
         // Crop width
         newWidth = Math.round(newHeight * targetAspect);

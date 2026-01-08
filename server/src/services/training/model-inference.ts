@@ -200,7 +200,7 @@ export class ModelInferenceService {
         // For now, simulate the response structure
         const inputTokens = Math.ceil(request.input.text.length / 4);
         const outputTokens = maxTokens;
-        
+
         return {
           output: {
             text: `[Response from ${request.modelId}]`, // Would be actual model response
@@ -333,19 +333,19 @@ export class ModelInferenceService {
   ): number {
     // Simple heuristic-based quality estimation
     // In production, this could use an LLM judge or embedding similarity
-    
+
     // Factors to consider:
     // 1. Response length (longer isn't always better)
     // 2. Relevance to prompt (would need embeddings)
     // 3. Coherence (would need perplexity)
-    
+
     // For now, use a simple length comparison as a proxy
     const finetunedLength = finetuned.length;
     const pretrainedLength = pretrained.length;
-    
+
     // If finetuned is notably different in length, assume some adaptation
     const lengthRatio = finetunedLength / Math.max(pretrainedLength, 1);
-    
+
     // Return a score between -100 and 100
     // Positive = improvement, negative = regression
     if (lengthRatio > 0.5 && lengthRatio < 2.0) {

@@ -1,6 +1,6 @@
 /**
  * Endpoint Deployer Service
- * 
+ *
  * Manages deployment and lifecycle of inference endpoints on RunPod.
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 5).
  */
@@ -103,7 +103,7 @@ export class EndpointDeployerService {
   private async initializeRunPod(userId: string): Promise<RunPodProvider> {
     const vault = getCredentialVault();
     const runpodCredential = await vault.getCredential(userId, 'runpod');
-    
+
     if (!runpodCredential || !runpodCredential.oauthAccessToken) {
       throw new Error('RunPod API key not configured. Please add your RunPod API key in settings.');
     }
@@ -130,7 +130,7 @@ export class EndpointDeployerService {
 
     // Create endpoint ID
     const endpointId = crypto.randomUUID();
-    
+
     // Calculate test window end time (30 minutes)
     const testWindowEndsAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
@@ -241,15 +241,15 @@ export class EndpointDeployerService {
 
     const poll = async () => {
       attempts++;
-      
+
       try {
         const runpod = await this.initializeRunPod(userId);
         const deployment = await runpod.getDeployment(runpodEndpointId);
-        
+
         if (deployment && deployment.status === 'running') {
           await db
             .update(deployedEndpoints)
-            .set({ 
+            .set({
               status: 'active',
               currentWorkers: 1, // Default to 1 when running
             })

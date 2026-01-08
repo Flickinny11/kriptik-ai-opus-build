@@ -99,7 +99,7 @@ export class ModelPreservationService {
     config?: Partial<PreservationConfig>
   ): Promise<PreservationResult> {
     const preservationConfig = { ...this.defaultConfig, ...config };
-    
+
     try {
       // Get job details
       const job = await this.getJobDetails(jobId);
@@ -109,7 +109,7 @@ export class ModelPreservationService {
 
       // Generate version
       const version = this.generateVersion();
-      
+
       // Create model version record
       const modelVersion: ModelVersion = {
         id: `${jobId}-${version}`,
@@ -229,7 +229,7 @@ export class ModelPreservationService {
         // Estimate size based on config
         const size = 1000000; // 1MB placeholder - would calculate from actual files
         totalBytes += size;
-        
+
         const config = job.config as { modality?: string };
         const modality = config?.modality || 'unknown';
         byModality[modality] = (byModality[modality] || 0) + size;
@@ -310,7 +310,7 @@ export class ModelPreservationService {
 
     return {
       config: job.config,
-      metrics: trainingReport?.metrics?.finalLoss 
+      metrics: trainingReport?.metrics?.finalLoss
         ? { finalLoss: trainingReport.metrics.finalLoss }
         : undefined,
       trainingReport: trainingReport || undefined,

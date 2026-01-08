@@ -208,11 +208,11 @@ export const trainingJobs = sqliteTable('training_jobs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull(),
     projectId: text('project_id').references(() => projects.id),
-    
+
     // Multi-modal training fields
     modality: text('modality').default('llm'), // 'llm' | 'image' | 'video' | 'audio' | 'multimodal'
     method: text('method').default('qlora'), // 'full_finetune' | 'lora' | 'qlora' | 'dreambooth' | 'textual_inversion' | 'voice_clone' | etc.
-    
+
     // Training configuration
     config: text('config', { mode: 'json' }).notNull(), // TrainingJobConfig or TrainingConfig
     // Status tracking
@@ -225,15 +225,15 @@ export const trainingJobs = sqliteTable('training_jobs', {
     error: text('error'),
     // RunPod integration
     runpodPodId: text('runpod_pod_id'),
-    
+
     // Output
     outputModelUrl: text('output_model_url'),
     huggingFaceRepoUrl: text('huggingface_repo_url'), // URL to HuggingFace Hub repo if auto-saved
     autoSaved: integer('auto_saved', { mode: 'boolean' }).default(false), // Whether auto-saved to HuggingFace Hub
-    
+
     // Training Report (comprehensive post-training report)
     trainingReport: text('training_report', { mode: 'json' }), // TrainingReport
-    
+
     // Timestamps
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
@@ -249,12 +249,12 @@ export const trainingReports = sqliteTable('training_reports', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     trainingJobId: text('training_job_id').references(() => trainingJobs.id).notNull(),
     userId: text('user_id').references(() => users.id).notNull(),
-    
+
     // Report content
     htmlReport: text('html_report').notNull(), // Full HTML report
     jsonReport: text('json_report').notNull(), // JSON report data
     pdfUrl: text('pdf_url'), // URL to PDF version if generated
-    
+
     // Timestamps
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -267,16 +267,16 @@ export const testSessions = sqliteTable('test_sessions', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull(),
     trainingJobId: text('training_job_id').references(() => trainingJobs.id).notNull(),
-    
+
     // Model info
     pretrainedModelId: text('pretrained_model_id').notNull(),
     finetunedModelId: text('finetuned_model_id').notNull(),
     modality: text('modality').notNull(), // 'llm' | 'image' | 'video' | 'audio'
-    
+
     // Session state
     totalCost: real('total_cost').default(0).notNull(),
     status: text('status').default('active').notNull(), // 'active' | 'ended'
-    
+
     // Timestamps
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     endedAt: text('ended_at'),
@@ -289,13 +289,13 @@ export const testSessions = sqliteTable('test_sessions', {
 export const testResults = sqliteTable('test_results', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     sessionId: text('session_id').references(() => testSessions.id).notNull(),
-    
+
     // Test data
     input: text('input', { mode: 'json' }).notNull(), // Input sent to models
     pretrainedOutput: text('pretrained_output', { mode: 'json' }).notNull(), // Response from pretrained
     finetunedOutput: text('finetuned_output', { mode: 'json' }).notNull(), // Response from finetuned
     comparison: text('comparison', { mode: 'json' }), // Comparison metrics
-    
+
     // Timestamps
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
@@ -3809,6 +3809,155 @@ export const hyperThinkingArtifacts = sqliteTable('hyper_thinking_artifacts', {
 
     // Timestamps
     lastUsedAt: text('last_used_at'),
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * External Apps - Imported external applications for AI model integration
+ */
+export const externalApps = sqliteTable('external_apps', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+
+    // Repository info
+    sourceRepo: text('source_repo').notNull(),
+    branch: text('branch').notNull().default('main'),
+
+    // Framework detection
+    framework: text('framework').notNull().$type<
+        'nodejs' | 'python' | 'react' | 'nextjs' | 'express' | 'fastapi' | 'flask' | 'django' | 'other'
+    >(),
+
+    // Structure analysis (JSON)
+    structure: text('structure', { mode: 'json' }).$type<{
+        rootDir: string;
+        sourceDir: string;
+        configFiles: string[];
+        envFiles: string[];
+        packageManager?: string;
+        entryPoint?: string;
+    }>(),
+
+    // Integration points (JSON array)
+    integrationPoints: text('integration_points', { mode: 'json' }).$type<Array<{
+        id: string;
+        type: string;
+        filePath: string;
+        lineNumber: number;
+        description: string;
+        suggestedWiring: string;
+        modelCompatibility: string[];
+        code?: string;
+    }>>(),
+
+    // Environment requirements (JSON array)
+    envRequirements: text('env_requirements', { mode: 'json' }).$type<string[]>(),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * App Integration Points - Detailed integration points for external apps
+ */
+export const appIntegrationPoints = sqliteTable('app_integration_points', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appId: text('app_id').notNull().references(() => externalApps.id),
+
+    // Integration point details
+    type: text('type').notNull().$type<
+        'api_route' | 'function' | 'component' | 'config' | 'middleware' | 'hook'
+    >(),
+    filePath: text('file_path').notNull(),
+    lineNumber: integer('line_number').notNull(),
+    description: text('description'),
+    suggestedWiring: text('suggested_wiring'),
+
+    // Model compatibility (JSON array)
+    modelCompatibility: text('model_compatibility', { mode: 'json' }).$type<string[]>(),
+
+    // Code snippet
+    code: text('code'),
+
+    // Wiring status
+    isWired: integer('is_wired', { mode: 'boolean' }).default(false),
+    deploymentId: text('deployment_id'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * App Wiring History - History of model wiring operations
+ */
+export const appWiringHistory = sqliteTable('app_wiring_history', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    appId: text('app_id').notNull().references(() => externalApps.id),
+    deploymentId: text('deployment_id').notNull(),
+    integrationPointId: text('integration_point_id').notNull(),
+
+    // Endpoint configuration
+    endpointUrl: text('endpoint_url').notNull(),
+    modelType: text('model_type').notNull().$type<
+        'llm' | 'image' | 'video' | 'audio' | 'multimodal'
+    >(),
+
+    // Result
+    success: integer('success', { mode: 'boolean' }).default(false),
+    modifiedFiles: text('modified_files', { mode: 'json' }).$type<Array<{
+        path: string;
+        originalContent: string;
+        modifiedContent: string;
+        changes: string[];
+    }>>(),
+    envVariables: text('env_variables', { mode: 'json' }).$type<Record<string, string>>(),
+    instructions: text('instructions'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * App Integration Workflows - Workflow execution history
+ */
+export const appIntegrationWorkflows = sqliteTable('app_integration_workflows', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id),
+    appId: text('app_id').references(() => externalApps.id),
+
+    // Configuration
+    repoUrl: text('repo_url').notNull(),
+    branch: text('branch'),
+    trainingJobId: text('training_job_id'),
+    deploymentId: text('deployment_id'),
+    deploymentProvider: text('deployment_provider').$type<'runpod' | 'modal'>(),
+    modelType: text('model_type').$type<
+        'llm' | 'image' | 'video' | 'audio' | 'multimodal'
+    >(),
+    autoPush: integer('auto_push', { mode: 'boolean' }).default(false),
+
+    // Status
+    status: text('status').notNull().$type<
+        'pending' | 'importing' | 'deploying' | 'wiring' | 'testing' | 'pushing' | 'complete' | 'error'
+    >().default('pending'),
+    progress: integer('progress').default(0),
+    currentStep: text('current_step'),
+    error: text('error'),
+
+    // Results (JSON)
+    wiringResult: text('wiring_result', { mode: 'json' }),
+    testReport: text('test_report', { mode: 'json' }),
+    pushResult: text('push_result', { mode: 'json' }),
+
+    // Duration
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+    totalDurationMs: integer('total_duration_ms'),
+
+    // Timestamps
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 });

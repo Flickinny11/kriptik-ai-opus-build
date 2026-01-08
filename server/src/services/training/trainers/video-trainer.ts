@@ -51,7 +51,7 @@ export class VideoTrainer {
   generateTrainingScript(): string {
     const { config } = this;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('set -e');
     lines.push('');
@@ -62,13 +62,13 @@ export class VideoTrainer {
     lines.push(`echo "Frame Count: ${config.frameCount}"`);
     lines.push(`echo "Resolution: ${config.resolution.width}x${config.resolution.height}"`);
     lines.push('');
-    
+
     // Create workspace
     lines.push('mkdir -p /workspace/dataset/videos');
     lines.push('mkdir -p /workspace/output');
     lines.push('mkdir -p /workspace/logs');
     lines.push('');
-    
+
     // Callback helpers
     lines.push('send_callback() {');
     lines.push('    if [ -n "$CALLBACK_URL" ]; then');
@@ -78,39 +78,39 @@ export class VideoTrainer {
     lines.push('    fi');
     lines.push('}');
     lines.push('');
-    
+
     // Install dependencies
     lines.push('send_callback "Installing dependencies..."');
     lines.push('pip install -q torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121');
     lines.push('pip install -q accelerate transformers diffusers safetensors huggingface_hub');
     lines.push('pip install -q decord opencv-python-headless peft');
     lines.push('');
-    
+
     // HuggingFace login
     lines.push('python -c "from huggingface_hub import login; login(token=\'$HF_TOKEN\')"');
     lines.push('');
-    
+
     // Model-specific setup
     lines.push('send_callback "Setting up model..."');
     lines.push(this.generateModelSetup());
-    
+
     // Dataset preparation
     lines.push('');
     lines.push('send_callback "Preparing dataset..."');
     lines.push(this.generateDatasetPreparation());
-    
+
     // Training
     lines.push('');
     lines.push('send_callback "Starting training..."');
     lines.push(this.generateTrainingPython());
-    
+
     // Upload to HuggingFace
     if (config.autoSaveToHub) {
       lines.push('');
       lines.push('send_callback "Uploading to HuggingFace Hub..."');
       lines.push(this.generateUploadPython());
     }
-    
+
     // Completion callback
     lines.push('');
     lines.push('if [ -n "$CALLBACK_URL" ]; then');
@@ -121,14 +121,14 @@ export class VideoTrainer {
     lines.push('fi');
     lines.push('');
     lines.push('echo "=== Training Complete ==="');
-    
+
     return lines.join('\n');
   }
 
   private generateModelSetup(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     if (c.baseModel === 'wan' || c.baseModel === 'wan2') {
       lines.push('git clone https://github.com/Wan-Video/Wan2.1.git /workspace/wan || true');
       lines.push('cd /workspace/wan && pip install -q -r requirements.txt || true');
@@ -139,7 +139,7 @@ export class VideoTrainer {
       lines.push('git clone https://github.com/hpcaitech/Open-Sora.git /workspace/opensora || true');
       lines.push('cd /workspace/opensora && pip install -q -r requirements.txt || true');
     }
-    
+
     lines.push('');
     lines.push(`send_callback "Downloading model: ${c.baseModelId}..."`);
     lines.push('python << DOWNLOAD_MODEL');
@@ -153,14 +153,14 @@ export class VideoTrainer {
     lines.push(')');
     lines.push('print("Download complete!")');
     lines.push('DOWNLOAD_MODEL');
-    
+
     return lines.join('\n');
   }
 
   private generateDatasetPreparation(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('python << PREP_DATA');
     lines.push('import os');
     lines.push('import json');
@@ -207,14 +207,14 @@ export class VideoTrainer {
     lines.push('');
     lines.push('print(f"Processed {len(metadata)} videos")');
     lines.push('PREP_DATA');
-    
+
     return lines.join('\n');
   }
 
   private generateTrainingPython(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('python << TRAIN_VIDEO');
     lines.push('import os');
     lines.push('import torch');
@@ -255,7 +255,7 @@ export class VideoTrainer {
     lines.push('output_dir.mkdir(parents=True, exist_ok=True)');
     lines.push('print(f"Model saved to {output_dir}")');
     lines.push('TRAIN_VIDEO');
-    
+
     return lines.join('\n');
   }
 
@@ -263,7 +263,7 @@ export class VideoTrainer {
     const c = this.config;
     const repoName = c.hubRepoName || c.outputModelName;
     const lines: string[] = [];
-    
+
     lines.push('python << UPLOAD_HF');
     lines.push('from huggingface_hub import HfApi, create_repo');
     lines.push('');
@@ -282,7 +282,7 @@ export class VideoTrainer {
     lines.push(')');
     lines.push('print(f"Uploaded to: https://huggingface.co/{repo_name}")');
     lines.push('UPLOAD_HF');
-    
+
     return lines.join('\n');
   }
 
@@ -292,7 +292,7 @@ export class VideoTrainer {
   generateDatasetScript(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('echo "=== Video Dataset Preparation ==="');
     lines.push('');
@@ -337,7 +337,7 @@ export class VideoTrainer {
     lines.push('PREP_VIDEOS');
     lines.push('');
     lines.push('echo "=== Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -381,7 +381,7 @@ export class VideoTrainer {
   estimateVRAM(): number {
     const { config } = this;
     let vram = 40;
-    
+
     switch (config.baseModel) {
       case 'wan':
       case 'wan2':
@@ -399,20 +399,20 @@ export class VideoTrainer {
       default:
         vram = 48;
     }
-    
+
     if (config.frameCount > 24) {
       vram *= 1.2;
     }
-    
+
     const pixels = config.resolution.width * config.resolution.height;
     if (pixels > 720 * 480) {
       vram *= 1.3;
     }
-    
+
     if (config.method === 'lora') {
       vram *= 0.6;
     }
-    
+
     return Math.ceil(vram);
   }
 }

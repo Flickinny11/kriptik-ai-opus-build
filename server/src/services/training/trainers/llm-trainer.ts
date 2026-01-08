@@ -53,7 +53,7 @@ export class LLMTrainer {
     const lines: string[] = [];
     const isQLoRA = config.method === 'qlora';
     const useUnsloth = config.useUnsloth && (config.method === 'qlora' || config.method === 'lora');
-    
+
     lines.push('#!/bin/bash');
     lines.push('set -e');
     lines.push('');
@@ -63,13 +63,13 @@ export class LLMTrainer {
     lines.push(`echo "Method: ${config.method}${useUnsloth ? ' (Unsloth accelerated)' : ''}"`);
     lines.push(`echo "Epochs: ${config.epochs}"`);
     lines.push('');
-    
+
     // Create workspace
     lines.push('mkdir -p /workspace/dataset');
     lines.push('mkdir -p /workspace/output');
     lines.push('mkdir -p /workspace/logs');
     lines.push('');
-    
+
     // Callback helpers
     lines.push('send_callback() {');
     lines.push('    if [ -n "$CALLBACK_URL" ]; then');
@@ -79,7 +79,7 @@ export class LLMTrainer {
     lines.push('    fi');
     lines.push('}');
     lines.push('');
-    
+
     // Install dependencies
     lines.push('send_callback "Installing dependencies..."');
     if (useUnsloth) {
@@ -90,28 +90,28 @@ export class LLMTrainer {
     }
     lines.push('pip install -q huggingface_hub xformers || true');
     lines.push('');
-    
+
     // HuggingFace login
     lines.push('python -c "from huggingface_hub import login; login(token=\'$HF_TOKEN\')"');
     lines.push('');
-    
+
     // Training
     lines.push('send_callback "Starting training..."');
     lines.push('');
-    
+
     if (useUnsloth) {
       lines.push(this.generateUnslothTrainingPython());
     } else {
       lines.push(this.generateStandardTrainingPython());
     }
-    
+
     // Upload to HuggingFace
     if (config.autoSaveToHub) {
       lines.push('');
       lines.push('send_callback "Uploading to HuggingFace Hub..."');
       lines.push(this.generateUploadPython());
     }
-    
+
     // Completion callback
     lines.push('');
     lines.push('if [ -n "$CALLBACK_URL" ]; then');
@@ -122,7 +122,7 @@ export class LLMTrainer {
     lines.push('fi');
     lines.push('');
     lines.push('echo "=== Training Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -130,7 +130,7 @@ export class LLMTrainer {
     const c = this.config;
     const isQLoRA = c.method === 'qlora';
     const lines: string[] = [];
-    
+
     lines.push('python << UNSLOTH_TRAIN');
     lines.push('import os');
     lines.push('import torch');
@@ -182,7 +182,7 @@ export class LLMTrainer {
     lines.push('');
     lines.push('model.print_trainable_parameters()');
     lines.push('');
-    
+
     // Dataset loading
     lines.push('print("Loading dataset...")');
     if (c.datasetConfig.source === 'huggingface' && c.datasetConfig.datasetId) {
@@ -195,7 +195,7 @@ export class LLMTrainer {
       lines.push('dataset = Dataset.from_list(data)');
     }
     lines.push('');
-    
+
     // Format dataset
     const textColumn = c.datasetConfig.textColumn || 'text';
     lines.push('def format_prompt(example):');
@@ -207,7 +207,7 @@ export class LLMTrainer {
     lines.push('');
     lines.push('dataset = dataset.map(format_prompt)');
     lines.push('');
-    
+
     // Training arguments
     lines.push('training_args = TrainingArguments(');
     lines.push('    output_dir="/workspace/output",');
@@ -226,14 +226,14 @@ export class LLMTrainer {
     lines.push('    report_to="none",');
     lines.push(')');
     lines.push('');
-    
+
     // Progress callback
     lines.push('class ProgressCallback(TrainerCallback):');
     lines.push('    def on_log(self, args, state, control, logs=None, **kwargs):');
     lines.push('        if logs and state.global_step > 0:');
     lines.push('            send_progress(state.global_step, state.max_steps, logs.get("loss"), logs.get("learning_rate"))');
     lines.push('');
-    
+
     // Trainer
     lines.push('trainer = SFTTrainer(');
     lines.push('    model=model,');
@@ -253,7 +253,7 @@ export class LLMTrainer {
     lines.push('trainer.save_model("/workspace/output")');
     lines.push('print("Model saved!")');
     lines.push('UNSLOTH_TRAIN');
-    
+
     return lines.join('\n');
   }
 
@@ -262,7 +262,7 @@ export class LLMTrainer {
     const isQLoRA = c.method === 'qlora';
     const isFullFinetune = c.method === 'full_finetune';
     const lines: string[] = [];
-    
+
     lines.push('python << STANDARD_TRAIN');
     lines.push('import os');
     lines.push('import torch');
@@ -283,7 +283,7 @@ export class LLMTrainer {
     lines.push(`model_id = "${c.baseModelId}"`);
     lines.push('print(f"Loading model: {model_id}")');
     lines.push('');
-    
+
     if (isQLoRA) {
       lines.push('bnb_config = BitsAndBytesConfig(');
       lines.push('    load_in_4bit=True,');
@@ -307,12 +307,12 @@ export class LLMTrainer {
       lines.push('    trust_remote_code=True,');
       lines.push(')');
     }
-    
+
     lines.push('');
     lines.push('tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)');
     lines.push('tokenizer.pad_token = tokenizer.eos_token');
     lines.push('');
-    
+
     if (!isFullFinetune) {
       lines.push('lora_config = LoraConfig(');
       lines.push(`    r=${c.loraConfig?.rank || 16},`);
@@ -326,7 +326,7 @@ export class LLMTrainer {
       lines.push('model.print_trainable_parameters()');
       lines.push('');
     }
-    
+
     // Dataset
     lines.push('print("Loading dataset...")');
     if (c.datasetConfig.source === 'huggingface' && c.datasetConfig.datasetId) {
@@ -339,7 +339,7 @@ export class LLMTrainer {
       lines.push('dataset = Dataset.from_list(data)');
     }
     lines.push('');
-    
+
     // Training
     lines.push('training_args = TrainingArguments(');
     lines.push('    output_dir="/workspace/output",');
@@ -356,7 +356,7 @@ export class LLMTrainer {
     lines.push('    report_to="none",');
     lines.push(')');
     lines.push('');
-    
+
     lines.push('trainer = SFTTrainer(');
     lines.push('    model=model,');
     lines.push('    tokenizer=tokenizer,');
@@ -372,7 +372,7 @@ export class LLMTrainer {
     lines.push('');
     lines.push('trainer.save_model("/workspace/output")');
     lines.push('STANDARD_TRAIN');
-    
+
     return lines.join('\n');
   }
 
@@ -380,7 +380,7 @@ export class LLMTrainer {
     const c = this.config;
     const repoName = c.hubRepoName || c.outputModelName;
     const lines: string[] = [];
-    
+
     lines.push('python << UPLOAD_HF');
     lines.push('from huggingface_hub import HfApi, create_repo');
     lines.push('');
@@ -399,7 +399,7 @@ export class LLMTrainer {
     lines.push(')');
     lines.push('print(f"Uploaded to: https://huggingface.co/{repo_name}")');
     lines.push('UPLOAD_HF');
-    
+
     return lines.join('\n');
   }
 
@@ -409,7 +409,7 @@ export class LLMTrainer {
   generateDatasetScript(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('echo "=== Dataset Preparation ==="');
     lines.push('');
@@ -423,7 +423,7 @@ export class LLMTrainer {
     lines.push('output_dir = Path("/workspace/dataset")');
     lines.push('output_dir.mkdir(parents=True, exist_ok=True)');
     lines.push('');
-    
+
     if (c.datasetConfig.source === 'huggingface' && c.datasetConfig.datasetId) {
       lines.push(`print("Downloading dataset: ${c.datasetConfig.datasetId}")`);
       lines.push(`dataset = load_dataset("${c.datasetConfig.datasetId}", split="${c.datasetConfig.split || 'train'}")`);
@@ -434,12 +434,12 @@ export class LLMTrainer {
     } else {
       lines.push('print("Using uploaded dataset files")');
     }
-    
+
     lines.push('print("Dataset preparation complete!")');
     lines.push('PREP_DATA');
     lines.push('');
     lines.push('echo "=== Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -448,11 +448,11 @@ export class LLMTrainer {
    */
   getContainerImage(): string {
     const { config } = this;
-    
+
     if (config.useUnsloth && (config.method === 'qlora' || config.method === 'lora')) {
       return 'unslothai/unsloth:latest-py311-cu121-torch231';
     }
-    
+
     const containerConfig = getContainerImage('llm', config.method);
     return containerConfig.image;
   }
@@ -487,7 +487,7 @@ export class LLMTrainer {
     const { config } = this;
     const modelSize = this.estimateModelSize();
     let vram: number;
-    
+
     if (config.method === 'qlora') {
       vram = modelSize * 1.5 + 4;
     } else if (config.method === 'lora') {
@@ -495,23 +495,23 @@ export class LLMTrainer {
     } else {
       vram = modelSize * 4 + 8;
     }
-    
+
     vram *= Math.max(1, config.batchSize * 0.3);
-    
+
     if ((config.maxSeqLength || 2048) > 4096) {
       vram *= 1.5;
     }
-    
+
     if (config.useUnsloth) {
       vram *= 0.4;
     }
-    
+
     return Math.ceil(vram);
   }
 
   private estimateModelSize(): number {
     const modelId = this.config.baseModelId.toLowerCase();
-    
+
     const sizePatterns = [
       { pattern: /405b/i, size: 405 },
       { pattern: /235b/i, size: 235 },
@@ -532,13 +532,13 @@ export class LLMTrainer {
       { pattern: /2b/i, size: 2 },
       { pattern: /1b/i, size: 1 },
     ];
-    
+
     for (const { pattern, size } of sizePatterns) {
       if (pattern.test(modelId)) {
         return size;
       }
     }
-    
+
     return 7;
   }
 }

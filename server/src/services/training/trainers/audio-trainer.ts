@@ -51,7 +51,7 @@ export class AudioTrainer {
   generateTrainingScript(): string {
     const { config } = this;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('set -e');
     lines.push('');
@@ -61,13 +61,13 @@ export class AudioTrainer {
     lines.push(`echo "Method: ${config.method}"`);
     lines.push(`echo "Sample Rate: ${config.sampleRate}"`);
     lines.push('');
-    
+
     // Create workspace
     lines.push('mkdir -p /workspace/dataset');
     lines.push('mkdir -p /workspace/output');
     lines.push('mkdir -p /workspace/logs');
     lines.push('');
-    
+
     // Callback helpers
     lines.push('send_callback() {');
     lines.push('    if [ -n "$CALLBACK_URL" ]; then');
@@ -77,32 +77,32 @@ export class AudioTrainer {
     lines.push('    fi');
     lines.push('}');
     lines.push('');
-    
+
     // Install dependencies based on model
     lines.push('send_callback "Installing dependencies..."');
     lines.push(this.generateInstallDeps());
     lines.push('');
-    
+
     // HuggingFace login
     lines.push('python -c "from huggingface_hub import login; login(token=\'$HF_TOKEN\')"');
     lines.push('');
-    
+
     // Dataset preparation
     lines.push('send_callback "Preparing audio dataset..."');
     lines.push(this.generateDatasetPreparation());
-    
+
     // Training
     lines.push('');
     lines.push('send_callback "Starting training..."');
     lines.push(this.generateTrainingPython());
-    
+
     // Upload to HuggingFace
     if (config.autoSaveToHub) {
       lines.push('');
       lines.push('send_callback "Uploading to HuggingFace Hub..."');
       lines.push(this.generateUploadPython());
     }
-    
+
     // Completion callback
     lines.push('');
     lines.push('if [ -n "$CALLBACK_URL" ]; then');
@@ -113,7 +113,7 @@ export class AudioTrainer {
     lines.push('fi');
     lines.push('');
     lines.push('echo "=== Training Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -123,7 +123,7 @@ export class AudioTrainer {
   generateVoiceCloneScript(voiceSamples: string[]): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('set -e');
     lines.push('');
@@ -170,22 +170,22 @@ export class AudioTrainer {
     lines.push('');
     lines.push('print("Voice cloning complete!")');
     lines.push('VOICE_CLONE');
-    
+
     if (c.autoSaveToHub) {
       lines.push('');
       lines.push(this.generateUploadPython());
     }
-    
+
     lines.push('');
     lines.push('echo "=== Voice Cloning Complete ==="');
-    
+
     return lines.join('\n');
   }
 
   private generateInstallDeps(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     switch (c.baseModel) {
       case 'xtts':
       case 'xtts2':
@@ -204,16 +204,16 @@ export class AudioTrainer {
       default:
         lines.push('pip install -q TTS torch torchaudio huggingface_hub');
     }
-    
+
     lines.push('pip install -q librosa soundfile');
-    
+
     return lines.join('\n');
   }
 
   private generateDatasetPreparation(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('python << PREP_AUDIO');
     lines.push('import os');
     lines.push('from pathlib import Path');
@@ -267,14 +267,14 @@ export class AudioTrainer {
     lines.push('total_duration = sum(m["duration"] for m in metadata)');
     lines.push('print(f"Processed {len(metadata)} files, {total_duration:.1f}s total")');
     lines.push('PREP_AUDIO');
-    
+
     return lines.join('\n');
   }
 
   private generateTrainingPython(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('python << TRAIN_AUDIO');
     lines.push('import os');
     lines.push('import torch');
@@ -303,7 +303,7 @@ export class AudioTrainer {
     lines.push(`print("Method: ${c.method}")`);
     lines.push(`print("Sample Rate: ${c.sampleRate}")`);
     lines.push('');
-    
+
     if (c.baseModel === 'xtts' || c.baseModel === 'xtts2') {
       lines.push('from TTS.api import TTS');
       lines.push('');
@@ -315,7 +315,7 @@ export class AudioTrainer {
       lines.push('print("Loading MusicGen model...")');
       lines.push('model = MusicGen.get_pretrained("facebook/musicgen-small")');
     }
-    
+
     lines.push('');
     lines.push(`total_steps = ${c.steps}`);
     lines.push('print(f"Fine-tuning for {total_steps} steps...")');
@@ -332,7 +332,7 @@ export class AudioTrainer {
     lines.push('output_dir.mkdir(parents=True, exist_ok=True)');
     lines.push('print(f"Model saved to {output_dir}")');
     lines.push('TRAIN_AUDIO');
-    
+
     return lines.join('\n');
   }
 
@@ -340,7 +340,7 @@ export class AudioTrainer {
     const c = this.config;
     const repoName = c.hubRepoName || c.outputModelName;
     const lines: string[] = [];
-    
+
     lines.push('python << UPLOAD_HF');
     lines.push('from huggingface_hub import HfApi, create_repo');
     lines.push('');
@@ -359,7 +359,7 @@ export class AudioTrainer {
     lines.push(')');
     lines.push('print(f"Uploaded to: https://huggingface.co/{repo_name}")');
     lines.push('UPLOAD_HF');
-    
+
     return lines.join('\n');
   }
 
@@ -369,7 +369,7 @@ export class AudioTrainer {
   generateDatasetScript(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('echo "=== Audio Dataset Preparation ==="');
     lines.push('');
@@ -421,7 +421,7 @@ export class AudioTrainer {
     lines.push('PREP_AUDIO');
     lines.push('');
     lines.push('echo "=== Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -463,7 +463,7 @@ export class AudioTrainer {
   estimateVRAM(): number {
     const { config } = this;
     let vram = 8;
-    
+
     switch (config.baseModel) {
       case 'xtts':
       case 'xtts2':
@@ -481,15 +481,15 @@ export class AudioTrainer {
       default:
         vram = 8;
     }
-    
+
     if (config.method === 'voice_clone') {
       vram *= 0.8;
     }
-    
+
     if (config.method === 'full_finetune') {
       vram *= 1.5;
     }
-    
+
     return Math.ceil(vram);
   }
 }

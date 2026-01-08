@@ -677,7 +677,7 @@ export class MultiModalTrainingOrchestrator extends EventEmitter {
 
   private generateLLMScript(config: TrainingConfig): string {
     const c = config as import('./types.js').LLMTrainingConfig;
-    
+
     return `#!/bin/bash
 set -e
 
@@ -813,7 +813,7 @@ echo "=== Training Complete ==="
 
   private generateImageScript(config: TrainingConfig): string {
     const c = config as import('./types.js').ImageTrainingConfig;
-    
+
     return `#!/bin/bash
 set -e
 
@@ -888,7 +888,7 @@ echo "=== Training Complete ==="
 
   private generateVideoScript(config: TrainingConfig): string {
     const c = config as import('./types.js').VideoTrainingConfig;
-    
+
     return `#!/bin/bash
 set -e
 
@@ -957,7 +957,7 @@ echo "=== Training Complete ==="
 
   private generateAudioScript(config: TrainingConfig): string {
     const c = config as import('./types.js').AudioTrainingConfig;
-    
+
     return `#!/bin/bash
 set -e
 

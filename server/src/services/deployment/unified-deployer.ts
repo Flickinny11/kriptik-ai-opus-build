@@ -376,7 +376,7 @@ export class UnifiedDeployer {
   ): Promise<{ apiKey?: string; tokenId?: string; tokenSecret?: string } | null> {
     try {
       const decrypted = await this.credentialVault.getCredential(userId, provider);
-      
+
       if (!decrypted) {
         return null;
       }
@@ -408,7 +408,7 @@ export class UnifiedDeployer {
       maxWorkers: 3,
       scaleToZero: true,
     };
-    
+
     const result = await this.runpodDeployer.deployModel({
       userId,
       modelUrl,

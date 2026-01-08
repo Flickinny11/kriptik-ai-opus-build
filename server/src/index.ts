@@ -821,6 +821,10 @@ app.use("/api/media", mediaRouter);
 import { deploymentRouter } from './routes/deployment.js';
 app.use("/api/deployment", deploymentRouter);
 
+// External App Integration API (PROMPT 8)
+import { externalAppRouter } from './routes/external-app.js';
+app.use("/api/external-app", externalAppRouter);
+
 // Inference Endpoints API (Deploy & manage endpoints - PROMPT 5)
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);

@@ -1,6 +1,6 @@
 /**
  * Training API Routes - Model Fine-Tuning Endpoints
- * 
+ *
  * Handles training job creation, monitoring, and management.
  * Supports multi-modal training: LLM, Image, Video, and Audio.
  * Part of KripTik AI's Training & Fine-Tuning Platform.
@@ -55,8 +55,8 @@ trainingRouter.post('/jobs', authMiddleware, async (req: Request, res: Response)
 
     // Validate required fields
     if (!config.modelId || !config.trainingType || !config.outputRepoName) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: modelId, trainingType, outputRepoName' 
+      return res.status(400).json({
+        error: 'Missing required fields: modelId, trainingType, outputRepoName'
       });
     }
 
@@ -90,8 +90,8 @@ trainingRouter.post('/jobs', authMiddleware, async (req: Request, res: Response)
     });
   } catch (error) {
     console.error('[Training API] Create job error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to create training job' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to create training job'
     });
   }
 });
@@ -133,7 +133,7 @@ trainingRouter.get('/jobs/:jobId', authMiddleware, async (req: Request, res: Res
 
     const { jobId } = req.params;
     const orchestrator = await getOrchestrator(userId);
-    
+
     // Try to get from active jobs first
     const activeJob = orchestrator.getJob(jobId);
     if (activeJob) {
@@ -174,14 +174,14 @@ trainingRouter.post('/jobs/:jobId/stop', authMiddleware, async (req: Request, re
 
     const { jobId } = req.params;
     const orchestrator = await getOrchestrator(userId);
-    
+
     await orchestrator.stopJob(jobId);
 
     res.json({ message: 'Training job stopped' });
   } catch (error) {
     console.error('[Training API] Stop job error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to stop training job' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to stop training job'
     });
   }
 });
@@ -199,7 +199,7 @@ trainingRouter.delete('/jobs/:jobId', authMiddleware, async (req: Request, res: 
 
     const { jobId } = req.params;
     const orchestrator = await getOrchestrator(userId);
-    
+
     const job = orchestrator.getJob(jobId);
     if (job && job.status === 'queued') {
       await orchestrator.cancelJob(jobId);
@@ -213,8 +213,8 @@ trainingRouter.delete('/jobs/:jobId', authMiddleware, async (req: Request, res: 
     res.json({ message: 'Training job deleted' });
   } catch (error) {
     console.error('[Training API] Delete job error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to delete training job' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to delete training job'
     });
   }
 });
@@ -350,11 +350,11 @@ trainingRouter.post('/estimate', authMiddleware, async (req: Request, res: Respo
     const gpuType = config.gpuType || 'NVIDIA GeForce RTX 4090';
     const epochs = config.epochs || 3;
     const trainingType = config.trainingType || 'qlora';
-    
+
     // Estimate hours based on training type and epochs
     const baseHoursPerEpoch = trainingType === 'qlora' ? 0.8 : trainingType === 'lora' ? 1 : 1.5;
     const estimatedHours = epochs * baseHoursPerEpoch;
-    
+
     const costPerHour = gpuPricing[gpuType] || 0.69;
     const estimatedCost = Math.ceil(estimatedHours * costPerHour * 100) / 100;
 
@@ -395,7 +395,7 @@ trainingRouter.post('/recommend-gpu', authMiddleware, async (req: Request, res: 
     }
 
     const config = req.body as TrainingConfig;
-    
+
     if (!config.modality || !config.method || !config.baseModelId) {
       return res.status(400).json({
         error: 'Missing required fields: modality, method, baseModelId',
@@ -436,7 +436,7 @@ trainingRouter.post('/jobs/multimodal', authMiddleware, async (req: Request, res
 
     // Apply defaults based on modality
     let fullConfig: TrainingConfig;
-    
+
     switch (config.modality) {
       case 'llm': {
         const llmConfig = config as Partial<LLMTrainingConfig>;
@@ -599,7 +599,7 @@ trainingRouter.get('/jobs/:jobId/stream', authMiddleware, async (req: Request, r
     res.flushHeaders();
 
     const orchestrator = await getMultiModalOrchestrator(userId);
-    
+
     // Stream progress updates
     try {
       for await (const progress of orchestrator.streamProgress(jobId)) {
@@ -628,7 +628,7 @@ trainingRouter.get('/jobs/modality/:modality', authMiddleware, async (req: Reque
     }
 
     const { modality } = req.params;
-    
+
     if (!['llm', 'image', 'video', 'audio'].includes(modality)) {
       return res.status(400).json({ error: 'Invalid modality' });
     }
@@ -650,7 +650,7 @@ trainingRouter.get('/jobs/modality/:modality', authMiddleware, async (req: Reque
 trainingRouter.get('/gpu-options', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { modality, provider } = req.query;
-    
+
     const recommender = getGPURecommender();
     const gpus = recommender.getAvailableGPUs(
       (modality as any) || 'llm',
@@ -671,7 +671,7 @@ trainingRouter.get('/gpu-options', authMiddleware, async (req: Request, res: Res
 trainingRouter.get('/default-config/:modality', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { modality } = req.params;
-    
+
     let defaultConfig;
     switch (modality) {
       case 'llm':
@@ -754,8 +754,8 @@ trainingRouter.get('/jobs/:id/report', authMiddleware, async (req: Request, res:
 
     // Generate new report
     if (job.status !== 'completed') {
-      return res.status(400).json({ 
-        error: 'Training job not completed. Report can only be generated for completed jobs.' 
+      return res.status(400).json({
+        error: 'Training job not completed. Report can only be generated for completed jobs.'
       });
     }
 
@@ -780,8 +780,8 @@ trainingRouter.get('/jobs/:id/report', authMiddleware, async (req: Request, res:
     });
   } catch (error) {
     console.error('[Training API] Get report error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to get training report' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get training report'
     });
   }
 });
@@ -822,8 +822,8 @@ trainingRouter.get('/jobs/:id/report/download', authMiddleware, async (req: Requ
       htmlReport = existingReport.htmlReport;
     } else {
       if (job.status !== 'completed') {
-        return res.status(400).json({ 
-          error: 'Training job not completed. Report can only be generated for completed jobs.' 
+        return res.status(400).json({
+          error: 'Training job not completed. Report can only be generated for completed jobs.'
         });
       }
 
@@ -842,8 +842,8 @@ trainingRouter.get('/jobs/:id/report/download', authMiddleware, async (req: Requ
     res.send(htmlReport);
   } catch (error) {
     console.error('[Training API] Download report error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to download report' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to download report'
     });
   }
 });
@@ -877,7 +877,7 @@ trainingRouter.get('/jobs/:id/usage-code', authMiddleware, async (req: Request, 
 
     const config = job.config as TrainingConfig;
     const modelUrl = job.huggingFaceRepoUrl || config.hubRepoName || config.outputModelName;
-    
+
     const usageCodeGenerator = getUsageCodeGenerator();
     const code = usageCodeGenerator.generateAll(config, {
       modelUrl: modelUrl || '',
@@ -895,8 +895,8 @@ trainingRouter.get('/jobs/:id/usage-code', authMiddleware, async (req: Request, 
     res.json(code);
   } catch (error) {
     console.error('[Training API] Get usage code error:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to get usage code' 
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get usage code'
     });
   }
 });

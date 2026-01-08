@@ -101,7 +101,7 @@ export class TestBillingService {
   ): Promise<BillingResult> {
     // Calculate cost based on modality and usage
     const cost = this.calculateCost(modality, usage);
-    
+
     // Convert to credits (100 credits = $1)
     const creditsToDeduct = Math.ceil(cost * CREDITS_PER_DOLLAR);
 
@@ -138,7 +138,7 @@ export class TestBillingService {
     const perTestCost = this.calculateCost(modality, averageUsage);
     // Double because we run both pretrained and finetuned
     const actualPerTest = perTestCost * 2;
-    
+
     return {
       perTest: actualPerTest,
       total: actualPerTest * testCount,

@@ -51,7 +51,7 @@ export class ImageTrainer {
   generateTrainingScript(): string {
     const { config } = this;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push('set -e');
     lines.push('');
@@ -62,13 +62,13 @@ export class ImageTrainer {
     lines.push(`echo "Resolution: ${config.resolution}"`);
     lines.push(`echo "Steps: ${config.steps}"`);
     lines.push('');
-    
+
     // Create workspace
     lines.push('mkdir -p /workspace/dataset/images');
     lines.push('mkdir -p /workspace/output');
     lines.push('mkdir -p /workspace/logs');
     lines.push('');
-    
+
     // Callback helpers
     lines.push('send_callback() {');
     lines.push('    if [ -n "$CALLBACK_URL" ]; then');
@@ -78,15 +78,15 @@ export class ImageTrainer {
     lines.push('    fi');
     lines.push('}');
     lines.push('');
-    
+
     // Install dependencies
     lines.push('send_callback "Installing dependencies..."');
     lines.push('pip install -q accelerate safetensors transformers huggingface_hub');
-    
+
     if (config.baseModel === 'flux') {
       lines.push('pip install -q sentencepiece peft bitsandbytes');
     }
-    
+
     // Clone kohya-ss/sd-scripts for SDXL/SD training
     if (config.method === 'lora' && config.baseModel !== 'flux') {
       lines.push('');
@@ -96,11 +96,11 @@ export class ImageTrainer {
       lines.push('pip install -q -r requirements.txt');
       lines.push('pip install -q xformers');
     }
-    
+
     // HuggingFace login
     lines.push('');
     lines.push('python -c "from huggingface_hub import login; login(token=\'$HF_TOKEN\')"');
-    
+
     // Download base model
     lines.push('');
     lines.push(`send_callback "Downloading base model: ${config.baseModelId}..."`);
@@ -115,24 +115,24 @@ export class ImageTrainer {
     lines.push(')');
     lines.push('print("Download complete!")');
     lines.push('DOWNLOAD_MODEL');
-    
+
     // Prepare dataset
     lines.push('');
     lines.push('send_callback "Preparing dataset..."');
     lines.push(this.generateDatasetPreparationPython());
-    
+
     // Training
     lines.push('');
     lines.push('send_callback "Starting training..."');
     lines.push(this.generateTrainingPython());
-    
+
     // Upload to HuggingFace
     if (config.autoSaveToHub) {
       lines.push('');
       lines.push('send_callback "Uploading to HuggingFace Hub..."');
       lines.push(this.generateUploadPython());
     }
-    
+
     // Completion callback
     lines.push('');
     lines.push('if [ -n "$CALLBACK_URL" ]; then');
@@ -143,14 +143,14 @@ export class ImageTrainer {
     lines.push('fi');
     lines.push('');
     lines.push('echo "=== Training Complete ==="');
-    
+
     return lines.join('\n');
   }
 
   private generateDatasetPreparationPython(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('python << DATASET_PREP');
     lines.push('import os');
     lines.push('from pathlib import Path');
@@ -159,7 +159,7 @@ export class ImageTrainer {
     lines.push('dataset_dir = Path("/workspace/dataset/images")');
     lines.push('dataset_dir.mkdir(parents=True, exist_ok=True)');
     lines.push('');
-    
+
     if (c.datasetConfig.source === 'huggingface' && c.datasetConfig.datasetId) {
       lines.push('from datasets import load_dataset');
       lines.push(`ds = load_dataset("${c.datasetConfig.datasetId}", split="train")`);
@@ -181,19 +181,19 @@ export class ImageTrainer {
     } else {
       lines.push('print("Using pre-uploaded dataset")');
     }
-    
+
     lines.push('');
     lines.push('num_images = len(list(dataset_dir.glob("*.png"))) + len(list(dataset_dir.glob("*.jpg")))');
     lines.push('print(f"Dataset prepared with {num_images} images")');
     lines.push('DATASET_PREP');
-    
+
     return lines.join('\n');
   }
 
   private generateTrainingPython(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     if (c.method === 'lora' && c.baseModel !== 'flux') {
       // SDXL LoRA training with kohya
       lines.push('cd /workspace/sd-scripts');
@@ -233,7 +233,7 @@ export class ImageTrainer {
       lines.push('print("Training complete!")');
       lines.push('TRAIN_MODEL');
     }
-    
+
     return lines.join('\n');
   }
 
@@ -241,7 +241,7 @@ export class ImageTrainer {
     const c = this.config;
     const repoName = c.hubRepoName || c.outputModelName;
     const lines: string[] = [];
-    
+
     lines.push('python << UPLOAD_HF');
     lines.push('from huggingface_hub import HfApi, create_repo');
     lines.push('import os');
@@ -261,7 +261,7 @@ export class ImageTrainer {
     lines.push(')');
     lines.push('print(f"Uploaded to: https://huggingface.co/{repo_name}")');
     lines.push('UPLOAD_HF');
-    
+
     return lines.join('\n');
   }
 
@@ -271,7 +271,7 @@ export class ImageTrainer {
   generateDatasetScript(): string {
     const c = this.config;
     const lines: string[] = [];
-    
+
     lines.push('#!/bin/bash');
     lines.push(`echo "=== Dataset Preparation for ${c.outputModelName} ==="`);
     lines.push('');
@@ -309,7 +309,7 @@ export class ImageTrainer {
     lines.push('PREP_DATASET');
     lines.push('');
     lines.push('echo "=== Dataset Preparation Complete ==="');
-    
+
     return lines.join('\n');
   }
 
@@ -351,7 +351,7 @@ export class ImageTrainer {
   estimateVRAM(): number {
     const { config } = this;
     let vram = 8;
-    
+
     if (config.baseModel === 'flux') {
       vram = 24;
     } else if (config.baseModel === 'sd3') {
@@ -359,21 +359,21 @@ export class ImageTrainer {
     } else if (config.baseModel === 'sd15') {
       vram = 6;
     }
-    
+
     if (config.resolution > 1024) {
       vram *= 1.5;
     }
-    
+
     vram *= Math.max(1, config.batchSize * 0.5);
-    
+
     if (config.method === 'dreambooth' && config.priorPreservation) {
       vram *= 1.3;
     }
-    
+
     if (config.gradientCheckpointing) {
       vram *= 0.7;
     }
-    
+
     return Math.ceil(vram);
   }
 }
