@@ -203,14 +203,20 @@ export const deployments = sqliteTable('deployments', {
 });
 
 // Training Jobs - Fine-tuning jobs on RunPod (PROMPT 4)
+// Extended with multi-modal training support (Training & Fine-Tuning Media Plan)
 export const trainingJobs = sqliteTable('training_jobs', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id').references(() => users.id).notNull(),
     projectId: text('project_id').references(() => projects.id),
+    
+    // Multi-modal training fields
+    modality: text('modality').default('llm'), // 'llm' | 'image' | 'video' | 'audio' | 'multimodal'
+    method: text('method').default('qlora'), // 'full_finetune' | 'lora' | 'qlora' | 'dreambooth' | 'textual_inversion' | 'voice_clone' | etc.
+    
     // Training configuration
-    config: text('config', { mode: 'json' }).notNull(), // TrainingJobConfig
+    config: text('config', { mode: 'json' }).notNull(), // TrainingJobConfig or TrainingConfig
     // Status tracking
-    status: text('status').default('queued').notNull(), // queued | provisioning | downloading | training | saving | completed | failed | stopped | cancelled
+    status: text('status').default('queued').notNull(), // queued | provisioning | downloading | training | saving | uploading | completed | failed | stopped | cancelled
     // Training metrics
     metrics: text('metrics', { mode: 'json' }), // TrainingMetrics
     // Logs
@@ -219,8 +225,15 @@ export const trainingJobs = sqliteTable('training_jobs', {
     error: text('error'),
     // RunPod integration
     runpodPodId: text('runpod_pod_id'),
+    
     // Output
     outputModelUrl: text('output_model_url'),
+    huggingFaceRepoUrl: text('huggingface_repo_url'), // URL to HuggingFace Hub repo if auto-saved
+    autoSaved: integer('auto_saved', { mode: 'boolean' }).default(false), // Whether auto-saved to HuggingFace Hub
+    
+    // Training Report (comprehensive post-training report)
+    trainingReport: text('training_report', { mode: 'json' }), // TrainingReport
+    
     // Timestamps
     startedAt: text('started_at'),
     completedAt: text('completed_at'),

@@ -2,13 +2,27 @@
  * Training API Routes - Model Fine-Tuning Endpoints
  * 
  * Handles training job creation, monitoring, and management.
- * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 4).
+ * Supports multi-modal training: LLM, Image, Video, and Audio.
+ * Part of KripTik AI's Training & Fine-Tuning Platform.
  */
 
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getTrainingOrchestrator } from '../services/ml/training-orchestrator.js';
 import { type TrainingJobConfig } from '../services/ml/training-job.js';
+import {
+  getMultiModalTrainingOrchestrator,
+  getGPURecommender,
+  type TrainingConfig,
+  type LLMTrainingConfig,
+  type ImageTrainingConfig,
+  type VideoTrainingConfig,
+  type AudioTrainingConfig,
+  DEFAULT_LLM_CONFIG,
+  DEFAULT_IMAGE_CONFIG,
+  DEFAULT_VIDEO_CONFIG,
+  DEFAULT_AUDIO_CONFIG,
+} from '../services/training/index.js';
 import { db } from '../db.js';
 import { trainingJobs } from '../schema.js';
 import { eq, desc } from 'drizzle-orm';
@@ -353,6 +367,333 @@ trainingRouter.post('/estimate', authMiddleware, async (req: Request, res: Respo
   } catch (error) {
     console.error('[Training API] Estimate error:', error);
     res.status(500).json({ error: 'Failed to estimate cost' });
+  }
+});
+
+// =============================================================================
+// MULTI-MODAL TRAINING (NEW)
+// =============================================================================
+
+/**
+ * Initialize multi-modal orchestrator for user
+ */
+async function getMultiModalOrchestrator(userId: string) {
+  const orchestrator = getMultiModalTrainingOrchestrator();
+  await orchestrator.initialize(userId);
+  return orchestrator;
+}
+
+/**
+ * POST /api/training/recommend-gpu
+ * Get GPU recommendation for a training configuration
+ */
+trainingRouter.post('/recommend-gpu', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const config = req.body as TrainingConfig;
+    
+    if (!config.modality || !config.method || !config.baseModelId) {
+      return res.status(400).json({
+        error: 'Missing required fields: modality, method, baseModelId',
+      });
+    }
+
+    const recommender = getGPURecommender();
+    const recommendation = recommender.recommend(config);
+
+    res.json({ recommendation });
+  } catch (error) {
+    console.error('[Training API] GPU recommendation error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get GPU recommendation',
+    });
+  }
+});
+
+/**
+ * POST /api/training/jobs/multimodal
+ * Create a new multi-modal training job
+ */
+trainingRouter.post('/jobs/multimodal', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const config = req.body as Partial<TrainingConfig>;
+
+    // Validate required fields
+    if (!config.modality || !config.method || !config.baseModelId || !config.outputModelName) {
+      return res.status(400).json({
+        error: 'Missing required fields: modality, method, baseModelId, outputModelName',
+      });
+    }
+
+    // Apply defaults based on modality
+    let fullConfig: TrainingConfig;
+    
+    switch (config.modality) {
+      case 'llm': {
+        const llmConfig = config as Partial<LLMTrainingConfig>;
+        fullConfig = {
+          ...DEFAULT_LLM_CONFIG,
+          ...llmConfig,
+          id: llmConfig.id || crypto.randomUUID(),
+          userId,
+          modality: 'llm',
+          method: (llmConfig.method || 'qlora') as 'lora' | 'qlora' | 'full_finetune',
+          baseModelId: llmConfig.baseModelId!,
+          baseModelName: llmConfig.baseModelName || llmConfig.baseModelId!.split('/').pop() || 'model',
+          outputModelName: llmConfig.outputModelName!,
+          datasetConfig: llmConfig.datasetConfig || { source: 'huggingface' },
+          gpuConfig: llmConfig.gpuConfig || {
+            provider: 'runpod',
+            gpuType: 'NVIDIA GeForce RTX 4090',
+            gpuCount: 1,
+            estimatedHours: 2,
+            estimatedCost: 1.38,
+          },
+          budgetLimitUsd: llmConfig.budgetLimitUsd || 10,
+          autoSaveToHub: llmConfig.autoSaveToHub !== false,
+          epochs: llmConfig.epochs || 3,
+          learningRate: llmConfig.learningRate || 2e-5,
+          batchSize: llmConfig.batchSize || 4,
+          gradientAccumulationSteps: llmConfig.gradientAccumulationSteps || 4,
+          warmupSteps: llmConfig.warmupSteps || 100,
+          maxSeqLength: llmConfig.maxSeqLength || 2048,
+        } as LLMTrainingConfig;
+        break;
+      }
+      case 'image': {
+        const imageConfig = config as Partial<ImageTrainingConfig>;
+        fullConfig = {
+          ...DEFAULT_IMAGE_CONFIG,
+          ...imageConfig,
+          id: imageConfig.id || crypto.randomUUID(),
+          userId,
+          modality: 'image',
+          method: (imageConfig.method || 'lora') as 'lora' | 'dreambooth' | 'textual_inversion',
+          baseModelId: imageConfig.baseModelId!,
+          baseModelName: imageConfig.baseModelName || imageConfig.baseModelId!.split('/').pop() || 'model',
+          outputModelName: imageConfig.outputModelName!,
+          baseModel: imageConfig.baseModel || 'sdxl',
+          datasetConfig: imageConfig.datasetConfig || { source: 'upload' },
+          gpuConfig: imageConfig.gpuConfig || {
+            provider: 'runpod',
+            gpuType: 'NVIDIA GeForce RTX 4090',
+            gpuCount: 1,
+            estimatedHours: 1,
+            estimatedCost: 0.69,
+          },
+          budgetLimitUsd: imageConfig.budgetLimitUsd || 5,
+          autoSaveToHub: imageConfig.autoSaveToHub !== false,
+          steps: imageConfig.steps || 1000,
+          learningRate: imageConfig.learningRate || 1e-4,
+          batchSize: imageConfig.batchSize || 1,
+          resolution: imageConfig.resolution || 1024,
+        } as ImageTrainingConfig;
+        break;
+      }
+      case 'video': {
+        const videoConfig = config as Partial<VideoTrainingConfig>;
+        fullConfig = {
+          ...DEFAULT_VIDEO_CONFIG,
+          ...videoConfig,
+          id: videoConfig.id || crypto.randomUUID(),
+          userId,
+          modality: 'video',
+          method: (videoConfig.method || 'lora') as 'lora' | 'full_finetune',
+          baseModelId: videoConfig.baseModelId!,
+          baseModelName: videoConfig.baseModelName || videoConfig.baseModelId!.split('/').pop() || 'model',
+          outputModelName: videoConfig.outputModelName!,
+          baseModel: videoConfig.baseModel || 'wan',
+          datasetConfig: videoConfig.datasetConfig || { source: 'upload' },
+          gpuConfig: videoConfig.gpuConfig || {
+            provider: 'runpod',
+            gpuType: 'NVIDIA A100 80GB PCIe',
+            gpuCount: 1,
+            estimatedHours: 4,
+            estimatedCost: 9.96,
+          },
+          budgetLimitUsd: videoConfig.budgetLimitUsd || 20,
+          autoSaveToHub: videoConfig.autoSaveToHub !== false,
+          steps: videoConfig.steps || 500,
+          learningRate: videoConfig.learningRate || 1e-5,
+          batchSize: videoConfig.batchSize || 1,
+          frameCount: videoConfig.frameCount || 24,
+          resolution: videoConfig.resolution || { width: 720, height: 480 },
+        } as VideoTrainingConfig;
+        break;
+      }
+      case 'audio': {
+        const audioConfig = config as Partial<AudioTrainingConfig>;
+        fullConfig = {
+          ...DEFAULT_AUDIO_CONFIG,
+          ...audioConfig,
+          id: audioConfig.id || crypto.randomUUID(),
+          userId,
+          modality: 'audio',
+          method: (audioConfig.method || 'voice_clone') as 'voice_clone' | 'style_transfer' | 'full_finetune',
+          baseModelId: audioConfig.baseModelId!,
+          baseModelName: audioConfig.baseModelName || audioConfig.baseModelId!.split('/').pop() || 'model',
+          outputModelName: audioConfig.outputModelName!,
+          baseModel: audioConfig.baseModel || 'xtts2',
+          datasetConfig: audioConfig.datasetConfig || { source: 'upload' },
+          gpuConfig: audioConfig.gpuConfig || {
+            provider: 'runpod',
+            gpuType: 'NVIDIA GeForce RTX 4090',
+            gpuCount: 1,
+            estimatedHours: 1,
+            estimatedCost: 0.69,
+          },
+          budgetLimitUsd: audioConfig.budgetLimitUsd || 5,
+          autoSaveToHub: audioConfig.autoSaveToHub !== false,
+          steps: audioConfig.steps || 1000,
+          learningRate: audioConfig.learningRate || 1e-5,
+          sampleRate: audioConfig.sampleRate || 22050,
+        } as AudioTrainingConfig;
+        break;
+      }
+      default:
+        return res.status(400).json({ error: `Unsupported modality: ${config.modality}` });
+    }
+
+    const orchestrator = await getMultiModalOrchestrator(userId);
+    const { job, recommendation } = await orchestrator.createJob(fullConfig, true);
+
+    res.status(201).json({
+      message: 'Multi-modal training job created',
+      job,
+      recommendation,
+    });
+  } catch (error) {
+    console.error('[Training API] Create multimodal job error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to create training job',
+    });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:jobId/stream
+ * Stream training progress via SSE
+ */
+trainingRouter.get('/jobs/:jobId/stream', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const orchestrator = await getMultiModalOrchestrator(userId);
+    
+    // Stream progress updates
+    try {
+      for await (const progress of orchestrator.streamProgress(jobId)) {
+        res.write(`data: ${JSON.stringify(progress)}\n\n`);
+      }
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : 'Stream error' })}\n\n`);
+    }
+
+    res.end();
+  } catch (error) {
+    console.error('[Training API] Stream error:', error);
+    res.status(500).json({ error: 'Failed to stream progress' });
+  }
+});
+
+/**
+ * GET /api/training/jobs/modality/:modality
+ * Get jobs filtered by modality
+ */
+trainingRouter.get('/jobs/modality/:modality', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { modality } = req.params;
+    
+    if (!['llm', 'image', 'video', 'audio'].includes(modality)) {
+      return res.status(400).json({ error: 'Invalid modality' });
+    }
+
+    const orchestrator = await getMultiModalOrchestrator(userId);
+    const jobs = await orchestrator.getJobsByModality(modality as any);
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('[Training API] Get jobs by modality error:', error);
+    res.status(500).json({ error: 'Failed to get jobs' });
+  }
+});
+
+/**
+ * GET /api/training/gpu-options
+ * Get available GPU options
+ */
+trainingRouter.get('/gpu-options', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { modality, provider } = req.query;
+    
+    const recommender = getGPURecommender();
+    const gpus = recommender.getAvailableGPUs(
+      (modality as any) || 'llm',
+      provider as any
+    );
+
+    res.json({ gpus });
+  } catch (error) {
+    console.error('[Training API] Get GPU options error:', error);
+    res.status(500).json({ error: 'Failed to get GPU options' });
+  }
+});
+
+/**
+ * GET /api/training/default-config/:modality
+ * Get default configuration for a modality
+ */
+trainingRouter.get('/default-config/:modality', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { modality } = req.params;
+    
+    let defaultConfig;
+    switch (modality) {
+      case 'llm':
+        defaultConfig = DEFAULT_LLM_CONFIG;
+        break;
+      case 'image':
+        defaultConfig = DEFAULT_IMAGE_CONFIG;
+        break;
+      case 'video':
+        defaultConfig = DEFAULT_VIDEO_CONFIG;
+        break;
+      case 'audio':
+        defaultConfig = DEFAULT_AUDIO_CONFIG;
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid modality' });
+    }
+
+    res.json({ defaultConfig });
+  } catch (error) {
+    console.error('[Training API] Get default config error:', error);
+    res.status(500).json({ error: 'Failed to get default config' });
   }
 });
 
