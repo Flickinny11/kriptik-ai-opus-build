@@ -20,6 +20,7 @@ import {
     type IconProps,
 } from '../ui/icons';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_URL, authenticatedFetch } from '@/lib/api-config';
 
 // =============================================================================
 // TYPES
@@ -93,17 +94,15 @@ interface Strategy {
 // API CLIENT
 // =============================================================================
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 async function fetchLearningStatus(): Promise<LearningStatus> {
-    const res = await fetch(`${apiUrl}/api/learning/status`);
+    const res = await authenticatedFetch(`${API_URL}/api/learning/status`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
 }
 
 async function fetchTrend(): Promise<ImprovementTrend[]> {
-    const res = await fetch(`${apiUrl}/api/learning/trend?count=10`);
+    const res = await authenticatedFetch(`${API_URL}/api/learning/trend?count=10`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -111,9 +110,9 @@ async function fetchTrend(): Promise<ImprovementTrend[]> {
 
 async function fetchPatterns(category?: string): Promise<Pattern[]> {
     const url = category
-        ? `${apiUrl}/api/learning/patterns?category=${category}&limit=10`
-        : `${apiUrl}/api/learning/patterns?limit=10`;
-    const res = await fetch(url);
+        ? `${API_URL}/api/learning/patterns?category=${category}&limit=10`
+        : `${API_URL}/api/learning/patterns?limit=10`;
+    const res = await authenticatedFetch(url);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -121,16 +120,16 @@ async function fetchPatterns(category?: string): Promise<Pattern[]> {
 
 async function fetchStrategies(domain?: string): Promise<Strategy[]> {
     const url = domain
-        ? `${apiUrl}/api/learning/strategies?domain=${domain}`
-        : `${apiUrl}/api/learning/strategies`;
-    const res = await fetch(url);
+        ? `${API_URL}/api/learning/strategies?domain=${domain}`
+        : `${API_URL}/api/learning/strategies`;
+    const res = await authenticatedFetch(url);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
 }
 
 async function runEvolutionCycle(userId: string): Promise<void> {
-    const res = await fetch(`${apiUrl}/api/learning/cycles/run`, {
+    const res = await authenticatedFetch(`${API_URL}/api/learning/cycles/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),

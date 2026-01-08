@@ -713,6 +713,7 @@ import softInterruptRouter from './routes/soft-interrupt.js';
 import validationRouter from './routes/validation.js';
 import ghostModeRouter from './routes/ghost-mode.js';
 import learningRouter from './routes/learning.js';
+import continuousLearningRouter from './routes/continuous-learning.js';
 import developerModeRouter from './routes/developer-mode.js';
 import featureAgentRouter from './routes/feature-agent.js';
 import notificationsRouter from './routes/notifications.js';
@@ -900,6 +901,9 @@ app.use("/api/ghost-mode", promptSanitizer, requireCredits(150), ghostModeRouter
 
 // Autonomous Learning Engine - System status, patterns, strategies, insights
 app.use("/api/learning", learningRouter);
+
+// Continuous Learning Engine - Meta-integration layer for self-improvement
+app.use("/api/continuous-learning", continuousLearningRouter);
 
 // Krip-Toe-Nite - Intelligent Model Orchestration
 import kripToeNiteRouter from './routes/krip-toe-nite.js';
