@@ -29,6 +29,33 @@ export {
   getMultiModalTrainingOrchestrator,
 } from './multi-modal-orchestrator.js';
 
+// Container Images Registry
+export {
+  getContainerImage as getTrainingContainerImage,
+  getContainerVRAMOverhead,
+  getRecommendedDiskSize,
+  LLM_CONTAINERS,
+  IMAGE_CONTAINERS,
+  VIDEO_CONTAINERS,
+  AUDIO_CONTAINERS,
+} from './container-images.js';
+
+// Trainers
+export {
+  createTrainer,
+  generateTrainerConfig,
+  getTrainingScript,
+  getDatasetScript,
+  estimateVRAM,
+  ImageTrainer,
+  VideoTrainer,
+  AudioTrainer,
+  LLMTrainer,
+  SUPPORTED_METHODS,
+  RECOMMENDED_MODELS,
+  TRAINING_PRESETS,
+} from './trainers/index.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================
