@@ -76,8 +76,8 @@ function ProblemSection() {
           className="text-center mb-16"
         >
           <h2 className="text-display-sm md:text-display-md font-display font-bold text-kriptik-white mb-6">
-            Every Other AI Tool<br />
-            <span className="text-kriptik-rose">Makes You Babysit Code</span>
+            Most AI Tools Still Need<br />
+            <span className="text-kriptik-rose">Your Constant Attention</span>
           </h2>
         </motion.div>
 
@@ -101,11 +101,11 @@ function ProblemSection() {
 
               <ul className="space-y-4">
                 {[
-                  { tool: 'Cursor', problem: "You're still fixing errors manually" },
-                  { tool: 'ChatGPT', problem: 'Copy-paste hell into your IDE' },
-                  { tool: 'Bolt', problem: 'Great prototype, broken in production' },
-                  { tool: 'Replit', problem: "Where's the deployment button?" },
-                  { tool: 'Lovable', problem: 'AI slop aesthetic, no customization' },
+                  { tool: 'IDE Copilots', problem: 'Still require manual error fixing' },
+                  { tool: 'Chat Tools', problem: 'Copy-paste workflow to your IDE' },
+                  { tool: 'Prototyping AI', problem: 'Production-ready gap remains' },
+                  { tool: 'Cloud IDEs', problem: 'Deployment workflow unclear' },
+                  { tool: 'No-Code AI', problem: 'Limited design customization' },
                 ].map((item, i) => (
                   <motion.li
                     key={i}
