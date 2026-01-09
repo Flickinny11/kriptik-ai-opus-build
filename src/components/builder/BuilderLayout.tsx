@@ -12,7 +12,7 @@ import React, { useState, useCallback, useRef, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { LivePreviewPanel } from './LivePreviewPanel';
 import { ParallelAgentActivityStream, ParallelAgentActivity } from './AgentActivityStream';
-import { PanelRightClose, Columns } from 'lucide-react';
+import { PanelRightClose3D, Columns3D } from '@/components/icons';
 
 interface VisualVerificationResult {
   passed: boolean;
@@ -108,7 +108,7 @@ export function BuilderLayout({
             className="absolute right-4 top-4 z-10 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
             title="Show Preview"
           >
-            <Columns size={18} />
+            <Columns3D className="w-4.5 h-4.5" />
           </motion.button>
         )}
 
@@ -135,7 +135,7 @@ export function BuilderLayout({
             onClick={togglePreview}
             title="Hide Preview"
           >
-            <PanelRightClose size={14} />
+            <PanelRightClose3D className="w-3.5 h-3.5" />
           </motion.button>
         </div>
       )}

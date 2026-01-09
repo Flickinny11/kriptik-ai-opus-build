@@ -10,7 +10,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Monitor, Tablet, Smartphone, RefreshCw, Maximize2, Minimize2, ExternalLink } from 'lucide-react';
+import { Monitor3D, Tablet3D, Smartphone3D, RefreshCw3D, Maximize3D, Minimize3D, ExternalLink3D } from '@/components/icons';
 
 interface LivePreviewPanelProps {
   sandboxUrl: string | null;
@@ -62,9 +62,9 @@ export function LivePreviewPanel({
   };
 
   const deviceIcons = {
-    desktop: Monitor,
-    tablet: Tablet,
-    phone: Smartphone
+    desktop: Monitor3D,
+    tablet: Tablet3D,
+    phone: Smartphone3D
   };
 
   return (
@@ -116,7 +116,7 @@ export function LivePreviewPanel({
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
               title="Refresh"
             >
-              <RefreshCw size={14} />
+              <RefreshCw3D className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleOpenExternal}
@@ -124,14 +124,14 @@ export function LivePreviewPanel({
               title="Open in new tab"
               disabled={!sandboxUrl}
             >
-              <ExternalLink size={14} />
+              <ExternalLink3D className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-              {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              {isFullscreen ? <Minimize3D className="w-3.5 h-3.5" /> : <Maximize3D className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
@@ -236,7 +236,7 @@ export function LivePreviewPanel({
         ) : (
           <div className="text-center text-gray-500">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
-              <Monitor className="w-8 h-8 text-gray-600" />
+              <Monitor3D className="w-8 h-8" />
             </div>
             <p className="text-sm">Preview will appear when build starts</p>
             {isBuilding && (

@@ -6,18 +6,18 @@
  * Updates during continuous verification in Phase 2.
  */
 
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertCircle,
-  CheckCircle2,
-  Shield,
-  Code2,
-  Eye,
-  Palette,
-  FileSearch,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+  AlertCircle3D,
+  CheckCircle3D,
+  Shield3D,
+  Code3D,
+  Eye3D,
+  Palette3D,
+  FileSearch3D,
+  Zap3D,
+} from '@/components/icons';
 
 interface VerificationAgentResult {
   passed: boolean;
@@ -46,7 +46,7 @@ interface VerificationDashboardProps {
 interface AgentConfig {
   key: keyof VerificationResults;
   name: string;
-  icon: LucideIcon;
+  icon: React.FC<{ className?: string; size?: number }>;
   getValue: (result: VerificationAgentResult) => string;
   getStatus: (result: VerificationAgentResult) => 'pass' | 'fail' | 'warn';
 }
@@ -55,42 +55,42 @@ const agents: AgentConfig[] = [
   {
     key: 'errorChecker',
     name: 'Errors',
-    icon: AlertCircle,
+    icon: AlertCircle3D,
     getValue: (r) => r.errors === 0 ? '0' : `${r.errors}`,
     getStatus: (r) => r.passed ? 'pass' : 'fail',
   },
   {
     key: 'codeQuality',
     name: 'Quality',
-    icon: Code2,
+    icon: Code3D,
     getValue: (r) => r.score !== undefined ? `${r.score}%` : '-',
     getStatus: (r) => r.passed ? 'pass' : (r.score && r.score >= 60 ? 'warn' : 'fail'),
   },
   {
     key: 'visual',
     name: 'Visual',
-    icon: Eye,
+    icon: Eye3D,
     getValue: (r) => r.score !== undefined ? `${r.score}%` : '-',
     getStatus: (r) => r.passed ? 'pass' : (r.score && r.score >= 60 ? 'warn' : 'fail'),
   },
   {
     key: 'security',
     name: 'Security',
-    icon: Shield,
-    getValue: (r) => r.issues === 0 ? 'OK' : `${r.issues}`,
+    icon: Shield3D,
+    getValue: (r) => r.score !== undefined ? `${r.score}%` : '-',
     getStatus: (r) => r.passed ? 'pass' : 'fail',
   },
   {
     key: 'placeholders',
     name: 'Placeholders',
-    icon: FileSearch,
+    icon: FileSearch3D,
     getValue: (r) => r.found === 0 ? '0' : `${r.found}`,
     getStatus: (r) => r.passed ? 'pass' : 'fail',
   },
   {
     key: 'antiSlop',
     name: 'Anti-Slop',
-    icon: Palette,
+    icon: Palette3D,
     getValue: (r) => r.score !== undefined ? `${r.score}%` : '-',
     getStatus: (r) => r.passed ? 'pass' : (r.score && r.score >= 60 ? 'warn' : 'fail'),
   },
@@ -137,7 +137,7 @@ export function VerificationDashboard({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Zap size={16} className="text-blue-400" />
+          <Zap3D className="w-4 h-4" />
           <span className="text-sm font-medium text-gray-200">Verification Swarm</span>
         </div>
         <div className="flex items-center gap-2">
@@ -210,12 +210,12 @@ export function VerificationDashboard({
             <div className="flex items-center gap-1.5">
               {allPassed ? (
                 <>
-                  <CheckCircle2 size={14} className="text-green-400" />
+                  <CheckCircle3D className="w-3.5 h-3.5" />
                   <span className="text-green-400">All checks passed</span>
                 </>
               ) : (
                 <>
-                  <AlertCircle size={14} className="text-red-400" />
+                  <AlertCircle3D className="w-3.5 h-3.5" />
                   <span className="text-red-400">Issues detected</span>
                 </>
               )}
