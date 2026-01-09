@@ -17,6 +17,7 @@
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lenis from 'lenis';
+import { ComparisonCheckIcon, ComparisonXIcon } from '@/components/icons';
 
 // Lazy load heavy sections for performance
 const Hero3D = lazy(() => import('../components/landing/Hero3D'));
@@ -114,7 +115,7 @@ function ProblemSection() {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-start gap-3"
                   >
-                    <span className="text-red-400 text-lg">✕</span>
+                    <ComparisonXIcon size={18} className="flex-shrink-0" />
                     <div>
                       <span className="text-kriptik-white font-medium">{item.tool}:</span>
                       <span className="text-kriptik-silver/60 ml-2">{item.problem}</span>
@@ -157,7 +158,7 @@ function ProblemSection() {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-start gap-3"
                   >
-                    <span className="text-kriptik-lime text-lg">✓</span>
+                    <ComparisonCheckIcon size={18} className="flex-shrink-0" />
                     <div>
                       <span className="text-kriptik-white font-medium">{item.feature}:</span>
                       <span className="text-kriptik-silver/60 ml-2">{item.benefit}</span>

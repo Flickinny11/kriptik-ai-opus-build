@@ -17,3 +17,6 @@ export * from './Custom3DIcons2';
 
 // Custom 3D Icons - Part 3: System & Specialized Icons
 export * from './Custom3DIcons3';
+
+// Landing Page Specialized 3D Icons
+export * from './LandingIcons';
