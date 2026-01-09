@@ -4485,3 +4485,106 @@ export const learningReasoningSessions = sqliteTable('learning_reasoning_session
     duration: integer('duration').notNull(),
     timestamp: text('timestamp').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// AUTO-DEPLOY PRIVATE ENDPOINTS TABLES
+// =============================================================================
+
+/**
+ * User Endpoints - Private inference endpoints per user
+ */
+export const userEndpoints = sqliteTable('user_endpoints', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+
+    // Source reference
+    trainingJobId: text('training_job_id'),
+    sourceType: text('source_type').notNull().$type<'training' | 'open_source_studio' | 'imported'>(),
+
+    // Model info
+    modelName: text('model_name').notNull(),
+    modelDescription: text('model_description'),
+    modality: text('modality').notNull().$type<'llm' | 'image' | 'video' | 'audio'>(),
+    baseModelId: text('base_model_id'),
+    huggingFaceRepoUrl: text('huggingface_repo_url'),
+
+    // Endpoint info
+    provider: text('provider').notNull().$type<'runpod' | 'modal'>(),
+    providerEndpointId: text('provider_endpoint_id'),
+    endpointUrl: text('endpoint_url'),
+    endpointType: text('endpoint_type').notNull().$type<'serverless' | 'dedicated'>(),
+
+    // GPU config
+    gpuType: text('gpu_type'),
+    minWorkers: integer('min_workers').default(0),
+    maxWorkers: integer('max_workers').default(1),
+    idleTimeoutSeconds: integer('idle_timeout_seconds').default(30),
+
+    // Status
+    status: text('status').notNull().default('provisioning').$type<'provisioning' | 'active' | 'scaling' | 'idle' | 'error' | 'terminated'>(),
+    lastActiveAt: text('last_active_at'),
+    errorMessage: text('error_message'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * Endpoint API Keys - Per-user, per-endpoint API keys
+ */
+export const endpointApiKeys = sqliteTable('endpoint_api_keys', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    endpointId: text('endpoint_id').notNull(),
+    userId: text('user_id').notNull(),
+
+    // Key info
+    keyName: text('key_name').notNull().default('default'),
+    keyPrefix: text('key_prefix').notNull(), // First 8 chars for display: "kptk_abc..."
+    keyHash: text('key_hash').notNull(), // bcrypt hash of full key
+
+    // Permissions
+    permissions: text('permissions', { mode: 'json' }).$type<string[]>().default(['inference']),
+
+    // Rate limiting
+    rateLimitPerMinute: integer('rate_limit_per_minute').default(60),
+    rateLimitPerDay: integer('rate_limit_per_day').default(10000),
+
+    // Status
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    lastUsedAt: text('last_used_at'),
+    expiresAt: text('expires_at'),
+
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    revokedAt: text('revoked_at'),
+});
+
+/**
+ * Endpoint Usage - Request-level tracking for billing
+ */
+export const endpointUsage = sqliteTable('endpoint_usage', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    endpointId: text('endpoint_id').notNull(),
+    apiKeyId: text('api_key_id'),
+    userId: text('user_id').notNull(),
+
+    // Request info
+    requestId: text('request_id'),
+    method: text('method'),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    latencyMs: integer('latency_ms'),
+
+    // Cost tracking
+    computeSeconds: real('compute_seconds'),
+    costUsd: real('cost_usd'),
+    creditsCharged: integer('credits_charged'),
+
+    // Status
+    success: integer('success', { mode: 'boolean' }),
+    errorCode: text('error_code'),
+
+    // Timestamp
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+});

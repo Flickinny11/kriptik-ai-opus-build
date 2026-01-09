@@ -8,6 +8,7 @@
 import { Router, type Request, type Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { HuggingFaceService, type ModelTask } from '../services/ml/huggingface.js';
+import { getOpenSourceStudioDeployer } from '../services/open-source-studio/index.js';
 
 const router = Router();
 
@@ -297,6 +298,101 @@ router.get('/datasets/:author/:name', authMiddleware, async (req: Request, res: 
     console.error('[Open Source Studio] Dataset details error:', error);
     res.status(500).json({
       error: 'Failed to get dataset details',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// =============================================================================
+// DEPLOY TO ENDPOINT (PROMPT 9)
+// =============================================================================
+
+/**
+ * POST /api/open-source-studio/deploy
+ * Deploy a HuggingFace model to a private endpoint
+ */
+router.post('/deploy', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const { modelId, modelName, modelDescription, customConfig } = req.body;
+
+    if (!modelId) {
+      res.status(400).json({ error: 'modelId is required' });
+      return;
+    }
+
+    const deployer = getOpenSourceStudioDeployer();
+    const result = await deployer.deployModel({
+      userId,
+      modelId,
+      modelName,
+      modelDescription,
+      customConfig,
+    });
+
+    res.json({
+      success: true,
+      endpoint: result,
+    });
+  } catch (error) {
+    console.error('[Open Source Studio] Deploy error:', error);
+    res.status(500).json({
+      error: 'Failed to deploy model',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/open-source-studio/deploy/preview/:author/:name
+ * Get deployment preview (cost estimate, GPU recommendation)
+ */
+router.get('/deploy/preview/:author/:name', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { author, name } = req.params;
+    const modelId = `${author}/${name}`;
+
+    const deployer = getOpenSourceStudioDeployer();
+    const preview = await deployer.getDeploymentPreview(modelId);
+
+    res.json({
+      success: true,
+      preview,
+    });
+  } catch (error) {
+    console.error('[Open Source Studio] Preview error:', error);
+    res.status(500).json({
+      error: 'Failed to get deployment preview',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/open-source-studio/deploy/check/:author/:name
+ * Check if a model is deployable
+ */
+router.get('/deploy/check/:author/:name', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { author, name } = req.params;
+    const modelId = `${author}/${name}`;
+
+    const deployer = getOpenSourceStudioDeployer();
+    const check = await deployer.checkDeployability(modelId);
+
+    res.json({
+      success: true,
+      ...check,
+    });
+  } catch (error) {
+    console.error('[Open Source Studio] Deployability check error:', error);
+    res.status(500).json({
+      error: 'Failed to check deployability',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

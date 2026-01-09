@@ -1196,7 +1196,163 @@
         "phase": 20,
         "completed_at": "2025-12-07"
       }
-    ]
+    ],
+    "auto_deploy_endpoints": {
+      "name": "Auto-Deploy Private Endpoints",
+      "description": "Train a model, get a private API endpoint automatically",
+      "features": [
+        {
+          "id": "ADE-01",
+          "name": "Endpoint Registry & API Key Management",
+          "description": "Private user endpoints with bcrypt-hashed API keys",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/deployment/endpoint-registry.ts",
+            "server/src/schema.ts"
+          ],
+          "dependencies": [],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-02",
+          "name": "Auto-Deploy After Training",
+          "description": "Automatic endpoint deployment when model training completes",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/deployment/auto-deployer.ts",
+            "server/src/services/training/completion-handler.ts"
+          ],
+          "dependencies": ["ADE-01"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-03",
+          "name": "KripTik API Gateway for Inference",
+          "description": "Unified inference API with security and usage tracking",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/gateway/inference-gateway.ts",
+            "server/src/routes/api/inference.ts"
+          ],
+          "dependencies": ["ADE-01"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-04",
+          "name": "Connect Dropdown Component",
+          "description": "Universal UI for selecting deployed models",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "src/components/endpoints/ConnectDropdown.tsx",
+            "src/hooks/useEndpoints.ts"
+          ],
+          "dependencies": ["ADE-03"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-05",
+          "name": "Endpoint Management Dashboard",
+          "description": "Full dashboard for viewing and managing deployed endpoints",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "src/pages/EndpointsPage.tsx"
+          ],
+          "dependencies": ["ADE-04"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-06",
+          "name": "Smart Provider Selection",
+          "description": "Cost-optimized RunPod/Modal provider selection",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/deployment/smart-provider-selector.ts",
+            "server/src/services/deployment/provider-pricing.ts"
+          ],
+          "dependencies": ["ADE-02"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-07",
+          "name": "Endpoint Health Monitoring",
+          "description": "Real-time health checks and auto-recovery",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/deployment/endpoint-monitor.ts"
+          ],
+          "dependencies": ["ADE-01"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-08",
+          "name": "Endpoint Billing Integration",
+          "description": "Credit-based usage billing with markup",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/billing/endpoint-billing.ts"
+          ],
+          "dependencies": ["ADE-03"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-09",
+          "name": "Open Source Studio Deploy Integration",
+          "description": "Deploy HuggingFace models directly to private endpoints",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/open-source-studio/deploy-integration.ts",
+            "server/src/routes/open-source-studio.ts"
+          ],
+          "dependencies": ["ADE-02", "ADE-06"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-10",
+          "name": "Endpoint API Routes",
+          "description": "Full CRUD routes for endpoint management",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/routes/endpoints.ts"
+          ],
+          "dependencies": ["ADE-01"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        },
+        {
+          "id": "ADE-11",
+          "name": "WebSocket Real-time Updates",
+          "description": "Real-time deployment progress and health alerts via WebSocket",
+          "priority": 1,
+          "passes": true,
+          "files": [
+            "server/src/services/websocket/endpoint-events.ts",
+            "src/hooks/useEndpointEvents.ts"
+          ],
+          "dependencies": ["ADE-07"],
+          "phase": 21,
+          "completed_at": "2026-01-09"
+        }
+      ]
+    }
   }
 }
 

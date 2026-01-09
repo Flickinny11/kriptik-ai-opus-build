@@ -16,6 +16,7 @@ import { trainingJobs, users } from '../../schema.js';
 import { HuggingFaceUploadService, getHuggingFaceUploadService } from './huggingface-upload.js';
 import { ModelPreservationService, getModelPreservationService } from './model-preservation.js';
 import { CredentialVault } from '../security/credential-vault.js';
+import { AutoDeployer, getAutoDeployer, type AutoDeployResult } from '../deployment/auto-deployer.js';
 import type { TrainingConfig, TrainingReport, MultiModalTrainingJob } from './types.js';
 
 // =============================================================================
@@ -28,6 +29,7 @@ export interface CompletionConfig {
   notifyOnCompletion: boolean;
   generateReport: boolean;
   cleanupAfterUpload: boolean;
+  autoDeployToEndpoint: boolean; // Auto-deploy to private endpoint
 }
 
 export interface CompletionResult {
@@ -39,6 +41,11 @@ export interface CompletionResult {
     version: string;
   };
   reportGenerated: boolean;
+  // Auto-deploy results
+  endpointId?: string;
+  endpointUrl?: string;
+  apiKey?: string;
+  provider?: string;
   error?: string;
 }
 
@@ -59,6 +66,7 @@ const DEFAULT_COMPLETION_CONFIG: CompletionConfig = {
   notifyOnCompletion: true,
   generateReport: true,
   cleanupAfterUpload: false,
+  autoDeployToEndpoint: true, // Enable auto-deploy by default
 };
 
 // =============================================================================
@@ -106,6 +114,24 @@ export class TrainingCompletionHandler extends EventEmitter {
           this.emitEvent('upload_complete', job.id, { url: uploadResult.url });
         } else {
           console.warn(`[CompletionHandler] HuggingFace upload failed: ${uploadResult.error}`);
+        }
+      }
+
+      // 2.5. Auto-deploy to private endpoint if enabled
+      if (completionConfig.autoDeployToEndpoint && result.huggingFaceUrl) {
+        const deployResult = await this.autoDeployToEndpoint(job, result.huggingFaceUrl);
+        if (deployResult.success) {
+          result.endpointId = deployResult.endpointId;
+          result.endpointUrl = deployResult.endpointUrl;
+          result.apiKey = deployResult.apiKey;
+          result.provider = deployResult.provider;
+          this.emitEvent('upload_complete', job.id, {
+            type: 'endpoint_deployed',
+            endpointId: deployResult.endpointId,
+            endpointUrl: deployResult.endpointUrl,
+          });
+        } else {
+          console.warn(`[CompletionHandler] Auto-deploy failed: ${deployResult.error}`);
         }
       }
 
@@ -391,6 +417,49 @@ export class TrainingCompletionHandler extends EventEmitter {
   private async cleanupTemporaryFiles(jobId: string): Promise<void> {
     // In production, this would clean up temporary training files
     console.log(`[CompletionHandler] Cleaning up temporary files for ${jobId}`);
+  }
+
+  /**
+   * Auto-deploy trained model to private endpoint
+   */
+  private async autoDeployToEndpoint(
+    job: MultiModalTrainingJob,
+    huggingFaceUrl: string
+  ): Promise<AutoDeployResult> {
+    try {
+      console.log(`[CompletionHandler] Auto-deploying model to private endpoint...`);
+
+      const autoDeployer = getAutoDeployer();
+
+      // Get base model ID from config
+      const config = job.config;
+      const baseModelId = config.baseModelId || 'custom-model';
+
+      const result = await autoDeployer.autoDeploy({
+        trainingJobId: job.id,
+        userId: job.userId,
+        modelUrl: huggingFaceUrl,
+        modality: job.config.modality || 'llm',
+        baseModelId,
+        modelName: job.config.outputModelName || `model-${job.id.substring(0, 8)}`,
+      });
+
+      if (result.success) {
+        console.log(`[CompletionHandler] Auto-deploy successful:`, {
+          endpointId: result.endpointId,
+          endpointUrl: result.endpointUrl,
+          provider: result.provider,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`[CompletionHandler] Auto-deploy error:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Auto-deploy failed',
+      };
+    }
   }
 
   private getFramework(modality: string): string {

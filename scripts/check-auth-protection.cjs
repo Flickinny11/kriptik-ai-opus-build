@@ -68,11 +68,26 @@ function checkMissingCredentials(filePath, content) {
   // Find fetch calls - look for fetch( followed by options object
   const lines = content.split('\n');
   
+  // Track if we're inside a template string (code sample)
+  let inTemplateLiteral = false;
+  let templateDepth = 0;
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Check if line contains fetch call
-    if (line.includes('fetch(') && !line.includes('authenticatedFetch')) {
+    // Track template literal state (for code samples like generateCodeSamples)
+    const backtickMatches = (line.match(/`/g) || []).length;
+    if (backtickMatches % 2 === 1) {
+      inTemplateLiteral = !inTemplateLiteral;
+    }
+    
+    // Skip if we're inside a template literal (likely a code sample for documentation)
+    if (inTemplateLiteral) continue;
+    
+    // Check if line contains actual fetch call (not refetch, prefetch, etc.)
+    // Use word boundary to avoid false positives like refetch(), prefetch()
+    const hasFetchCall = /\bfetch\s*\(/.test(line) && !line.includes('authenticatedFetch');
+    if (hasFetchCall) {
       // Check if this fetch call has credentials in the next few lines
       const nextLines = lines.slice(i, Math.min(i + 10, lines.length)).join('\n');
       
@@ -80,6 +95,9 @@ function checkMissingCredentials(filePath, content) {
       if (!nextLines.includes('credentials') && !nextLines.includes('authenticatedFetch')) {
         // Check if it's actually a fetch call (not a comment or string)
         if (!line.trim().startsWith('//') && !line.trim().startsWith('*')) {
+          // Skip if it's a code sample function (like generateCodeSamples)
+          if (filePath.includes('CodeSamples') || line.includes('generateCodeSamples')) continue;
+          
           errors.push({
             file: filePath,
             line: i + 1,
@@ -135,10 +153,19 @@ function checkFile(filePath) {
     // Only check TypeScript/JavaScript files
     if (!filePath.match(/\.(ts|tsx|js|jsx)$/)) return;
     
-    checkHardcodedUrls(filePath, content);
-    checkMissingCredentials(filePath, content);
+    // Check protected files and sections for all files
     checkProtectedFiles(filePath);
     checkProtectedSections(filePath, content);
+    
+    // Skip server-side files for fetch credential checks - they use API key auth, not cookies
+    // Server-to-server calls (e.g., to RunPod API, provider endpoints) don't need credentials: 'include'
+    if (filePath.startsWith('server/')) {
+      checkHardcodedUrls(filePath, content); // Still check for hardcoded URLs
+      return;
+    }
+    
+    checkHardcodedUrls(filePath, content);
+    checkMissingCredentials(filePath, content);
   } catch (error) {
     // File might be deleted, skip it
     if (error.code !== 'ENOENT') {

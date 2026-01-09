@@ -29,6 +29,9 @@ const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OpenSourceStudioPage = lazy(() => import('./pages/OpenSourceStudioPage'));
 const AILabPage = lazy(() => import('./pages/AILabPage'));
 
+// Endpoints Dashboard (Auto-Deploy Private Endpoints - PROMPT 5)
+const EndpointsPage = lazy(() => import('./pages/EndpointsPage'));
+
 // Loading fallback
 const PageLoader = () => (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -163,6 +166,22 @@ function App() {
                         <PageErrorBoundary>
                             <Suspense fallback={<PageLoader />}>
                                 <OpenSourceStudioPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+
+                    {/* Endpoints Management (Auto-Deploy Private Endpoints - PROMPT 5) */}
+                    <Route path="/endpoints" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <EndpointsPage />
+                            </Suspense>
+                        </PageErrorBoundary>
+                    } />
+                    <Route path="/ai-lab/endpoints" element={
+                        <PageErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                <EndpointsPage />
                             </Suspense>
                         </PageErrorBoundary>
                     } />

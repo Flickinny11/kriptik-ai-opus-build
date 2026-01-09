@@ -76,3 +76,6 @@ export { default as provisioningRouter } from './provisioning.js';
 
 // Visual Editor (Point-and-Prompt, Style Generation)
 export { default as visualEditorRouter } from './visual-editor.js';
+
+// Inference Gateway (Private Endpoints - Auto-Deploy)
+export { default as inferenceRouter } from './api/inference.js';

@@ -830,6 +830,11 @@ app.use("/api/external-app", externalAppRouter);
 import endpointsRouter from './routes/endpoints.js';
 app.use("/api/endpoints", endpointsRouter);
 
+// Inference Gateway API (Private Endpoints - Auto-Deploy PROMPT 3)
+// This is the unified gateway for all inference requests to user's private endpoints
+import inferenceRouter from './routes/api/inference.js';
+app.use("/api/v1/inference", inferenceRouter);
+
 // GPU Cost Tracking API (PROMPT 8)
 import gpuCostsRouter from './routes/gpu-costs.js';
 app.use("/api/gpu-costs", gpuCostsRouter);

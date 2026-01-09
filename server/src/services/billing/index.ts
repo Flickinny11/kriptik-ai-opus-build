@@ -21,3 +21,16 @@ export {
 export * from './credit-pool.js';
 export * from './open-source-studio-billing.js';
 
+// Endpoint Billing - Private endpoint usage billing
+export {
+  EndpointBilling,
+  getEndpointBilling,
+  type EndpointBillingConfig,
+  type UsageCost,
+  type CreditCheck,
+  type ChargeResult,
+  type UsageSummary as EndpointUsageSummary,
+  type MonthlyEstimate,
+  type ModelModality as EndpointModality,
+  type DeploymentProvider as EndpointDeploymentProvider,
+} from './endpoint-billing.js';

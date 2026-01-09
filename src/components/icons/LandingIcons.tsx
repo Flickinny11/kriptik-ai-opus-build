@@ -1,6 +1,6 @@
 /**
  * Landing Page Specialized 3D Icons
- * 
+ *
  * Premium icons specifically designed for marketing materials.
  * Features enhanced depth, gradients, and animations.
  */
