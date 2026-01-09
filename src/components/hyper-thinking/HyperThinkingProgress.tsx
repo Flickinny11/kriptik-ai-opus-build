@@ -12,7 +12,14 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Sparkles, Clock, Zap, CheckCircle2, Loader2 } from 'lucide-react';
+import {
+  Brain3D,
+  Sparkles3D,
+  Clock3D,
+  Zap3D,
+  CheckCircle3D,
+  Loader3D,
+} from '@/components/icons';
 
 // ============================================================================
 // Types
@@ -88,7 +95,7 @@ function ThinkingBrain({ isActive }: { isActive: boolean }) {
         }}
         className="relative z-10"
       >
-        <Brain className="w-8 h-8 text-lime-400" />
+        <Brain3D className="w-8 h-8" />
       </motion.div>
       {isActive && (
         <>
@@ -115,7 +122,7 @@ function ThinkingBrain({ isActive }: { isActive: boolean }) {
               ease: 'linear',
             }}
           >
-            <Sparkles className="w-3 h-3 text-yellow-400" />
+            <Sparkles3D className="w-3 h-3" />
           </motion.div>
         </>
       )}
@@ -134,9 +141,9 @@ function StepIndicator({ step, index }: { step: ThinkingStep; index: number }) {
   const StatusIcon = () => {
     switch (step.status) {
       case 'active':
-        return <Loader2 className="w-3 h-3 animate-spin text-lime-400" />;
+        return <Loader3D className="w-3 h-3" />;
       case 'completed':
-        return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
+        return <CheckCircle3D className="w-3 h-3" />;
       case 'failed':
         return <span className="text-red-400 text-xs">✕</span>;
       default:
@@ -266,11 +273,11 @@ export function HyperThinkingProgress({
           {/* Stats */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-xs text-white/60">
-              <Clock className="w-3.5 h-3.5" />
+              <Clock3D className="w-3.5 h-3.5" />
               <span>{formatTime(elapsedTime)}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-white/60">
-              <Zap className="w-3.5 h-3.5" />
+              <Zap3D className="w-3.5 h-3.5" />
               <span>{formatTokens(totalTokensUsed)} tokens</span>
             </div>
           </div>

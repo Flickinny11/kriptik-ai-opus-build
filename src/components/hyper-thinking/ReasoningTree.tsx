@@ -13,14 +13,14 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronRight,
-  ChevronDown,
-  Sparkles,
-  Ban,
-  Star,
-  GitBranch,
-  Target,
-} from 'lucide-react';
+  ChevronRightIcon3D,
+  ChevronDownIcon3D,
+  Sparkles3D,
+  Ban3D,
+  Star3D,
+  GitBranch3D,
+  Target3D,
+} from '@/components/icons';
 
 // ============================================================================
 // Types
@@ -67,7 +67,7 @@ function ScoreBadge({ score, isBestPath }: { score: number; isBestPath?: boolean
       border ${getScoreColor(score)}
       ${isBestPath ? 'ring-1 ring-lime-400/50' : ''}
     `}>
-      {isBestPath && <Star className="w-2.5 h-2.5" />}
+      {isBestPath && <Star3D className="w-2.5 h-2.5" />}
       {Math.round(score * 100)}%
     </span>
   );
@@ -160,9 +160,9 @@ function TreeNode({
             `}
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDownIcon3D className="w-4 h-4" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRightIcon3D className="w-4 h-4" />
             )}
           </button>
         )}
@@ -174,11 +174,11 @@ function TreeNode({
             ${isPruned ? 'text-red-400' : isBestPath ? 'text-lime-400' : 'text-white/30'}
           `}>
             {isPruned ? (
-              <Ban className="w-3.5 h-3.5" />
+              <Ban3D className="w-3.5 h-3.5" />
             ) : isBestPath ? (
-              <Target className="w-3.5 h-3.5" />
+              <Target3D className="w-3.5 h-3.5" />
             ) : (
-              <GitBranch className="w-3 h-3" />
+              <GitBranch3D className="w-3 h-3" />
             )}
           </div>
         )}
@@ -215,7 +215,7 @@ function TreeNode({
             animate={{ scale: 1 }}
             className="absolute -right-1 -top-1"
           >
-            <Sparkles className="w-3 h-3 text-lime-400" />
+            <Sparkles3D className="w-3 h-3" />
           </motion.div>
         )}
       </motion.div>
@@ -294,11 +294,11 @@ export function ReasoningTree({
           </div>
           <div className="flex items-center gap-3 text-xs text-white/50">
             <span className="flex items-center gap-1">
-              <GitBranch className="w-3.5 h-3.5" />
+              <GitBranch3D className="w-3.5 h-3.5" />
               {exploredNodes} explored
             </span>
             <span className="flex items-center gap-1 text-red-400/60">
-              <Ban className="w-3.5 h-3.5" />
+              <Ban3D className="w-3.5 h-3.5" />
               {prunedNodes} pruned
             </span>
           </div>

@@ -12,21 +12,20 @@
 
 import { motion } from 'framer-motion';
 import {
-  User,
-  Users,
-  Lightbulb,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  Swords,
-  Handshake,
-  Crown,
-  Microscope,
-  Palette,
-  Code2,
-  Merge,
-  MessageSquare,
-} from 'lucide-react';
+  Users3D,
+  Lightbulb3D,
+  AlertTriangle3D,
+  CheckCircle3D,
+  Loader3D,
+  Swords3D,
+  Handshake3D,
+  Crown3D,
+  Microscope3D,
+  Palette3D,
+  Code3D,
+  Merge3D,
+  MessageSquare3D,
+} from '@/components/icons';
 
 // ============================================================================
 // Types
@@ -69,49 +68,49 @@ export interface AgentSwarmProps {
 
 const ROLE_CONFIG: Record<AgentRole, {
   label: string;
-  icon: typeof User;
+  icon: React.FC<{ className?: string }>;
   color: string;
   bgColor: string;
   description: string;
 }> = {
   lead: {
     label: 'Lead',
-    icon: Crown,
+    icon: Crown3D,
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/20',
     description: 'Orchestrates the reasoning process',
   },
   analyst: {
     label: 'Analyst',
-    icon: Microscope,
+    icon: Microscope3D,
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/20',
     description: 'Deep analysis and data examination',
   },
   critic: {
     label: 'Critic',
-    icon: AlertTriangle,
+    icon: AlertTriangle3D,
     color: 'text-red-400',
     bgColor: 'bg-red-500/20',
     description: 'Finds flaws and edge cases',
   },
   creative: {
     label: 'Creative',
-    icon: Palette,
+    icon: Palette3D,
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20',
     description: 'Novel approaches and ideas',
   },
   implementer: {
     label: 'Implementer',
-    icon: Code2,
+    icon: Code3D,
     color: 'text-green-400',
     bgColor: 'bg-green-500/20',
     description: 'Practical implementation focus',
   },
   synthesizer: {
     label: 'Synthesizer',
-    icon: Merge,
+    icon: Merge3D,
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/20',
     description: 'Combines insights into final answer',
@@ -119,12 +118,12 @@ const ROLE_CONFIG: Record<AgentRole, {
 };
 
 const PHASE_CONFIG = {
-  initializing: { label: 'Initializing Agents', icon: Users },
-  reasoning: { label: 'Parallel Reasoning', icon: Lightbulb },
-  debating: { label: 'Agent Debate', icon: MessageSquare },
-  resolving: { label: 'Resolving Conflicts', icon: Handshake },
-  synthesizing: { label: 'Synthesizing Answer', icon: Merge },
-  complete: { label: 'Complete', icon: CheckCircle2 },
+  initializing: { label: 'Initializing Agents', icon: Users3D },
+  reasoning: { label: 'Parallel Reasoning', icon: Lightbulb3D },
+  debating: { label: 'Agent Debate', icon: MessageSquare3D },
+  resolving: { label: 'Resolving Conflicts', icon: Handshake3D },
+  synthesizing: { label: 'Synthesizing Answer', icon: Merge3D },
+  complete: { label: 'Complete', icon: CheckCircle3D },
 };
 
 // ============================================================================
@@ -143,15 +142,15 @@ function AgentCard({ agent }: { agent: SwarmAgent }) {
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 className="w-3 h-3 text-lime-400" />
+            <Loader3D className="w-3 h-3" />
           </motion.div>
         );
       case 'contributing':
-        return <Lightbulb className="w-3 h-3 text-yellow-400" />;
+        return <Lightbulb3D className="w-3 h-3" />;
       case 'debating':
-        return <Swords className="w-3 h-3 text-orange-400" />;
+        return <Swords3D className="w-3 h-3" />;
       case 'complete':
-        return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
+        return <CheckCircle3D className="w-3 h-3" />;
       default:
         return <div className="w-3 h-3 rounded-full bg-white/20" />;
     }
@@ -252,9 +251,9 @@ function ConflictCard({ conflict }: { conflict: AgentConflict }) {
     >
       <div className="flex items-center gap-2 mb-1.5">
         {conflict.resolved ? (
-          <Handshake className="w-4 h-4 text-emerald-400" />
+          <Handshake3D className="w-4 h-4" />
         ) : (
-          <Swords className="w-4 h-4 text-orange-400" />
+          <Swords3D className="w-4 h-4" />
         )}
         <span className={`text-xs font-medium ${conflict.resolved ? 'text-emerald-400' : 'text-orange-400'}`}>
           {conflict.resolved ? 'Resolved' : 'Active Conflict'}
@@ -283,7 +282,7 @@ function InsightsList({ insights }: { insights: string[] }) {
           transition={{ delay: index * 0.05 }}
           className="flex items-start gap-2 p-2 rounded-lg bg-white/5"
         >
-          <Lightbulb className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <Lightbulb3D className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <p className="text-[11px] text-white/70">{insight}</p>
         </motion.div>
       ))}
@@ -378,7 +377,7 @@ export function AgentSwarm({
         {/* Agent grid */}
         <div>
           <h4 className="text-xs font-medium text-white/60 mb-2 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" />
+            <Users3D className="w-3.5 h-3.5" />
             Active Agents
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -392,7 +391,7 @@ export function AgentSwarm({
         {conflicts.length > 0 && (
           <div>
             <h4 className="text-xs font-medium text-white/60 mb-2 flex items-center gap-1.5">
-              <Swords className="w-3.5 h-3.5" />
+              <Swords3D className="w-3.5 h-3.5" />
               Conflicts ({unresolvedConflicts.length} unresolved)
             </h4>
             <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -407,7 +406,7 @@ export function AgentSwarm({
         {insights.length > 0 && (
           <div>
             <h4 className="text-xs font-medium text-white/60 mb-2 flex items-center gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5" />
+              <Lightbulb3D className="w-3.5 h-3.5" />
               Shared Insights ({insights.length})
             </h4>
             <InsightsList insights={insights} />
@@ -421,7 +420,7 @@ export function AgentSwarm({
           <span>Phase: {phase}</span>
           {phase === 'complete' && (
             <span className="flex items-center gap-1 text-emerald-400">
-              <CheckCircle2 className="w-3 h-3" />
+              <CheckCircle3D className="w-3 h-3" />
               Synthesis complete
             </span>
           )}

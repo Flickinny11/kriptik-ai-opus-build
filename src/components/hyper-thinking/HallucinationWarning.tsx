@@ -11,21 +11,21 @@
  * Uses liquid glass styling consistent with KripTik dashboard.
  */
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle,
-  AlertOctagon,
-  Activity,
-  ArrowLeftRight,
-  Ban,
-  RotateCcw,
-  CheckCircle2,
-  X,
-  TrendingDown,
-  Pause,
-  Play,
-} from 'lucide-react';
+  AlertTriangle3D,
+  AlertOctagon3D,
+  Activity3D,
+  ArrowLeftRight3D,
+  Ban3D,
+  RotateCcw3D,
+  CheckCircle3D,
+  X3D,
+  TrendingDown3D,
+  Pause3D,
+  Play3D,
+} from '@/components/icons';
 
 // ============================================================================
 // Types
@@ -66,31 +66,31 @@ export interface HallucinationWarningProps {
 
 const INDICATOR_CONFIG: Record<HallucinationIndicator, {
   label: string;
-  icon: typeof AlertTriangle;
+  icon: React.FC<{ className?: string }>;
   color: string;
   description: string;
 }> = {
   semanticDrift: {
     label: 'Semantic Drift',
-    icon: ArrowLeftRight,
+    icon: ArrowLeftRight3D,
     color: 'text-yellow-400',
     description: 'Reasoning has drifted from the original problem',
   },
   factualInconsistency: {
     label: 'Factual Issue',
-    icon: Ban,
+    icon: Ban3D,
     color: 'text-orange-400',
     description: 'Statement may contradict known facts',
   },
   logicalContradiction: {
     label: 'Logic Error',
-    icon: AlertOctagon,
+    icon: AlertOctagon3D,
     color: 'text-red-400',
     description: 'Logical inconsistency detected',
   },
   confidenceDrop: {
     label: 'Confidence Drop',
-    icon: TrendingDown,
+    icon: TrendingDown3D,
     color: 'text-purple-400',
     description: 'Confidence in reasoning has decreased',
   },
@@ -156,7 +156,7 @@ function ActionButton({
   variant = 'default',
 }: {
   onClick: () => void;
-  icon: typeof AlertTriangle;
+  icon: React.FC<{ className?: string }>;
   label: string;
   variant?: 'default' | 'danger' | 'success';
 }) {
@@ -215,7 +215,7 @@ function SignalCard({
             p-1.5 rounded-lg
             ${isCritical ? 'bg-red-500/20' : 'bg-yellow-500/20'}
           `}>
-            <AlertTriangle className={`w-4 h-4 ${isCritical ? 'text-red-400' : 'text-yellow-400'}`} />
+            <AlertTriangle3D className="w-4 h-4" />
           </div>
           <div>
             <span className={`text-sm font-medium ${isCritical ? 'text-red-400' : 'text-yellow-400'}`}>
@@ -231,7 +231,7 @@ function SignalCard({
             onClick={onDismiss}
             className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X3D className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -284,7 +284,7 @@ function SignalCard({
         {onBacktrack && (
           <ActionButton
             onClick={onBacktrack}
-            icon={RotateCcw}
+            icon={RotateCcw3D}
             label="Backtrack"
             variant="danger"
           />
@@ -292,14 +292,14 @@ function SignalCard({
         {onVerify && (
           <ActionButton
             onClick={onVerify}
-            icon={Activity}
+            icon={Activity3D}
             label="Verify"
           />
         )}
         {onRegenerate && (
           <ActionButton
             onClick={onRegenerate}
-            icon={RotateCcw}
+            icon={RotateCcw3D}
             label="Regenerate"
           />
         )}
@@ -351,7 +351,7 @@ export function HallucinationWarning({
         className={`p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 ${className}`}
       >
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <CheckCircle3D className="w-5 h-5" />
           <span className="text-sm text-emerald-400">Reasoning quality is healthy</span>
         </div>
       </div>
@@ -386,7 +386,7 @@ export function HallucinationWarning({
               p-2 rounded-lg
               ${criticalSignals.length > 0 ? 'bg-red-500/20' : 'bg-yellow-500/20'}
             `}>
-              <Activity className={`w-5 h-5 ${criticalSignals.length > 0 ? 'text-red-400' : 'text-yellow-400'}`} />
+              <Activity3D className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-medium text-white">
@@ -410,7 +410,7 @@ export function HallucinationWarning({
                 onClick={onResume}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors text-xs"
               >
-                <Play className="w-3.5 h-3.5" />
+                <Play3D className="w-3.5 h-3.5" />
                 Resume
               </button>
             ) : (
@@ -418,7 +418,7 @@ export function HallucinationWarning({
                 onClick={onPause}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition-colors text-xs"
               >
-                <Pause className="w-3.5 h-3.5" />
+                <Pause3D className="w-3.5 h-3.5" />
                 Pause
               </button>
             )}
@@ -446,7 +446,7 @@ export function HallucinationWarning({
       {isPaused && (
         <div className="px-5 py-3 border-t border-white/5 bg-yellow-500/10">
           <div className="flex items-center gap-2 text-xs text-yellow-400">
-            <Pause className="w-3.5 h-3.5" />
+            <Pause3D className="w-3.5 h-3.5" />
             Reasoning paused for review
           </div>
         </div>

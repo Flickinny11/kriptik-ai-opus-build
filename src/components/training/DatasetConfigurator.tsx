@@ -1,6 +1,6 @@
 /**
  * Dataset Configurator - Configure training dataset
- * 
+ *
  * Upload files, select HuggingFace datasets, preview data samples,
  * and configure columns/fields.
  */
