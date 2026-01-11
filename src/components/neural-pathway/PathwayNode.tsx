@@ -1,6 +1,6 @@
 /**
  * Pathway Node Component
- * 
+ *
  * Individual node in the neural pathway visualization.
  * Animates based on status and supports expansion.
  */
@@ -65,12 +65,12 @@ export const PathwayNode = memo(function PathwayNode({
   const Icon = node.icon ? ICON_MAP[node.icon] : Sparkles3D;
   const size = compact ? 'small' : (node.size || 'medium');
   const sizeConfig = SIZE_CONFIG[size];
-  
+
   const isActive = node.status === 'active' || node.status === 'streaming';
   const isPending = node.status === 'pending';
   const isComplete = node.status === 'complete';
   const hasProgress = node.progress !== undefined && node.progress < 100;
-  
+
   return (
     <motion.div
       className="absolute"
@@ -104,7 +104,7 @@ export const PathwayNode = memo(function PathwayNode({
           }}
         />
       )}
-      
+
       {/* Secondary pulse ring */}
       {isActive && (
         <motion.div
@@ -122,7 +122,7 @@ export const PathwayNode = memo(function PathwayNode({
           }}
         />
       )}
-      
+
       {/* Main node button */}
       <motion.button
         className={cn(
@@ -181,7 +181,7 @@ export const PathwayNode = memo(function PathwayNode({
             </defs>
           </svg>
         )}
-        
+
         {/* Icon with animation */}
         <motion.div
           className={cn(sizeConfig.icon, 'text-gray-300')}
@@ -196,7 +196,7 @@ export const PathwayNode = memo(function PathwayNode({
         >
           <Icon className="w-full h-full" />
         </motion.div>
-        
+
         {/* Completion checkmark overlay */}
         {isComplete && (
           <motion.div
@@ -210,7 +210,7 @@ export const PathwayNode = memo(function PathwayNode({
             </svg>
           </motion.div>
         )}
-        
+
         {/* Expand indicator */}
         {node.expandable && (
           <motion.div
@@ -224,7 +224,7 @@ export const PathwayNode = memo(function PathwayNode({
           </motion.div>
         )}
       </motion.button>
-      
+
       {/* Label */}
       {showLabel && (
         <motion.div
@@ -243,7 +243,7 @@ export const PathwayNode = memo(function PathwayNode({
           </span>
         </motion.div>
       )}
-      
+
       {/* Status tooltip on hover */}
       {isHovered && node.summary && (
         <motion.div

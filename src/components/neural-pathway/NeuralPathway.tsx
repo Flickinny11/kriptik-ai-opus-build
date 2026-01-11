@@ -1,6 +1,6 @@
 /**
  * Neural Pathway Visualization
- * 
+ *
  * A beautiful, animated visualization showing real-time AI orchestration.
  * Displays the user's prompt flowing through KripTik's processing pipeline
  * with expandable nodes showing detailed progress.
@@ -9,11 +9,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { 
-  NeuralPathwayProps, 
-  PathwayNode, 
+import type {
+  NeuralPathwayProps,
+  PathwayNode,
   PathwayConnection,
-  NodeStatus 
+  NodeStatus
 } from './types';
 import { PathwayNode as PathwayNodeComponent } from './PathwayNode';
 import { PathwayConnection as PathwayConnectionComponent } from './PathwayConnection';
@@ -24,30 +24,30 @@ import { useNeuralPathwayEvents } from '@/hooks/useNeuralPathwayEvents';
 const DEFAULT_NODES: Omit<PathwayNode, 'status'>[] = [
   // Center - User Prompt
   { id: 'prompt', type: 'prompt', label: 'Your Prompt', position: { x: 50, y: 50 }, size: 'large', icon: 'sparkles' },
-  
+
   // Phase 0 - Intent Lock (top)
   { id: 'intent-lock', type: 'intent-lock', label: 'Intent Lock', shortLabel: 'Intent', position: { x: 50, y: 15 }, parentId: 'prompt', icon: 'lock', expandable: true },
-  
+
   // Phase 1 - Feature Decomposition (top-right)
   { id: 'feature-decomp', type: 'feature-decomp', label: 'Feature Analysis', shortLabel: 'Features', position: { x: 80, y: 25 }, parentId: 'intent-lock', icon: 'layers', expandable: true },
-  
+
   // Phase 2 - Parallel Agents (right side, multiple)
   { id: 'agent-1', type: 'agent-slot', label: 'Agent Slot 1', shortLabel: 'A1', position: { x: 90, y: 40 }, parentId: 'feature-decomp', size: 'small', icon: 'cpu' },
   { id: 'agent-2', type: 'agent-slot', label: 'Agent Slot 2', shortLabel: 'A2', position: { x: 92, y: 55 }, parentId: 'feature-decomp', size: 'small', icon: 'cpu' },
   { id: 'agent-3', type: 'agent-slot', label: 'Agent Slot 3', shortLabel: 'A3', position: { x: 90, y: 70 }, parentId: 'feature-decomp', size: 'small', icon: 'cpu' },
-  
+
   // Code Generation (bottom-right)
   { id: 'code-gen', type: 'code-gen', label: 'Code Generation', shortLabel: 'Code', position: { x: 75, y: 80 }, parentId: 'agent-1', icon: 'code', expandable: true },
-  
+
   // Verification (bottom)
   { id: 'verification', type: 'verification', label: 'Verification Swarm', shortLabel: 'Verify', position: { x: 50, y: 90 }, parentId: 'code-gen', icon: 'shield', expandable: true },
-  
+
   // Build (bottom-left)
   { id: 'build', type: 'build', label: 'Build & Compile', shortLabel: 'Build', position: { x: 25, y: 80 }, parentId: 'verification', icon: 'hammer' },
-  
+
   // Deploy (left)
   { id: 'deploy', type: 'deploy', label: 'Deploy', shortLabel: 'Deploy', position: { x: 10, y: 55 }, parentId: 'build', icon: 'rocket' },
-  
+
   // Complete (top-left, connecting back)
   { id: 'complete', type: 'complete', label: 'Complete', shortLabel: '✓', position: { x: 20, y: 25 }, parentId: 'deploy', size: 'medium', icon: 'check' },
 ];
@@ -74,10 +74,10 @@ export function NeuralPathway({
 }: NeuralPathwayProps) {
   const [expandedNodeId, setExpandedNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  
+
   // Connect to real-time events
   const { state, isConnected } = useNeuralPathwayEvents(sessionId);
-  
+
   // Merge default layout with real-time state
   const nodes = useMemo((): PathwayNode[] => {
     if (!state?.nodes) {
@@ -88,7 +88,7 @@ export function NeuralPathway({
         summary: n.id === 'prompt' ? promptText : undefined,
       }));
     }
-    
+
     // Merge with state updates
     return DEFAULT_NODES.map(defaultNode => {
       const stateNode = state.nodes.find(n => n.id === defaultNode.id);
@@ -99,18 +99,18 @@ export function NeuralPathway({
       };
     });
   }, [state?.nodes, promptText]);
-  
+
   // Generate connections between nodes
   const connections = useMemo((): PathwayConnection[] => {
     const conns: PathwayConnection[] = [];
-    
+
     nodes.forEach(node => {
       if (node.parentId) {
         const parentNode = nodes.find(n => n.id === node.parentId);
         if (parentNode) {
           const isActive = node.status === 'active' || node.status === 'streaming';
           const isComplete = node.status === 'complete' || parentNode.status === 'complete';
-          
+
           conns.push({
             id: `${node.parentId}-${node.id}`,
             fromId: node.parentId,
@@ -122,10 +122,10 @@ export function NeuralPathway({
         }
       }
     });
-    
+
     return conns;
   }, [nodes]);
-  
+
   // Handle node click
   const handleNodeClick = useCallback((node: PathwayNode) => {
     if (node.expandable) {
@@ -133,23 +133,23 @@ export function NeuralPathway({
     }
     onNodeClick?.(node);
   }, [onNodeClick]);
-  
+
   // Check for completion
   useEffect(() => {
     if (state?.status === 'complete') {
       onComplete?.();
     }
   }, [state?.status, onComplete]);
-  
+
   const containerSize = compact ? 'h-48' : 'h-80';
-  
+
   return (
     <div className={cn('relative w-full', containerSize, className)}>
       {/* Background gradient */}
       <div className="absolute inset-0 rounded-xl overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-gray-900/90 to-gray-900/95" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-purple-500/5" />
-        
+
         {/* Animated grid pattern */}
         <svg className="absolute inset-0 w-full h-full opacity-10">
           <defs>
@@ -160,7 +160,7 @@ export function NeuralPathway({
           <rect width="100%" height="100%" fill="url(#neural-grid)" />
         </svg>
       </div>
-      
+
       {/* Main visualization area */}
       <div className="relative w-full h-full p-4">
         {/* SVG for connections */}
@@ -172,7 +172,7 @@ export function NeuralPathway({
               <stop offset="50%" stopColor="rgb(147, 51, 234)" stopOpacity="0.6" />
               <stop offset="100%" stopColor="rgb(16, 185, 129)" stopOpacity="0.3" />
             </linearGradient>
-            
+
             {/* Glow filter */}
             <filter id="glow">
               <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -182,7 +182,7 @@ export function NeuralPathway({
               </feMerge>
             </filter>
           </defs>
-          
+
           {/* Render connections */}
           {connections.map(conn => (
             <PathwayConnectionComponent
@@ -193,7 +193,7 @@ export function NeuralPathway({
             />
           ))}
         </svg>
-        
+
         {/* Render nodes */}
         <AnimatePresence>
           {nodes.map(node => (
@@ -210,7 +210,7 @@ export function NeuralPathway({
             />
           ))}
         </AnimatePresence>
-        
+
         {/* Progress indicator */}
         {state && (
           <motion.div
@@ -232,7 +232,7 @@ export function NeuralPathway({
             </div>
           </motion.div>
         )}
-        
+
         {/* Connection status indicator */}
         <div className="absolute top-2 right-2">
           <div className={cn(
@@ -241,7 +241,7 @@ export function NeuralPathway({
           )} />
         </div>
       </div>
-      
+
       {/* Expanded node details panel */}
       <AnimatePresence>
         {expandedNodeId && (

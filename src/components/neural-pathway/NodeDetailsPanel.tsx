@@ -1,6 +1,6 @@
 /**
  * Node Details Panel
- * 
+ *
  * Expandable panel showing detailed information about a node.
  * Slides out from the side with code diffs, verification results, etc.
  */
@@ -17,7 +17,7 @@ interface NodeDetailsPanelProps {
 
 export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
   const details = node.details;
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -44,7 +44,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
           <XIcon3D className="w-4 h-4 text-gray-400" />
         </button>
       </div>
-      
+
       {/* Content */}
       <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100%-52px)]">
         {/* Summary */}
@@ -54,7 +54,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             <p className="text-sm text-gray-300">{node.summary}</p>
           </div>
         )}
-        
+
         {/* Timing */}
         {(node.startedAt || node.duration) && (
           <div className="flex gap-4 text-xs text-gray-400">
@@ -66,7 +66,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             )}
           </div>
         )}
-        
+
         {/* Intent Info */}
         {details?.intentInfo && (
           <div>
@@ -91,7 +91,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             </div>
           </div>
         )}
-        
+
         {/* Files Modified */}
         {details?.filesModified && details.filesModified.length > 0 && (
           <div>
@@ -125,7 +125,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             </div>
           </div>
         )}
-        
+
         {/* Verification Results */}
         {details?.verificationResults && (
           <div>
@@ -153,7 +153,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             </div>
           </div>
         )}
-        
+
         {/* Agent Info */}
         {details?.agentInfo && (
           <div>
@@ -180,7 +180,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             </div>
           </div>
         )}
-        
+
         {/* Generic Content */}
         {details?.content && (
           <div>
@@ -188,7 +188,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             <p className="text-sm text-gray-300">{details.content}</p>
           </div>
         )}
-        
+
         {/* Code Block */}
         {details?.code && (
           <div>
@@ -198,7 +198,7 @@ export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
             </pre>
           </div>
         )}
-        
+
         {/* Error */}
         {details?.error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">

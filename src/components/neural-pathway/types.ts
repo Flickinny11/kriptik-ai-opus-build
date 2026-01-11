@@ -1,11 +1,11 @@
 /**
  * Neural Pathway Visualization Types
- * 
+ *
  * Types for the real-time orchestration visualization showing
  * how prompts flow through KripTik's AI pipeline.
  */
 
-export type NodeStatus = 
+export type NodeStatus =
   | 'idle'       // Not yet reached
   | 'pending'    // Queued, about to start
   | 'active'     // Currently processing
@@ -37,18 +37,18 @@ export interface PathwayNode {
   distance?: number;             // Distance from center
   parentId?: string;             // Connection to parent node
   childIds?: string[];           // Connections to child nodes
-  
+
   // Progress and timing
   progress?: number;             // 0-100 if applicable
   startedAt?: number;            // Timestamp
   completedAt?: number;          // Timestamp
   duration?: number;             // Milliseconds
-  
+
   // Content for expansion
   expandable?: boolean;
   summary?: string;              // Brief description
   details?: NodeDetails;         // Full details for expanded view
-  
+
   // Visual
   icon?: string;                 // Icon name
   color?: string;                // Override color
@@ -64,7 +64,7 @@ export interface NodeDetails {
     deletions: number;
     preview?: string;            // First few lines
   }>;
-  
+
   // For verification nodes
   verificationResults?: {
     errorCheck?: { passed: boolean; score: number };
@@ -74,7 +74,7 @@ export interface NodeDetails {
     placeholderCheck?: { passed: boolean; score: number };
     designStyle?: { passed: boolean; score: number };
   };
-  
+
   // For agent nodes
   agentInfo?: {
     agentId: string;
@@ -82,7 +82,7 @@ export interface NodeDetails {
     tokensUsed: number;
     thinking?: string;           // Truncated thinking
   };
-  
+
   // For intent lock
   intentInfo?: {
     appType: string;
@@ -90,7 +90,7 @@ export interface NodeDetails {
     successCriteria: number;
     thinkingTokens: number;
   };
-  
+
   // Generic content
   content?: string;
   code?: string;
@@ -118,7 +118,7 @@ export interface NeuralPathwayState {
   currentPhase: string;
   progress: number;              // Overall 0-100
   estimatedTimeRemaining?: number;
-  
+
   // Metrics
   tokensUsed?: number;
   filesModified?: number;

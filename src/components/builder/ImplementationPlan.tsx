@@ -478,7 +478,7 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
 
     // Generate a session ID for the neural pathway
     const sessionId = useMemo(() => `plan-${Date.now()}`, []);
-    
+
     // Loading state with Neural Pathway visualization
     if (isLoading) {
         return (
@@ -490,7 +490,7 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
                         Watch as KripTik's AI orchestration analyzes your requirements
                     </p>
                 </div>
-                
+
                 {/* Neural Pathway Visualization */}
                 <div className="w-full max-w-2xl">
                     <NeuralPathway
@@ -500,7 +500,7 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
                         showLabels={true}
                     />
                 </div>
-                
+
                 {/* Current stage indicator */}
                 <div className="mt-6">
                     <ThinkingAnimation stage={thinkingStage} />

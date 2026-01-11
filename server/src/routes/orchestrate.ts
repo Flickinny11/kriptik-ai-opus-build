@@ -388,5 +388,196 @@ router.get('/:projectId/stream', (req: Request, res: Response) => {
     });
 });
 
+/**
+ * GET /api/orchestrate/:projectId/neural-pathway
+ * Real-time SSE stream for Neural Pathway visualization
+ * Transforms orchestrator events into pathway node updates
+ */
+router.get('/:projectId/neural-pathway', (req: Request, res: Response) => {
+    const { projectId } = req.params;
+
+    const orchestrator = orchestrators.get(projectId);
+    if (!orchestrator) {
+        return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const sendPathwayEvent = (type: string, data: Record<string, unknown>) => {
+        const event = {
+            type,
+            timestamp: Date.now(),
+            sessionId: projectId,
+            data,
+        };
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    // Map orchestrator event types to neural pathway node IDs
+    const eventToNodeMap: Record<string, string> = {
+        'intent_lock': 'intent-lock',
+        'feature_decomposition': 'feature-decomp',
+        'parallel_build_start': 'agent-1',
+        'agent_assigned': 'agent-1',
+        'code_generation': 'code-gen',
+        'file_update': 'code-gen',
+        'verification': 'verification',
+        'build': 'build',
+        'deploy': 'deploy',
+        'complete': 'complete',
+    };
+
+    // Map phase names to node IDs
+    const phaseToNodeMap: Record<string, string> = {
+        'Phase0_IntentLock': 'intent-lock',
+        'Phase1_Scaffold': 'feature-decomp',
+        'Phase2_ParallelBuild': 'agent-1',
+        'Phase3_Verification': 'verification',
+        'Phase4_Iteration': 'build',
+        'Phase5_Ship': 'deploy',
+    };
+
+    // Send initial connected event
+    sendPathwayEvent('connected', { message: 'Neural pathway connected' });
+
+    // Transform orchestrator events to pathway events
+    const eventHandler = (event: { type: string; data?: Record<string, unknown> }) => {
+        const nodeId = eventToNodeMap[event.type];
+        
+        if (event.type === 'phase_start' || event.type === 'phase_complete') {
+            const phase = event.data?.phase || event.data?.stage;
+            const mappedNodeId = phase ? phaseToNodeMap[phase as string] : undefined;
+            
+            if (mappedNodeId) {
+                if (event.type === 'phase_start') {
+                    sendPathwayEvent('phase_change', {
+                        phase: `${phase}_start`,
+                        nodeId: mappedNodeId,
+                        message: `Starting ${phase}`,
+                    });
+                } else {
+                    sendPathwayEvent('phase_change', {
+                        phase: `${phase}_complete`,
+                        nodeId: mappedNodeId,
+                        message: `Completed ${phase}`,
+                    });
+                }
+            }
+        } else if (nodeId) {
+            sendPathwayEvent('node_update', {
+                nodeId,
+                node: {
+                    status: event.type.includes('complete') ? 'complete' : 'active',
+                    summary: event.data?.message || event.data?.description,
+                },
+            });
+        }
+
+        // Forward progress events
+        if (event.type === 'progress' && event.data?.progress !== undefined) {
+            sendPathwayEvent('progress', {
+                progress: event.data.progress,
+            });
+        }
+
+        // Forward agent activity
+        if (event.type === 'agent-progress' && event.data?.slotId) {
+            const slotId = event.data.slotId as number;
+            const agentNodeId = `agent-${Math.min(slotId + 1, 3)}`;
+            sendPathwayEvent('node_update', {
+                nodeId: agentNodeId,
+                node: {
+                    status: event.data.type === 'task_completed' ? 'complete' : 'active',
+                    summary: event.data.description || `Agent ${slotId + 1} working`,
+                    details: {
+                        agentInfo: {
+                            agentId: event.data.agentId,
+                            tokensUsed: event.data.tokensUsed || 0,
+                        },
+                    },
+                },
+            });
+        }
+
+        // Forward file updates to code-gen node
+        if (event.type === 'file_update' && event.data?.files) {
+            const files = event.data.files as Record<string, string>;
+            sendPathwayEvent('node_update', {
+                nodeId: 'code-gen',
+                node: {
+                    status: 'streaming',
+                    details: {
+                        filesModified: Object.keys(files).map(path => ({
+                            path,
+                            additions: (files[path].match(/\n/g) || []).length,
+                            deletions: 0,
+                        })),
+                    },
+                },
+            });
+        }
+
+        // Forward verification results
+        if (event.type === 'verification_result' || event.type === 'verification_complete') {
+            sendPathwayEvent('node_update', {
+                nodeId: 'verification',
+                node: {
+                    status: event.data?.verdict === 'APPROVED' ? 'complete' : 'active',
+                    summary: `Verification: ${event.data?.verdict || 'running'}`,
+                    details: {
+                        verificationResults: {
+                            errorCheck: { passed: !event.data?.errors, score: event.data?.overallScore || 0 },
+                            codeQuality: { passed: true, score: event.data?.overallScore || 0 },
+                        },
+                    },
+                },
+            });
+        }
+
+        // Forward completion
+        if (event.type === 'build_complete' || event.type === 'complete') {
+            sendPathwayEvent('complete', {
+                message: 'Build complete',
+                success: true,
+            });
+        }
+
+        // Forward errors
+        if (event.type === 'error') {
+            sendPathwayEvent('error', {
+                error: event.data?.error || event.data?.message || 'Unknown error',
+                nodeId: event.data?.phase ? phaseToNodeMap[event.data.phase as string] : undefined,
+            });
+        }
+    };
+
+    const logHandler = (log: { level?: string; message?: string }) => {
+        // Only forward important logs
+        if (log.level === 'info' || log.level === 'warn') {
+            sendPathwayEvent('log', { message: log.message });
+        }
+    };
+
+    orchestrator.on('event', eventHandler);
+    orchestrator.on('log', logHandler);
+
+    // Send heartbeat every 30 seconds
+    const heartbeat = setInterval(() => {
+        res.write(`: heartbeat\n\n`);
+    }, 30000);
+
+    // Cleanup on disconnect
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        orchestrator.off('event', eventHandler);
+        orchestrator.off('log', logHandler);
+    });
+});
+
 export default router;
 

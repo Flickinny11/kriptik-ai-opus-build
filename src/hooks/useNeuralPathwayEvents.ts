@@ -1,18 +1,19 @@
 /**
  * Neural Pathway Events Hook
- * 
+ *
  * Connects to real-time orchestration events via SSE or WebSocket
  * and transforms them into neural pathway visualization state.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { 
-  NeuralPathwayState, 
-  PathwayNode, 
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type {
+  NeuralPathwayState,
+  PathwayNode,
   OrchestrationEvent,
   NodeStatus,
-  NodeDetails 
+  NodeDetails
 } from '@/components/neural-pathway/types';
+import { API_URL } from '@/lib/api-config';
 
 // Map orchestration event types to node IDs
 const EVENT_TO_NODE_MAP: Record<string, string> = {
@@ -46,31 +47,33 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
   const [state, setState] = useState<NeuralPathwayState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const simulationCleanupRef = useRef<(() => void) | null>(null);
+
   // Update a specific node's status
   const updateNode = useCallback((nodeId: string, updates: Partial<PathwayNode>) => {
     setState(prev => {
       if (!prev) return prev;
-      
+
       return {
         ...prev,
-        nodes: prev.nodes.map(node => 
+        nodes: prev.nodes.map(node =>
           node.id === nodeId ? { ...node, ...updates } : node
         ),
       };
     });
   }, []);
-  
+
   // Set node status and update related nodes
   const setNodeActive = useCallback((nodeId: string, details?: NodeDetails) => {
     setState(prev => {
       if (!prev) return prev;
-      
+
       const nodes = prev.nodes.map(node => {
         if (node.id === nodeId) {
-          return { 
-            ...node, 
-            status: 'active' as NodeStatus, 
+          return {
+            ...node,
+            status: 'active' as NodeStatus,
             startedAt: Date.now(),
             details,
           };
@@ -81,20 +84,20 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         }
         return node;
       });
-      
+
       return { ...prev, nodes };
     });
   }, []);
-  
+
   const setNodeComplete = useCallback((nodeId: string, details?: NodeDetails) => {
     setState(prev => {
       if (!prev) return prev;
-      
+
       const nodes = prev.nodes.map(node => {
         if (node.id === nodeId) {
-          return { 
-            ...node, 
-            status: 'complete' as NodeStatus, 
+          return {
+            ...node,
+            status: 'complete' as NodeStatus,
             completedAt: Date.now(),
             duration: node.startedAt ? Date.now() - node.startedAt : undefined,
             details: { ...node.details, ...details },
@@ -102,15 +105,15 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         }
         return node;
       });
-      
+
       return { ...prev, nodes };
     });
   }, []);
-  
+
   // Handle incoming events
   const handleEvent = useCallback((event: OrchestrationEvent) => {
     const { type, data } = event;
-    
+
     switch (type) {
       case 'node_update': {
         if (data.nodeId && data.node) {
@@ -118,11 +121,11 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         }
         break;
       }
-      
+
       case 'phase_change': {
         if (data.phase) {
           setState(prev => prev ? { ...prev, currentPhase: data.phase! } : prev);
-          
+
           // Find corresponding node and activate or complete it
           const nodeId = EVENT_TO_NODE_MAP[data.phase];
           if (nodeId) {
@@ -136,17 +139,17 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         }
         break;
       }
-      
+
       case 'progress': {
         if (data.progress !== undefined) {
           setState(prev => prev ? { ...prev, progress: data.progress! } : prev);
         }
         break;
       }
-      
+
       case 'complete': {
-        setState(prev => prev ? { 
-          ...prev, 
+        setState(prev => prev ? {
+          ...prev,
           status: 'complete',
           progress: 100,
           nodes: prev.nodes.map(n => ({
@@ -156,12 +159,12 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         } : prev);
         break;
       }
-      
+
       case 'error': {
         if (data.nodeId) {
-          updateNode(data.nodeId, { 
-            status: 'error', 
-            details: { error: data.error } 
+          updateNode(data.nodeId, {
+            status: 'error',
+            details: { error: data.error }
           });
         }
         setError(data.error || 'Unknown error');
@@ -169,11 +172,11 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
       }
     }
   }, [updateNode, setNodeActive, setNodeComplete]);
-  
+
   // Connect to event stream
   useEffect(() => {
     if (!sessionId) return;
-    
+
     // Initialize state
     setState({
       sessionId,
@@ -185,12 +188,54 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
       currentPhase: 'Initializing...',
       progress: 0,
     });
-    
-    // Simulate events for demo (SSE endpoint will be connected when backend is ready)
-    // When ready, use: new EventSource(`${API_URL}/api/orchestration/${sessionId}/events`)
-    const simulateEvents = () => {
-      setIsConnected(true);
+
+    // Try to connect to real SSE endpoint first
+    const connectSSE = () => {
+      const url = `${API_URL}/api/orchestrate/${sessionId}/neural-pathway`;
+      console.log('[NeuralPathway] Connecting to SSE:', url);
       
+      const eventSource = new EventSource(url, { withCredentials: true });
+      eventSourceRef.current = eventSource;
+      
+      eventSource.onopen = () => {
+        console.log('[NeuralPathway] SSE connected');
+        setIsConnected(true);
+        setError(null);
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as OrchestrationEvent;
+          handleEvent(data);
+          
+          // Update current phase display
+          if (data.data?.message) {
+            setState(prev => prev ? { ...prev, currentPhase: data.data.message as string } : prev);
+          }
+        } catch (e) {
+          console.error('[NeuralPathway] Failed to parse event:', e);
+        }
+      };
+      
+      eventSource.onerror = (e) => {
+        console.log('[NeuralPathway] SSE error, falling back to simulation', e);
+        eventSource.close();
+        eventSourceRef.current = null;
+        // Fall back to simulation
+        startSimulation();
+      };
+      
+      return () => {
+        eventSource.close();
+        eventSourceRef.current = null;
+      };
+    };
+    
+    // Fallback: Simulate events for demo
+    const startSimulation = () => {
+      console.log('[NeuralPathway] Using simulation mode');
+      setIsConnected(true);
+
       // Simulate the orchestration flow
       const events: Array<{ delay: number; event: Partial<OrchestrationEvent> }> = [
         { delay: 100, event: { type: 'phase_change', data: { phase: 'intent_lock_start', message: 'Creating Intent Contract...' } } },
@@ -216,9 +261,9 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         { delay: 28000, event: { type: 'progress', data: { progress: 95 } } },
         { delay: 30000, event: { type: 'complete', data: { message: 'Complete!' } } },
       ];
-      
+
       const timeouts: NodeJS.Timeout[] = [];
-      
+
       events.forEach(({ delay, event }) => {
         const timeout = setTimeout(() => {
           handleEvent({
@@ -227,7 +272,7 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
             sessionId,
             data: event.data || {},
           });
-          
+
           // Update current phase display
           if (event.data?.message) {
             setState(prev => prev ? { ...prev, currentPhase: event.data!.message! } : prev);
@@ -235,17 +280,34 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         }, delay);
         timeouts.push(timeout);
       });
-      
-      return () => timeouts.forEach(t => clearTimeout(t));
+
+      simulationCleanupRef.current = () => timeouts.forEach(t => clearTimeout(t));
+      return simulationCleanupRef.current;
     };
-    
-    // Use simulation for now, SSE endpoint will be enabled when ready
-    const cleanup = simulateEvents();
-    
+
+    // Try real SSE connection first, fall back to simulation on error
+    // For plan generation (starts with 'plan-'), use simulation since there's no active orchestrator
+    if (sessionId.startsWith('plan-') || sessionId.startsWith('build-')) {
+      // Use simulation for plan generation flow
+      startSimulation();
+    } else {
+      // Try real SSE for active orchestration sessions
+      connectSSE();
+    }
+
     return () => {
-      cleanup?.();
+      // Cleanup SSE connection
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      // Cleanup simulation
+      if (simulationCleanupRef.current) {
+        simulationCleanupRef.current();
+        simulationCleanupRef.current = null;
+      }
     };
   }, [sessionId, handleEvent]);
-  
+
   return { state, isConnected, error };
 }

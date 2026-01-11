@@ -1,6 +1,6 @@
 /**
  * Neural Pathway Visualization
- * 
+ *
  * Real-time visualization of KripTik's AI orchestration pipeline.
  */
 
