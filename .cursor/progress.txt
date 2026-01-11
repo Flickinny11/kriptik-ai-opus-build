@@ -7449,3 +7449,50 @@ COMPLETED: Added auto-recovery to intent-lock saveContract
 COMMIT: 72f945f
 FILES: intent-lock.ts, db-schema.ts
 STATUS: Pushed to main
+
+═══ [2026-01-11] Neural Pathway Real-Time Visualization ═══
+COMPLETED: Added Neural Pathway visualization for orchestration progress
+
+WHAT WAS BUILT:
+1. New Components (7 files):
+   - src/components/neural-pathway/NeuralPathway.tsx - Main visualization
+   - src/components/neural-pathway/PathwayNode.tsx - Animated node with status
+   - src/components/neural-pathway/PathwayConnection.tsx - SVG animated connections
+   - src/components/neural-pathway/NodeDetailsPanel.tsx - Expandable details panel
+   - src/components/neural-pathway/types.ts - TypeScript types
+   - src/components/neural-pathway/index.ts - Barrel exports
+   - src/hooks/useNeuralPathwayEvents.ts - Real-time event hook
+
+2. New 3D Icons:
+   - Lock3D (Intent Lock phase)
+   - Hammer3D (Build phase)
+
+3. Integration Points:
+   - ChatInterface.tsx: Compact Neural Pathway in build view (VIEW 4)
+   - ImplementationPlan.tsx: Full Neural Pathway during plan generation
+
+FEATURES:
+- Animated spider-web visualization of orchestration pipeline
+- Status-based styling (idle, pending, active, streaming, complete, error)
+- Pulsing rings and glow effects for active nodes
+- Data flow particle animations on connections
+- Expandable nodes showing:
+  * Code diffs with +/- counts
+  * Verification swarm results
+  * Agent info (model, tokens, thinking)
+  * Intent contract details
+- Progress bar with phase labels
+- Premium KripTik aesthetic with glass/amber theme
+
+NEXT STEPS (TODO):
+- Connect to real backend SSE events (currently simulated)
+- Add more granular orchestration events from BuildLoopOrchestrator
+
+FILES MODIFIED:
+- src/components/builder/ChatInterface.tsx
+- src/components/builder/ImplementationPlan.tsx
+- src/components/icons/Custom3DIcons3.tsx
+
+COMMITS:
+- 4496075 feat: Integrate Neural Pathway into Builder and Plan views
+- 539ff89 feat: Add Neural Pathway real-time orchestration visualization
