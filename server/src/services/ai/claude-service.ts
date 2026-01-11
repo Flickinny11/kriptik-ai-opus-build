@@ -559,9 +559,71 @@ export class ClaudeService {
             });
         } else if (provider === 'anthropic' && this.anthropicClient) {
             // Claude models → Use Anthropic SDK directly (best features)
-            console.log(`[ClaudeService] Using direct Anthropic SDK for ${model}`);
-            const response = await this.anthropicClient.messages.create(requestParams);
-            parsed = this.parseResponse(response);
+            // CRITICAL: Use streaming when extended thinking is enabled or max_tokens > 21333
+            // Anthropic requires streaming for operations that may take > 10 minutes
+            const requiresStreaming = useExtendedThinking || maxTokens > 21333;
+
+            if (requiresStreaming) {
+                console.log(`[ClaudeService] Using streaming Anthropic SDK for ${model} (extended thinking: ${useExtendedThinking}, max_tokens: ${maxTokens})`);
+
+                // Use messages.stream() for long-running operations
+                const stream = this.anthropicClient.messages.stream(requestParams);
+
+                let fullContent = '';
+                let fullThinking = '';
+                let inputTokens = 0;
+                let outputTokens = 0;
+                let stopReason = 'end_turn';
+                let messageId = '';
+                let modelUsed = model;
+
+                // Accumulate response from stream events
+                for await (const event of stream) {
+                    if (event.type === 'message_start') {
+                        const msgStart = event as any;
+                        if (msgStart.message) {
+                            messageId = msgStart.message.id || '';
+                            modelUsed = msgStart.message.model || model;
+                            if (msgStart.message.usage) {
+                                inputTokens = msgStart.message.usage.input_tokens || 0;
+                            }
+                        }
+                    } else if (event.type === 'content_block_delta') {
+                        const delta = event.delta as any;
+                        if (delta.type === 'thinking_delta' && delta.thinking) {
+                            fullThinking += delta.thinking;
+                        } else if (delta.type === 'text_delta' && delta.text) {
+                            fullContent += delta.text;
+                        }
+                    } else if (event.type === 'message_delta') {
+                        const msgDelta = event as any;
+                        if (msgDelta.usage) {
+                            outputTokens = msgDelta.usage.output_tokens || 0;
+                        }
+                        if (msgDelta.delta?.stop_reason) {
+                            stopReason = msgDelta.delta.stop_reason;
+                        }
+                    }
+                }
+
+                parsed = {
+                    id: messageId || uuidv4(),
+                    content: fullContent,
+                    thinking: fullThinking || undefined,
+                    usage: {
+                        inputTokens,
+                        outputTokens,
+                        thinkingTokens: fullThinking ? Math.ceil(fullThinking.length / 4) : undefined,
+                    },
+                    stopReason,
+                    model: modelUsed,
+                };
+            } else {
+                // Non-streaming for simple requests without extended thinking
+                console.log(`[ClaudeService] Using non-streaming Anthropic SDK for ${model}`);
+                const response = await this.anthropicClient.messages.create(requestParams);
+                parsed = this.parseResponse(response);
+            }
         } else if (provider === 'anthropic' && this.useOpenRouterFallback) {
             // Claude models without API key → Fall back to OpenRouter
             console.log(`[ClaudeService] Using OpenRouter fallback for Claude model ${model}`);
@@ -1028,12 +1090,74 @@ Your entire response must be parseable JSON.`;
                 console.log(`[ClaudeService] Got OpenAI response, content_length=${parsed.content.length}`);
             } else if (provider === 'anthropic' && this.anthropicClient) {
                 // Claude models → Use direct Anthropic SDK
-                console.log(`[ClaudeService] Structured output via direct Anthropic SDK for ${model}`);
-                console.log(`[ClaudeService] Request params:`, JSON.stringify({ model, max_tokens: requestParams.max_tokens, has_thinking: !!requestParams.thinking }));
-                const response = await this.anthropicClient.messages.create(requestParams);
-                console.log(`[ClaudeService] Got Anthropic response, stop_reason=${response.stop_reason}, content_blocks=${response.content.length}`);
-                parsed = this.parseResponse(response);
-                console.log(`[ClaudeService] Parsed response, content_length=${parsed.content.length}`);
+                // CRITICAL: Use streaming when extended thinking is enabled or max_tokens > 21333
+                // Anthropic requires streaming for operations that may take > 10 minutes
+                const requiresStreaming = useExtendedThinking || maxTokens > 21333;
+
+                if (requiresStreaming) {
+                    console.log(`[ClaudeService] Structured output via streaming Anthropic SDK for ${model} (extended thinking: ${useExtendedThinking})`);
+
+                    // Use messages.stream() for long-running operations
+                    const stream = this.anthropicClient.messages.stream(requestParams);
+
+                    let fullContent = '';
+                    let fullThinking = '';
+                    let inputTokens = 0;
+                    let outputTokens = 0;
+                    let stopReason = 'end_turn';
+                    let messageId = '';
+                    let modelUsed = model;
+
+                    // Accumulate response from stream events
+                    for await (const event of stream) {
+                        if (event.type === 'message_start') {
+                            const msgStart = event as any;
+                            if (msgStart.message) {
+                                messageId = msgStart.message.id || '';
+                                modelUsed = msgStart.message.model || model;
+                                if (msgStart.message.usage) {
+                                    inputTokens = msgStart.message.usage.input_tokens || 0;
+                                }
+                            }
+                        } else if (event.type === 'content_block_delta') {
+                            const delta = event.delta as any;
+                            if (delta.type === 'thinking_delta' && delta.thinking) {
+                                fullThinking += delta.thinking;
+                            } else if (delta.type === 'text_delta' && delta.text) {
+                                fullContent += delta.text;
+                            }
+                        } else if (event.type === 'message_delta') {
+                            const msgDelta = event as any;
+                            if (msgDelta.usage) {
+                                outputTokens = msgDelta.usage.output_tokens || 0;
+                            }
+                            if (msgDelta.delta?.stop_reason) {
+                                stopReason = msgDelta.delta.stop_reason;
+                            }
+                        }
+                    }
+
+                    parsed = {
+                        id: messageId || uuidv4(),
+                        content: fullContent,
+                        thinking: fullThinking || undefined,
+                        usage: {
+                            inputTokens,
+                            outputTokens,
+                            thinkingTokens: fullThinking ? Math.ceil(fullThinking.length / 4) : undefined,
+                        },
+                        stopReason,
+                        model: modelUsed,
+                    };
+                    console.log(`[ClaudeService] Got streaming Anthropic response, content_length=${parsed.content.length}`);
+                } else {
+                    // Non-streaming for simple requests without extended thinking
+                    console.log(`[ClaudeService] Structured output via non-streaming Anthropic SDK for ${model}`);
+                    const response = await this.anthropicClient.messages.create(requestParams);
+                    console.log(`[ClaudeService] Got Anthropic response, stop_reason=${response.stop_reason}, content_blocks=${response.content.length}`);
+                    parsed = this.parseResponse(response);
+                    console.log(`[ClaudeService] Parsed response, content_length=${parsed.content.length}`);
+                }
             } else if (provider === 'anthropic' && this.useOpenRouterFallback) {
                 // Claude models without API key → Fall back to OpenRouter
                 console.log(`[ClaudeService] Structured output via OpenRouter fallback for ${model}`);
