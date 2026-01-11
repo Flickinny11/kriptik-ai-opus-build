@@ -342,6 +342,36 @@ async function getExistingTables(): Promise<Set<string>> {
     return new Set(names);
 }
 
+async function getTableColumns(tableName: string): Promise<Set<string>> {
+    try {
+        const result = await client.execute(`PRAGMA table_info(${tableName})`);
+        const names = result.rows.map((row: any) => String(row.name));
+        return new Set(names);
+    } catch {
+        return new Set();
+    }
+}
+
+/**
+ * Column additions for existing tables.
+ * ALTER TABLE ADD COLUMN is safe - SQLite errors if column exists, which we catch.
+ */
+type ColumnAddition = {
+    table: string;
+    column: string;
+    definition: string;
+};
+
+const COLUMN_ADDITIONS: ColumnAddition[] = [
+    // GPU columns for build_intents (added for AI Lab integration)
+    { table: 'build_intents', column: 'requires_gpu', definition: 'INTEGER DEFAULT 0' },
+    { table: 'build_intents', column: 'gpu_workload_type', definition: 'TEXT' },
+    { table: 'build_intents', column: 'gpu_requirements', definition: 'TEXT' },
+    { table: 'build_intents', column: 'detected_models', definition: 'TEXT' },
+    { table: 'build_intents', column: 'gpu_classification_confidence', definition: 'REAL' },
+    { table: 'build_intents', column: 'gpu_classification_reasoning', definition: 'TEXT' },
+];
+
 /**
  * Ensure required runtime tables exist.
  * Safe to call multiple times; safe under concurrency (IF NOT EXISTS).
@@ -370,6 +400,39 @@ export async function ensureDatabaseSchema(): Promise<SchemaEnsureResult> {
         for (const idxSql of spec.indexSql ?? []) {
             await client.execute(idxSql);
             ensuredIndexes.push(idxSql);
+        }
+    }
+
+    // Add missing columns to existing tables
+    // Group by table to avoid multiple PRAGMA calls
+    const tableColumns = new Map<string, Set<string>>();
+    
+    for (const addition of COLUMN_ADDITIONS) {
+        if (!existingBefore.has(addition.table)) {
+            // Table doesn't exist yet, skip (will be created with full schema)
+            continue;
+        }
+        
+        // Get columns for this table if not cached
+        if (!tableColumns.has(addition.table)) {
+            tableColumns.set(addition.table, await getTableColumns(addition.table));
+        }
+        
+        const columns = tableColumns.get(addition.table)!;
+        if (columns.has(addition.column)) {
+            // Column already exists, skip
+            continue;
+        }
+        
+        // Add the missing column
+        try {
+            await client.execute(`ALTER TABLE ${addition.table} ADD COLUMN ${addition.column} ${addition.definition}`);
+            console.log(`[DB Schema] Added column ${addition.table}.${addition.column}`);
+        } catch (error: any) {
+            // Column might already exist due to race condition, that's OK
+            if (!error.message?.includes('duplicate column name')) {
+                console.error(`[DB Schema] Failed to add column ${addition.table}.${addition.column}:`, error.message);
+            }
         }
     }
 
