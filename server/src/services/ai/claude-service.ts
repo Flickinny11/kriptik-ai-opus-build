@@ -509,13 +509,21 @@ export class ClaudeService {
         // Add extended thinking if enabled
         // OpenRouter DOES support extended thinking for Claude models
         if (useExtendedThinking) {
-            requestParams.thinking = {
-                type: 'enabled',
-                budget_tokens: thinkingBudgetTokens,
-            };
-            // Temperature must be 1 for extended thinking
-            requestParams.temperature = 1;
-            console.log(`[ClaudeService] Extended thinking enabled (budget: ${thinkingBudgetTokens} tokens)`);
+            // CRITICAL: Validate max_tokens > budget_tokens constraint per Anthropic API
+            // Anthropic requires max_tokens to be greater than thinking.budget_tokens
+            // to ensure there's room for the actual response text
+            const effectiveBudget = Math.min(thinkingBudgetTokens, maxTokens - 1024);
+            if (effectiveBudget < 1000) {
+                console.warn(`[ClaudeService] Warning: Thinking budget (${thinkingBudgetTokens}) too close to max_tokens (${maxTokens}). Disabling extended thinking.`);
+            } else {
+                requestParams.thinking = {
+                    type: 'enabled',
+                    budget_tokens: effectiveBudget,
+                };
+                // Temperature must be 1 for extended thinking
+                requestParams.temperature = 1;
+                console.log(`[ClaudeService] Extended thinking enabled (budget: ${effectiveBudget} tokens, max_tokens: ${maxTokens})`);
+            }
         } else if (temperature !== undefined) {
             requestParams.temperature = temperature;
         }
@@ -559,7 +567,20 @@ export class ClaudeService {
             const requiresStreaming = useExtendedThinking || maxTokens > 21333;
 
             if (requiresStreaming) {
-                console.log(`[ClaudeService] Using streaming Anthropic SDK for ${model} (extended thinking: ${useExtendedThinking}, max_tokens: ${maxTokens})`);
+                // Log actual request params being sent
+                console.log(`[ClaudeService] Using streaming Anthropic SDK for ${model}`);
+                console.log(`[ClaudeService] Request params: max_tokens=${requestParams.max_tokens}, thinking=${JSON.stringify(requestParams.thinking)}`);
+
+                // CRITICAL: Validate max_tokens > budget_tokens constraint
+                if (requestParams.thinking && typeof requestParams.thinking === 'object' && 'budget_tokens' in requestParams.thinking) {
+                    const budget = (requestParams.thinking as { budget_tokens: number }).budget_tokens;
+                    if (requestParams.max_tokens <= budget) {
+                        console.error(`[ClaudeService] INVALID: max_tokens (${requestParams.max_tokens}) must be > budget_tokens (${budget})`);
+                        // Fix by increasing max_tokens
+                        requestParams.max_tokens = budget + 8192;
+                        console.log(`[ClaudeService] Fixed: max_tokens set to ${requestParams.max_tokens}`);
+                    }
+                }
 
                 // Use messages.stream() for long-running operations
                 const stream = this.anthropicClient.messages.stream(requestParams);
