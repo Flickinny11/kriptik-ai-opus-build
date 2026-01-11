@@ -7396,3 +7396,24 @@ CURRENT STATE: Both frontend and backend builds pass
 COMMITS:
   - 4bd2be0: fix(api): Remove invalid 'provider' field
   - 145ad9c: fix(auth): Restore immutable cookie configuration
+
+═══ [2026-01-11] Extended Thinking Token Validation Fix ═══
+COMPLETED: Fixed "max_tokens must be greater than thinking.budget_tokens" error
+
+PROBLEM: When calling Claude API with extended thinking, the API requires
+  max_tokens > budget_tokens. Even though we set maxTokens=64000 and
+  budget_tokens=16000 (64000 > 16000 is TRUE), the error was still occurring.
+
+SOLUTION APPROACH:
+1. Added explicit logging of request parameters before API call
+2. Added validation to check if max_tokens <= budget_tokens
+3. Added auto-correction: if constraint violated, increase max_tokens to budget + 8192
+4. Added safety margin: effectiveBudget = min(budget, max_tokens - 1024)
+
+KEY INSIGHT: The logging will reveal if something is modifying the values
+before they reach the API. The auto-correction ensures the request never
+fails due to this constraint.
+
+COMMIT: 9cbbacf - fix(api): Add extended thinking token validation and auto-correction
+FILES MODIFIED: server/src/services/ai/claude-service.ts
+CURRENT STATE: Both builds pass, pushed to main
