@@ -7369,3 +7369,30 @@ CONTEXT: AUTH-IMMUTABLE-SPECIFICATION.md requires hardcoded cookie values:
   - sameSite: 'lax' as const (NOT dynamic)
   - secure: true in production (NOT conditional on sameSite)
   - domain: '.kriptik.app' in production (NOT conditional on URL calculation)
+
+═══ [2026-01-11] API Provider Field Fix ═══
+COMPLETED: Fixed "provider: Extra inputs are not permitted" error in plan generation
+
+ROOT CAUSE: claude-service.ts was adding a 'provider' field to requestParams:
+  ```typescript
+  (requestParams as unknown as { provider?: ... }).provider = {
+      anthropic: { verbosity: effort }
+  };
+  ```
+  This is an OpenRouter-specific field format. KripTik's dual architecture routes
+  Claude models DIRECTLY to Anthropic SDK, which rejects unknown fields.
+
+FIX: Removed the provider field addition entirely. Extended thinking with
+  appropriate budget_tokens achieves the same deep reasoning capability.
+
+ARCHITECTURE CLARIFICATION:
+  - Anthropic SDK: Used DIRECTLY for Claude models (Opus 4.5, Sonnet 4.5, etc.)
+  - OpenAI SDK: Used DIRECTLY for GPT models (GPT-5.2, o3, Codex)
+  - OpenRouter: Only used as FALLBACK when direct API keys unavailable, or for
+    other models (Gemini, DeepSeek, etc.)
+
+FILES MODIFIED: server/src/services/ai/claude-service.ts
+CURRENT STATE: Both frontend and backend builds pass
+COMMITS:
+  - 4bd2be0: fix(api): Remove invalid 'provider' field
+  - 145ad9c: fix(auth): Restore immutable cookie configuration
