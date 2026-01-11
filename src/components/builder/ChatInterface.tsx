@@ -32,6 +32,7 @@ import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
 import StreamingConsciousness from './StreamingConsciousness';
+import { NeuralPathway } from '../neural-pathway';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
 import type { AgentActivityEvent } from '../../types/agent-activity';
@@ -1279,6 +1280,17 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                 />
                             </div>
                         )}
+
+                        {/* Neural Pathway - High-level orchestration flow visualization */}
+                        <div className="px-4 pt-3 shrink-0">
+                            <NeuralPathway
+                                sessionId={buildProjectId || projectId || `build-${Date.now()}`}
+                                promptText={lockedIntentPrompt || undefined}
+                                compact={true}
+                                showLabels={false}
+                                className="rounded-xl border border-slate-700/30"
+                            />
+                        </div>
 
                         {/* Provisioning Status - Browser agent activity during provisioning phase */}
                         <div className="px-4 pt-2 shrink-0">

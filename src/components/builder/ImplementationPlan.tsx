@@ -5,7 +5,7 @@
  * for the user to customize before building begins.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,11 +16,12 @@ import {
     ShieldIcon,
     ServerIcon,
     ZapIcon,
-    LoadingIcon,
     ArrowRightIcon,
     AlertCircleIcon
 } from '@/components/ui/icons';
 import { apiClient } from '@/lib/api-client';
+import { API_URL } from '@/lib/api-config';
+import { NeuralPathway } from '@/components/neural-pathway';
 
 // Types
 interface PlanOption {
@@ -306,12 +307,13 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
 
         try {
             // Use SSE endpoint for streaming progress
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/plan/generate/stream`, {
+            const response = await fetch(`${API_URL}/api/plan/generate/stream`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': apiClient.getUserId() || 'anonymous',
                 },
+                credentials: 'include',
                 body: JSON.stringify({ prompt }),
             });
 
@@ -474,20 +476,35 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
     const frontendPhases = phases.filter(p => p.type === 'frontend');
     const backendPhases = phases.filter(p => p.type === 'backend');
 
-    // Loading state
+    // Generate a session ID for the neural pathway
+    const sessionId = useMemo(() => `plan-${Date.now()}`, []);
+    
+    // Loading state with Neural Pathway visualization
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-16">
-                <div className="relative mb-8">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                        <LoadingIcon size={40} className="text-black animate-spin" />
-                    </div>
-                    <div className="absolute -inset-2 bg-gradient-to-br from-amber-400/30 to-orange-500/30 rounded-2xl blur-xl animate-pulse" />
+            <div className="flex flex-col items-center justify-center py-8">
+                {/* Header */}
+                <div className="text-center mb-6">
+                    <h2 className="text-xl font-bold text-white mb-2">Analyzing Your Prompt</h2>
+                    <p className="text-slate-400 text-sm max-w-md">
+                        Watch as KripTik's AI orchestration analyzes your requirements
+                    </p>
                 </div>
-                <ThinkingAnimation stage={thinkingStage} />
-                <p className="text-slate-500 mt-4 text-center max-w-md">
-                    Our AI is analyzing your prompt and creating a customized implementation plan...
-                </p>
+                
+                {/* Neural Pathway Visualization */}
+                <div className="w-full max-w-2xl">
+                    <NeuralPathway
+                        sessionId={sessionId}
+                        promptText={prompt}
+                        className="rounded-xl border border-slate-700/50"
+                        showLabels={true}
+                    />
+                </div>
+                
+                {/* Current stage indicator */}
+                <div className="mt-6">
+                    <ThinkingAnimation stage={thinkingStage} />
+                </div>
             </div>
         );
     }
