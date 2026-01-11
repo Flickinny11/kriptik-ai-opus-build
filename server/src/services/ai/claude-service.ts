@@ -520,19 +520,6 @@ export class ClaudeService {
             requestParams.temperature = temperature;
         }
 
-        // Add effort/verbosity parameter for Opus 4.5
-        // OpenRouter passes this through to Anthropic
-        if (effort && model === CLAUDE_MODELS.OPUS_4_5) {
-            // OpenRouter uses provider-specific parameters
-            // Cast to unknown first for type safety
-            (requestParams as unknown as { provider?: { anthropic?: { verbosity?: string } } }).provider = {
-                anthropic: {
-                    verbosity: effort,
-                },
-            };
-            console.log(`[ClaudeService] Opus 4.5 effort level: ${effort}`);
-        }
-
         if (stopSequences) {
             requestParams.stop_sequences = stopSequences;
         }
@@ -543,6 +530,14 @@ export class ClaudeService {
         // =================================================================
         let parsed: GenerationResponse;
         const provider = this.unifiedClient.getProviderForModel(model);
+
+        // NOTE: The "effort/verbosity" parameter was removed because:
+        // 1. Anthropic's direct SDK does NOT support a "provider" field - it causes "Extra inputs are not permitted" error
+        // 2. This was incorrectly added for OpenRouter which uses provider-specific params, but the request was going to Anthropic directly
+        // 3. The functionality is achieved by using extended thinking with appropriate budget instead
+        if (effort) {
+            console.log(`[ClaudeService] Effort level '${effort}' requested - using extended thinking for deep reasoning`);
+        }
 
         if (provider === 'openai') {
             // GPT-5.2, o3, Codex models → Use OpenAI SDK directly
