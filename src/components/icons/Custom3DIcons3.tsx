@@ -517,3 +517,48 @@ export const ArrowLeftRight3D: React.FC<Icon3DProps> = ({
       stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// ============================================================================
+// NEURAL PATHWAY ICONS (for orchestration visualization)
+// ============================================================================
+
+export const Lock3D: React.FC<Icon3DProps> = ({
+  size = 24, className = '', color = '#f59e0b', animated = true, onClick
+}) => {
+  const gradId = getGradientId('lock');
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size}
+      className={cn(iconBase(animated), className)}
+      style={{ filter: 'drop-shadow(0 2px 4px rgba(245,158,11,0.3))' }}
+      onClick={onClick}
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" 
+        fill={`url(#${gradId})`} stroke={color} strokeWidth="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="12" cy="16" r="1" fill={color} />
+    </svg>
+  );
+};
+
+export const Hammer3D: React.FC<Icon3DProps> = ({
+  size = 24, className = '', color = '#8b5cf6', animated = true, onClick
+}) => (
+  <svg viewBox="0 0 24 24" width={size} height={size}
+    className={cn(iconBase(animated), animated && 'hover:-rotate-12', className)}
+    style={{ filter: 'drop-shadow(0 2px 4px rgba(139,92,246,0.3))' }}
+    onClick={onClick}
+  >
+    <path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M17.64 15L22 10.64a1 1 0 0 0 0-1.41l-5.23-5.23a1 1 0 0 0-1.41 0L11 8.36" 
+      stroke={color} strokeWidth="2" fill="rgba(139,92,246,0.2)" strokeLinecap="round" />
+    <path d="M14.5 12.5L11 9" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+// Brain3D is already defined in Custom3DIcons.tsx, using that version

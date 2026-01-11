@@ -15,8 +15,8 @@ import { buildIntents, projects, orchestrationRuns, developerModeAgents, deepInt
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import type { OpenRouterModel } from './openrouter-client.js';
 import { createAPIDocumentationFetcher, type APIDocumentationFetcher } from './api-documentation-fetcher.js';
-import { 
-    createGPUClassifierService, 
+import {
+    createGPUClassifierService,
     type GPUClassificationResult,
     type GPURequirement,
     type GPUWorkloadType,
@@ -81,7 +81,7 @@ export interface IntentContract {
     generatedBy: string;
     thinkingTokensUsed: number;
     createdAt: string;
-    
+
     // GPU Requirements - Added for AI Lab Integration
     requiresGPU?: boolean;
     gpuWorkloadType?: GPUWorkloadType;
@@ -918,7 +918,7 @@ export class IntentLockEngine {
             generatedBy: row.generatedBy || 'claude-opus-4.5',
             thinkingTokensUsed: row.thinkingTokensUsed || 0,
             createdAt: row.createdAt,
-            
+
             // GPU Requirements
             requiresGPU: row.requiresGPU ?? undefined,
             gpuWorkloadType: row.gpuWorkloadType as GPUWorkloadType | undefined,
@@ -1132,7 +1132,7 @@ export class IntentLockEngine {
             originalPrompt: contract.originalPrompt,
             generatedBy: contract.generatedBy,
             thinkingTokensUsed: contract.thinkingTokensUsed,
-            
+
             // GPU Requirements
             requiresGPU: contract.requiresGPU ?? false,
             gpuWorkloadType: contract.gpuWorkloadType,
@@ -1140,7 +1140,7 @@ export class IntentLockEngine {
             detectedModels: contract.detectedModels as any,
             gpuClassificationConfidence: contract.gpuClassificationConfidence,
             gpuClassificationReasoning: contract.gpuClassificationReasoning,
-            
+
             createdAt: contract.createdAt,
         } as any;
 
@@ -1151,21 +1151,21 @@ export class IntentLockEngine {
             if (error.message?.includes('table build_intents has no column named') ||
                 error.message?.includes('SQLITE_ERROR') ||
                 error.message?.includes('Failed query')) {
-                
+
                 console.log('[IntentLock] Schema mismatch detected, running schema migration...');
-                
+
                 // Run schema ensure to add missing columns
                 try {
                     await ensureDatabaseSchema();
                     console.log('[IntentLock] Schema updated, retrying insert...');
-                    
+
                     // Retry the insert
                     await db.insert(buildIntents).values(values);
                     console.log('[IntentLock] Insert succeeded after schema update');
                     return;
                 } catch (schemaError: any) {
                     console.error('[IntentLock] Schema update failed:', schemaError.message);
-                    
+
                     // Last resort: try inserting without GPU columns
                     console.log('[IntentLock] Attempting insert without GPU columns...');
                     const coreValues = {
@@ -1187,13 +1187,13 @@ export class IntentLockEngine {
                         thinkingTokensUsed: contract.thinkingTokensUsed,
                         createdAt: contract.createdAt,
                     } as any;
-                    
+
                     await db.insert(buildIntents).values(coreValues);
                     console.log('[IntentLock] Insert succeeded without GPU columns (GPU data will be lost)');
                     return;
                 }
             }
-            
+
             // Re-throw if it's a different error
             throw error;
         }
@@ -2137,14 +2137,14 @@ Return ONLY valid JSON with these fields:
             if (error.message?.includes('no such table') ||
                 error.message?.includes('SQLITE_ERROR') ||
                 error.message?.includes('Failed query')) {
-                
+
                 console.log('[IntentLock] Deep intent table missing, running schema migration...');
-                
+
                 // Run schema ensure to create table
                 try {
                     await ensureDatabaseSchema();
                     console.log('[IntentLock] Schema updated, retrying deep intent insert...');
-                    
+
                     // Retry the insert
                     await db.insert(deepIntentContracts).values(values);
                     console.log('[IntentLock] Deep intent insert succeeded after schema update');
@@ -2156,7 +2156,7 @@ Return ONLY valid JSON with these fields:
                     return;
                 }
             }
-            
+
             // Re-throw if it's a different error
             throw error;
         }

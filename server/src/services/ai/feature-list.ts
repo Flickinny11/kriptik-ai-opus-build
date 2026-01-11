@@ -628,14 +628,14 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
             if (error.message?.includes('no such table') ||
                 error.message?.includes('SQLITE_ERROR') ||
                 error.message?.includes('Failed query')) {
-                
+
                 console.log('[FeatureList] Schema mismatch detected, running schema migration...');
-                
+
                 // Run schema ensure to create table
                 try {
                     await ensureDatabaseSchema();
                     console.log('[FeatureList] Schema updated, retrying insert...');
-                    
+
                     // Retry the insert
                     await db.insert(featureProgress).values(values);
                     console.log('[FeatureList] Insert succeeded after schema update');
@@ -645,7 +645,7 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
                     throw schemaError;
                 }
             }
-            
+
             // Re-throw if it's a different error
             throw error;
         }
