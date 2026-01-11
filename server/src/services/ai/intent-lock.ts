@@ -2098,7 +2098,7 @@ Return ONLY valid JSON with these fields:
     }
 
     private async saveDeepContract(contract: DeepIntentContract, sourcePlatform?: string): Promise<void> {
-        await db.insert(deepIntentContracts).values({
+        const values = {
             id: crypto.randomUUID(),
             intentContractId: contract.id,
             projectId: contract.projectId,
@@ -2128,7 +2128,38 @@ Return ONLY valid JSON with these fields:
             sourcePlatform: sourcePlatform,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-        });
+        };
+
+        try {
+            await db.insert(deepIntentContracts).values(values);
+        } catch (error: any) {
+            // Check if this is a schema mismatch error (table doesn't exist)
+            if (error.message?.includes('no such table') ||
+                error.message?.includes('SQLITE_ERROR') ||
+                error.message?.includes('Failed query')) {
+                
+                console.log('[IntentLock] Deep intent table missing, running schema migration...');
+                
+                // Run schema ensure to create table
+                try {
+                    await ensureDatabaseSchema();
+                    console.log('[IntentLock] Schema updated, retrying deep intent insert...');
+                    
+                    // Retry the insert
+                    await db.insert(deepIntentContracts).values(values);
+                    console.log('[IntentLock] Deep intent insert succeeded after schema update');
+                    return;
+                } catch (schemaError: any) {
+                    console.error('[IntentLock] Deep intent schema update failed:', schemaError.message);
+                    // Don't throw - deep intent is optional enhancement
+                    console.warn('[IntentLock] Continuing without deep intent contract');
+                    return;
+                }
+            }
+            
+            // Re-throw if it's a different error
+            throw error;
+        }
     }
 
     private async updateDeepContractChecklist(contractId: string, checklist: FunctionalChecklistItem[]): Promise<void> {

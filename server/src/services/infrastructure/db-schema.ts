@@ -334,6 +334,127 @@ CREATE TABLE IF NOT EXISTS domain_transactions (
             `CREATE INDEX IF NOT EXISTS idx_domain_transactions_created_at ON domain_transactions(created_at)`,
         ],
     },
+    // =========================================================================
+    // BUILD INTENTS (Intent Lock Phase 0)
+    // =========================================================================
+    {
+        table: 'build_intents',
+        createTableSql: `
+CREATE TABLE IF NOT EXISTS build_intents (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    orchestration_run_id TEXT,
+    user_id TEXT NOT NULL,
+    app_type TEXT NOT NULL,
+    app_soul TEXT NOT NULL,
+    core_value_prop TEXT NOT NULL,
+    success_criteria TEXT NOT NULL,
+    user_workflows TEXT NOT NULL,
+    visual_identity TEXT NOT NULL,
+    anti_patterns TEXT NOT NULL,
+    locked INTEGER DEFAULT 0 NOT NULL,
+    locked_at TEXT,
+    original_prompt TEXT NOT NULL,
+    generated_by TEXT DEFAULT 'claude-opus-4.5',
+    thinking_tokens_used INTEGER DEFAULT 0,
+    requires_gpu INTEGER DEFAULT 0,
+    gpu_workload_type TEXT,
+    gpu_requirements TEXT,
+    detected_models TEXT,
+    gpu_classification_confidence REAL,
+    gpu_classification_reasoning TEXT,
+    created_at TEXT DEFAULT (datetime('now')) NOT NULL
+)`,
+        indexSql: [
+            `CREATE INDEX IF NOT EXISTS idx_build_intents_project ON build_intents(project_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_build_intents_user ON build_intents(user_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_build_intents_requires_gpu ON build_intents(requires_gpu)`,
+        ],
+    },
+    // =========================================================================
+    // DEEP INTENT CONTRACTS (Extended Intent Definitions)
+    // =========================================================================
+    {
+        table: 'deep_intent_contracts',
+        createTableSql: `
+CREATE TABLE IF NOT EXISTS deep_intent_contracts (
+    id TEXT PRIMARY KEY NOT NULL,
+    intent_contract_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    orchestration_run_id TEXT,
+    technical_requirements TEXT DEFAULT '[]',
+    integration_requirements TEXT DEFAULT '[]',
+    functional_checklist TEXT DEFAULT '[]',
+    wiring_map TEXT DEFAULT '[]',
+    integration_tests TEXT DEFAULT '[]',
+    completion_gate TEXT,
+    intent_embedding_id TEXT,
+    visual_embedding_id TEXT,
+    semantic_components TEXT,
+    total_checklist_items INTEGER DEFAULT 0,
+    verified_checklist_items INTEGER DEFAULT 0,
+    total_integrations INTEGER DEFAULT 0,
+    verified_integrations INTEGER DEFAULT 0,
+    total_technical_requirements INTEGER DEFAULT 0,
+    verified_technical_requirements INTEGER DEFAULT 0,
+    total_wiring_connections INTEGER DEFAULT 0,
+    verified_wiring_connections INTEGER DEFAULT 0,
+    total_tests INTEGER DEFAULT 0,
+    passed_tests INTEGER DEFAULT 0,
+    intent_satisfied INTEGER DEFAULT 0,
+    satisfied_at TEXT,
+    anti_slop_score INTEGER,
+    deep_intent_version TEXT DEFAULT '1.0.0',
+    decomposition_model TEXT,
+    decomposition_thinking_tokens INTEGER DEFAULT 0,
+    estimated_build_complexity TEXT DEFAULT 'moderate',
+    source_platform TEXT,
+    chat_history_parsed INTEGER DEFAULT 0,
+    inferred_requirements TEXT DEFAULT '[]',
+    created_at TEXT DEFAULT (datetime('now')) NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+)`,
+        indexSql: [
+            `CREATE INDEX IF NOT EXISTS idx_deep_intent_contracts_intent ON deep_intent_contracts(intent_contract_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_deep_intent_contracts_project ON deep_intent_contracts(project_id)`,
+        ],
+    },
+    // =========================================================================
+    // FEATURE PROGRESS (Feature Agent Progress Tracking)
+    // =========================================================================
+    {
+        table: 'feature_progress',
+        createTableSql: `
+CREATE TABLE IF NOT EXISTS feature_progress (
+    id TEXT PRIMARY KEY NOT NULL,
+    build_intent_id TEXT NOT NULL,
+    orchestration_run_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    feature_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT NOT NULL,
+    priority INTEGER DEFAULT 1 NOT NULL,
+    implementation_steps TEXT DEFAULT '[]',
+    visual_requirements TEXT DEFAULT '[]',
+    files_modified TEXT DEFAULT '[]',
+    passes INTEGER DEFAULT 0 NOT NULL,
+    assigned_agent TEXT,
+    assigned_at TEXT,
+    verification_status TEXT DEFAULT '{}',
+    verification_scores TEXT,
+    build_attempts INTEGER DEFAULT 0,
+    last_build_at TEXT,
+    passed_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')) NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+)`,
+        indexSql: [
+            `CREATE INDEX IF NOT EXISTS idx_feature_progress_build_intent ON feature_progress(build_intent_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_feature_progress_project ON feature_progress(project_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_feature_progress_passes ON feature_progress(passes)`,
+        ],
+    },
 ];
 
 async function getExistingTables(): Promise<Set<string>> {

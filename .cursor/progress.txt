@@ -7444,3 +7444,8 @@ The fix is in db-schema.ts which handles column additions programmatically.
 COMMIT: 64362c7 - fix(db): Add missing GPU columns to build_intents table
 FILES MODIFIED: server/src/services/infrastructure/db-schema.ts
 CURRENT STATE: Both builds pass, pushed to main
+═══ [2026-01-11] Robust Schema Auto-Recovery ═══
+COMPLETED: Added auto-recovery to intent-lock saveContract
+COMMIT: 72f945f
+FILES: intent-lock.ts, db-schema.ts
+STATUS: Pushed to main

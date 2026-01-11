@@ -19,6 +19,7 @@ import { featureProgress, buildIntents } from '../../schema.js';
 import { ClaudeService, createClaudeService, CLAUDE_MODELS } from './claude-service.js';
 import type { OpenRouterModel } from './openrouter-client.js';
 import type { IntentContract } from './intent-lock.js';
+import { ensureDatabaseSchema } from '../infrastructure/db-schema.js';
 
 // =============================================================================
 // TYPES
@@ -592,10 +593,11 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
 
     /**
      * Save a feature to the database
+     * Includes error handling for schema mismatches with auto-recovery
      */
     private async saveFeature(feature: Feature): Promise<void> {
         // Using `as any` for type assertion - Drizzle schema types don't fully match runtime behavior
-        await db.insert(featureProgress).values({
+        const values = {
             id: feature.id,
             buildIntentId: feature.buildIntentId,
             orchestrationRunId: feature.orchestrationRunId,
@@ -617,7 +619,36 @@ ${intent.antiPatterns.map(ap => `- ${ap}`).join('\n')}`;
             passedAt: feature.passedAt,
             createdAt: feature.createdAt,
             updatedAt: feature.updatedAt,
-        } as any);
+        } as any;
+
+        try {
+            await db.insert(featureProgress).values(values);
+        } catch (error: any) {
+            // Check if this is a schema mismatch error (table doesn't exist)
+            if (error.message?.includes('no such table') ||
+                error.message?.includes('SQLITE_ERROR') ||
+                error.message?.includes('Failed query')) {
+                
+                console.log('[FeatureList] Schema mismatch detected, running schema migration...');
+                
+                // Run schema ensure to create table
+                try {
+                    await ensureDatabaseSchema();
+                    console.log('[FeatureList] Schema updated, retrying insert...');
+                    
+                    // Retry the insert
+                    await db.insert(featureProgress).values(values);
+                    console.log('[FeatureList] Insert succeeded after schema update');
+                    return;
+                } catch (schemaError: any) {
+                    console.error('[FeatureList] Schema update failed:', schemaError.message);
+                    throw schemaError;
+                }
+            }
+            
+            // Re-throw if it's a different error
+            throw error;
+        }
     }
 }
 
