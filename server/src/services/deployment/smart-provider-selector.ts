@@ -81,7 +81,7 @@ const VRAM_REQUIREMENTS: Record<ModelModality, { baseVRAM: number; perGBModel: n
 // Average inference duration by modality (seconds)
 const AVG_INFERENCE_DURATION: Record<ModelModality, number> = {
   llm: 3.0, // Token generation takes longer
-  image: 8.0, // Image generation 
+  image: 8.0, // Image generation
   video: 45.0, // Video generation is slow
   audio: 2.0, // Audio is relatively fast
   multimodal: 5.0,

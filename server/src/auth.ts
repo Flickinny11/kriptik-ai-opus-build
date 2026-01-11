@@ -154,20 +154,9 @@ const frontendUrl =
     process.env.PUBLIC_FRONTEND_URL ||
     (isProd ? 'https://kriptik-ai-opus-build.vercel.app' : 'http://localhost:5173');
 
-// If frontend + backend share the same eTLD+1 (kriptik.app), we should use first-party
-// cookie semantics to maximize compatibility with embedded browsers and iOS Safari.
-const isKriptikSameSite = (() => {
-    try {
-        const b = new URL(backendUrl);
-        const f = new URL(frontendUrl);
-        const isKriptikApexOrSub = (host: string) => host === 'kriptik.app' || host.endsWith('.kriptik.app');
-        return isKriptikApexOrSub(b.hostname) && isKriptikApexOrSub(f.hostname);
-    } catch {
-        return false;
-    }
-})();
-
-const cookieSameSite = (isKriptikSameSite ? 'lax' : 'none') as 'lax' | 'none';
+// REMOVED: Dynamic isKriptikSameSite calculation - it was unreliable
+// Per AUTH-IMMUTABLE-SPECIFICATION.md, use hardcoded 'lax' for all cases
+// This maximizes compatibility with mobile Safari and embedded browsers
 
 const socialProviders: Record<string, { clientId: string; clientSecret: string; redirectURI?: string }> = {};
 
@@ -196,8 +185,7 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
-console.log('[Auth] Is same-site (kriptik.app):', isKriptikSameSite);
-console.log('[Auth] Cookie SameSite setting:', cookieSameSite);
+console.log('[Auth] Cookie SameSite setting: lax (hardcoded per AUTH-IMMUTABLE-SPECIFICATION)');
 console.log('[Auth] Is production:', isProd);
 
 // Log configuration on startup
@@ -283,18 +271,20 @@ export const auth = betterAuth({
         // Cookie name prefix
         cookiePrefix: "kriptik_auth",
 
-        // Default cookie attributes - EXPLICIT domain setting
+        // Default cookie attributes - HARDCODED per AUTH-IMMUTABLE-SPECIFICATION.md
+        // DO NOT MAKE THESE DYNAMIC - mobile Safari and embedded browsers require exact configuration
         defaultCookieAttributes: {
-            // CRITICAL: Use calculated sameSite (Lax for same-site, None for cross-site)
-            // SameSite=None REQUIRES Secure=true for embedded browsers and mobile Safari
-            sameSite: cookieSameSite,
-            secure: cookieSameSite === 'none' ? true : (isProd ? true : false), // Always Secure in prod, required for None
+            // CRITICAL: Always 'lax' - maximizes compatibility with mobile Safari and embedded browsers
+            // 'none' is blocked by iOS Safari's ITP (Intelligent Tracking Prevention)
+            sameSite: 'lax' as const,
+            // CRITICAL: Always true in production
+            secure: isProd,
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
             // CRITICAL: Explicit domain for cross-subdomain (api.kriptik.app <-> kriptik.app)
-            // Only set domain in production when both are on kriptik.app
-            domain: (isProd && isKriptikSameSite) ? '.kriptik.app' : undefined,
+            // Always set in production to enable cookie sharing across subdomains
+            domain: isProd ? '.kriptik.app' : undefined,
         },
     },
 

@@ -93,7 +93,7 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     const endpoints = await endpointDeployer.listEndpoints(userId);
-    
+
     res.json({
       success: true,
       endpoints,
@@ -397,7 +397,7 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     const { projectId, ...config } = req.body as { projectId?: string } & DeploymentConfig;
-    
+
     // Validate required fields
     if (!config.modelId || !config.modelName || !config.gpuType) {
       return res.status(400).json({
@@ -405,7 +405,7 @@ router.post('/', authMiddleware, async (req, res) => {
         error: 'Missing required fields: modelId, modelName, gpuType',
       });
     }
-    
+
     const endpoint = await endpointDeployer.deployEndpoint(
       userId,
       projectId || 'default',
@@ -421,7 +421,7 @@ router.post('/', authMiddleware, async (req, res) => {
         volumeSizeGB: config.volumeSizeGB || 20,
       }
     );
-    
+
     res.json({
       success: true,
       endpoint,
@@ -443,14 +443,14 @@ router.post('/:id/test', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     const { prompt, max_tokens, temperature } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({
         success: false,
         error: 'Missing required field: prompt',
       });
     }
-    
+
     const result = await endpointDeployer.testEndpoint(
       req.params.id,
       userId,
@@ -458,7 +458,7 @@ router.post('/:id/test', authMiddleware, async (req, res) => {
       max_tokens || 256,
       temperature || 0.7
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error testing endpoint:', error);
@@ -477,7 +477,7 @@ router.post('/:id/confirm', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     await endpointDeployer.confirmEndpoint(req.params.id, userId);
-    
+
     res.json({
       success: true,
       message: 'Endpoint confirmed',
@@ -499,7 +499,7 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     await endpointDeployer.startEndpoint(req.params.id, userId);
-    
+
     res.json({
       success: true,
       message: 'Endpoint starting',
@@ -521,7 +521,7 @@ router.post('/:id/stop', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     await endpointDeployer.stopEndpoint(req.params.id, userId);
-    
+
     res.json({
       success: true,
       message: 'Endpoint stopped',
@@ -543,7 +543,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user!.id;
     await endpointDeployer.deleteEndpoint(req.params.id, userId);
-    
+
     res.json({
       success: true,
       message: 'Endpoint deleted',

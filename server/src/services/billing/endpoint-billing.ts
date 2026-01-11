@@ -146,7 +146,7 @@ export class EndpointBilling {
   ): UsageCost {
     // Get GPU pricing
     const gpuPricing = this.getGPUPricing(config.provider, config.gpuType);
-    
+
     // Calculate compute cost (per-second pricing)
     const computeCostUsd = usage.computeSeconds * gpuPricing.perSecond;
 
@@ -259,7 +259,7 @@ export class EndpointBilling {
     estimatedCredits: number
   ): Promise<{ authorized: boolean; reason?: string }> {
     const creditCheck = await this.checkCredits(userId, estimatedCredits);
-    
+
     if (!creditCheck.sufficient) {
       return {
         authorized: false,
@@ -680,7 +680,7 @@ export class EndpointBilling {
 
     // Match base model ID to pricing
     const normalizedId = baseModelId.toLowerCase();
-    
+
     for (const [key, pricing] of Object.entries(TOKEN_COSTS_PER_MILLION)) {
       if (normalizedId.includes(key)) {
         return pricing;

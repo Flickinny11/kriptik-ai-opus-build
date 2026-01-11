@@ -692,7 +692,7 @@ export class EndpointRegistry {
     requestsToday: number;
   }> {
     const endpoints = await this.listUserEndpoints();
-    
+
     const active = endpoints.filter((ep) => ep.status === 'active').length;
     const idle = endpoints.filter((ep) => ep.status === 'idle').length;
     const error = endpoints.filter((ep) => ep.status === 'error').length;

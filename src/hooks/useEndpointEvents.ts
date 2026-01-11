@@ -238,7 +238,7 @@ export function useEndpointEvents(
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        
+
         if (message.channel === 'endpoint:event') {
           const endpointEvent = message.data as EndpointEvent;
 

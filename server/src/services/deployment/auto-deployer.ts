@@ -240,7 +240,7 @@ export class AutoDeployer extends EventEmitter {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       this.emit('deploy_failed', { trainingJobId, error: errorMessage });
 
       return {
@@ -380,9 +380,9 @@ export class AutoDeployer extends EventEmitter {
       const urlMatch = modelUrl.match(/huggingface\.co\/([^/]+\/[^/]+)/);
       if (urlMatch) {
         const repoId = urlMatch[1];
-        
+
         // Check for quantization indicators in repo name
-        if (repoId.toLowerCase().includes('gguf') || 
+        if (repoId.toLowerCase().includes('gguf') ||
             repoId.toLowerCase().includes('awq') ||
             repoId.toLowerCase().includes('gptq')) {
           analysis.isQuantized = true;
@@ -423,7 +423,7 @@ export class AutoDeployer extends EventEmitter {
 
     // Determine GPU based on VRAM requirements
     let gpuType = analysis.recommendedGPU;
-    
+
     // Match GPU to VRAM requirement
     if (analysis.requiredVRAM <= 16) {
       gpuType = 'T4';

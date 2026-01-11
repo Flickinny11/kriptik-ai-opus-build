@@ -137,7 +137,7 @@ router.post('/:endpointId/chat/completions', async (req: Request, res: Response)
         if (!data.object) {
           // Extract message from various response formats
           let message: { role: string; content: string } = { role: 'assistant', content: '' };
-          
+
           if (data.message && typeof data.message === 'object') {
             message = data.message as { role: string; content: string };
           } else if (Array.isArray(data.choices) && data.choices.length > 0) {
@@ -150,7 +150,7 @@ router.post('/:endpointId/chat/completions', async (req: Request, res: Response)
           } else {
             message = { role: 'assistant', content: JSON.stringify(data) };
           }
-          
+
           // Wrap in OpenAI format
           const openaiResponse = {
             id: `chatcmpl-${Date.now()}`,
@@ -232,7 +232,7 @@ router.get('/:endpointId/models', async (req: Request, res: Response) => {
 
   try {
     const status = await gateway.getEndpointStatus(endpointId, apiKey);
-    
+
     // Return OpenAI-compatible models response
     res.json({
       object: 'list',

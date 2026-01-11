@@ -375,7 +375,7 @@ export class OpenSourceStudioDeployer extends EventEmitter {
    */
   private async fetchModelInfo(modelId: string): Promise<ModelInfo> {
     const hfToken = process.env.HUGGINGFACE_TOKEN || process.env.HF_TOKEN;
-    
+
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
@@ -414,7 +414,7 @@ export class OpenSourceStudioDeployer extends EventEmitter {
 
     } catch (error) {
       console.error(`[OpenSourceStudioDeployer] Failed to fetch model info for ${modelId}:`, error);
-      
+
       // Return minimal info based on model ID
       return this.createMinimalModelInfo(modelId);
     }

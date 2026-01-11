@@ -7222,8 +7222,8 @@ BUILD STATUS: ✅ Vite production build succeeds
 COMPLETED: Full implementation of AUTO-DEPLOY-PRIVATE-ENDPOINTS-PLAN.md (12 Prompts)
 
 IMPLEMENTATION SUMMARY:
-The complete Auto-Deploy Private Endpoints system is now production-ready, enabling users 
-to train a model and automatically receive a private API endpoint. All 12 prompts from 
+The complete Auto-Deploy Private Endpoints system is now production-ready, enabling users
+to train a model and automatically receive a private API endpoint. All 12 prompts from
 the implementation plan have been fully integrated.
 
 CORE BACKEND SERVICES (11 files):
@@ -7232,7 +7232,7 @@ CORE BACKEND SERVICES (11 files):
    - Private user endpoints CRUD with bcrypt-hashed API keys
    - Key generation, validation, revocation with secure prefixes
    - Per-user endpoint isolation and ownership verification
-   
+
 2. server/src/services/deployment/auto-deployer.ts
    - Automatic endpoint deployment after training completion
    - Model analysis and deployment configuration selection
@@ -7347,3 +7347,25 @@ ARCHITECTURE DECISIONS:
 COMPILE STATUS: ✅ Frontend and Backend TypeScript compilation SUCCESS
 CURRENT STATE: All 12 prompts implemented, ready for integration testing
 NEXT: Commit, push, deploy to Vercel production
+
+═══ [2026-01-11] Auth Mobile Fix ═══
+COMPLETED: Fixed auth.ts to match AUTH-IMMUTABLE-SPECIFICATION.md
+  - REMOVED dynamic isKriptikSameSite calculation that was unreliable
+  - CHANGED cookie sameSite from dynamic to hardcoded 'lax' as const
+  - CHANGED cookie secure from conditional to isProd (always true in production)
+  - CHANGED cookie domain from conditional to always .kriptik.app in production
+  
+ROOT CAUSE: Cookie configuration was changed from hardcoded values to dynamic
+  URL-based calculation which failed on mobile Safari because:
+  1. Dynamic isKriptikSameSite calculation could fail if env vars weren't aligned
+  2. When it failed, SameSite=none was set, which mobile Safari blocks by default (ITP)
+  3. Domain was not set to .kriptik.app when isKriptikSameSite was false
+  
+FILES MODIFIED: server/src/auth.ts
+CURRENT STATE: Builds pass, auth config matches immutable specification
+NEXT: Deploy to verify mobile login works
+
+CONTEXT: AUTH-IMMUTABLE-SPECIFICATION.md requires hardcoded cookie values:
+  - sameSite: 'lax' as const (NOT dynamic)
+  - secure: true in production (NOT conditional on sameSite)
+  - domain: '.kriptik.app' in production (NOT conditional on URL calculation)

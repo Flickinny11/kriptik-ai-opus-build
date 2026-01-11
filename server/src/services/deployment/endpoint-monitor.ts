@@ -459,7 +459,7 @@ export class EndpointMonitor extends EventEmitter {
       if (issue.includes('not reachable') || issue.includes('stuck in scaling') || issue.includes('stuck in provisioning')) {
         // Redeploy the endpoint
         const registry = createEndpointRegistry(userId);
-        
+
         // Update status to indicate we're redeploying
         await registry.updateEndpointStatus(endpointId, 'provisioning');
 

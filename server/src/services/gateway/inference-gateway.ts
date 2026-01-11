@@ -8,11 +8,11 @@
  */
 
 import { EventEmitter } from 'events';
-import { 
-  EndpointRegistry, 
-  createEndpointRegistry, 
-  type EndpointInfo, 
-  type UsageRecord 
+import {
+  EndpointRegistry,
+  createEndpointRegistry,
+  type EndpointInfo,
+  type UsageRecord
 } from '../deployment/endpoint-registry.js';
 import { RunPodDeployer, getRunPodDeployer } from '../deployment/runpod-deployer.js';
 import { ModalDeployer, getModalDeployer } from '../deployment/modal-deployer.js';
