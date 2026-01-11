@@ -26,6 +26,7 @@ import {
     type EvaluationContext,
     type GateEvaluationResult,
 } from '../verification/completion-gate-evaluator.js';
+import { ensureDatabaseSchema } from '../infrastructure/db-schema.js';
 
 // =============================================================================
 // TYPES
@@ -1110,10 +1111,11 @@ export class IntentLockEngine {
 
     /**
      * Save contract to database
+     * Includes error handling for schema mismatches with auto-recovery
      */
     private async saveContract(contract: IntentContract): Promise<void> {
         // Using `as any` for type assertion - Drizzle schema types don't fully match runtime behavior
-        await db.insert(buildIntents).values({
+        const values = {
             id: contract.id,
             projectId: contract.projectId,
             orchestrationRunId: contract.orchestrationRunId,
@@ -1140,7 +1142,61 @@ export class IntentLockEngine {
             gpuClassificationReasoning: contract.gpuClassificationReasoning,
             
             createdAt: contract.createdAt,
-        } as any);
+        } as any;
+
+        try {
+            await db.insert(buildIntents).values(values);
+        } catch (error: any) {
+            // Check if this is a schema mismatch error (missing columns)
+            if (error.message?.includes('table build_intents has no column named') ||
+                error.message?.includes('SQLITE_ERROR') ||
+                error.message?.includes('Failed query')) {
+                
+                console.log('[IntentLock] Schema mismatch detected, running schema migration...');
+                
+                // Run schema ensure to add missing columns
+                try {
+                    await ensureDatabaseSchema();
+                    console.log('[IntentLock] Schema updated, retrying insert...');
+                    
+                    // Retry the insert
+                    await db.insert(buildIntents).values(values);
+                    console.log('[IntentLock] Insert succeeded after schema update');
+                    return;
+                } catch (schemaError: any) {
+                    console.error('[IntentLock] Schema update failed:', schemaError.message);
+                    
+                    // Last resort: try inserting without GPU columns
+                    console.log('[IntentLock] Attempting insert without GPU columns...');
+                    const coreValues = {
+                        id: contract.id,
+                        projectId: contract.projectId,
+                        orchestrationRunId: contract.orchestrationRunId,
+                        userId: contract.userId,
+                        appType: contract.appType,
+                        appSoul: contract.appSoul,
+                        coreValueProp: contract.coreValueProp,
+                        successCriteria: contract.successCriteria as any,
+                        userWorkflows: contract.userWorkflows as any,
+                        visualIdentity: contract.visualIdentity as any,
+                        antiPatterns: contract.antiPatterns as any,
+                        locked: contract.locked,
+                        lockedAt: contract.lockedAt,
+                        originalPrompt: contract.originalPrompt,
+                        generatedBy: contract.generatedBy,
+                        thinkingTokensUsed: contract.thinkingTokensUsed,
+                        createdAt: contract.createdAt,
+                    } as any;
+                    
+                    await db.insert(buildIntents).values(coreValues);
+                    console.log('[IntentLock] Insert succeeded without GPU columns (GPU data will be lost)');
+                    return;
+                }
+            }
+            
+            // Re-throw if it's a different error
+            throw error;
+        }
     }
 
     // =========================================================================

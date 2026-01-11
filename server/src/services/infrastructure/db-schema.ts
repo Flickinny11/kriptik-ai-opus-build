@@ -38,33 +38,33 @@ const TABLE_SPECS: TableSpec[] = [
 CREATE TABLE IF NOT EXISTS project_production_stacks (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL UNIQUE REFERENCES projects(id),
-    
+
     auth_provider TEXT,
     auth_config TEXT,
-    
+
     database_provider TEXT,
     database_config TEXT,
-    
+
     storage_provider TEXT,
     storage_config TEXT,
-    
+
     payment_provider TEXT,
     payment_config TEXT,
-    
+
     email_provider TEXT,
     email_config TEXT,
-    
+
     hosting_target TEXT,
     hosting_config TEXT,
-    
+
     estimated_users TEXT,
     estimated_storage TEXT,
-    
+
     dependencies TEXT,
-    
+
     is_configured INTEGER DEFAULT 0 NOT NULL,
     configured_at TEXT,
-    
+
     created_at TEXT DEFAULT (datetime('now')) NOT NULL,
     updated_at TEXT DEFAULT (datetime('now')) NOT NULL
 )`,
@@ -406,24 +406,24 @@ export async function ensureDatabaseSchema(): Promise<SchemaEnsureResult> {
     // Add missing columns to existing tables
     // Group by table to avoid multiple PRAGMA calls
     const tableColumns = new Map<string, Set<string>>();
-    
+
     for (const addition of COLUMN_ADDITIONS) {
         if (!existingBefore.has(addition.table)) {
             // Table doesn't exist yet, skip (will be created with full schema)
             continue;
         }
-        
+
         // Get columns for this table if not cached
         if (!tableColumns.has(addition.table)) {
             tableColumns.set(addition.table, await getTableColumns(addition.table));
         }
-        
+
         const columns = tableColumns.get(addition.table)!;
         if (columns.has(addition.column)) {
             // Column already exists, skip
             continue;
         }
-        
+
         // Add the missing column
         try {
             await client.execute(`ALTER TABLE ${addition.table} ADD COLUMN ${addition.column} ${addition.definition}`);
