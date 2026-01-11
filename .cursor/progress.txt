@@ -7496,3 +7496,38 @@ FILES MODIFIED:
 COMMITS:
 - 4496075 feat: Integrate Neural Pathway into Builder and Plan views
 - 539ff89 feat: Add Neural Pathway real-time orchestration visualization
+
+═══ [2026-01-11] Neural Pathway Backend Integration ═══
+COMPLETED: Real-time SSE endpoint for Neural Pathway events
+
+BACKEND CHANGES:
+1. Added GET /api/orchestrate/:projectId/neural-pathway endpoint
+   - Transforms BuildLoopOrchestrator events to pathway node updates
+   - Maps phases to nodes: Phase0 → intent-lock, Phase2 → agents, etc.
+   - Forwards: agent activity, file updates, verification results
+   - Heartbeat every 30 seconds
+   - Proper cleanup on disconnect
+
+FRONTEND CHANGES:
+1. Updated useNeuralPathwayEvents.ts:
+   - Tries real SSE connection first
+   - Falls back to simulation if SSE unavailable
+   - Session ID routing: 'plan-' or 'build-' prefixes → simulation
+
+EVENT TRANSFORMATIONS:
+- phase_start/phase_complete → node active/complete status
+- agent-progress → agent slot updates with details
+- file_update → code-gen node with file diffs
+- verification_result → verification node with results
+- build_complete → completion state
+
+COMMITS:
+- 47a68ed feat: Add real-time SSE endpoint for Neural Pathway events
+
+ALL TODOS COMPLETE:
+✅ Create OrchestrationEvent types and WebSocket emitter
+✅ Build NeuralPathway visualization component with Framer Motion
+✅ Create expandable node details modal
+✅ Integrate with BuildLoopOrchestrator event emission
+✅ Replace 3-dots loader with NeuralPathway in all NLP bars
+✅ Add real-time streaming hooks
