@@ -7417,3 +7417,30 @@ fails due to this constraint.
 COMMIT: 9cbbacf - fix(api): Add extended thinking token validation and auto-correction
 FILES MODIFIED: server/src/services/ai/claude-service.ts
 CURRENT STATE: Both builds pass, pushed to main
+
+═══ [2026-01-11] Database Schema Migration Fix ═══
+COMPLETED: Fixed "Failed query: insert into build_intents" error
+
+PROBLEM: The build_intents table in production was missing GPU-related columns:
+  - requires_gpu
+  - gpu_workload_type  
+  - gpu_requirements
+  - detected_models
+  - gpu_classification_confidence
+  - gpu_classification_reasoning
+
+These columns were added to schema.ts but never migrated to production DB.
+
+SOLUTION:
+1. Updated ensureDatabaseSchema() in db-schema.ts to auto-add missing columns
+2. Added getTableColumns() helper to check existing columns via PRAGMA table_info
+3. Added COLUMN_ADDITIONS array defining missing columns
+4. Schema ensure now runs ALTER TABLE ADD COLUMN for missing columns at startup
+5. Safe for concurrent execution - catches "duplicate column name" errors
+
+KEY INSIGHT: The drizzle folder is gitignored, so migration files don't deploy.
+The fix is in db-schema.ts which handles column additions programmatically.
+
+COMMIT: 64362c7 - fix(db): Add missing GPU columns to build_intents table
+FILES MODIFIED: server/src/services/infrastructure/db-schema.ts
+CURRENT STATE: Both builds pass, pushed to main
