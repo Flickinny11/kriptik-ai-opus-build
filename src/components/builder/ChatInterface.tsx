@@ -31,7 +31,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
-import StreamingConsciousness from './StreamingConsciousness';
+import { NeuralCanvas, useNeuralCanvasStore } from '../neural-canvas';
 import { NeuralPathway } from '../neural-pathway';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
@@ -415,6 +415,26 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
         }
     }, [input]);
+
+    // Connect activity events to Neural Canvas store
+    const { processAgentEvent, setMode, reset: resetNeuralCanvas } = useNeuralCanvasStore();
+
+    useEffect(() => {
+        // Process new activity events into the Neural Canvas
+        if (activityEvents.length > 0) {
+            const latestEvent = activityEvents[activityEvents.length - 1];
+            processAgentEvent(latestEvent);
+        }
+    }, [activityEvents, processAgentEvent]);
+
+    // Set Neural Canvas mode based on build workflow phase
+    useEffect(() => {
+        if (buildWorkflowPhase === 'building' || globalStatus === 'running') {
+            setMode('expanded');
+        } else if (buildWorkflowPhase === 'idle' && globalStatus === 'idle') {
+            resetNeuralCanvas();
+        }
+    }, [buildWorkflowPhase, globalStatus, setMode, resetNeuralCanvas]);
 
     // P0-3: Watch for ProductionStackWizard completion
     // When wizard closes with configured stack, build credentials from stack selection
@@ -1366,18 +1386,9 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </div>
 
-                        {/* Streaming Consciousness - Neural network visualization of parallel agents */}
+                        {/* Neural Canvas - Premium orchestration UI for AI visualization */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
-                            <StreamingConsciousness
-                                events={activityEvents}
-                                agentCount={parallelAgents.length > 0 ? parallelAgents.length : 3}
-                                isActive={globalStatus === 'running'}
-                                currentPhase={
-                                    buildWorkflowPhase === 'building' ? 'Autonomous Build' :
-                                    buildWorkflowPhase === 'complete' ? 'Complete' :
-                                    'Initializing'
-                                }
-                            />
+                            <NeuralCanvas />
                         </div>
 
                         {/* Agent Progress - Compact phase indicators */}
