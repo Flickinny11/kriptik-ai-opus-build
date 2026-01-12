@@ -729,14 +729,17 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                 try {
                                     const event = JSON.parse(data);
 
-                                    // Add activity to stream
-                                    setPlanActivities(prev => [...prev, {
-                                        id: String(Date.now() + Math.random()),
-                                        type: event.type as any,
-                                        content: event.content || event.details || '',
-                                        file: event.file,
-                                        timestamp: new Date(event.timestamp || Date.now()),
-                                    }]);
+                                    // Only add activities with actual content (filter out keepalive/heartbeat)
+                                    const content = event.content || event.details || '';
+                                    if (content && event.type !== 'heartbeat') {
+                                        setPlanActivities(prev => [...prev, {
+                                            id: String(Date.now() + Math.random()),
+                                            type: event.type as any,
+                                            content,
+                                            file: event.file,
+                                            timestamp: new Date(event.timestamp || Date.now()),
+                                        }]);
+                                    }
 
                                     // Capture final plan data
                                     if (event.type === 'complete' && event.plan) {
@@ -748,7 +751,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                         };
                                     }
                                 } catch (e) {
-                                    // Ignore parse errors for non-JSON lines
+                                    // Ignore parse errors for non-JSON lines (like `: keepalive`)
                                 }
                             }
                         }
