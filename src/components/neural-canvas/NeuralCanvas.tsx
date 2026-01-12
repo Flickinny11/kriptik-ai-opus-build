@@ -56,7 +56,7 @@ export interface NeuralCanvasProps {
 export function NeuralCanvas({
   events = [],
   isActive: externalActive,
-  mode: initialMode = 'standard',
+  mode: _initialMode = 'standard', // Mode is managed by parent via store
   initialSections = ['thoughts', 'code', 'agents', 'timeline'],
   onSectionClick,
   onCodeExpand,
@@ -86,11 +86,10 @@ export function NeuralCanvas({
     startSession,
   } = useNeuralCanvasStore();
 
-  // Initialize store on mount
+  // Initialize visible sections on mount (don't override mode - parent controls it)
   useEffect(() => {
-    setMode(initialMode);
     initialSections.forEach(section => setSectionVisible(section, true));
-  }, [initialMode, initialSections, setMode, setSectionVisible]);
+  }, [initialSections, setSectionVisible]);
 
   // Sync external active state
   useEffect(() => {
