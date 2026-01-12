@@ -235,7 +235,9 @@ export function FeatureAgentActivityStream({
   useEffect(() => {
     if (externalEvents || !isActive) return;
 
-    const url = `/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/activity-stream`;
+    // Use API_URL for proper server connection
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const url = `${apiBase}/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/activity-stream`;
     const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
 
@@ -259,11 +261,29 @@ export function FeatureAgentActivityStream({
       }
     };
 
+    es.onerror = (err) => {
+      console.warn('[FeatureAgentActivityStream] SSE error, connection may have been interrupted:', err);
+      // Don't close immediately - browser will auto-reconnect
+      // Only add error event if we had some activity first
+      if (events.length > 0) {
+        setEvents((prev) => {
+          const errorEvent: AgentActivityEvent = {
+            id: `error-${Date.now()}`,
+            agentId,
+            type: 'error',
+            content: 'Stream connection lost. Attempting to reconnect...',
+            timestamp: Date.now(),
+          };
+          return [...prev, errorEvent].slice(-maxEvents);
+        });
+      }
+    };
+
     return () => {
       es.close();
       eventSourceRef.current = null;
     };
-  }, [agentId, externalEvents, maxEvents, onEvent, isActive]);
+  }, [agentId, externalEvents, maxEvents, onEvent, isActive, events.length]);
 
   // Auto-scroll
   useEffect(() => {

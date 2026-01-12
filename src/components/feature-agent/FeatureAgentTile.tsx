@@ -150,7 +150,9 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
     // Connect only once per visible tile
     if (eventSourceRef.current) return;
 
-    const url = `/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/stream`;
+    // Use API_URL for proper server connection
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const url = `${apiBase}/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/stream`;
     const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
 

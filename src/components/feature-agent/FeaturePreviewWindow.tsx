@@ -124,9 +124,11 @@ export function FeaturePreviewWindow({
                     setSessionId(data.session.id);
                     setStatus('ai_demo');
 
-                    // Connect to SSE stream
+                    // Connect to SSE stream - use API_URL for proper server connection
+                    const apiBase = import.meta.env.VITE_API_URL || '';
                     const eventSource = new EventSource(
-                        `/api/preview/${encodeURIComponent(data.session.id)}/stream`
+                        `${apiBase}/api/preview/${encodeURIComponent(data.session.id)}/stream`,
+                        { withCredentials: true }
                     );
 
                     eventSource.onmessage = (event) => {
