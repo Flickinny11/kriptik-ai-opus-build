@@ -2026,6 +2026,9 @@ async function generateBuildPlan(prompt: string, projectId: string, userId: stri
  *
  * Generate implementation plan with SSE streaming for real-time feedback.
  * This allows the frontend to show progress during plan generation.
+ *
+ * FAST PATH: Uses reduced thinking budget for initial plan (8K instead of 64K)
+ * Full deep intent is created in background after plan is shown.
  */
 router.post('/plan/stream', async (req: Request, res: Response) => {
     const { userId, projectId = `project-${uuidv4().slice(0, 8)}`, prompt } = req.body;
@@ -2045,65 +2048,71 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
     res.flushHeaders();
 
     const sendEvent = (type: string, data: Record<string, unknown>) => {
-        res.write(`data: ${JSON.stringify({ type, ...data, timestamp: Date.now() })}\n\n`);
+        try {
+            res.write(`data: ${JSON.stringify({ type, ...data, timestamp: Date.now() })}\n\n`);
+        } catch (e) {
+            console.error('[Execute:Plan:Stream] Failed to send event:', e);
+        }
     };
 
     const sessionId = uuidv4();
 
+    // Heartbeat to keep connection alive during long operations
+    const heartbeatInterval = setInterval(() => {
+        sendEvent('heartbeat', { phase: 'processing' });
+    }, 5000);
+
     try {
         // Phase 1: Immediate acknowledgment
         sendEvent('thinking', {
-            content: 'Analyzing your prompt...',
+            content: `Analyzing: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"`,
             phase: 'initialization',
         });
 
         console.log(`[Execute:Plan:Stream] Starting plan generation for session ${sessionId}`);
 
-        // Phase 2: Prompt analysis
-        sendEvent('reading', {
-            content: `Parsing: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`,
-            file: 'user-prompt',
-        });
-
-        // Phase 3: Generate the implementation plan
+        // Phase 2: Generate the implementation plan (FAST - no AI, just analysis)
         sendEvent('thinking', {
-            content: 'Generating implementation plan with AI...',
+            content: 'Decomposing requirements into phases...',
             phase: 'plan_generation',
         });
 
         const plan = await generateBuildPlan(prompt, projectId, userId);
 
         sendEvent('phase', {
-            content: 'Implementation plan generated',
-            details: `${plan.phases.length} phases identified`,
+            content: `${plan.phases.length} build phases identified`,
+            details: plan.phases.map(p => p.title).join(', '),
         });
 
-        // Phase 4: Create Deep Intent Contract
+        // Phase 3: Create FAST Intent Contract (reduced thinking budget)
         sendEvent('thinking', {
-            content: 'Creating Deep Intent Contract with VL-JEPA analysis...',
-            phase: 'deep_intent',
+            content: 'Creating Intent Contract...',
+            phase: 'intent_lock',
         });
 
         const engine = createIntentLockEngine(userId, projectId);
+
+        // Use lower thinking budget for FAST initial response (8K instead of 64K)
+        // Full deep intent will be created during build phase
         const deepIntent = await engine.createDeepContract(
             prompt,
             userId,
             projectId,
             undefined,
             {
-                fetchAPIDocs: true,
-                thinkingBudget: 64000,
+                fetchAPIDocs: false, // Skip API docs for faster response
+                thinkingBudget: 8000, // Reduced from 64K for faster plan generation
             }
         );
 
         sendEvent('phase', {
-            content: 'Deep Intent Contract created',
-            details: `${deepIntent.functionalChecklist.length} success criteria, ${deepIntent.integrationRequirements.length} integrations`,
+            content: 'Intent Contract locked',
+            details: `${deepIntent.functionalChecklist?.length || 0} success criteria`,
         });
 
-        console.log(`[Execute:Plan:Stream] Deep Intent created: ${deepIntent.id}`);
+        console.log(`[Execute:Plan:Stream] Fast Intent created: ${deepIntent.id}`);
 
-        // Phase 5: Extract credentials
+        // Phase 4: Extract credentials (FAST - from analysis)
         sendEvent('thinking', {
             content: 'Detecting required credentials...',
             phase: 'credentials',
@@ -2113,12 +2122,17 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
 
         if (requiredCredentials.length > 0) {
             sendEvent('phase', {
-                content: `Detected ${requiredCredentials.length} required credential(s)`,
+                content: `${requiredCredentials.length} credential(s) needed`,
                 details: requiredCredentials.map(c => c.platformName).join(', '),
+            });
+        } else {
+            sendEvent('phase', {
+                content: 'No external credentials required',
+                details: 'Ready to build',
             });
         }
 
-        // Phase 6: Store pending build
+        // Phase 5: Store pending build
         const pendingBuild: PendingBuild = {
             sessionId,
             projectId,
@@ -2132,9 +2146,10 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
         };
         pendingBuilds.set(sessionId, pendingBuild);
 
-        // Phase 7: Complete
+        // Phase 6: Complete - send all data for frontend
+        clearInterval(heartbeatInterval);
         sendEvent('complete', {
-            content: 'Plan generation complete!',
+            content: 'Ready for your review',
             sessionId,
             projectId,
             plan,
@@ -2145,6 +2160,7 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
         res.end();
 
     } catch (error) {
+        clearInterval(heartbeatInterval);
         console.error('[Execute:Plan:Stream] Error:', error);
         sendEvent('error', {
             content: error instanceof Error ? error.message : 'Unknown error',
