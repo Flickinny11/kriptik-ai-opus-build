@@ -1547,37 +1547,70 @@ const pendingBuilds = new Map<string, PendingBuild>();
 
 // Credential detection patterns
 const CREDENTIAL_PATTERNS: Record<string, { name: string; envVar: string; platform: string; url: string }[]> = {
+    // Payments
     stripe: [
         { name: 'Stripe Secret Key', envVar: 'STRIPE_SECRET_KEY', platform: 'Stripe', url: 'https://dashboard.stripe.com/apikeys' },
         { name: 'Stripe Publishable Key', envVar: 'STRIPE_PUBLISHABLE_KEY', platform: 'Stripe', url: 'https://dashboard.stripe.com/apikeys' },
+        { name: 'Stripe Webhook Secret', envVar: 'STRIPE_WEBHOOK_SECRET', platform: 'Stripe', url: 'https://dashboard.stripe.com/webhooks' },
     ],
+    // AI LLM Providers (for apps that use LLM APIs directly)
     openai: [
         { name: 'OpenAI API Key', envVar: 'OPENAI_API_KEY', platform: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
     ],
     anthropic: [
         { name: 'Anthropic API Key', envVar: 'ANTHROPIC_API_KEY', platform: 'Anthropic', url: 'https://console.anthropic.com/settings/keys' },
     ],
+    openrouter: [
+        { name: 'OpenRouter API Key', envVar: 'OPENROUTER_API_KEY', platform: 'OpenRouter', url: 'https://openrouter.ai/keys' },
+    ],
+    // AI Model Hosting (for video/image/audio generation)
+    huggingface: [
+        { name: 'HuggingFace Token', envVar: 'HUGGINGFACE_TOKEN', platform: 'HuggingFace', url: 'https://huggingface.co/settings/tokens' },
+    ],
+    replicate: [
+        { name: 'Replicate API Token', envVar: 'REPLICATE_API_TOKEN', platform: 'Replicate', url: 'https://replicate.com/account/api-tokens' },
+    ],
+    fal: [
+        { name: 'Fal API Key', envVar: 'FAL_KEY', platform: 'Fal', url: 'https://fal.ai/dashboard/keys' },
+    ],
+    runpod: [
+        { name: 'RunPod API Key', envVar: 'RUNPOD_API_KEY', platform: 'RunPod', url: 'https://www.runpod.io/console/user/settings' },
+    ],
+    modal: [
+        { name: 'Modal Token ID', envVar: 'MODAL_TOKEN_ID', platform: 'Modal', url: 'https://modal.com/settings' },
+        { name: 'Modal Token Secret', envVar: 'MODAL_TOKEN_SECRET', platform: 'Modal', url: 'https://modal.com/settings' },
+    ],
+    // Databases
     supabase: [
-        { name: 'Supabase URL', envVar: 'SUPABASE_URL', platform: 'Supabase', url: 'https://app.supabase.com/project/_/settings/api' },
-        { name: 'Supabase Anon Key', envVar: 'SUPABASE_ANON_KEY', platform: 'Supabase', url: 'https://app.supabase.com/project/_/settings/api' },
+        { name: 'Supabase URL', envVar: 'SUPABASE_URL', platform: 'Supabase', url: 'https://supabase.com/dashboard/project/_/settings/api' },
+        { name: 'Supabase Anon Key', envVar: 'SUPABASE_ANON_KEY', platform: 'Supabase', url: 'https://supabase.com/dashboard/project/_/settings/api' },
+        { name: 'Supabase Service Role Key', envVar: 'SUPABASE_SERVICE_ROLE_KEY', platform: 'Supabase', url: 'https://supabase.com/dashboard/project/_/settings/api' },
     ],
-    firebase: [
-        { name: 'Firebase API Key', envVar: 'FIREBASE_API_KEY', platform: 'Firebase', url: 'https://console.firebase.google.com/project/_/settings/general' },
+    planetscale: [
+        { name: 'Database URL', envVar: 'DATABASE_URL', platform: 'PlanetScale', url: 'https://app.planetscale.com/' },
     ],
-    github: [
-        { name: 'GitHub Token', envVar: 'GITHUB_TOKEN', platform: 'GitHub', url: 'https://github.com/settings/tokens' },
+    turso: [
+        { name: 'Turso Database URL', envVar: 'TURSO_DATABASE_URL', platform: 'Turso', url: 'https://turso.tech/app' },
+        { name: 'Turso Auth Token', envVar: 'TURSO_AUTH_TOKEN', platform: 'Turso', url: 'https://turso.tech/app' },
+    ],
+    neon: [
+        { name: 'Neon Database URL', envVar: 'DATABASE_URL', platform: 'Neon', url: 'https://console.neon.tech/' },
+    ],
+    // Storage
+    cloudflare: [
+        { name: 'R2 Account ID', envVar: 'R2_ACCOUNT_ID', platform: 'Cloudflare R2', url: 'https://dash.cloudflare.com/?to=/:account/r2' },
+        { name: 'R2 Access Key ID', envVar: 'R2_ACCESS_KEY_ID', platform: 'Cloudflare R2', url: 'https://dash.cloudflare.com/?to=/:account/r2' },
+        { name: 'R2 Secret Access Key', envVar: 'R2_SECRET_ACCESS_KEY', platform: 'Cloudflare R2', url: 'https://dash.cloudflare.com/?to=/:account/r2' },
+        { name: 'R2 Bucket Name', envVar: 'R2_BUCKET_NAME', platform: 'Cloudflare R2', url: 'https://dash.cloudflare.com/?to=/:account/r2' },
     ],
     aws: [
         { name: 'AWS Access Key ID', envVar: 'AWS_ACCESS_KEY_ID', platform: 'AWS', url: 'https://console.aws.amazon.com/iam/home#/security_credentials' },
         { name: 'AWS Secret Access Key', envVar: 'AWS_SECRET_ACCESS_KEY', platform: 'AWS', url: 'https://console.aws.amazon.com/iam/home#/security_credentials' },
     ],
-    sendgrid: [
-        { name: 'SendGrid API Key', envVar: 'SENDGRID_API_KEY', platform: 'SendGrid', url: 'https://app.sendgrid.com/settings/api_keys' },
+    firebase: [
+        { name: 'Firebase API Key', envVar: 'FIREBASE_API_KEY', platform: 'Firebase', url: 'https://console.firebase.google.com/project/_/settings/general' },
     ],
-    twilio: [
-        { name: 'Twilio Account SID', envVar: 'TWILIO_ACCOUNT_SID', platform: 'Twilio', url: 'https://console.twilio.com/' },
-        { name: 'Twilio Auth Token', envVar: 'TWILIO_AUTH_TOKEN', platform: 'Twilio', url: 'https://console.twilio.com/' },
-    ],
+    // Authentication
     clerk: [
         { name: 'Clerk Publishable Key', envVar: 'CLERK_PUBLISHABLE_KEY', platform: 'Clerk', url: 'https://dashboard.clerk.com/' },
         { name: 'Clerk Secret Key', envVar: 'CLERK_SECRET_KEY', platform: 'Clerk', url: 'https://dashboard.clerk.com/' },
@@ -1586,11 +1619,25 @@ const CREDENTIAL_PATTERNS: Record<string, { name: string; envVar: string; platfo
         { name: 'Auth0 Domain', envVar: 'AUTH0_DOMAIN', platform: 'Auth0', url: 'https://manage.auth0.com/' },
         { name: 'Auth0 Client ID', envVar: 'AUTH0_CLIENT_ID', platform: 'Auth0', url: 'https://manage.auth0.com/' },
     ],
+    betterauth: [
+        { name: 'Better Auth Secret', envVar: 'BETTER_AUTH_SECRET', platform: 'Better Auth', url: '' }, // Auto-generated
+        { name: 'Better Auth URL', envVar: 'BETTER_AUTH_URL', platform: 'Better Auth', url: '' }, // Auto-configured
+    ],
+    // Email
     resend: [
         { name: 'Resend API Key', envVar: 'RESEND_API_KEY', platform: 'Resend', url: 'https://resend.com/api-keys' },
     ],
-    openrouter: [
-        { name: 'OpenRouter API Key', envVar: 'OPENROUTER_API_KEY', platform: 'OpenRouter', url: 'https://openrouter.ai/keys' },
+    sendgrid: [
+        { name: 'SendGrid API Key', envVar: 'SENDGRID_API_KEY', platform: 'SendGrid', url: 'https://app.sendgrid.com/settings/api_keys' },
+    ],
+    // Messaging
+    twilio: [
+        { name: 'Twilio Account SID', envVar: 'TWILIO_ACCOUNT_SID', platform: 'Twilio', url: 'https://console.twilio.com/' },
+        { name: 'Twilio Auth Token', envVar: 'TWILIO_AUTH_TOKEN', platform: 'Twilio', url: 'https://console.twilio.com/' },
+    ],
+    // Source Control
+    github: [
+        { name: 'GitHub Token', envVar: 'GITHUB_TOKEN', platform: 'GitHub', url: 'https://github.com/settings/tokens' },
     ],
 };
 
@@ -1622,14 +1669,47 @@ function detectRequiredCredentials(prompt: string): RequiredCredential[] {
     }
 
     // Additional pattern matching for common integrations
-    const additionalPatterns = [
-        { pattern: /payment|checkout|subscription|billing/i, service: 'stripe' },
-        { pattern: /ai|gpt|claude|llm|chat.*bot/i, service: 'openai' },
-        { pattern: /email|newsletter|notification/i, service: 'sendgrid' },
-        { pattern: /sms|text.*message|phone/i, service: 'twilio' },
-        { pattern: /auth|login|signup|user.*account/i, service: 'clerk' },
-        { pattern: /database|realtime|backend.*as.*service/i, service: 'supabase' },
-        { pattern: /cloud.*storage|s3|file.*upload/i, service: 'aws' },
+    // IMPORTANT: Be specific - don't match "ai" broadly as it would trigger OpenAI for any AI app
+    const additionalPatterns: Array<{ pattern: RegExp; service: string }> = [
+        // Payments - match payment keywords
+        { pattern: /\b(payment|checkout|subscription|billing|stripe)\b/i, service: 'stripe' },
+
+        // LLM APIs - match specific providers, NOT generic "ai" keyword
+        { pattern: /\b(openai|gpt-?[34]|chatgpt|dall-?e)\b/i, service: 'openai' },
+        { pattern: /\b(claude|anthropic)\b/i, service: 'anthropic' },
+
+        // AI Model Hosting - for video/image/audio generation
+        { pattern: /\b(hugg(ing)?face|hf|transformers|diffusers)\b/i, service: 'huggingface' },
+        { pattern: /\b(replicate)\b/i, service: 'replicate' },
+        { pattern: /\b(fal\.ai|fal ai)\b/i, service: 'fal' },
+        { pattern: /\b(runpod|serverless.*gpu)\b/i, service: 'runpod' },
+        { pattern: /\b(modal\.com|modal labs)\b/i, service: 'modal' },
+
+        // Video generation models - need HuggingFace or model hosting
+        { pattern: /\b(wan|cogvideo|animatediff|stable.*video|svd|video.*generat)/i, service: 'huggingface' },
+
+        // Image generation models - need HuggingFace or model hosting
+        { pattern: /\b(stable.*diffusion|sdxl|flux|midjourney|dalle)\b/i, service: 'huggingface' },
+
+        // Email
+        { pattern: /\b(email|newsletter|transactional.*mail)\b/i, service: 'resend' },
+
+        // SMS
+        { pattern: /\b(sms|text.*message|phone.*verification)\b/i, service: 'twilio' },
+
+        // Auth - match specific auth services
+        { pattern: /\b(clerk)\b/i, service: 'clerk' },
+        { pattern: /\b(auth0)\b/i, service: 'auth0' },
+
+        // Databases - be specific about which provider
+        { pattern: /\b(supabase)\b/i, service: 'supabase' },
+        { pattern: /\b(planetscale)\b/i, service: 'planetscale' },
+        { pattern: /\b(turso)\b/i, service: 'turso' },
+        { pattern: /\b(neon)\b/i, service: 'neon' },
+
+        // Storage - match specific services
+        { pattern: /\b(cloudflare.*r2|r2.*bucket)\b/i, service: 'cloudflare' },
+        { pattern: /\b(aws|s3|amazon.*web.*services)\b/i, service: 'aws' },
     ];
 
     for (const { pattern, service } of additionalPatterns) {

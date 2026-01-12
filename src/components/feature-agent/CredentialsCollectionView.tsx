@@ -95,12 +95,21 @@ function isSecretName(name: string): boolean {
   return n.includes('secret') || n.includes('token') || n.includes('key') || n.includes('password');
 }
 
+// Group credentials by platform
+interface PlatformGroup {
+  platform: string;
+  platformUrl: string;
+  credentials: RequiredCredential[];
+  isComplete: boolean;
+}
+
 export function CredentialsCollectionView({ credentials, onCredentialsSubmit, projectId }: CredentialsCollectionViewProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [oauthErrors, setOauthErrors] = useState<Record<string, string>>({});
+  const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const user = useUserStore((state) => state.user);
 
   const required = useMemo(() => credentials.filter((c) => c.required), [credentials]);
@@ -108,6 +117,37 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
   const filledCount = useMemo(() =>
     credentials.filter(c => (values[c.envVariableName] || '').trim().length > 0).length
   , [credentials, values]);
+
+  // Group credentials by platform for better UX
+  const platformGroups = useMemo((): PlatformGroup[] => {
+    const groups = new Map<string, PlatformGroup>();
+    
+    for (const cred of credentials) {
+      const platform = cred.platformName || 'Other';
+      if (!groups.has(platform)) {
+        groups.set(platform, {
+          platform,
+          platformUrl: cred.platformUrl || '',
+          credentials: [],
+          isComplete: false,
+        });
+      }
+      groups.get(platform)!.credentials.push(cred);
+    }
+
+    // Check if each group is complete
+    for (const group of groups.values()) {
+      group.isComplete = group.credentials.every(c => 
+        (values[c.envVariableName] || '').trim().length > 0
+      );
+    }
+
+    return Array.from(groups.values());
+  }, [credentials, values]);
+
+  const completedPlatforms = useMemo(() => 
+    platformGroups.filter(g => g.isComplete).length
+  , [platformGroups]);
 
   const toggleSecretVisibility = useCallback((key: string) => {
     setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
@@ -159,9 +199,9 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
           <SecureLockIcon />
         </div>
         <div className="credentials-view__header-text">
-          <h3 className="credentials-view__title">Secure Credentials</h3>
+          <h3 className="credentials-view__title">Connect Your Services</h3>
           <p className="credentials-view__subtitle">
-            {filledCount}/{credentials.length} configured • Stored with AES-256 encryption
+            {completedPlatforms}/{platformGroups.length} platforms • {filledCount}/{credentials.length} credentials
           </p>
         </div>
       </motion.div>
@@ -176,138 +216,180 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
         <motion.div
           className="credentials-view__progress-fill"
           initial={{ width: 0 }}
-          animate={{ width: `${(filledCount / credentials.length) * 100}%` }}
+          animate={{ width: `${(completedPlatforms / platformGroups.length) * 100}%` }}
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
         />
       </motion.div>
 
-      {/* Credential Cards */}
-      <div className="credentials-view__cards">
+      {/* Platform Tiles - Grouped by platform */}
+      <div className="credentials-view__platform-grid">
         <AnimatePresence mode="sync">
-          {credentials.map((c, index) => {
-            const v = values[c.envVariableName] ?? '';
-            const filled = v.trim().length > 0;
-            const isSecret = isSecretName(c.envVariableName) || isSecretName(c.name);
-            const showingSecret = showSecrets[c.envVariableName];
-            const isFocused = focusedField === c.envVariableName;
-
+          {platformGroups.map((group, groupIndex) => {
+            const isExpanded = expandedPlatform === group.platform;
+            const firstCred = group.credentials[0];
+            
             return (
               <motion.div
-                key={c.id}
-                className={`credential-card ${filled ? 'credential-card--filled' : ''} ${c.required && !filled ? 'credential-card--required' : ''} ${isFocused ? 'credential-card--focused' : ''}`}
+                key={group.platform}
+                className={`platform-tile ${group.isComplete ? 'platform-tile--complete' : ''} ${isExpanded ? 'platform-tile--expanded' : ''}`}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
                 transition={{
                   duration: 0.4,
-                  delay: index * 0.05,
+                  delay: groupIndex * 0.08,
                   ease: [0.23, 1, 0.32, 1]
                 }}
-                whileHover={{ scale: 1.01, y: -2 }}
+                layout
               >
-                {/* Card inner glow */}
-                <div className="credential-card__glow" />
-
-                {/* Card content */}
-                <div className="credential-card__content">
-                  <div className="credential-card__header">
-                    <div className="credential-card__header-left">
-                      <div className="credential-card__icon">
-                        <KeyIcon />
-                      </div>
-                      <div className="credential-card__info">
-                        <div className="credential-card__name">
-                          {c.name}
-                          {c.required && (
-                            <span className="credential-card__required-badge">Required</span>
-                          )}
-                        </div>
-                        <div className="credential-card__env-var">{c.envVariableName}</div>
+                {/* Platform tile header - always visible */}
+                <motion.div 
+                  className="platform-tile__header"
+                  onClick={() => setExpandedPlatform(isExpanded ? null : group.platform)}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <div className="platform-tile__header-left">
+                    <div className="platform-tile__icon">
+                      <KeyIcon />
+                    </div>
+                    <div className="platform-tile__info">
+                      <div className="platform-tile__name">{group.platform}</div>
+                      <div className="platform-tile__count">
+                        {group.credentials.filter(c => (values[c.envVariableName] || '').trim().length > 0).length}/{group.credentials.length} credentials
                       </div>
                     </div>
-
-                    {c.platformUrl && (
-                      <a
-                        href={c.platformUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="credential-card__platform-link"
-                        title={`Get from ${c.platformName}`}
-                      >
-                        <span>Get Key</span>
-                        <ExternalLinkIcon />
-                      </a>
-                    )}
                   </div>
-
-                  {c.description && (
-                    <p className="credential-card__description">{c.description}</p>
-                  )}
-
-                  {/* OAuth Connect Button (if supported) */}
-                  {user && (
-                    <div className="mb-3">
+                  
+                  <div className="platform-tile__header-right">
+                    {group.isComplete ? (
+                      <div className="platform-tile__complete-badge">
+                        <CheckIcon />
+                        <span>Connected</span>
+                      </div>
+                    ) : user && firstCred ? (
                       <OAuthConnectButton
-                        credential={c}
+                        credential={firstCred}
                         userId={user.id}
                         projectId={projectId}
-                        onConnected={(creds) => handleOAuthConnected(c.envVariableName, creds)}
-                        onError={(error) => handleOAuthError(c.id, error)}
+                        onConnected={(creds) => {
+                          // Apply credentials to all in this platform
+                          group.credentials.forEach(c => {
+                            if (creds[c.envVariableName]) {
+                              handleOAuthConnected(c.envVariableName, creds);
+                            }
+                          });
+                        }}
+                        onError={(error) => handleOAuthError(firstCred.id, error)}
                       />
-                      {oauthErrors[c.id] && (
-                        <p className="text-xs text-red-400 mt-1">{oauthErrors[c.id]}</p>
-                      )}
-                      <p className="text-xs text-slate-500 mt-2">or enter manually:</p>
-                    </div>
-                  )}
-
-                  <div className="credential-card__input-container">
-                    <div className={`credential-card__input-wrapper ${isFocused ? 'credential-card__input-wrapper--focused' : ''}`}>
-                      <input
-                        type={isSecret && !showingSecret ? 'password' : 'text'}
-                        value={v}
-                        onChange={(e) => setValues((prev) => ({ ...prev, [c.envVariableName]: e.target.value }))}
-                        onFocus={() => setFocusedField(c.envVariableName)}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder={isSecret ? '••••••••••••••••' : 'Enter value...'}
-                        className="credential-card__input"
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-
-                      <div className="credential-card__input-actions">
-                        {isSecret && (
-                          <button
-                            type="button"
-                            onClick={() => toggleSecretVisibility(c.envVariableName)}
-                            className="credential-card__toggle-btn"
-                            title={showingSecret ? 'Hide' : 'Show'}
-                          >
-                            {showingSecret ? <EyeOpenIcon /> : <EyeClosedIcon />}
-                          </button>
-                        )}
-
-                        <AnimatePresence>
-                          {filled && (
-                            <motion.div
-                              className="credential-card__check"
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0, opacity: 0 }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                            >
-                              <CheckIcon />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
+                    ) : null}
+                    
+                    <motion.div 
+                      className="platform-tile__expand-icon"
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </motion.div>
                   </div>
-                </div>
+                </motion.div>
+
+                {/* OAuth error display */}
+                {firstCred && oauthErrors[firstCred.id] && (
+                  <p className="platform-tile__error">{oauthErrors[firstCred.id]}</p>
+                )}
+
+                {/* Expanded credential inputs */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      className="platform-tile__credentials"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                    >
+                      <div className="platform-tile__credentials-inner">
+                        {group.platformUrl && (
+                          <a
+                            href={group.platformUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="platform-tile__platform-link"
+                          >
+                            <span>Get credentials from {group.platform}</span>
+                            <ExternalLinkIcon />
+                          </a>
+                        )}
+                        
+                        {group.credentials.map((c) => {
+                          const v = values[c.envVariableName] ?? '';
+                          const filled = v.trim().length > 0;
+                          const isSecret = isSecretName(c.envVariableName) || isSecretName(c.name);
+                          const showingSecret = showSecrets[c.envVariableName];
+                          const isFocused = focusedField === c.envVariableName;
+
+                          return (
+                            <div key={c.id} className="credential-field">
+                              <label className="credential-field__label">
+                                <span className="credential-field__name">{c.name}</span>
+                                {c.required && <span className="credential-field__required">*</span>}
+                              </label>
+                              <div className="credential-field__env">{c.envVariableName}</div>
+                              
+                              <div className={`credential-field__input-wrapper ${isFocused ? 'credential-field__input-wrapper--focused' : ''}`}>
+                                <input
+                                  type={isSecret && !showingSecret ? 'password' : 'text'}
+                                  value={v}
+                                  onChange={(e) => setValues((prev) => ({ ...prev, [c.envVariableName]: e.target.value }))}
+                                  onFocus={() => setFocusedField(c.envVariableName)}
+                                  onBlur={() => setFocusedField(null)}
+                                  placeholder={isSecret ? '••••••••••••••••' : 'Enter value...'}
+                                  className="credential-field__input"
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                />
+
+                                <div className="credential-field__actions">
+                                  {isSecret && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSecretVisibility(c.envVariableName)}
+                                      className="credential-field__toggle"
+                                      title={showingSecret ? 'Hide' : 'Show'}
+                                    >
+                                      {showingSecret ? <EyeOpenIcon /> : <EyeClosedIcon />}
+                                    </button>
+                                  )}
+
+                                  <AnimatePresence>
+                                    {filled && (
+                                      <motion.div
+                                        className="credential-field__check"
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                      >
+                                        <CheckIcon />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* 3D edge effects */}
-                <div className="credential-card__edge-right" />
-                <div className="credential-card__edge-bottom" />
+                <div className="platform-tile__edge-right" />
+                <div className="platform-tile__edge-bottom" />
               </motion.div>
             );
           })}

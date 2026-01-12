@@ -8,8 +8,7 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { RequiredCredential } from '@/store/useFeatureAgentTileStore';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '@/lib/api-config';
 
 // Custom link icon
 const LinkIcon = () => (
@@ -84,30 +83,49 @@ interface OAuthConnectButtonProps {
 function platformNameToIntegrationId(platformName: string): string | null {
   const normalized = platformName.toLowerCase().trim();
 
-  // Direct mappings
+  // Direct mappings - platforms supported by Nango OAuth
   const directMappings: Record<string, string> = {
+    // Payments
     'stripe': 'stripe',
-    'github': 'github',
-    'gitlab': 'gitlab',
-    'vercel': 'vercel',
-    'netlify': 'netlify',
-    'supabase': 'supabase',
-    'firebase': 'firebase',
+    // AI Providers
     'openai': 'openai',
     'anthropic': 'anthropic',
+    // Model Hosting
+    'huggingface': 'huggingface',
     'replicate': 'replicate',
+    'fal': 'fal',
+    'runpod': 'runpod',
+    // Source Control
+    'github': 'github',
+    'gitlab': 'gitlab',
+    // Deployment
+    'vercel': 'vercel',
+    'netlify': 'netlify',
+    // Databases
+    'supabase': 'supabase',
+    'firebase': 'firebase',
+    'planetscale': 'planetscale',
+    'neon': 'neon',
+    // Cloud
     'aws': 'aws',
+    'cloudflare': 'cloudflare',
+    'cloudflare r2': 'cloudflare',
     'google': 'google',
     'microsoft': 'microsoft',
+    // Communication
     'slack': 'slack',
     'discord': 'discord',
     'twilio': 'twilio',
+    // Email
     'sendgrid': 'sendgrid',
     'mailgun': 'mailgun',
     'resend': 'resend',
+    // Auth
     'clerk': 'clerk',
     'auth0': 'auth0',
+    // E-commerce
     'shopify': 'shopify',
+    // Productivity
     'linear': 'linear',
     'notion': 'notion',
     'airtable': 'airtable',
