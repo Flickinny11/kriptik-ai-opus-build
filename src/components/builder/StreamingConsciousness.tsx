@@ -119,8 +119,8 @@ const TypeIcon = memo(({ type }: { type: ActivityType }) => {
 
 TypeIcon.displayName = 'TypeIcon';
 
-// Typing animation component
-const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: number }) => {
+// FAST Typing animation component - lightning speed like Cursor
+const TypewriterText = memo(({ text, speed = 5 }: { text: string; speed?: number }) => {
   const [displayText, setDisplayText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
 
@@ -131,10 +131,13 @@ const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: numbe
     setDisplayText('');
     setIsComplete(false);
 
+    // Lightning fast typing - multiple chars per frame
     const interval = setInterval(() => {
       if (index < text.length) {
-        setDisplayText(text.slice(0, index + 1));
-        index++;
+        // Show 3-5 chars at a time for speed
+        const charsPerTick = Math.min(5, text.length - index);
+        setDisplayText(text.slice(0, index + charsPerTick));
+        index += charsPerTick;
       } else {
         setIsComplete(true);
         clearInterval(interval);
@@ -145,13 +148,14 @@ const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: numbe
   }, [text, speed]);
 
   return (
-    <span>
+    <span style={{ fontFamily: 'JetBrains Mono, Fira Code, monospace', color: '#1a1a1a' }}>
       {displayText}
       {!isComplete && (
         <motion.span
-          className="inline-block w-0.5 h-4 ml-0.5 bg-amber-500"
+          className="inline-block w-0.5 h-4 ml-0.5"
+          style={{ backgroundColor: '#c25a00' }}
           animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
+          transition={{ duration: 0.3, repeat: Infinity }}
         />
       )}
     </span>
@@ -239,10 +243,10 @@ const ActivityRow = memo(({
           </span>
         </div>
 
-        {/* Main content */}
-        <div className="text-sm text-stone-700 mt-0.5">
+        {/* Main content - BLACK text with monospace font */}
+        <div className="text-sm mt-0.5" style={{ color: '#0a0a0a', fontFamily: 'JetBrains Mono, Fira Code, SF Mono, monospace' }}>
           {isLatest && item.type === 'thinking' ? (
-            <TypewriterText text={item.content} speed={20} />
+            <TypewriterText text={item.content} speed={3} />
           ) : (
             <span className="line-clamp-2">{item.content}</span>
           )}

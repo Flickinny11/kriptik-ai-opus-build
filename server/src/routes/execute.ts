@@ -2057,10 +2057,30 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
 
     const sessionId = uuidv4();
 
-    // Heartbeat to keep connection alive during long operations
+    // Progress indicator to show activity during long operations
+    let processingPhase = 'analyzing';
+    const progressMessages = [
+        'Analyzing app requirements...',
+        'Evaluating technology choices...',
+        'Determining optimal architecture...',
+        'Identifying integration points...',
+        'Calculating resource requirements...',
+        'Mapping data models...',
+        'Planning API structure...',
+        'Assessing security requirements...',
+        'Optimizing build strategy...',
+        'Finalizing implementation approach...',
+    ];
+    let progressIndex = 0;
+
     const heartbeatInterval = setInterval(() => {
-        sendEvent('heartbeat', { phase: 'processing' });
-    }, 5000);
+        // Send meaningful progress updates, not empty timestamps
+        sendEvent('thinking', {
+            content: progressMessages[progressIndex % progressMessages.length],
+            phase: processingPhase,
+        });
+        progressIndex++;
+    }, 2000);
 
     try {
         // Phase 1: Immediate acknowledgment
@@ -2085,8 +2105,9 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
         });
 
         // Phase 3: Create FAST Intent Contract (reduced thinking budget)
+        processingPhase = 'intent_lock';
         sendEvent('thinking', {
-            content: 'Creating Intent Contract...',
+            content: 'Locking intent contract with success criteria...',
             phase: 'intent_lock',
         });
 
