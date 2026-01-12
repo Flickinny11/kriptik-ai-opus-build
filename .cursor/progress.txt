@@ -7531,3 +7531,27 @@ ALL TODOS COMPLETE:
 ✅ Integrate with BuildLoopOrchestrator event emission
 ✅ Replace 3-dots loader with NeuralPathway in all NLP bars
 ✅ Add real-time streaming hooks
+
+═══ [2026-01-11] Neural Pathway Plan Generation View ═══
+COMPLETED: Neural Pathway visualization for plan generation phase
+
+CHANGES:
+1. Added VIEW 0 (generating_plan) to ChatInterface.tsx
+   - Shows Neural Pathway instead of '3 dots' typing indicator
+   - Full-width visualization during plan analysis
+   - Animated stage indicator with current status
+   - Proper KripTik styling with gradients
+
+2. Fixed API_URL import to use centralized api-config
+   - Removed hardcoded localhost:3001 fallback
+   - Uses proper import from @/lib/api-config
+
+3. GPU Analysis errors are NON-FATAL
+   - Lightricks/Wan-2.2-i2v not found on HuggingFace
+   - Code already has fallback defaults (7B params, 14GB size)
+   - Error is logged but doesn't block plan generation
+
+COMMITS:
+- 05b1572 feat: Add Neural Pathway VIEW for plan generation phase
+
+BUILDS: ✅ Both frontend and backend compile without errors
