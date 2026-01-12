@@ -1,0 +1,1534 @@
+/**
+ * Developer Toolbar Panel - Premium Glass Styling
+ *
+ * Features:
+ * - 3D glass with layered shadows
+ * - Resizable from all edges
+ * - Black/white with RED accents
+ * - Premium animations
+ * - Feature Agents-like aesthetic
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cal+Sans&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ============================================================================
+   Panel Container
+   ============================================================================ */
+
+.dev-toolbar-panel {
+  position: fixed;
+  z-index: 9998;
+  cursor: grab;
+  user-select: none;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.dev-toolbar-panel:active {
+  cursor: grabbing;
+}
+
+.dev-toolbar-panel--resizing {
+  cursor: nwse-resize;
+}
+
+/* ============================================================================
+   Glass Base - Premium 3D Effect
+   ============================================================================ */
+
+.dev-toolbar-panel__glass {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Layered shadows for depth */
+.dev-toolbar-panel__shadow-1 {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.dev-toolbar-panel__shadow-2 {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.dev-toolbar-panel__shadow-3 {
+  position: absolute;
+  inset: 1px;
+  border-radius: 15px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+/* Frost layer */
+.dev-toolbar-panel__frost {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 18, 0.92);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+/* 3D Edge highlights */
+.dev-toolbar-panel__edge-top {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  z-index: 5;
+}
+
+.dev-toolbar-panel__edge-left {
+  position: absolute;
+  left: 0;
+  top: 5%;
+  bottom: 5%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.15), transparent);
+  z-index: 5;
+}
+
+.dev-toolbar-panel__edge-right {
+  position: absolute;
+  right: 0;
+  top: 5%;
+  bottom: 5%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.08), transparent);
+  z-index: 5;
+}
+
+.dev-toolbar-panel__edge-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.3), transparent);
+  z-index: 5;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.dev-toolbar-panel__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 10;
+}
+
+.dev-toolbar-panel__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dev-toolbar-panel__icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dev-toolbar-panel__icon--active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dev-toolbar-panel__title-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dev-toolbar-panel__title {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #FFF;
+  letter-spacing: -0.01em;
+}
+
+.dev-toolbar-panel__status {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dev-toolbar-panel__status--active {
+  color: #EF4444;
+}
+
+.dev-toolbar-panel__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dev-toolbar-panel__close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dev-toolbar-panel__close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+/* ============================================================================
+   Content Area
+   ============================================================================ */
+
+.dev-toolbar-panel__content {
+  position: relative;
+  padding: 16px 20px;
+  height: calc(100% - 70px);
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.dev-toolbar-panel__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dev-toolbar-panel__content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+
+.dev-toolbar-panel__content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.dev-toolbar-panel__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================================================
+   Resize Handles
+   ============================================================================ */
+
+.dev-toolbar-panel__resize-n,
+.dev-toolbar-panel__resize-s,
+.dev-toolbar-panel__resize-e,
+.dev-toolbar-panel__resize-w,
+.dev-toolbar-panel__resize-ne,
+.dev-toolbar-panel__resize-nw,
+.dev-toolbar-panel__resize-se,
+.dev-toolbar-panel__resize-sw {
+  position: absolute;
+  z-index: 20;
+}
+
+.dev-toolbar-panel__resize-n {
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.dev-toolbar-panel__resize-s {
+  bottom: 0;
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.dev-toolbar-panel__resize-e {
+  right: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.dev-toolbar-panel__resize-w {
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.dev-toolbar-panel__resize-ne {
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+
+.dev-toolbar-panel__resize-nw {
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+.dev-toolbar-panel__resize-se {
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+.dev-toolbar-panel__resize-sw {
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+
+/* Visual resize indicator on corner */
+.dev-toolbar-panel__resize-se::before {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0 0 2px 0;
+}
+
+/* ============================================================================
+   Panel Placeholder
+   ============================================================================ */
+
+.panel-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+}
+
+/* ============================================================================
+   Health Panel Styles
+   ============================================================================ */
+
+.panel-health {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-health__ring-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.panel-health__ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.panel-health__ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-health__ring-value {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.panel-health__ring-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-health__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.health-metric {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.health-metric__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.health-metric__label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: capitalize;
+}
+
+.health-metric__value {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.health-metric__bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.health-metric__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.panel-health__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.panel-health__stat {
+  text-align: center;
+}
+
+.panel-health__stat-value {
+  display: block;
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.panel-health__stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-health__stat--error .panel-health__stat-value {
+  color: #EF4444;
+}
+
+/* ============================================================================
+   Database Panel Styles
+   ============================================================================ */
+
+.panel-database {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-database__header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.panel-database__connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.panel-database__connection-dot {
+  width: 8px;
+  height: 8px;
+  background: #22C55E;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.panel-database__tables {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-database__table {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.panel-database__table:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.panel-database__table-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+}
+
+.panel-database__table-info {
+  flex: 1;
+}
+
+.panel-database__table-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFF;
+}
+
+.panel-database__table-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-database__table-action {
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  color: #EF4444;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-database__table-action:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.panel-database__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.panel-database__btn {
+  flex: 1;
+  padding: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-database__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.panel-database__btn--secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.panel-database__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFF;
+}
+
+/* ============================================================================
+   Memory Panel Styles
+   ============================================================================ */
+
+.panel-memory {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-memory__stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.panel-memory__stat-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.panel-memory__stat-value {
+  display: block;
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.panel-memory__stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-memory__section-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.panel-memory__patterns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-memory__pattern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.panel-memory__pattern-type {
+  font-size: 14px;
+  color: #FFF;
+}
+
+.panel-memory__pattern-count {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #EF4444;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.panel-memory__pattern-trend {
+  font-size: 14px;
+}
+
+.panel-memory__pattern-trend--up {
+  color: #22C55E;
+}
+
+.panel-memory__pattern-trend--down {
+  color: #EF4444;
+}
+
+.panel-memory__pattern-trend--stable {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-memory__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-memory__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   DNA Panel Styles
+   ============================================================================ */
+
+.panel-dna {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-dna__visual {
+  display: flex;
+  justify-content: center;
+  height: 200px;
+}
+
+.panel-dna__helix {
+  width: 100%;
+  max-width: 200px;
+}
+
+.panel-dna__info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-dna__info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.panel-dna__info-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.panel-dna__info-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #FFF;
+}
+
+/* ============================================================================
+   AI Lab Panel Styles
+   ============================================================================ */
+
+.panel-ai-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-ai-lab__experiments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-ai-lab__experiment {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.panel-ai-lab__experiment--running {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.panel-ai-lab__experiment--complete {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.panel-ai-lab__experiment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.panel-ai-lab__experiment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFF;
+}
+
+.panel-ai-lab__experiment-status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.panel-ai-lab__experiment-status--running {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.panel-ai-lab__experiment-status--queued {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-ai-lab__experiment-status--complete {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+}
+
+.panel-ai-lab__experiment-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.panel-ai-lab__experiment-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #EF4444, #F59E0B);
+  border-radius: 2px;
+}
+
+.panel-ai-lab__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-ai-lab__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   Quality Panel Styles
+   ============================================================================ */
+
+.panel-quality {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-quality__ring-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.panel-quality__ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.panel-quality__ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-quality__ring-value {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.panel-quality__ring-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-quality__scores {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-quality__score {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.panel-quality__score-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.panel-quality__score-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: capitalize;
+}
+
+.panel-quality__score-value {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFF;
+}
+
+.panel-quality__score-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.panel-quality__score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.panel-quality__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-quality__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   Voice Panel Styles
+   ============================================================================ */
+
+.panel-voice {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.panel-voice__visualizer {
+  padding: 40px;
+}
+
+.panel-voice__circle {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.panel-voice__circle--active {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #EF4444;
+}
+
+.panel-voice__btn {
+  padding: 12px 24px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-voice__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.panel-voice__btn--active {
+  background: #EF4444;
+  color: #FFF;
+}
+
+.panel-voice__commands {
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.panel-voice__commands h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.panel-voice__commands ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.panel-voice__commands li {
+  padding: 6px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* ============================================================================
+   Self Heal Panel Styles
+   ============================================================================ */
+
+.panel-self-heal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-self-heal__summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.panel-self-heal__stat {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.panel-self-heal__stat-value {
+  display: block;
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #22C55E;
+}
+
+.panel-self-heal__stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-self-heal__issues {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-self-heal__issue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.panel-self-heal__issue--error {
+  border-left: 3px solid #EF4444;
+}
+
+.panel-self-heal__issue--warning {
+  border-left: 3px solid #F59E0B;
+}
+
+.panel-self-heal__issue-message {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.panel-self-heal__issue-status {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-self-heal__issue-status--fixed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+}
+
+.panel-self-heal__btn {
+  padding: 12px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 8px;
+  color: #22C55E;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-self-heal__btn:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* ============================================================================
+   Rules Panel Styles
+   ============================================================================ */
+
+.panel-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-rules__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-rules__rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.panel-rules__rule-name {
+  font-size: 14px;
+  color: #FFF;
+}
+
+.panel-rules__toggle {
+  width: 40px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-rules__toggle--active {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.panel-rules__toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.panel-rules__toggle--active .panel-rules__toggle-knob {
+  left: calc(100% - 19px);
+  background: #EF4444;
+}
+
+.panel-rules__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-rules__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   Clone Mode Panel Styles
+   ============================================================================ */
+
+.panel-clone-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+.panel-clone-mode__visual {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.panel-clone-mode__layer {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-clone-mode__layer--back {
+  top: 0;
+  left: 0;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.panel-clone-mode__layer--front {
+  bottom: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-clone-mode__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.panel-clone-mode__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-clone-mode__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.panel-clone-mode__btn--secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.panel-clone-mode__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFF;
+}
+
+/* ============================================================================
+   Security Panel Styles
+   ============================================================================ */
+
+.panel-security {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.panel-security__shield {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-security__shield-icon {
+  filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.3));
+}
+
+.panel-security__score {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #22C55E;
+}
+
+.panel-security__score-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-security__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.panel-security__stat {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.panel-security__stat--safe .panel-security__stat-value {
+  color: #22C55E;
+}
+
+.panel-security__stat--warning .panel-security__stat-value {
+  color: #F59E0B;
+}
+
+.panel-security__stat-value {
+  display: block;
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.panel-security__stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-security__last-scan {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-security__btn {
+  padding: 12px 24px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-security__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   Multiplayer Panel Styles
+   ============================================================================ */
+
+.panel-multiplayer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-multiplayer__collaborators {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-multiplayer__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.panel-multiplayer__avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFF;
+}
+
+.panel-multiplayer__avatar--active {
+  border-color: #22C55E;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.panel-multiplayer__user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-multiplayer__user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFF;
+}
+
+.panel-multiplayer__user-status {
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.panel-multiplayer__user-status--active {
+  color: #22C55E;
+}
+
+.panel-multiplayer__user-status--idle {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-multiplayer__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-multiplayer__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================================
+   Permissions Panel Styles
+   ============================================================================ */
+
+.panel-permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-permissions__roles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-permissions__role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.panel-permissions__role-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.panel-permissions__role-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFF;
+  flex: 1;
+}
+
+.panel-permissions__role-count {
+  font-family: 'Cal Sans', 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.panel-permissions__btn {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.panel-permissions__btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}

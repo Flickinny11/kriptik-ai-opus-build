@@ -468,7 +468,7 @@ function ReviewStep() {
         <div className="space-y-6">
             {/* Connection summary banner */}
             {connectedCount > 0 && (
-                <div 
+                <div
                     className="rounded-xl p-4 flex items-center gap-3"
                     style={{
                         background: 'linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(16,185,129,0.1) 100%)',
@@ -549,7 +549,7 @@ function ReviewStep() {
 
             {/* All connected message */}
             {unconnectedEnvVars.length === 0 && allEnvVars.length > 0 && (
-                <div 
+                <div
                     className="rounded-2xl p-5 text-center"
                     style={{
                         background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(16,185,129,0.05) 100%)',

@@ -1,13 +1,16 @@
 /**
- * Developer Bar - Command Center Toolbar
+ * Developer Toolbar Components Index
  *
- * Translucent 3D glass toolbar with visible edges and flip animations
+ * Premium floating developer toolbar with custom 3D icons,
+ * resizable panels, and real-time data visualization.
  */
 
-export { DeveloperBar, type FeatureButton } from './DeveloperBar';
-export { DeveloperBarIcon, type IconName } from './DeveloperBarIcons';
+// New Premium Toolbar
+export { FloatingDevToolbar, type ToolbarButton as DevToolbarFeature } from './FloatingDevToolbar';
+export { DevToolbarPanel } from './DevToolbarPanel';
+export * from './DevToolbarIcons';
+
+// Legacy exports (for backward compatibility during transition)
+export { DeveloperBar } from './DeveloperBar';
+export { DeveloperBarIcon } from './DeveloperBarIcons';
 export { DeveloperBarPanel } from './DeveloperBarPanel';
-
-// NOTE: GlassToolbar3D and Glass3DToolbar removed from barrel export
-// to prevent Three.js from being loaded. Import directly if needed.
-
