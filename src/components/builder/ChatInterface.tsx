@@ -1138,20 +1138,31 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     </div>
                 </div>
 
-                {globalStatus !== 'idle' && (
+                {/* Show stop button during plan generation or active build */}
+                {(globalStatus !== 'idle' || buildWorkflowPhase === 'generating_plan') && (
                     <div className="flex gap-2">
+                        {globalStatus !== 'idle' && (
+                            <GlassButton
+                                onClick={handlePauseResume}
+                                disabled={globalStatus === 'completed' || globalStatus === 'failed'}
+                                size="sm"
+                            >
+                                {globalStatus === 'paused'
+                                    ? <PlayIcon size={18} />
+                                    : <PauseIcon size={18} />
+                                }
+                            </GlassButton>
+                        )}
                         <GlassButton
-                            onClick={handlePauseResume}
-                            disabled={globalStatus === 'completed' || globalStatus === 'failed'}
-                            size="sm"
-                        >
-                            {globalStatus === 'paused'
-                                ? <PlayIcon size={18} />
-                                : <PauseIcon size={18} />
-                            }
-                        </GlassButton>
-                        <GlassButton
-                            onClick={handleStop}
+                            onClick={() => {
+                                // Stop plan generation or build
+                                if (buildWorkflowPhase === 'generating_plan') {
+                                    setBuildWorkflowPhase('idle');
+                                    setIsTyping(false);
+                                } else {
+                                    handleStop();
+                                }
+                            }}
                             disabled={globalStatus === 'completed' || globalStatus === 'failed'}
                             variant="danger"
                             size="sm"
