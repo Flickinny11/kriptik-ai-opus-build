@@ -2123,6 +2123,8 @@ Be specific about technology choices. The user will approve or modify each phase
         let fullContent = '';
 
         // STREAM REAL AI THINKING - this is what users see in real-time
+        // Uses Opus 4.5 for planning - best model for critical thinking/planning
+        // This is the foundation of the entire build - must be highest quality
         await claude.generateStream(
             `Create an implementation plan for this app:
 
@@ -2156,10 +2158,13 @@ Then output the JSON plan.`,
                 },
             },
             {
-                model: CLAUDE_MODELS.SONNET_4_5, // Use Sonnet for speed + quality balance
-                maxTokens: 16000,
+                // CRITICAL: Use Opus 4.5 for planning - this is the foundation
+                // Best model for the job philosophy - planning must be highest quality
+                model: CLAUDE_MODELS.OPUS_4_5,
+                maxTokens: 64000, // Full capacity for comprehensive plans
                 useExtendedThinking: true,
-                thinkingBudgetTokens: 8000, // Good thinking budget for planning
+                thinkingBudgetTokens: 16000, // High thinking budget for deep planning
+                effort: 'high', // Maximum effort for best quality plans
             }
         );
 
