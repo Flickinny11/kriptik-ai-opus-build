@@ -2688,8 +2688,9 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
         // CRITICAL: Write credentials to .env file and credential vault
         // This ensures the sandbox can access the credentials during the build
+        let envResult: { credentialsWritten: number; envKeys: string[] } | null = null;
         try {
-            const envResult = await writeCredentialsToProjectEnv(
+            envResult = await writeCredentialsToProjectEnv(
                 pendingBuild.projectId,
                 pendingBuild.userId,
                 credentials,
@@ -2704,6 +2705,39 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
 
         pendingBuild.status = 'building';
         pendingBuilds.set(sessionId, pendingBuild);
+
+        // PHASE 2: Create context early to emit events
+        const context = getOrCreateContext({
+            mode: 'builder',
+            projectId: pendingBuild.projectId,
+            userId: pendingBuild.userId,
+            sessionId,
+            framework: 'react',
+            language: 'typescript',
+            enableVisualVerification: true,
+            enableCheckpoints: true,
+        });
+
+        // PHASE 2: Emit 'credentials-injected' event for agents to pick up new credentials
+        context.broadcast('credentials-injected', {
+            type: 'credentials-injected',
+            projectId: pendingBuild.projectId,
+            credentialKeys: envResult?.envKeys || Object.keys(credentials),
+            credentialsWritten: envResult?.credentialsWritten || Object.keys(credentials).length,
+            timestamp: Date.now(),
+            message: `Credentials injected: ${envResult?.envKeys?.join(', ') || Object.keys(credentials).join(', ')}`,
+        });
+
+        // PHASE 2: Emit 'build-resumed' event to signal frontend the build is starting
+        context.broadcast('build-resumed', {
+            type: 'build-resumed',
+            projectId: pendingBuild.projectId,
+            sessionId,
+            status: 'building',
+            credentialsProvided: Object.keys(credentials).length,
+            timestamp: Date.now(),
+            message: 'Build resumed after credential submission',
+        });
 
         // P1-2: Create notification that build is resuming
         const notificationService = getNotificationService();
@@ -2725,19 +2759,7 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
             }
         );
 
-        // Start the actual build
-        const context = getOrCreateContext({
-            mode: 'builder',
-            projectId: pendingBuild.projectId,
-            userId: pendingBuild.userId,
-            sessionId,
-            framework: 'react',
-            language: 'typescript',
-            enableVisualVerification: true,
-            enableCheckpoints: true,
-        });
-
-        // Store credentials in context
+        // Store credentials in context (context already created above for event emission)
         (context as unknown as { credentials: Record<string, string> }).credentials = credentials;
 
         // Start build in background
