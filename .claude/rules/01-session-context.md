@@ -4,7 +4,63 @@
 
 ---
 
-## Current State (as of 2026-01-04)
+## Current State (as of 2026-01-12)
+
+### Builder View NLP-to-Completion Analysis Complete
+
+**Session Date**: 2026-01-12
+**Branch**: `claude/kristin-nlp-builder-analysis-iNQaf`
+**Analysis**: Comprehensive flow analysis of Builder View production blockers
+
+#### Critical Findings
+
+**P0 CRITICAL BLOCKERS (Stop entire flow):**
+
+1. **Generated Code NOT Written to Disk**
+   - `build-loop.ts` line 4379-4495: `buildFeature()` stores files in `this.projectFiles` Map but never calls `fs.writeFile()`
+   - Line 5181-5182 explicitly says: "In a real implementation, this would write to the filesystem"
+   - Impact: AI generates code but nothing persists - user gets empty project
+
+2. **ArtifactManager Missing projectPath**
+   - `build-loop.ts` line 962: `createArtifactManager()` called without `projectPath`
+   - Result: Artifacts saved to database only, not filesystem
+   - Agents can't read artifacts from disk
+
+3. **ProductionStackWizard Stack Selection Not Sent to Backend**
+   - Frontend opens wizard, user selects stack (auth, db, storage, payments, email)
+   - Selection never submitted to backend
+   - Backend still uses original Deep Intent credential detection
+   - User selects Paddle + Resend → Build gets Stripe + SendGrid
+
+#### Flow Analysis
+
+The intended flow has these working parts:
+- Intent Lock creation ✅
+- Plan generation ✅
+- Plan approval ✅
+- ProductionStackWizard opens ✅
+- Credentials collection UI ✅
+- BuildLoopOrchestrator starts ✅
+
+But fails at:
+- Files not written to disk ❌
+- Stack selection not integrated ❌
+- Verification runs on empty files ❌
+
+#### Documentation Created
+
+- `.claude/rules/10-builder-view-production-blockers.md` - Complete analysis with fix instructions
+
+#### Fix Priority
+
+1. Add `fs.writeFile()` to `buildFeature()` after line 4435 (30 min fix)
+2. Pass `projectPath` to `ArtifactManager` at line 962
+3. Create `/api/execute/plan/:sessionId/stack` endpoint
+4. Merge stack selection with credentials on backend
+
+---
+
+## Previous State (as of 2026-01-04)
 
 ### ✅ PHASE 2 + PHASE 4 COMPLETE: Multi-Sandbox Orchestration
 
