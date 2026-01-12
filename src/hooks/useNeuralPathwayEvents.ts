@@ -193,21 +193,21 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
     const connectSSE = () => {
       const url = `${API_URL}/api/orchestrate/${sessionId}/neural-pathway`;
       console.log('[NeuralPathway] Connecting to SSE:', url);
-      
+
       const eventSource = new EventSource(url, { withCredentials: true });
       eventSourceRef.current = eventSource;
-      
+
       eventSource.onopen = () => {
         console.log('[NeuralPathway] SSE connected');
         setIsConnected(true);
         setError(null);
       };
-      
+
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as OrchestrationEvent;
           handleEvent(data);
-          
+
           // Update current phase display
           if (data.data?.message) {
             setState(prev => prev ? { ...prev, currentPhase: data.data.message as string } : prev);
@@ -216,7 +216,7 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
           console.error('[NeuralPathway] Failed to parse event:', e);
         }
       };
-      
+
       eventSource.onerror = (e) => {
         console.log('[NeuralPathway] SSE error, falling back to simulation', e);
         eventSource.close();
@@ -224,13 +224,13 @@ export function useNeuralPathwayEvents(sessionId: string): UseNeuralPathwayEvent
         // Fall back to simulation
         startSimulation();
       };
-      
+
       return () => {
         eventSource.close();
         eventSourceRef.current = null;
       };
     };
-    
+
     // Fallback: Simulate events for demo
     const startSimulation = () => {
       console.log('[NeuralPathway] Using simulation mode');

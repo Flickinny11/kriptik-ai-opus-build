@@ -448,11 +448,11 @@ router.get('/:projectId/neural-pathway', (req: Request, res: Response) => {
     // Transform orchestrator events to pathway events
     const eventHandler = (event: { type: string; data?: Record<string, unknown> }) => {
         const nodeId = eventToNodeMap[event.type];
-        
+
         if (event.type === 'phase_start' || event.type === 'phase_complete') {
             const phase = event.data?.phase || event.data?.stage;
             const mappedNodeId = phase ? phaseToNodeMap[phase as string] : undefined;
-            
+
             if (mappedNodeId) {
                 if (event.type === 'phase_start') {
                     sendPathwayEvent('phase_change', {

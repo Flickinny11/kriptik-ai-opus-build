@@ -45,8 +45,8 @@ import CostBreakdownModal from '../cost/CostBreakdownModal';
 import { apiClient, type KripToeNiteChunk } from '../../lib/api-client';
 import { type IntelligenceSettings } from './IntelligenceToggles';
 
-// Backend API URL - use environment variable for proper cross-domain communication
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use centralized API URL for proper cross-domain communication
+import { API_URL } from '../../lib/api-config';
 import { useUserStore } from '../../store/useUserStore';
 import TournamentModeToggle from './TournamentModeToggle';
 import TournamentStreamResults, { type TournamentStreamData } from './TournamentStreamResults';
@@ -1164,8 +1164,63 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             {/* Main Content Area - Mutually exclusive views */}
             <div className="flex-1 overflow-hidden relative min-h-0">
-                {/* VIEW 1: Plan Approval View - Review implementation plan */}
-                {buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan ? (
+                {/* VIEW 0: Plan Generation View - Neural Pathway showing AI analyzing */}
+                {buildWorkflowPhase === 'generating_plan' ? (
+                    <div className="h-full flex flex-col items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full max-w-3xl"
+                        >
+                            {/* Header */}
+                            <div className="text-center mb-6">
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                        🔒 Analyzing Your Intent
+                                    </h3>
+                                    <p className="text-sm text-gray-500 max-w-md mx-auto">
+                                        Watch as KripTik's AI orchestration analyzes your requirements and creates a comprehensive implementation plan
+                                    </p>
+                                </motion.div>
+                            </div>
+
+                            {/* Neural Pathway Visualization */}
+                            <NeuralPathway
+                                sessionId={`plan-${projectId || Date.now()}`}
+                                promptText={messages.find(m => m.role === 'user')?.content || ''}
+                                className="rounded-2xl border border-slate-200/50"
+                                showLabels={true}
+                            />
+
+                            {/* Stage indicator */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.5 }}
+                                className="mt-4 text-center"
+                            >
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{
+                                    background: 'linear-gradient(145deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
+                                    border: '1px solid rgba(251,191,36,0.3)',
+                                }}>
+                                    <motion.div
+                                        className="w-2 h-2 rounded-full bg-amber-500"
+                                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+                                        transition={{ duration: 1.5, repeat: Infinity }}
+                                    />
+                                    <span className="text-sm font-medium" style={{ color: '#b45309' }}>
+                                        Creating Intent Contract & Implementation Plan...
+                                    </span>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    </div>
+                ) : buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan ? (
+                    /* VIEW 1: Plan Approval View - Review implementation plan */
                     <div className="h-full overflow-auto p-4">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
