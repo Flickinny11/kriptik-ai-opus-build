@@ -797,6 +797,10 @@ app.use("/api/credentials", credentialsRouter);
 app.use("/api/oauth", oauthRouter);
 app.use("/api/nango", nangoRouter);
 
+// Service Auto-Configuration (Stripe webhooks, etc.)
+import serviceAutoConfigRouter from './routes/service-auto-config.js';
+app.use("/api", serviceAutoConfigRouter);
+
 // Nango OAuth Integrations
 app.use("/api/integrations", integrationsRouter);
 

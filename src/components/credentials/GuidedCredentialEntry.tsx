@@ -518,10 +518,10 @@ const ExternalLinkIcon = () => (
 );
 
 const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
-  <svg 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
     fill="none"
     style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
   >
@@ -562,7 +562,7 @@ export function GuidedCredentialEntry({
   // Filter steps to only include inputs for required env vars
   const relevantSteps = useMemo(() => {
     if (!guide) return [];
-    
+
     return guide.steps.filter(step => {
       // Include non-input steps
       if (step.action !== 'input') return true;
@@ -610,7 +610,7 @@ export function GuidedCredentialEntry({
           <h4 className="guided-entry__title">Configure {platformName}</h4>
           <p className="guided-entry__subtitle">Enter the required credentials</p>
         </div>
-        
+
         <div className="guided-entry__inputs">
           {requiredEnvVars.map(envVar => (
             <div key={envVar} className="guided-entry__input-group">
@@ -651,7 +651,7 @@ export function GuidedCredentialEntry({
         style={{ cursor: 'pointer' }}
       >
         <div className="guided-entry__header-left">
-          <div 
+          <div
             className="guided-entry__icon"
             style={{ background: `${guide.iconColor}20`, borderColor: `${guide.iconColor}40` }}
           >
@@ -702,7 +702,7 @@ export function GuidedCredentialEntry({
                     index + 1
                   )}
                 </div>
-                
+
                 <div className="guided-entry__step-content">
                   <h5 className="guided-entry__step-title">{step.title}</h5>
                   <p className="guided-entry__step-desc">{step.description}</p>

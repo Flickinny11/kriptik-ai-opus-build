@@ -469,7 +469,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             });
 
             setRequiredCredentials(mergedCredentials);
-            
+
             // NEW FLOW: After stack configured, show plan approval UI
             // User can review the plan with updated credential requirements
             setBuildWorkflowPhase('awaiting_plan_approval');

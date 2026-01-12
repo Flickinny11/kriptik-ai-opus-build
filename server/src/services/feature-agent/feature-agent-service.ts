@@ -996,7 +996,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                 timestamp: Date.now(),
                 metadata: { credentials: plan.requiredCredentials.map((c) => ({ ...c, value: null })) },
             });
-            
+
             // Send notification to user through all channels (email, SMS, push)
             // This ensures user is alerted even if they've left the browser
             const platformList = [...new Set(plan.requiredCredentials.filter(c => c.platformName).map(c => c.platformName))].join(', ');
@@ -1026,7 +1026,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             } catch (notifError) {
                 console.warn('[FeatureAgent] Failed to send credential notification:', notifError);
             }
-            
+
             return;
         }
 
