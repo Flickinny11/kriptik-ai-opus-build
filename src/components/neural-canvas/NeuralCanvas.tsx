@@ -24,6 +24,9 @@ import { NeuralIcon } from './icons/NeuralIcons';
 import type { AgentActivityEvent } from '../../types/agent-activity';
 import '../../styles/neural-canvas.css';
 
+// Default sections - defined outside component to prevent re-creation on each render
+const DEFAULT_SECTIONS: Array<'thoughts' | 'code' | 'diff' | 'agents' | 'timeline'> = ['thoughts', 'code', 'agents', 'timeline'];
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -57,7 +60,7 @@ export function NeuralCanvas({
   events = [],
   isActive: externalActive,
   mode: _initialMode = 'standard', // Mode is managed by parent via store
-  initialSections = ['thoughts', 'code', 'agents', 'timeline'],
+  initialSections,
   onSectionClick,
   onCodeExpand,
   onDiffExpand,
@@ -66,6 +69,10 @@ export function NeuralCanvas({
 }: NeuralCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const processedEventsRef = useRef(new Set<string>());
+  const sectionsInitializedRef = useRef(false);
+
+  // Use stable default if no sections provided
+  const sections = initialSections || DEFAULT_SECTIONS;
 
   // Store state
   const {
@@ -86,20 +93,25 @@ export function NeuralCanvas({
     startSession,
   } = useNeuralCanvasStore();
 
-  // Initialize visible sections on mount (don't override mode - parent controls it)
+  // Initialize visible sections ONCE on mount (don't override mode - parent controls it)
   useEffect(() => {
-    initialSections.forEach(section => setSectionVisible(section, true));
-  }, [initialSections, setSectionVisible]);
+    if (!sectionsInitializedRef.current) {
+      sectionsInitializedRef.current = true;
+      sections.forEach(section => setSectionVisible(section, true));
+    }
+  }, []); // Empty deps - only run once on mount
 
-  // Sync external active state
+  // Sync external active state (only when externalActive changes)
+  const prevExternalActiveRef = useRef(externalActive);
   useEffect(() => {
-    if (externalActive !== undefined) {
+    if (externalActive !== undefined && externalActive !== prevExternalActiveRef.current) {
+      prevExternalActiveRef.current = externalActive;
       setActive(externalActive);
-      if (externalActive && !isActive) {
+      if (externalActive) {
         startSession();
       }
     }
-  }, [externalActive, isActive, setActive, startSession]);
+  }, [externalActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Process incoming events
   useEffect(() => {
@@ -109,7 +121,7 @@ export function NeuralCanvas({
         processAgentEvent(event);
       }
     });
-  }, [events, processAgentEvent]);
+  }, [events]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup processed events periodically
   useEffect(() => {

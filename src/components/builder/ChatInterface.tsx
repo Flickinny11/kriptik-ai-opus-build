@@ -416,53 +416,52 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         }
     }, [input]);
 
-    // Connect activity events to Neural Canvas store
-    const {
-        processAgentEvent,
-        setMode,
-        reset: resetNeuralCanvas,
-        addThought,
-        setPhases,
-        setCurrentPhase,
-        addAgent,
-        updateAgent,
-        setActive,
-        setTotalProgress,
-    } = useNeuralCanvasStore();
+    // Connect activity events to Neural Canvas store (use stable reference)
+    const neuralCanvasStore = useNeuralCanvasStore();
+    const neuralCanvasInitializedRef = useRef(false);
+    const buildPhaseRef = useRef(buildWorkflowPhase);
 
+    // Keep ref in sync with state for use in timeouts
     useEffect(() => {
-        // Process new activity events into the Neural Canvas
+        buildPhaseRef.current = buildWorkflowPhase;
+    }, [buildWorkflowPhase]);
+
+    // Process activity events into Neural Canvas
+    useEffect(() => {
         if (activityEvents.length > 0) {
             const latestEvent = activityEvents[activityEvents.length - 1];
-            processAgentEvent(latestEvent);
+            neuralCanvasStore.processAgentEvent(latestEvent);
         }
-    }, [activityEvents, processAgentEvent]);
+    }, [activityEvents]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Set Neural Canvas mode based on build workflow phase
     useEffect(() => {
         if (buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' || globalStatus === 'running') {
-            setMode('expanded');
-            setActive(true);
+            neuralCanvasStore.setMode('expanded');
+            neuralCanvasStore.setActive(true);
         } else if (buildWorkflowPhase === 'idle' && globalStatus === 'idle') {
-            resetNeuralCanvas();
+            neuralCanvasStore.reset();
+            neuralCanvasInitializedRef.current = false;
         }
-    }, [buildWorkflowPhase, globalStatus, setMode, resetNeuralCanvas, setActive]);
+    }, [buildWorkflowPhase, globalStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Initialize Neural Canvas with plan generation activity
+    // Initialize Neural Canvas with plan generation activity (runs ONCE per phase entry)
     useEffect(() => {
-        if (buildWorkflowPhase === 'generating_plan') {
+        if (buildWorkflowPhase === 'generating_plan' && !neuralCanvasInitializedRef.current) {
+            neuralCanvasInitializedRef.current = true;
+
             // Initialize phases for plan generation
-            setPhases([
+            neuralCanvasStore.setPhases([
                 { id: 'analyze', name: 'Analyzing Intent', status: 'active', iconName: 'brain' },
                 { id: 'decompose', name: 'Decomposing Requirements', status: 'pending', iconName: 'analyze' },
                 { id: 'plan', name: 'Creating Build Plan', status: 'pending', iconName: 'workflow' },
                 { id: 'detect', name: 'Detecting Dependencies', status: 'pending', iconName: 'code' },
             ]);
-            setCurrentPhase('analyze');
-            setTotalProgress(10);
+            neuralCanvasStore.setCurrentPhase('analyze');
+            neuralCanvasStore.setTotalProgress(10);
 
             // Add initial orchestrator agent
-            addAgent({
+            neuralCanvasStore.addAgent({
                 id: 'orchestrator',
                 name: 'Build Orchestrator',
                 type: 'planner',
@@ -473,7 +472,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             });
 
             // Add initial thought
-            addThought({
+            neuralCanvasStore.addThought({
                 type: 'analyzing',
                 content: 'Parsing natural language input and extracting intent...',
                 isActive: true,
@@ -482,7 +481,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             });
 
             // Simulate progressive thinking during plan generation
-            const thoughts = [
+            const thoughtUpdates = [
                 { delay: 1500, content: 'Identifying required features and components...', phase: 'analyze', progress: 25 },
                 { delay: 3000, content: 'Decomposing into frontend and backend tasks...', phase: 'decompose', progress: 40 },
                 { delay: 4500, content: 'Mapping dependencies and integration points...', phase: 'plan', progress: 60 },
@@ -490,19 +489,20 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             ];
 
             const timeouts: NodeJS.Timeout[] = [];
-            thoughts.forEach(({ delay, content, phase, progress }) => {
+            thoughtUpdates.forEach(({ delay, content, phase, progress }) => {
                 const timeout = setTimeout(() => {
-                    if (buildWorkflowPhase === 'generating_plan') {
-                        addThought({
+                    // Use ref to check current phase (avoids stale closure)
+                    if (buildPhaseRef.current === 'generating_plan') {
+                        neuralCanvasStore.addThought({
                             type: 'reasoning',
                             content,
                             isActive: true,
                             agentId: 'orchestrator',
                             agentName: 'Build Orchestrator',
                         });
-                        setCurrentPhase(phase);
-                        setTotalProgress(progress);
-                        updateAgent('orchestrator', { task: content, progress });
+                        neuralCanvasStore.setCurrentPhase(phase);
+                        neuralCanvasStore.setTotalProgress(progress);
+                        neuralCanvasStore.updateAgent('orchestrator', { task: content, progress });
                     }
                 }, delay);
                 timeouts.push(timeout);
@@ -512,7 +512,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 timeouts.forEach(clearTimeout);
             };
         }
-    }, [buildWorkflowPhase, setPhases, setCurrentPhase, setTotalProgress, addAgent, addThought, updateAgent]);
+    }, [buildWorkflowPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // P0-3: Watch for ProductionStackWizard completion
     // When wizard closes with configured stack, build credentials from stack selection
