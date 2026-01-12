@@ -992,20 +992,33 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 break;
             }
 
-            case 'file-modified':
-                setLastModifiedFile((wsData.data?.filePath || wsData.filePath) as string);
+            case 'file-modified': {
+                const modifiedFilePath = (wsData.data?.filePath || wsData.filePath) as string;
+                setLastModifiedFile(modifiedFilePath);
                 setTimeout(() => setLastModifiedFile(undefined), 2000);
                 setParallelAgents(prev => prev.map(a =>
                     a.agentId === wsData.data?.agentId ? {
                         ...a,
                         events: [...a.events, {
                             type: 'file-modified',
-                            message: `Modified ${((wsData.data?.filePath as string) || '').split('/').pop() || 'file'}`,
+                            message: `Modified ${(modifiedFilePath || '').split('/').pop() || 'file'}`,
                             timestamp: Date.now()
                         }]
                     } : a
                 ));
+                
+                // PHASE 1: Dispatch HMR trigger event for live preview auto-refresh
+                if (modifiedFilePath) {
+                    window.dispatchEvent(new CustomEvent('hmr-trigger', { 
+                        detail: { 
+                            filePath: modifiedFilePath,
+                            timestamp: Date.now()
+                        } 
+                    }));
+                    console.log('[ChatInterface] Dispatched hmr-trigger for:', modifiedFilePath);
+                }
                 break;
+            }
 
             case 'visual-verification':
                 setVisualVerification({

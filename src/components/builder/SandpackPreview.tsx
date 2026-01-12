@@ -234,6 +234,10 @@ export default function SandpackPreviewWindow() {
     const previewContainerRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
 
+    // PHASE 1: HMR indicator state
+    const [showHmrIndicator, setShowHmrIndicator] = useState(false);
+    const hmrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Check for external sandbox URL on mount and listen for updates
     useEffect(() => {
         // Check localStorage for persisted sandbox URL
@@ -251,12 +255,40 @@ export default function SandpackPreviewWindow() {
             }
         };
 
+        // PHASE 1: Listen for HMR trigger events for auto-refresh
+        const handleHmrTrigger = (event: CustomEvent<{ filePath: string; timestamp: number }>) => {
+            console.log('[SandpackPreview] HMR trigger received:', event.detail.filePath);
+            
+            // Show HMR indicator
+            setShowHmrIndicator(true);
+            
+            // Clear any existing timeout
+            if (hmrTimeoutRef.current) {
+                clearTimeout(hmrTimeoutRef.current);
+            }
+            
+            // Refresh external sandbox iframe
+            if (externalSandboxUrl) {
+                setIframeKey(prev => prev + 1);
+            }
+            
+            // Hide HMR indicator after animation
+            hmrTimeoutRef.current = setTimeout(() => {
+                setShowHmrIndicator(false);
+            }, 1500);
+        };
+
         window.addEventListener('sandbox-ready' as any, handleSandboxReady);
+        window.addEventListener('hmr-trigger' as any, handleHmrTrigger);
 
         return () => {
             window.removeEventListener('sandbox-ready' as any, handleSandboxReady);
+            window.removeEventListener('hmr-trigger' as any, handleHmrTrigger);
+            if (hmrTimeoutRef.current) {
+                clearTimeout(hmrTimeoutRef.current);
+            }
         };
-    }, []);
+    }, [externalSandboxUrl]);
 
     // Refresh external sandbox
     const handleExternalRefresh = useCallback(() => {
@@ -648,6 +680,28 @@ export default function SandpackPreviewWindow() {
                                     <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                                     <span className="text-xs font-semibold text-white">LIVE</span>
                                 </div>
+
+                                {/* PHASE 1: HMR indicator overlay with amber/copper accent */}
+                                {showHmrIndicator && (
+                                    <div
+                                        className="absolute inset-0 pointer-events-none rounded-2xl animate-pulse"
+                                        style={{
+                                            boxShadow: 'inset 0 0 25px rgba(245, 158, 11, 0.4)',
+                                            border: '2px solid rgba(245, 158, 11, 0.6)',
+                                        }}
+                                    >
+                                        <div
+                                            className="absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                            style={{
+                                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)',
+                                                color: '#0a0a0f',
+                                                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                                            }}
+                                        >
+                                            Hot Reload
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             /* Sandpack Preview - In-browser bundling */

@@ -575,6 +575,9 @@ export interface BuildLoopState {
     // LATTICE Speed Enhancements
     latticeSpeedup?: number;
     latticeBlueprint?: LatticeBlueprint;
+
+    // PHASE 1: Live Preview Sandbox URL
+    sandboxUrl?: string;
 }
 
 export interface BuildLoopEvent {
@@ -1528,6 +1531,15 @@ export class BuildLoopOrchestrator extends EventEmitter {
             // =====================================================================
             if (!this.aborted) {
                 await this.executeProvisioningPhases();
+            }
+
+            // =====================================================================
+            // PHASE 1: PROACTIVE SANDBOX INITIALIZATION
+            // Create sandbox BEFORE Phase 2 so live preview is immediately available
+            // This emits 'sandbox-ready' event with URL for frontend consumption
+            // =====================================================================
+            if (!this.aborted) {
+                await this.initializeSandboxEarly();
             }
 
             // Loop through stages (Frontend → Backend → Production)
@@ -3873,8 +3885,11 @@ Return JSON:
 
     /**
      * Helper: Create sandbox service (local or Modal)
-     * Conditionally creates either a local SandboxService or ModalSandboxAdapter
-     * based on MODAL_ENABLED environment variable.
+     * 
+     * Priority order for Modal credentials:
+     * 1. Check CredentialVault for user's stored Modal credentials
+     * 2. Fall back to environment variables (MODAL_TOKEN_ID, MODAL_TOKEN_SECRET)
+     * 3. Fall back to local SandboxService if no Modal credentials available
      */
     private async createSandboxServiceInstance(
         projectPath: string
@@ -3886,20 +3901,47 @@ Return JSON:
             framework: 'vite',
         };
 
-        const useModal = process.env.MODAL_ENABLED === 'true';
+        // PHASE 1: Check CredentialVault for user's Modal credentials first
+        let modalTokenId: string | undefined;
+        let modalTokenSecret: string | undefined;
+        let credentialSource = 'none';
 
-        if (useModal) {
-            console.log('[BuildLoop] Using Modal sandboxes (MODAL_ENABLED=true)');
-
-            const modalTokenId = process.env.MODAL_TOKEN_ID;
-            const modalTokenSecret = process.env.MODAL_TOKEN_SECRET;
-
-            if (!modalTokenId || !modalTokenSecret) {
-                throw new Error(
-                    'Modal sandbox enabled but MODAL_TOKEN_ID or MODAL_TOKEN_SECRET not set. ' +
-                    'Please set these environment variables or disable Modal with MODAL_ENABLED=false'
-                );
+        try {
+            // Import CredentialVault dynamically to avoid circular dependencies
+            const { getCredentialVault } = await import('../security/credential-vault.js');
+            const vault = getCredentialVault();
+            
+            // Try to get Modal credentials from user's vault
+            const modalCredential = await vault.getCredential(this.state.userId, 'modal');
+            
+            if (modalCredential?.data) {
+                modalTokenId = modalCredential.data.MODAL_TOKEN_ID as string;
+                modalTokenSecret = modalCredential.data.MODAL_TOKEN_SECRET as string;
+                
+                if (modalTokenId && modalTokenSecret) {
+                    credentialSource = 'vault';
+                    console.log('[BuildLoop] Found Modal credentials in CredentialVault');
+                }
             }
+        } catch (vaultError) {
+            console.warn('[BuildLoop] CredentialVault check failed (non-fatal):', vaultError);
+        }
+
+        // Fall back to environment variables if vault doesn't have credentials
+        if (!modalTokenId || !modalTokenSecret) {
+            modalTokenId = process.env.MODAL_TOKEN_ID;
+            modalTokenSecret = process.env.MODAL_TOKEN_SECRET;
+            
+            if (modalTokenId && modalTokenSecret) {
+                credentialSource = 'env';
+                console.log('[BuildLoop] Using Modal credentials from environment variables');
+            }
+        }
+
+        const useModal = process.env.MODAL_ENABLED === 'true' || credentialSource === 'vault';
+
+        if (useModal && modalTokenId && modalTokenSecret) {
+            console.log(`[BuildLoop] Using Modal sandboxes (credentials from ${credentialSource})`);
 
             const credentials: ModalSandboxCredentials = {
                 tokenId: modalTokenId,
@@ -3910,10 +3952,55 @@ Return JSON:
             await adapter.initialize();
             return adapter;
         } else {
-            console.log('[BuildLoop] Using local sandboxes (MODAL_ENABLED not set or false)');
+            if (useModal) {
+                console.warn('[BuildLoop] Modal enabled but no credentials available - falling back to local sandboxes');
+            } else {
+                console.log('[BuildLoop] Using local sandboxes');
+            }
             const service = createSandboxService(config);
             await service.initialize();
             return service;
+        }
+    }
+
+    /**
+     * Proactively create and initialize sandbox before Phase 2
+     * This ensures the live preview is available immediately
+     */
+    private async initializeSandboxEarly(): Promise<void> {
+        try {
+            const projectPath = this.projectPath || `/tmp/builds/${this.state.projectId}`;
+            
+            if (!this.sandboxService) {
+                console.log('[BuildLoop] Proactively initializing sandbox before Phase 2...');
+                this.sandboxService = await this.createSandboxServiceInstance(projectPath);
+            }
+
+            // Create sandbox for this build
+            let sandbox = this.sandboxService.getSandbox(this.state.id);
+            if (!sandbox) {
+                sandbox = await this.sandboxService.createSandbox(
+                    this.state.id,
+                    projectPath
+                );
+            }
+
+            // Store sandbox URL in state for immediate availability
+            if (sandbox && sandbox.url) {
+                this.state.sandboxUrl = sandbox.url;
+                
+                // Emit sandbox-ready event immediately
+                this.emitEvent('sandbox-ready', {
+                    sandboxUrl: sandbox.url,
+                    sandboxId: sandbox.id,
+                    status: sandbox.status,
+                });
+                
+                console.log(`[BuildLoop] Sandbox ready: ${sandbox.url}`);
+            }
+        } catch (sandboxError) {
+            console.warn('[BuildLoop] Early sandbox initialization failed (non-fatal):', sandboxError);
+            // Build can continue without sandbox - it will be created on-demand
         }
     }
 

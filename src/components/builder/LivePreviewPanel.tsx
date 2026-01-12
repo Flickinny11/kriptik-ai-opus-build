@@ -8,7 +8,7 @@
  * - Agent activity bar
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Monitor3D, Tablet3D, Smartphone3D, RefreshCw3D, Maximize3D, Minimize3D, ExternalLink3D } from '@/components/icons';
 
@@ -42,6 +42,40 @@ export function LivePreviewPanel({
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'tablet' | 'phone'>('desktop');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [showHmrIndicator, setShowHmrIndicator] = useState(false);
+  const hmrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // PHASE 1: Listen for HMR trigger events from ChatInterface
+  useEffect(() => {
+    const handleHmrTrigger = (event: CustomEvent<{ filePath: string; timestamp: number }>) => {
+      console.log('[LivePreviewPanel] HMR trigger received:', event.detail.filePath);
+      
+      // Show HMR indicator
+      setShowHmrIndicator(true);
+      
+      // Clear any existing timeout
+      if (hmrTimeoutRef.current) {
+        clearTimeout(hmrTimeoutRef.current);
+      }
+      
+      // Increment iframe key to force refresh
+      setIframeKey(prev => prev + 1);
+      
+      // Hide HMR indicator after animation
+      hmrTimeoutRef.current = setTimeout(() => {
+        setShowHmrIndicator(false);
+      }, 1500);
+    };
+
+    window.addEventListener('hmr-trigger', handleHmrTrigger as EventListener);
+    
+    return () => {
+      window.removeEventListener('hmr-trigger', handleHmrTrigger as EventListener);
+      if (hmrTimeoutRef.current) {
+        clearTimeout(hmrTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Device dimensions
   const dimensions = {
@@ -212,23 +246,45 @@ export function LivePreviewPanel({
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             />
 
-            {/* HMR indicator overlay */}
+            {/* PHASE 1: Enhanced HMR indicator overlay with amber/copper accents */}
             <AnimatePresence>
-              {lastModifiedFile && (
+              {(lastModifiedFile || showHmrIndicator) && (
                 <motion.div
                   initial={{ opacity: 1 }}
                   animate={{ opacity: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="absolute inset-0 border-2 border-blue-500 pointer-events-none rounded-lg"
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="absolute inset-0 pointer-events-none rounded-lg"
+                  style={{
+                    boxShadow: 'inset 0 0 20px rgba(245, 158, 11, 0.4)',
+                    border: '2px solid rgba(245, 158, 11, 0.6)',
+                  }}
                 >
+                  {/* HMR Badge - amber/copper styling matching dashboard */}
                   <motion.div
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                    initial={{ opacity: 1, y: 0 }}
+                    animate={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                    className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(217, 119, 6, 0.9) 100%)',
+                      color: '#0a0a0f',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                    }}
                   >
                     Hot Reload
                   </motion.div>
+                  
+                  {/* Ripple effect from center */}
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0.5 }}
+                    animate={{ scale: 2, opacity: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="absolute top-1/2 left-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%)',
+                    }}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
