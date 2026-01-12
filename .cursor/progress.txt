@@ -7581,3 +7581,34 @@ COMMITS:
 - 7717460 style: Premium Implementation Plan UI (no purple)
 
 BUILDS: ✅ Frontend compiles without errors
+
+═══ [2026-01-12] Feature Agents & Stop Button Fixes ═══
+COMPLETED: SSE connection fixes and stop button for plan generation
+
+CHANGES:
+1. ChatInterface.tsx:
+   - Added stop button during 'generating_plan' phase
+   - Stop cancels plan generation and returns to idle
+   - Pause button only shows during active build
+
+2. FeatureAgentActivityStream.tsx:
+   - Uses VITE_API_URL for SSE connections
+   - Added proper error handling with reconnection message
+
+3. FeatureAgentTile.tsx:
+   - Uses VITE_API_URL for stream connections
+
+4. FeaturePreviewWindow.tsx:
+   - Uses VITE_API_URL for preview SSE streams
+   - Added withCredentials: true for CORS
+
+COMMITS:
+- ef970bc feat: Add stop button during plan generation
+- 34ab79c fix: Use API_URL for SSE connections in Feature Agents
+
+BUILDS: ✅ Frontend compiles without errors
+
+REMAINING:
+- Live UI preview refresh
+- Code editor editing
+- Merge button in history tab for Feature Agents
