@@ -1,3 +1,36 @@
+═══ [2026-01-12 FEATURE AGENT STREAMING & MODEL ROUTING FIX] ═══
+COMPLETED: Feature Agent streaming fix, Stop button, and dual-architecture model routing
+
+IMPLEMENTATION SUMMARY:
+1. Feature Agent SSE Streaming Fix:
+   - Fixed endpoint URL from /activity-stream to /stream in FeatureAgentActivityStream.tsx
+   - This resolves the "stream interrupted" error in Feature Agent tiles
+
+2. Stop Button Implementation:
+   - Added "Stop" button to FeatureAgentCommandCenter.tsx
+   - Button replaces "Deploy" button when an agent is running
+   - Styled with red accent for visibility
+   - AgentsCommandCenter.css updated with stop button styles
+
+3. Model Routing - Dual Architecture:
+   - Added modelId option to BuildLoopOptions in build-loop.ts
+   - Added ModelRouter integration to BuildLoopOrchestrator:
+     * Claude models → Anthropic SDK directly
+     * GPT models → OpenAI SDK directly  
+     * Other models (Grok, Gemini, DeepSeek) → OpenRouter
+   - New generateWithSelectedModel() helper method for routing
+   - Feature Agent service now passes user-selected model to orchestrator
+
+4. Credential Workflow Verification:
+   - CredentialsCollectionView already supports:
+     * OAuthConnectButton for Nango-supported services
+     * GuidedCredentialEntry for manual entry platforms
+     * Multi-channel notifications (email, SMS, push)
+
+COMPILE STATUS: ✅ Frontend AND Backend compile successfully
+BUILD STATUS: ✅ Pushed to GitHub (commit b7a6313)
+DEPLOYMENT: ✅ Vercel deployment triggered automatically
+
 ═══ [2026-01-12 CREDENTIAL WORKFLOW COMPLETION - FINAL PHASE] ═══
 COMPLETED: Final credential workflow enhancements and service auto-configuration
 
