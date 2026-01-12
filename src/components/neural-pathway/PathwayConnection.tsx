@@ -63,13 +63,12 @@ export const PathwayConnection = memo(function PathwayConnection({
 
   return (
     <g className="pathway-connection">
-      {/* Background line (always visible, dim) */}
+      {/* Background line (always visible, subtle) */}
       <motion.path
         d={path.pathD}
         fill="none"
-        stroke="currentColor"
+        stroke="rgba(214,211,209,0.5)"
         strokeWidth="1"
-        className="text-gray-800"
         initial={{ pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.5 }}
@@ -79,7 +78,7 @@ export const PathwayConnection = memo(function PathwayConnection({
         transform={`scale(${100 / 100})`}
       />
 
-      {/* Active glow line */}
+      {/* Active glow line - amber gradient */}
       {(isActive || isComplete) && (
         <motion.path
           d={path.pathD}
@@ -97,12 +96,12 @@ export const PathwayConnection = memo(function PathwayConnection({
         />
       )}
 
-      {/* Animated pulse for active connections */}
+      {/* Animated pulse for active connections - warm copper */}
       {isActive && (
         <motion.path
           d={path.pathD}
           fill="none"
-          stroke="rgb(147, 51, 234)"
+          stroke="rgb(245, 158, 11)"
           strokeWidth="3"
           strokeLinecap="round"
           initial={{ pathLength: 0, pathOffset: 0 }}
@@ -121,12 +120,12 @@ export const PathwayConnection = memo(function PathwayConnection({
         />
       )}
 
-      {/* Data flow particles */}
+      {/* Data flow particles - warm amber glow */}
       {hasDataFlow && particles.map(particle => (
         <motion.circle
           key={particle.id}
           r="2"
-          fill="rgb(147, 51, 234)"
+          fill="rgb(251, 191, 36)"
           filter="url(#glow)"
           initial={{ opacity: 0 }}
           animate={{

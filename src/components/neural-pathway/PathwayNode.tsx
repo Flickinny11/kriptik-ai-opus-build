@@ -84,15 +84,19 @@ export const PathwayNode = memo(function PathwayNode({
       exit={{ scale: 0, opacity: 0 }}
       transition={{ type: 'spring', damping: 20, stiffness: 300 }}
     >
-      {/* Outer pulsing ring for active nodes */}
+      {/* Outer pulsing ring for active nodes - warm amber glow */}
       {(isActive || isPending) && (
         <motion.div
           className={cn(
-            'absolute rounded-full border-2',
-            sizeConfig.ring,
-            isActive ? 'border-blue-500/50' : 'border-yellow-500/30'
+            'absolute rounded-full',
+            sizeConfig.ring
           )}
-          style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+          style={{ 
+            left: '50%', 
+            top: '50%', 
+            transform: 'translate(-50%, -50%)',
+            border: isActive ? '2px solid rgba(245,158,11,0.5)' : '2px solid rgba(251,191,36,0.3)',
+          }}
           animate={{
             scale: [1, 1.3, 1],
             opacity: [0.5, 0, 0.5],
@@ -105,11 +109,16 @@ export const PathwayNode = memo(function PathwayNode({
         />
       )}
 
-      {/* Secondary pulse ring */}
+      {/* Secondary pulse ring - copper accent */}
       {isActive && (
         <motion.div
-          className={cn('absolute rounded-full border border-purple-500/30', sizeConfig.ring)}
-          style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+          className={cn('absolute rounded-full', sizeConfig.ring)}
+          style={{ 
+            left: '50%', 
+            top: '50%', 
+            transform: 'translate(-50%, -50%)',
+            border: '1px solid rgba(194,65,12,0.3)',
+          }}
           animate={{
             scale: [1, 1.5, 1],
             opacity: [0.3, 0, 0.3],
@@ -175,16 +184,17 @@ export const PathwayNode = memo(function PathwayNode({
             />
             <defs>
               <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#8b5cf6" />
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#f59e0b" />
               </linearGradient>
             </defs>
           </svg>
         )}
 
-        {/* Icon with animation */}
+        {/* Icon with animation - warm copper color for active */}
         <motion.div
-          className={cn(sizeConfig.icon, 'text-gray-300')}
+          className={sizeConfig.icon}
+          style={{ color: isActive ? '#c2410c' : isComplete ? '#059669' : '#78716c' }}
           animate={isActive ? {
             scale: [1, 1.1, 1],
           } : {}}
@@ -211,10 +221,11 @@ export const PathwayNode = memo(function PathwayNode({
           </motion.div>
         )}
 
-        {/* Expand indicator */}
+        {/* Expand indicator - amber accent */}
         {node.expandable && (
           <motion.div
-            className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500/80 rounded-full flex items-center justify-center"
+            className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(245,158,11,0.9)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: isHovered ? 1 : 0.5 }}
           >
@@ -225,7 +236,7 @@ export const PathwayNode = memo(function PathwayNode({
         )}
       </motion.button>
 
-      {/* Label */}
+      {/* Label - glass pill style */}
       {showLabel && (
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap"
@@ -233,18 +244,23 @@ export const PathwayNode = memo(function PathwayNode({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <span className={cn(
-            'text-xs font-medium px-2 py-0.5 rounded-full',
-            isActive ? 'text-blue-300 bg-blue-500/10' :
-            isComplete ? 'text-emerald-300 bg-emerald-500/10' :
-            'text-gray-400 bg-gray-800/50'
-          )}>
+          <span 
+            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{
+              color: isActive ? '#92400e' : isComplete ? '#047857' : '#78716c',
+              background: isActive ? 'rgba(251,191,36,0.15)' : isComplete ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.6)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid ' + (isActive ? 'rgba(251,191,36,0.3)' : isComplete ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.05)'),
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              fontFamily: 'Syne, sans-serif',
+            }}
+          >
             {node.shortLabel || node.label}
           </span>
         </motion.div>
       )}
 
-      {/* Status tooltip on hover */}
+      {/* Status tooltip on hover - liquid glass style */}
       {isHovered && node.summary && (
         <motion.div
           className="absolute z-50 left-1/2 -translate-x-1/2 -top-2 -translate-y-full"
@@ -252,15 +268,30 @@ export const PathwayNode = memo(function PathwayNode({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 5 }}
         >
-          <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 shadow-xl max-w-xs">
-            <p className="text-xs text-gray-300 line-clamp-2">{node.summary}</p>
+          <div 
+            className="rounded-xl px-3 py-2 max-w-xs"
+            style={{
+              background: 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.8)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.03)',
+            }}
+          >
+            <p className="text-xs line-clamp-2" style={{ color: '#44403c' }}>{node.summary}</p>
             {node.duration && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs mt-1" style={{ color: '#a8a29e' }}>
                 {(node.duration / 1000).toFixed(1)}s
               </p>
             )}
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-gray-900 border-r border-b border-gray-700 transform rotate-45 -mt-1" />
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 transform rotate-45 -mt-1"
+            style={{
+              background: 'rgba(255,255,255,0.95)',
+              borderRight: '1px solid rgba(255,255,255,0.8)',
+              borderBottom: '1px solid rgba(255,255,255,0.8)',
+            }}
+          />
         </motion.div>
       )}
     </motion.div>

@@ -49,18 +49,18 @@ const DEFAULT_NODES: Omit<PathwayNode, 'status'>[] = [
   { id: 'deploy', type: 'deploy', label: 'Deploy', shortLabel: 'Deploy', position: { x: 10, y: 55 }, parentId: 'build', icon: 'rocket' },
 
   // Complete (top-left, connecting back)
-  { id: 'complete', type: 'complete', label: 'Complete', shortLabel: '✓', position: { x: 20, y: 25 }, parentId: 'deploy', size: 'medium', icon: 'check' },
+  { id: 'complete', type: 'complete', label: 'Complete', shortLabel: 'Done', position: { x: 20, y: 25 }, parentId: 'deploy', size: 'medium', icon: 'check' },
 ];
 
-// Status-based colors
+// Status-based colors - KripTik amber/copper theme
 const STATUS_COLORS: Record<NodeStatus, { bg: string; border: string; glow: string }> = {
-  idle: { bg: 'bg-gray-800/50', border: 'border-gray-700', glow: '' },
-  pending: { bg: 'bg-yellow-900/30', border: 'border-yellow-600/50', glow: 'shadow-yellow-500/20' },
-  active: { bg: 'bg-blue-900/40', border: 'border-blue-500', glow: 'shadow-blue-500/40 shadow-lg' },
-  streaming: { bg: 'bg-purple-900/40', border: 'border-purple-500', glow: 'shadow-purple-500/50 shadow-lg' },
-  complete: { bg: 'bg-emerald-900/30', border: 'border-emerald-500', glow: 'shadow-emerald-500/20' },
-  error: { bg: 'bg-red-900/40', border: 'border-red-500', glow: 'shadow-red-500/40' },
-  skipped: { bg: 'bg-gray-800/30', border: 'border-gray-600', glow: '' },
+  idle: { bg: 'bg-stone-100/60', border: 'border-stone-300/50', glow: '' },
+  pending: { bg: 'bg-amber-50/70', border: 'border-amber-400/50', glow: 'shadow-amber-400/20' },
+  active: { bg: 'bg-amber-100/80', border: 'border-amber-500', glow: 'shadow-amber-500/40 shadow-lg' },
+  streaming: { bg: 'bg-orange-100/80', border: 'border-orange-500', glow: 'shadow-orange-500/50 shadow-lg' },
+  complete: { bg: 'bg-emerald-50/70', border: 'border-emerald-500', glow: 'shadow-emerald-500/20' },
+  error: { bg: 'bg-red-50/70', border: 'border-red-500', glow: 'shadow-red-500/40' },
+  skipped: { bg: 'bg-stone-100/40', border: 'border-stone-300/30', glow: '' },
 };
 
 export function NeuralPathway({
@@ -145,20 +145,50 @@ export function NeuralPathway({
 
   return (
     <div className={cn('relative w-full', containerSize, className)}>
-      {/* Background gradient */}
-      <div className="absolute inset-0 rounded-xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-gray-900/90 to-gray-900/95" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-purple-500/5" />
+      {/* Liquid Glass Background - matches KripTik dashboard aesthetic */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden">
+        {/* Base glass layer */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,245,240,0.9) 50%, rgba(255,255,255,0.85) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        />
+        {/* Warm amber glow gradient */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 20%, rgba(251,191,36,0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.06) 0%, transparent 50%)',
+          }}
+        />
+        {/* Subtle inner shadow for depth */}
+        <div 
+          className="absolute inset-0 rounded-2xl"
+          style={{
+            boxShadow: 'inset 0 2px 20px rgba(0,0,0,0.03), inset 0 -2px 10px rgba(255,255,255,0.8)',
+          }}
+        />
 
-        {/* Animated grid pattern */}
-        <svg className="absolute inset-0 w-full h-full opacity-10">
+        {/* Animated neural grid pattern - warm copper tones */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.07]">
           <defs>
             <pattern id="neural-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-blue-400" />
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#c2410c" strokeWidth="0.5" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#neural-grid)" />
         </svg>
+        
+        {/* Outer glass border */}
+        <div 
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            border: '1px solid rgba(255,255,255,0.6)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(251,191,36,0.1)',
+          }}
+        />
       </div>
 
       {/* Main visualization area */}
@@ -166,11 +196,11 @@ export function NeuralPathway({
         {/* SVG for connections */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
-            {/* Gradient for active connections */}
+            {/* Gradient for active connections - amber/copper theme */}
             <linearGradient id="connection-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgb(59, 130, 246)" stopOpacity="0.3" />
-              <stop offset="50%" stopColor="rgb(147, 51, 234)" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="rgb(16, 185, 129)" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="rgb(251, 191, 36)" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="rgb(245, 158, 11)" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="rgb(16, 185, 129)" stopOpacity="0.4" />
             </linearGradient>
 
             {/* Glow filter */}
@@ -211,34 +241,48 @@ export function NeuralPathway({
           ))}
         </AnimatePresence>
 
-        {/* Progress indicator */}
+        {/* Progress indicator - glass pill style */}
         {state && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-2 left-4 right-4"
+            className="absolute bottom-3 left-4 right-4"
           >
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="font-medium text-gray-300">{state.currentPhase}</span>
-              <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div 
+              className="flex items-center gap-3 text-xs px-3 py-2 rounded-full"
+              style={{
+                background: 'rgba(255,255,255,0.7)',
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)',
+                border: '1px solid rgba(255,255,255,0.5)',
+              }}
+            >
+              <span className="font-semibold" style={{ color: '#92400e', fontFamily: 'Syne, sans-serif' }}>{state.currentPhase}</span>
+              <div className="flex-1 h-1.5 bg-stone-200/60 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500"
+                  className="h-full rounded-full"
+                  style={{ background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #10b981 100%)' }}
                   initial={{ width: 0 }}
                   animate={{ width: `${state.progress}%` }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                 />
               </div>
-              <span>{state.progress}%</span>
+              <span className="font-medium" style={{ color: '#78716c' }}>{state.progress}%</span>
             </div>
           </motion.div>
         )}
 
-        {/* Connection status indicator */}
-        <div className="absolute top-2 right-2">
-          <div className={cn(
-            'w-2 h-2 rounded-full',
-            isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'
-          )} />
+        {/* Connection status indicator - warm glow style */}
+        <div className="absolute top-3 right-3">
+          <div 
+            className={cn(
+              'w-2.5 h-2.5 rounded-full transition-colors duration-300',
+              isConnected ? 'bg-emerald-500' : 'bg-stone-400'
+            )}
+            style={{
+              boxShadow: isConnected ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+            }}
+          />
         </div>
       </div>
 

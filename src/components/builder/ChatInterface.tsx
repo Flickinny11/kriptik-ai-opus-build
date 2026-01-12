@@ -1191,7 +1191,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                                     transition={{ delay: 0.2 }}
                                 >
                                     <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                                        🔒 Analyzing Your Intent
+                                        Analyzing Your Intent
                                     </h3>
                                     <p className="text-sm text-gray-500 max-w-md mx-auto">
                                         Watch as KripTik's AI orchestration analyzes your requirements and creates a comprehensive implementation plan
