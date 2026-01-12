@@ -163,21 +163,24 @@ function PhaseCard({
     return (
         <div className={cn(
             "rounded-2xl border overflow-hidden transition-all duration-300",
+            "bg-gradient-to-br from-slate-800/60 to-slate-900/80",
+            "backdrop-blur-sm",
             phase.type === 'frontend'
-                ? "border-cyan-500/30 bg-cyan-500/5"
-                : "border-purple-500/30 bg-purple-500/5"
+                ? "border-amber-500/30 shadow-[0_0_20px_rgba(245,168,108,0.05)]"
+                : "border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.05)]"
         )}>
             {/* Header */}
             <button
                 onClick={onToggle}
-                className="w-full flex items-center justify-between p-4 text-left"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02] transition-colors"
             >
                 <div className="flex items-center gap-3">
                     <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
+                        "bg-gradient-to-br shadow-lg",
                         phase.type === 'frontend'
-                            ? "bg-cyan-500/20 text-cyan-400"
-                            : "bg-purple-500/20 text-purple-400"
+                            ? "from-amber-500/20 to-orange-600/20 text-amber-400"
+                            : "from-emerald-500/20 to-teal-600/20 text-emerald-400"
                     )}>
                         <Icon size={20} />
                     </div>
@@ -540,8 +543,8 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
             {/* Frontend phases */}
             <div>
                 <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500" />
+                    <h3 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">
                         Frontend UI
                     </h3>
                 </div>
@@ -562,8 +565,8 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
             {/* Backend phases */}
             <div>
                 <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 rounded-full bg-purple-400" />
-                    <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wide">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" />
+                    <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wide">
                         Backend
                     </h3>
                 </div>
