@@ -350,7 +350,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
 
     // Agent Activity Stream state (used for WebSocket event tracking)
-    const [, setActivityEvents] = useState<AgentActivityEvent[]>([]);
+    const [buildActivityEvents, setBuildActivityEvents] = useState<AgentActivityEvent[]>([]);
     const activityWsRef = useRef<WebSocket | null>(null);
 
     // SESSION 4: Live Preview state
@@ -491,6 +491,29 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             }]);
         }
     }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials]);
+
+    // Helper to map AgentActivityEvent type to StreamingConsciousness activity type
+    const mapEventTypeToActivityType = (eventType: AgentActivityEvent['type']): 'thinking' | 'reading' | 'writing' | 'command' | 'diff' | 'phase' | 'complete' | 'error' => {
+        switch (eventType) {
+            case 'thinking':
+                return 'thinking';
+            case 'file_read':
+                return 'reading';
+            case 'file_write':
+            case 'file_edit':
+                return 'writing';
+            case 'tool_call':
+                return 'command';
+            case 'status':
+                return 'phase';
+            case 'verification':
+                return 'complete';
+            case 'error':
+                return 'error';
+            default:
+                return 'thinking';
+        }
+    };
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -915,7 +938,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${websocketChannel}`;
         const ws = new WebSocket(wsUrl);
         activityWsRef.current = ws;
-        setActivityEvents([]);
+        setBuildActivityEvents([]);
 
         ws.onmessage = (event) => {
             try {
@@ -924,7 +947,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
                 const activityEvent = parseStreamChunkToEvent(wsData, 'orchestrator');
                 if (activityEvent) {
-                    setActivityEvents(prev => [...prev.slice(-99), activityEvent]);
+                    setBuildActivityEvents(prev => [...prev.slice(-99), activityEvent]);
                 }
 
                 // Handle all the WebSocket event types
@@ -1387,8 +1410,15 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         {/* Streaming Consciousness - Simple activity log showing what AI is doing */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
                             <StreamingConsciousness
-                                sessionId={buildProjectId || projectId}
                                 isActive={globalStatus === 'running'}
+                                streamEndpoint="none"
+                                externalActivities={buildActivityEvents.map(event => ({
+                                    id: event.id,
+                                    type: mapEventTypeToActivityType(event.type),
+                                    content: event.content || '',
+                                    file: event.metadata?.filePath,
+                                    timestamp: new Date(event.timestamp),
+                                }))}
                                 onFileClick={(file) => console.log('Open file:', file)}
                             />
                         </div>
