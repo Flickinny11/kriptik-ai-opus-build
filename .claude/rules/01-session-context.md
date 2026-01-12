@@ -6,57 +6,73 @@
 
 ## Current State (as of 2026-01-12)
 
-### Builder View NLP-to-Completion Analysis Complete
+### ✅ Builder View NLP-to-Completion Flow COMPLETE
 
 **Session Date**: 2026-01-12
 **Branch**: `claude/kristin-nlp-builder-analysis-iNQaf`
-**Analysis**: Comprehensive flow analysis of Builder View production blockers
+**Status**: ALL P0 BLOCKERS FIXED AND DEPLOYED
 
-#### Critical Findings
+#### Fixes Implemented
 
-**P0 CRITICAL BLOCKERS (Stop entire flow):**
+**All 5 critical blockers have been resolved:**
 
-1. **Generated Code NOT Written to Disk**
-   - `build-loop.ts` line 4379-4495: `buildFeature()` stores files in `this.projectFiles` Map but never calls `fs.writeFile()`
-   - Line 5181-5182 explicitly says: "In a real implementation, this would write to the filesystem"
-   - Impact: AI generates code but nothing persists - user gets empty project
+1. **✅ Fix #1: Generated Code Now Written to Disk**
+   - Added `fs.writeFile()` to `buildFeature()` in `build-loop.ts`
+   - Files are now persisted to project directory (not just memory Map)
+   - Added error handling that continues on individual file failures
 
-2. **ArtifactManager Missing projectPath**
-   - `build-loop.ts` line 962: `createArtifactManager()` called without `projectPath`
-   - Result: Artifacts saved to database only, not filesystem
-   - Agents can't read artifacts from disk
+2. **✅ Fix #2: ArtifactManager Receives projectPath**
+   - Pass `projectPath` and `syncToFilesystem: true` to `createArtifactManager()`
+   - Enables hybrid storage (database + filesystem)
+   - Agents can now read artifacts from disk
 
-3. **ProductionStackWizard Stack Selection Not Sent to Backend**
-   - Frontend opens wizard, user selects stack (auth, db, storage, payments, email)
-   - Selection never submitted to backend
-   - Backend still uses original Deep Intent credential detection
-   - User selects Paddle + Resend → Build gets Stripe + SendGrid
+3. **✅ Fix #3: Speculative Results and Fixes Written to Disk**
+   - Added `fs.writeFile()` to `applySpeculativeResult()`
+   - Added `fs.writeFile()` to `refineSpeculativeResult()`
+   - Replaced `applyFix()` stub with real filesystem implementation
+   - Delete operations also implemented for filesystem
 
-#### Flow Analysis
+4. **✅ Fix #4: Stack Selection Endpoint Created**
+   - New `POST /api/execute/plan/:sessionId/stack` endpoint
+   - `mergeCredentialsWithStackSelection()` function for credential mapping
+   - Updated `PendingBuild` interface with `selectedStack` and `'awaiting_stack'` status
 
-The intended flow has these working parts:
+5. **✅ Fix #5: Frontend Stack Selection Integration**
+   - `ChatInterface.tsx` useEffect now calls backend `/stack` endpoint
+   - Stack selection synced with backend before credential collection
+   - Backend-calculated credentials used (properly merged with Deep Intent)
+   - Fallback to local credential building if backend unavailable
+
+#### Files Changed
+
+| File | Changes |
+|------|---------|
+| `server/src/services/automation/build-loop.ts` | +112 lines - File writing to disk |
+| `server/src/routes/execute.ts` | +278 lines - Stack endpoint + credential merging |
+| `src/components/builder/ChatInterface.tsx` | +107 lines - Backend stack sync |
+
+#### Commit
+
+```
+cad5446 feat: Complete Builder View NLP-to-completion production flow fixes
+```
+
+#### The Flow Now Works
+
 - Intent Lock creation ✅
 - Plan generation ✅
 - Plan approval ✅
 - ProductionStackWizard opens ✅
+- **Stack selection synced to backend ✅ NEW**
+- **Credentials merged with Deep Intent + Stack ✅ NEW**
 - Credentials collection UI ✅
 - BuildLoopOrchestrator starts ✅
+- **Files written to disk ✅ NEW**
+- Verification runs on real files ✅
 
-But fails at:
-- Files not written to disk ❌
-- Stack selection not integrated ❌
-- Verification runs on empty files ❌
+#### Documentation
 
-#### Documentation Created
-
-- `.claude/rules/10-builder-view-production-blockers.md` - Complete analysis with fix instructions
-
-#### Fix Priority
-
-1. Add `fs.writeFile()` to `buildFeature()` after line 4435 (30 min fix)
-2. Pass `projectPath` to `ArtifactManager` at line 962
-3. Create `/api/execute/plan/:sessionId/stack` endpoint
-4. Merge stack selection with credentials on backend
+- `.claude/rules/10-builder-view-production-blockers.md` - Complete analysis (reference)
 
 ---
 
