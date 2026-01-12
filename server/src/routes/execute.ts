@@ -28,6 +28,7 @@ import { BuildLoopOrchestrator } from '../services/automation/build-loop.js';
 import { AgentOrchestrator } from '../services/agents/orchestrator.js';
 import { getDeveloperModeOrchestrator } from '../services/developer-mode/orchestrator.js';
 import { getKripToeNite } from '../services/ai/krip-toe-nite/index.js';
+import { createClaudeService, CLAUDE_MODELS } from '../services/ai/claude-service.js';
 // Enhanced Build Loop with Cursor 2.1+ features
 import {
     EnhancedBuildLoopOrchestrator,
@@ -2025,10 +2026,14 @@ async function generateBuildPlan(prompt: string, projectId: string, userId: stri
  * POST /api/execute/plan/stream
  *
  * Generate implementation plan with SSE streaming for real-time feedback.
- * This allows the frontend to show progress during plan generation.
+ * Streams REAL AI thinking tokens as the plan is generated - not predefined messages.
  *
- * FAST PATH: Uses reduced thinking budget for initial plan (8K instead of 64K)
- * Full deep intent is created in background after plan is shown.
+ * Flow:
+ * 1. Stream Claude's thinking process in real-time
+ * 2. Parse the AI-generated plan
+ * 3. Create intent lock
+ * 4. Detect required credentials
+ * 5. Send complete event with full plan data
  */
 router.post('/plan/stream', async (req: Request, res: Response) => {
     const { userId, projectId = `project-${uuidv4().slice(0, 8)}`, prompt } = req.body;
@@ -2057,85 +2062,172 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
 
     const sessionId = uuidv4();
 
-    // Progress indicator to show activity during long operations
-    let processingPhase = 'analyzing';
-    const progressMessages = [
-        'Analyzing app requirements...',
-        'Evaluating technology choices...',
-        'Determining optimal architecture...',
-        'Identifying integration points...',
-        'Calculating resource requirements...',
-        'Mapping data models...',
-        'Planning API structure...',
-        'Assessing security requirements...',
-        'Optimizing build strategy...',
-        'Finalizing implementation approach...',
-    ];
-    let progressIndex = 0;
-
+    // Keep-alive heartbeat (every 15s, just to prevent timeout)
     const heartbeatInterval = setInterval(() => {
-        // Send meaningful progress updates, not empty timestamps
-        sendEvent('thinking', {
-            content: progressMessages[progressIndex % progressMessages.length],
-            phase: processingPhase,
-        });
-        progressIndex++;
-    }, 2000);
+        res.write(': keepalive\n\n');
+    }, 15000);
 
     try {
-        // Phase 1: Immediate acknowledgment
-        sendEvent('thinking', {
-            content: `Analyzing: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"`,
+        // Phase 1: Immediate acknowledgment - this is the ONLY predefined message
+        sendEvent('phase', {
+            content: 'Understanding your request...',
             phase: 'initialization',
         });
 
-        console.log(`[Execute:Plan:Stream] Starting plan generation for session ${sessionId}`);
+        console.log(`[Execute:Plan:Stream] Starting REAL AI plan generation for session ${sessionId}`);
 
-        // Phase 2: Generate the implementation plan (FAST - no AI, just analysis)
-        sendEvent('thinking', {
-            content: 'Decomposing requirements into phases...',
-            phase: 'plan_generation',
+        // Create Claude service for plan generation
+        const claude = createClaudeService({
+            agentType: 'planning',
+            systemPrompt: `You are KripTik AI's planning architect. Generate a detailed implementation plan for the user's app.
+
+CRITICAL: Stream your thinking process - the user sees your reasoning in real-time.
+
+For each phase, consider:
+- Frontend: framework, styling, components, state management
+- Backend: API design, database schema, authentication
+- Integrations: payment, email, storage, AI/ML services
+- Deployment: hosting, environment variables, CI/CD
+
+Output format (JSON):
+{
+  "phases": [
+    {
+      "id": "unique-id",
+      "title": "Phase Name",
+      "description": "What this phase accomplishes",
+      "icon": "Code|Database|Shield|Zap|Server|Palette",
+      "type": "frontend|backend",
+      "order": 0,
+      "approved": false,
+      "steps": [
+        { "id": "step-id", "description": "Specific task", "type": "code|config", "estimatedTokens": 2000 }
+      ]
+    }
+  ],
+  "intentSummary": "What the app will do",
+  "estimatedTokenUsage": 50000,
+  "estimatedCostUSD": 0.75,
+  "parallelAgentsNeeded": 3,
+  "frontendFirst": true,
+  "backendFirst": false,
+  "parallelFrontendBackend": true
+}
+
+Be specific about technology choices. The user will approve or modify each phase.`,
+            projectId,
+            userId,
         });
 
-        const plan = await generateBuildPlan(prompt, projectId, userId);
+        let fullThinking = '';
+        let fullContent = '';
+
+        // STREAM REAL AI THINKING - this is what users see in real-time
+        await claude.generateStream(
+            `Create an implementation plan for this app:
+
+"${prompt}"
+
+Think through the requirements carefully. Stream your reasoning about:
+1. What type of app is this? (SaaS, e-commerce, social, etc.)
+2. What are the core features needed?
+3. What technology stack fits best?
+4. What integrations are required?
+5. What's the optimal build sequence?
+
+Then output the JSON plan.`,
+            {
+                onThinking: (thinking: string) => {
+                    // Stream thinking tokens directly to frontend - REAL AI reasoning
+                    fullThinking += thinking;
+                    sendEvent('thinking', {
+                        content: thinking,
+                        phase: 'reasoning',
+                    });
+                },
+                onText: (text: string) => {
+                    // Accumulate the response text (JSON plan)
+                    fullContent += text;
+                    // Don't stream raw JSON to user - it's not readable
+                },
+                onError: (error: Error) => {
+                    console.error('[Execute:Plan:Stream] AI error:', error);
+                    sendEvent('error', { content: error.message });
+                },
+            },
+            {
+                model: CLAUDE_MODELS.SONNET_4_5, // Use Sonnet for speed + quality balance
+                maxTokens: 16000,
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 8000, // Good thinking budget for planning
+            }
+        );
+
+        // Phase 2: Parse the AI-generated plan
+        sendEvent('phase', {
+            content: 'Structuring implementation plan...',
+            phase: 'parsing',
+        });
+
+        let plan: BuildPlan;
+        try {
+            const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                // Ensure proper structure
+                plan = {
+                    intentSummary: parsed.intentSummary || `Building: ${prompt.slice(0, 100)}`,
+                    phases: parsed.phases || [],
+                    estimatedTokenUsage: parsed.estimatedTokenUsage || 50000,
+                    estimatedCostUSD: parsed.estimatedCostUSD || 0.75,
+                    parallelAgentsNeeded: parsed.parallelAgentsNeeded || 3,
+                    frontendFirst: parsed.frontendFirst ?? true,
+                    backendFirst: parsed.backendFirst ?? false,
+                    parallelFrontendBackend: parsed.parallelFrontendBackend ?? true,
+                };
+            } else {
+                // Fallback to generated plan if parsing fails
+                console.warn('[Execute:Plan:Stream] Failed to parse AI plan, using fallback');
+                plan = await generateBuildPlan(prompt, projectId, userId);
+            }
+        } catch (parseError) {
+            console.warn('[Execute:Plan:Stream] Parse error, using fallback plan:', parseError);
+            plan = await generateBuildPlan(prompt, projectId, userId);
+        }
 
         sendEvent('phase', {
-            content: `${plan.phases.length} build phases identified`,
+            content: `${plan.phases.length} build phases ready`,
             details: plan.phases.map(p => p.title).join(', '),
         });
 
-        // Phase 3: Create FAST Intent Contract (reduced thinking budget)
-        processingPhase = 'intent_lock';
+        // Phase 3: Create Intent Contract
         sendEvent('thinking', {
-            content: 'Locking intent contract with success criteria...',
+            content: 'Creating intent lock with success criteria...',
             phase: 'intent_lock',
         });
 
         const engine = createIntentLockEngine(userId, projectId);
-
-        // Use lower thinking budget for FAST initial response (8K instead of 64K)
-        // Full deep intent will be created during build phase
         const deepIntent = await engine.createDeepContract(
             prompt,
             userId,
             projectId,
             undefined,
             {
-                fetchAPIDocs: false, // Skip API docs for faster response
-                thinkingBudget: 8000, // Reduced from 64K for faster plan generation
+                fetchAPIDocs: false,
+                thinkingBudget: 4000, // Minimal thinking for fast intent lock
             }
         );
 
         sendEvent('phase', {
-            content: 'Intent Contract locked',
-            details: `${deepIntent.functionalChecklist?.length || 0} success criteria`,
+            content: 'Intent locked',
+            details: `${deepIntent.functionalChecklist?.length || 0} success criteria defined`,
         });
 
-        console.log(`[Execute:Plan:Stream] Fast Intent created: ${deepIntent.id}`);
+        console.log(`[Execute:Plan:Stream] Intent created: ${deepIntent.id}`);
 
-        // Phase 4: Extract credentials (FAST - from analysis)
+        // Phase 4: Detect required credentials
         sendEvent('thinking', {
-            content: 'Detecting required credentials...',
+            content: 'Analyzing integration requirements...',
             phase: 'credentials',
         });
 
@@ -2143,13 +2235,8 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
 
         if (requiredCredentials.length > 0) {
             sendEvent('phase', {
-                content: `${requiredCredentials.length} credential(s) needed`,
+                content: `${requiredCredentials.length} connection(s) needed`,
                 details: requiredCredentials.map(c => c.platformName).join(', '),
-            });
-        } else {
-            sendEvent('phase', {
-                content: 'No external credentials required',
-                details: 'Ready to build',
             });
         }
 
@@ -2167,10 +2254,10 @@ router.post('/plan/stream', async (req: Request, res: Response) => {
         };
         pendingBuilds.set(sessionId, pendingBuild);
 
-        // Phase 6: Complete - send all data for frontend
+        // Phase 6: Complete
         clearInterval(heartbeatInterval);
         sendEvent('complete', {
-            content: 'Ready for your review',
+            content: 'Plan ready for review',
             sessionId,
             projectId,
             plan,
