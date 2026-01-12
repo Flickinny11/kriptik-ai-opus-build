@@ -121,7 +121,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
   // Group credentials by platform for better UX
   const platformGroups = useMemo((): PlatformGroup[] => {
     const groups = new Map<string, PlatformGroup>();
-    
+
     for (const cred of credentials) {
       const platform = cred.platformName || 'Other';
       if (!groups.has(platform)) {
@@ -137,7 +137,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
 
     // Check if each group is complete
     for (const group of groups.values()) {
-      group.isComplete = group.credentials.every(c => 
+      group.isComplete = group.credentials.every(c =>
         (values[c.envVariableName] || '').trim().length > 0
       );
     }
@@ -145,7 +145,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
     return Array.from(groups.values());
   }, [credentials, values]);
 
-  const completedPlatforms = useMemo(() => 
+  const completedPlatforms = useMemo(() =>
     platformGroups.filter(g => g.isComplete).length
   , [platformGroups]);
 
@@ -227,7 +227,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
           {platformGroups.map((group, groupIndex) => {
             const isExpanded = expandedPlatform === group.platform;
             const firstCred = group.credentials[0];
-            
+
             return (
               <motion.div
                 key={group.platform}
@@ -243,7 +243,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
                 layout
               >
                 {/* Platform tile header - always visible */}
-                <motion.div 
+                <motion.div
                   className="platform-tile__header"
                   onClick={() => setExpandedPlatform(isExpanded ? null : group.platform)}
                   whileHover={{ scale: 1.01 }}
@@ -260,7 +260,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="platform-tile__header-right">
                     {group.isComplete ? (
                       <div className="platform-tile__complete-badge">
@@ -283,8 +283,8 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
                         onError={(error) => handleOAuthError(firstCred.id, error)}
                       />
                     ) : null}
-                    
-                    <motion.div 
+
+                    <motion.div
                       className="platform-tile__expand-icon"
                       animate={{ rotate: isExpanded ? 180 : 0 }}
                       transition={{ duration: 0.2 }}
@@ -323,7 +323,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
                             <ExternalLinkIcon />
                           </a>
                         )}
-                        
+
                         {group.credentials.map((c) => {
                           const v = values[c.envVariableName] ?? '';
                           const filled = v.trim().length > 0;
@@ -338,7 +338,7 @@ export function CredentialsCollectionView({ credentials, onCredentialsSubmit, pr
                                 {c.required && <span className="credential-field__required">*</span>}
                               </label>
                               <div className="credential-field__env">{c.envVariableName}</div>
-                              
+
                               <div className={`credential-field__input-wrapper ${isFocused ? 'credential-field__input-wrapper--focused' : ''}`}>
                                 <input
                                   type={isSecret && !showingSecret ? 'password' : 'text'}

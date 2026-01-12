@@ -1649,8 +1649,23 @@ function detectRequiredCredentials(prompt: string): RequiredCredential[] {
     const promptLower = prompt.toLowerCase();
     const seenEnvVars = new Set<string>();
 
+    // CRITICAL: Determine what type of app is being built
+    // KripTik uses its own API keys for the BUILD process
+    // Only ask for user's LLM keys if their DEPLOYED APP needs them
+    const isMediaGenApp = /\b(video|image|photo|audio|music|voice|3d|model.*generat|generat.*video|generat.*image|wan|cogvideo|stable.*diffusion|flux|sdxl)/i.test(prompt);
+    const isLLMChatApp = /\b(chatbot|chat.*bot|ai.*assistant|gpt.*app|claude.*app|llm.*app|conversation|chat.*interface)/i.test(prompt);
+    
+    // Keywords that should NOT trigger LLM API key requests unless building a chatbot
+    const llmProviderKeywords = ['openai', 'anthropic', 'openrouter'];
+
     for (const [keyword, creds] of Object.entries(CREDENTIAL_PATTERNS)) {
         if (promptLower.includes(keyword)) {
+            // Skip LLM providers for media generation apps - KripTik uses its own keys
+            if (llmProviderKeywords.includes(keyword) && isMediaGenApp && !isLLMChatApp) {
+                console.log(`[detectRequiredCredentials] Skipping ${keyword} - media gen app uses KripTik's AI, not user's`);
+                continue;
+            }
+            
             for (const cred of creds) {
                 if (!seenEnvVars.has(cred.envVar)) {
                     seenEnvVars.add(cred.envVar);
@@ -1669,14 +1684,20 @@ function detectRequiredCredentials(prompt: string): RequiredCredential[] {
     }
 
     // Additional pattern matching for common integrations
-    // IMPORTANT: Be specific - don't match "ai" broadly as it would trigger OpenAI for any AI app
+    // CRITICAL: KripTik uses its own API keys for building. Only ask for user's LLM keys
+    // if the USER'S APP explicitly needs them (e.g., building a chatbot that uses OpenAI directly)
+    // (isMediaGenApp and isLLMChatApp were already calculated above)
+    
     const additionalPatterns: Array<{ pattern: RegExp; service: string }> = [
         // Payments - match payment keywords
         { pattern: /\b(payment|checkout|subscription|billing|stripe)\b/i, service: 'stripe' },
 
-        // LLM APIs - match specific providers, NOT generic "ai" keyword
-        { pattern: /\b(openai|gpt-?[34]|chatgpt|dall-?e)\b/i, service: 'openai' },
-        { pattern: /\b(claude|anthropic)\b/i, service: 'anthropic' },
+        // LLM APIs - ONLY ask for user's key if building a chatbot/LLM app (not for KripTik's internal AI)
+        // KripTik uses its own keys for building; only the user's deployed app needs these
+        ...(isLLMChatApp && !isMediaGenApp ? [
+            { pattern: /\b(openai|gpt-?[345]|chatgpt)\b/i, service: 'openai' },
+            { pattern: /\b(claude|anthropic)\b/i, service: 'anthropic' },
+        ] : []),
 
         // AI Model Hosting - for video/image/audio generation
         { pattern: /\b(hugg(ing)?face|hf|transformers|diffusers)\b/i, service: 'huggingface' },
@@ -1688,8 +1709,10 @@ function detectRequiredCredentials(prompt: string): RequiredCredential[] {
         // Video generation models - need HuggingFace or model hosting
         { pattern: /\b(wan|cogvideo|animatediff|stable.*video|svd|video.*generat)/i, service: 'huggingface' },
 
-        // Image generation models - need HuggingFace or model hosting
-        { pattern: /\b(stable.*diffusion|sdxl|flux|midjourney|dalle)\b/i, service: 'huggingface' },
+        // Image generation models - need HuggingFace or model hosting  
+        { pattern: /\b(stable.*diffusion|sdxl|flux|midjourney)/i, service: 'huggingface' },
+        // Note: dall-e needs OpenAI, but only if building an app that uses DALL-E
+        ...(isLLMChatApp ? [{ pattern: /\b(dall-?e)\b/i, service: 'openai' }] : []),
 
         // Email
         { pattern: /\b(email|newsletter|transactional.*mail)\b/i, service: 'resend' },
