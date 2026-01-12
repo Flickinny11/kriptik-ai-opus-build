@@ -7874,3 +7874,24 @@ NEXT: Verify Vercel deployment completes successfully
 CONTEXT: This fulfills the user's request for a premium developer toolbar with 
          custom 3D icons, only specified buttons, resizable panels, and
          Feature Agents-like styling with tooltips on hover.
+
+
+═══ 2026-01-12 08:34:24 ═══
+COMPLETED: Credential Collection Workflow Enhancement
+FILES MODIFIED:
+  - src/components/credentials/GuidedCredentialEntry.tsx (new)
+  - src/components/credentials/GuidedCredentialEntry.css (new)
+  - src/components/feature-agent/CredentialsCollectionView.tsx
+  - src/components/feature-agent/CredentialsCollectionView.css
+  - src/components/builder/ChatInterface.tsx
+  - server/src/routes/execute.ts
+  - server/src/services/feature-agent/feature-agent-service.ts
+CURRENT STATE: Build passes, pushed to main
+CONTEXT:
+  - Fixed flow order: ProductionStackWizard shows BEFORE plan approval
+  - Created GuidedCredentialEntry for non-OAuth platforms (Google Auth, Firebase, etc.)
+  - Enhanced CredentialsCollectionView with guided entry integration
+  - Added multi-channel notifications (email, SMS, push) for credential requests
+  - Notifications include OAuth deep links for quick connect
+NEXT: Monitor Vercel deployment for success
+
