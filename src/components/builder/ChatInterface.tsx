@@ -31,7 +31,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
-import { NeuralCanvas, useNeuralCanvasStore } from '../neural-canvas';
+import { NeuralCanvas3D, useNeuralCanvasStore } from '../neural-canvas';
 import { NeuralPathway } from '../neural-pathway';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
@@ -1294,7 +1294,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
                         {/* Neural Canvas - Premium AI Visualization */}
                         <div className="flex-1 overflow-hidden min-h-0 mx-2 mb-2">
-                            <NeuralCanvas />
+                            <NeuralCanvas3D />
                         </div>
 
                         {/* Stage indicator */}
@@ -1457,7 +1457,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
                         {/* Neural Canvas - Premium orchestration UI for AI visualization */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
-                            <NeuralCanvas />
+                            <NeuralCanvas3D />
                         </div>
 
                         {/* Agent Progress - Compact phase indicators */}

@@ -11,7 +11,7 @@
 import React, { useState, useCallback, useRef, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { LivePreviewPanel } from './LivePreviewPanel';
-import { NeuralCanvas } from '../neural-canvas';
+import { NeuralCanvas3D } from '../neural-canvas';
 import { type ParallelAgentActivity } from './AgentActivityStream';
 import { PanelRightClose3D, Columns3D } from '@/components/icons';
 
@@ -187,7 +187,7 @@ export function BuilderLayout({
               exit={{ height: 0, opacity: 0 }}
               className="border-t border-gray-700 overflow-hidden"
             >
-              <NeuralCanvas />
+              <NeuralCanvas3D compact />
             </motion.div>
           )}
         </motion.div>

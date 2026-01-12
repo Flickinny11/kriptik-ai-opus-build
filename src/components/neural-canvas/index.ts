@@ -12,8 +12,11 @@
  *   import { ThoughtStream, CodeCanvas, DiffViewer } from '@/components/neural-canvas';
  */
 
-// Main container component
+// Main container component (CSS version)
 export { NeuralCanvas, type NeuralCanvasProps } from './NeuralCanvas';
+
+// Premium 3D version using Three.js (recommended)
+export { NeuralCanvas3D, type NeuralCanvas3DProps } from './NeuralCanvas3D';
 
 // Sub-components
 export {
