@@ -1247,12 +1247,17 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
         // =============================================================================
         // INITIALIZE 6-PHASE BUILD LOOP ORCHESTRATOR
+        // Model routing: Claude → Anthropic SDK, GPT → OpenAI SDK, Others → OpenRouter
         // =============================================================================
         rt.buildLoopOrchestrator = createBuildLoopOrchestrator(
             rt.config.projectId,
             rt.config.userId,
             orchestrationRunId,
-            'production' as BuildMode // Full production mode for feature agents
+            'production' as BuildMode, // Full production mode for feature agents
+            {
+                // Pass the user's selected model for intelligent routing
+                modelId: rt.config.model || undefined,
+            }
         );
 
         // Forward Enhanced Build Loop events to Feature Agent stream

@@ -47,6 +47,11 @@ import {
     getOpenRouterClient,
 } from '../ai/openrouter-client.js';
 import {
+    getModelRouter,
+    type ModelRouter,
+    type GenerationRequest as ModelRouterGenerationRequest,
+} from '../ai/model-router.js';
+import {
     getKripToeNite,
     type KripToeNiteFacade,
     type KTNResult,
@@ -522,6 +527,14 @@ export interface BuildLoopOptions {
      * When running in Modal, this identifies which sandbox this build is in.
      */
     sandboxId?: string;
+    /**
+     * Optional: Model ID to use for AI generation.
+     * - Claude models (claude-*) → Anthropic SDK directly
+     * - GPT models (gpt-*) → OpenAI SDK directly
+     * - Other models (grok, gemini, deepseek, etc.) → OpenRouter
+     * Defaults to claude-sonnet-4.5 if not specified.
+     */
+    modelId?: string;
 }
 
 export interface BuildLoopState {
@@ -814,6 +827,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
     // =========================================================================
     private directRLAIF: DirectRLAIFService | null = null;
     private multiJudge: MultiJudgeService | null = null;
+
+    // =========================================================================
+    // MODEL ROUTER (Dual-Architecture: Anthropic/OpenAI direct, OpenRouter fallback)
+    // =========================================================================
+    private modelRouter: ModelRouter | null = null;
+    private selectedModelId: string | null = null;
     private reflexionService: ReflexionService | null = null;
     private realtimeLearning: RealtimeLearningService | null = null;
     private crossBuildTransfer: CrossBuildTransferService | null = null;
@@ -965,6 +984,21 @@ export class BuildLoopOrchestrator extends EventEmitter {
             userId,
             agentType: 'planning',
         });
+
+        // Initialize Model Router for dual-architecture model routing
+        // - Claude models → Anthropic SDK directly
+        // - GPT models → OpenAI SDK directly
+        // - Other models (grok, gemini, deepseek) → OpenRouter
+        this.selectedModelId = options?.modelId || null;
+        if (this.selectedModelId) {
+            try {
+                this.modelRouter = getModelRouter();
+                console.log(`[BuildLoop] Model Router initialized with selected model: ${this.selectedModelId}`);
+            } catch (error) {
+                console.warn('[BuildLoop] Failed to initialize Model Router, falling back to Claude Service:', error);
+                this.modelRouter = null;
+            }
+        }
 
         // Initialize OpenRouter client for unified AI routing
         this.openRouterClient = getOpenRouterClient();
@@ -1231,6 +1265,58 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // Note: AntiSlopDetector is initialized after Intent Lock (needs appSoul)
 
         console.log(`[BuildLoop] Initialized with Memory Harness + Learning Engine + Cursor 2.1+ + Ghost Mode + Soft Interrupt + Credentials + Image-to-Code + API Autopilot + Predictive Error Prevention + Gap Closers + Pre-Flight + Shadow Models + Reflection Engine (mode: ${mode}, path: ${this.projectPath})`);
+    }
+
+    /**
+     * Generate text using the selected model, with intelligent routing:
+     * - Claude models → Anthropic SDK directly (via claudeService)
+     * - GPT models → OpenAI SDK directly (via modelRouter)
+     * - Other models (grok, gemini, deepseek, etc.) → OpenRouter (via modelRouter)
+     * 
+     * Falls back to Claude service if no model is selected or routing fails.
+     */
+    private async generateWithSelectedModel(
+        prompt: string,
+        options: {
+            maxTokens?: number;
+            useExtendedThinking?: boolean;
+            thinkingBudgetTokens?: number;
+            systemPrompt?: string;
+        } = {}
+    ): Promise<string> {
+        // If a non-Claude model is selected and ModelRouter is available, use it
+        if (this.selectedModelId && this.modelRouter) {
+            const isClaudeModel = this.selectedModelId.toLowerCase().startsWith('claude');
+            
+            if (!isClaudeModel) {
+                console.log(`[BuildLoop] Routing to ModelRouter for model: ${this.selectedModelId}`);
+                try {
+                    const request: ModelRouterGenerationRequest = {
+                        prompt,
+                        systemPrompt: options.systemPrompt,
+                        maxTokens: options.maxTokens || 32000,
+                        forceModel: this.selectedModelId,
+                        taskType: 'coding',
+                    };
+
+                    const response = await this.modelRouter.generate(request);
+                    return response.content;
+                } catch (error) {
+                    console.warn(`[BuildLoop] ModelRouter failed for ${this.selectedModelId}, falling back to Claude:`, error);
+                    // Fall through to Claude service
+                }
+            }
+        }
+
+        // Default: Use Claude service
+        const response = await this.claudeService.generate(prompt, {
+            model: CLAUDE_MODELS.SONNET_4,
+            maxTokens: options.maxTokens || 32000,
+            useExtendedThinking: options.useExtendedThinking,
+            thinkingBudgetTokens: options.thinkingBudgetTokens,
+        });
+
+        return response.content || '';
     }
 
     /**

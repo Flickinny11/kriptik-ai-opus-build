@@ -67,46 +67,46 @@ const accentColor = '#c8ff64';
 const OAUTH_PROVIDERS = new Set([
   // Payments
   'stripe', 'paypal', 'square', 'braintree', 'mollie', 'paddle',
-  
+
   // Auth Providers
   'clerk', 'auth0', 'okta', 'onelogin', 'ping-identity',
-  
+
   // Cloud & Hosting
   'vercel', 'netlify', 'heroku', 'digitalocean', 'linode',
   'azure', 'google-cloud', 'aws',
-  
+
   // Database & BaaS
   'supabase', 'firebase', 'mongodb', 'airtable', 'notion',
-  
+
   // Developer Tools
   'github', 'gitlab', 'bitbucket', 'jira', 'linear', 'asana',
   'trello', 'monday', 'clickup',
-  
+
   // Communication
   'slack', 'discord', 'intercom', 'zendesk', 'freshdesk',
   'hubspot', 'salesforce', 'pipedrive', 'zoho-crm',
-  
+
   // eCommerce
   'shopify', 'woocommerce', 'bigcommerce', 'magento', 'prestashop',
   'etsy', 'amazon-seller', 'ebay',
-  
+
   // Marketing & Analytics
   'mailchimp', 'brevo', 'klaviyo', 'convertkit',
   'google-analytics', 'mixpanel', 'amplitude', 'segment',
   'facebook', 'instagram', 'twitter', 'linkedin', 'tiktok',
-  
+
   // Storage
   'dropbox', 'google-drive', 'onedrive', 'box',
-  
+
   // Accounting & Finance
   'quickbooks', 'xero', 'wave', 'freshbooks',
-  
+
   // Calendar & Scheduling
   'google-calendar', 'microsoft-outlook', 'calendly',
-  
+
   // Video & Media
   'youtube', 'vimeo', 'twitch', 'zoom', 'webex', 'mux',
-  
+
   // Other Common Integrations
   'typeform', 'surveymonkey', 'docusign', 'adobe-sign',
 ]);
@@ -118,31 +118,31 @@ const OAUTH_PROVIDERS = new Set([
 const MANUAL_ENTRY_PROVIDERS = new Set([
   // Database (connection strings)
   'turso', 'planetscale', 'neon', 'cockroachdb', 'timescale',
-  
+
   // ORMs (local config)
   'drizzle', 'prisma',
-  
+
   // Auth Libraries (local secrets)
   'better-auth', 'lucia', 'next-auth',
-  
+
   // Object Storage (API keys)
   'cloudflare-r2', 'aws-s3', 'backblaze-b2', 'minio', 'uploadthing',
-  
+
   // Email (API keys)
   'resend', 'sendgrid', 'mailgun', 'postmark', 'ses',
-  
+
   // Hosting (deploy tokens)
   'railway', 'fly', 'render', 'coolify',
-  
+
   // AI/ML (API keys)
   'openai', 'anthropic', 'huggingface', 'replicate', 'fal', 'runpod', 'modal',
-  
+
   // SMS (API keys)
   'twilio', 'vonage', 'plivo', 'messagebird',
-  
+
   // Search
   'algolia', 'typesense', 'meilisearch', 'elasticsearch',
-  
+
   // Monitoring
   'sentry', 'datadog', 'newrelic', 'logrocket',
 ]);
@@ -159,7 +159,7 @@ function getPlatformUrl(providerId: string): string {
     'better-auth': 'https://www.better-auth.com/docs',
     'lucia': 'https://lucia-auth.com',
     'next-auth': 'https://next-auth.js.org',
-    
+
     // Database
     'supabase': 'https://supabase.com/dashboard',
     'turso': 'https://turso.tech/app',
@@ -169,25 +169,25 @@ function getPlatformUrl(providerId: string): string {
     'mongodb': 'https://cloud.mongodb.com',
     'cockroachdb': 'https://cockroachlabs.cloud',
     'timescale': 'https://console.cloud.timescale.com',
-    
+
     // Storage
     'cloudflare-r2': 'https://dash.cloudflare.com',
     'aws-s3': 'https://console.aws.amazon.com/s3',
     'backblaze-b2': 'https://secure.backblaze.com/b2_buckets.htm',
     'uploadthing': 'https://uploadthing.com/dashboard',
-    
+
     // Payments
     'stripe': 'https://dashboard.stripe.com/apikeys',
     'paypal': 'https://developer.paypal.com/dashboard',
     'square': 'https://developer.squareup.com/apps',
-    
+
     // Email
     'resend': 'https://resend.com/api-keys',
     'sendgrid': 'https://app.sendgrid.com/settings/api_keys',
     'mailgun': 'https://app.mailgun.com/app/account/security/api_keys',
     'postmark': 'https://account.postmarkapp.com/servers',
     'ses': 'https://console.aws.amazon.com/ses',
-    
+
     // Hosting
     'vercel': 'https://vercel.com/account/tokens',
     'netlify': 'https://app.netlify.com/user/applications',
@@ -196,7 +196,7 @@ function getPlatformUrl(providerId: string): string {
     'render': 'https://dashboard.render.com/u/settings',
     'heroku': 'https://dashboard.heroku.com/account',
     'digitalocean': 'https://cloud.digitalocean.com/account/api/tokens',
-    
+
     // AI/ML
     'openai': 'https://platform.openai.com/api-keys',
     'anthropic': 'https://console.anthropic.com/settings/keys',
@@ -205,21 +205,21 @@ function getPlatformUrl(providerId: string): string {
     'fal': 'https://fal.ai/dashboard/keys',
     'runpod': 'https://www.runpod.io/console/user/settings',
     'modal': 'https://modal.com/settings',
-    
+
     // SMS
     'twilio': 'https://console.twilio.com/us1/account/keys-credentials/api-keys',
     'vonage': 'https://dashboard.nexmo.com/settings',
-    
+
     // Search
     'algolia': 'https://dashboard.algolia.com/account/api-keys',
     'typesense': 'https://cloud.typesense.org/clusters',
     'meilisearch': 'https://cloud.meilisearch.com',
-    
+
     // Monitoring
     'sentry': 'https://sentry.io/settings/account/api/auth-tokens',
     'datadog': 'https://app.datadoghq.com/organization-settings/api-keys',
     'logrocket': 'https://app.logrocket.com/settings/setup',
-    
+
     // DevTools
     'github': 'https://github.com/settings/tokens',
     'gitlab': 'https://gitlab.com/-/profile/personal_access_tokens',

@@ -553,6 +553,22 @@
   cursor: not-allowed;
 }
 
+/* Stop button variant (red) */
+.acc-v2__deploy-btn--stop {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.acc-v2__deploy-btn--stop:hover:not(:disabled) {
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    0 8px 20px rgba(239, 68, 68, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 .acc-v2__spinner {
   width: 14px;
   height: 14px;

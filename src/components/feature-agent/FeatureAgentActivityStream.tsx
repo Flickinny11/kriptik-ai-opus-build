@@ -236,8 +236,9 @@ export function FeatureAgentActivityStream({
     if (externalEvents || !isActive) return;
 
     // Use API_URL for proper server connection
+    // Note: The correct endpoint is /stream, not /activity-stream
     const apiBase = import.meta.env.VITE_API_URL || '';
-    const url = `${apiBase}/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/activity-stream`;
+    const url = `${apiBase}/api/developer-mode/feature-agent/${encodeURIComponent(agentId)}/stream`;
     const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
 

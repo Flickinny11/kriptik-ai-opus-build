@@ -7383,13 +7383,13 @@ COMPLETED: Fixed auth.ts to match AUTH-IMMUTABLE-SPECIFICATION.md
   - CHANGED cookie sameSite from dynamic to hardcoded 'lax' as const
   - CHANGED cookie secure from conditional to isProd (always true in production)
   - CHANGED cookie domain from conditional to always .kriptik.app in production
-  
+
 ROOT CAUSE: Cookie configuration was changed from hardcoded values to dynamic
   URL-based calculation which failed on mobile Safari because:
   1. Dynamic isKriptikSameSite calculation could fail if env vars weren't aligned
   2. When it failed, SameSite=none was set, which mobile Safari blocks by default (ITP)
   3. Domain was not set to .kriptik.app when isKriptikSameSite was false
-  
+
 FILES MODIFIED: server/src/auth.ts
 CURRENT STATE: Builds pass, auth config matches immutable specification
 NEXT: Deploy to verify mobile login works
@@ -7452,7 +7452,7 @@ COMPLETED: Fixed "Failed query: insert into build_intents" error
 
 PROBLEM: The build_intents table in production was missing GPU-related columns:
   - requires_gpu
-  - gpu_workload_type  
+  - gpu_workload_type
   - gpu_requirements
   - detected_models
   - gpu_classification_confidence
@@ -7849,7 +7849,7 @@ COMPLETED: Full implementation of premium floating developer toolbar
 IMPLEMENTATION SUMMARY:
 Created a completely new premium developer toolbar system with:
 - Custom 3D geometric icons (black/white with red accents)
-- Only specified buttons: Feature Agents, Health, Database, Memory, DNA, AI Lab, 
+- Only specified buttons: Feature Agents, Health, Database, Memory, DNA, AI Lab,
   Quality, Voice, Self Heal, Rules, Clone Mode, Security, Multiplayer, Permissions
 - Premium glass styling matching Feature Agents popout aesthetic
 - Tooltips on hover for all buttons
@@ -7900,7 +7900,7 @@ COMMITS:
 
 CURRENT STATE: All builds pass, pushed to GitHub, deploying to Vercel
 NEXT: Verify Vercel deployment completes successfully
-CONTEXT: This fulfills the user's request for a premium developer toolbar with 
+CONTEXT: This fulfills the user's request for a premium developer toolbar with
          custom 3D icons, only specified buttons, resizable panels, and
          Feature Agents-like styling with tooltips on hover.
 

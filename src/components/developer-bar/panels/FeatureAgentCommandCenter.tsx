@@ -1125,28 +1125,32 @@ export function FeatureAgentCommandCenter({ projectId }: FeatureAgentCommandCent
                     <div className="acc-v2__deploy-hint">
                       <kbd>⌘</kbd><span>+ Enter to deploy</span>
                     </div>
-                    <motion.button
-                      className="acc-v2__deploy-btn"
-                      onClick={deployAgent}
-                      disabled={!taskPrompt.trim() || isDeploying || agents.length >= 6}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {isDeploying ? (
-                        <motion.div
-                          className="acc-v2__spinner"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        />
-                      ) : (
-                        <>
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                          </svg>
-                          Deploy Feature Agent
-                        </>
-                      )}
-                    </motion.button>
+                    {isDeploying ? (
+                      <motion.button
+                        className="acc-v2__deploy-btn acc-v2__deploy-btn--stop"
+                        onClick={() => setIsDeploying(false)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor" />
+                        </svg>
+                        Stop Deployment
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        className="acc-v2__deploy-btn"
+                        onClick={deployAgent}
+                        disabled={!taskPrompt.trim() || agents.length >= 6}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        </svg>
+                        Deploy Feature Agent
+                      </motion.button>
+                    )}
                   </div>
                 </div>
 
