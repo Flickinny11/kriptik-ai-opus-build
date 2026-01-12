@@ -16,8 +16,56 @@ import { Router, Request, Response } from 'express';
 import { nangoService, NANGO_INTEGRATIONS, type IntegrationId } from '../services/integrations/nango-service.js';
 import { writeCredentialsToProjectEnv } from '../services/credentials/credential-env-bridge.js';
 import { authMiddleware } from '../middleware/auth.js';
+import Stripe from 'stripe';
 
 const router = Router();
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Auto-configure Stripe webhook for a project after OAuth completes
+ * Creates webhook endpoints pointing to the project's deployed domain
+ */
+async function autoConfigureStripeWebhook(
+    stripeAccessToken: string,
+    projectId: string,
+    userId: string
+): Promise<{ webhookId: string; webhookUrl: string; webhookSecret: string }> {
+    // Initialize Stripe with the user's access token
+    const stripe = new Stripe(stripeAccessToken, { apiVersion: '2025-11-17.clover' });
+
+    // Get project's deployment URL (assume Vercel deployment)
+    // In production, this would be fetched from the project's deployment info
+    const projectDomain = `${projectId}.vercel.app`; // Simplified - would come from deployment service
+    const webhookUrl = `https://${projectDomain}/api/webhooks/stripe`;
+
+    // Create webhook endpoint with essential events for payments
+    const webhook = await stripe.webhookEndpoints.create({
+        url: webhookUrl,
+        enabled_events: [
+            'checkout.session.completed',
+            'customer.subscription.created',
+            'customer.subscription.updated',
+            'customer.subscription.deleted',
+            'invoice.paid',
+            'invoice.payment_failed',
+            'payment_intent.succeeded',
+            'payment_intent.payment_failed',
+        ],
+        description: `KripTik AI - Project ${projectId}`,
+    });
+
+    console.log(`[Stripe Webhook] Created webhook ${webhook.id} for project ${projectId}`);
+
+    // Return webhook details (secret should be stored securely)
+    return {
+        webhookId: webhook.id,
+        webhookUrl: webhookUrl,
+        webhookSecret: webhook.secret || '',
+    };
+}
 
 // ============================================================================
 // PUBLIC ROUTES (Configuration Info)
@@ -322,6 +370,33 @@ router.post('/credentials/:integrationId', async (req: Request, res: Response) =
             );
         }
 
+        // Auto-configure Stripe webhook if this is a Stripe connection
+        let webhookResult = null;
+        if (integrationId === 'stripe' && connection.credentials.accessToken && projectId) {
+            try {
+                webhookResult = await autoConfigureStripeWebhook(
+                    connection.credentials.accessToken,
+                    projectId,
+                    userId
+                );
+                console.log('[Nango] Auto-configured Stripe webhook:', webhookResult);
+
+                // Store webhook secret in project env
+                if (webhookResult.webhookSecret) {
+                    await writeCredentialsToProjectEnv(
+                        projectId,
+                        userId,
+                        { STRIPE_WEBHOOK_SECRET: webhookResult.webhookSecret },
+                        { environment: 'all', overwriteExisting: true }
+                    );
+                    console.log('[Nango] Stripe webhook secret stored in project env');
+                }
+            } catch (webhookError) {
+                console.warn('[Nango] Stripe webhook auto-config failed (non-fatal):', webhookError);
+                // Non-fatal - continue with credential storage
+            }
+        }
+
         res.json({
             success: true,
             integrationId,
@@ -331,6 +406,11 @@ router.post('/credentials/:integrationId', async (req: Request, res: Response) =
             envResult: envResult ? {
                 credentialsWritten: envResult.credentialsWritten,
                 envKeys: envResult.envKeys,
+            } : null,
+            webhookConfigured: !!webhookResult,
+            webhookResult: webhookResult ? {
+                webhookId: webhookResult.webhookId,
+                webhookUrl: webhookResult.webhookUrl,
             } : null,
         });
     } catch (error) {

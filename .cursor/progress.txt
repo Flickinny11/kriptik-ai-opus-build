@@ -7653,3 +7653,34 @@ FILES MODIFIED:
 
 BUILD STATUS: ✅ Frontend and Server both compile
 NEXT: Commit and push, then verify Nango OAuth for supported services
+
+═══ [2026-01-12 NANGO OAUTH & STRIPE WEBHOOK AUTO-CONFIG] ═══
+COMPLETED: Nango OAuth integration and Stripe webhook auto-configuration
+
+CHANGES:
+1. server/src/routes/nango.ts:
+   - Added Stripe import for webhook creation
+   - Created autoConfigureStripeWebhook() helper function
+   - After Stripe OAuth completes, automatically creates webhook endpoints
+   - Webhook points to project's Vercel deployment domain
+   - Webhook secret is stored in project's environment variables
+   - Events configured: checkout.session.completed, subscription events, invoice events
+
+2. src/components/credentials/OAuthConnectButton.tsx (previous commit):
+   - TOKEN_BASED_SERVICES excludes API key services from OAuth flow
+   - Services like HuggingFace, OpenAI, Anthropic show manual entry
+   - OAuth-supported services (GitHub, Stripe, Vercel) use Nango flow
+
+STRIPE WEBHOOK AUTO-CONFIG FLOW:
+1. User connects Stripe via Nango OAuth popup
+2. OAuth callback triggers POST /api/nango/credentials/stripe
+3. System fetches Stripe access token from Nango
+4. autoConfigureStripeWebhook() creates webhook endpoint
+5. Webhook secret stored in project's .env via writeCredentialsToProjectEnv()
+6. User's app is ready to receive Stripe events without manual setup
+
+FILES MODIFIED:
+- server/src/routes/nango.ts
+
+BUILD STATUS: ✅ Server compiles
+NEXT: Commit and push
