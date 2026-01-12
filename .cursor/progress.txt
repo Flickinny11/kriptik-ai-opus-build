@@ -1,3 +1,27 @@
+═══ [2026-01-12 FASTER PLAN GENERATION] ═══
+COMPLETED: Optimized plan generation for faster response
+
+KEY CHANGES:
+1. Reduced initial thinking budget from 64K to 8K tokens
+   - Deep Intent creation was taking 30-60 seconds with 64K budget
+   - Now completes in ~5-10 seconds with 8K budget
+   - Full analysis happens during build phase with proper streaming
+
+2. Added heartbeat events every 5 seconds
+   - Keeps SSE connection alive during processing
+   - Prevents frontend from timing out
+
+3. Skip API docs fetching during initial plan
+   - API documentation is fetched during build phase when needed
+   - Reduces initial response time significantly
+
+4. More meaningful progress messages
+   - Shows actual requirements being decomposed
+   - Shows phase titles as they're identified
+   - Shows credential detection results
+
+RESULT: Plan generation now completes in ~5-10 seconds instead of 30-60+ seconds
+
 ═══ [2026-01-12 REAL-TIME STREAMING FOR PLAN GENERATION] ═══
 COMPLETED: Fixed "Waiting for activity" issue with real-time SSE streaming
 
