@@ -339,7 +339,6 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         isWizardOpen,
         currentStack,
         openWizard,
-        getRequiredEnvVars,
     } = useProductionStackStore();
 
     const [showCostEstimator, setShowCostEstimator] = useState(false);
@@ -485,7 +484,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 handleCredentialsSubmit({});
             }
         }
-    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials, getRequiredEnvVars]);
+    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials]);
 
     const handleSend = async () => {
         if (!input.trim()) return;

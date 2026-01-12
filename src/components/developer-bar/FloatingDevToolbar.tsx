@@ -2,7 +2,7 @@
  * Floating Developer Toolbar - Premium Edition
  *
  * Features:
- * - Only specified buttons: Feature Agents, Health, Database, Memory, DNA, 
+ * - Only specified buttons: Feature Agents, Health, Database, Memory, DNA,
  *   AI Lab, Quality, Voice, Self Heal, Rules, Clone Mode, Security, Multiplayer, Permissions
  * - Custom 3D geometric icons (black/white with red accents)
  * - Tooltips on hover
@@ -189,20 +189,20 @@ export function FloatingDevToolbar({
           </div>
 
           {/* Orientation toggle */}
-          <button 
+          <button
             className="floating-dev-toolbar__orientation-toggle"
             onClick={toggleOrientation}
             title={isVertical ? 'Switch to horizontal' : 'Switch to vertical'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path 
-                d={isVertical 
-                  ? "M4 8H20M4 16H20" 
+              <path
+                d={isVertical
+                  ? "M4 8H20M4 16H20"
                   : "M8 4V20M16 4V20"
-                } 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
+                }
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
               />
             </svg>
           </button>

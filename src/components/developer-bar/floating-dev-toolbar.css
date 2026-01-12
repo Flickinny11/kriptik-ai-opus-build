@@ -15,23 +15,23 @@
   --toolbar-glass-bg: rgba(12, 12, 18, 0.85);
   --toolbar-glass-border: rgba(255, 255, 255, 0.08);
   --toolbar-glass-highlight: rgba(255, 255, 255, 0.12);
-  
+
   /* Red accent */
   --toolbar-accent: #EF4444;
   --toolbar-accent-glow: rgba(239, 68, 68, 0.5);
   --toolbar-accent-subtle: rgba(239, 68, 68, 0.15);
-  
+
   /* Shadows */
   --toolbar-shadow-1: 0 4px 24px rgba(0, 0, 0, 0.4);
   --toolbar-shadow-2: 0 8px 48px rgba(0, 0, 0, 0.3);
   --toolbar-shadow-3: inset 0 1px 1px rgba(255, 255, 255, 0.05);
-  
+
   /* Sizing */
   --toolbar-button-size: 44px;
   --toolbar-padding: 10px;
   --toolbar-gap: 6px;
   --toolbar-radius: 20px;
-  
+
   /* Animation */
   --toolbar-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --toolbar-smooth: cubic-bezier(0.23, 1, 0.32, 1);
@@ -109,8 +109,8 @@
   left: 10%;
   right: 10%;
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent, 
+  background: linear-gradient(90deg,
+    transparent,
     rgba(255, 255, 255, 0.25) 30%,
     rgba(255, 255, 255, 0.3) 50%,
     rgba(255, 255, 255, 0.25) 70%,
@@ -242,7 +242,7 @@
   z-index: 10000;
   pointer-events: none;
   white-space: nowrap;
-  
+
   /* Glass tooltip */
   background: rgba(12, 12, 18, 0.95);
   backdrop-filter: blur(16px);
@@ -250,12 +250,12 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 8px 12px;
-  
+
   /* Shadow */
-  box-shadow: 
+  box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.4),
     0 0 1px rgba(255, 255, 255, 0.1);
-  
+
   /* Layout */
   display: flex;
   flex-direction: column;
@@ -377,15 +377,15 @@
     --toolbar-padding: 8px;
     --toolbar-gap: 4px;
   }
-  
+
   .floating-dev-toolbar--vertical {
     width: 64px;
   }
-  
+
   .floating-dev-toolbar--horizontal {
     height: 64px;
   }
-  
+
   .floating-dev-toolbar__tooltip {
     display: none;
   }

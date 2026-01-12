@@ -190,8 +190,8 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
       {/* Top ellipse */}
       <ellipse cx="12" cy="6" rx="7" ry="2.5" fill={isActive ? 'url(#lightMetal)' : 'url(#darkMetal)'} />
       {/* Cylinder body */}
-      <path d="M5 6V17C5 18.5 8 20 12 20C16 20 19 18.5 19 17V6" 
-        fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'} 
+      <path d="M5 6V17C5 18.5 8 20 12 20C16 20 19 18.5 19 17V6"
+        fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'}
         stroke={isActive ? '#EF4444' : '#3A3A4A'}
         strokeWidth="0.5"
       />
@@ -327,9 +327,9 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
     <g filter="url(#depth3D)">
       <GradientDefs />
       {/* Outer ring */}
-      <circle cx="12" cy="12" r="9" fill="none" 
-        stroke={isActive ? 'url(#chrome)' : 'url(#darkMetal)'} 
-        strokeWidth="2.5" 
+      <circle cx="12" cy="12" r="9" fill="none"
+        stroke={isActive ? 'url(#chrome)' : 'url(#darkMetal)'}
+        strokeWidth="2.5"
       />
       {/* Inner ring */}
       <motion.circle
@@ -361,7 +361,7 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
     <g filter="url(#depth3D)">
       <GradientDefs />
       {/* Microphone body */}
-      <rect x="9" y="3" width="6" height="10" rx="3" 
+      <rect x="9" y="3" width="6" height="10" rx="3"
         fill={isActive ? 'url(#chrome)' : 'url(#darkMetal)'}
         stroke={isActive ? '#DC2626' : '#4A4A5A'}
         strokeWidth="0.5"
@@ -369,10 +369,10 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
       {/* Microphone grille lines */}
       <path d="M10 5H14M10 7H14M10 9H14" stroke={isActive ? '#DC2626' : '#5A5A6A'} strokeWidth="0.5" />
       {/* Stand arc */}
-      <path d="M7 11C7 15 9 17 12 17C15 17 17 15 17 11" 
-        fill="none" 
-        stroke={isActive ? 'url(#lightMetal)' : '#4A4A5A'} 
-        strokeWidth="1.5" 
+      <path d="M7 11C7 15 9 17 12 17C15 17 17 15 17 11"
+        fill="none"
+        stroke={isActive ? 'url(#lightMetal)' : '#4A4A5A'}
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       {/* Stand base */}
@@ -449,11 +449,11 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
         transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
       />
       {/* Base wrap */}
-      <path d="M7 16C7 18 9 20 12 20C15 20 17 18 17 16" 
-        fill="none" 
-        stroke={isActive ? '#EF4444' : '#5A5A6A'} 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
+      <path d="M7 16C7 18 9 20 12 20C15 20 17 18 17 16"
+        fill="none"
+        stroke={isActive ? '#EF4444' : '#5A5A6A'}
+        strokeWidth="1.5"
+        strokeLinecap="round"
       />
     </g>
   ),
@@ -499,8 +499,8 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
         animate={{ x: isHovered ? 10 : 9, y: isHovered ? 10 : 9 }}
       />
       {/* Front layer */}
-      <rect x="5" y="5" width="10" height="12" rx="1.5" 
-        fill={isActive ? 'url(#chrome)' : 'url(#darkMetal)'} 
+      <rect x="5" y="5" width="10" height="12" rx="1.5"
+        fill={isActive ? 'url(#chrome)' : 'url(#darkMetal)'}
         stroke={isActive ? '#EF4444' : '#4A4A5A'}
         strokeWidth="0.8"
       />
