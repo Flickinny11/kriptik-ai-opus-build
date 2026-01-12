@@ -194,8 +194,9 @@
   z-index: 0;
 }
 
-/* Animated Border Glow */
-.neural-canvas-border {
+/* Animated Border Glow - supports both class names for component compatibility */
+.neural-canvas-border,
+.neural-canvas-ambient {
   position: absolute;
   inset: 0;
   border-radius: 20px;
@@ -220,7 +221,8 @@
   opacity: 0.6;
 }
 
-.neural-canvas:hover .neural-canvas-border {
+.neural-canvas:hover .neural-canvas-border,
+.neural-canvas:hover .neural-canvas-ambient {
   opacity: 1;
 }
 
