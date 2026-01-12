@@ -959,7 +959,12 @@ export class BuildLoopOrchestrator extends EventEmitter {
 
         this.intentEngine = createIntentLockEngine(userId, projectId);
         this.featureManager = createFeatureListManager(projectId, orchestrationRunId, userId);
-        this.artifactManager = createArtifactManager(projectId, orchestrationRunId, userId);
+        // CRITICAL: Pass projectPath to enable hybrid storage (database + filesystem)
+        // Without projectPath, artifacts only save to database - agents can't read from disk
+        this.artifactManager = createArtifactManager(projectId, orchestrationRunId, userId, {
+            projectPath: this.projectPath,
+            syncToFilesystem: true,
+        });
         this.claudeService = createClaudeService({
             projectId,
             userId,
@@ -4294,6 +4299,28 @@ Use common patterns and best practices for quick generation.`;
             await this.artifactManager.saveArtifact(file.path, file.content);
         }
 
+        // =========================================================================
+        // CRITICAL: Write speculative files to disk (not just memory/database)
+        // =========================================================================
+        if (this.projectPath && speculativeResult.files.length > 0) {
+            const fsModule = await import('fs/promises');
+            const pathModule = await import('path');
+
+            for (const file of speculativeResult.files) {
+                try {
+                    const fullPath = pathModule.join(this.projectPath, file.path);
+                    const dir = pathModule.dirname(fullPath);
+
+                    await fsModule.mkdir(dir, { recursive: true });
+                    await fsModule.writeFile(fullPath, file.content, 'utf-8');
+
+                    console.log(`[Speculative] Wrote file to disk: ${file.path}`);
+                } catch (writeError) {
+                    console.error(`[Speculative] Failed to write ${file.path}:`, writeError);
+                }
+            }
+        }
+
         // Update feature manager
         await this.featureManager.incrementBuildAttempts(feature.featureId);
         await this.featureManager.addFilesModified(feature.featureId, speculativeResult.files.map(f => f.path));
@@ -4358,6 +4385,26 @@ Fix ALL issues and return COMPLETE refined files.`;
                 const content = file.content || '';
                 this.projectFiles.set(file.path, content);
                 await this.artifactManager.saveArtifact(file.path, content);
+            }
+
+            // CRITICAL: Write refined files to disk
+            if (this.projectPath && refinedFiles.length > 0) {
+                const fsModule = await import('fs/promises');
+                const pathModule = await import('path');
+
+                for (const file of refinedFiles) {
+                    try {
+                        const fullPath = pathModule.join(this.projectPath, file.path);
+                        const dir = pathModule.dirname(fullPath);
+
+                        await fsModule.mkdir(dir, { recursive: true });
+                        await fsModule.writeFile(fullPath, file.content || '', 'utf-8');
+
+                        console.log(`[Speculative] Wrote refined file to disk: ${file.path}`);
+                    } catch (writeError) {
+                        console.error(`[Speculative] Failed to write refined ${file.path}:`, writeError);
+                    }
+                }
             }
 
             await this.featureManager.markFeaturePassed(feature.featureId);
@@ -4432,6 +4479,35 @@ Generate production-ready code for this feature.`;
             const content = file.content || '';
             generatedFiles.set(file.path, content);
             this.projectFiles.set(file.path, content);
+        }
+
+        // =========================================================================
+        // CRITICAL: Write generated files to disk (not just memory)
+        // This was the missing piece - files existed in Map but were never persisted
+        // =========================================================================
+        if (this.projectPath && files.length > 0) {
+            const fsModule = await import('fs/promises');
+            const pathModule = await import('path');
+
+            for (const file of files) {
+                try {
+                    const fullPath = pathModule.join(this.projectPath, file.path);
+                    const dir = pathModule.dirname(fullPath);
+
+                    // Create directory if it doesn't exist
+                    await fsModule.mkdir(dir, { recursive: true });
+
+                    // Write the file content to disk
+                    await fsModule.writeFile(fullPath, file.content || '', 'utf-8');
+
+                    console.log(`[BuildLoop] Wrote file to disk: ${file.path}`);
+                } catch (writeError) {
+                    console.error(`[BuildLoop] Failed to write ${file.path}:`, writeError);
+                    // Continue with other files - don't fail entire feature for one file
+                }
+            }
+
+            console.log(`[BuildLoop] Persisted ${files.length} files to ${this.projectPath}`);
         }
 
         await this.featureManager.addFilesModified(feature.featureId, filePaths);
@@ -5173,16 +5249,44 @@ Would the user be satisfied with this result?`;
      * Apply a fix from the error escalation engine
      */
     private async applyFix(fix: Fix): Promise<void> {
+        const fsModule = await import('fs/promises');
+        const pathModule = await import('path');
+
         for (const change of fix.changes) {
             if (change.action === 'create' || change.action === 'update') {
                 // Update project files cache
                 this.projectFiles.set(change.path, change.newContent || '');
 
-                // In a real implementation, this would write to the filesystem
-                console.log(`[BuildLoop] Applied ${change.action} to ${change.path}`);
+                // Write to filesystem
+                if (this.projectPath) {
+                    try {
+                        const fullPath = pathModule.join(this.projectPath, change.path);
+                        const dir = pathModule.dirname(fullPath);
+
+                        await fsModule.mkdir(dir, { recursive: true });
+                        await fsModule.writeFile(fullPath, change.newContent || '', 'utf-8');
+
+                        console.log(`[BuildLoop] Applied ${change.action} to ${change.path} (written to disk)`);
+                    } catch (writeError) {
+                        console.error(`[BuildLoop] Failed to write fix to ${change.path}:`, writeError);
+                    }
+                } else {
+                    console.log(`[BuildLoop] Applied ${change.action} to ${change.path} (memory only - no projectPath)`);
+                }
             } else if (change.action === 'delete') {
                 this.projectFiles.delete(change.path);
-                console.log(`[BuildLoop] Deleted ${change.path}`);
+
+                // Delete from filesystem
+                if (this.projectPath) {
+                    try {
+                        const fullPath = pathModule.join(this.projectPath, change.path);
+                        await fsModule.unlink(fullPath);
+                        console.log(`[BuildLoop] Deleted ${change.path} from disk`);
+                    } catch (deleteError) {
+                        // File might not exist - that's OK
+                        console.log(`[BuildLoop] Deleted ${change.path} (may not have existed on disk)`);
+                    }
+                }
             }
         }
     }

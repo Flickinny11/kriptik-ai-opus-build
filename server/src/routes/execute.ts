@@ -1498,10 +1498,39 @@ interface PendingBuild {
     plan: BuildPlan;
     requiredCredentials: RequiredCredential[];
     createdAt: Date;
-    status: 'awaiting_plan_approval' | 'awaiting_credentials' | 'building' | 'complete' | 'failed';
+    status: 'awaiting_plan_approval' | 'awaiting_stack' | 'awaiting_credentials' | 'building' | 'complete' | 'failed';
     approvedPlan?: BuildPlan;
     credentials?: Record<string, string>;
     deepIntentContractId?: string;
+    selectedStack?: SelectedProductionStack;
+}
+
+// Production stack selection from frontend wizard
+interface SelectedProductionStack {
+    auth?: {
+        provider: string;
+        name: string;
+    };
+    database?: {
+        provider: string;
+        name: string;
+    };
+    storage?: {
+        provider: string;
+        name: string;
+    };
+    payments?: {
+        provider: string;
+        name: string;
+    };
+    email?: {
+        provider: string;
+        name: string;
+    };
+    hosting?: {
+        provider: string;
+        name: string;
+    };
 }
 
 interface BuildPlan {
@@ -2151,8 +2180,9 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
         }
 
         // Check if credentials are required but not provided
+        // Set status to 'awaiting_stack' so frontend opens ProductionStackWizard first
         if (pendingBuild.requiredCredentials.length > 0 && !credentials) {
-            pendingBuild.status = 'awaiting_credentials';
+            pendingBuild.status = 'awaiting_stack';
             pendingBuilds.set(sessionId, pendingBuild);
 
             // P1-2: Create notification for credential request
@@ -2162,8 +2192,8 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                 ['push', 'email'],
                 {
                     type: 'credentials_needed',
-                    title: 'Credentials Required',
-                    message: `Your build "${pendingBuild.plan.intentSummary?.slice(0, 50) || 'Your app'}..." needs ${pendingBuild.requiredCredentials.length} credential${pendingBuild.requiredCredentials.length > 1 ? 's' : ''} to continue. Build is paused until credentials are provided.`,
+                    title: 'Stack Configuration Required',
+                    message: `Your build "${pendingBuild.plan.intentSummary?.slice(0, 50) || 'Your app'}..." needs configuration. Select your production stack and provide credentials.`,
                     featureAgentId: sessionId,
                     featureAgentName: 'Build Orchestrator',
                     actionUrl: `/builder/${pendingBuild.projectId}?resumeBuild=${sessionId}`,
@@ -2178,7 +2208,7 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
 
             return res.json({
                 success: true,
-                status: 'awaiting_credentials',
+                status: 'awaiting_stack',
                 requiredCredentials: pendingBuild.requiredCredentials,
             });
         }
@@ -2383,6 +2413,241 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
 });
 
 /**
+ * Merge stack selection with Deep Intent credential detection
+ * Stack selection takes precedence - user chose their preferred providers
+ */
+function mergeCredentialsWithStackSelection(
+    deepIntentCredentials: RequiredCredential[],
+    selectedStack: SelectedProductionStack
+): RequiredCredential[] {
+    const mergedCredentials: RequiredCredential[] = [];
+    const usedCategories = new Set<string>();
+
+    // Map stack selections to credential categories
+    const stackToCredentialMap: Record<string, string[]> = {
+        // Auth providers
+        clerk: ['clerk'],
+        auth0: ['auth0'],
+        betterauth: ['betterauth'],
+        supabase_auth: ['supabase'], // Supabase Auth uses Supabase credentials
+        // Database providers
+        supabase: ['supabase'],
+        planetscale: ['planetscale'],
+        turso: ['turso'],
+        neon: ['neon'],
+        // Storage providers
+        cloudflare_r2: ['cloudflare'],
+        aws_s3: ['aws'],
+        firebase: ['firebase'],
+        supabase_storage: ['supabase'], // Supabase Storage uses Supabase credentials
+        // Payment providers
+        stripe: ['stripe'],
+        paddle: [], // Paddle uses different credential patterns - would need to add
+        lemonsqueezy: [], // LemonSqueezy uses different credential patterns - would need to add
+        // Email providers
+        resend: ['resend'],
+        sendgrid: ['sendgrid'],
+        // Hosting providers (typically no credentials needed for deployment)
+        vercel: [],
+        cloudflare_pages: [],
+        netlify: [],
+    };
+
+    // Add credentials from selected stack
+    if (selectedStack.auth?.provider) {
+        const patterns = stackToCredentialMap[selectedStack.auth.provider.toLowerCase()];
+        if (patterns) {
+            for (const pattern of patterns) {
+                const creds = CREDENTIAL_PATTERNS[pattern];
+                if (creds) {
+                    for (const cred of creds) {
+                        mergedCredentials.push({
+                            name: cred.name,
+                            envVariableName: cred.envVar,
+                            platformName: cred.platform,
+                            platformUrl: cred.url,
+                            required: true,
+                        });
+                    }
+                    usedCategories.add(pattern);
+                }
+            }
+        }
+    }
+
+    if (selectedStack.database?.provider) {
+        const patterns = stackToCredentialMap[selectedStack.database.provider.toLowerCase()];
+        if (patterns) {
+            for (const pattern of patterns) {
+                if (!usedCategories.has(pattern)) {
+                    const creds = CREDENTIAL_PATTERNS[pattern];
+                    if (creds) {
+                        for (const cred of creds) {
+                            mergedCredentials.push({
+                                name: cred.name,
+                                envVariableName: cred.envVar,
+                                platformName: cred.platform,
+                                platformUrl: cred.url,
+                                required: true,
+                            });
+                        }
+                        usedCategories.add(pattern);
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedStack.storage?.provider) {
+        const patterns = stackToCredentialMap[selectedStack.storage.provider.toLowerCase()];
+        if (patterns) {
+            for (const pattern of patterns) {
+                if (!usedCategories.has(pattern)) {
+                    const creds = CREDENTIAL_PATTERNS[pattern];
+                    if (creds) {
+                        for (const cred of creds) {
+                            mergedCredentials.push({
+                                name: cred.name,
+                                envVariableName: cred.envVar,
+                                platformName: cred.platform,
+                                platformUrl: cred.url,
+                                required: true,
+                            });
+                        }
+                        usedCategories.add(pattern);
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedStack.payments?.provider) {
+        const patterns = stackToCredentialMap[selectedStack.payments.provider.toLowerCase()];
+        if (patterns) {
+            for (const pattern of patterns) {
+                if (!usedCategories.has(pattern)) {
+                    const creds = CREDENTIAL_PATTERNS[pattern];
+                    if (creds) {
+                        for (const cred of creds) {
+                            mergedCredentials.push({
+                                name: cred.name,
+                                envVariableName: cred.envVar,
+                                platformName: cred.platform,
+                                platformUrl: cred.url,
+                                required: true,
+                            });
+                        }
+                        usedCategories.add(pattern);
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedStack.email?.provider) {
+        const patterns = stackToCredentialMap[selectedStack.email.provider.toLowerCase()];
+        if (patterns) {
+            for (const pattern of patterns) {
+                if (!usedCategories.has(pattern)) {
+                    const creds = CREDENTIAL_PATTERNS[pattern];
+                    if (creds) {
+                        for (const cred of creds) {
+                            mergedCredentials.push({
+                                name: cred.name,
+                                envVariableName: cred.envVar,
+                                platformName: cred.platform,
+                                platformUrl: cred.url,
+                                required: true,
+                            });
+                        }
+                        usedCategories.add(pattern);
+                    }
+                }
+            }
+        }
+    }
+
+    // Add remaining Deep Intent credentials that weren't covered by stack selection
+    // This handles AI/ML providers and other integrations detected from the prompt
+    for (const cred of deepIntentCredentials) {
+        const isDuplicate = mergedCredentials.some(
+            mc => mc.envVariableName === cred.envVariableName
+        );
+        if (!isDuplicate) {
+            mergedCredentials.push(cred);
+        }
+    }
+
+    console.log(`[Execute:Stack] Merged credentials: ${mergedCredentials.length} total (${usedCategories.size} from stack, rest from Deep Intent)`);
+
+    return mergedCredentials;
+}
+
+/**
+ * POST /api/execute/plan/:sessionId/stack
+ *
+ * Submit production stack selection and update required credentials accordingly.
+ * This is called after plan approval and before credential collection.
+ */
+router.post('/plan/:sessionId/stack', async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+        const { stack } = req.body as { stack: SelectedProductionStack };
+
+        const pendingBuild = pendingBuilds.get(sessionId);
+        if (!pendingBuild) {
+            return res.status(404).json({ success: false, error: 'Session not found' });
+        }
+
+        // Allow stack selection during plan approval or stack selection phase
+        if (!['awaiting_plan_approval', 'awaiting_stack', 'awaiting_credentials'].includes(pendingBuild.status)) {
+            return res.status(400).json({
+                success: false,
+                error: `Cannot update stack in current status: ${pendingBuild.status}`,
+            });
+        }
+
+        // Store the selected stack
+        pendingBuild.selectedStack = stack;
+
+        // Merge stack selection with Deep Intent credential detection
+        // Stack selection takes precedence - user chose their preferred providers
+        const originalCredentials = pendingBuild.requiredCredentials;
+        pendingBuild.requiredCredentials = mergeCredentialsWithStackSelection(
+            originalCredentials,
+            stack
+        );
+
+        // Update status to awaiting credentials
+        pendingBuild.status = 'awaiting_credentials';
+        pendingBuilds.set(sessionId, pendingBuild);
+
+        console.log(`[Execute:Stack] Stack selection received for session ${sessionId}:`);
+        console.log(`  - Auth: ${stack.auth?.provider || 'none'}`);
+        console.log(`  - Database: ${stack.database?.provider || 'none'}`);
+        console.log(`  - Storage: ${stack.storage?.provider || 'none'}`);
+        console.log(`  - Payments: ${stack.payments?.provider || 'none'}`);
+        console.log(`  - Email: ${stack.email?.provider || 'none'}`);
+        console.log(`  - Hosting: ${stack.hosting?.provider || 'none'}`);
+        console.log(`  - Credentials: ${originalCredentials.length} original → ${pendingBuild.requiredCredentials.length} after merge`);
+
+        res.json({
+            success: true,
+            status: 'awaiting_credentials',
+            requiredCredentials: pendingBuild.requiredCredentials,
+            selectedStack: stack,
+        });
+
+    } catch (error) {
+        console.error('[Execute:Plan:Stack] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
  * POST /api/execute/plan/:sessionId/credentials
  *
  * Submit credentials for a pending build and start the build.
@@ -2397,7 +2662,8 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
             return res.status(404).json({ success: false, error: 'Session not found' });
         }
 
-        if (pendingBuild.status !== 'awaiting_credentials') {
+        // Accept credentials from either awaiting_stack or awaiting_credentials status
+        if (!['awaiting_stack', 'awaiting_credentials'].includes(pendingBuild.status)) {
             return res.status(400).json({
                 success: false,
                 error: `Build is not awaiting credentials. Current status: ${pendingBuild.status}`,
