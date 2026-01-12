@@ -7684,3 +7684,44 @@ FILES MODIFIED:
 
 BUILD STATUS: ✅ Server compiles
 NEXT: Commit and push
+
+═══ [2026-01-12 CRITICAL CREDENTIAL DETECTION FIX] ═══
+COMPLETED: Fixed credential detection to use Deep Intent analysis, not regex
+
+ROOT CAUSE IDENTIFIED:
+The credential detection was using naive regex on the raw prompt, completely
+ignoring the Deep Intent Contract's integrationRequirements which already
+contain the REAL analysis from VL-JEPA techniques.
+
+This caused incorrect credential requests (e.g., asking for OpenAI key when
+user requested Wan 2.2 video generation).
+
+SOLUTION IMPLEMENTED:
+1. server/src/routes/execute.ts - extractCredentialsFromDeepIntent():
+   - NEW function that uses Deep Intent Contract's integrationRequirements
+   - Checks appType to understand what kind of app is being built
+   - Uses detectedModels to find HuggingFace model dependencies
+   - Uses gpuWorkloadType to identify video/image generation apps
+   - Skips LLM provider keys for media generation apps (KripTik uses own keys)
+   - Falls back to minimal regex ONLY for essentials not in deep intent
+
+2. Plan generation flow now:
+   BEFORE: detectRequiredCredentials(prompt) → generate deepIntent → ignored!
+   AFTER:  generate deepIntent → extractCredentialsFromDeepIntent(deepIntent, prompt)
+
+3. Send/Stop button in ChatInterface.tsx:
+   - Now properly shows STOP during plan generation and active builds
+   - Checks buildWorkflowPhase and globalStatus, not just streamController
+
+KEY PRINCIPLE:
+Deep Intent analysis already knows what the user's app needs. The credential
+detection should USE this intelligence, not duplicate it with naive regex.
+For ANY prompt (Wan 2.2, SDXL, Flux, any open source model), the deep intent
+will detect the real requirements and credentials will be accurate.
+
+FILES MODIFIED:
+- server/src/routes/execute.ts (extractCredentialsFromDeepIntent function)
+- src/components/builder/ChatInterface.tsx (Stop button logic)
+
+BUILD STATUS: ✅ Both builds pass
+NEXT: Commit and push

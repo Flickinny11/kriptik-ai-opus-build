@@ -1642,7 +1642,151 @@ const CREDENTIAL_PATTERNS: Record<string, { name: string; envVar: string; platfo
 };
 
 /**
- * Detect required credentials from prompt
+ * CRITICAL: Extract credentials from Deep Intent Contract's integration requirements
+ * 
+ * This uses the REAL VL-JEPA analyzed integration requirements, not naive regex.
+ * The Deep Intent Contract already analyzed what the app truly needs:
+ * - appType: "ai_video_generator" vs "chatbot" etc.
+ * - detectedModels: Which ML models were mentioned
+ * - integrationRequirements: Full API/credential requirements
+ * 
+ * This is the correct way to determine credentials - using intelligent intent analysis,
+ * not just pattern matching on the raw prompt.
+ */
+function extractCredentialsFromDeepIntent(
+    deepIntent: {
+        appType: string;
+        requiresGPU?: boolean;
+        gpuWorkloadType?: string;
+        detectedModels?: Array<{ modelId: string; displayName: string; source: string; confidence: number }>;
+        integrationRequirements?: Array<{
+            id: string;
+            platform: string;
+            purpose: string;
+            credentialRequirements?: {
+                envVarName: string;
+                setupUrl: string;
+            };
+        }>;
+    },
+    prompt: string
+): RequiredCredential[] {
+    const credentials: RequiredCredential[] = [];
+    const seenEnvVars = new Set<string>();
+
+    console.log(`[extractCredentialsFromDeepIntent] App type: ${deepIntent.appType}`);
+    console.log(`[extractCredentialsFromDeepIntent] GPU workload: ${deepIntent.gpuWorkloadType}`);
+    console.log(`[extractCredentialsFromDeepIntent] Integration requirements: ${deepIntent.integrationRequirements?.length || 0}`);
+
+    // STEP 1: Use integrationRequirements from Deep Intent (the REAL analysis)
+    if (deepIntent.integrationRequirements && deepIntent.integrationRequirements.length > 0) {
+        for (const integration of deepIntent.integrationRequirements) {
+            // Skip KripTik's internal AI requirements - we use our own keys for building
+            const isInternalAI = ['OpenAI', 'Anthropic', 'OpenRouter', 'Claude'].some(
+                ai => integration.platform.toLowerCase().includes(ai.toLowerCase())
+            );
+            const isMediaGenApp = ['video', 'image', 'audio', 'music', 'generation'].some(
+                type => deepIntent.appType.toLowerCase().includes(type) || 
+                        (deepIntent.gpuWorkloadType || '').toLowerCase().includes(type)
+            );
+
+            // Don't ask for LLM keys for media generation apps - KripTik uses its own
+            if (isInternalAI && isMediaGenApp) {
+                console.log(`[extractCredentialsFromDeepIntent] Skipping ${integration.platform} - KripTik uses own keys for building`);
+                continue;
+            }
+
+            if (integration.credentialRequirements?.envVarName && 
+                !seenEnvVars.has(integration.credentialRequirements.envVarName)) {
+                seenEnvVars.add(integration.credentialRequirements.envVarName);
+                credentials.push({
+                    id: `cred-${uuidv4().slice(0, 8)}`,
+                    name: integration.platform,
+                    description: integration.purpose,
+                    envVariableName: integration.credentialRequirements.envVarName,
+                    platformName: integration.platform,
+                    platformUrl: integration.credentialRequirements.setupUrl || '',
+                    required: true,
+                });
+            }
+        }
+    }
+
+    // STEP 2: If detected models include HuggingFace models, ensure HF token is requested
+    if (deepIntent.detectedModels && deepIntent.detectedModels.length > 0) {
+        const hasHFModels = deepIntent.detectedModels.some(
+            m => m.modelId.includes('/') || // HuggingFace model IDs have format "org/model"
+                 m.displayName.toLowerCase().includes('huggingface') ||
+                 ['wan', 'sdxl', 'flux', 'stable', 'cogvideo', 'animatediff'].some(
+                     name => m.modelId.toLowerCase().includes(name)
+                 )
+        );
+
+        if (hasHFModels && !seenEnvVars.has('HUGGINGFACE_TOKEN')) {
+            console.log(`[extractCredentialsFromDeepIntent] Detected HF models: ${deepIntent.detectedModels.map(m => m.modelId).join(', ')}`);
+            seenEnvVars.add('HUGGINGFACE_TOKEN');
+            credentials.push({
+                id: `cred-${uuidv4().slice(0, 8)}`,
+                name: 'HuggingFace Token',
+                description: 'Required for accessing HuggingFace models',
+                envVariableName: 'HUGGINGFACE_TOKEN',
+                platformName: 'HuggingFace',
+                platformUrl: 'https://huggingface.co/settings/tokens',
+                required: true,
+            });
+        }
+    }
+
+    // STEP 3: If GPU workload type indicates video/image generation, ensure appropriate model hosting
+    if (deepIntent.gpuWorkloadType && !seenEnvVars.has('HUGGINGFACE_TOKEN')) {
+        const gpuTypes = ['video_generation', 'image_generation', 'diffusion', 'text_to_video', 'text_to_image'];
+        if (gpuTypes.some(t => deepIntent.gpuWorkloadType?.toLowerCase().includes(t))) {
+            seenEnvVars.add('HUGGINGFACE_TOKEN');
+            credentials.push({
+                id: `cred-${uuidv4().slice(0, 8)}`,
+                name: 'HuggingFace Token',
+                description: 'Required for GPU-accelerated model inference',
+                envVariableName: 'HUGGINGFACE_TOKEN',
+                platformName: 'HuggingFace',
+                platformUrl: 'https://huggingface.co/settings/tokens',
+                required: true,
+            });
+        }
+    }
+
+    // STEP 4: Fallback to minimal regex detection for common essentials NOT covered by deep intent
+    // This is a safety net, but the deep intent should have caught everything
+    const essentialPatterns = [
+        { pattern: /\b(payment|stripe|checkout|subscription)\b/i, service: 'stripe' },
+        { pattern: /\b(database|sql|postgres|mysql|turso|supabase)\b/i, service: 'database' },
+    ];
+
+    for (const { pattern, service } of essentialPatterns) {
+        if (pattern.test(prompt) && CREDENTIAL_PATTERNS[service]) {
+            for (const cred of CREDENTIAL_PATTERNS[service]) {
+                if (!seenEnvVars.has(cred.envVar)) {
+                    seenEnvVars.add(cred.envVar);
+                    credentials.push({
+                        id: `cred-${uuidv4().slice(0, 8)}`,
+                        name: cred.name,
+                        description: `Required for ${cred.platform} integration`,
+                        envVariableName: cred.envVar,
+                        platformName: cred.platform,
+                        platformUrl: cred.url,
+                        required: true,
+                    });
+                }
+            }
+        }
+    }
+
+    console.log(`[extractCredentialsFromDeepIntent] Final credentials: ${credentials.map(c => c.envVariableName).join(', ')}`);
+    return credentials;
+}
+
+/**
+ * DEPRECATED: Fallback credential detection from raw prompt
+ * Use extractCredentialsFromDeepIntent instead when deep intent is available
  */
 function detectRequiredCredentials(prompt: string): RequiredCredential[] {
     const credentials: RequiredCredential[] = [];
@@ -1900,10 +2044,8 @@ router.post('/plan', async (req: Request, res: Response) => {
         // Generate the implementation plan
         const plan = await generateBuildPlan(prompt, projectId, userId);
 
-        // Detect required credentials
-        const requiredCredentials = detectRequiredCredentials(prompt);
-
-        // Create Deep Intent Contract for precise DONE definition
+        // Create Deep Intent Contract FIRST for precise DONE definition
+        // This contains the REAL integration requirements from VL-JEPA analysis
         const engine = createIntentLockEngine(userId, projectId);
         const deepIntent = await engine.createDeepContract(
             prompt,
@@ -1919,6 +2061,13 @@ router.post('/plan', async (req: Request, res: Response) => {
         console.log(`[Execute:Plan] Deep Intent created: ${deepIntent.id}`);
         console.log(`  - Functional Checklist: ${deepIntent.functionalChecklist.length} items`);
         console.log(`  - Integrations: ${deepIntent.integrationRequirements.length}`);
+        console.log(`  - App Type: ${deepIntent.appType}`);
+        console.log(`  - GPU Required: ${deepIntent.requiresGPU}`);
+        console.log(`  - Detected Models: ${JSON.stringify(deepIntent.detectedModels || [])}`);
+
+        // CRITICAL: Use Deep Intent's integration requirements for credentials
+        // This is the REAL analysis, not naive regex matching
+        const requiredCredentials = extractCredentialsFromDeepIntent(deepIntent, prompt);
 
         // Store the pending build
         const pendingBuild: PendingBuild = {

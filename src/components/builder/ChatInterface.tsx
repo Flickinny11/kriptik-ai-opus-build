@@ -1757,10 +1757,20 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </div>
 
-                        {/* Send/Stop Button */}
-                        {streamController ? (
+                        {/* Send/Stop Button - changes based on activity state */}
+                        {/* Show stop if: KTN streaming OR plan generating OR build running */}
+                        {streamController || buildWorkflowPhase === 'generating_plan' || globalStatus === 'running' ? (
                             <GlassButton
-                                onClick={handleStopKtn}
+                                onClick={() => {
+                                    if (streamController) {
+                                        handleStopKtn();
+                                    } else if (buildWorkflowPhase === 'generating_plan') {
+                                        setBuildWorkflowPhase('idle');
+                                        setIsTyping(false);
+                                    } else if (globalStatus === 'running') {
+                                        handleStop();
+                                    }
+                                }}
                                 variant="danger"
                                 size="md"
                             >
@@ -1769,7 +1779,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         ) : (
                             <GlassButton
                                 onClick={handleSend}
-                                disabled={globalStatus !== 'idle' || !input.trim()}
+                                disabled={globalStatus !== 'idle' || buildWorkflowPhase !== 'idle' || !input.trim()}
                                 variant="primary"
                                 size="md"
                             >
