@@ -1643,13 +1643,13 @@ const CREDENTIAL_PATTERNS: Record<string, { name: string; envVar: string; platfo
 
 /**
  * CRITICAL: Extract credentials from Deep Intent Contract's integration requirements
- * 
+ *
  * This uses the REAL VL-JEPA analyzed integration requirements, not naive regex.
  * The Deep Intent Contract already analyzed what the app truly needs:
  * - appType: "ai_video_generator" vs "chatbot" etc.
  * - detectedModels: Which ML models were mentioned
  * - integrationRequirements: Full API/credential requirements
- * 
+ *
  * This is the correct way to determine credentials - using intelligent intent analysis,
  * not just pattern matching on the raw prompt.
  */
@@ -1686,7 +1686,7 @@ function extractCredentialsFromDeepIntent(
                 ai => integration.platform.toLowerCase().includes(ai.toLowerCase())
             );
             const isMediaGenApp = ['video', 'image', 'audio', 'music', 'generation'].some(
-                type => deepIntent.appType.toLowerCase().includes(type) || 
+                type => deepIntent.appType.toLowerCase().includes(type) ||
                         (deepIntent.gpuWorkloadType || '').toLowerCase().includes(type)
             );
 
@@ -1696,7 +1696,7 @@ function extractCredentialsFromDeepIntent(
                 continue;
             }
 
-            if (integration.credentialRequirements?.envVarName && 
+            if (integration.credentialRequirements?.envVarName &&
                 !seenEnvVars.has(integration.credentialRequirements.envVarName)) {
                 seenEnvVars.add(integration.credentialRequirements.envVarName);
                 credentials.push({
