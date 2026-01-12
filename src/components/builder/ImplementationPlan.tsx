@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/icons';
 import { apiClient } from '@/lib/api-client';
 import { API_URL } from '@/lib/api-config';
-import { NeuralPathway } from '@/components/neural-pathway';
+import StreamingConsciousness from './StreamingConsciousness';
 
 // Types
 interface PlanOption {
@@ -482,30 +482,20 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
     // Generate a session ID for the neural pathway
     const sessionId = useMemo(() => `plan-${Date.now()}`, []);
 
-    // Loading state with Neural Pathway visualization
+    // Loading state with Streaming Consciousness
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-8">
-                {/* Header */}
-                <div className="text-center mb-6">
-                    <h2 className="text-xl font-bold text-white mb-2">Analyzing Your Prompt</h2>
-                    <p className="text-slate-400 text-sm max-w-md">
-                        Watch as KripTik's AI orchestration analyzes your requirements
-                    </p>
-                </div>
-
-                {/* Neural Pathway Visualization */}
-                <div className="w-full max-w-2xl">
-                    <NeuralPathway
-                        sessionId={sessionId}
-                        promptText={prompt}
-                        className="rounded-xl border border-slate-700/50"
-                        showLabels={true}
-                    />
-                </div>
-
+            <div className="flex flex-col h-[400px] py-4">
+                {/* Streaming Consciousness - shows what AI is doing */}
+                <StreamingConsciousness
+                    className="flex-1"
+                    sessionId={sessionId}
+                    isActive={true}
+                    onFileClick={(file) => console.log('Open file:', file)}
+                />
+                
                 {/* Current stage indicator */}
-                <div className="mt-6">
+                <div className="mt-4 flex justify-center">
                     <ThinkingAnimation stage={thinkingStage} />
                 </div>
             </div>

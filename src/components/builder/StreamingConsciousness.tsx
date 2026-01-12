@@ -1,489 +1,488 @@
 /**
- * Streaming Consciousness UI - Neural Network Visualization
+ * Streaming Consciousness - Simple AI Activity Stream
  * 
- * A premium 3D visualization of parallel agent orchestrations showing:
- * - Real-time streaming thoughts from multiple AI agents
- * - Neural network-style connections between agents
- * - Expanding thought bubbles with reasoning tokens
- * - Phase indicators and progress for each agent
+ * Shows what the AI is doing in real-time, similar to Cursor's streaming UI:
+ * - Files being read/written
+ * - Thinking/reasoning text
+ * - Commands being run
+ * - Diffs and changes
  * 
- * Features:
- * - Model-agnostic (Anthropic, OpenAI, etc.)
- * - 3D depth with perspective transforms
- * - Glassmorphism and ambient glow effects
- * - Smooth animations with Framer Motion
- * - Monospace typography (Fira Code)
+ * Clean, functional, premium styling.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { AgentActivityEvent, AgentActivityPhase } from '../../types/agent-activity';
-import './StreamingConsciousness.css';
+import { cn } from '@/lib/utils';
+import { API_URL } from '@/lib/api-config';
 
-// Agent node in the neural network
-interface AgentNode {
-    id: string;
-    name: string;
-    phase: AgentActivityPhase | string;
-    progress: number;
-    thoughts: AgentActivityEvent[];
-    isActive: boolean;
-    position: { x: number; y: number }; // Normalized 0-1
-    color: string;
+// Activity types
+type ActivityType = 
+  | 'thinking' 
+  | 'reading' 
+  | 'writing' 
+  | 'command' 
+  | 'diff' 
+  | 'phase' 
+  | 'complete' 
+  | 'error';
+
+interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  content: string;
+  file?: string;
+  timestamp: Date;
+  expanded?: boolean;
+  details?: string;
 }
 
 interface StreamingConsciousnessProps {
-    /** Events from parallel agents */
-    events: AgentActivityEvent[];
-    /** Number of parallel agents active */
-    agentCount?: number;
-    /** Whether the orchestration is currently running */
-    isActive?: boolean;
-    /** Current build phase */
-    currentPhase?: string;
-    /** Compact mode for smaller containers */
-    compact?: boolean;
+  className?: string;
+  sessionId?: string;
+  isActive?: boolean;
+  onFileClick?: (file: string) => void;
 }
 
-// Agent color palette - vibrant yet professional
-const AGENT_COLORS = [
-    '#f97316', // Orange (primary brand)
-    '#06b6d4', // Cyan
-    '#8b5cf6', // Violet
-    '#10b981', // Emerald
-    '#ec4899', // Pink
-    '#eab308', // Yellow
-];
-
-// Phase to glow color mapping
-const PHASE_GLOW: Record<string, string> = {
-    thinking: 'rgba(139, 92, 246, 0.6)',
-    planning: 'rgba(6, 182, 212, 0.6)',
-    coding: 'rgba(249, 115, 22, 0.6)',
-    testing: 'rgba(234, 179, 8, 0.6)',
-    verifying: 'rgba(16, 185, 129, 0.6)',
-    integrating: 'rgba(236, 72, 153, 0.6)',
-    deploying: 'rgba(59, 130, 246, 0.6)',
-};
-
-// Calculate hexagonal grid positions for agents
-function getAgentPositions(count: number): { x: number; y: number }[] {
-    if (count <= 1) return [{ x: 0.5, y: 0.5 }];
-    if (count === 2) return [{ x: 0.3, y: 0.5 }, { x: 0.7, y: 0.5 }];
-    if (count === 3) return [{ x: 0.5, y: 0.25 }, { x: 0.25, y: 0.7 }, { x: 0.75, y: 0.7 }];
-    if (count === 4) return [{ x: 0.25, y: 0.3 }, { x: 0.75, y: 0.3 }, { x: 0.25, y: 0.7 }, { x: 0.75, y: 0.7 }];
-    if (count === 5) return [{ x: 0.5, y: 0.2 }, { x: 0.2, y: 0.45 }, { x: 0.8, y: 0.45 }, { x: 0.3, y: 0.8 }, { x: 0.7, y: 0.8 }];
-    // 6 agents - hexagonal
-    return [
-        { x: 0.5, y: 0.15 },
-        { x: 0.2, y: 0.4 }, { x: 0.8, y: 0.4 },
-        { x: 0.2, y: 0.7 }, { x: 0.8, y: 0.7 },
-        { x: 0.5, y: 0.9 },
-    ];
-}
-
-// Neural connection SVG component
-function NeuralConnections({ agents, containerSize }: { agents: AgentNode[]; containerSize: { w: number; h: number } }) {
-    if (agents.length < 2) return null;
-
-    const connections: { from: AgentNode; to: AgentNode; intensity: number }[] = [];
-    
-    // Create connections between nearby agents
-    for (let i = 0; i < agents.length; i++) {
-        for (let j = i + 1; j < agents.length; j++) {
-            const dist = Math.hypot(
-                agents[i].position.x - agents[j].position.x,
-                agents[i].position.y - agents[j].position.y
-            );
-            if (dist < 0.6) {
-                const intensity = (agents[i].isActive && agents[j].isActive) ? 1 : 0.3;
-                connections.push({ from: agents[i], to: agents[j], intensity });
-            }
-        }
-    }
-
-    return (
-        <svg className="sc-connections" viewBox={`0 0 ${containerSize.w} ${containerSize.h}`}>
-            <defs>
-                <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="rgba(249, 115, 22, 0.3)" />
-                    <stop offset="50%" stopColor="rgba(139, 92, 246, 0.5)" />
-                    <stop offset="100%" stopColor="rgba(6, 182, 212, 0.3)" />
-                </linearGradient>
-                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>
-            {connections.map((conn, i) => {
-                const x1 = conn.from.position.x * containerSize.w;
-                const y1 = conn.from.position.y * containerSize.h;
-                const x2 = conn.to.position.x * containerSize.w;
-                const y2 = conn.to.position.y * containerSize.h;
-                
-                // Curved connection
-                const midX = (x1 + x2) / 2;
-                const midY = (y1 + y2) / 2 - 20;
-                
-                return (
-                    <motion.path
-                        key={i}
-                        d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
-                        fill="none"
-                        stroke="url(#neuralGradient)"
-                        strokeWidth={conn.intensity * 2}
-                        strokeOpacity={conn.intensity * 0.6}
-                        filter="url(#glow)"
-                        initial={{ pathLength: 0 }}
-                        animate={{ 
-                            pathLength: 1,
-                            strokeOpacity: [conn.intensity * 0.3, conn.intensity * 0.6, conn.intensity * 0.3],
-                        }}
-                        transition={{ 
-                            pathLength: { duration: 1, ease: 'easeOut' },
-                            strokeOpacity: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
-                        }}
-                    />
-                );
-            })}
+// Type indicator icons (inline SVG, no dependencies)
+const TypeIcon = memo(({ type }: { type: ActivityType }) => {
+  const iconProps = { className: "w-3.5 h-3.5", strokeWidth: 2, fill: "none", stroke: "currentColor" };
+  
+  switch (type) {
+    case 'thinking':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+          <path d="M12 6v6l4 2" />
         </svg>
-    );
-}
+      );
+    case 'reading':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+      );
+    case 'writing':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      );
+    case 'command':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
+        </svg>
+      );
+    case 'diff':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <polyline points="19 12 12 19 5 12" />
+        </svg>
+      );
+    case 'phase':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      );
+    case 'complete':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      );
+    case 'error':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+});
 
-// Individual agent node component
-function AgentNodeComponent({
-    agent,
-    isExpanded,
-    onToggle,
-    containerSize,
-}: {
-    agent: AgentNode;
-    isExpanded: boolean;
-    onToggle: () => void;
-    containerSize: { w: number; h: number };
-}) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const latestThought = agent.thoughts[agent.thoughts.length - 1];
-    const glowColor = PHASE_GLOW[agent.phase] || 'rgba(249, 115, 22, 0.5)';
+TypeIcon.displayName = 'TypeIcon';
 
-    // Auto-scroll to latest thought
-    useEffect(() => {
-        if (isExpanded && scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [agent.thoughts.length, isExpanded]);
+// Typing animation component
+const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: number }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+  
+  useEffect(() => {
+    if (!text) return;
+    
+    let index = 0;
+    setDisplayText('');
+    setIsComplete(false);
+    
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setDisplayText(text.slice(0, index + 1));
+        index++;
+      } else {
+        setIsComplete(true);
+        clearInterval(interval);
+      }
+    }, speed);
+    
+    return () => clearInterval(interval);
+  }, [text, speed]);
+  
+  return (
+    <span>
+      {displayText}
+      {!isComplete && (
+        <motion.span
+          className="inline-block w-0.5 h-4 ml-0.5 bg-amber-500"
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+        />
+      )}
+    </span>
+  );
+});
 
-    const x = agent.position.x * containerSize.w;
-    const y = agent.position.y * containerSize.h;
+TypewriterText.displayName = 'TypewriterText';
 
-    return (
-        <motion.div
-            className={`sc-agent ${agent.isActive ? 'sc-agent--active' : ''} ${isExpanded ? 'sc-agent--expanded' : ''}`}
-            style={{
-                left: x,
-                top: y,
-                '--agent-color': agent.color,
-                '--glow-color': glowColor,
-            } as React.CSSProperties}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ 
-                scale: 1, 
-                opacity: 1,
-                boxShadow: agent.isActive 
-                    ? `0 0 30px ${glowColor}, 0 8px 32px rgba(0,0,0,0.3)` 
-                    : '0 4px 16px rgba(0,0,0,0.2)',
-            }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        >
-            {/* Main node bubble */}
+// Single activity row
+const ActivityRow = memo(({ 
+  item, 
+  isLatest,
+  onFileClick,
+  onToggleExpand,
+}: { 
+  item: ActivityItem; 
+  isLatest: boolean;
+  onFileClick?: (file: string) => void;
+  onToggleExpand?: () => void;
+}) => {
+  const typeColors: Record<ActivityType, string> = {
+    thinking: '#f59e0b',
+    reading: '#06b6d4',
+    writing: '#10b981',
+    command: '#8b5cf6',
+    diff: '#ec4899',
+    phase: '#f97316',
+    complete: '#22c55e',
+    error: '#ef4444',
+  };
+
+  const typeLabels: Record<ActivityType, string> = {
+    thinking: 'Thinking',
+    reading: 'Reading',
+    writing: 'Writing',
+    command: 'Running',
+    diff: 'Changed',
+    phase: 'Phase',
+    complete: 'Done',
+    error: 'Error',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        'group flex items-start gap-2 py-1.5 px-2 rounded-lg transition-colors',
+        isLatest ? 'bg-amber-50/50' : 'hover:bg-stone-50/50'
+      )}
+    >
+      {/* Type indicator */}
+      <div 
+        className="flex-shrink-0 mt-0.5 p-1 rounded"
+        style={{ 
+          color: typeColors[item.type],
+          background: `${typeColors[item.type]}15`,
+        }}
+      >
+        <TypeIcon type={item.type} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        {/* Type label and file */}
+        <div className="flex items-center gap-1.5 text-xs">
+          <span 
+            className="font-semibold"
+            style={{ color: typeColors[item.type], fontFamily: 'Syne, sans-serif' }}
+          >
+            {typeLabels[item.type]}
+          </span>
+          {item.file && (
             <button
-                className="sc-agent__bubble"
-                onClick={onToggle}
-                aria-expanded={isExpanded}
+              onClick={() => onFileClick?.(item.file!)}
+              className="font-mono text-stone-600 hover:text-amber-600 hover:underline truncate max-w-[200px]"
             >
-                {/* Pulsing ring for active agents */}
-                {agent.isActive && (
-                    <motion.span
-                        className="sc-agent__pulse-ring"
-                        animate={{ 
-                            scale: [1, 1.5, 1],
-                            opacity: [0.5, 0, 0.5],
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    />
-                )}
-                
-                {/* Agent icon/initial */}
-                <span className="sc-agent__icon">{agent.name.charAt(0).toUpperCase()}</span>
-                
-                {/* Progress ring */}
-                <svg className="sc-agent__progress" viewBox="0 0 36 36">
-                    <circle
-                        className="sc-agent__progress-bg"
-                        cx="18" cy="18" r="16"
-                        fill="none"
-                        strokeWidth="2"
-                    />
-                    <motion.circle
-                        className="sc-agent__progress-bar"
-                        cx="18" cy="18" r="16"
-                        fill="none"
-                        strokeWidth="2"
-                        strokeDasharray="100"
-                        strokeDashoffset={100 - agent.progress}
-                        strokeLinecap="round"
-                        animate={{ strokeDashoffset: 100 - agent.progress }}
-                        transition={{ duration: 0.5 }}
-                    />
-                </svg>
+              {item.file}
             </button>
-
-            {/* Agent info label */}
-            <div className="sc-agent__label">
-                <span className="sc-agent__name">{agent.name}</span>
-                <span className="sc-agent__phase">{agent.phase}</span>
-            </div>
-
-            {/* Latest thought preview (when collapsed) */}
-            {!isExpanded && latestThought && (
-                <motion.div 
-                    className="sc-agent__preview"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key={latestThought.id}
-                >
-                    {latestThought.content.slice(0, 60)}
-                    {latestThought.content.length > 60 ? '...' : ''}
-                </motion.div>
-            )}
-
-            {/* Expanded thoughts panel */}
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        className="sc-agent__thoughts"
-                        initial={{ height: 0, opacity: 0, y: -10 }}
-                        animate={{ height: 'auto', opacity: 1, y: 0 }}
-                        exit={{ height: 0, opacity: 0, y: -10 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    >
-                        <div className="sc-agent__thoughts-header">
-                            <span className="sc-agent__thoughts-title">
-                                💭 Stream of Consciousness
-                            </span>
-                            <span className="sc-agent__thoughts-count">
-                                {agent.thoughts.length} thoughts
-                            </span>
-                        </div>
-                        <div className="sc-agent__thoughts-scroll" ref={scrollRef}>
-                            {agent.thoughts.map((thought, i) => (
-                                <motion.div
-                                    key={thought.id || i}
-                                    className={`sc-thought ${thought.type === 'thinking' ? 'sc-thought--reasoning' : ''}`}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.02 }}
-                                >
-                                    <span className="sc-thought__time">
-                                        {new Date(thought.timestamp).toLocaleTimeString('en-US', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit',
-                                            hour12: false,
-                                        })}
-                                    </span>
-                                    <span className="sc-thought__content">{thought.content}</span>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-}
-
-// Central orchestrator hub component
-function OrchestratorHub({ isActive, phase }: { isActive: boolean; phase?: string }) {
-    return (
-        <motion.div 
-            className="sc-hub"
-            animate={{
-                scale: isActive ? [1, 1.05, 1] : 1,
-                boxShadow: isActive 
-                    ? ['0 0 20px rgba(249, 115, 22, 0.3)', '0 0 40px rgba(249, 115, 22, 0.5)', '0 0 20px rgba(249, 115, 22, 0.3)']
-                    : '0 0 10px rgba(249, 115, 22, 0.2)',
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-            <div className="sc-hub__inner">
-                <motion.div 
-                    className="sc-hub__core"
-                    animate={{ rotate: isActive ? 360 : 0 }}
-                    transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-                >
-                    <svg width="40" height="40" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(249, 115, 22, 0.5)" strokeWidth="1" strokeDasharray="4 2" />
-                        <circle cx="20" cy="20" r="8" fill="rgba(249, 115, 22, 0.3)" />
-                        <circle cx="20" cy="20" r="4" fill="#f97316" />
-                    </svg>
-                </motion.div>
-            </div>
-            <span className="sc-hub__label">
-                {isActive ? (phase || 'Orchestrating') : 'Ready'}
-            </span>
-        </motion.div>
-    );
-}
-
-export default function StreamingConsciousness({
-    events,
-    agentCount = 3,
-    isActive = false,
-    currentPhase,
-    compact = false,
-}: StreamingConsciousnessProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [containerSize, setContainerSize] = useState({ w: 400, h: 300 });
-    const [agents, setAgents] = useState<AgentNode[]>([]);
-    const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
-
-    // Measure container
-    useEffect(() => {
-        if (!containerRef.current) return;
-        const resizeObserver = new ResizeObserver((entries) => {
-            const { width, height } = entries[0].contentRect;
-            setContainerSize({ w: width, h: height });
-        });
-        resizeObserver.observe(containerRef.current);
-        return () => resizeObserver.disconnect();
-    }, []);
-
-    // Initialize agent nodes based on agentCount
-    useEffect(() => {
-        const positions = getAgentPositions(agentCount);
-        setAgents(
-            positions.map((pos, i) => ({
-                id: `agent-${i}`,
-                name: `Agent ${i + 1}`,
-                phase: 'initializing',
-                progress: 0,
-                thoughts: [],
-                isActive: false,
-                position: pos,
-                color: AGENT_COLORS[i % AGENT_COLORS.length],
-            }))
-        );
-    }, [agentCount]);
-
-    // Process incoming events and distribute to agents
-    useEffect(() => {
-        if (events.length === 0) return;
-
-        setAgents((prev) => {
-            const updated = [...prev];
-            
-            for (const event of events.slice(-20)) { // Process last 20 events
-                // Determine which agent this event belongs to
-                let agentIndex = 0;
-                if (event.agentId) {
-                    const match = event.agentId.match(/agent-(\d+)/);
-                    if (match) {
-                        agentIndex = parseInt(match[1], 10);
-                    } else {
-                        // Hash agentId to get consistent agent assignment
-                        agentIndex = Math.abs(event.agentId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % agentCount;
-                    }
-                } else {
-                    // Round-robin distribution
-                    agentIndex = events.indexOf(event) % agentCount;
-                }
-
-                if (updated[agentIndex]) {
-                    // Update agent with event
-                    const agent = { ...updated[agentIndex] };
-                    
-                    // Add thought if it's a thinking/status event
-                    if (['thinking', 'status', 'verification', 'tool_call'].includes(event.type)) {
-                        if (!agent.thoughts.find(t => t.id === event.id)) {
-                            agent.thoughts = [...agent.thoughts.slice(-50), event];
-                        }
-                    }
-
-                    // Update phase from metadata
-                    if (event.metadata?.phase) {
-                        agent.phase = event.metadata.phase;
-                    }
-
-                    // Mark as active
-                    agent.isActive = true;
-                    
-                    updated[agentIndex] = agent;
-                }
-            }
-
-            return updated;
-        });
-    }, [events, agentCount]);
-
-    // Toggle expanded agent
-    const handleToggleAgent = useCallback((agentId: string) => {
-        setExpandedAgentId((prev) => (prev === agentId ? null : agentId));
-    }, []);
-
-    if (!isActive && events.length === 0) {
-        return (
-            <div className={`sc ${compact ? 'sc--compact' : ''}`} ref={containerRef}>
-                <div className="sc-empty">
-                    <OrchestratorHub isActive={false} />
-                    <p className="sc-empty__text">
-                        Awaiting orchestration...
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className={`sc ${compact ? 'sc--compact' : ''}`} ref={containerRef}>
-            {/* Background grid pattern */}
-            <div className="sc-grid" />
-            
-            {/* Neural network connections */}
-            <NeuralConnections agents={agents} containerSize={containerSize} />
-            
-            {/* Central orchestrator hub */}
-            <div className="sc-hub-container">
-                <OrchestratorHub isActive={isActive} phase={currentPhase} />
-            </div>
-
-            {/* Agent nodes */}
-            <AnimatePresence>
-                {agents.map((agent) => (
-                    <AgentNodeComponent
-                        key={agent.id}
-                        agent={agent}
-                        isExpanded={expandedAgentId === agent.id}
-                        onToggle={() => handleToggleAgent(agent.id)}
-                        containerSize={containerSize}
-                    />
-                ))}
-            </AnimatePresence>
-
-            {/* Status bar */}
-            <div className="sc-status">
-                <div className="sc-status__agents">
-                    {agents.filter(a => a.isActive).length}/{agents.length} agents active
-                </div>
-                <div className="sc-status__events">
-                    {events.length} events processed
-                </div>
-            </div>
+          )}
+          <span className="text-stone-400 ml-auto text-[10px]">
+            {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
         </div>
+
+        {/* Main content */}
+        <div className="text-sm text-stone-700 mt-0.5">
+          {isLatest && item.type === 'thinking' ? (
+            <TypewriterText text={item.content} speed={20} />
+          ) : (
+            <span className="line-clamp-2">{item.content}</span>
+          )}
+        </div>
+
+        {/* Expandable details (for diffs, etc) */}
+        {item.details && (
+          <button
+            onClick={onToggleExpand}
+            className="text-xs text-amber-600 hover:text-amber-700 mt-1 font-medium"
+          >
+            {item.expanded ? 'Hide details' : 'Show details'}
+          </button>
+        )}
+        
+        <AnimatePresence>
+          {item.expanded && item.details && (
+            <motion.pre
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-2 p-2 bg-stone-900 text-stone-100 rounded text-xs font-mono overflow-x-auto"
+            >
+              {item.details}
+            </motion.pre>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+});
+
+ActivityRow.displayName = 'ActivityRow';
+
+// Main component
+export function StreamingConsciousness({
+  className,
+  sessionId,
+  isActive = true,
+  onFileClick,
+}: StreamingConsciousnessProps) {
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Auto-scroll to bottom on new activities
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [activities]);
+
+  // Connect to SSE stream for real-time events
+  useEffect(() => {
+    if (!sessionId || !isActive) return;
+
+    const eventSource = new EventSource(
+      `${API_URL}/api/orchestrate/${sessionId}/stream`,
+      { withCredentials: true }
     );
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const newActivity = parseEventToActivity(data);
+        if (newActivity) {
+          setActivities(prev => [...prev.slice(-50), newActivity]); // Keep last 50
+        }
+      } catch (e) {
+        console.error('[StreamingConsciousness] Parse error:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn('[StreamingConsciousness] SSE connection error');
+    };
+
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, [sessionId, isActive]);
+
+  // Simulated activities for demo/loading state
+  useEffect(() => {
+    if (!isActive || sessionId) return;
+
+    // Show initial loading activities
+    const demoActivities: ActivityItem[] = [
+      { id: '1', type: 'phase', content: 'Starting Intent Analysis', timestamp: new Date() },
+    ];
+    setActivities(demoActivities);
+
+    // Simulate activity stream
+    const phases = [
+      { type: 'thinking' as const, content: 'Parsing natural language input and extracting core intent...' },
+      { type: 'reading' as const, content: 'Loading project context', file: 'intent.json' },
+      { type: 'thinking' as const, content: 'Identifying required features and dependencies...' },
+      { type: 'phase' as const, content: 'Creating Implementation Plan' },
+      { type: 'thinking' as const, content: 'Decomposing into frontend and backend tasks...' },
+      { type: 'writing' as const, content: 'Generating build plan', file: 'feature_list.json' },
+      { type: 'thinking' as const, content: 'Detecting required credentials and services...' },
+      { type: 'phase' as const, content: 'Analyzing Dependencies' },
+      { type: 'reading' as const, content: 'Checking GPU requirements', file: 'gpu-requirements.ts' },
+      { type: 'thinking' as const, content: 'Plan ready for review...' },
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < phases.length) {
+        const phase = phases[index];
+        setActivities(prev => [...prev, {
+          id: String(Date.now()),
+          type: phase.type,
+          content: phase.content,
+          file: phase.file,
+          timestamp: new Date(),
+        }]);
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [isActive, sessionId]);
+
+  // Toggle expand for an activity
+  const toggleExpand = (id: string) => {
+    setActivities(prev => prev.map(a => 
+      a.id === id ? { ...a, expanded: !a.expanded } : a
+    ));
+  };
+
+  return (
+    <div 
+      className={cn(
+        'flex flex-col h-full rounded-xl overflow-hidden',
+        className
+      )}
+      style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,250,249,0.95) 100%)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)',
+      }}
+    >
+      {/* Header */}
+      <div 
+        className="flex items-center gap-2 px-3 py-2 border-b"
+        style={{ borderColor: 'rgba(0,0,0,0.05)' }}
+      >
+        <motion.div
+          className="w-2 h-2 rounded-full bg-amber-500"
+          animate={isActive ? { scale: [1, 1.2, 1], opacity: [1, 0.7, 1] } : {}}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
+        <span 
+          className="text-sm font-semibold"
+          style={{ color: '#44403c', fontFamily: 'Syne, sans-serif' }}
+        >
+          AI Activity
+        </span>
+        <span className="text-xs text-stone-400 ml-auto">
+          {activities.length} events
+        </span>
+      </div>
+
+      {/* Activity stream */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        <AnimatePresence initial={false}>
+          {activities.map((item, index) => (
+            <ActivityRow
+              key={item.id}
+              item={item}
+              isLatest={index === activities.length - 1}
+              onFileClick={onFileClick}
+              onToggleExpand={() => toggleExpand(item.id)}
+            />
+          ))}
+        </AnimatePresence>
+
+        {activities.length === 0 && (
+          <div className="flex items-center justify-center h-full text-stone-400 text-sm">
+            Waiting for activity...
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
+
+// Parse backend events to activity items
+function parseEventToActivity(data: any): ActivityItem | null {
+  const id = String(Date.now() + Math.random());
+  const timestamp = new Date();
+
+  // Handle different event types from the backend
+  if (data.type === 'thinking' || data.type === 'reasoning') {
+    return { id, type: 'thinking', content: data.content || data.message, timestamp };
+  }
+  if (data.type === 'file_read' || data.type === 'context_loaded') {
+    return { id, type: 'reading', content: 'Reading file', file: data.file || data.path, timestamp };
+  }
+  if (data.type === 'file_write' || data.type === 'file_update') {
+    return { 
+      id, 
+      type: 'writing', 
+      content: data.summary || 'Writing changes', 
+      file: data.file || data.path,
+      details: data.diff,
+      timestamp 
+    };
+  }
+  if (data.type === 'command' || data.type === 'terminal') {
+    return { id, type: 'command', content: data.command || data.content, timestamp };
+  }
+  if (data.type === 'phase' || data.type === 'phase_start') {
+    return { id, type: 'phase', content: data.name || data.phase || data.content, timestamp };
+  }
+  if (data.type === 'complete' || data.type === 'done') {
+    return { id, type: 'complete', content: data.message || 'Complete', timestamp };
+  }
+  if (data.type === 'error') {
+    return { id, type: 'error', content: data.message || data.error, timestamp };
+  }
+  if (data.type === 'diff') {
+    return { 
+      id, 
+      type: 'diff', 
+      content: `Changed ${data.file}`,
+      file: data.file,
+      details: data.diff,
+      timestamp 
+    };
+  }
+
+  // Generic message
+  if (data.message || data.content) {
+    return { id, type: 'thinking', content: data.message || data.content, timestamp };
+  }
+
+  return null;
+}
+
+export default StreamingConsciousness;

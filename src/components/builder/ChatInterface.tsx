@@ -32,7 +32,6 @@ import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
 import StreamingConsciousness from './StreamingConsciousness';
-import { NeuralPathway } from '../neural-pathway';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
 import type { AgentActivityEvent } from '../../types/agent-activity';
@@ -351,8 +350,8 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [streamController, setStreamController] = useState<AbortController | null>(null);
     const [ktnStats, setKtnStats] = useState<{ model?: string; ttftMs?: number; strategy?: string } | null>(null);
 
-    // Agent Activity Stream state
-    const [activityEvents, setActivityEvents] = useState<AgentActivityEvent[]>([]);
+    // Agent Activity Stream state (used for WebSocket event tracking)
+    const [, setActivityEvents] = useState<AgentActivityEvent[]>([]);
     const activityWsRef = useRef<WebSocket | null>(null);
 
     // SESSION 4: Live Preview state
@@ -1175,59 +1174,21 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             {/* Main Content Area - Mutually exclusive views */}
             <div className="flex-1 overflow-hidden relative min-h-0">
-                {/* VIEW 0: Plan Generation View - Neural Pathway showing AI analyzing */}
+                {/* VIEW 0: Plan Generation View - Streaming activity log */}
                 {buildWorkflowPhase === 'generating_plan' ? (
-                    <div className="h-full flex flex-col items-center justify-center p-6">
+                    <div className="h-full flex flex-col p-4">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="w-full max-w-3xl"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="h-full flex flex-col"
                         >
-                            {/* Header */}
-                            <div className="text-center mb-6">
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                >
-                                    <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                                        Analyzing Your Intent
-                                    </h3>
-                                    <p className="text-sm text-gray-500 max-w-md mx-auto">
-                                        Watch as KripTik's AI orchestration analyzes your requirements and creates a comprehensive implementation plan
-                                    </p>
-                                </motion.div>
-                            </div>
-
-                            {/* Neural Pathway Visualization */}
-                            <NeuralPathway
-                                sessionId={`plan-${projectId || Date.now()}`}
-                                promptText={messages.find(m => m.role === 'user')?.content || ''}
-                                className="rounded-2xl border border-slate-200/50"
-                                showLabels={true}
+                            {/* Streaming Consciousness - shows what AI is doing */}
+                            <StreamingConsciousness
+                                className="flex-1"
+                                sessionId={projectId}
+                                isActive={true}
+                                onFileClick={(file) => console.log('Open file:', file)}
                             />
-
-                            {/* Stage indicator */}
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="mt-4 text-center"
-                            >
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{
-                                    background: 'linear-gradient(145deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
-                                    border: '1px solid rgba(251,191,36,0.3)',
-                                }}>
-                                    <motion.div
-                                        className="w-2 h-2 rounded-full bg-amber-500"
-                                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-                                        transition={{ duration: 1.5, repeat: Infinity }}
-                                    />
-                                    <span className="text-sm font-medium" style={{ color: '#b45309' }}>
-                                        Creating Intent Contract & Implementation Plan...
-                                    </span>
-                                </div>
-                            </motion.div>
                         </motion.div>
                     </div>
                 ) : buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan ? (
@@ -1332,7 +1293,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         </motion.div>
                     </div>
                 ) : buildWorkflowPhase === 'building' || globalStatus === 'running' ? (
-                    /* VIEW 4: Active Build View - Streaming Consciousness Neural Network */
+                    /* VIEW 4: Active Build View - Simple streaming activity log */
                     <div className="h-full flex flex-col">
                         {/* Tournament Mode Results - Show when tournament is active */}
                         {tournamentData && (
@@ -1347,17 +1308,6 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             </div>
                         )}
 
-                        {/* Neural Pathway - High-level orchestration flow visualization */}
-                        <div className="px-4 pt-3 shrink-0">
-                            <NeuralPathway
-                                sessionId={buildProjectId || projectId || `build-${Date.now()}`}
-                                promptText={lockedIntentPrompt || undefined}
-                                compact={true}
-                                showLabels={false}
-                                className="rounded-xl border border-slate-700/30"
-                            />
-                        </div>
-
                         {/* Provisioning Status - Browser agent activity during provisioning phase */}
                         <div className="px-4 pt-2 shrink-0">
                             <ProvisioningStatus
@@ -1366,17 +1316,12 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </div>
 
-                        {/* Streaming Consciousness - Neural network visualization of parallel agents */}
+                        {/* Streaming Consciousness - Simple activity log showing what AI is doing */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
                             <StreamingConsciousness
-                                events={activityEvents}
-                                agentCount={parallelAgents.length > 0 ? parallelAgents.length : 3}
+                                sessionId={buildProjectId || projectId}
                                 isActive={globalStatus === 'running'}
-                                currentPhase={
-                                    buildWorkflowPhase === 'building' ? 'Autonomous Build' :
-                                    buildWorkflowPhase === 'complete' ? 'Complete' :
-                                    'Initializing'
-                                }
+                                onFileClick={(file) => console.log('Open file:', file)}
                             />
                         </div>
 
