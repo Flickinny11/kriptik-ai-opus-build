@@ -6,6 +6,13 @@ COMMITS PUSHED:
 2. 930dae8 - Real AI plan generation with streaming thinking tokens
 3. 55a877a - Documentation update
 4. b4bcc71 - Filter out empty/heartbeat events from activities
+5. 3ea6b3b - CRITICAL: Use Opus 4.5 for plan generation (not Sonnet)
+
+CRITICAL FIX (3ea6b3b):
+- Changed from Sonnet 4.5 to Opus 4.5 for plan generation
+- Planning is foundational - must use highest quality model
+- Best model for the job philosophy
+- 64K max tokens, 16K thinking budget, effort: 'high'
 
 FULL IMPLEMENTATION SUMMARY:
 
