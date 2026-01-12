@@ -1,6 +1,6 @@
 /**
  * Provider Connection Card
- * 
+ *
  * A card that combines provider selection with OAuth connection.
  * Shows a "Connect" button for OAuth-enabled providers after selection.
  */
@@ -64,7 +64,7 @@ const accentColor = '#c8ff64';
  * Providers that support OAuth via Nango
  */
 const OAUTH_PROVIDERS = new Set([
-  'stripe', 'supabase', 'clerk', 'auth0', 'vercel', 'netlify', 
+  'stripe', 'supabase', 'clerk', 'auth0', 'vercel', 'netlify',
   'github', 'firebase', 'shopify'
 ]);
 
@@ -148,7 +148,7 @@ export const ProviderConnectionCard = memo(function ProviderConnectionCard({
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUserStore();
-  
+
   const userId = user?.id || '';
   const hasOAuth = supportsOAuth(provider.id);
   const needsManualEntry = MANUAL_ENTRY_PROVIDERS.has(provider.id);
@@ -293,7 +293,7 @@ export const ProviderConnectionCard = memo(function ProviderConnectionCard({
     >
       {/* Recommended badge */}
       {provider.recommended && (
-        <div 
+        <div
           className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-xs font-medium"
           style={{ background: accentColor, color: 'black' }}
         >

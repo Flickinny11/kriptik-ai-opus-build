@@ -36,6 +36,7 @@ import {
     type ProviderOption,
     type StackWizardStep,
 } from '../../store/useProductionStackStore';
+import { ProviderConnectionCard } from './ProviderConnectionCard';
 import {
     CloseIcon,
     ArrowLeftIcon,
@@ -51,7 +52,6 @@ import {
     LockIcon,
     LoadingIcon,
     CopyIcon,
-    SparklesIcon,
 } from '../ui/icons';
 import {
     SupabaseIcon,
@@ -178,96 +178,6 @@ function getProviderIcon(iconId: string, size = 24): React.ReactNode {
     return iconMap[iconId] || <DatabaseIcon size={size} />;
 }
 
-// Provider card component
-interface ProviderCardProps {
-    provider: ProviderOption;
-    isSelected: boolean;
-    onClick: () => void;
-}
-
-function ProviderCard({ provider, isSelected, onClick }: ProviderCardProps) {
-    return (
-        <motion.button
-            onClick={onClick}
-            className="relative w-full text-left rounded-2xl p-5 transition-all duration-200"
-            style={isSelected ? glassStyles.cardSelected : glassStyles.card}
-            whileHover={!isSelected ? { scale: 1.02 } : {}}
-            whileTap={{ scale: 0.98 }}
-        >
-            {/* Recommended badge */}
-            {provider.recommended && (
-                <div
-                    className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1"
-                    style={{ background: accentColor, color: '#000' }}
-                >
-                    <SparklesIcon size={12} />
-                    Recommended
-                </div>
-            )}
-
-            {/* Selected indicator */}
-            {isSelected && (
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ background: accentColor }}
-                >
-                    <CheckIcon size={14} className="text-black" />
-                </motion.div>
-            )}
-
-            <div className="flex items-start gap-4">
-                {/* Icon */}
-                <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.1)' }}
-                >
-                    {getProviderIcon(provider.icon, 24)}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-white">{provider.name}</h4>
-                        <span
-                            className="px-2 py-0.5 rounded-full text-xs"
-                            style={{
-                                background: provider.tier === 'free' ? 'rgba(100,200,100,0.2)' :
-                                    provider.tier === 'freemium' ? 'rgba(100,150,255,0.2)' : 'rgba(255,150,100,0.2)',
-                                color: provider.tier === 'free' ? '#8f8' :
-                                    provider.tier === 'freemium' ? '#8af' : '#fa8',
-                            }}
-                        >
-                            {provider.tier === 'free' ? 'Free' : provider.tier === 'freemium' ? 'Freemium' : 'Paid'}
-                        </span>
-                    </div>
-                    <p className="text-sm text-white/60 mb-2">{provider.description}</p>
-
-                    {/* Features */}
-                    {provider.features.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                            {provider.features.slice(0, 4).map((feature) => (
-                                <span
-                                    key={feature}
-                                    className="px-2 py-0.5 rounded text-xs bg-white/5 text-white/40"
-                                >
-                                    {feature}
-                                </span>
-                            ))}
-                            {provider.features.length > 4 && (
-                                <span className="px-2 py-0.5 rounded text-xs bg-white/5 text-white/40">
-                                    +{provider.features.length - 4} more
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </motion.button>
-    );
-}
-
 // Scale option card
 interface ScaleCardProps {
     scale: UserScale | StorageScale;
@@ -351,17 +261,29 @@ function ScaleStep() {
 }
 
 function AuthStep() {
-    const { currentStack, setAuthProvider } = useProductionStackStore();
+    const { currentStack, setAuthProvider, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(AUTH_PROVIDERS) as [AuthProvider, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.authProvider === id}
-                    onClick={() => setAuthProvider(id)}
+                    isConnected={currentStack.authProvider === id && connectedProviders.auth}
+                    onSelect={() => setAuthProvider(id)}
+                    onConnected={() => setProviderConnected('auth', true)}
+                    projectId={currentStack.projectId}
+                    category="auth"
                 />
             ))}
         </div>
@@ -369,17 +291,29 @@ function AuthStep() {
 }
 
 function DatabaseStep() {
-    const { currentStack, setDatabaseProvider } = useProductionStackStore();
+    const { currentStack, setDatabaseProvider, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(DATABASE_PROVIDERS) as [DatabaseProvider, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.databaseProvider === id}
-                    onClick={() => setDatabaseProvider(id)}
+                    isConnected={currentStack.databaseProvider === id && connectedProviders.database}
+                    onSelect={() => setDatabaseProvider(id)}
+                    onConnected={() => setProviderConnected('database', true)}
+                    projectId={currentStack.projectId}
+                    category="database"
                 />
             ))}
         </div>
@@ -387,17 +321,29 @@ function DatabaseStep() {
 }
 
 function StorageStep() {
-    const { currentStack, setStorageProvider } = useProductionStackStore();
+    const { currentStack, setStorageProvider, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(STORAGE_PROVIDERS) as [StorageProvider, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.storageProvider === id}
-                    onClick={() => setStorageProvider(id)}
+                    isConnected={currentStack.storageProvider === id && connectedProviders.storage}
+                    onSelect={() => setStorageProvider(id)}
+                    onConnected={() => setProviderConnected('storage', true)}
+                    projectId={currentStack.projectId}
+                    category="storage"
                 />
             ))}
         </div>
@@ -405,17 +351,29 @@ function StorageStep() {
 }
 
 function PaymentsStep() {
-    const { currentStack, setPaymentProvider } = useProductionStackStore();
+    const { currentStack, setPaymentProvider, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(PAYMENT_PROVIDERS) as [PaymentProvider, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.paymentProvider === id}
-                    onClick={() => setPaymentProvider(id)}
+                    isConnected={currentStack.paymentProvider === id && connectedProviders.payments}
+                    onSelect={() => setPaymentProvider(id)}
+                    onConnected={() => setProviderConnected('payments', true)}
+                    projectId={currentStack.projectId}
+                    category="payments"
                 />
             ))}
         </div>
@@ -423,17 +381,29 @@ function PaymentsStep() {
 }
 
 function EmailStep() {
-    const { currentStack, setEmailProvider } = useProductionStackStore();
+    const { currentStack, setEmailProvider, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(EMAIL_PROVIDERS) as [EmailProvider, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.emailProvider === id}
-                    onClick={() => setEmailProvider(id)}
+                    isConnected={currentStack.emailProvider === id && connectedProviders.email}
+                    onSelect={() => setEmailProvider(id)}
+                    onConnected={() => setProviderConnected('email', true)}
+                    projectId={currentStack.projectId}
+                    category="email"
                 />
             ))}
         </div>
@@ -441,17 +411,29 @@ function EmailStep() {
 }
 
 function HostingStep() {
-    const { currentStack, setHostingTarget } = useProductionStackStore();
+    const { currentStack, setHostingTarget, connectedProviders, setProviderConnected } = useProductionStackStore();
     if (!currentStack) return null;
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {(Object.entries(HOSTING_TARGETS) as [HostingTarget, ProviderOption][]).map(([id, provider]) => (
-                <ProviderCard
+                <ProviderConnectionCard
                     key={id}
-                    provider={provider}
+                    provider={{
+                        id,
+                        name: provider.name,
+                        description: provider.description,
+                        features: provider.features,
+                        icon: getProviderIcon(provider.icon, 24),
+                        tier: provider.tier === 'freemium' ? 'hobby' : provider.tier === 'paid' ? 'pro' : 'free',
+                        recommended: provider.recommended,
+                    }}
                     isSelected={currentStack.hostingTarget === id}
-                    onClick={() => setHostingTarget(id)}
+                    isConnected={currentStack.hostingTarget === id && connectedProviders.hosting}
+                    onSelect={() => setHostingTarget(id)}
+                    onConnected={() => setProviderConnected('hosting', true)}
+                    projectId={currentStack.projectId}
+                    category="hosting"
                 />
             ))}
         </div>
@@ -459,16 +441,20 @@ function HostingStep() {
 }
 
 function ReviewStep() {
-    const { getStackSummary, getRequiredEnvVars, getDependencies } = useProductionStackStore();
+    const { getStackSummary, getRequiredEnvVars, getUnconnectedEnvVars, getDependencies, connectedProviders } = useProductionStackStore();
 
     const summary = getStackSummary();
-    const envVars = getRequiredEnvVars();
+    const allEnvVars = getRequiredEnvVars();
+    const unconnectedEnvVars = getUnconnectedEnvVars();
     const deps = getDependencies();
 
+    // Count connected providers
+    const connectedCount = Object.values(connectedProviders).filter(Boolean).length;
+
     const copyEnvTemplate = useCallback(() => {
-        const template = envVars.map(v => `${v}=`).join('\n');
+        const template = unconnectedEnvVars.map(v => `${v}=`).join('\n');
         navigator.clipboard.writeText(template);
-    }, [envVars]);
+    }, [unconnectedEnvVars]);
 
     const copyInstallCommand = useCallback(() => {
         const allDeps = [...deps.npm, ...deps.devDeps.map(d => `-D ${d}`)];
@@ -479,6 +465,29 @@ function ReviewStep() {
 
     return (
         <div className="space-y-6">
+            {/* Connection summary banner */}
+            {connectedCount > 0 && (
+                <div 
+                    className="rounded-xl p-4 flex items-center gap-3"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(16,185,129,0.1) 100%)',
+                        border: '1px solid rgba(34,197,94,0.3)',
+                    }}
+                >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-500/20">
+                        <CheckCircle2Icon size={20} className="text-green-400" />
+                    </div>
+                    <div>
+                        <p className="text-green-400 font-medium">
+                            {connectedCount} provider{connectedCount > 1 ? 's' : ''} connected via OAuth
+                        </p>
+                        <p className="text-green-400/60 text-sm">
+                            Credentials auto-configured and saved to vault
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Stack summary */}
             <div className="rounded-2xl p-5" style={glassStyles.card}>
                 <h3 className="text-lg font-semibold text-white mb-4">Your Production Stack</h3>
@@ -488,8 +497,15 @@ function ReviewStep() {
                             <span className="text-white/60">{item.category}</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-white font-medium">{item.provider}</span>
-                                {item.status === 'configured' ? (
-                                    <CheckCircle2Icon size={16} className="text-green-400" />
+                                {item.status === 'connected' ? (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs">
+                                        <CheckCircle2Icon size={12} />
+                                        Connected
+                                    </span>
+                                ) : item.status === 'configured' ? (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs">
+                                        Manual Setup
+                                    </span>
                                 ) : (
                                     <span className="text-white/30 text-sm">Skipped</span>
                                 )}
@@ -499,11 +515,16 @@ function ReviewStep() {
                 </div>
             </div>
 
-            {/* Environment variables */}
-            {envVars.length > 0 && (
+            {/* Environment variables - only show UNCONNECTED ones */}
+            {unconnectedEnvVars.length > 0 && (
                 <div className="rounded-2xl p-5" style={glassStyles.card}>
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Required Environment Variables</h3>
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">Manual Configuration Required</h3>
+                            <p className="text-sm text-white/50 mt-1">
+                                {allEnvVars.length - unconnectedEnvVars.length} of {allEnvVars.length} variables auto-configured
+                            </p>
+                        </div>
                         <button
                             onClick={copyEnvTemplate}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
@@ -513,14 +534,31 @@ function ReviewStep() {
                         </button>
                     </div>
                     <div className="bg-black/30 rounded-lg p-4 font-mono text-sm">
-                        {envVars.map((v) => (
+                        {unconnectedEnvVars.map((v) => (
                             <div key={v} className="text-white/60 py-0.5">
-                                <span className="text-blue-400">{v}</span>=
+                                <span className="text-amber-400">{v}</span>=
                             </div>
                         ))}
                     </div>
                     <p className="text-xs text-white/40 mt-3">
-                        You'll need to add these to your project's environment. KripTik will help you configure these during the build process.
+                        These providers require manual API key setup. KripTik will guide you through configuration during the build.
+                    </p>
+                </div>
+            )}
+
+            {/* All connected message */}
+            {unconnectedEnvVars.length === 0 && allEnvVars.length > 0 && (
+                <div 
+                    className="rounded-2xl p-5 text-center"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(16,185,129,0.05) 100%)',
+                        border: '1px solid rgba(34,197,94,0.2)',
+                    }}
+                >
+                    <CheckCircle2Icon size={40} className="text-green-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-1">All Credentials Configured</h3>
+                    <p className="text-white/50 text-sm">
+                        All {allEnvVars.length} environment variables have been auto-configured via OAuth.
                     </p>
                 </div>
             )}
