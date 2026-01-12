@@ -416,76 +416,133 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     }, [input]);
 
     // P0-3: Watch for ProductionStackWizard completion
-    // When wizard closes with configured stack, build credentials from stack selection
+    // When wizard closes with configured stack, sync with backend and build credentials
     useEffect(() => {
         if (buildWorkflowPhase === 'configuring_stack' && !isWizardOpen && currentStack?.isConfigured) {
-            console.log('[ChatInterface] Stack configured, building credentials from selection:', currentStack);
+            console.log('[ChatInterface] Stack configured, syncing with backend:', currentStack);
 
-            // Build credentials from the selected stack providers
-            const stackCredentials: RequiredCredential[] = [];
+            // Build the stack selection payload for backend
+            const stackPayload = {
+                auth: currentStack.authProvider && currentStack.authProvider !== 'none'
+                    ? { provider: currentStack.authProvider, name: (AUTH_PROVIDERS as Record<string, { name: string }>)[currentStack.authProvider]?.name || currentStack.authProvider }
+                    : undefined,
+                database: currentStack.databaseProvider && currentStack.databaseProvider !== 'none'
+                    ? { provider: currentStack.databaseProvider, name: (DATABASE_PROVIDERS as Record<string, { name: string }>)[currentStack.databaseProvider]?.name || currentStack.databaseProvider }
+                    : undefined,
+                storage: currentStack.storageProvider && currentStack.storageProvider !== 'none'
+                    ? { provider: currentStack.storageProvider, name: (STORAGE_PROVIDERS as Record<string, { name: string }>)[currentStack.storageProvider]?.name || currentStack.storageProvider }
+                    : undefined,
+                payments: currentStack.paymentProvider && currentStack.paymentProvider !== 'none'
+                    ? { provider: currentStack.paymentProvider, name: (PAYMENT_PROVIDERS as Record<string, { name: string }>)[currentStack.paymentProvider]?.name || currentStack.paymentProvider }
+                    : undefined,
+                email: currentStack.emailProvider && currentStack.emailProvider !== 'none'
+                    ? { provider: currentStack.emailProvider, name: (EMAIL_PROVIDERS as Record<string, { name: string }>)[currentStack.emailProvider]?.name || currentStack.emailProvider }
+                    : undefined,
+            };
 
-            // Helper to add credentials from a provider
-            const addProviderCredentials = (
-                providerType: string,
-                providerId: string,
-                providers: Record<string, { name: string; envVars: string[]; docsUrl: string }>,
-                platformName: string
-            ) => {
-                if (providerId && providerId !== 'none') {
-                    const provider = providers[providerId];
-                    if (provider?.envVars?.length > 0) {
-                        provider.envVars.forEach(envVar => {
-                            // Check if we already have this credential from plan detection
-                            const existing = requiredCredentials.find(c => c.envVariableName === envVar);
-                            if (!existing) {
-                                stackCredentials.push({
-                                    id: `stack-${envVar}`,
-                                    name: envVar.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
-                                    description: `${providerType} credential for ${provider.name}`,
-                                    envVariableName: envVar,
-                                    platformName: platformName,
-                                    platformUrl: provider.docsUrl,
-                                    required: true,
-                                    value: null,
-                                });
-                            }
+            // Sync stack selection with backend and get merged credentials
+            const syncStackWithBackend = async () => {
+                if (buildSessionId) {
+                    try {
+                        const response = await fetch(`${API_URL}/api/execute/plan/${buildSessionId}/stack`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ stack: stackPayload }),
                         });
+
+                        const data = await response.json();
+                        console.log('[ChatInterface] Stack sync response:', data);
+
+                        if (data.success && data.requiredCredentials) {
+                            // Use backend-calculated credentials (properly merged with Deep Intent)
+                            setRequiredCredentials(data.requiredCredentials);
+                            setBuildWorkflowPhase('awaiting_credentials');
+
+                            setMessages(prev => [...prev, {
+                                id: `msg-${Date.now()}`,
+                                role: 'system',
+                                content: `Production stack configured! ${data.requiredCredentials.length > 0 ? `Please provide ${data.requiredCredentials.length} credential${data.requiredCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
+                                timestamp: new Date(),
+                                agentType: 'orchestrator',
+                            }]);
+
+                            // If no credentials needed, start the build
+                            if (data.requiredCredentials.length === 0) {
+                                handleCredentialsSubmit({});
+                            }
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('[ChatInterface] Failed to sync stack with backend:', error);
+                        // Fall through to local credential building
                     }
+                }
+
+                // Fallback: Build credentials locally if backend sync fails or no session
+                console.log('[ChatInterface] Using local credential building (backend sync unavailable)');
+                const stackCredentials: RequiredCredential[] = [];
+
+                const addProviderCredentials = (
+                    providerType: string,
+                    providerId: string,
+                    providers: Record<string, { name: string; envVars: string[]; docsUrl: string }>,
+                    platformName: string
+                ) => {
+                    if (providerId && providerId !== 'none') {
+                        const provider = providers[providerId];
+                        if (provider?.envVars?.length > 0) {
+                            provider.envVars.forEach(envVar => {
+                                const existing = requiredCredentials.find(c => c.envVariableName === envVar);
+                                if (!existing) {
+                                    stackCredentials.push({
+                                        id: `stack-${envVar}`,
+                                        name: envVar.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+                                        description: `${providerType} credential for ${provider.name}`,
+                                        envVariableName: envVar,
+                                        platformName: platformName,
+                                        platformUrl: provider.docsUrl,
+                                        required: true,
+                                        value: null,
+                                    });
+                                }
+                            });
+                        }
+                    }
+                };
+
+                addProviderCredentials('Authentication', currentStack.authProvider, AUTH_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Auth Provider');
+                addProviderCredentials('Database', currentStack.databaseProvider, DATABASE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Database');
+                addProviderCredentials('Storage', currentStack.storageProvider, STORAGE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Storage');
+                addProviderCredentials('Payments', currentStack.paymentProvider, PAYMENT_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Payments');
+                addProviderCredentials('Email', currentStack.emailProvider, EMAIL_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Email');
+
+                const mergedCredentials = [...requiredCredentials];
+                stackCredentials.forEach(stackCred => {
+                    if (!mergedCredentials.find(c => c.envVariableName === stackCred.envVariableName)) {
+                        mergedCredentials.push(stackCred);
+                    }
+                });
+
+                setRequiredCredentials(mergedCredentials);
+                setBuildWorkflowPhase('awaiting_credentials');
+
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Production stack configured! ${mergedCredentials.length > 0 ? `Please provide ${mergedCredentials.length} credential${mergedCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+
+                if (mergedCredentials.length === 0) {
+                    handleCredentialsSubmit({});
                 }
             };
 
-            // Add credentials for each selected provider
-            addProviderCredentials('Authentication', currentStack.authProvider, AUTH_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Auth Provider');
-            addProviderCredentials('Database', currentStack.databaseProvider, DATABASE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Database');
-            addProviderCredentials('Storage', currentStack.storageProvider, STORAGE_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Storage');
-            addProviderCredentials('Payments', currentStack.paymentProvider, PAYMENT_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Payments');
-            addProviderCredentials('Email', currentStack.emailProvider, EMAIL_PROVIDERS as Record<string, { name: string; envVars: string[]; docsUrl: string }>, 'Email');
-
-            // Merge plan-detected credentials with stack credentials
-            const mergedCredentials = [...requiredCredentials];
-            stackCredentials.forEach(stackCred => {
-                if (!mergedCredentials.find(c => c.envVariableName === stackCred.envVariableName)) {
-                    mergedCredentials.push(stackCred);
-                }
-            });
-
-            setRequiredCredentials(mergedCredentials);
-            setBuildWorkflowPhase('awaiting_credentials');
-
-            setMessages(prev => [...prev, {
-                id: `msg-${Date.now()}`,
-                role: 'system',
-                content: `Production stack configured! ${mergedCredentials.length > 0 ? `Please provide ${mergedCredentials.length} credential${mergedCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
-                timestamp: new Date(),
-                agentType: 'orchestrator',
-            }]);
-
-            // If no credentials needed, start the build
-            if (mergedCredentials.length === 0) {
-                handleCredentialsSubmit({});
-            }
+            syncStackWithBackend();
         }
-    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials, getRequiredEnvVars]);
+    }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials, buildSessionId]);
 
     const handleSend = async () => {
         if (!input.trim()) return;

@@ -4,7 +4,79 @@
 
 ---
 
-## Current State (as of 2026-01-04)
+## Current State (as of 2026-01-12)
+
+### ✅ Builder View NLP-to-Completion Flow COMPLETE
+
+**Session Date**: 2026-01-12
+**Branch**: `claude/kristin-nlp-builder-analysis-iNQaf`
+**Status**: ALL P0 BLOCKERS FIXED AND DEPLOYED
+
+#### Fixes Implemented
+
+**All 5 critical blockers have been resolved:**
+
+1. **✅ Fix #1: Generated Code Now Written to Disk**
+   - Added `fs.writeFile()` to `buildFeature()` in `build-loop.ts`
+   - Files are now persisted to project directory (not just memory Map)
+   - Added error handling that continues on individual file failures
+
+2. **✅ Fix #2: ArtifactManager Receives projectPath**
+   - Pass `projectPath` and `syncToFilesystem: true` to `createArtifactManager()`
+   - Enables hybrid storage (database + filesystem)
+   - Agents can now read artifacts from disk
+
+3. **✅ Fix #3: Speculative Results and Fixes Written to Disk**
+   - Added `fs.writeFile()` to `applySpeculativeResult()`
+   - Added `fs.writeFile()` to `refineSpeculativeResult()`
+   - Replaced `applyFix()` stub with real filesystem implementation
+   - Delete operations also implemented for filesystem
+
+4. **✅ Fix #4: Stack Selection Endpoint Created**
+   - New `POST /api/execute/plan/:sessionId/stack` endpoint
+   - `mergeCredentialsWithStackSelection()` function for credential mapping
+   - Updated `PendingBuild` interface with `selectedStack` and `'awaiting_stack'` status
+
+5. **✅ Fix #5: Frontend Stack Selection Integration**
+   - `ChatInterface.tsx` useEffect now calls backend `/stack` endpoint
+   - Stack selection synced with backend before credential collection
+   - Backend-calculated credentials used (properly merged with Deep Intent)
+   - Fallback to local credential building if backend unavailable
+
+#### Files Changed
+
+| File | Changes |
+|------|---------|
+| `server/src/services/automation/build-loop.ts` | +112 lines - File writing to disk |
+| `server/src/routes/execute.ts` | +278 lines - Stack endpoint + credential merging |
+| `src/components/builder/ChatInterface.tsx` | +107 lines - Backend stack sync |
+
+#### Commit
+
+```
+cad5446 feat: Complete Builder View NLP-to-completion production flow fixes
+```
+
+#### The Flow Now Works
+
+- Intent Lock creation ✅
+- Plan generation ✅
+- Plan approval ✅
+- ProductionStackWizard opens ✅
+- **Stack selection synced to backend ✅ NEW**
+- **Credentials merged with Deep Intent + Stack ✅ NEW**
+- Credentials collection UI ✅
+- BuildLoopOrchestrator starts ✅
+- **Files written to disk ✅ NEW**
+- Verification runs on real files ✅
+
+#### Documentation
+
+- `.claude/rules/10-builder-view-production-blockers.md` - Complete analysis (reference)
+
+---
+
+## Previous State (as of 2026-01-04)
 
 ### ✅ PHASE 2 + PHASE 4 COMPLETE: Multi-Sandbox Orchestration
 
