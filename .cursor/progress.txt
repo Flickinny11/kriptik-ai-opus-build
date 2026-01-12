@@ -1,3 +1,45 @@
+═══ [2026-01-12 REAL-TIME STREAMING FOR PLAN GENERATION] ═══
+COMPLETED: Fixed "Waiting for activity" issue with real-time SSE streaming
+
+ISSUE: When user entered NLP in builder view, it showed "Waiting for activity..."
+indefinitely because:
+1. Frontend tried to connect to /api/orchestrate/${projectId}/stream
+2. But no orchestrator was registered - plan generation uses different endpoint
+3. The /api/execute/plan endpoint was synchronous HTTP POST, not SSE streaming
+
+FIX IMPLEMENTED:
+1. Created new streaming endpoint: POST /api/execute/plan/stream
+   - Uses Server-Sent Events (SSE) for real-time feedback
+   - Emits events: thinking, reading, phase, complete, error
+   - Shows progress through plan generation phases:
+     * Analyzing prompt
+     * Generating implementation plan
+     * Creating Deep Intent Contract
+     * Detecting required credentials
+
+2. Updated StreamingConsciousness component:
+   - Added externalActivities prop for parent-controlled activities
+   - Added streamEndpoint prop ('orchestrate' | 'plan' | 'none')
+   - Uses displayActivities (external or internal)
+   - Properly handles [DONE] sentinel in SSE stream
+
+3. Updated ChatInterface:
+   - Calls streaming endpoint instead of synchronous POST
+   - Parses SSE events and populates planActivities state
+   - Passes planActivities to StreamingConsciousness
+   - Activities display in real-time as plan is generated
+
+RESULT: User now sees instant feedback during plan generation:
+- "Analyzing your prompt..."
+- "Generating implementation plan with AI..."
+- "Creating Deep Intent Contract..."
+- "Detecting required credentials..."
+- "Plan generation complete!"
+
+COMPILE STATUS: ✅ Frontend AND Backend compile successfully
+BUILD STATUS: ✅ Pushed to GitHub (commit c602b8f)
+DEPLOYMENT: ✅ Vercel deployment triggered automatically
+
 ═══ [2026-01-12 FEATURE AGENT STREAMING & MODEL ROUTING FIX] ═══
 COMPLETED: Feature Agent streaming fix, Stop button, and dual-architecture model routing
 
