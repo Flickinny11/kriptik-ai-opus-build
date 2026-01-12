@@ -1,12 +1,12 @@
 /**
  * Streaming Consciousness - Simple AI Activity Stream
- * 
+ *
  * Shows what the AI is doing in real-time, similar to Cursor's streaming UI:
  * - Files being read/written
  * - Thinking/reasoning text
  * - Commands being run
  * - Diffs and changes
- * 
+ *
  * Clean, functional, premium styling.
  */
 
@@ -16,14 +16,14 @@ import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/api-config';
 
 // Activity types
-type ActivityType = 
-  | 'thinking' 
-  | 'reading' 
-  | 'writing' 
-  | 'command' 
-  | 'diff' 
-  | 'phase' 
-  | 'complete' 
+type ActivityType =
+  | 'thinking'
+  | 'reading'
+  | 'writing'
+  | 'command'
+  | 'diff'
+  | 'phase'
+  | 'complete'
   | 'error';
 
 interface ActivityItem {
@@ -46,7 +46,7 @@ interface StreamingConsciousnessProps {
 // Type indicator icons (inline SVG, no dependencies)
 const TypeIcon = memo(({ type }: { type: ActivityType }) => {
   const iconProps = { className: "w-3.5 h-3.5", strokeWidth: 2, fill: "none", stroke: "currentColor" };
-  
+
   switch (type) {
     case 'thinking':
       return (
@@ -116,14 +116,14 @@ TypeIcon.displayName = 'TypeIcon';
 const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: number }) => {
   const [displayText, setDisplayText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
-  
+
   useEffect(() => {
     if (!text) return;
-    
+
     let index = 0;
     setDisplayText('');
     setIsComplete(false);
-    
+
     const interval = setInterval(() => {
       if (index < text.length) {
         setDisplayText(text.slice(0, index + 1));
@@ -133,10 +133,10 @@ const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: numbe
         clearInterval(interval);
       }
     }, speed);
-    
+
     return () => clearInterval(interval);
   }, [text, speed]);
-  
+
   return (
     <span>
       {displayText}
@@ -154,13 +154,13 @@ const TypewriterText = memo(({ text, speed = 15 }: { text: string; speed?: numbe
 TypewriterText.displayName = 'TypewriterText';
 
 // Single activity row
-const ActivityRow = memo(({ 
-  item, 
+const ActivityRow = memo(({
+  item,
   isLatest,
   onFileClick,
   onToggleExpand,
-}: { 
-  item: ActivityItem; 
+}: {
+  item: ActivityItem;
   isLatest: boolean;
   onFileClick?: (file: string) => void;
   onToggleExpand?: () => void;
@@ -199,9 +199,9 @@ const ActivityRow = memo(({
       )}
     >
       {/* Type indicator */}
-      <div 
+      <div
         className="flex-shrink-0 mt-0.5 p-1 rounded"
-        style={{ 
+        style={{
           color: typeColors[item.type],
           background: `${typeColors[item.type]}15`,
         }}
@@ -213,7 +213,7 @@ const ActivityRow = memo(({
       <div className="flex-1 min-w-0">
         {/* Type label and file */}
         <div className="flex items-center gap-1.5 text-xs">
-          <span 
+          <span
             className="font-semibold"
             style={{ color: typeColors[item.type], fontFamily: 'Syne, sans-serif' }}
           >
@@ -250,7 +250,7 @@ const ActivityRow = memo(({
             {item.expanded ? 'Hide details' : 'Show details'}
           </button>
         )}
-        
+
         <AnimatePresence>
           {item.expanded && item.details && (
             <motion.pre
@@ -366,13 +366,13 @@ export function StreamingConsciousness({
 
   // Toggle expand for an activity
   const toggleExpand = (id: string) => {
-    setActivities(prev => prev.map(a => 
+    setActivities(prev => prev.map(a =>
       a.id === id ? { ...a, expanded: !a.expanded } : a
     ));
   };
 
   return (
-    <div 
+    <div
       className={cn(
         'flex flex-col h-full rounded-xl overflow-hidden',
         className
@@ -384,7 +384,7 @@ export function StreamingConsciousness({
       }}
     >
       {/* Header */}
-      <div 
+      <div
         className="flex items-center gap-2 px-3 py-2 border-b"
         style={{ borderColor: 'rgba(0,0,0,0.05)' }}
       >
@@ -393,7 +393,7 @@ export function StreamingConsciousness({
           animate={isActive ? { scale: [1, 1.2, 1], opacity: [1, 0.7, 1] } : {}}
           transition={{ duration: 1.5, repeat: Infinity }}
         />
-        <span 
+        <span
           className="text-sm font-semibold"
           style={{ color: '#44403c', fontFamily: 'Syne, sans-serif' }}
         >
@@ -405,7 +405,7 @@ export function StreamingConsciousness({
       </div>
 
       {/* Activity stream */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5"
         style={{ scrollBehavior: 'smooth' }}
@@ -445,13 +445,13 @@ function parseEventToActivity(data: any): ActivityItem | null {
     return { id, type: 'reading', content: 'Reading file', file: data.file || data.path, timestamp };
   }
   if (data.type === 'file_write' || data.type === 'file_update') {
-    return { 
-      id, 
-      type: 'writing', 
-      content: data.summary || 'Writing changes', 
+    return {
+      id,
+      type: 'writing',
+      content: data.summary || 'Writing changes',
       file: data.file || data.path,
       details: data.diff,
-      timestamp 
+      timestamp
     };
   }
   if (data.type === 'command' || data.type === 'terminal') {
@@ -467,13 +467,13 @@ function parseEventToActivity(data: any): ActivityItem | null {
     return { id, type: 'error', content: data.message || data.error, timestamp };
   }
   if (data.type === 'diff') {
-    return { 
-      id, 
-      type: 'diff', 
+    return {
+      id,
+      type: 'diff',
       content: `Changed ${data.file}`,
       file: data.file,
       details: data.diff,
-      timestamp 
+      timestamp
     };
   }
 

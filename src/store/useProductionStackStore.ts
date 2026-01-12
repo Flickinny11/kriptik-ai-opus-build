@@ -7,9 +7,7 @@
  */
 
 import { create } from 'zustand';
-
-// API URL for backend requests
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
+import { API_URL } from '@/lib/api-config';
 
 // Provider type definitions
 export type AuthProvider = 'clerk' | 'better-auth' | 'nextauth' | 'supabase-auth' | 'auth0' | 'firebase-auth' | 'none';
@@ -512,10 +510,23 @@ export interface ProductionStackConfig {
 // Wizard step
 export type StackWizardStep = 'scale' | 'auth' | 'database' | 'storage' | 'payments' | 'email' | 'hosting' | 'review';
 
+// Connection state for OAuth-connected providers
+export interface ProviderConnectionState {
+    auth: boolean;
+    database: boolean;
+    storage: boolean;
+    payments: boolean;
+    email: boolean;
+    hosting: boolean;
+}
+
 // Store state
 interface ProductionStackState {
     // Current configuration being edited
     currentStack: ProductionStackConfig | null;
+
+    // Connection tracking - which providers have been OAuth connected
+    connectedProviders: ProviderConnectionState;
 
     // Wizard state
     isWizardOpen: boolean;
@@ -544,6 +555,11 @@ interface ProductionStackState {
     setEstimatedUsers: (scale: UserScale) => void;
     setEstimatedStorage: (scale: StorageScale) => void;
 
+    // Connection actions
+    setProviderConnected: (category: keyof ProviderConnectionState, connected: boolean) => void;
+    isProviderConnected: (category: keyof ProviderConnectionState) => boolean;
+    resetConnections: () => void;
+
     // API actions
     loadStack: (projectId: string) => Promise<ProductionStackConfig | null>;
     saveStack: () => Promise<boolean>;
@@ -551,8 +567,9 @@ interface ProductionStackState {
 
     // Computed
     getRequiredEnvVars: () => string[];
+    getUnconnectedEnvVars: () => string[]; // Only vars for non-OAuth-connected providers
     getDependencies: () => { npm: string[]; devDeps: string[] };
-    getStackSummary: () => { category: string; provider: string; status: 'configured' | 'skipped' }[];
+    getStackSummary: () => { category: string; provider: string; status: 'configured' | 'skipped' | 'connected' }[];
 }
 
 const WIZARD_STEPS: StackWizardStep[] = ['scale', 'auth', 'database', 'storage', 'payments', 'email', 'hosting', 'review'];
@@ -570,8 +587,18 @@ const DEFAULT_STACK: ProductionStackConfig = {
     isConfigured: false,
 };
 
+const DEFAULT_CONNECTIONS: ProviderConnectionState = {
+    auth: false,
+    database: false,
+    storage: false,
+    payments: false,
+    email: false,
+    hosting: false,
+};
+
 export const useProductionStackStore = create<ProductionStackState>((set, get) => ({
     currentStack: null,
+    connectedProviders: { ...DEFAULT_CONNECTIONS },
     isWizardOpen: false,
     wizardStep: 'scale',
     wizardProjectId: null,
@@ -585,6 +612,7 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
             wizardProjectId: projectId,
             wizardStep: 'scale',
             currentStack: existingStack || { ...DEFAULT_STACK, projectId },
+            connectedProviders: { ...DEFAULT_CONNECTIONS },
             error: null,
         });
     },
@@ -671,6 +699,26 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
         if (currentStack) {
             set({ currentStack: { ...currentStack, estimatedStorage: scale } });
         }
+    },
+
+    // Connection tracking actions
+    setProviderConnected: (category, connected) => {
+        const { connectedProviders } = get();
+        set({
+            connectedProviders: {
+                ...connectedProviders,
+                [category]: connected,
+            },
+        });
+    },
+
+    isProviderConnected: (category) => {
+        const { connectedProviders } = get();
+        return connectedProviders[category];
+    },
+
+    resetConnections: () => {
+        set({ connectedProviders: { ...DEFAULT_CONNECTIONS } });
     },
 
     loadStack: async (projectId) => {
@@ -768,6 +816,33 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
         return [...new Set(envVars)];
     },
 
+    // Get only env vars for providers that are NOT OAuth-connected
+    getUnconnectedEnvVars: () => {
+        const { currentStack, connectedProviders } = get();
+        if (!currentStack) return [];
+
+        const envVars: string[] = [];
+
+        // Only include env vars for categories NOT connected via OAuth
+        if (currentStack.authProvider !== 'none' && !connectedProviders.auth) {
+            envVars.push(...AUTH_PROVIDERS[currentStack.authProvider].envVars);
+        }
+        if (currentStack.databaseProvider !== 'none' && !connectedProviders.database) {
+            envVars.push(...DATABASE_PROVIDERS[currentStack.databaseProvider].envVars);
+        }
+        if (currentStack.storageProvider !== 'none' && !connectedProviders.storage) {
+            envVars.push(...STORAGE_PROVIDERS[currentStack.storageProvider].envVars);
+        }
+        if (currentStack.paymentProvider !== 'none' && !connectedProviders.payments) {
+            envVars.push(...PAYMENT_PROVIDERS[currentStack.paymentProvider].envVars);
+        }
+        if (currentStack.emailProvider !== 'none' && !connectedProviders.email) {
+            envVars.push(...EMAIL_PROVIDERS[currentStack.emailProvider].envVars);
+        }
+
+        return [...new Set(envVars)];
+    },
+
     getDependencies: () => {
         const { currentStack } = get();
         if (!currentStack) return { npm: [], devDeps: [] };
@@ -850,40 +925,46 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
     },
 
     getStackSummary: () => {
-        const { currentStack } = get();
+        const { currentStack, connectedProviders } = get();
         if (!currentStack) return [];
+
+        const getStatus = (provider: string, category: keyof ProviderConnectionState): 'skipped' | 'configured' | 'connected' => {
+            if (provider === 'none') return 'skipped';
+            if (connectedProviders[category]) return 'connected';
+            return 'configured';
+        };
 
         return [
             {
                 category: 'Authentication',
                 provider: currentStack.authProvider === 'none' ? 'Skipped' : AUTH_PROVIDERS[currentStack.authProvider].name,
-                status: currentStack.authProvider === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.authProvider, 'auth'),
             },
             {
                 category: 'Database',
                 provider: currentStack.databaseProvider === 'none' ? 'Skipped' : DATABASE_PROVIDERS[currentStack.databaseProvider].name,
-                status: currentStack.databaseProvider === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.databaseProvider, 'database'),
             },
             {
                 category: 'Storage',
                 provider: currentStack.storageProvider === 'none' ? 'Skipped' : STORAGE_PROVIDERS[currentStack.storageProvider].name,
-                status: currentStack.storageProvider === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.storageProvider, 'storage'),
             },
             {
                 category: 'Payments',
                 provider: currentStack.paymentProvider === 'none' ? 'Skipped' : PAYMENT_PROVIDERS[currentStack.paymentProvider].name,
-                status: currentStack.paymentProvider === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.paymentProvider, 'payments'),
             },
             {
                 category: 'Email',
                 provider: currentStack.emailProvider === 'none' ? 'Skipped' : EMAIL_PROVIDERS[currentStack.emailProvider].name,
-                status: currentStack.emailProvider === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.emailProvider, 'email'),
             },
             {
                 category: 'Hosting',
                 provider: currentStack.hostingTarget === 'none' ? 'Skipped' : HOSTING_TARGETS[currentStack.hostingTarget].name,
-                status: currentStack.hostingTarget === 'none' ? 'skipped' : 'configured',
+                status: getStatus(currentStack.hostingTarget, 'hosting'),
             },
-        ] as { category: string; provider: string; status: 'configured' | 'skipped' }[];
+        ] as { category: string; provider: string; status: 'configured' | 'skipped' | 'connected' }[];
     },
 }));

@@ -493,7 +493,7 @@ export function ImplementationPlan({ prompt, plan: preGeneratedPlan, onApprove, 
                     isActive={true}
                     onFileClick={(file) => console.log('Open file:', file)}
                 />
-                
+
                 {/* Current stage indicator */}
                 <div className="mt-4 flex justify-center">
                     <ThinkingAnimation stage={thinkingStage} />
