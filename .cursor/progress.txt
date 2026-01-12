@@ -7612,3 +7612,44 @@ REMAINING:
 - Live UI preview refresh
 - Code editor editing
 - Merge button in history tab for Feature Agents
+
+═══ [2026-01-12 HUGGINGFACE INTEGRATION FIX] ═══
+COMPLETED: Fixed HuggingFace token storage and retrieval for end-to-end integration
+
+ISSUES IDENTIFIED:
+1. HuggingFace token was stored in `encryptedData` but services expected `oauthAccessToken`
+2. Frontend validation used wrong response fields (`data.success` vs `data.valid`)
+3. OAuthConnectButton incorrectly tried to use Nango OAuth for token-based services
+
+FIXES APPLIED:
+1. server/src/routes/huggingface-auth.ts:
+   - Imported and used CredentialVault for proper token storage
+   - Token now stored in oauthAccessToken field for services to retrieve
+   - GET /api/huggingface/token now uses vault.getCredential() first, with legacy fallback
+   - Added logging for successful token storage
+
+2. src/components/credentials/CredentialManager.tsx:
+   - Fixed validation response handling: data.valid instead of data.success
+   - Fixed write access check: data.canWrite instead of data.userInfo.hasWriteAccess
+   - Added store: true to ensure token is persisted
+
+3. src/components/credentials/OAuthConnectButton.tsx:
+   - Added TOKEN_BASED_SERVICES set to identify services needing manual entry
+   - HuggingFace, OpenAI, Anthropic, Replicate, RunPod, etc. now return null for OAuth
+   - Exported requiresManualTokenEntry() helper function
+   - Removed PlanetScale/Neon from OAuth mappings (use connection strings)
+
+TOKEN FLOW NOW:
+1. User enters HuggingFace token in CredentialManager
+2. POST /api/huggingface/validate-token validates with HF API
+3. Token stored via vault.storeCredential() with oauthAccessToken
+4. Services retrieve via vault.getCredential(userId, 'huggingface').oauthAccessToken
+5. Token used for training, uploads, model access
+
+FILES MODIFIED:
+- server/src/routes/huggingface-auth.ts
+- src/components/credentials/CredentialManager.tsx
+- src/components/credentials/OAuthConnectButton.tsx
+
+BUILD STATUS: ✅ Frontend and Server both compile
+NEXT: Commit and push, then verify Nango OAuth for supported services

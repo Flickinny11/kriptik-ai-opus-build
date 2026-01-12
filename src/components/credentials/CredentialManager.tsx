@@ -158,17 +158,20 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                 const response = await authenticatedFetch('/api/huggingface/validate-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token }),
+                    body: JSON.stringify({ token, store: true }), // Ensure token is stored
                 });
                 const data = await response.json();
 
-                if (!data.success) {
+                // Backend returns { valid, canWrite, error, ... }
+                if (!data.valid) {
                     throw new Error(data.error || 'Invalid HuggingFace token');
                 }
 
-                if (!data.userInfo.hasWriteAccess) {
-                    throw new Error('Token requires write access for training. Please generate a token with write permissions.');
+                if (!data.canWrite) {
+                    throw new Error('Token requires write access for training. Please generate a token with write permissions at huggingface.co/settings/tokens');
                 }
+                
+                console.log('[CredentialManager] HuggingFace token validated and stored for user:', data.username);
             } else if (integrationId === 'runpod') {
                 // Store RunPod API key
                 const response = await authenticatedFetch(`/api/credentials/${integrationId}`, {

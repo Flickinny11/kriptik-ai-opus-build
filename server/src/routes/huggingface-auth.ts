@@ -13,6 +13,10 @@ import { userCredentials } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
+import { CredentialVault } from '../services/security/credential-vault.js';
+
+// Initialize credential vault for proper token storage
+const vault = new CredentialVault();
 
 const router = Router();
 
@@ -233,57 +237,69 @@ router.post('/validate-token', authMiddleware, async (req: Request, res: Respons
       return;
     }
 
-    // Store the token if requested
+    // Store the token if requested - use credential vault for proper encryption
+    // This ensures the token is stored in oauthAccessToken for services to retrieve
     if (store) {
-      const { encrypted, iv } = encryptToken(token);
-      // Create an auth tag placeholder (the encryption function embeds it in the encrypted string)
-      const authTag = encrypted.split(':')[1] || '';
+      try {
+        // Store metadata in the credential data field
+        const credentialData = {
+          username: result.username,
+          fullName: result.fullName,
+          avatarUrl: result.avatarUrl,
+          canWrite: result.canWrite,
+          isPro: result.isPro,
+          validatedAt: new Date().toISOString(),
+        };
 
-      // Check if user already has a HuggingFace credential
-      const existing = await db.select()
-        .from(userCredentials)
-        .where(and(
-          eq(userCredentials.userId, userId),
-          eq(userCredentials.integrationId, 'huggingface')
-        ))
-        .limit(1);
+        // Use the credential vault to properly store with oauthAccessToken
+        // This allows services to retrieve via vault.getCredential(userId, 'huggingface').oauthAccessToken
+        await vault.storeCredential(userId, 'huggingface', credentialData, {
+          connectionName: result.username || 'HuggingFace',
+          oauthProvider: 'huggingface',
+          oauthAccessToken: token, // Store the actual token here for retrieval
+        });
 
-      const metadata = JSON.stringify({
-        username: result.username,
-        fullName: result.fullName,
-        avatarUrl: result.avatarUrl,
-        canWrite: result.canWrite,
-        isPro: result.isPro,
-        validatedAt: new Date().toISOString(),
-      });
+        console.log(`[HuggingFace Auth] Token stored successfully for user ${userId}`);
+      } catch (storeError) {
+        console.error('[HuggingFace Auth] Failed to store token via credential vault:', storeError);
+        // Fallback: direct DB insert with legacy method for backwards compatibility
+        const { encrypted, iv } = encryptToken(token);
+        const authTag = encrypted.split(':')[1] || '';
 
-      if (existing.length > 0) {
-        // Update existing credential
-        await db.update(userCredentials)
-          .set({
-            encryptedData: encrypted.split(':')[0], // Store just the encrypted part
+        const existing = await db.select()
+          .from(userCredentials)
+          .where(and(
+            eq(userCredentials.userId, userId),
+            eq(userCredentials.integrationId, 'huggingface')
+          ))
+          .limit(1);
+
+        if (existing.length > 0) {
+          await db.update(userCredentials)
+            .set({
+              encryptedData: encrypted.split(':')[0],
+              iv,
+              authTag,
+              connectionName: result.username || 'HuggingFace',
+              lastValidatedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(userCredentials.id, existing[0].id));
+        } else {
+          await db.insert(userCredentials).values({
+            id: crypto.randomUUID(),
+            userId,
+            integrationId: 'huggingface',
+            encryptedData: encrypted.split(':')[0],
             iv,
             authTag,
             connectionName: result.username || 'HuggingFace',
+            isActive: true,
             lastValidatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-          })
-          .where(eq(userCredentials.id, existing[0].id));
-      } else {
-        // Insert new credential
-        await db.insert(userCredentials).values({
-          id: crypto.randomUUID(),
-          userId,
-          integrationId: 'huggingface',
-          encryptedData: encrypted.split(':')[0], // Store just the encrypted part
-          iv,
-          authTag,
-          connectionName: result.username || 'HuggingFace',
-          isActive: true,
-          lastValidatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+          });
+        }
       }
     }
 
@@ -396,6 +412,7 @@ router.post('/disconnect', authMiddleware, async (req: Request, res: Response): 
 /**
  * GET /api/huggingface/token
  * Get the decrypted HuggingFace token (for internal use during training/upload)
+ * Uses credential vault for proper decryption - returns oauthAccessToken
  */
 router.get('/token', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -406,6 +423,20 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
       return;
     }
 
+    // First, try the credential vault (preferred method with oauthAccessToken)
+    const credential = await vault.getCredential(userId, 'huggingface');
+    
+    if (credential && credential.oauthAccessToken) {
+      res.json({
+        token: credential.oauthAccessToken,
+        username: credential.connectionName || credential.data?.username,
+        isPro: credential.data?.isPro,
+        canWrite: credential.data?.canWrite,
+      });
+      return;
+    }
+
+    // Fallback: Try legacy method with encryptedData for backwards compatibility
     const credentials = await db.select()
       .from(userCredentials)
       .where(and(
@@ -427,12 +458,17 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
       return;
     }
 
-    const token = decryptToken(cred.encryptedData, cred.iv, cred.authTag);
-
-    res.json({
-      token,
-      username: cred.connectionName,
-    });
+    // Try legacy decryption
+    try {
+      const token = decryptToken(cred.encryptedData, cred.iv, cred.authTag);
+      res.json({
+        token,
+        username: cred.connectionName,
+      });
+    } catch (decryptError) {
+      console.error('[HuggingFace Auth] Legacy decryption failed:', decryptError);
+      res.status(500).json({ error: 'Token decryption failed - please reconnect your HuggingFace account' });
+    }
   } catch (error) {
     console.error('[HuggingFace Auth] Token retrieval error:', error);
     res.status(500).json({ error: 'Failed to retrieve token' });

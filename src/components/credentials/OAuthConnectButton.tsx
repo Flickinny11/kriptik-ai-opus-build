@@ -77,55 +77,78 @@ interface OAuthConnectButtonProps {
 }
 
 /**
+ * Services that use API tokens (not OAuth) and require manual token entry
+ * These should NOT attempt Nango OAuth flow
+ */
+export const TOKEN_BASED_SERVICES = new Set([
+  'huggingface', // Uses API tokens from huggingface.co/settings/tokens
+  'openai',      // Uses API keys from platform.openai.com/api-keys
+  'anthropic',   // Uses API keys from console.anthropic.com
+  'replicate',   // Uses API tokens
+  'runpod',      // Uses API keys
+  'fal',         // Uses API keys
+  'modal',       // Uses API tokens
+  'resend',      // Uses API keys
+  'twilio',      // Uses API credentials
+  'sendgrid',    // Uses API keys
+  'mailgun',     // Uses API keys
+  'better-auth', // Uses local secret key
+  'betterauth',  // Uses local secret key
+  'turso',       // Uses database URL and auth token
+  'database',    // Generic database - needs manual URL entry
+  'planetscale', // Moved here - uses connection strings, not OAuth
+  'neon',        // Moved here - uses connection strings, not OAuth
+]);
+
+/**
+ * Check if a service requires manual token/API key entry instead of OAuth
+ */
+export function requiresManualTokenEntry(platformName: string): boolean {
+  const normalized = platformName.toLowerCase().trim();
+  return TOKEN_BASED_SERVICES.has(normalized);
+}
+
+/**
  * Map credential platform names to Nango integration IDs
  * e.g., "Stripe" -> "stripe", "GitHub" -> "github"
+ * 
+ * NOTE: Only includes services that ACTUALLY support Nango OAuth.
+ * Token-based services like HuggingFace, OpenAI, Anthropic require manual entry.
  */
 function platformNameToIntegrationId(platformName: string): string | null {
   const normalized = platformName.toLowerCase().trim();
 
-  // Direct mappings - platforms supported by Nango OAuth
+  // Skip token-based services - they need manual entry, not OAuth
+  if (TOKEN_BASED_SERVICES.has(normalized)) {
+    return null;
+  }
+
+  // Direct mappings - ONLY platforms supported by Nango OAuth
   const directMappings: Record<string, string> = {
-    // Payments
+    // Payments (OAuth supported)
     'stripe': 'stripe',
-    // AI Providers
-    'openai': 'openai',
-    'anthropic': 'anthropic',
-    // Model Hosting
-    'huggingface': 'huggingface',
-    'replicate': 'replicate',
-    'fal': 'fal',
-    'runpod': 'runpod',
-    // Source Control
+    // Source Control (OAuth supported)
     'github': 'github',
     'gitlab': 'gitlab',
-    // Deployment
+    // Deployment (OAuth supported)
     'vercel': 'vercel',
     'netlify': 'netlify',
-    // Databases
+    // Databases (OAuth supported - Supabase only)
     'supabase': 'supabase',
     'firebase': 'firebase',
-    'planetscale': 'planetscale',
-    'neon': 'neon',
-    // Cloud
+    // Cloud (OAuth supported)
     'aws': 'aws',
-    'cloudflare': 'cloudflare',
-    'cloudflare r2': 'cloudflare',
     'google': 'google',
     'microsoft': 'microsoft',
-    // Communication
+    // Communication (OAuth supported)
     'slack': 'slack',
     'discord': 'discord',
-    'twilio': 'twilio',
-    // Email
-    'sendgrid': 'sendgrid',
-    'mailgun': 'mailgun',
-    'resend': 'resend',
-    // Auth
+    // Auth Providers (OAuth supported)
     'clerk': 'clerk',
     'auth0': 'auth0',
-    // E-commerce
+    // E-commerce (OAuth supported)
     'shopify': 'shopify',
-    // Productivity
+    // Productivity (OAuth supported)
     'linear': 'linear',
     'notion': 'notion',
     'airtable': 'airtable',
