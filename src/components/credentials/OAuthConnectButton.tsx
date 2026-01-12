@@ -111,7 +111,7 @@ export function requiresManualTokenEntry(platformName: string): boolean {
 /**
  * Map credential platform names to Nango integration IDs
  * e.g., "Stripe" -> "stripe", "GitHub" -> "github"
- *
+ * 
  * NOTE: Only includes services that ACTUALLY support Nango OAuth.
  * Token-based services like HuggingFace, OpenAI, Anthropic require manual entry.
  */

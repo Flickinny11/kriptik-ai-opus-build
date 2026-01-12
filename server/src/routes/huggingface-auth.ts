@@ -1,9 +1,9 @@
 /**
  * HuggingFace Authentication Routes
- *
+ * 
  * Handles HuggingFace token validation, storage, and management.
  * Required for Open Source Studio training/fine-tuning features.
- *
+ * 
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 3)
  */
 
@@ -92,11 +92,11 @@ function encryptToken(token: string): { encrypted: string; iv: string } {
   const iv = crypto.randomBytes(16);
   const key = getEncryptionKey();
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
+  
   let encrypted = cipher.update(token, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
-
+  
   return {
     encrypted: encrypted + ':' + authTag,
     iv: iv.toString('hex'),
@@ -110,12 +110,12 @@ function decryptToken(encryptedData: string, ivHex: string, authTagHex: string):
   const iv = Buffer.from(ivHex, 'hex');
   const key = getEncryptionKey();
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-
+  
   decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
-
+  
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-
+  
   return decrypted;
 }
 
@@ -144,18 +144,18 @@ async function validateHuggingFaceToken(token: string): Promise<TokenValidationR
 
     // Check for write access
     let canWrite = false;
-
+    
     // Check fine-grained permissions
     if (data.auth?.accessToken?.fineGrained) {
       const globalPerms = data.auth.accessToken.fineGrained.global || [];
       // Check for write permissions
-      canWrite = globalPerms.some(p =>
-        p === 'write-repos' ||
-        p === 'manage-repos' ||
+      canWrite = globalPerms.some(p => 
+        p === 'write-repos' || 
+        p === 'manage-repos' || 
         p === 'write' ||
         p.includes('write')
       );
-
+      
       // Also check if role indicates write access
       if (!canWrite && data.auth.accessToken.role) {
         canWrite = data.auth.accessToken.role === 'write' || data.auth.accessToken.role === 'admin';
@@ -352,7 +352,7 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
       try {
         const token = decryptToken(cred.encryptedData, cred.iv, cred.authTag);
         const validation = await validateHuggingFaceToken(token);
-
+        
         res.json({
           connected: validation.valid,
           username: validation.username || cred.connectionName,
@@ -425,7 +425,7 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
 
     // First, try the credential vault (preferred method with oauthAccessToken)
     const credential = await vault.getCredential(userId, 'huggingface');
-
+    
     if (credential && credential.oauthAccessToken) {
       res.json({
         token: credential.oauthAccessToken,
@@ -452,7 +452,7 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
     }
 
     const cred = credentials[0];
-
+    
     if (!cred.encryptedData || !cred.iv || !cred.authTag) {
       res.status(500).json({ error: 'Invalid credential data' });
       return;

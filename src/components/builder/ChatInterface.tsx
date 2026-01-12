@@ -31,7 +31,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useAgentStore } from '../../store/useAgentStore';
 import AgentProgress from './AgentProgress';
 import AgentTerminal from './AgentTerminal';
-import { NeuralCanvas3D, useNeuralCanvasStore } from '../neural-canvas';
+import StreamingConsciousness from './StreamingConsciousness';
 import { NeuralPathway } from '../neural-pathway';
 import { LatticeProgress } from './LatticeProgress';
 import { useLatticeStore } from '../../store/useLatticeStore';
@@ -415,104 +415,6 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
         }
     }, [input]);
-
-    // Connect activity events to Neural Canvas store (use stable reference)
-    const neuralCanvasStore = useNeuralCanvasStore();
-    const neuralCanvasInitializedRef = useRef(false);
-    const buildPhaseRef = useRef(buildWorkflowPhase);
-
-    // Keep ref in sync with state for use in timeouts
-    useEffect(() => {
-        buildPhaseRef.current = buildWorkflowPhase;
-    }, [buildWorkflowPhase]);
-
-    // Process activity events into Neural Canvas
-    useEffect(() => {
-        if (activityEvents.length > 0) {
-            const latestEvent = activityEvents[activityEvents.length - 1];
-            neuralCanvasStore.processAgentEvent(latestEvent);
-        }
-    }, [activityEvents]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Set Neural Canvas mode based on build workflow phase
-    useEffect(() => {
-        if (buildWorkflowPhase === 'building' || buildWorkflowPhase === 'generating_plan' || globalStatus === 'running') {
-            neuralCanvasStore.setMode('expanded');
-            neuralCanvasStore.setActive(true);
-        } else if (buildWorkflowPhase === 'idle' && globalStatus === 'idle') {
-            neuralCanvasStore.reset();
-            neuralCanvasInitializedRef.current = false;
-        }
-    }, [buildWorkflowPhase, globalStatus]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Initialize Neural Canvas with plan generation activity (runs ONCE per phase entry)
-    useEffect(() => {
-        if (buildWorkflowPhase === 'generating_plan' && !neuralCanvasInitializedRef.current) {
-            neuralCanvasInitializedRef.current = true;
-
-            // Initialize phases for plan generation
-            neuralCanvasStore.setPhases([
-                { id: 'analyze', name: 'Analyzing Intent', status: 'active', iconName: 'brain' },
-                { id: 'decompose', name: 'Decomposing Requirements', status: 'pending', iconName: 'analyze' },
-                { id: 'plan', name: 'Creating Build Plan', status: 'pending', iconName: 'workflow' },
-                { id: 'detect', name: 'Detecting Dependencies', status: 'pending', iconName: 'code' },
-            ]);
-            neuralCanvasStore.setCurrentPhase('analyze');
-            neuralCanvasStore.setTotalProgress(10);
-
-            // Add initial orchestrator agent
-            neuralCanvasStore.addAgent({
-                id: 'orchestrator',
-                name: 'Build Orchestrator',
-                type: 'planner',
-                task: 'Analyzing your requirements...',
-                status: 'active',
-                progress: 0,
-                iconName: 'brain',
-            });
-
-            // Add initial thought
-            neuralCanvasStore.addThought({
-                type: 'analyzing',
-                content: 'Parsing natural language input and extracting intent...',
-                isActive: true,
-                agentId: 'orchestrator',
-                agentName: 'Build Orchestrator',
-            });
-
-            // Simulate progressive thinking during plan generation
-            const thoughtUpdates = [
-                { delay: 1500, content: 'Identifying required features and components...', phase: 'analyze', progress: 25 },
-                { delay: 3000, content: 'Decomposing into frontend and backend tasks...', phase: 'decompose', progress: 40 },
-                { delay: 4500, content: 'Mapping dependencies and integration points...', phase: 'plan', progress: 60 },
-                { delay: 6000, content: 'Detecting required credentials and services...', phase: 'detect', progress: 80 },
-            ];
-
-            const timeouts: NodeJS.Timeout[] = [];
-            thoughtUpdates.forEach(({ delay, content, phase, progress }) => {
-                const timeout = setTimeout(() => {
-                    // Use ref to check current phase (avoids stale closure)
-                    if (buildPhaseRef.current === 'generating_plan') {
-                        neuralCanvasStore.addThought({
-                            type: 'reasoning',
-                            content,
-                            isActive: true,
-                            agentId: 'orchestrator',
-                            agentName: 'Build Orchestrator',
-                        });
-                        neuralCanvasStore.setCurrentPhase(phase);
-                        neuralCanvasStore.setTotalProgress(progress);
-                        neuralCanvasStore.updateAgent('orchestrator', { task: content, progress });
-                    }
-                }, delay);
-                timeouts.push(timeout);
-            });
-
-            return () => {
-                timeouts.forEach(clearTimeout);
-            };
-        }
-    }, [buildWorkflowPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // P0-3: Watch for ProductionStackWizard completion
     // When wizard closes with configured stack, build credentials from stack selection
@@ -1273,50 +1175,59 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             {/* Main Content Area - Mutually exclusive views */}
             <div className="flex-1 overflow-hidden relative min-h-0">
-                {/* VIEW 0: Plan Generation View - Neural Canvas showing AI analyzing */}
+                {/* VIEW 0: Plan Generation View - Neural Pathway showing AI analyzing */}
                 {buildWorkflowPhase === 'generating_plan' ? (
-                    <div className="h-full flex flex-col">
-                        {/* Header */}
-                        <div className="text-center py-4 px-6 shrink-0">
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                <h3 className="text-lg font-bold mb-1" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                                    Analyzing Your Intent
-                                </h3>
-                                <p className="text-xs text-gray-500">
-                                    AI orchestration is analyzing requirements and creating your implementation plan
-                                </p>
-                            </motion.div>
-                        </div>
-
-                        {/* Neural Canvas - Premium AI Visualization */}
-                        <div className="flex-1 overflow-hidden min-h-0 mx-2 mb-2">
-                            <NeuralCanvas3D />
-                        </div>
-
-                        {/* Stage indicator */}
+                    <div className="h-full flex flex-col items-center justify-center p-6">
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="pb-4 text-center shrink-0"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full max-w-3xl"
                         >
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{
-                                background: 'linear-gradient(145deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
-                                border: '1px solid rgba(251,191,36,0.3)',
-                            }}>
+                            {/* Header */}
+                            <div className="text-center mb-6">
                                 <motion.div
-                                    className="w-2 h-2 rounded-full bg-amber-500"
-                                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                />
-                                <span className="text-sm font-medium" style={{ color: '#b45309' }}>
-                                    Creating Intent Contract & Implementation Plan...
-                                </span>
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
+                                        🔒 Analyzing Your Intent
+                                    </h3>
+                                    <p className="text-sm text-gray-500 max-w-md mx-auto">
+                                        Watch as KripTik's AI orchestration analyzes your requirements and creates a comprehensive implementation plan
+                                    </p>
+                                </motion.div>
                             </div>
+
+                            {/* Neural Pathway Visualization */}
+                            <NeuralPathway
+                                sessionId={`plan-${projectId || Date.now()}`}
+                                promptText={messages.find(m => m.role === 'user')?.content || ''}
+                                className="rounded-2xl border border-slate-200/50"
+                                showLabels={true}
+                            />
+
+                            {/* Stage indicator */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.5 }}
+                                className="mt-4 text-center"
+                            >
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{
+                                    background: 'linear-gradient(145deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
+                                    border: '1px solid rgba(251,191,36,0.3)',
+                                }}>
+                                    <motion.div
+                                        className="w-2 h-2 rounded-full bg-amber-500"
+                                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+                                        transition={{ duration: 1.5, repeat: Infinity }}
+                                    />
+                                    <span className="text-sm font-medium" style={{ color: '#b45309' }}>
+                                        Creating Intent Contract & Implementation Plan...
+                                    </span>
+                                </div>
+                            </motion.div>
                         </motion.div>
                     </div>
                 ) : buildWorkflowPhase === 'awaiting_plan_approval' && currentPlan ? (
@@ -1455,9 +1366,18 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             />
                         </div>
 
-                        {/* Neural Canvas - Premium orchestration UI for AI visualization */}
+                        {/* Streaming Consciousness - Neural network visualization of parallel agents */}
                         <div className="flex-1 overflow-hidden min-h-0 m-2">
-                            <NeuralCanvas3D />
+                            <StreamingConsciousness
+                                events={activityEvents}
+                                agentCount={parallelAgents.length > 0 ? parallelAgents.length : 3}
+                                isActive={globalStatus === 'running'}
+                                currentPhase={
+                                    buildWorkflowPhase === 'building' ? 'Autonomous Build' :
+                                    buildWorkflowPhase === 'complete' ? 'Complete' :
+                                    'Initializing'
+                                }
+                            />
                         </div>
 
                         {/* Agent Progress - Compact phase indicators */}

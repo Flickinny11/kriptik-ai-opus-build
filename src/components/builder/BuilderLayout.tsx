@@ -11,8 +11,7 @@
 import React, { useState, useCallback, useRef, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { LivePreviewPanel } from './LivePreviewPanel';
-import { NeuralCanvas3D } from '../neural-canvas';
-import { type ParallelAgentActivity } from './AgentActivityStream';
+import { ParallelAgentActivityStream, ParallelAgentActivity } from './AgentActivityStream';
 import { PanelRightClose3D, Columns3D } from '@/components/icons';
 
 interface VisualVerificationResult {
@@ -179,15 +178,18 @@ export function BuilderLayout({
             </div>
           )}
 
-          {/* Neural Canvas - Premium Agent Activity Visualization */}
+          {/* Agent Activity Stream */}
           {showActivityStream && parallelAgents.length > 0 && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: '16rem', opacity: 1 }}
+              animate={{ height: '12rem', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-t border-gray-700 overflow-hidden"
+              className="border-t border-gray-700 overflow-auto bg-gray-900"
             >
-              <NeuralCanvas3D compact />
+              <ParallelAgentActivityStream
+                agents={parallelAgents}
+                showThinking={true}
+              />
             </motion.div>
           )}
         </motion.div>

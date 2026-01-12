@@ -170,7 +170,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
                 if (!data.canWrite) {
                     throw new Error('Token requires write access for training. Please generate a token with write permissions at huggingface.co/settings/tokens');
                 }
-
+                
                 console.log('[CredentialManager] HuggingFace token validated and stored for user:', data.username);
             } else if (integrationId === 'runpod') {
                 // Store RunPod API key
