@@ -559,6 +559,7 @@ interface ProductionStackState {
     setProviderConnected: (category: keyof ProviderConnectionState, connected: boolean) => void;
     isProviderConnected: (category: keyof ProviderConnectionState) => boolean;
     resetConnections: () => void;
+    checkExistingConnections: (userId: string) => Promise<void>;
 
     // API actions
     loadStack: (projectId: string) => Promise<ProductionStackConfig | null>;
@@ -719,6 +720,74 @@ export const useProductionStackStore = create<ProductionStackState>((set, get) =
 
     resetConnections: () => {
         set({ connectedProviders: { ...DEFAULT_CONNECTIONS } });
+    },
+
+    // Check which integrations are already connected via Nango
+    checkExistingConnections: async (userId: string) => {
+        const { currentStack } = get();
+        if (!currentStack) return;
+
+        // Map provider IDs to Nango integration IDs
+        const providerToNango: Record<string, string> = {
+            clerk: 'clerk',
+            auth0: 'auth0',
+            supabase: 'supabase',
+            'supabase-auth': 'supabase',
+            firebase: 'firebase',
+            'firebase-auth': 'firebase',
+            stripe: 'stripe',
+            vercel: 'vercel',
+            netlify: 'netlify',
+        };
+
+        // Map providers to their categories
+        const categoryProviders: Record<keyof ProviderConnectionState, string> = {
+            auth: currentStack.authProvider,
+            database: currentStack.databaseProvider,
+            storage: currentStack.storageProvider,
+            payments: currentStack.paymentProvider,
+            email: currentStack.emailProvider,
+            hosting: currentStack.hostingTarget,
+        };
+
+        const newConnections: Partial<ProviderConnectionState> = {};
+
+        // Check each category
+        for (const [category, providerId] of Object.entries(categoryProviders)) {
+            const nangoId = providerToNango[providerId];
+            if (nangoId) {
+                try {
+                    const response = await fetch(
+                        `${API_URL}/api/nango/connection/${nangoId}`,
+                        {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: { 'x-user-id': userId },
+                        }
+                    );
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.connected) {
+                            newConnections[category as keyof ProviderConnectionState] = true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Failed to check ${nangoId} connection:`, e);
+                }
+            }
+        }
+
+        // Update connections state
+        if (Object.keys(newConnections).length > 0) {
+            const { connectedProviders } = get();
+            set({
+                connectedProviders: {
+                    ...connectedProviders,
+                    ...newConnections,
+                },
+            });
+        }
     },
 
     loadStack: async (projectId) => {

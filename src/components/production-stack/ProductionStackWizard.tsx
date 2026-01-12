@@ -13,8 +13,9 @@
  * - Review step with env vars and dependencies summary
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUserStore } from '../../store/useUserStore';
 import {
     useProductionStackStore,
     AUTH_PROVIDERS,
@@ -607,13 +608,23 @@ export function ProductionStackWizard() {
         prevStep,
         saveStack,
         currentStack,
+        checkExistingConnections,
     } = useProductionStackStore();
+
+    const { user } = useUserStore();
 
     const currentStepIndex = STEPS.indexOf(wizardStep);
     const isFirstStep = currentStepIndex === 0;
     const isLastStep = currentStepIndex === STEPS.length - 1;
 
     const stepConfig = STEP_CONFIG[wizardStep];
+
+    // Check existing OAuth connections when wizard opens
+    useEffect(() => {
+        if (isWizardOpen && user?.id) {
+            checkExistingConnections(user.id);
+        }
+    }, [isWizardOpen, user?.id, checkExistingConnections]);
 
     const handleNext = useCallback(async () => {
         if (isLastStep) {
