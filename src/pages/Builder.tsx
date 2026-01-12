@@ -16,6 +16,7 @@
 
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { authenticatedFetch, API_URL } from '../lib/api-config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StatusIcons } from '../components/ui/icons';
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +54,7 @@ import { GhostModePanel } from '../components/builder/GhostModePanel';
 // SoftInterruptInput was only used in Developer mode - now removed
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
-import { DeveloperBar } from '../components/developer-bar';
+import { FloatingDevToolbar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
 import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
@@ -396,13 +397,13 @@ export default function Builder() {
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
     const [showTournament, setShowTournament] = useState(false);
     const [showSpline3D, setShowSpline3D] = useState(false); // Toggle for Spline 3D overlay
-    // Developer Bar active features state
-    const [activeDevBarFeatures, setActiveDevBarFeatures] = useState<string[]>([]);
+    // Developer Bar active features state (used for isBuilding checks)
+    const [activeDevBarFeatures] = useState<string[]>([]);
     const { setIsScanning, setReport } = useQualityStore();
     const { selectedElement, setSelectedElement } = useEditorStore();
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
-    const { openWizard, loadStack, currentStack } = useProductionStackStore();
+    const { loadStack } = useProductionStackStore();
 
     // Show extension alternative on mobile after initial load
     useEffect(() => {
@@ -489,53 +490,8 @@ export default function Builder() {
         setActiveTournamentId(null);
     };
 
-    // Handler for Developer Bar feature toggle
-    const handleDevBarFeatureToggle = useCallback((featureId: string) => {
-        // Map feature IDs to their corresponding panel states
-        switch (featureId) {
-            case 'ghost-mode':
-                setShowGhostMode(prev => !prev);
-                break;
-            case 'market-fit':
-                setShowMarketFit(true);
-                break;
-            case 'voice-first':
-                setShowVoiceArchitect(true);
-                break;
-            case 'api-autopilot':
-                setShowAPIAutopilot(true);
-                break;
-            case 'integrations':
-                setIntegrationsOpen(true);
-                break;
-            case 'deployment':
-            case 'cloud-deploy':
-                setDeploymentOpen(true);
-                break;
-            case 'quality-check':
-                handleProductionCheck();
-                break;
-            case 'memory':
-                setShowMemory(prev => !prev);
-                break;
-            case 'feature-agent':
-                setShowAgentPanel(prev => !prev);
-                break;
-            case 'production-stack':
-                // Open production stack wizard with current project
-                if (projectId) {
-                    openWizard(projectId, currentStack);
-                }
-                break;
-            default:
-                // Toggle in active features list for Developer Bar panel handling
-                setActiveDevBarFeatures(prev =>
-                    prev.includes(featureId)
-                        ? prev.filter(id => id !== featureId)
-                        : [...prev, featureId]
-                );
-        }
-    }, [setIntegrationsOpen, setDeploymentOpen, handleProductionCheck, projectId, openWizard, currentStack]);
+    // Feature toggle handler moved to FloatingDevToolbar component
+    // The new toolbar manages its own panel state internally
 
     // Shared props for responsive layouts
     const responsiveProps = {
@@ -656,18 +612,10 @@ export default function Builder() {
                 <ProductionStackWizard />
 
                 {/* ============================================================ */}
-                {/* DEVELOPER BAR - 3D Glass Command Center with Spline */}
-                {/* Translucent glass with visible 3D edges and flip animation */}
+                {/* FLOATING DEV TOOLBAR - Premium 3D Glass Command Center */}
+                {/* Custom 3D geometric icons, resizable panels, tooltips */}
                 {/* ============================================================ */}
-                <DeveloperBar
-                    activeFeatures={[
-                        ...activeDevBarFeatures,
-                        ...(showGhostMode ? ['ghost-mode'] : []),
-                        ...(showAgentPanel ? ['feature-agent'] : []),
-                        ...(showMemory ? ['memory'] : []),
-                    ]}
-                    onFeatureToggle={handleDevBarFeatureToggle}
-                />
+                <FloatingDevToolbar />
 
                 {/* Feature Agent Manager - draggable popout windows with edge case handling */}
                 <FeatureAgentManager />
@@ -1090,7 +1038,7 @@ function CloudDeployPanel() {
     // Estimate cost for a provider
     const handleEstimateCost = async (providerId: string, _providerType: string) => {
         try {
-            const response = await fetch('/api/deploy/providers');
+            const response = await authenticatedFetch(`${API_URL}/deploy/providers`);
             if (response.ok) {
                 const data = await response.json();
                 const provider = data.providers?.find((p: any) => p.id === providerId);
@@ -1121,7 +1069,7 @@ function CloudDeployPanel() {
             }
 
             // For GPU/cloud providers, call smart deploy API
-            const response = await fetch('/api/deploy/execute', {
+            const response = await authenticatedFetch(`${API_URL}/deploy/execute`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1263,7 +1211,7 @@ function DatabasePanel() {
 
     const fetchDbStatus = async () => {
         try {
-            const response = await fetch('/api/db-migrate/status');
+            const response = await authenticatedFetch(`${API_URL}/db-migrate/status`);
             if (response.ok) {
                 const data = await response.json();
                 setDbStatus(data);
@@ -1281,7 +1229,7 @@ function DatabasePanel() {
 
         try {
             // Use AI to generate schema
-            const response = await fetch('/api/generate', {
+            const response = await authenticatedFetch(`${API_URL}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1313,11 +1261,11 @@ function DatabasePanel() {
     const handleInitDatabase = async () => {
         setIsGenerating(true);
         try {
-            const response = await fetch('/api/db-migrate/init', {
+            const response = await authenticatedFetch(`${API_URL}/db-migrate/init`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-migration-secret': process.env.MIGRATION_SECRET || 'dev-secret'
+                    'x-migration-secret': import.meta.env.VITE_MIGRATION_SECRET || 'dev-secret'
                 },
             });
 
@@ -1477,7 +1425,7 @@ function WorkflowsPanel() {
         if (!hfSearchQuery.trim()) return;
         setIsSearching(true);
         try {
-            const response = await fetch('/api/workflows/models/search', {
+            const response = await authenticatedFetch(`${API_URL}/workflows/models/search`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1508,7 +1456,7 @@ function WorkflowsPanel() {
             const workflow = JSON.parse(content);
 
             // Validate workflow format
-            const response = await fetch('/api/workflows/validate', {
+            const response = await authenticatedFetch(`${API_URL}/workflows/validate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workflow }),
@@ -1531,7 +1479,7 @@ function WorkflowsPanel() {
     const handleDeployModel = async (model: any) => {
         setIsImporting(true);
         try {
-            const response = await fetch('/api/deploy/execute', {
+            const response = await authenticatedFetch(`${API_URL}/deploy/execute`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
