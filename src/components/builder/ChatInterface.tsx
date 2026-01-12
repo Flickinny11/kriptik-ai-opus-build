@@ -415,7 +415,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     }, [input]);
 
     // P0-3: Watch for ProductionStackWizard completion
-    // When wizard closes with configured stack, build credentials from stack selection
+    // When wizard closes with configured stack, show plan approval UI with merged credentials
     useEffect(() => {
         if (buildWorkflowPhase === 'configuring_stack' && !isWizardOpen && currentStack?.isConfigured) {
             console.log('[ChatInterface] Stack configured, building credentials from selection:', currentStack);
@@ -469,20 +469,18 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             });
 
             setRequiredCredentials(mergedCredentials);
-            setBuildWorkflowPhase('awaiting_credentials');
+            
+            // NEW FLOW: After stack configured, show plan approval UI
+            // User can review the plan with updated credential requirements
+            setBuildWorkflowPhase('awaiting_plan_approval');
 
             setMessages(prev => [...prev, {
                 id: `msg-${Date.now()}`,
                 role: 'system',
-                content: `Production stack configured! ${mergedCredentials.length > 0 ? `Please provide ${mergedCredentials.length} credential${mergedCredentials.length > 1 ? 's' : ''} to continue.` : 'No credentials required. Starting build...'}`,
+                content: `Production stack configured! Review the implementation plan below. ${mergedCredentials.length > 0 ? `${mergedCredentials.length} credentials will be required.` : ''} Approve to continue building.`,
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             }]);
-
-            // If no credentials needed, start the build
-            if (mergedCredentials.length === 0) {
-                handleCredentialsSubmit({});
-            }
         }
     }, [buildWorkflowPhase, isWizardOpen, currentStack, requiredCredentials]);
 
@@ -678,7 +676,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 const data = await response.json();
                 console.log('[ChatInterface] Plan generated:', data);
 
-                // Store plan data and show plan approval UI
+                // Store plan data
                 setCurrentPlan(data.plan);
                 // Store the locked intent prompt for display
                 setLockedIntentPrompt(prompt);
@@ -690,14 +688,20 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 setRequiredCredentials(credsWithValue);
                 setBuildSessionId(data.sessionId);
                 setBuildProjectId(data.projectId);
-                setBuildWorkflowPhase('awaiting_plan_approval');
                 setIsTyping(false);
 
-                // Add system message indicating plan is ready
+                // NEW FLOW: Open ProductionStackWizard BEFORE plan approval
+                // This allows user to configure their production stack first,
+                // which informs the final credential requirements
+                const currentProjectId = projectId || data.projectId || `project-${Date.now()}`;
+                setBuildWorkflowPhase('configuring_stack');
+                openWizard(currentProjectId, currentStack);
+
+                // Add system message indicating plan is ready and stack configuration needed
                 setMessages(prev => [...prev, {
                     id: `msg-${Date.now()}`,
                     role: 'system',
-                    content: `Implementation plan ready! ${data.plan.phases.length} phases identified. ${data.requiredCredentials?.length > 0 ? `${data.requiredCredentials.length} credentials required.` : ''} Please review and approve to continue.`,
+                    content: `Implementation plan generated with ${data.plan.phases.length} phases! First, configure your production stack (auth, database, storage, etc.) - this will determine your credential requirements.`,
                     timestamp: new Date(),
                     agentType: 'orchestrator',
                 }]);
@@ -717,11 +721,12 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
         }
     };
 
-    // Handler for plan approval - opens ProductionStackWizard before credentials
+    // Handler for plan approval - NOW credentials were already merged from stack config
+    // Stack wizard was shown BEFORE plan approval, so we go straight to credentials or build
     const handlePlanApproval = async (approvedPhases: unknown[]) => {
         if (!buildSessionId) return;
 
-        // First, call the approve endpoint to lock in the plan
+        // Call the approve endpoint to lock in the plan
         setIsTyping(true);
 
         try {
@@ -736,32 +741,33 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
 
             const data = await response.json();
             console.log('[ChatInterface] Plan approval response:', data);
-
-            // P0-3: After plan approval, open ProductionStackWizard for stack configuration
-            // The wizard will help user select auth, database, storage, payments, email, hosting
-            const currentProjectId = projectId || data.projectId || `project-${Date.now()}`;
-            setBuildWorkflowPhase('configuring_stack');
             setIsTyping(false);
 
-            // Store the pending credentials from the plan (we'll merge with stack selection)
-            if (data.requiredCredentials?.length > 0) {
-                const credsWithValue = data.requiredCredentials.map((c: Omit<RequiredCredential, 'value'>) => ({
-                    ...c,
-                    value: null,
-                }));
-                setRequiredCredentials(credsWithValue);
+            // Check if we have any credentials that still need to be collected
+            // Filter out credentials that were already connected via OAuth in the stack wizard
+            const uncollectedCredentials = requiredCredentials.filter(c => !c.value);
+
+            if (uncollectedCredentials.length > 0) {
+                // Still have credentials to collect
+                setBuildWorkflowPhase('awaiting_credentials');
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: `Plan approved! Connect your services below to continue. ${uncollectedCredentials.length} credential${uncollectedCredentials.length > 1 ? 's' : ''} needed.`,
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+            } else {
+                // All credentials already collected via OAuth - start the build!
+                setMessages(prev => [...prev, {
+                    id: `msg-${Date.now()}`,
+                    role: 'system',
+                    content: 'Plan approved! All services connected. Starting build...',
+                    timestamp: new Date(),
+                    agentType: 'orchestrator',
+                }]);
+                handleCredentialsSubmit({});
             }
-
-            // Open the ProductionStackWizard
-            openWizard(currentProjectId, currentStack);
-
-            setMessages(prev => [...prev, {
-                id: `msg-${Date.now()}`,
-                role: 'system',
-                content: 'Plan approved! Now configure your production stack - select your auth, database, storage, payments, email, and hosting providers.',
-                timestamp: new Date(),
-                agentType: 'orchestrator',
-            }]);
 
         } catch (error) {
             console.error('[ChatInterface] Plan approval failed:', error);

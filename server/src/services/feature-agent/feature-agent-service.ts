@@ -996,6 +996,37 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
                 timestamp: Date.now(),
                 metadata: { credentials: plan.requiredCredentials.map((c) => ({ ...c, value: null })) },
             });
+            
+            // Send notification to user through all channels (email, SMS, push)
+            // This ensures user is alerted even if they've left the browser
+            const platformList = [...new Set(plan.requiredCredentials.filter(c => c.platformName).map(c => c.platformName))].join(', ');
+            try {
+                await this.notifications.sendNotification(
+                    rt.config.userId,
+                    ['push', 'email', 'sms'],
+                    {
+                        type: 'credentials_needed',
+                        title: 'Connect Your Services',
+                        message: `Feature "${rt.config.taskPrompt.slice(0, 40)}..." needs ${plan.requiredCredentials.length} credential${plan.requiredCredentials.length > 1 ? 's' : ''} (${platformList}). Click to connect with one-click OAuth.`,
+                        featureAgentId: agentId,
+                        featureAgentName: rt.config.taskPrompt.slice(0, 30) || 'Feature Agent',
+                        actionUrl: `/builder/${rt.config.projectId}?agent=${agentId}&showCredentials=true`,
+                        metadata: {
+                            projectId: rt.config.projectId,
+                            agentId,
+                            requiredCredentials: plan.requiredCredentials.map(c => ({
+                                name: c.name,
+                                envVar: c.envVariableName,
+                                platform: c.platformName,
+                                platformUrl: c.platformUrl,
+                            })),
+                        },
+                    }
+                );
+            } catch (notifError) {
+                console.warn('[FeatureAgent] Failed to send credential notification:', notifError);
+            }
+            
             return;
         }
 

@@ -2156,22 +2156,39 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
             pendingBuilds.set(sessionId, pendingBuild);
 
             // P1-2: Create notification for credential request
+            // Send to multiple channels: push, email, and SMS
             const notificationService = getNotificationService();
+            
+            // Build a list of credential platforms for the notification
+            const platformList = [...new Set(pendingBuild.requiredCredentials.map(c => c.platformName))].join(', ');
+            
             await notificationService.sendNotification(
                 pendingBuild.userId,
-                ['push', 'email'],
+                ['push', 'email', 'sms'], // Include SMS for mobile notifications
                 {
                     type: 'credentials_needed',
-                    title: 'Credentials Required',
-                    message: `Your build "${pendingBuild.plan.intentSummary?.slice(0, 50) || 'Your app'}..." needs ${pendingBuild.requiredCredentials.length} credential${pendingBuild.requiredCredentials.length > 1 ? 's' : ''} to continue. Build is paused until credentials are provided.`,
+                    title: 'Action Required: Connect Your Services',
+                    message: `Your build needs ${pendingBuild.requiredCredentials.length} credential${pendingBuild.requiredCredentials.length > 1 ? 's' : ''} (${platformList}) to continue. Click to connect your services with one-click OAuth or follow the guided setup.`,
                     featureAgentId: sessionId,
                     featureAgentName: 'Build Orchestrator',
-                    actionUrl: `/builder/${pendingBuild.projectId}?resumeBuild=${sessionId}`,
+                    actionUrl: `/builder/${pendingBuild.projectId}?resumeBuild=${sessionId}&showCredentials=true`,
                     metadata: {
                         projectId: pendingBuild.projectId,
                         sessionId,
-                        requiredCredentials: pendingBuild.requiredCredentials.map(c => c.name),
+                        requiredCredentials: pendingBuild.requiredCredentials.map(c => ({
+                            name: c.name,
+                            envVar: c.envVariableName,
+                            platform: c.platformName,
+                            platformUrl: c.platformUrl,
+                        })),
                         buildPaused: true,
+                        // Include OAuth deep links for quick connect
+                        oauthConnectLinks: pendingBuild.requiredCredentials
+                            .filter(c => c.platformName)
+                            .map(c => ({
+                                platform: c.platformName,
+                                connectUrl: `/api/nango/auth-url?integrationId=${encodeURIComponent(c.platformName?.toLowerCase() || '')}&userId=${pendingBuild.userId}&projectId=${pendingBuild.projectId}`,
+                            })),
                     },
                 }
             );
