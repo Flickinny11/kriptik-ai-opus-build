@@ -380,6 +380,14 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
     const [requiredCredentials, setRequiredCredentials] = useState<RequiredCredential[]>([]);
     const [buildSessionId, setBuildSessionId] = useState<string | null>(null);
     const [buildProjectId, setBuildProjectId] = useState<string | null>(null);
+    // Plan generation streaming activities
+    const [planActivities, setPlanActivities] = useState<Array<{
+        id: string;
+        type: 'thinking' | 'reading' | 'writing' | 'command' | 'diff' | 'phase' | 'complete' | 'error';
+        content: string;
+        file?: string;
+        timestamp: Date;
+    }>>([]);
     // Store the locked intent prompt for display
     const [lockedIntentPrompt, setLockedIntentPrompt] = useState<string | null>(null);
 
@@ -654,16 +662,20 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
             };
             setMessages(prev => [...prev, systemMessage]);
             setBuildWorkflowPhase('generating_plan');
+            setPlanActivities([]); // Clear previous activities
 
             try {
                 const userId = user?.id || 'anonymous';
-                const response = await fetch(`${API_URL}/api/execute/plan`, {
+                const currentProjectId = projectId || `project-${Date.now()}`;
+
+                // Use streaming plan endpoint for real-time feedback
+                const response = await fetch(`${API_URL}/api/execute/plan/stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', // Include cookies for auth
+                    credentials: 'include',
                     body: JSON.stringify({
                         userId,
-                        projectId: projectId || `project-${Date.now()}`,
+                        projectId: currentProjectId,
                         prompt,
                     }),
                 });
@@ -673,7 +685,58 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                     throw new Error(errorData.error || 'Failed to generate plan');
                 }
 
-                const data = await response.json();
+                // Parse SSE stream for real-time activities
+                const reader = response.body?.getReader();
+                const decoder = new TextDecoder();
+                let planData: any = null;
+
+                if (reader) {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') continue;
+
+                                try {
+                                    const event = JSON.parse(data);
+
+                                    // Add activity to stream
+                                    setPlanActivities(prev => [...prev, {
+                                        id: String(Date.now() + Math.random()),
+                                        type: event.type as any,
+                                        content: event.content || event.details || '',
+                                        file: event.file,
+                                        timestamp: new Date(event.timestamp || Date.now()),
+                                    }]);
+
+                                    // Capture final plan data
+                                    if (event.type === 'complete' && event.plan) {
+                                        planData = {
+                                            sessionId: event.sessionId,
+                                            projectId: event.projectId,
+                                            plan: event.plan,
+                                            requiredCredentials: event.requiredCredentials || [],
+                                        };
+                                    }
+                                } catch (e) {
+                                    // Ignore parse errors for non-JSON lines
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!planData) {
+                    throw new Error('No plan data received from stream');
+                }
+
+                const data = planData;
                 console.log('[ChatInterface] Plan generated:', data);
 
                 // Store plan data
@@ -693,7 +756,6 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 // NEW FLOW: Open ProductionStackWizard BEFORE plan approval
                 // This allows user to configure their production stack first,
                 // which informs the final credential requirements
-                const currentProjectId = projectId || data.projectId || `project-${Date.now()}`;
                 setBuildWorkflowPhase('configuring_stack');
                 openWizard(currentProjectId, currentStack);
 
@@ -1190,8 +1252,9 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                             {/* Streaming Consciousness - shows what AI is doing */}
                             <StreamingConsciousness
                                 className="flex-1"
-                                sessionId={projectId}
                                 isActive={true}
+                                streamEndpoint="none"
+                                externalActivities={planActivities}
                                 onFileClick={(file) => console.log('Open file:', file)}
                             />
                         </motion.div>

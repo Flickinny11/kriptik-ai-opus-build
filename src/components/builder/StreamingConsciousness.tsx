@@ -41,7 +41,14 @@ interface StreamingConsciousnessProps {
   sessionId?: string;
   isActive?: boolean;
   onFileClick?: (file: string) => void;
+  /** External activities to display (overrides SSE stream when provided) */
+  externalActivities?: ActivityItem[];
+  /** Endpoint to use for SSE stream (default: orchestrate) */
+  streamEndpoint?: 'orchestrate' | 'plan' | 'none';
 }
+
+// Export ActivityItem type for use in parent components
+export type { ActivityItem };
 
 // Type indicator icons (inline SVG, no dependencies)
 const TypeIcon = memo(({ type }: { type: ActivityType }) => {
@@ -276,30 +283,43 @@ export function StreamingConsciousness({
   sessionId,
   isActive = true,
   onFileClick,
+  externalActivities,
+  streamEndpoint = 'orchestrate',
 }: StreamingConsciousnessProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Use external activities if provided
+  const displayActivities = externalActivities || activities;
 
   // Auto-scroll to bottom on new activities
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [activities]);
+  }, [displayActivities]);
 
-  // Connect to SSE stream for real-time events
+  // Connect to SSE stream for real-time events (only if no external activities)
   useEffect(() => {
+    // Skip SSE if using external activities or endpoint is 'none'
+    if (externalActivities || streamEndpoint === 'none') return;
     if (!sessionId || !isActive) return;
 
-    const eventSource = new EventSource(
-      `${API_URL}/api/orchestrate/${sessionId}/stream`,
-      { withCredentials: true }
-    );
+    // Determine the SSE endpoint URL
+    const streamUrl = streamEndpoint === 'orchestrate'
+      ? `${API_URL}/api/orchestrate/${sessionId}/stream`
+      : `${API_URL}/api/execute/plan/${sessionId}/stream`;
+
+    const eventSource = new EventSource(streamUrl, { withCredentials: true });
     eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
       try {
+        if (event.data === '[DONE]') {
+          eventSource.close();
+          return;
+        }
         const data = JSON.parse(event.data);
         const newActivity = parseEventToActivity(data);
         if (newActivity) {
@@ -318,11 +338,11 @@ export function StreamingConsciousness({
       eventSource.close();
       eventSourceRef.current = null;
     };
-  }, [sessionId, isActive]);
+  }, [sessionId, isActive, externalActivities, streamEndpoint]);
 
-  // Simulated activities for demo/loading state
+  // Simulated activities for demo/loading state (only if no external activities)
   useEffect(() => {
-    if (!isActive || sessionId) return;
+    if (!isActive || sessionId || externalActivities) return;
 
     // Show initial loading activities
     const demoActivities: ActivityItem[] = [
@@ -400,7 +420,7 @@ export function StreamingConsciousness({
           AI Activity
         </span>
         <span className="text-xs text-stone-400 ml-auto">
-          {activities.length} events
+          {displayActivities.length} events
         </span>
       </div>
 
@@ -411,18 +431,18 @@ export function StreamingConsciousness({
         style={{ scrollBehavior: 'smooth' }}
       >
         <AnimatePresence initial={false}>
-          {activities.map((item, index) => (
+          {displayActivities.map((item, index) => (
             <ActivityRow
               key={item.id}
               item={item}
-              isLatest={index === activities.length - 1}
+              isLatest={index === displayActivities.length - 1}
               onFileClick={onFileClick}
               onToggleExpand={() => toggleExpand(item.id)}
             />
           ))}
         </AnimatePresence>
 
-        {activities.length === 0 && (
+        {displayActivities.length === 0 && (
           <div className="flex items-center justify-center h-full text-stone-400 text-sm">
             Waiting for activity...
           </div>

@@ -2022,6 +2022,139 @@ async function generateBuildPlan(prompt: string, projectId: string, userId: stri
 }
 
 /**
+ * POST /api/execute/plan/stream
+ *
+ * Generate implementation plan with SSE streaming for real-time feedback.
+ * This allows the frontend to show progress during plan generation.
+ */
+router.post('/plan/stream', async (req: Request, res: Response) => {
+    const { userId, projectId = `project-${uuidv4().slice(0, 8)}`, prompt } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+    if (!prompt) {
+        return res.status(400).json({ success: false, error: 'prompt is required' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const sendEvent = (type: string, data: Record<string, unknown>) => {
+        res.write(`data: ${JSON.stringify({ type, ...data, timestamp: Date.now() })}\n\n`);
+    };
+
+    const sessionId = uuidv4();
+
+    try {
+        // Phase 1: Immediate acknowledgment
+        sendEvent('thinking', {
+            content: 'Analyzing your prompt...',
+            phase: 'initialization',
+        });
+
+        console.log(`[Execute:Plan:Stream] Starting plan generation for session ${sessionId}`);
+
+        // Phase 2: Prompt analysis
+        sendEvent('reading', {
+            content: `Parsing: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`,
+            file: 'user-prompt',
+        });
+
+        // Phase 3: Generate the implementation plan
+        sendEvent('thinking', {
+            content: 'Generating implementation plan with AI...',
+            phase: 'plan_generation',
+        });
+
+        const plan = await generateBuildPlan(prompt, projectId, userId);
+
+        sendEvent('phase', {
+            content: 'Implementation plan generated',
+            details: `${plan.phases.length} phases identified`,
+        });
+
+        // Phase 4: Create Deep Intent Contract
+        sendEvent('thinking', {
+            content: 'Creating Deep Intent Contract with VL-JEPA analysis...',
+            phase: 'deep_intent',
+        });
+
+        const engine = createIntentLockEngine(userId, projectId);
+        const deepIntent = await engine.createDeepContract(
+            prompt,
+            userId,
+            projectId,
+            undefined,
+            {
+                fetchAPIDocs: true,
+                thinkingBudget: 64000,
+            }
+        );
+
+        sendEvent('phase', {
+            content: 'Deep Intent Contract created',
+            details: `${deepIntent.functionalChecklist.length} success criteria, ${deepIntent.integrationRequirements.length} integrations`,
+        });
+
+        console.log(`[Execute:Plan:Stream] Deep Intent created: ${deepIntent.id}`);
+
+        // Phase 5: Extract credentials
+        sendEvent('thinking', {
+            content: 'Detecting required credentials...',
+            phase: 'credentials',
+        });
+
+        const requiredCredentials = extractCredentialsFromDeepIntent(deepIntent, prompt);
+
+        if (requiredCredentials.length > 0) {
+            sendEvent('phase', {
+                content: `Detected ${requiredCredentials.length} required credential(s)`,
+                details: requiredCredentials.map(c => c.platformName).join(', '),
+            });
+        }
+
+        // Phase 6: Store pending build
+        const pendingBuild: PendingBuild = {
+            sessionId,
+            projectId,
+            userId,
+            prompt,
+            plan,
+            requiredCredentials,
+            createdAt: new Date(),
+            status: 'awaiting_plan_approval',
+            deepIntentContractId: deepIntent.id,
+        };
+        pendingBuilds.set(sessionId, pendingBuild);
+
+        // Phase 7: Complete
+        sendEvent('complete', {
+            content: 'Plan generation complete!',
+            sessionId,
+            projectId,
+            plan,
+            requiredCredentials,
+        });
+
+        res.write('data: [DONE]\n\n');
+        res.end();
+
+    } catch (error) {
+        console.error('[Execute:Plan:Stream] Error:', error);
+        sendEvent('error', {
+            content: error instanceof Error ? error.message : 'Unknown error',
+        });
+        res.write('data: [DONE]\n\n');
+        res.end();
+    }
+});
+
+/**
  * POST /api/execute/plan
  *
  * Generate implementation plan and detect required credentials.

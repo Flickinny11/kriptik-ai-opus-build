@@ -16,7 +16,7 @@ IMPLEMENTATION SUMMARY:
    - Added modelId option to BuildLoopOptions in build-loop.ts
    - Added ModelRouter integration to BuildLoopOrchestrator:
      * Claude models → Anthropic SDK directly
-     * GPT models → OpenAI SDK directly  
+     * GPT models → OpenAI SDK directly
      * Other models (Grok, Gemini, DeepSeek) → OpenRouter
    - New generateWithSelectedModel() helper method for routing
    - Feature Agent service now passes user-selected model to orchestrator

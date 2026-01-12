@@ -1272,7 +1272,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
      * - Claude models → Anthropic SDK directly (via claudeService)
      * - GPT models → OpenAI SDK directly (via modelRouter)
      * - Other models (grok, gemini, deepseek, etc.) → OpenRouter (via modelRouter)
-     * 
+     *
      * Falls back to Claude service if no model is selected or routing fails.
      */
     private async generateWithSelectedModel(
@@ -1287,7 +1287,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
         // If a non-Claude model is selected and ModelRouter is available, use it
         if (this.selectedModelId && this.modelRouter) {
             const isClaudeModel = this.selectedModelId.toLowerCase().startsWith('claude');
-            
+
             if (!isClaudeModel) {
                 console.log(`[BuildLoop] Routing to ModelRouter for model: ${this.selectedModelId}`);
                 try {
