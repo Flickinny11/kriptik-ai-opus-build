@@ -628,11 +628,11 @@ return {"status": "completed", "path": "./output/adapter"}
 
     /**
      * Bill the user for a completed training job.
-     * 
+     *
      * Per billing-context.ts:
      * - USER_TRAINING: 20% margin, billUser: true
      * - Training costs are metered and charged to user credits
-     * 
+     *
      * If no userId is provided, the job is treated as system-initiated (no billing).
      */
     private async billForTrainingJob(

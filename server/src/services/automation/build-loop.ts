@@ -509,7 +509,7 @@ export interface BuildLoopConfig {
     // useBrowserInLoop: Set to false to disable visual verification during build (default: true)
     useLattice?: boolean;
     useBrowserInLoop?: boolean;
-    
+
     // User-provided credentials for integrations (Stripe, Supabase, etc.)
     credentials?: Record<string, string>;
 }
@@ -598,7 +598,7 @@ export interface BuildLoopState {
 
     // PHASE 1: Live Preview Sandbox URL
     sandboxUrl?: string;
-    
+
     // Multi-sandbox orchestration mode (N parallel sandboxes for faster builds)
     multiSandboxMode?: boolean;
     multiSandboxConfig?: Partial<MultiSandboxConfig>;
@@ -2183,7 +2183,7 @@ export class BuildLoopOrchestrator extends EventEmitter {
      */
     private async executePhase2_ParallelBuild(stage: BuildStage): Promise<void> {
         this.startPhase('parallel_build');
-        
+
         // =========================================================================
         // PHASE 7: Warm speculative cache with likely first features
         // =========================================================================
@@ -2238,16 +2238,16 @@ export class BuildLoopOrchestrator extends EventEmitter {
             // =====================================================================
             if (this.useMultiSandboxMode) {
                 console.log('[BuildLoop] Multi-sandbox mode enabled - using parallel sandbox orchestration');
-                
+
                 const orchestrationResult = await this.runMultiSandboxOrchestration(stage);
-                
+
                 if (orchestrationResult.success) {
                     // Multi-sandbox orchestration completed successfully
                     console.log(`[BuildLoop] Multi-sandbox orchestration complete: ${orchestrationResult.buildDuration}ms, cost: $${orchestrationResult.costUsd?.toFixed(2) || 0}`);
-                    
+
                     // Stop continuous verification before early return
                     this.stopContinuousVerificationWithSwarm(verificationHandle);
-                    
+
                     // Mark phase complete and return
                     this.completePhase('parallel_build');
                     return;
@@ -4181,17 +4181,17 @@ Fixed code:`;
 
     /**
      * Helper: Create sandbox service (local or Modal)
-     * 
+     *
      * CRITICAL: Modal sandboxes ALWAYS use Kriptik's credentials from environment variables.
      * User credentials are NEVER used for Modal sandbox operations during app building.
-     * 
+     *
      * BILLING POLICY (from billing-context.ts):
      * - App building (KRIPTIK_BUILDING): Included in subscription - NO user billing
      * - Sandbox previews (KRIPTIK_SANDBOX): Included - NO user billing
      * - User training/fine-tuning: Billed to user credits with 20% margin
-     * 
+     *
      * During builds, KripTik absorbs the Modal compute cost.
-     * 
+     *
      * Modal credentials are configured in Vercel environment:
      * - MODAL_TOKEN_ID: Kriptik's Modal token ID
      * - MODAL_TOKEN_SECRET: Kriptik's Modal token secret
@@ -4223,10 +4223,10 @@ Fixed code:`;
 
             const adapter = createModalSandboxAdapter(config, credentials);
             await adapter.initialize();
-            
+
             // Track Modal sandbox usage for billing
             this.trackModalSandboxUsage('sandbox_created');
-            
+
             return adapter;
         } else {
             if (useModal) {
@@ -4239,16 +4239,16 @@ Fixed code:`;
             return service;
         }
     }
-    
+
     /**
      * Track Modal sandbox usage and apply billing based on context.
-     * 
+     *
      * BILLING RULES (from billing-context.ts):
      * - KRIPTIK_BUILDING: App building is included in subscription (NO user billing)
      * - KRIPTIK_SANDBOX: Sandbox previews are included (NO user billing)
      * - USER_TRAINING: User-initiated training on KripTik infrastructure (BILL user with 20% margin)
      * - USER_FINETUNING: User-initiated fine-tuning (BILL user with 20% margin)
-     * 
+     *
      * During app builds, KripTik absorbs the sandbox cost - users are NOT billed.
      * Only user-initiated training/fine-tuning operations are billed to user credits.
      */
@@ -4264,17 +4264,17 @@ Fixed code:`;
                 isUserInitiated: operationType === 'training' || operationType === 'finetuning',
                 deploymentTarget: 'kriptik',
             });
-            
+
             if (eventType === 'sandbox_created') {
                 // Log sandbox creation
-                const billingStatus = billingDecision.billUser 
+                const billingStatus = billingDecision.billUser
                     ? 'usage will be billed on termination'
                     : 'included in subscription (no user billing)';
                 console.log(`[BuildLoop] Modal sandbox created for user ${this.state.userId} - ${billingStatus}`);
                 console.log(`[BuildLoop] Billing context: ${billingDecision.context} - ${billingDecision.reason}`);
                 return;
             }
-            
+
             if (eventType === 'sandbox_terminated' && durationSeconds !== undefined) {
                 // Check if this operation should bill the user
                 if (!billingDecision.billUser) {
@@ -4282,20 +4282,20 @@ Fixed code:`;
                     console.log(`[BuildLoop] Modal sandbox terminated (${Math.round(durationSeconds / 60)} min) - ${billingDecision.reason} (KripTik absorbed)`);
                     return;
                 }
-                
+
                 // User should be billed (training/fine-tuning operations)
                 const { getCreditService } = await import('../billing/credits.js');
                 const creditService = getCreditService();
-                
+
                 // Estimate Modal cost per sandbox-hour: ~$0.10/hour for standard compute
                 const MODAL_SANDBOX_COST_PER_HOUR = 0.10;
                 const CREDIT_VALUE_USD = 0.01;
-                
+
                 const hours = durationSeconds / 3600;
                 const baseCost = hours * MODAL_SANDBOX_COST_PER_HOUR;
                 const costWithMarkup = baseCost * billingDecision.creditMultiplier;
                 const creditsToCharge = Math.max(1, Math.ceil(costWithMarkup / CREDIT_VALUE_USD));
-                
+
                 await creditService.deductCredits(
                     this.state.userId,
                     creditsToCharge,
@@ -4310,7 +4310,7 @@ Fixed code:`;
                         creditMultiplier: billingDecision.creditMultiplier,
                     }
                 );
-                
+
                 console.log(`[BuildLoop] Billed ${creditsToCharge} credits for Modal ${operationType} (${Math.round(hours * 60)} min, context: ${billingDecision.context})`);
             }
         } catch (error) {
@@ -4326,7 +4326,7 @@ Fixed code:`;
     private async initializeSandboxEarly(): Promise<void> {
         try {
             const projectPath = this.projectPath || `/tmp/builds/${this.state.projectId}`;
-            
+
             if (!this.sandboxService) {
                 console.log('[BuildLoop] Proactively initializing sandbox before Phase 2...');
                 this.sandboxService = await this.createSandboxServiceInstance(projectPath);
@@ -4344,14 +4344,14 @@ Fixed code:`;
             // Store sandbox URL in state for immediate availability
             if (sandbox && sandbox.url) {
                 this.state.sandboxUrl = sandbox.url;
-                
+
                 // Emit sandbox-ready event immediately
                 this.emitEvent('sandbox-ready', {
                     sandboxUrl: sandbox.url,
                     sandboxId: sandbox.id,
                     status: sandbox.status,
                 });
-                
+
                 console.log(`[BuildLoop] Sandbox ready: ${sandbox.url}`);
             }
         } catch (sandboxError) {
@@ -4368,14 +4368,14 @@ Fixed code:`;
      * Initialize multi-sandbox mode for parallel builds.
      * When enabled, Phase 2 will deploy multiple Modal sandboxes,
      * partition tasks among them, and merge results into the main sandbox.
-     * 
+     *
      * @param config - Optional configuration for the orchestrator
      */
     public enableMultiSandboxMode(config?: Partial<MultiSandboxConfig>): void {
         this.useMultiSandboxMode = true;
         this.state.multiSandboxMode = true;
         this.state.multiSandboxConfig = config;
-        
+
         console.log('[BuildLoop] Multi-sandbox mode enabled', config || '(default config)');
     }
 
@@ -4383,7 +4383,7 @@ Fixed code:`;
      * Run Phase 2 using multi-sandbox orchestration.
      * This partitions tasks across N parallel Modal sandboxes and
      * merges completed work into the main sandbox (live UI preview).
-     * 
+     *
      * @param stage - Current build stage (frontend, backend, production)
      * @returns OrchestrationResult with success status and metrics
      */
@@ -4394,7 +4394,7 @@ Fixed code:`;
 
         // Create implementation plan from feature list
         const implementationPlan = await this.createImplementationPlanFromFeatures(stage);
-        
+
         // Get user credentials for build (from state or empty)
         const credentials = this.state.config.credentials || {};
 
@@ -4459,7 +4459,7 @@ Fixed code:`;
         }
 
         console.log(`[BuildLoop] Multi-sandbox orchestration ${result.success ? 'completed' : 'failed'} in ${result.buildDuration}ms`);
-        
+
         return result;
     }
 
@@ -4484,7 +4484,7 @@ Fixed code:`;
         // Create phases from feature priorities
         const phases: { id: string; name: string; order: number; features: string[]; dependencies: string[] }[] = [];
         const priorityGroups = new Map<number, typeof stageFeatures>();
-        
+
         for (const feature of stageFeatures) {
             const priority = feature.priority || 5;
             if (!priorityGroups.has(priority)) {
@@ -4525,9 +4525,9 @@ Fixed code:`;
         const components = Array.from(uniqueFiles).map(file => ({
             id: file,
             name: file.split('/').pop() || file,
-            type: file.includes('service') ? 'service' as const : 
+            type: file.includes('service') ? 'service' as const :
                   file.includes('route') ? 'route' as const :
-                  file.includes('util') ? 'utility' as const : 
+                  file.includes('util') ? 'utility' as const :
                   'component' as const,
             dependencies: [],
         }));
@@ -4822,7 +4822,7 @@ Return JSON:
             timestamp: Date.now(),
             type: 'hot-reload',
         });
-        
+
         // Most dev servers support HMR automatically on file changes
         // If explicit trigger needed, we could touch a file or send a signal
         console.log('[BuildLoop] Hot reload triggered - file-modified event emitted');
@@ -4832,11 +4832,11 @@ Return JSON:
     // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
     // Faster than speculative - generates likely next features IN ADVANCE
     // =========================================================================
-    
+
     /**
      * Warm the speculative cache at the start of a build
      * Pre-generates likely first features based on the implementation plan
-     * 
+     *
      * @param featureSummaries - Simplified feature list from FeatureListSummary
      */
     async warmSpeculativeCache(featureSummaries: Array<{
@@ -4851,14 +4851,14 @@ Return JSON:
             .filter(f => !f.passes && f.priority >= 80)
             .sort((a, b) => b.priority - a.priority)
             .slice(0, 5); // Warm up to 5 features
-        
+
         console.log(`[Speculative] 🔥 Warming cache with ${warmupFeatures.length} likely first features`);
-        
+
         this.emitEvent('speculative-warmup-start', {
             count: warmupFeatures.length,
             features: warmupFeatures.map(f => f.featureId),
         });
-        
+
         // Convert simplified features to lightweight Feature-like objects for preGenerate
         const warmupPromises = warmupFeatures.map(async feature => {
             const nowIso = new Date().toISOString();
@@ -4893,15 +4893,15 @@ Return JSON:
                 createdAt: nowIso,
                 updatedAt: nowIso,
             };
-            
+
             const cacheKey = this.getSpeculativeCacheKey(lightweightFeature);
-            
+
             if (this.speculativeCache.has(cacheKey)) {
                 return; // Already cached
             }
-            
+
             this.speculativeGenerationInProgress.add(cacheKey);
-            
+
             try {
                 await this.preGenerateFeature(lightweightFeature, cacheKey);
                 this.emitEvent('speculative-warmup-feature', {
@@ -4913,21 +4913,21 @@ Return JSON:
                 this.speculativeGenerationInProgress.delete(cacheKey);
             }
         });
-        
+
         // Wait for all warmup to complete (with timeout)
         await Promise.race([
             Promise.all(warmupPromises),
             new Promise(resolve => setTimeout(resolve, 30000)), // 30s timeout
         ]);
-        
+
         this.emitEvent('speculative-warmup-complete', {
             cachedFeatures: Array.from(this.speculativeCache.keys()),
             cacheSize: this.speculativeCache.size,
         });
-        
+
         console.log(`[Speculative] 🔥 Cache warmed with ${this.speculativeCache.size} features`);
     }
-    
+
     /**
      * Get current speculative cache statistics
      */
@@ -4956,7 +4956,7 @@ Return JSON:
         const nextFeatures = this.predictNextFeatures(currentFeature, allFeatures, 3);
 
         console.log(`[Speculative] Starting pre-build for ${nextFeatures.length} likely next features`);
-        
+
         // Emit event for UI tracking
         this.emitEvent('speculative-prebuild-start', {
             currentFeature: currentFeature.featureId,
@@ -5080,7 +5080,7 @@ Use common patterns and best practices for quick generation.`;
             this.speculativeTotalHits++;
             this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
             console.log(`[Speculative] 🎯 CACHE HIT for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
-            
+
             // Emit cache hit event
             this.emitEvent('speculative-cache-hit', {
                 featureId: feature.featureId,
@@ -5098,14 +5098,14 @@ Use common patterns and best practices for quick generation.`;
         this.speculativeTotalMisses++;
         this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
         console.log(`[Speculative] ❌ CACHE MISS for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
-        
+
         // Emit cache miss event
         this.emitEvent('speculative-cache-miss', {
             featureId: feature.featureId,
             hitRate: this.speculativeHitRate,
             totalMisses: this.speculativeTotalMisses,
         });
-        
+
         return null;
     }
 
