@@ -606,6 +606,8 @@ export interface BuildLoopEvent {
         // Gap Closers and Pre-Flight events
         | 'workflow-tests-complete' | 'gap-closers-started' | 'gap-closers-complete' | 'gap-closers-error'
         | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error'
+        // PHASE 4: Anti-Slop auto-fix events
+        | 'antislop-violation-detected' | 'antislop-fix-applied' | 'antislop-verification-passed'
         // Git branch management events
         | 'git_committed' | 'git_merged';
     timestamp: Date;
@@ -3606,6 +3608,25 @@ Return JSON:
                         `${v.rule}: ${v.description} in ${v.location}`
                     );
                     console.log(`[Phase 5] SESSION 1: Anti-Slop score: ${antiSlopScore}/100, ${antiSlopResult.violations.length} violations`);
+
+                    // PHASE 4: Auto-fix anti-slop violations if score is below threshold
+                    const ANTISLOP_THRESHOLD = 85;
+                    if (antiSlopScore < ANTISLOP_THRESHOLD && antiSlopResult.violations.length > 0) {
+                        console.log(`[Phase 5] PHASE 4: Anti-slop score ${antiSlopScore} < ${ANTISLOP_THRESHOLD}, triggering auto-fix...`);
+
+                        try {
+                            const fixResult = await this.fixAntiSlopViolations(antiSlopResult.violations);
+                            antiSlopScore = fixResult.newScore;
+                            antiSlopViolations = fixResult.remaining > 0
+                                ? [`${fixResult.remaining} files still have design issues after auto-fix`]
+                                : [];
+
+                            console.log(`[Phase 5] PHASE 4: Auto-fix complete, new score: ${antiSlopScore}`);
+                        } catch (fixError) {
+                            console.warn('[Phase 5] PHASE 4: Auto-fix failed (non-fatal):', fixError);
+                            // Keep original violations
+                        }
+                    }
                 }
             }
         } catch (err) {
@@ -3658,6 +3679,209 @@ Return JSON:
             intentMatch,
             functional,
         };
+    }
+
+    /**
+     * PHASE 4: Auto-fix anti-slop violations
+     *
+     * When the anti-slop score is below threshold (85), this method:
+     * 1. Groups violations by file
+     * 2. Generates fix prompts with specific violations
+     * 3. Uses Opus 4.5 for high-quality regeneration
+     * 4. Writes fixed files to disk
+     * 5. Re-runs anti-slop check to verify fixes
+     */
+    private async fixAntiSlopViolations(
+        violations: Array<{
+            rule: string;
+            severity: string;
+            location: string;
+            description: string;
+            suggestion: string;
+            codeSnippet?: string;
+        }>
+    ): Promise<{ fixed: number; remaining: number; newScore: number }> {
+        const MAX_FIX_ATTEMPTS = 3;
+        const THRESHOLD = 85;
+
+        console.log(`[Phase 4] Starting anti-slop auto-fix for ${violations.length} violations`);
+
+        // Emit event for UI
+        this.emitEvent('antislop-violation-detected', {
+            violationCount: violations.length,
+            files: [...new Set(violations.map(v => v.location))],
+            timestamp: Date.now(),
+        });
+
+        // Group violations by file
+        const violationsByFile = new Map<string, typeof violations>();
+        for (const violation of violations) {
+            const existing = violationsByFile.get(violation.location) || [];
+            existing.push(violation);
+            violationsByFile.set(violation.location, existing);
+        }
+
+        let fixedCount = 0;
+        let failedFiles: string[] = [];
+
+        // Fix each file
+        for (const [filePath, fileViolations] of violationsByFile) {
+            let attemptCount = 0;
+            let fileFixed = false;
+
+            while (attemptCount < MAX_FIX_ATTEMPTS && !fileFixed) {
+                attemptCount++;
+                console.log(`[Phase 4] Fixing ${filePath} (attempt ${attemptCount}/${MAX_FIX_ATTEMPTS})`);
+
+                try {
+                    // Get current file content
+                    let fileContent = this.projectFiles.get(filePath);
+                    if (!fileContent) {
+                        const fsModule = await import('fs/promises');
+                        const pathModule = await import('path');
+                        const fullPath = pathModule.join(this.projectPath, filePath);
+                        fileContent = await fsModule.readFile(fullPath, 'utf-8');
+                    }
+
+                    // Generate fix prompt
+                    const fixPrompt = this.generateAntiSlopFixPrompt(filePath, fileContent, fileViolations);
+
+                    // Use Opus 4.5 for best quality
+                    const fixedContent = await this.claudeService.generate(fixPrompt, {
+                        model: CLAUDE_MODELS.OPUS_4_5,
+                        maxTokens: 16000,
+                        useExtendedThinking: true,
+                        thinkingBudgetTokens: 4000,
+                    });
+
+                    // Extract the fixed code from the response
+                    const codeMatch = fixedContent.content?.match(/```(?:tsx?|jsx?|typescript|javascript)?\s*([\s\S]*?)```/);
+                    const newContent = codeMatch ? codeMatch[1].trim() : fixedContent.content;
+
+                    if (newContent && newContent.length > 100) {
+                        // Write fixed file
+                        const fsModule = await import('fs/promises');
+                        const pathModule = await import('path');
+                        const fullPath = pathModule.join(this.projectPath, filePath);
+                        await fsModule.writeFile(fullPath, newContent, 'utf-8');
+                        this.projectFiles.set(filePath, newContent);
+
+                        // Emit fix applied event
+                        this.emitEvent('antislop-fix-applied', {
+                            file: filePath,
+                            attempt: attemptCount,
+                            violationsFixed: fileViolations.length,
+                            timestamp: Date.now(),
+                        });
+
+                        // Verify fix worked by re-checking this file
+                        if (this.antiSlopDetector) {
+                            const verifyMap = new Map([[filePath, newContent]]);
+                            const verifyResult = await this.antiSlopDetector.analyze(verifyMap);
+
+                            if (verifyResult.overall >= THRESHOLD) {
+                                fileFixed = true;
+                                fixedCount++;
+                                console.log(`[Phase 4] Fixed ${filePath}, new score: ${verifyResult.overall}`);
+                            } else {
+                                console.log(`[Phase 4] ${filePath} still has issues (score: ${verifyResult.overall}), retrying...`);
+                            }
+                        } else {
+                            // No detector available, assume fixed
+                            fileFixed = true;
+                            fixedCount++;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[Phase 4] Error fixing ${filePath}:`, error);
+                }
+            }
+
+            if (!fileFixed) {
+                failedFiles.push(filePath);
+                console.warn(`[Phase 4] Could not fix ${filePath} after ${MAX_FIX_ATTEMPTS} attempts`);
+            }
+        }
+
+        // Re-run full anti-slop check to get new overall score
+        let newScore = 0;
+        if (this.antiSlopDetector) {
+            const uiFilesMap = await this.collectUIFilesForAntiSlop();
+            if (uiFilesMap.size > 0) {
+                const finalResult = await this.antiSlopDetector.analyze(uiFilesMap);
+                newScore = finalResult.overall;
+            }
+        }
+
+        // Emit verification passed event if score is good
+        if (newScore >= THRESHOLD) {
+            this.emitEvent('antislop-verification-passed', {
+                score: newScore,
+                fixedFiles: fixedCount,
+                timestamp: Date.now(),
+            });
+        }
+
+        console.log(`[Phase 4] Anti-slop auto-fix complete: ${fixedCount} files fixed, ${failedFiles.length} remaining issues, new score: ${newScore}`);
+
+        return {
+            fixed: fixedCount,
+            remaining: failedFiles.length,
+            newScore,
+        };
+    }
+
+    /**
+     * PHASE 4: Generate a prompt for fixing anti-slop violations in a file
+     */
+    private generateAntiSlopFixPrompt(
+        filePath: string,
+        currentContent: string,
+        violations: Array<{
+            rule: string;
+            severity: string;
+            description: string;
+            suggestion: string;
+        }>
+    ): string {
+        const visualIdentity = this.state.intentContract?.visualIdentity || {};
+
+        return `You are an expert UI/UX designer and React developer. Fix the following anti-slop design violations in this file.
+
+FILE: ${filePath}
+
+CURRENT CODE:
+\`\`\`tsx
+${currentContent}
+\`\`\`
+
+VIOLATIONS TO FIX:
+${violations.map((v, i) => `${i + 1}. [${v.severity.toUpperCase()}] ${v.rule}
+   - Issue: ${v.description}
+   - Fix: ${v.suggestion}`).join('\n\n')}
+
+DESIGN PRINCIPLES (Anti-Slop Manifesto):
+1. DEPTH: Use real shadows (shadow-[0_4px_12px_rgba(...)]), layered glass effects, backdrop-blur
+2. MOTION: Use Framer Motion for meaningful animations, not decorative
+3. NO EMOJIS: Zero tolerance - use custom 3D icons instead
+4. TYPOGRAPHY: Use premium fonts (Plus Jakarta Sans for headings, JetBrains Mono for code)
+5. COLOR: Use intentional palette with amber/copper accents, NO purple gradients
+6. LAYOUT: Consistent spacing system, visual rhythm
+7. SOUL: Design must match the app's essence: ${(visualIdentity as Record<string, unknown>).theme || 'professional'}
+
+VISUAL IDENTITY:
+- Theme: ${(visualIdentity as Record<string, unknown>).theme || 'dark with glass effects'}
+- Colors: Amber (#f59e0b), Copper (#d97706), Slate backgrounds
+- Style: Liquid glass, layered shadows, 3D depth
+
+IMPORTANT:
+- Return ONLY the fixed code, wrapped in a tsx code block
+- Do NOT add new emojis or Lucide icons
+- Maintain all existing functionality
+- Keep the same file structure and exports
+- Apply fixes that genuinely improve the design quality
+
+Fixed code:`;
     }
 
     /**
