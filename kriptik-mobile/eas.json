@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
+    "version": ">= 13.0.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -9,15 +9,12 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
-      },
-      "android": {
-        "buildType": "apk"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "resourceClass": "m-medium"
       },
       "android": {
         "buildType": "apk"
@@ -26,19 +23,16 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "credentialsSource": "remote"
-      },
-      "android": {
-        "credentialsSource": "remote"
+        "resourceClass": "m-medium"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "PLACEHOLDER_APPLE_ID",
-        "ascAppId": "PLACEHOLDER_ASC_APP_ID",
-        "appleTeamId": "PLACEHOLDER_TEAM_ID"
+        "appleId": "YOUR_APPLE_ID",
+        "ascAppId": "YOUR_ASC_APP_ID",
+        "appleTeamId": "YOUR_TEAM_ID"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",

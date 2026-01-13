@@ -1,265 +1,237 @@
-/**
- * Forgot Password Screen
- *
- * Password reset request
- */
-
 import { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { api } from '@/lib/api';
+import { router } from 'expo-router';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, typography, spacing } from '../../lib/design-system';
+import { Input, Button, GlassCard } from '../../components/ui';
+import { api } from '../../lib/api';
+import { KripTikLogoIcon, ChevronLeftIcon, CheckIcon } from '../../components/icons';
 
 export default function ForgotPasswordScreen() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
-  const handleResetRequest = async () => {
-    if (!email.trim()) {
+  const handleResetPassword = async () => {
+    if (!email) {
       setError('Please enter your email');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
+    setError('');
     setIsLoading(true);
-    setError(null);
 
     try {
-      const result = await api.request('/api/auth/forgot-password', {
-        method: 'POST',
-        body: { email: email.trim() },
-        skipAuth: true,
-      });
+      const response = await api.requestPasswordReset(email);
 
-      if (result.success) {
-        setIsSuccess(true);
+      if (response.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setEmailSent(true);
       } else {
-        setError(result.error || 'Failed to send reset email');
+        setError(response.error || 'Failed to send reset email');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Network error. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
-  if (isSuccess) {
+  if (emailSent) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: '#0C0A09',
-          justifyContent: 'center',
-          padding: 24,
-        }}
-      >
-        <View
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
-            backgroundColor: '#22C55E20',
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'center',
-            marginBottom: 24,
-          }}
-        >
-          <Text style={{ fontSize: 28 }}>+</Text>
-        </View>
-
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: '700',
-            color: '#FFFFFF',
-            textAlign: 'center',
-            marginBottom: 12,
-            fontFamily: 'Outfit Bold',
-          }}
-        >
-          Check Your Email
-        </Text>
-
-        <Text
-          style={{
-            fontSize: 15,
-            color: '#A8A29E',
-            textAlign: 'center',
-            marginBottom: 32,
-            fontFamily: 'DM Sans',
-            lineHeight: 22,
-          }}
-        >
-          We've sent a password reset link to{'\n'}
-          <Text style={{ color: '#F59E0B' }}>{email}</Text>
-        </Text>
-
-        <Link href="/(auth)/login" asChild>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#1C1917',
-              borderRadius: 12,
-              padding: 16,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#292524',
-            }}
-          >
-            <Text
-              style={{
-                color: '#FFFFFF',
-                fontSize: 16,
-                fontWeight: '600',
-                fontFamily: 'DM Sans Bold',
-              }}
-            >
-              Back to Sign In
+      <SafeAreaView style={styles.container}>
+        <View style={styles.successContainer}>
+          <Animated.View entering={FadeInDown.delay(100)} style={styles.successContent}>
+            <View style={styles.successIcon}>
+              <CheckIcon size={48} color={colors.status.success} />
+            </View>
+            <Text style={styles.successTitle}>Check Your Email</Text>
+            <Text style={styles.successText}>
+              We've sent a password reset link to {email}
             </Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
+            <Button
+              title="Back to Login"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.replace('/(auth)/login');
+              }}
+              size="lg"
+              fullWidth
+            />
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#0C0A09' }}
-    >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          padding: 24,
-        }}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        {/* Back button */}
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            position: 'absolute',
-            top: 60,
-            left: 24,
-            padding: 8,
-          }}
-        >
-          <Text style={{ color: '#A8A29E', fontSize: 16 }}>Back</Text>
-        </TouchableOpacity>
-
-        {/* Header */}
-        <View style={{ marginBottom: 32 }}>
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: '700',
-              color: '#FFFFFF',
-              fontFamily: 'Outfit Bold',
-              marginBottom: 8,
-            }}
-          >
-            Reset Password
-          </Text>
-          <Text
-            style={{
-              fontSize: 15,
-              color: '#A8A29E',
-              fontFamily: 'DM Sans',
-              lineHeight: 22,
-            }}
-          >
-            Enter your email and we'll send you a link to reset your password
-          </Text>
-        </View>
-
-        {/* Error message */}
-        {error && (
-          <View
-            style={{
-              backgroundColor: '#EF444420',
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 16,
-              borderWidth: 1,
-              borderColor: '#EF444440',
-            }}
-          >
-            <Text style={{ color: '#EF4444', fontSize: 14, textAlign: 'center' }}>
-              {error}
-            </Text>
-          </View>
-        )}
-
-        {/* Email input */}
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              color: '#A8A29E',
-              fontSize: 13,
-              marginBottom: 8,
-              fontFamily: 'DM Sans Medium',
-            }}
-          >
-            Email
-          </Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor="#57534E"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            style={{
-              backgroundColor: '#1C1917',
-              borderRadius: 12,
-              padding: 16,
-              fontSize: 16,
-              color: '#FFFFFF',
-              borderWidth: 1,
-              borderColor: '#292524',
-              fontFamily: 'DM Sans',
-            }}
-          />
-        </View>
-
-        {/* Submit button */}
-        <TouchableOpacity
-          onPress={handleResetRequest}
-          disabled={isLoading}
-          style={{
-            backgroundColor: '#F59E0B',
-            borderRadius: 12,
-            padding: 16,
-            alignItems: 'center',
-            opacity: isLoading ? 0.7 : 1,
-          }}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#0C0A09" />
-          ) : (
-            <Text
-              style={{
-                color: '#0C0A09',
-                fontSize: 16,
-                fontWeight: '600',
-                fontFamily: 'DM Sans Bold',
+        <View style={styles.content}>
+          {/* Back Button */}
+          <Animated.View entering={FadeInDown.delay(50)}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.back();
               }}
             >
-              Send Reset Link
+              <ChevronLeftIcon size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Header */}
+          <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
+            <View style={styles.logoContainer}>
+              <KripTikLogoIcon size={64} />
+            </View>
+            <Text style={styles.title}>Reset Password</Text>
+            <Text style={styles.subtitle}>
+              Enter your email and we'll send you a link to reset your password
             </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          </Animated.View>
+
+          {/* Form */}
+          <Animated.View entering={FadeInUp.delay(200)} style={styles.form}>
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              error={error}
+            />
+
+            <Button
+              title="Send Reset Link"
+              onPress={handleResetPassword}
+              loading={isLoading}
+              fullWidth
+              size="lg"
+            />
+          </Animated.View>
+
+          {/* Back to Login */}
+          <Animated.View entering={FadeInUp.delay(300)} style={styles.loginContainer}>
+            <Text style={styles.loginText}>Remember your password? </Text>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.back();
+              }}
+            >
+              <Text style={styles.loginLink}>Sign in</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.xl,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing['3xl'],
+  },
+  logoContainer: {
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontFamily: typography.fontFamily.display,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: typography.fontSize.md,
+    fontFamily: typography.fontFamily.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  form: {
+    marginBottom: spacing['2xl'],
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  loginText: {
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.body,
+    color: colors.text.secondary,
+  },
+  loginLink: {
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.bodySemiBold,
+    color: colors.accent.primary,
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  successContent: {
+    alignItems: 'center',
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.status.successMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  successTitle: {
+    fontSize: typography.fontSize['2xl'],
+    fontFamily: typography.fontFamily.display,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  successText: {
+    fontSize: typography.fontSize.md,
+    fontFamily: typography.fontFamily.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing['3xl'],
+    lineHeight: 24,
+  },
+});

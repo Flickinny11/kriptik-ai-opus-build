@@ -1,15 +1,16 @@
 /**
- * KripTik Mobile Push Notifications
- *
- * Handles push notification setup and registration
+ * Push Notifications Setup for KripTik Mobile
  */
 
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { api } from './api';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { useNotificationStore } from '../store/notification-store';
 
-// Configure notification handling
+// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -18,129 +19,174 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export interface NotificationData {
-  type: 'build_complete' | 'build_failed' | 'build_progress' | 'feature_agent_complete';
-  buildId?: string;
-  projectId?: string;
-  message?: string;
-}
-
-/**
- * Registers for push notifications and returns the token
- */
-export async function registerForPushNotifications(): Promise<string | null> {
-  // Check if running on a real device
+export async function setupNotifications() {
   if (!Device.isDevice) {
-    console.log('[Notifications] Push notifications require a physical device');
+    console.log('Push notifications require a physical device');
     return null;
   }
 
-  // Check existing permissions
+  // Check permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  // Request permissions if not granted
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
   if (finalStatus !== 'granted') {
-    console.log('[Notifications] Permission not granted');
+    console.log('Push notification permission not granted');
     return null;
   }
 
-  // Get the push token
+  // Get push token
   try {
-    const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    
+    if (!projectId) {
+      console.log('EAS project ID not configured');
+      return null;
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
 
-    const token = tokenData.data;
-
-    // Register the token with the backend
-    const platform = Platform.OS as 'ios' | 'android';
-    await api.registerPushToken(token, platform);
-
-    return token;
+    return tokenData.data;
   } catch (error) {
-    console.error('[Notifications] Failed to get push token:', error);
+    console.error('Failed to get push token:', error);
     return null;
   }
 }
 
-/**
- * Adds a listener for notification received while app is foregrounded
- */
-export function addNotificationReceivedListener(
-  handler: (notification: Notifications.Notification) => void
-): Notifications.Subscription {
-  return Notifications.addNotificationReceivedListener(handler);
-}
+export function setupNotificationListeners() {
+  // Handle notification received while app is foregrounded
+  const foregroundSubscription = Notifications.addNotificationReceivedListener(
+    (notification) => {
+      const { title, body, data } = notification.request.content;
 
-/**
- * Adds a listener for notification response (user tapped notification)
- */
-export function addNotificationResponseListener(
-  handler: (response: Notifications.NotificationResponse) => void
-): Notifications.Subscription {
-  return Notifications.addNotificationResponseReceivedListener(handler);
-}
+      // Add to notification store
+      useNotificationStore.getState().addNotification({
+        id: notification.request.identifier,
+        type: (data?.type as 'build' | 'agent' | 'training' | 'system' | 'chat') || 'system',
+        title: title || 'Notification',
+        body: body || '',
+        data: data as Record<string, unknown>,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
 
-/**
- * Parses notification data from a notification response
- */
-export function parseNotificationData(
-  response: Notifications.NotificationResponse
-): NotificationData | null {
-  const data = response.notification.request.content.data as Record<string, unknown>;
+      // Haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  );
 
-  if (!data || typeof data.type !== 'string') {
-    return null;
-  }
+  // Handle notification tap
+  const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+    (response) => {
+      const { data } = response.notification.request.content;
 
-  return {
-    type: data.type as NotificationData['type'],
-    buildId: data.buildId as string | undefined,
-    projectId: data.projectId as string | undefined,
-    message: data.message as string | undefined,
+      // Navigate based on notification type
+      handleNotificationNavigation(data as Record<string, unknown>);
+
+      // Mark as read
+      useNotificationStore.getState().markAsRead(
+        response.notification.request.identifier
+      );
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  );
+
+  return () => {
+    foregroundSubscription.remove();
+    responseSubscription.remove();
   };
 }
 
-/**
- * Sets the badge count on iOS
- */
-export async function setBadgeCount(count: number): Promise<void> {
+function handleNotificationNavigation(data?: Record<string, unknown>) {
+  if (!data) {
+    router.push('/(tabs)');
+    return;
+  }
+
+  const { type, id, projectId, buildId, agentId, trainingId } = data;
+
+  switch (type) {
+    case 'build':
+      if (buildId) {
+        router.push(`/build/${buildId}`);
+      } else {
+        router.push('/(tabs)/builds');
+      }
+      break;
+
+    case 'agent':
+      if (agentId) {
+        router.push(`/feature-agent/${agentId}`);
+      } else {
+        router.push('/(tabs)/agents');
+      }
+      break;
+
+    case 'training':
+      if (trainingId) {
+        router.push(`/ai-lab/training/${trainingId}`);
+      } else {
+        router.push('/(tabs)/ai-lab');
+      }
+      break;
+
+    case 'project':
+      if (projectId) {
+        router.push(`/project/${projectId}`);
+      } else {
+        router.push('/(tabs)');
+      }
+      break;
+
+    case 'chat':
+      router.push('/(tabs)');
+      break;
+
+    default:
+      router.push('/(tabs)');
+  }
+}
+
+// Schedule local notification (for testing or local alerts)
+export async function scheduleLocalNotification(
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+  trigger?: Notifications.NotificationTriggerInput
+) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data,
+      sound: true,
+    },
+    trigger: trigger || null,
+  });
+}
+
+// Cancel all scheduled notifications
+export async function cancelAllNotifications() {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+// Set badge count
+export async function setBadgeCount(count: number) {
   if (Platform.OS === 'ios') {
     await Notifications.setBadgeCountAsync(count);
   }
 }
 
-/**
- * Clears all notifications
- */
-export async function clearAllNotifications(): Promise<void> {
-  await Notifications.dismissAllNotificationsAsync();
-  await setBadgeCount(0);
-}
-
-/**
- * Schedules a local notification (useful for testing)
- */
-export async function scheduleLocalNotification(
-  title: string,
-  body: string,
-  data?: NotificationData,
-  seconds = 1
-): Promise<string> {
-  return Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data: data as unknown as Record<string, unknown>,
-      sound: true,
-    },
-    trigger: { seconds },
-  });
+// Clear badge
+export async function clearBadge() {
+  if (Platform.OS === 'ios') {
+    await Notifications.setBadgeCountAsync(0);
+  }
 }

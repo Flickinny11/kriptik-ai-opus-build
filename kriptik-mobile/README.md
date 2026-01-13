@@ -1,137 +1,126 @@
-# KripTik Mobile
+# KripTik AI Mobile Companion App
 
-Mobile companion app for KripTik AI, built with React Native and Expo.
+A React Native mobile app built with Expo SDK 52 for the KripTik AI platform.
 
 ## Features
 
-- Check on running builds from anywhere
-- Receive push notifications for build status updates
-- Start new builds directly from mobile
-- View project history and build results
-- Secure authentication with OAuth support
+- **Home Dashboard**: Overview of projects, active builds, and quick actions
+- **Build Management**: Monitor and manage builds with real-time progress
+- **Feature Agents**: Deploy and monitor autonomous coding agents
+- **AI Lab**: Training jobs and model management
+- **Push Notifications**: Real-time updates for build status, agent completion
+- **QR Pairing**: Seamlessly pair with the web app
+- **Deep Linking**: Navigate directly to specific builds, projects, or agents
 
-## Development Setup
+## Prerequisites
 
-### Prerequisites
+1. Node.js 18+
+2. Expo CLI: `npm install -g eas-cli`
+3. Expo account: https://expo.dev
 
-- Node.js 18+
-- Expo CLI: `npm install -g expo-cli`
-- EAS CLI: `npm install -g eas-cli`
-- iOS: Xcode (for iOS Simulator)
-- Android: Android Studio (for Android Emulator)
+## Font Setup
 
-### Installation
+Download and place the following fonts in `assets/fonts/`:
+
+- Cal Sans: https://github.com/calcom/font (CalSans-SemiBold.otf)
+- Outfit: https://fonts.google.com/specimen/Outfit (Outfit-SemiBold.ttf)
+- DM Sans: https://fonts.google.com/specimen/DM+Sans (DMSans-Regular.ttf, DMSans-Medium.ttf, DMSans-SemiBold.ttf)
+- JetBrains Mono: https://fonts.google.com/specimen/JetBrains+Mono (JetBrainsMono-Regular.ttf)
+
+## Setup
 
 ```bash
-cd kriptik-mobile
+# Install dependencies
 npm install
-```
 
-### Running Locally
-
-```bash
-# Start the dev server
+# Start development server
 npx expo start
 
-# Run on iOS Simulator
-npx expo start --ios
+# Run on iOS simulator
+npx expo run:ios
 
-# Run on Android Emulator
-npx expo start --android
+# Run on Android emulator
+npx expo run:android
 ```
 
-### Environment Variables
-
-Create a `.env` file:
-
-```env
-EXPO_PUBLIC_API_URL=https://api.kriptik.ai
-EXPO_PUBLIC_EAS_PROJECT_ID=your-project-id
-```
-
-## Building for Production
-
-### EAS Build Setup
-
-1. Login to EAS:
-   ```bash
-   eas login
-   ```
-
-2. Configure project:
-   ```bash
-   eas build:configure
-   ```
-
-3. Update `eas.json` with your credentials
-
-### Building
+## EAS Build
 
 ```bash
-# Development build (for testing)
-eas build --profile development
+# Login to Expo
+eas login
 
-# Preview build (internal distribution)
-eas build --profile preview
+# Build for iOS (development)
+eas build --platform ios --profile development
 
-# Production build
-eas build --profile production
+# Build for Android (development)
+eas build --platform android --profile development
+
+# Build for production
+eas build --platform all --profile production
 ```
 
-## App Store Submission
+## Configuration
 
-### iOS
+Update the following before production:
 
-1. Set up Apple Developer account credentials in `eas.json`
-2. Run: `eas submit -p ios`
+1. `app.json`:
+   - Set `extra.eas.projectId` to your EAS project ID
 
-### Android
-
-1. Add Google Play service account key
-2. Run: `eas submit -p android`
+2. `eas.json`:
+   - Set Apple Developer credentials for iOS submission
+   - Set Google Play credentials for Android submission
 
 ## Project Structure
 
 ```
 kriptik-mobile/
 ├── app/                    # Expo Router screens
-│   ├── (auth)/             # Auth flow
-│   ├── (tabs)/             # Main tab navigation
-│   ├── project/[id].tsx    # Project detail
-│   └── build/[id].tsx      # Build detail
-├── components/             # Reusable components
-├── lib/                    # Utilities
-│   ├── api.ts              # API client
-│   ├── auth.ts             # Auth utilities
-│   └── notifications.ts    # Push notifications
+│   ├── (auth)/            # Authentication screens
+│   ├── (tabs)/            # Main tab navigation
+│   ├── build/[id].tsx     # Build detail screen
+│   ├── project/[id].tsx   # Project detail screen
+│   └── feature-agent/[id].tsx
+├── components/
+│   ├── icons/             # Custom SVG icons
+│   └── ui/                # Reusable UI components
+├── lib/
+│   ├── api.ts             # API client
+│   ├── deep-linking.ts    # Deep link handling
+│   ├── design-system.ts   # Design tokens
+│   └── notifications.ts   # Push notifications
 ├── store/                  # Zustand stores
-├── assets/                 # Static assets
-└── app.json                # Expo config
+└── assets/                 # Fonts, images, icons
 ```
 
 ## Design System
 
-The app follows the KripTik design system:
+The app uses a "Liquid Glass 3D" aesthetic matching the KripTik web app:
 
 - **Colors**: Stone backgrounds with amber/gold accents
-- **Typography**: Outfit (display), DM Sans (body), JetBrains Mono (code)
-- **Components**: Consistent with web app styling
+- **Typography**: Cal Sans (display), Outfit (headings), DM Sans (body), JetBrains Mono (code)
+- **Animations**: React Native Reanimated 3 with spring physics
+- **Haptics**: Expo Haptics for tactile feedback
 
-## Push Notifications
+## API Integration
 
-The app uses Expo Push Notifications for real-time build updates:
+The app connects to the KripTik backend API for:
+- Authentication (Better Auth)
+- Project management
+- Build orchestration
+- Feature agent control
+- AI Lab training
+- Push notifications
 
-- Build started
-- Build progress milestones
-- Build complete/failed
-- Feature agent completion (for ghost mode)
+## Deep Links
 
-## Authentication
+The app supports the following deep link patterns:
 
-Supports multiple auth methods:
+- `kriptik://project/{id}` - Open project
+- `kriptik://build/{id}` - Open build
+- `kriptik://agent/{id}` - Open feature agent
+- `kriptik://training/{id}` - Open training job
+- `kriptik://pair?code={code}` - Device pairing
 
-- Email/password
-- GitHub OAuth
-- Google OAuth
+## License
 
-Auth tokens are securely stored using Expo SecureStore.
+Proprietary - KripTik AI

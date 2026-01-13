@@ -16,35 +16,33 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius, shadows } from '../../lib/design-system';
 import { GlassCard } from '../../components/ui';
 import { api } from '../../lib/api';
-import { BuildIcon, PlusIcon, PlayIcon, CheckIcon, CloseIcon, RefreshIcon } from '../../components/icons';
+import { AgentsIcon, PlusIcon, PlayIcon, CheckIcon, CloseIcon } from '../../components/icons';
 
-interface Build {
+interface Agent {
   id: string;
-  projectId: string;
-  projectName: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  name: string;
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  task?: string;
   progress: number;
-  phase: string;
-  startedAt: string;
-  completedAt?: string;
+  createdAt: string;
 }
 
-export default function BuildsScreen() {
+export default function AgentsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ['builds'],
+    queryKey: ['agents'],
     queryFn: async () => {
-      const response = await api.getBuilds();
+      const response = await api.getAgents();
       if (response.success && response.data) {
-        return response.data.builds;
+        return response.data.agents;
       }
       return [];
     },
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Auto-refresh every 5 seconds for active agents
   });
 
-  const builds = data || [];
+  const agents = data || [];
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -52,17 +50,17 @@ export default function BuildsScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleBuildPress = (build: Build) => {
+  const handleAgentPress = (agent: Agent) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/build/${build.id}`);
+    router.push(`/feature-agent/${agent.id}`);
   };
 
-  const handleNewBuild = () => {
+  const handleNewAgent = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/new-build');
+    // TODO: Open new agent modal
   };
 
-  const getStatusColor = (status: Build['status']) => {
+  const getStatusColor = (status: Agent['status']) => {
     switch (status) {
       case 'running':
         return colors.phases.building;
@@ -70,14 +68,12 @@ export default function BuildsScreen() {
         return colors.status.success;
       case 'failed':
         return colors.status.error;
-      case 'queued':
-        return colors.text.secondary;
       default:
         return colors.text.tertiary;
     }
   };
 
-  const getStatusIcon = (status: Build['status']) => {
+  const getStatusIcon = (status: Agent['status']) => {
     switch (status) {
       case 'running':
         return <PlayIcon size={16} color={colors.phases.building} />;
@@ -85,41 +81,25 @@ export default function BuildsScreen() {
         return <CheckIcon size={16} color={colors.status.success} />;
       case 'failed':
         return <CloseIcon size={16} color={colors.status.error} />;
-      case 'queued':
-        return <RefreshIcon size={16} color={colors.text.secondary} />;
       default:
         return null;
     }
   };
 
-  const activeBuilds = builds.filter((b) => b.status === 'running' || b.status === 'queued');
-  const completedBuilds = builds.filter((b) => b.status === 'completed' || b.status === 'failed');
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
+  const activeAgents = agents.filter((a) => a.status === 'running');
+  const completedAgents = agents.filter((a) => a.status !== 'running');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Builds</Text>
+          <Text style={styles.title}>Feature Agents</Text>
           <Text style={styles.subtitle}>
-            {activeBuilds.length} active, {completedBuilds.length} completed
+            {activeAgents.length} active, {completedAgents.length} completed
           </Text>
         </View>
-        <TouchableOpacity style={styles.newButton} onPress={handleNewBuild}>
+        <TouchableOpacity style={styles.newButton} onPress={handleNewAgent}>
           <LinearGradient
             colors={[colors.accent.secondary, colors.accent.primary]}
             style={styles.newButtonGradient}
@@ -141,37 +121,39 @@ export default function BuildsScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Active Builds */}
-        {activeBuilds.length > 0 && (
+        {/* Active Agents */}
+        {activeAgents.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Active</Text>
-            {activeBuilds.map((build, index) => (
+            {activeAgents.map((agent, index) => (
               <Animated.View
-                key={build.id}
+                key={agent.id}
                 entering={FadeInDown.delay(index * 50)}
               >
                 <GlassCard
-                  style={styles.buildCard}
+                  style={styles.agentCard}
                   variant="elevated"
-                  onPress={() => handleBuildPress(build)}
+                  onPress={() => handleAgentPress(agent)}
                 >
-                  <View style={styles.buildHeader}>
-                    <View style={styles.buildIcon}>
-                      <BuildIcon size={24} color={colors.accent.primary} />
+                  <View style={styles.agentHeader}>
+                    <View style={styles.agentIcon}>
+                      <AgentsIcon size={24} color={colors.accent.primary} />
                     </View>
-                    <View style={styles.buildInfo}>
-                      <Text style={styles.buildName}>{build.projectName}</Text>
-                      <Text style={styles.buildPhase}>{build.phase}</Text>
+                    <View style={styles.agentInfo}>
+                      <Text style={styles.agentName}>{agent.name}</Text>
+                      <Text style={styles.agentTask} numberOfLines={1}>
+                        {agent.task || 'Processing...'}
+                      </Text>
                     </View>
                     <View style={styles.statusBadge}>
-                      {getStatusIcon(build.status)}
+                      {getStatusIcon(agent.status)}
                       <Text
                         style={[
                           styles.statusText,
-                          { color: getStatusColor(build.status) },
+                          { color: getStatusColor(agent.status) },
                         ]}
                       >
-                        {build.status}
+                        {agent.status}
                       </Text>
                     </View>
                   </View>
@@ -180,11 +162,11 @@ export default function BuildsScreen() {
                       <Animated.View
                         style={[
                           styles.progressFill,
-                          { width: `${build.progress}%` },
+                          { width: `${agent.progress}%` },
                         ]}
                       />
                     </View>
-                    <Text style={styles.progressText}>{build.progress}%</Text>
+                    <Text style={styles.progressText}>{agent.progress}%</Text>
                   </View>
                 </GlassCard>
               </Animated.View>
@@ -192,43 +174,43 @@ export default function BuildsScreen() {
           </View>
         )}
 
-        {/* Completed Builds */}
-        {completedBuilds.length > 0 && (
+        {/* Completed Agents */}
+        {completedAgents.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recent</Text>
-            {completedBuilds.map((build, index) => (
+            {completedAgents.map((agent, index) => (
               <Animated.View
-                key={build.id}
-                entering={FadeInDown.delay((activeBuilds.length + index) * 50)}
+                key={agent.id}
+                entering={FadeInDown.delay((activeAgents.length + index) * 50)}
               >
                 <GlassCard
-                  style={styles.buildCard}
-                  onPress={() => handleBuildPress(build)}
+                  style={styles.agentCard}
+                  onPress={() => handleAgentPress(agent)}
                 >
-                  <View style={styles.buildHeader}>
+                  <View style={styles.agentHeader}>
                     <View
                       style={[
-                        styles.buildIcon,
-                        build.status === 'failed' && styles.buildIconFailed,
+                        styles.agentIcon,
+                        agent.status === 'failed' && styles.agentIconFailed,
                       ]}
                     >
-                      <BuildIcon
+                      <AgentsIcon
                         size={24}
                         color={
-                          build.status === 'failed'
+                          agent.status === 'failed'
                             ? colors.status.error
                             : colors.text.secondary
                         }
                       />
                     </View>
-                    <View style={styles.buildInfo}>
-                      <Text style={styles.buildName}>{build.projectName}</Text>
-                      <Text style={styles.buildTime}>
-                        {formatTime(build.completedAt || build.startedAt)}
+                    <View style={styles.agentInfo}>
+                      <Text style={styles.agentName}>{agent.name}</Text>
+                      <Text style={styles.agentTask} numberOfLines={1}>
+                        {agent.task}
                       </Text>
                     </View>
                     <View style={styles.statusBadge}>
-                      {getStatusIcon(build.status)}
+                      {getStatusIcon(agent.status)}
                     </View>
                   </View>
                 </GlassCard>
@@ -238,12 +220,12 @@ export default function BuildsScreen() {
         )}
 
         {/* Empty State */}
-        {builds.length === 0 && !isLoading && (
+        {agents.length === 0 && !isLoading && (
           <View style={styles.emptyState}>
-            <BuildIcon size={64} color={colors.text.tertiary} />
-            <Text style={styles.emptyTitle}>No Builds Yet</Text>
+            <AgentsIcon size={64} color={colors.text.tertiary} />
+            <Text style={styles.emptyTitle}>No Feature Agents</Text>
             <Text style={styles.emptySubtitle}>
-              Start your first build to see it here
+              Start a new agent to automate complex tasks
             </Text>
           </View>
         )}
@@ -302,43 +284,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  buildCard: {
+  agentCard: {
     marginBottom: spacing.md,
   },
-  buildHeader: {
+  agentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  buildIcon: {
+  agentIcon: {
     width: 44,
     height: 44,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.accent.muted,
+    backgroundColor: colors.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buildIconFailed: {
+  agentIconFailed: {
     backgroundColor: colors.status.errorMuted,
   },
-  buildInfo: {
+  agentInfo: {
     flex: 1,
     marginLeft: spacing.md,
   },
-  buildName: {
+  agentName: {
     fontSize: typography.fontSize.md,
     fontFamily: typography.fontFamily.bodySemiBold,
     color: colors.text.primary,
   },
-  buildPhase: {
+  agentTask: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.body,
     color: colors.text.secondary,
-    marginTop: 2,
-  },
-  buildTime: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.body,
-    color: colors.text.tertiary,
     marginTop: 2,
   },
   statusBadge: {

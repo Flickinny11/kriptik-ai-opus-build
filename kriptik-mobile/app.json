@@ -1,26 +1,33 @@
 {
   "expo": {
     "name": "KripTik AI",
-    "slug": "kriptik-mobile",
+    "slug": "kriptik-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "kriptik",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0C0A09"
     },
-    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kriptik.mobile",
-      "associatedDomains": ["applinks:app.kriptik.ai", "applinks:kriptik.ai"],
+      "buildNumber": "1",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["kriptik"],
-        "UIBackgroundModes": ["remote-notification"]
+        "NSCameraUsageDescription": "KripTik uses camera for QR code scanning and Clone Mode",
+        "NSMicrophoneUsageDescription": "KripTik uses microphone for Voice Architect feature",
+        "NSFaceIDUsageDescription": "KripTik uses Face ID for secure authentication"
+      },
+      "associatedDomains": [
+        "applinks:app.kriptik.ai",
+        "applinks:kriptik.ai"
+      ],
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -29,51 +36,47 @@
         "backgroundColor": "#0C0A09"
       },
       "package": "com.kriptik.mobile",
-      "googleServicesFile": "./google-services.json",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            {
-              "scheme": "https",
-              "host": "app.kriptik.ai",
-              "pathPrefix": "/mobile"
-            },
-            {
-              "scheme": "kriptik"
-            }
+            { "scheme": "kriptik" },
+            { "scheme": "https", "host": "app.kriptik.ai", "pathPrefix": "/mobile" },
+            { "scheme": "https", "host": "kriptik.ai", "pathPrefix": "/mobile" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
-    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-notifications",
+      "expo-camera",
+      "expo-local-authentication",
       [
-        "expo-notifications",
+        "expo-splash-screen",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#F59E0B",
-          "sounds": ["./assets/notification.wav"]
+          "backgroundColor": "#0C0A09",
+          "image": "./assets/splash.png",
+          "imageWidth": 200
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "PLACEHOLDER_PROJECT_ID"
+        "projectId": "YOUR_EAS_PROJECT_ID"
       }
     }
   }
