@@ -507,6 +507,12 @@ export class OpenSourceStudioDeployer extends EventEmitter {
 
   /**
    * Deploy model to Modal
+   * 
+   * CRITICAL: Modal deployments ALWAYS use Kriptik's platform credentials.
+   * User credentials are NEVER used - costs are metered to user credits.
+   * 
+   * Note: RunPod is typically preferred due to better pricing.
+   * Modal is only used when explicitly requested or when RunPod cannot handle the model.
    */
   private async deployToModal(
     modelId: string,
@@ -514,10 +520,11 @@ export class OpenSourceStudioDeployer extends EventEmitter {
     recommendation: ProviderSelectionResult,
     userId: string
   ): Promise<{ appId: string; endpointUrl: string }> {
+    // KRIPTIK'S PLATFORM CREDENTIALS ONLY - Never use user credentials
     const tokenId = process.env.MODAL_TOKEN_ID;
     const tokenSecret = process.env.MODAL_TOKEN_SECRET;
     if (!tokenId || !tokenSecret) {
-      throw new Error('Modal credentials not configured');
+      throw new Error('Modal platform credentials not configured - contact Kriptik support');
     }
 
     this.modalDeployer.initialize(tokenId, tokenSecret);

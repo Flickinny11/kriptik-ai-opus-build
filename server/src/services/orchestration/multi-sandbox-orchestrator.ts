@@ -63,14 +63,32 @@ interface ExecutionResult {
     cost?: number;
 }
 
-// Adapter class to wrap real Modal sandbox service with orchestrator's expected interface
+/**
+ * Adapter class to wrap real Modal sandbox service with orchestrator's expected interface.
+ * 
+ * CRITICAL: Modal sandbox credentials ALWAYS come from Kriptik's platform environment variables.
+ * User credentials are NEVER used for Modal sandbox operations during app building.
+ * Modal usage is billed to the user's credits via metered billing.
+ * 
+ * Environment variables (set in Vercel):
+ * - MODAL_TOKEN_ID: Kriptik's Modal token ID
+ * - MODAL_TOKEN_SECRET: Kriptik's Modal token secret
+ */
 class ModalSandboxServiceAdapter {
     private realService: RealModalSandboxService;
 
-    constructor(credentials?: { tokenId: string; tokenSecret: string }) {
+    constructor() {
+        // ALWAYS use Kriptik's platform credentials - never user credentials
+        const tokenId = process.env.MODAL_TOKEN_ID || '';
+        const tokenSecret = process.env.MODAL_TOKEN_SECRET || '';
+        
+        if (!tokenId || !tokenSecret) {
+            console.warn('[ModalSandboxServiceAdapter] Modal credentials not configured in environment');
+        }
+        
         this.realService = createRealModalSandboxService({
-            tokenId: credentials?.tokenId || process.env.MODAL_TOKEN_ID || '',
-            tokenSecret: credentials?.tokenSecret || process.env.MODAL_TOKEN_SECRET || '',
+            tokenId,
+            tokenSecret,
         });
     }
 
@@ -134,8 +152,12 @@ class ModalSandboxServiceAdapter {
     }
 }
 
-function createModalSandboxService(credentials?: { tokenId: string; tokenSecret: string }): ModalSandboxServiceAdapter {
-    return new ModalSandboxServiceAdapter(credentials);
+/**
+ * Create Modal sandbox service using Kriptik's platform credentials.
+ * User credentials are never used for Modal - costs are metered to user credits.
+ */
+function createModalSandboxService(): ModalSandboxServiceAdapter {
+    return new ModalSandboxServiceAdapter();
 }
 
 // Vercel Deployment Service
@@ -312,11 +334,9 @@ export class MultiSandboxOrchestrator extends EventEmitter {
         this.contextBridge = null;
         this.isRunning = false;
 
-        // Initialize services with credentials from environment
-        this.modalSandboxService = createModalSandboxService({
-            tokenId: process.env.MODAL_TOKEN_ID || '',
-            tokenSecret: process.env.MODAL_TOKEN_SECRET || '',
-        });
+        // Initialize Modal service with Kriptik's platform credentials (from environment)
+        // CRITICAL: Never use user credentials for Modal sandboxes - costs are metered to user credits
+        this.modalSandboxService = createModalSandboxService();
         this.vercelService = createVercelDeploymentService();
 
         // Initialize state
