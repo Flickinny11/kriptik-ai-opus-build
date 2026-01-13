@@ -400,6 +400,69 @@ export default function SandpackPreviewWindow() {
         };
     }, [handleAgentEvent]);
 
+    // PHASE B: Listen for build-demo-ready event from Phase 6 Browser Demo completion
+    // This auto-triggers the Show Me demo when BuildLoopOrchestrator completes browser_demo phase
+    useEffect(() => {
+        const handleBuildDemoReady = async (event: CustomEvent<{
+            url: string;
+            takeControlAvailable: boolean;
+            visualScore: number;
+            screenshot?: string;
+        }>) => {
+            console.log('[SandpackPreview] Build demo ready event received:', event.detail);
+
+            const { url, takeControlAvailable, visualScore } = event.detail;
+
+            // Update external sandbox URL if provided
+            if (url) {
+                setExternalSandboxUrl(url);
+                localStorage.setItem(SANDBOX_URL_KEY, url);
+            }
+
+            // Auto-trigger demo when take control is available (Phase 6 complete)
+            if (takeControlAvailable) {
+                console.log('[SandpackPreview] Auto-triggering Show Me demo. Visual score:', visualScore);
+
+                // Set loading state
+                setIsLoadingDemo(true);
+
+                try {
+                    interface DemoResponse {
+                        success: boolean;
+                        segments?: NarrationPlaybackSegment[];
+                    }
+
+                    // Fetch demo narration segments from backend
+                    const response = await apiClient.post<DemoResponse>('/api/preview/demo', {
+                        type: 'build_complete_demo',
+                        viewport,
+                        sandboxUrl: url,
+                        visualScore,
+                    });
+
+                    if (response.data.success && response.data.segments) {
+                        setDemoSegments(response.data.segments);
+                        setIsDemoActive(true);
+                    } else {
+                        // If no segments returned, still show the live preview
+                        console.log('[SandpackPreview] No demo segments, showing live preview');
+                    }
+                } catch (error) {
+                    // Demo fetch failed, but preview is still available
+                    console.error('[SandpackPreview] Failed to fetch demo segments:', error);
+                } finally {
+                    setIsLoadingDemo(false);
+                }
+            }
+        };
+
+        window.addEventListener('build-demo-ready', handleBuildDemoReady as unknown as EventListener);
+
+        return () => {
+            window.removeEventListener('build-demo-ready', handleBuildDemoReady as unknown as EventListener);
+        };
+    }, [viewport]);
+
     const handleRefresh = () => {
         if (externalSandboxUrl) {
             // Refresh external sandbox iframe
