@@ -7,6 +7,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
     SandpackPreview as SandpackPreviewBase,
     SandpackConsole,
@@ -238,6 +239,10 @@ export default function SandpackPreviewWindow() {
     const [showHmrIndicator, setShowHmrIndicator] = useState(false);
     const hmrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // PHASE D: Take Control state for Phase 6 Browser Demo
+    const [takeControlAvailable, setTakeControlAvailable] = useState(false);
+    const [demoVisualScore, setDemoVisualScore] = useState<number | null>(null);
+
     // Check for external sandbox URL on mount and listen for updates
     useEffect(() => {
         // Check localStorage for persisted sandbox URL
@@ -411,7 +416,7 @@ export default function SandpackPreviewWindow() {
         }>) => {
             console.log('[SandpackPreview] Build demo ready event received:', event.detail);
 
-            const { url, takeControlAvailable, visualScore } = event.detail;
+            const { url, takeControlAvailable: canTakeControl, visualScore } = event.detail;
 
             // Update external sandbox URL if provided
             if (url) {
@@ -419,8 +424,15 @@ export default function SandpackPreviewWindow() {
                 localStorage.setItem(SANDBOX_URL_KEY, url);
             }
 
+            // PHASE D: Set Take Control state when Phase 6 complete
+            if (canTakeControl) {
+                setTakeControlAvailable(true);
+                setDemoVisualScore(visualScore);
+                console.log('[SandpackPreview] Take Control is now available. Visual score:', visualScore);
+            }
+
             // Auto-trigger demo when take control is available (Phase 6 complete)
-            if (takeControlAvailable) {
+            if (canTakeControl) {
                 console.log('[SandpackPreview] Auto-triggering Show Me demo. Visual score:', visualScore);
 
                 // Set loading state
@@ -506,15 +518,39 @@ export default function SandpackPreviewWindow() {
         }
     };
 
-    // Handle demo take control
+    // Handle demo take control - user is taking over from the AI agent demo
     const handleDemoTakeControl = () => {
         setIsDemoActive(false);
+        // Keep takeControlAvailable true so the button remains visible
     };
 
     // Handle demo complete
     const handleDemoComplete = () => {
         setIsDemoActive(false);
+        // Keep takeControlAvailable true so user can still take control
     };
+
+    // PHASE D: Handle Take Control button click - user takes control of the sandbox
+    const handleTakeControlClick = useCallback(() => {
+        console.log('[SandpackPreview] User taking control of sandbox:', externalSandboxUrl);
+
+        // Dispatch event for other components (ChatInterface, BuilderDesktop)
+        window.dispatchEvent(new CustomEvent('demo-take-control', {
+            detail: {
+                url: externalSandboxUrl,
+                visualScore: demoVisualScore,
+            }
+        }));
+
+        // Hide the Take Control button
+        setTakeControlAvailable(false);
+        setIsDemoActive(false);
+
+        // Open sandbox in new tab for full control
+        if (externalSandboxUrl) {
+            window.open(externalSandboxUrl, '_blank');
+        }
+    }, [externalSandboxUrl, demoVisualScore]);
 
     return (
         <div
@@ -777,6 +813,41 @@ export default function SandpackPreviewWindow() {
                         )}
                     </div>
                 </div>
+
+                {/* PHASE D: Floating Take Control Button - appears when Phase 6 Browser Demo is ready */}
+                {takeControlAvailable && (
+                    <motion.button
+                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                        onClick={handleTakeControlClick}
+                        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-2xl z-20"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.9) 100%)',
+                            boxShadow: `
+                                0 8px 32px rgba(16, 185, 129, 0.4),
+                                0 4px 16px rgba(0, 0, 0, 0.15),
+                                inset 0 1px 2px rgba(255, 255, 255, 0.3),
+                                0 0 0 1px rgba(255, 255, 255, 0.2)
+                            `,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <MousePointer2Icon size={20} className="text-white" />
+                        <div className="flex flex-col items-start">
+                            <span className="text-white font-semibold text-sm">Take Control</span>
+                            <span className="text-white/70 text-xs">Your app is ready</span>
+                        </div>
+                        {demoVisualScore !== null && (
+                            <div
+                                className="ml-2 px-2 py-1 rounded-lg bg-white/20"
+                            >
+                                <span className="text-white text-xs font-medium">{demoVisualScore}%</span>
+                            </div>
+                        )}
+                    </motion.button>
+                )}
             </div>
 
             {/* Console Panel - Dark Glass */}
