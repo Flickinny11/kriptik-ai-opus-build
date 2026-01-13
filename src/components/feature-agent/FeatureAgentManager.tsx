@@ -13,7 +13,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useFeatureAgentTileStore } from '@/store/useFeatureAgentTileStore';
 import { useFeatureAgentStore } from '@/store/feature-agent-store';
-import { FeatureAgentTile } from './FeatureAgentTile';
+import { FeatureAgentTileV2 } from './FeatureAgentTileV2';
 
 // Calculate staggered position for new tiles
 function calculatePosition(index: number): { x: number; y: number } {
@@ -173,7 +173,7 @@ export function FeatureAgentManager() {
                 if (!tile || tile.minimized) return null;
 
                 return (
-                    <FeatureAgentTile
+                    <FeatureAgentTileV2
                         key={agentId}
                         agentId={agentId}
                         onClose={() => minimizeTile(agentId)}
