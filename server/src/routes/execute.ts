@@ -35,6 +35,12 @@ import {
     createEnhancedBuildLoop,
     type EnhancedBuildConfig,
 } from '../services/automation/enhanced-build-loop.js';
+// Build Loop Bridge for bi-directional integration
+import {
+    getOrCreateBridge,
+    cleanupBridge,
+    type BuildLoopBridge,
+} from '../services/automation/build-loop-bridge.js';
 import { Complexity } from '../services/ai/krip-toe-nite/types.js';
 // Rich Context Integration
 import {
@@ -880,6 +886,28 @@ async function executeBuilderMode(
         }
 
         // =============================================================================
+        // CREATE BUILD LOOP BRIDGE (Bi-directional Integration)
+        // =============================================================================
+        const buildLoopBridge = getOrCreateBridge(buildId, context.projectId, context.userId);
+        buildLoopBridge.initializeFeedbackChannel();
+        
+        // Connect enhanced loop to bridge
+        buildLoopBridge.connectEnhancedLoop(enhancedBuildLoop);
+        
+        // Forward bridge events to context
+        buildLoopBridge.on('bridge-event', (event) => {
+            context.broadcast('builder-bridge-event', event);
+            
+            // Log quality metrics updates
+            if (event.type === 'verification-result' || event.type === 'visual-check-result' || event.type === 'anti-slop-result') {
+                const metrics = buildLoopBridge.getAggregatedMetrics();
+                context.broadcast('builder-quality-metrics', metrics);
+            }
+        });
+        
+        console.log(`[Execute:Builder] Build Loop Bridge initialized for build ${buildId}`);
+
+        // =============================================================================
         // CREATE BUILD LOOP ORCHESTRATOR (6-Phase Build)
         // =============================================================================
         // 'production' mode enables all advanced features:
@@ -902,6 +930,9 @@ async function executeBuilderMode(
                 projectPath: context.projectPath,
             }
         );
+        
+        // Connect main build loop to bridge
+        buildLoopBridge.connectMainLoop(buildLoop);
 
         // Forward build loop events to context
         buildLoop.on('event', (event) => {
@@ -1023,13 +1054,17 @@ async function executeBuilderMode(
         }
 
         // =============================================================================
-        // CLEANUP ENHANCED BUILD LOOP
+        // CLEANUP ENHANCED BUILD LOOP & BRIDGE
         // =============================================================================
         try {
+            // Clean up the bridge first (it will unsubscribe from both loops)
+            cleanupBridge(buildId);
+            console.log('[Execute:Builder] Build Loop Bridge cleaned up');
+            
             await enhancedBuildLoop.stop();
             console.log('[Execute:Builder] Enhanced Build Loop stopped');
         } catch (cleanupError) {
-            console.warn('[Execute:Builder] Error stopping Enhanced Build Loop:', cleanupError);
+            console.warn('[Execute:Builder] Error during cleanup:', cleanupError);
         }
 
     } catch (error) {
@@ -2541,6 +2576,20 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                 } catch (enhancedError) {
                     console.warn('[Execute:PlanApprove] Enhanced Build Loop failed (non-blocking):', enhancedError);
                 }
+                
+                // =============================================================================
+                // CREATE BUILD LOOP BRIDGE (Bi-directional Integration)
+                // =============================================================================
+                const buildLoopBridge = getOrCreateBridge(buildId, pendingBuild.projectId, pendingBuild.userId);
+                buildLoopBridge.initializeFeedbackChannel();
+                buildLoopBridge.connectEnhancedLoop(enhancedBuildLoop);
+                
+                buildLoopBridge.on('bridge-event', (event) => {
+                    context.broadcast('builder-bridge-event', event);
+                    if (event.type === 'verification-result' || event.type === 'visual-check-result' || event.type === 'anti-slop-result') {
+                        context.broadcast('builder-quality-metrics', buildLoopBridge.getAggregatedMetrics());
+                    }
+                });
 
                 // Create build loop orchestrator
                 const buildLoop = new BuildLoopOrchestrator(
@@ -2556,6 +2605,9 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                         deepIntentContractId: pendingBuild.deepIntentContractId,
                     } as any
                 );
+                
+                // Connect main build loop to bridge
+                buildLoopBridge.connectMainLoop(buildLoop);
 
                 buildLoop.on('event', (event) => {
                     context.broadcast(`builder-${event.type}`, event.data);
@@ -2564,6 +2616,9 @@ router.post('/plan/:sessionId/approve', async (req: Request, res: Response) => {
                 await buildLoop.start(pendingBuild.prompt);
 
                 const buildState = buildLoop.getState();
+                
+                // Clean up bridge before completion
+                cleanupBridge(buildId);
 
                 context.broadcast('builder-build-complete', {
                     status: buildState.status,
@@ -2800,6 +2855,20 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
                 } catch (enhancedError) {
                     console.warn('[Execute:PlanApprove] Enhanced Build Loop failed (non-blocking):', enhancedError);
                 }
+                
+                // =============================================================================
+                // CREATE BUILD LOOP BRIDGE (Bi-directional Integration)
+                // =============================================================================
+                const buildLoopBridge = getOrCreateBridge(buildId, pendingBuild.projectId, pendingBuild.userId);
+                buildLoopBridge.initializeFeedbackChannel();
+                buildLoopBridge.connectEnhancedLoop(enhancedBuildLoop);
+                
+                buildLoopBridge.on('bridge-event', (event) => {
+                    context.broadcast('builder-bridge-event', event);
+                    if (event.type === 'verification-result' || event.type === 'visual-check-result' || event.type === 'anti-slop-result') {
+                        context.broadcast('builder-quality-metrics', buildLoopBridge.getAggregatedMetrics());
+                    }
+                });
 
                 // Create build loop orchestrator
                 const buildLoop = new BuildLoopOrchestrator(
@@ -2815,6 +2884,9 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
                         deepIntentContractId: pendingBuild.deepIntentContractId,
                     } as any
                 );
+                
+                // Connect main build loop to bridge
+                buildLoopBridge.connectMainLoop(buildLoop);
 
                 buildLoop.on('event', (event) => {
                     context.broadcast(`builder-${event.type}`, event.data);
@@ -2823,6 +2895,9 @@ router.post('/plan/:sessionId/credentials', async (req: Request, res: Response) 
                 await buildLoop.start(pendingBuild.prompt);
 
                 const buildState = buildLoop.getState();
+                
+                // Clean up bridge before completion
+                cleanupBridge(buildId);
 
                 context.broadcast('builder-build-complete', {
                     status: buildState.status,

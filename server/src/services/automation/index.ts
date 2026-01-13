@@ -100,3 +100,15 @@ export {
     type FreezeServiceEvent,
 } from './build-freeze-service.js';
 
+// =============================================================================
+// BUILD LOOP BRIDGE - Bi-directional Integration Between Enhanced & Main Loops
+// =============================================================================
+
+export {
+    BuildLoopBridge,
+    getOrCreateBridge,
+    getBridge,
+    cleanupBridge,
+    type BridgeState,
+    type BridgeEvent,
+} from './build-loop-bridge.js';
