@@ -1,19 +1,23 @@
-
+import { useState } from 'react';
 import { useCostStore } from '../../store/useCostStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { CoinsIcon, AlertTriangleIcon, ArrowRightIcon } from '../ui/icons';
 import { cn } from '../../lib/utils';
+import { SpeedDialSelector, type BuildMode } from '../builder/SpeedDialSelector';
 
 interface CostEstimatorModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onConfirm: () => void;
+    onConfirm: (options?: { buildMode?: BuildMode }) => void;
 }
 
 export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: CostEstimatorModalProps) {
     const { currentEstimate, balance } = useCostStore();
+
+    // Phase F: Build mode selection state
+    const [buildMode, setBuildMode] = useState<BuildMode>('standard');
 
     if (!currentEstimate) return null;
 
@@ -71,6 +75,16 @@ export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: Co
                         </div>
                     </div>
 
+                    {/* Phase F: Build Mode Selector */}
+                    <div className="space-y-3">
+                        <div className="text-sm font-medium text-muted-foreground">Build Mode</div>
+                        <SpeedDialSelector
+                            selectedMode={buildMode}
+                            onModeChange={setBuildMode}
+                            showDetails={true}
+                        />
+                    </div>
+
                     {/* Balance Impact */}
                     <div className="space-y-3">
                         <div className="flex justify-between text-sm">
@@ -97,7 +111,7 @@ export default function CostEstimatorModal({ open, onOpenChange, onConfirm }: Co
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Adjust Scope
                     </Button>
-                    <Button onClick={onConfirm} className="gap-2">
+                    <Button onClick={() => onConfirm({ buildMode })} className="gap-2">
                         Proceed <ArrowRightIcon size={16} />
                     </Button>
                 </DialogFooter>

@@ -357,6 +357,9 @@ export default function ChatInterface({
 
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+    // Phase F: Selected build mode from CostEstimatorModal
+    const [selectedBuildMode, setSelectedBuildMode] = useState<BuildModeType>(buildMode);
     const [showBreakdown, setShowBreakdown] = useState(false);
 
     // KTN State (used for quick questions only, builds use full orchestration)
@@ -695,8 +698,14 @@ export default function ChatInterface({
         return prompt.length > 50;
     };
 
-    const confirmGeneration = async () => {
+    const confirmGeneration = async (options?: { buildMode?: BuildModeType }) => {
         if (!pendingPrompt) return;
+
+        // Phase F: Update selected build mode if passed from modal
+        if (options?.buildMode) {
+            setSelectedBuildMode(options.buildMode);
+        }
+        const effectiveBuildMode = options?.buildMode || selectedBuildMode;
 
         setShowCostEstimator(false);
         resetSessionCost();
@@ -763,7 +772,7 @@ export default function ChatInterface({
                         userId,
                         projectId: currentProjectId,
                         prompt,
-                        buildMode, // Pass selected build mode to backend
+                        buildMode: effectiveBuildMode, // Phase F: Use selected build mode from modal
                     }),
                 });
 
