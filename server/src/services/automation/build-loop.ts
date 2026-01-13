@@ -32,6 +32,7 @@ import {
 import {
     createFeatureListManager,
     type Feature,
+    type FeatureCategory,
     type FeatureListSummary,
 } from '../ai/feature-list.js';
 import {
@@ -608,6 +609,9 @@ export interface BuildLoopEvent {
         | 'pre-flight-started' | 'pre-flight-complete' | 'pre-flight-error'
         // PHASE 4: Anti-Slop auto-fix events
         | 'antislop-violation-detected' | 'antislop-fix-applied' | 'antislop-verification-passed'
+        // PHASE 7: Speculative cache events
+        | 'speculative-warmup-start' | 'speculative-warmup-feature' | 'speculative-warmup-complete'
+        | 'speculative-prebuild-start' | 'speculative-cache-hit' | 'speculative-cache-miss'
         // Git branch management events
         | 'git_committed' | 'git_merged';
     timestamp: Date;
@@ -2147,6 +2151,15 @@ export class BuildLoopOrchestrator extends EventEmitter {
      */
     private async executePhase2_ParallelBuild(stage: BuildStage): Promise<void> {
         this.startPhase('parallel_build');
+        
+        // =========================================================================
+        // PHASE 7: Warm speculative cache with likely first features
+        // =========================================================================
+        if (this.state.featureSummary?.features && this.speculativeCache.size === 0) {
+            this.warmSpeculativeCache(this.state.featureSummary.features).catch(err => {
+                console.warn('[Speculative] Cache warming failed (non-blocking):', err);
+            });
+        }
 
         // =========================================================================
         // SESSION 5: Start continuous verification with swarm quick checks
@@ -4538,6 +4551,120 @@ Return JSON:
     // SESSION 8: SPECULATIVE PARALLEL PRE-BUILDING
     // Faster than speculative - generates likely next features IN ADVANCE
     // =========================================================================
+    
+    /**
+     * Warm the speculative cache at the start of a build
+     * Pre-generates likely first features based on the implementation plan
+     * 
+     * @param featureSummaries - Simplified feature list from FeatureListSummary
+     */
+    async warmSpeculativeCache(featureSummaries: Array<{
+        featureId: string;
+        description: string;
+        passes: boolean;
+        priority: number;
+        assignedAgent: string | null;
+    }>): Promise<void> {
+        // Get first N features that are most likely to be built first
+        const warmupFeatures = featureSummaries
+            .filter(f => !f.passes && f.priority >= 80)
+            .sort((a, b) => b.priority - a.priority)
+            .slice(0, 5); // Warm up to 5 features
+        
+        console.log(`[Speculative] 🔥 Warming cache with ${warmupFeatures.length} likely first features`);
+        
+        this.emitEvent('speculative-warmup-start', {
+            count: warmupFeatures.length,
+            features: warmupFeatures.map(f => f.featureId),
+        });
+        
+        // Convert simplified features to lightweight Feature-like objects for preGenerate
+        const warmupPromises = warmupFeatures.map(async feature => {
+            const nowIso = new Date().toISOString();
+            const lightweightFeature: Feature = {
+                id: feature.featureId,
+                featureId: feature.featureId,
+                description: feature.description,
+                category: 'core' as FeatureCategory,
+                priority: feature.priority,
+                passes: feature.passes,
+                verificationStatus: {
+                    errorCheck: 'pending',
+                    codeQuality: 'pending',
+                    visualVerify: 'pending',
+                    placeholderCheck: 'pending',
+                    designStyle: 'pending',
+                    securityScan: 'pending',
+                },
+                verificationScores: null,
+                buildAttempts: 0,
+                filesModified: [],
+                assignedAgent: feature.assignedAgent,
+                assignedAt: null,
+                lastBuildAt: null,
+                passedAt: null,
+                visualRequirements: [],
+                implementationSteps: [],
+                // Required fields with defaults
+                buildIntentId: this.state.intentContract?.id || '',
+                orchestrationRunId: this.state.orchestrationRunId,
+                projectId: this.state.projectId,
+                createdAt: nowIso,
+                updatedAt: nowIso,
+            };
+            
+            const cacheKey = this.getSpeculativeCacheKey(lightweightFeature);
+            
+            if (this.speculativeCache.has(cacheKey)) {
+                return; // Already cached
+            }
+            
+            this.speculativeGenerationInProgress.add(cacheKey);
+            
+            try {
+                await this.preGenerateFeature(lightweightFeature, cacheKey);
+                this.emitEvent('speculative-warmup-feature', {
+                    featureId: feature.featureId,
+                    status: 'cached',
+                });
+            } catch (err) {
+                console.warn(`[Speculative] Warmup failed for ${feature.featureId}:`, err);
+                this.speculativeGenerationInProgress.delete(cacheKey);
+            }
+        });
+        
+        // Wait for all warmup to complete (with timeout)
+        await Promise.race([
+            Promise.all(warmupPromises),
+            new Promise(resolve => setTimeout(resolve, 30000)), // 30s timeout
+        ]);
+        
+        this.emitEvent('speculative-warmup-complete', {
+            cachedFeatures: Array.from(this.speculativeCache.keys()),
+            cacheSize: this.speculativeCache.size,
+        });
+        
+        console.log(`[Speculative] 🔥 Cache warmed with ${this.speculativeCache.size} features`);
+    }
+    
+    /**
+     * Get current speculative cache statistics
+     */
+    getSpeculativeStats(): {
+        hitRate: number;
+        totalHits: number;
+        totalMisses: number;
+        cacheSize: number;
+        inProgress: number;
+    } {
+        return {
+            hitRate: this.speculativeHitRate,
+            totalHits: this.speculativeTotalHits,
+            totalMisses: this.speculativeTotalMisses,
+            cacheSize: this.speculativeCache.size,
+            inProgress: this.speculativeGenerationInProgress.size,
+        };
+    }
 
     /**
      * Start speculative pre-building for likely next features
@@ -4548,6 +4675,12 @@ Return JSON:
         const nextFeatures = this.predictNextFeatures(currentFeature, allFeatures, 3);
 
         console.log(`[Speculative] Starting pre-build for ${nextFeatures.length} likely next features`);
+        
+        // Emit event for UI tracking
+        this.emitEvent('speculative-prebuild-start', {
+            currentFeature: currentFeature.featureId,
+            nextFeatures: nextFeatures.map(f => f.featureId),
+        });
 
         // Start pre-generation in parallel (non-blocking)
         for (const feature of nextFeatures) {
@@ -4666,6 +4799,14 @@ Use common patterns and best practices for quick generation.`;
             this.speculativeTotalHits++;
             this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
             console.log(`[Speculative] 🎯 CACHE HIT for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
+            
+            // Emit cache hit event
+            this.emitEvent('speculative-cache-hit', {
+                featureId: feature.featureId,
+                hitRate: this.speculativeHitRate,
+                totalHits: this.speculativeTotalHits,
+                filesCount: cached.files.length,
+            });
 
             // Remove from cache after use
             this.speculativeCache.delete(cacheKey);
@@ -4676,6 +4817,14 @@ Use common patterns and best practices for quick generation.`;
         this.speculativeTotalMisses++;
         this.speculativeHitRate = this.speculativeTotalHits / (this.speculativeTotalHits + this.speculativeTotalMisses);
         console.log(`[Speculative] ❌ CACHE MISS for ${feature.featureId} (hit rate: ${(this.speculativeHitRate * 100).toFixed(1)}%)`);
+        
+        // Emit cache miss event
+        this.emitEvent('speculative-cache-miss', {
+            featureId: feature.featureId,
+            hitRate: this.speculativeHitRate,
+            totalMisses: this.speculativeTotalMisses,
+        });
+        
         return null;
     }
 
