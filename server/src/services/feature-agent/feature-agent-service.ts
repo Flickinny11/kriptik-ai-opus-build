@@ -25,7 +25,7 @@
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../db.js';
-import { files } from '../../schema.js';
+import { files, developerModeAgents } from '../../schema.js';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -112,6 +112,13 @@ import {
     type MergeResult as GitMergeResult,
 } from '../developer-mode/git-branch-manager.js';
 
+// Sandbox Service for live preview environments
+import {
+    SandboxService,
+    createSandboxService,
+    type SandboxInstance,
+} from '../developer-mode/sandbox-service.js';
+
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
     content: string;
@@ -168,6 +175,10 @@ type FeatureAgentRuntime = {
     // Continuous Learning Engine integration
     /** Continuous Learning session ID for this feature agent */
     clSessionId: string | null;
+    /** Sandbox instance for live preview */
+    sandbox: SandboxInstance | null;
+    /** URL of the sandbox for live preview */
+    sandboxUrl: string | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -244,11 +255,25 @@ export class FeatureAgentService extends EventEmitter {
     private continuousLearningEngine: ContinuousLearningEngine | null = null;
     private agentNetwork: AgentNetworkService | null = null;
 
-    /** Max escalation attempts before giving up on a feature agent */
-    private static readonly MAX_ESCALATION_ROUNDS = 3;
+    // Sandbox Service for live preview environments
+    private sandboxService: SandboxService;
+
+    /** Max escalation attempts before giving up - set to very high for "never give up" philosophy */
+    private static readonly MAX_ESCALATION_ROUNDS = 100;
 
     constructor() {
         super();
+        // Initialize Sandbox Service for live preview
+        this.sandboxService = createSandboxService({
+            basePort: 3200, // Start from port 3200 to avoid conflicts
+            maxSandboxes: 10, // Allow up to 10 concurrent sandboxes
+            projectPath: '/tmp/builds',
+            framework: 'vite',
+        });
+        this.sandboxService.initialize().catch(err => {
+            console.warn('[FeatureAgentService] Sandbox service initialization failed (non-fatal):', err);
+        });
+
         // Initialize Continuous Learning Engine
         try {
             this.continuousLearningEngine = getContinuousLearningEngine();
@@ -284,6 +309,77 @@ export class FeatureAgentService extends EventEmitter {
             }
         }
         return out;
+    }
+
+    /**
+     * Get the sandbox URL for a feature agent
+     * Returns null if sandbox is not yet created
+     */
+    getSandboxUrl(agentId: string): string | null {
+        const rt = this.agents.get(agentId);
+        return rt?.sandboxUrl ?? null;
+    }
+
+    /**
+     * Get full sandbox info for a feature agent
+     */
+    getSandboxInfo(agentId: string): { url: string; port: number; status: string } | null {
+        const rt = this.agents.get(agentId);
+        if (!rt?.sandbox) return null;
+        return {
+            url: rt.sandbox.url,
+            port: rt.sandbox.port,
+            status: rt.sandbox.status,
+        };
+    }
+
+    /**
+     * Persist implementation plan to database
+     * This ensures plan modifications survive agent restarts and page refreshes
+     */
+    private async persistImplementationPlan(agentId: string, plan: ImplementationPlan): Promise<void> {
+        try {
+            const rt = this.agents.get(agentId);
+            if (!rt) {
+                console.warn(`[FeatureAgentService] Cannot persist plan - agent ${agentId} not found`);
+                return;
+            }
+
+            // Update the developerModeAgents table with the implementation plan
+            const result = await db.update(developerModeAgents)
+                .set({
+                    implementationPlanJson: plan as unknown as Record<string, unknown>,
+                    updatedAt: new Date().toISOString(),
+                })
+                .where(eq(developerModeAgents.id, agentId));
+
+            console.log(`[FeatureAgentService] Implementation plan persisted for agent ${agentId}`);
+        } catch (error) {
+            // Non-fatal - plan is still in memory
+            console.error(`[FeatureAgentService] Failed to persist implementation plan for ${agentId}:`, error);
+        }
+    }
+
+    /**
+     * Load implementation plan from database
+     * Called when restoring an agent or refreshing state
+     */
+    private async loadImplementationPlanFromDb(agentId: string): Promise<ImplementationPlan | null> {
+        try {
+            const [agent] = await db.select()
+                .from(developerModeAgents)
+                .where(eq(developerModeAgents.id, agentId))
+                .limit(1);
+
+            if (!agent?.implementationPlanJson) {
+                return null;
+            }
+
+            return agent.implementationPlanJson as unknown as ImplementationPlan;
+        } catch (error) {
+            console.error(`[FeatureAgentService] Failed to load implementation plan for ${agentId}:`, error);
+            return null;
+        }
     }
 
     /**
@@ -772,6 +868,9 @@ ${basePrompt}`;
             deepIntentId: null,
             // Continuous Learning Engine integration
             clSessionId: null,
+            // Sandbox for live preview
+            sandbox: null,
+            sandboxUrl: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -785,6 +884,10 @@ ${basePrompt}`;
                 const intent = await this.analyzeIntent(id, config.taskPrompt);
                 const plan = await this.generateImplementationPlan(id, intent);
                 agent.implementationPlan = plan;
+
+                // Persist plan to database for durability across refreshes
+                await this.persistImplementationPlan(id, plan);
+
                 this.setStatus(id, 'awaiting_plan_approval');
                 this.emitStream(id, {
                     type: 'plan',
@@ -915,6 +1018,9 @@ ${basePrompt}`;
         phase.approved = true;
         this.emitStream(agentId, { type: 'status', content: `Approved phase: ${phase.name}`, timestamp: Date.now() });
 
+        // Persist approval status to database
+        await this.persistImplementationPlan(agentId, plan);
+
         if (plan.phases.every((p) => p.approved)) {
             await this.approveAllPhases(agentId);
         }
@@ -977,6 +1083,9 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             metadata: { plan },
         });
 
+        // Persist modified plan to database
+        await this.persistImplementationPlan(agentId, plan);
+
         return plan;
     }
 
@@ -986,6 +1095,10 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         if (!plan) throw new Error('No implementation plan');
 
         for (const ph of plan.phases) ph.approved = true;
+
+        // Persist all phases approved to database
+        await this.persistImplementationPlan(agentId, plan);
+
         this.emitStream(agentId, { type: 'status', content: 'Plan approved.', timestamp: Date.now(), metadata: { event: 'plan_approved' } });
 
         if ((plan.requiredCredentials || []).some((c) => c.required)) {
@@ -1165,8 +1278,32 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
-        const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
         const worktreesBasePath = `/tmp/worktrees/${rt.config.projectId}`;
+
+        // =============================================================================
+        // CREATE SANDBOX FOR LIVE PREVIEW
+        // =============================================================================
+        try {
+            const sandbox = await this.sandboxService.createSandbox(agentId, projectPath);
+            rt.sandbox = sandbox;
+            rt.sandboxUrl = sandbox.url;
+
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Live preview sandbox created at ${sandbox.url}`,
+                timestamp: Date.now(),
+                metadata: { sandboxUrl: sandbox.url, sandboxId: sandbox.id, port: sandbox.port },
+            });
+
+            console.log(`[FeatureAgent] Sandbox created for ${agentId}: ${sandbox.url}`);
+        } catch (sandboxError) {
+            console.warn(`[FeatureAgent] Sandbox creation failed for ${agentId}:`, sandboxError);
+            this.emitStream(agentId, {
+                type: 'thinking',
+                content: 'Live preview sandbox unavailable - build will continue without live preview',
+                timestamp: Date.now(),
+            });
+        }
 
         // =============================================================================
         // INITIALIZE GIT BRANCH MANAGER FOR MERGE OPERATIONS

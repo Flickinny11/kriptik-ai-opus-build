@@ -1451,6 +1451,7 @@ export const developerModeAgents = sqliteTable('developer_mode_agents', {
     effortLevel: text('effort_level'),
     thinkingBudget: integer('thinking_budget'),
     intentLockId: text('intent_lock_id'),
+    implementationPlanJson: text('implementation_plan_json', { mode: 'json' }), // Stores Feature Agent implementation plan with user modifications
     stepsCompleted: integer('steps_completed').default(0),
     stepsTotal: integer('steps_total').default(0),
     rollbackStrategy: text('rollback_strategy'),

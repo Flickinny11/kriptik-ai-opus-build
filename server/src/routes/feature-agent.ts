@@ -294,33 +294,51 @@ router.post('/:agentId/accept-merge', requireAuth, async (req: Request, res: Res
 });
 
 // GET /api/feature-agent/:agentId/preview
-// Real implementation uses existing Developer Mode sandbox service via sessionId, once available.
+// Returns the live sandbox URL for the feature agent's preview environment.
 router.get('/:agentId/preview', requireAuth, async (req: Request, res: Response) => {
   try {
     const agentId = req.params.agentId;
     const cfg = ensureOwner(req, res, agentId);
     if (!cfg) return;
 
+    // First check if the feature agent has a direct sandbox URL
+    const sandboxUrl = featureAgentService.getSandboxUrl(agentId);
+    if (sandboxUrl) {
+      const sandboxInfo = featureAgentService.getSandboxInfo(agentId);
+      return res.json({
+        success: true,
+        sandboxUrl,
+        port: sandboxInfo?.port,
+        status: sandboxInfo?.status || 'running',
+        source: 'feature-agent-sandbox',
+      });
+    }
+
+    // Fallback to Developer Mode session if no direct sandbox
     if (!cfg.sessionId) {
-      return res.status(409).json({ error: 'Feature Agent has no active session yet. Start implementation first.' });
+      return res.status(409).json({
+        error: 'Feature Agent has no active sandbox yet. Start implementation first.',
+        hint: 'Call POST /api/feature-agent/:agentId/start to begin implementation and create a sandbox.',
+      });
     }
 
-    // We use the Developer Mode sandbox (sessionId is used as sandbox agentId key in that service).
-    const sandboxResp = await (async () => {
-      // Call underlying orchestrator-managed route behavior by reusing its sandbox key. We need the actual worktree path,
-      // which is managed by Developer Mode; if not available, return a clear error.
-      const session = await developerModeOrchestrator.getSession(cfg.sessionId);
-      if (!session) return null;
-      const worktreePath = session.workBranch ? `/tmp/developer-mode/${cfg.sessionId}` : `/tmp/developer-mode/${cfg.sessionId}`;
-      return { sessionId: cfg.sessionId, worktreePath };
-    })();
-
-    if (!sandboxResp) {
-      return res.status(404).json({ error: 'Session not found for sandbox preview' });
+    // Try to get sandbox from Developer Mode orchestrator
+    const session = await developerModeOrchestrator.getSession(cfg.sessionId);
+    if (!session) {
+      return res.status(404).json({
+        error: 'Session not found for sandbox preview',
+        sessionId: cfg.sessionId,
+      });
     }
 
-    // The canonical sandbox endpoints live under /api/developer-mode/sandbox; we return the sessionId so the client can request it.
-    res.json({ success: true, sessionId: sandboxResp.sessionId, note: 'Use /api/developer-mode/sandbox with this sessionId to obtain preview URL.' });
+    // Return session info for fallback sandbox lookup
+    res.json({
+      success: true,
+      sessionId: cfg.sessionId,
+      workBranch: session.workBranch,
+      source: 'developer-mode-session',
+      hint: 'Use /api/developer-mode/sandbox with this sessionId to obtain preview URL.',
+    });
   } catch (error) {
     console.error('[Feature Agent] Preview error:', error);
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get preview' });

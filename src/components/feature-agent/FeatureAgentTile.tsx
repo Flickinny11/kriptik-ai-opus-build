@@ -118,6 +118,8 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
   const setImplementationPlan = useFeatureAgentTileStore((s) => s.setImplementationPlan);
   const setRequiredCredentials = useFeatureAgentTileStore((s) => s.setRequiredCredentials);
   const setIntegrationRequirements = useFeatureAgentTileStore((s) => s.setIntegrationRequirements);
+  const setSandboxUrl = useFeatureAgentTileStore((s) => s.setSandboxUrl);
+  const setEscalationProgress = useFeatureAgentTileStore((s) => s.setEscalationProgress);
 
   // Ghost Mode state from persisted store
   const runningAgent = useFeatureAgentStore((s) => s.runningAgents.find((a) => a.id === agentId));
@@ -275,6 +277,17 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           setTileStatus(agentId, 'awaiting_integrations');
         }
 
+        // Handle sandbox URL from backend
+        const meta = (data.metadata || {}) as Record<string, unknown>;
+        if (typeof meta.sandboxUrl === 'string' && meta.sandboxUrl) {
+          setSandboxUrl(agentId, meta.sandboxUrl);
+        }
+
+        // Handle escalation progress from backend
+        if (typeof meta.escalationLevel === 'number' && typeof meta.escalationAttempt === 'number') {
+          setEscalationProgress(agentId, meta.escalationLevel, meta.escalationAttempt);
+        }
+
         push({
           type: data.type,
           content: data.content,
@@ -305,7 +318,7 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
       es.close();
       eventSourceRef.current = null;
     };
-  }, [agentId, tile, addMessage, setTileStatus, updateProgress, setImplementationPlan, setRequiredCredentials, setIntegrationRequirements]);
+  }, [agentId, tile, addMessage, setTileStatus, updateProgress, setImplementationPlan, setRequiredCredentials, setIntegrationRequirements, setSandboxUrl, setEscalationProgress]);
 
   // Close SSE when minimized to reduce background load.
   useEffect(() => {
@@ -552,11 +565,11 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
       )}
 
       {/* Feature Preview Window */}
-      {showPreviewWindow && (
+      {showPreviewWindow && tile?.sandboxUrl && (
         <FeaturePreviewWindow
           agentId={agentId}
           featureName={headerMeta.name}
-          sandboxUrl={`http://localhost:3100`}
+          sandboxUrl={tile.sandboxUrl}
           onAccept={() => {
             addMessage(agentId, {
               type: 'result',
@@ -568,6 +581,21 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
           }}
           onClose={() => setShowPreviewWindow(false)}
         />
+      )}
+      {showPreviewWindow && !tile?.sandboxUrl && (
+        <div className="fa-tile__preview-loading">
+          <div className="fa-tile__preview-loading-content">
+            <div className="fa-tile__preview-loading-spinner" />
+            <span>Initializing preview sandbox...</span>
+            <button
+              type="button"
+              className="fa-tile__preview-loading-close"
+              onClick={() => setShowPreviewWindow(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </motion.div>
   );

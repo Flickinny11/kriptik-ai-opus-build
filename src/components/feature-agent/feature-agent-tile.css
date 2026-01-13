@@ -365,3 +365,70 @@
   background: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
 }
+
+/* Preview Loading State */
+.fa-tile__preview-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.fa-tile__preview-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 48px;
+  background: linear-gradient(180deg, rgba(20, 24, 33, 0.95), rgba(12, 15, 20, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.fa-tile__preview-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(245, 168, 108, 0.2);
+  border-top-color: #F5A86C;
+  border-radius: 50%;
+  animation: previewSpinner 0.8s linear infinite;
+}
+
+@keyframes previewSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fa-tile__preview-loading-content span {
+  font-size: 14px;
+  font-weight: 550;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: -0.01em;
+}
+
+.fa-tile__preview-loading-close {
+  margin-top: 8px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fa-tile__preview-loading-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+}

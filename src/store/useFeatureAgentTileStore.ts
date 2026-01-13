@@ -86,6 +86,9 @@ export interface FeatureAgentTileState {
   implementationPlan?: ImplementationPlan;
   requiredCredentials?: RequiredCredential[];
   integrationRequirements?: IntegrationRequirement[];
+  sandboxUrl?: string;
+  escalationLevel?: number;
+  escalationAttempt?: number;
   lastUpdatedAt: number;
 }
 
@@ -102,6 +105,8 @@ interface FeatureAgentTileStore {
   setImplementationPlan: (agentId: string, plan: ImplementationPlan) => void;
   setRequiredCredentials: (agentId: string, credentials: RequiredCredential[]) => void;
   setIntegrationRequirements: (agentId: string, requirements: IntegrationRequirement[]) => void;
+  setSandboxUrl: (agentId: string, url: string) => void;
+  setEscalationProgress: (agentId: string, level: number, attempt: number) => void;
   addMessage: (agentId: string, msg: StreamMessage) => void;
   updateProgress: (agentId: string, progress: number, currentPhase?: string) => void;
 }
@@ -247,6 +252,34 @@ export const useFeatureAgentTileStore = create<FeatureAgentTileStore>()(
             },
           };
         }, false, { type: 'featureAgentTile/integrations', agentId });
+      },
+
+      setSandboxUrl: (agentId, url) => {
+        set((state) => {
+          const tile = state.tiles[agentId];
+          if (!tile) return state;
+          return {
+            ...state,
+            tiles: {
+              ...state.tiles,
+              [agentId]: { ...tile, sandboxUrl: url, lastUpdatedAt: Date.now() },
+            },
+          };
+        }, false, { type: 'featureAgentTile/sandboxUrl', agentId });
+      },
+
+      setEscalationProgress: (agentId, level, attempt) => {
+        set((state) => {
+          const tile = state.tiles[agentId];
+          if (!tile) return state;
+          return {
+            ...state,
+            tiles: {
+              ...state.tiles,
+              [agentId]: { ...tile, escalationLevel: level, escalationAttempt: attempt, lastUpdatedAt: Date.now() },
+            },
+          };
+        }, false, { type: 'featureAgentTile/escalation', agentId });
       },
 
       addMessage: (agentId, msg) => {
