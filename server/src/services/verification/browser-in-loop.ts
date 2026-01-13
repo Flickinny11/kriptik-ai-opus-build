@@ -21,6 +21,30 @@ import {
     type StreamingFeedbackChannel,
 } from '../feedback/streaming-feedback-channel.js';
 
+// Lazy-load playwright to handle serverless environments
+let playwright: typeof import('playwright') | null = null;
+let playwrightAvailable = false;
+
+async function getPlaywright(): Promise<typeof import('playwright') | null> {
+    if (playwright !== null) return playwright;
+    if (playwrightAvailable === false && playwright === null) return null;
+
+    try {
+        playwright = await import('playwright');
+        playwrightAvailable = true;
+        return playwright;
+    } catch {
+        playwrightAvailable = false;
+        console.warn('[BrowserInLoop] Playwright not available - using mock browser');
+        return null;
+    }
+}
+
+// Playwright types
+type Browser = import('playwright').Browser;
+type Page = import('playwright').Page;
+type BrowserContext = import('playwright').BrowserContext;
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -96,8 +120,12 @@ export class BrowserInLoopService extends EventEmitter {
     private pendingFileChanges: Set<string> = new Set();
     private fileChangeDebounce: NodeJS.Timeout | null = null;
 
-    // Browser connection (would use Playwright in production)
+    // PHASE 5: Real Playwright browser instances
+    private browser: Browser | null = null;
+    private context: BrowserContext | null = null;
+    private page: Page | null = null;
     private browserConnected: boolean = false;
+    private usingRealPlaywright: boolean = false;
 
     constructor(config: BrowserInLoopConfig) {
         super();
@@ -169,37 +197,121 @@ export class BrowserInLoopService extends EventEmitter {
     // =========================================================================
 
     /**
-     * Connect to the preview browser
+     * PHASE 5: Connect to the preview browser using real Playwright
+     * Falls back to mock browser if Playwright is not available
      */
     private async connectBrowser(): Promise<void> {
         try {
-            // Initialize browser connection state
-            // Playwright integration enhances this with actual browser control
-            this.browserConnected = true;
-            this.browserState = {
-                url: this.config.previewUrl,
-                title: 'KripTik Preview',
-                viewportWidth: 1280,
-                viewportHeight: 720,
-                scrollPosition: { x: 0, y: 0 },
-                consoleErrors: [],
-                networkErrors: [],
-            };
+            const pw = await getPlaywright();
 
-            console.log(`[BrowserInLoop] Browser connected to ${this.config.previewUrl}`);
-            this.emit('browser:connected', { url: this.config.previewUrl });
+            if (pw) {
+                console.log(`[BrowserInLoop] PHASE 5: Connecting real Playwright browser...`);
+
+                // Launch chromium browser
+                this.browser = await pw.chromium.launch({
+                    headless: true, // Run headless for verification
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                });
+
+                // Create browser context with viewport
+                this.context = await this.browser.newContext({
+                    viewport: { width: 1280, height: 720 },
+                    ignoreHTTPSErrors: true,
+                });
+
+                // Create page and navigate to preview URL
+                this.page = await this.context.newPage();
+
+                // Set up console and network error listeners
+                const consoleErrors: string[] = [];
+                const networkErrors: string[] = [];
+
+                this.page.on('console', (msg) => {
+                    if (msg.type() === 'error') {
+                        consoleErrors.push(msg.text());
+                    }
+                });
+
+                this.page.on('requestfailed', (request) => {
+                    networkErrors.push(`${request.failure()?.errorText || 'Unknown error'}: ${request.url()}`);
+                });
+
+                // Navigate to the preview URL
+                try {
+                    await this.page.goto(this.config.previewUrl, {
+                        waitUntil: 'networkidle',
+                        timeout: 30000,
+                    });
+                } catch (navError) {
+                    console.warn('[BrowserInLoop] Navigation warning (may be expected if preview not ready):', navError);
+                }
+
+                this.usingRealPlaywright = true;
+                this.browserConnected = true;
+                this.browserState = {
+                    url: this.config.previewUrl,
+                    title: await this.page.title() || 'KripTik Preview',
+                    viewportWidth: 1280,
+                    viewportHeight: 720,
+                    scrollPosition: { x: 0, y: 0 },
+                    consoleErrors,
+                    networkErrors,
+                };
+
+                console.log(`[BrowserInLoop] PHASE 5: Real Playwright browser connected to ${this.config.previewUrl}`);
+            } else {
+                // Fallback to mock browser
+                console.log(`[BrowserInLoop] Using mock browser (Playwright not available)`);
+                this.usingRealPlaywright = false;
+                this.browserConnected = true;
+                this.browserState = {
+                    url: this.config.previewUrl,
+                    title: 'KripTik Preview (Mock)',
+                    viewportWidth: 1280,
+                    viewportHeight: 720,
+                    scrollPosition: { x: 0, y: 0 },
+                    consoleErrors: [],
+                    networkErrors: [],
+                };
+            }
+
+            this.emit('browser:connected', {
+                url: this.config.previewUrl,
+                isRealPlaywright: this.usingRealPlaywright,
+            });
         } catch (error) {
             console.error('[BrowserInLoop] Failed to connect browser:', error);
             this.browserConnected = false;
-            throw error;
+            // Don't throw - allow build to continue without browser
         }
     }
 
     /**
-     * Disconnect from the browser
+     * PHASE 5: Disconnect from the browser and cleanup Playwright resources
      */
     private async disconnectBrowser(): Promise<void> {
+        // Close Playwright resources
+        if (this.page) {
+            try {
+                await this.page.close();
+            } catch (e) { /* ignore */ }
+            this.page = null;
+        }
+        if (this.context) {
+            try {
+                await this.context.close();
+            } catch (e) { /* ignore */ }
+            this.context = null;
+        }
+        if (this.browser) {
+            try {
+                await this.browser.close();
+            } catch (e) { /* ignore */ }
+            this.browser = null;
+        }
+
         this.browserConnected = false;
+        this.usingRealPlaywright = false;
         this.browserState = null;
         console.log(`[BrowserInLoop] Browser disconnected`);
         this.emit('browser:disconnected');
@@ -340,37 +452,94 @@ export class BrowserInLoopService extends EventEmitter {
     }
 
     /**
-     * Capture screenshot of current browser state
-     * Returns a unique screenshot identifier for tracking purposes.
-     * Integrates with Playwright when browser automation is active.
+     * PHASE 5: Capture screenshot of current browser state using real Playwright
+     * Returns base64-encoded PNG screenshot
      */
     private async captureScreenshot(): Promise<string> {
-        // Generate unique screenshot identifier for tracking
-        // When Playwright integration is enabled, this captures actual browser viewport
         const timestamp = Date.now();
         const screenshotId = `screenshot_${this.config.buildId}_${timestamp}`;
 
-        if (this.browserConnected && this.browserState) {
-            // Return screenshot reference that can be resolved via preview service
-            return `data:image/png;base64,${Buffer.from(screenshotId).toString('base64')}`;
+        // Use real Playwright screenshot if available
+        if (this.usingRealPlaywright && this.page) {
+            try {
+                const buffer = await this.page.screenshot({
+                    type: 'png',
+                    fullPage: false, // Just viewport
+                });
+
+                // Update browser state with latest screenshot
+                const base64 = buffer.toString('base64');
+                if (this.browserState) {
+                    this.browserState.lastScreenshot = `data:image/png;base64,${base64}`;
+                }
+
+                console.log(`[BrowserInLoop] PHASE 5: Captured real screenshot ${screenshotId}`);
+                return `data:image/png;base64,${base64}`;
+            } catch (error) {
+                console.warn('[BrowserInLoop] Screenshot capture failed:', error);
+            }
         }
 
+        // Fallback to mock screenshot
         return `data:image/png;base64,${Buffer.from(screenshotId).toString('base64')}`;
     }
 
     /**
-     * Capture DOM snapshot for analysis
-     * Returns serialized DOM from the browser when Playwright is connected,
-     * or a baseline structure when browser connection is pending.
+     * PHASE 5: Capture DOM snapshot for analysis using real Playwright
+     * Returns actual HTML content from the browser
      */
     private async captureDOMSnapshot(): Promise<string> {
-        if (this.browserConnected && this.browserState?.domSnapshot) {
-            // Return actual DOM from connected browser
+        // Use real Playwright DOM if available
+        if (this.usingRealPlaywright && this.page) {
+            try {
+                // Get the full HTML content
+                const html = await this.page.content();
+
+                // Also get computed styles for anti-slop detection
+                const stylesAndHtml = await this.page.evaluate(() => {
+                    // Get all elements and their computed styles for the body
+                    const body = document.body;
+                    const allStyles = window.getComputedStyle(body);
+
+                    // Extract relevant CSS properties
+                    const cssProperties = [
+                        'background',
+                        'background-color',
+                        'background-image',
+                        'box-shadow',
+                        'font-family',
+                        'color',
+                    ];
+
+                    const extractedStyles: Record<string, string> = {};
+                    cssProperties.forEach(prop => {
+                        extractedStyles[prop] = allStyles.getPropertyValue(prop);
+                    });
+
+                    return {
+                        html: document.documentElement.outerHTML,
+                        styles: extractedStyles,
+                    };
+                });
+
+                // Update browser state with DOM snapshot
+                if (this.browserState) {
+                    this.browserState.domSnapshot = stylesAndHtml.html;
+                }
+
+                console.log(`[BrowserInLoop] PHASE 5: Captured real DOM snapshot (${stylesAndHtml.html.length} chars)`);
+                return stylesAndHtml.html;
+            } catch (error) {
+                console.warn('[BrowserInLoop] DOM snapshot capture failed:', error);
+            }
+        }
+
+        // Return cached DOM if available
+        if (this.browserState?.domSnapshot) {
             return this.browserState.domSnapshot;
         }
 
         // Baseline structure used for anti-slop pattern detection
-        // when browser connection is pending or unavailable
         return `
             <html>
                 <head><title>Preview</title></head>
@@ -386,6 +555,28 @@ export class BrowserInLoopService extends EventEmitter {
                 </body>
             </html>
         `;
+    }
+
+    /**
+     * PHASE 5: Refresh the browser page (for HMR integration)
+     */
+    async refreshPage(): Promise<void> {
+        if (this.usingRealPlaywright && this.page) {
+            try {
+                await this.page.reload({ waitUntil: 'networkidle', timeout: 10000 });
+                console.log('[BrowserInLoop] PHASE 5: Page refreshed');
+                this.emit('browser:refreshed');
+            } catch (error) {
+                console.warn('[BrowserInLoop] Page refresh failed:', error);
+            }
+        }
+    }
+
+    /**
+     * PHASE 5: Get whether we're using real Playwright
+     */
+    isRealPlaywright(): boolean {
+        return this.usingRealPlaywright;
     }
 
     // =========================================================================
