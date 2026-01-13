@@ -139,17 +139,17 @@ export class CompletionGateEvaluator {
 
         // Step 8: Evaluate Anti-Slop Score
         const antiSlopResult = await this.evaluateAntiSlop(context.fileContents);
-        
+
         // Step 9: VL-JEPA Semantic Satisfaction Check
         // This provides semantic understanding of whether the build truly satisfies the user's intent
         let semanticResult: SatisfactionResult | null = null;
         let semanticScore = 100; // Default to 100 if no semantic check is needed
-        
+
         if (context.originalPrompt || context.builtFeatures?.length || context.visualDescriptions?.length) {
             try {
                 semanticResult = await this.performSemanticSatisfactionCheck(contract, context);
                 semanticScore = Math.round(semanticResult.overallScore * 100);
-                
+
                 // Add blockers for unsatisfied semantic criteria
                 if (!semanticResult.isSatisfied) {
                     for (const criterion of semanticResult.criteriaResults.filter(c => !c.satisfied)) {
@@ -161,7 +161,7 @@ export class CompletionGateEvaluator {
                             suggestedFix: criterion.evidence,
                         });
                     }
-                    
+
                     for (const rec of semanticResult.recommendations) {
                         recommendations.push(rec);
                     }
@@ -620,7 +620,7 @@ export class CompletionGateEvaluator {
 
         return { score: result.overall };
     }
-    
+
     /**
      * VL-JEPA based semantic satisfaction check
      * Uses embeddings to verify the build truly satisfies the user's original intent
@@ -635,7 +635,7 @@ export class CompletionGateEvaluator {
             `Core Value: ${contract.coreValueProp}`,
             context.builtFeatures?.length ? `Features: ${context.builtFeatures.join(', ')}` : '',
         ].filter(Boolean).join('\n');
-        
+
         // Extract code samples from file contents
         const codeSamples: string[] = [];
         for (const [filePath, content] of context.fileContents) {
@@ -649,7 +649,7 @@ export class CompletionGateEvaluator {
                 codeSamples.push(`// ${filePath}\n${content.slice(0, 2000)}`);
             }
         }
-        
+
         try {
             // Check satisfaction against stored intent
             const result = await this.semanticService.checkSatisfaction({
@@ -659,15 +659,15 @@ export class CompletionGateEvaluator {
                 features: context.builtFeatures,
                 visualDescriptions: context.visualDescriptions,
             }, this.userId);
-            
+
             console.log(`[CompletionGate] VL-JEPA Semantic Score: ${Math.round(result.overallScore * 100)}% (satisfied: ${result.isSatisfied})`);
-            
+
             return result;
         } catch (error) {
             // If intent not found in semantic store, return a default passing result
             // The intent might not have been indexed yet
             console.warn(`[CompletionGate] Semantic check failed (intent may not be indexed):`, error);
-            
+
             return {
                 overallScore: 0.85,
                 isSatisfied: true,

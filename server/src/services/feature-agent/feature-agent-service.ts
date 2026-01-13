@@ -1472,7 +1472,7 @@ Please address this feedback in the new implementation plan.`;
 
         // Get preview URL from sandbox (if available)
         const previewUrl = rt.sandboxUrl || rt.sandbox?.url || `http://localhost:3000`;
-        
+
         rt.enhancedBuildLoop = createEnhancedBuildLoop({
             buildId,
             projectId: rt.config.projectId,
@@ -2278,7 +2278,7 @@ Please address this feedback in the new implementation plan.`;
             const completedPhases = rt.config.implementationPlan.phases.filter(p => p.approved).length;
             const totalPhases = rt.config.implementationPlan.phases.length;
             const progress = totalPhases > 0 ? Math.round((completedPhases / totalPhases) * 100) : 0;
-            
+
             artifacts.buildState = JSON.stringify({
                 plan: rt.config.implementationPlan,
                 status: rt.config.status,

@@ -1,9 +1,53 @@
+═══ [2026-01-13 MODAL BILLING & MULTI-SANDBOX FIX] ═══
+COMPLETED: Critical Modal billing and multi-sandbox orchestration fixes
+
+ISSUES FIXED:
+1. Build sandbox billing incorrectly charging users - Now uses BillingContext to determine billing
+2. Modal credentials tried user credentials first - Now always uses KripTik platform credentials for sandboxing
+3. Training/fine-tuning missing billing integration - Added billing to TrainingPipeline
+4. MultiSandboxOrchestrator not integrated with BuildLoop - Now available as option in Phase 2
+5. HMR events not emitted on merge - Now triggerHotReload() emits file-modified events
+
+FILES MODIFIED:
+- server/src/services/automation/build-loop.ts
+  - Added BillingContext import and integration
+  - trackModalSandboxUsage now checks billingDecision.billUser before charging
+  - Added MultiSandboxOrchestrator integration for parallel builds
+  - Added enableMultiSandboxMode() method
+  - Added multi-sandbox event types to BuildLoopEvent
+  - triggerHotReload() now emits file-modified events
+  - Added credentials to BuildLoopConfig
+  
+- server/src/routes/model-deploy.ts
+  - getModalForUser now takes operationType parameter
+  - 'sandbox'/'building' operations always use KripTik credentials
+  - 'deployment' operations can use user credentials if configured
+
+- server/src/services/learning/training-pipeline.ts
+  - Added BillingContext integration
+  - Added userId to TrainingJobRequest and TrainingJobStatus
+  - Added billForTrainingJob() method with 20% margin billing
+  - Training routes now pass userId for billing
+
+- server/src/routes/learning.ts
+  - Training submission routes now pass userId parameter
+
+BILLING POLICY:
+- KRIPTIK_BUILDING: App building included in subscription - NO user billing
+- KRIPTIK_SANDBOX: Sandbox previews included - NO user billing
+- USER_TRAINING: User-initiated training billed with 20% margin
+- USER_FINETUNING: User-initiated fine-tuning billed with 20% margin
+- USER_INFERENCE: Inference on KripTik infrastructure billed with 20% margin
+
+BUILD STATUS: Both frontend and server compile successfully
+NEXT: Commit, push, and verify Vercel deployment
+
 ═══ [2026-01-13 ALL 12 PHASES COMPLETE] ═══
 COMPLETED: All 12 phases of the KripTik AI Build Loop implementation
 
 PHASES COMPLETED:
 ✅ Phase 1: Modal Sandbox Creation & Live Preview Connection
-✅ Phase 2: Credential Submission to Build Resume Pipeline  
+✅ Phase 2: Credential Submission to Build Resume Pipeline
 ✅ Phase 3: Post-OAuth Auto-Configuration (Stripe, Supabase, Firebase)
 ✅ Phase 4: Anti-Slop Violation Auto-Fix Pipeline
 ✅ Phase 5: Browser-in-Loop Real Playwright Connection

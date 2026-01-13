@@ -601,7 +601,7 @@ router.get('/training/jobs/:jobId', async (req, res) => {
  */
 router.post('/training/submit', async (req, res) => {
     try {
-        const { modelType, preferencePairs, config, priority } = req.body;
+        const { modelType, preferencePairs, config, priority, userId } = req.body;
 
         if (!modelType) {
             return res.status(400).json({
@@ -617,12 +617,19 @@ router.post('/training/submit', async (req, res) => {
             });
         }
 
+        // Note: userId is optional but required for billing
+        // If not provided, job will still run but no billing will occur
+        if (!userId) {
+            console.warn('[Learning API] Training job submitted without userId - no billing will occur');
+        }
+
         const pipeline = getTrainingPipelineService();
         const jobId = await pipeline.submitTrainingJob({
             modelType,
             preferencePairs,
             config,
             priority,
+            userId, // Pass userId for billing
         });
 
         res.json({
@@ -674,13 +681,18 @@ router.post('/training/jobs/:jobId/cancel', async (req, res) => {
  */
 router.post('/training/trigger', async (req, res) => {
     try {
-        const { modelType, minPairs = 500 } = req.body;
+        const { modelType, minPairs = 500, userId } = req.body;
 
         if (!modelType) {
             return res.status(400).json({
                 success: false,
                 error: 'modelType is required'
             });
+        }
+
+        // Note: userId is optional but required for billing
+        if (!userId) {
+            console.warn('[Learning API] Training trigger without userId - no billing will occur');
         }
 
         // Get unused preference pairs from AI Judgment service
@@ -724,6 +736,7 @@ router.post('/training/trigger', async (req, res) => {
         const jobId = await pipeline.submitTrainingJob({
             modelType,
             preferencePairs: allPairs as any, // Convert to full PreferencePair format
+            userId, // Pass userId for billing
         });
 
         res.json({
@@ -1696,10 +1709,12 @@ router.post('/command', async (req, res) => {
                     });
                 }
 
+                // Note: If userId is 'system', billing will be skipped (system-initiated)
                 const jobId = await pipeline.submitTrainingJob({
                     modelType,
                     preferencePairs: pairs as any,
                     priority: args.priority || 'normal',
+                    userId: userId !== 'system' ? userId : undefined, // Only bill if user-initiated
                 });
 
                 result = {

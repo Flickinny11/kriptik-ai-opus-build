@@ -29,6 +29,14 @@ import type {
     PreferencePair,
     TrainingConfig,
 } from './types.js';
+// Billing integration for training costs
+import {
+    determineBillingContext,
+    BillingContext,
+    type BillingDecision,
+} from '../billing/billing-context.js';
+import { getCreditService } from '../billing/credits.js';
+import { recordTrainingUsage } from '../billing/open-source-studio-billing.js';
 
 // =============================================================================
 // TYPES
@@ -50,12 +58,16 @@ export interface TrainingJobRequest {
     preferencePairs: PreferencePair[];
     config?: Partial<TrainingConfig>;
     priority?: 'low' | 'normal' | 'high';
+    /** User ID for billing - required for metered billing */
+    userId?: string;
 }
 
 export interface TrainingJobStatus {
     jobId: string;
     modelType: ShadowModelType;
     status: 'queued' | 'preparing' | 'training' | 'evaluating' | 'uploading' | 'completed' | 'failed';
+    /** User ID for billing tracking */
+    userId?: string;
     progress: number;
     currentStep?: string;
     metrics?: PipelineTrainingMetrics;
@@ -151,6 +163,7 @@ export class TrainingPipelineService extends EventEmitter {
             status: 'queued',
             progress: 0,
             currentStep: 'Queued for processing',
+            userId: request.userId, // Track user for billing
         };
 
         this.activeJobs.set(jobId, job);
@@ -369,6 +382,10 @@ export class TrainingPipelineService extends EventEmitter {
                 await this.registry.promoteModel(request.modelType, version);
                 job.currentStep = 'Model promoted to production!';
             }
+
+            // Bill the user for training costs
+            // Training/fine-tuning is user-initiated and billable (per billing-context.ts)
+            await this.billForTrainingJob(job, request);
 
             this.emit('job_completed', job);
 
@@ -603,6 +620,107 @@ tokenizer.save_pretrained("./output/adapter")
 
 return {"status": "completed", "path": "./output/adapter"}
 `.trim();
+    }
+
+    // =========================================================================
+    // BILLING
+    // =========================================================================
+
+    /**
+     * Bill the user for a completed training job.
+     * 
+     * Per billing-context.ts:
+     * - USER_TRAINING: 20% margin, billUser: true
+     * - Training costs are metered and charged to user credits
+     * 
+     * If no userId is provided, the job is treated as system-initiated (no billing).
+     */
+    private async billForTrainingJob(
+        job: TrainingJobStatus,
+        request: TrainingJobRequest
+    ): Promise<void> {
+        // Skip billing if no user ID (system-initiated training)
+        if (!job.userId) {
+            console.log(`[TrainingPipeline] Job ${job.jobId} has no userId - skipping billing (system-initiated)`);
+            return;
+        }
+
+        try {
+            // Determine billing context
+            const billingDecision: BillingDecision = determineBillingContext({
+                operationType: 'training',
+                isUserInitiated: true,
+                deploymentTarget: 'kriptik',
+            });
+
+            if (!billingDecision.billUser) {
+                console.log(`[TrainingPipeline] Billing skipped for job ${job.jobId}: ${billingDecision.reason}`);
+                return;
+            }
+
+            // Calculate training duration
+            const durationMinutes = job.metrics?.trainTimeSeconds
+                ? Math.ceil(job.metrics.trainTimeSeconds / 60)
+                : 30; // Default 30 min estimate if no duration recorded
+
+            // Determine GPU class for billing tier
+            const gpuType = this.selectGpuType(request.modelType);
+            const gpuClass = this.getGpuClassForBilling(gpuType);
+
+            // Use estimated cost if available, otherwise calculate from duration
+            let creditsToCharge: number;
+            const CREDIT_VALUE_USD = 0.01;
+
+            if (job.estimatedCost) {
+                // Use actual estimated cost with markup
+                const costWithMarkup = job.estimatedCost * billingDecision.creditMultiplier;
+                creditsToCharge = Math.max(1, Math.ceil(costWithMarkup / CREDIT_VALUE_USD));
+            } else {
+                // Estimate based on GPU pricing and duration
+                // Approximate costs: A10G ~$0.75/hr, A100 ~$2.50/hr
+                const hourlyRate = gpuClass === 'datacenter' ? 2.50 : gpuClass === 'professional' ? 1.50 : 0.75;
+                const baseCost = (durationMinutes / 60) * hourlyRate;
+                const costWithMarkup = baseCost * billingDecision.creditMultiplier;
+                creditsToCharge = Math.max(1, Math.ceil(costWithMarkup / CREDIT_VALUE_USD));
+            }
+
+            // Deduct credits
+            const creditService = getCreditService();
+            await creditService.deductCredits(
+                job.userId,
+                creditsToCharge,
+                `Training job ${request.modelType}: ${durationMinutes} min`,
+                {
+                    jobId: job.jobId,
+                    modelType: request.modelType,
+                    durationMinutes,
+                    gpuType,
+                    gpuClass,
+                    billingContext: billingDecision.context,
+                    creditMultiplier: billingDecision.creditMultiplier,
+                    estimatedCost: job.estimatedCost,
+                }
+            );
+
+            console.log(`[TrainingPipeline] Billed ${creditsToCharge} credits to user ${job.userId} for job ${job.jobId} (${request.modelType}, ${durationMinutes} min)`);
+
+        } catch (error) {
+            console.error(`[TrainingPipeline] Failed to bill for job ${job.jobId}:`, error);
+            // Don't fail the job if billing fails - log and continue
+        }
+    }
+
+    /**
+     * Map GPU type to billing class (consumer, professional, datacenter)
+     */
+    private getGpuClassForBilling(gpuType: string): 'consumer' | 'professional' | 'datacenter' {
+        if (gpuType.includes('A100') || gpuType.includes('H100')) {
+            return 'datacenter';
+        }
+        if (gpuType.includes('A10G') || gpuType.includes('A40') || gpuType.includes('L40')) {
+            return 'professional';
+        }
+        return 'consumer'; // RTX series, T4, etc.
     }
 
     // =========================================================================

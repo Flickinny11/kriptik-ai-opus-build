@@ -31,13 +31,56 @@ async function getReplicateForUser(userId: string): Promise<ReplicateService | n
     return createReplicateService({ apiToken });
 }
 
-async function getModalForUser(userId: string): Promise<ModalService | null> {
+/**
+ * Get Modal service for user operations.
+ * 
+ * CREDENTIAL POLICY:
+ * - 'sandbox'/'building': ALWAYS use KripTik platform credentials (cost absorbed by KripTik)
+ * - 'deployment': Use user credentials if configured, fallback to KripTik credentials
+ * 
+ * @param userId - The user ID
+ * @param operationType - 'sandbox' | 'building' | 'deployment' - determines credential source
+ */
+async function getModalForUser(
+    userId: string,
+    operationType: 'sandbox' | 'building' | 'deployment' = 'deployment'
+): Promise<ModalService | null> {
+    // For sandbox/building operations, ALWAYS use KripTik platform credentials
+    // These costs are absorbed by KripTik (included in subscription)
+    if (operationType === 'sandbox' || operationType === 'building') {
+        const tokenId = process.env.MODAL_TOKEN_ID;
+        const tokenSecret = process.env.MODAL_TOKEN_SECRET;
+        if (!tokenId || !tokenSecret) {
+            console.warn('[model-deploy] KripTik Modal credentials not configured for sandbox operations');
+            return null;
+        }
+        return createModalService({ tokenId, tokenSecret });
+    }
+    
+    // For user deployments, try user credentials first, fallback to KripTik
+    // When using KripTik credentials for user deployment, costs are billed to user credits
     const vault = getCredentialVault();
     const creds = await vault.getCredential(userId, 'modal');
-    const tokenId = (creds?.data?.tokenId as string) || process.env.MODAL_TOKEN_ID;
-    const tokenSecret = (creds?.data?.tokenSecret as string) || process.env.MODAL_TOKEN_SECRET;
-    if (!tokenId || !tokenSecret) return null;
-    return createModalService({ tokenId, tokenSecret });
+    const userTokenId = creds?.data?.tokenId as string | undefined;
+    const userTokenSecret = creds?.data?.tokenSecret as string | undefined;
+    
+    // If user has their own Modal credentials configured, use those
+    // (user pays Modal directly, no KripTik billing)
+    if (userTokenId && userTokenSecret) {
+        console.log('[model-deploy] Using user Modal credentials for deployment');
+        return createModalService({ tokenId: userTokenId, tokenSecret: userTokenSecret });
+    }
+    
+    // Fallback to KripTik credentials for deployments
+    // (costs will be billed to user credits with markup)
+    const platformTokenId = process.env.MODAL_TOKEN_ID;
+    const platformTokenSecret = process.env.MODAL_TOKEN_SECRET;
+    if (!platformTokenId || !platformTokenSecret) {
+        console.warn('[model-deploy] No Modal credentials available (user or platform)');
+        return null;
+    }
+    console.log('[model-deploy] Using KripTik Modal credentials for deployment (will bill to user credits)');
+    return createModalService({ tokenId: platformTokenId, tokenSecret: platformTokenSecret });
 }
 
 async function getFalForUser(userId: string): Promise<FalService | null> {
