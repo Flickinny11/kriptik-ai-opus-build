@@ -52,6 +52,7 @@ import TournamentStreamResults, { type TournamentStreamData } from './Tournament
 import { ImplementationPlan } from './ImplementationPlan';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
 import { ProvisioningStatus } from '../provisioning/ProvisioningStatus';
+import { IntentContractDisplay, type IntentContract } from './IntentContractDisplay';
 import {
     useProductionStackStore,
     AUTH_PROVIDERS,
@@ -356,6 +357,9 @@ export default function ChatInterface({
 
     const [showCostEstimator, setShowCostEstimator] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+    // Phase F: Selected build mode from CostEstimatorModal
+    const [selectedBuildMode, setSelectedBuildMode] = useState<BuildModeType>(buildMode);
     const [showBreakdown, setShowBreakdown] = useState(false);
 
     // KTN State (used for quick questions only, builds use full orchestration)
@@ -404,6 +408,17 @@ export default function ChatInterface({
     // Store the locked intent prompt for display
     const [lockedIntentPrompt, setLockedIntentPrompt] = useState<string | null>(null);
 
+    // Phase A: Browser Demo & Take Control state
+    const [demoReady, setDemoReady] = useState(false);
+    const [demoUrl, setDemoUrl] = useState<string | null>(null);
+    const [demoScreenshot, setDemoScreenshot] = useState<string | null>(null);
+    const [visualScore, setVisualScore] = useState<number | null>(null);
+    const [currentBuildPhase, setCurrentBuildPhase] = useState<BuildPhase | null>(null);
+
+    // Phase E: Intent Contract display state
+    const [intentContract, setIntentContract] = useState<IntentContract | null>(null);
+    const [showIntentContract, setShowIntentContract] = useState(false);
+
     // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
     console.debug('[ChatInterface] Live preview state:', {
         sandboxUrl: sandboxUrl ? 'available' : 'null',
@@ -411,7 +426,42 @@ export default function ChatInterface({
         visualVerification: visualVerification ? 'available' : 'null',
         parallelAgentsCount: parallelAgents.length,
         tournamentEnabled,
+        demoReady,
+        demoUrl: demoUrl ? 'available' : 'null',
+        currentBuildPhase,
+        intentContract: intentContract ? 'locked' : 'null',
     });
+
+    // Handle Take Control action - dismiss demo and enable user interaction
+    const handleTakeControl = useCallback(() => {
+        setDemoReady(false);
+        // Dispatch event to stop demo overlay in SandpackPreview
+        window.dispatchEvent(new CustomEvent('demo-take-control', {
+            detail: { url: demoUrl }
+        }));
+        console.log('[ChatInterface] User took control of app:', demoUrl);
+    }, [demoUrl]);
+
+    // Export state for parent components via window (used by BuilderDesktop)
+    useEffect(() => {
+        (window as Window & { __chatInterfaceState?: {
+            demoReady: boolean;
+            demoUrl: string | null;
+            demoScreenshot: string | null;
+            visualScore: number | null;
+            currentBuildPhase: BuildPhase | null;
+            intentContract: typeof intentContract;
+            handleTakeControl: () => void;
+        } }).__chatInterfaceState = {
+            demoReady,
+            demoUrl,
+            demoScreenshot,
+            visualScore,
+            currentBuildPhase,
+            intentContract,
+            handleTakeControl,
+        };
+    }, [demoReady, demoUrl, demoScreenshot, visualScore, currentBuildPhase, intentContract, handleTakeControl]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -648,8 +698,14 @@ export default function ChatInterface({
         return prompt.length > 50;
     };
 
-    const confirmGeneration = async () => {
+    const confirmGeneration = async (options?: { buildMode?: BuildModeType }) => {
         if (!pendingPrompt) return;
+
+        // Phase F: Update selected build mode if passed from modal
+        if (options?.buildMode) {
+            setSelectedBuildMode(options.buildMode);
+        }
+        const effectiveBuildMode = options?.buildMode || selectedBuildMode;
 
         setShowCostEstimator(false);
         resetSessionCost();
@@ -716,7 +772,7 @@ export default function ChatInterface({
                         userId,
                         projectId: currentProjectId,
                         prompt,
-                        buildMode, // Pass selected build mode to backend
+                        buildMode: effectiveBuildMode, // Phase F: Use selected build mode from modal
                     }),
                 });
 
@@ -1173,6 +1229,137 @@ export default function ChatInterface({
                     };
                 });
                 break;
+
+            // Phase A: Handle phase_complete event with browser demo readiness
+            case 'phase_complete': {
+                const phaseData = wsData.data as {
+                    phase?: string;
+                    status?: string;
+                    url?: string;
+                    takeControlAvailable?: boolean;
+                    screenshot?: string;
+                    visualVerification?: {
+                        rounds: number;
+                        finalScore: number;
+                        perfect: boolean;
+                    };
+                } | undefined;
+
+                if (phaseData?.phase === 'browser_demo' && phaseData.takeControlAvailable) {
+                    // Browser Demo phase complete - user can take control
+                    setDemoReady(true);
+                    setDemoUrl(phaseData.url || null);
+                    setDemoScreenshot(phaseData.screenshot || null);
+                    setVisualScore(phaseData.visualVerification?.finalScore || null);
+
+                    // Dispatch event for SandpackPreview to auto-start demo
+                    window.dispatchEvent(new CustomEvent('build-demo-ready', {
+                        detail: {
+                            url: phaseData.url,
+                            takeControlAvailable: true,
+                            visualScore: phaseData.visualVerification?.finalScore,
+                            screenshot: phaseData.screenshot,
+                        }
+                    }));
+                    console.log('[ChatInterface] Dispatched build-demo-ready event:', phaseData.url);
+
+                    // Add completion message
+                    setMessages(prev => [...prev, {
+                        id: `msg-${Date.now()}`,
+                        role: 'system',
+                        content: `Build complete! Your app is ready at ${phaseData.url}. Visual verification score: ${phaseData.visualVerification?.finalScore || 0}/100. Click "Take Control" to interact with your production-ready app.`,
+                        timestamp: new Date(),
+                        agentType: 'orchestrator',
+                    }]);
+                }
+
+                // Update current build phase
+                if (phaseData?.phase) {
+                    const phaseMap: Record<string, BuildPhase> = {
+                        'intent_lock': 'intent_lock',
+                        'initialization': 'initialization',
+                        'parallel_build': 'parallel_build',
+                        'integration': 'integration',
+                        'testing': 'testing',
+                        'intent_satisfaction': 'intent_satisfaction',
+                        'browser_demo': 'demo',
+                        'demo': 'demo',
+                    };
+                    const mappedPhase = phaseMap[phaseData.phase];
+                    if (mappedPhase) {
+                        setCurrentBuildPhase(mappedPhase);
+                        onPhaseChange?.(mappedPhase);
+                    }
+                }
+                break;
+            }
+
+            // Phase E: Handle intent_created event to display the Sacred Contract
+            case 'intent_created':
+            case 'intent_locked': {
+                const intentData = wsData.data as {
+                    contract?: {
+                        appSoul?: string;
+                        coreValueProp?: string;
+                        successCriteria?: Array<{ id: string; description: string; verified?: boolean }>;
+                        userWorkflows?: Array<{ name: string; steps: string[] }>;
+                        visualIdentity?: {
+                            soul?: string;
+                            emotion?: string;
+                            depth?: string;
+                            motion?: string;
+                        };
+                        locked?: boolean;
+                        lockedAt?: string;
+                    };
+                } | undefined;
+
+                if (intentData?.contract) {
+                    setIntentContract({
+                        appSoul: intentData.contract.appSoul || 'professional',
+                        coreValueProp: intentData.contract.coreValueProp || '',
+                        successCriteria: intentData.contract.successCriteria || [],
+                        userWorkflows: intentData.contract.userWorkflows || [],
+                        visualIdentity: {
+                            soul: intentData.contract.visualIdentity?.soul || '',
+                            emotion: intentData.contract.visualIdentity?.emotion || '',
+                            depth: intentData.contract.visualIdentity?.depth || '',
+                            motion: intentData.contract.visualIdentity?.motion || '',
+                        },
+                        locked: intentData.contract.locked || true,
+                        lockedAt: intentData.contract.lockedAt,
+                    });
+
+                    // Phase E: Show the Intent Contract display
+                    setShowIntentContract(true);
+
+                    // Dispatch event for other components
+                    window.dispatchEvent(new CustomEvent('intent-contract-locked', {
+                        detail: { contract: intentData.contract }
+                    }));
+                    console.log('[ChatInterface] Intent Contract locked:', intentData.contract.coreValueProp);
+                }
+                break;
+            }
+
+            // Handle phase6-visual-analysis for real-time visual verification updates
+            case 'phase6-visual-analysis': {
+                const analysisData = wsData.data as {
+                    round?: number;
+                    score?: number;
+                    issues?: Array<{ type: string; description: string }>;
+                } | undefined;
+
+                if (analysisData) {
+                    setVisualScore(analysisData.score || null);
+                    setVisualVerification({
+                        passed: (analysisData.score || 0) >= 85,
+                        score: analysisData.score || 0,
+                        issues: analysisData.issues?.map(i => i.description) || []
+                    });
+                }
+                break;
+            }
         }
     };
 
@@ -1233,6 +1420,39 @@ export default function ChatInterface({
                 open={showBreakdown}
                 onOpenChange={setShowBreakdown}
             />
+
+            {/* Phase E: Intent Contract Display Overlay */}
+            <AnimatePresence>
+                {showIntentContract && intentContract && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        style={{
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            backdropFilter: 'blur(8px)',
+                        }}
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setShowIntentContract(false);
+                            }
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            className="max-w-lg w-full max-h-[80vh] overflow-y-auto"
+                        >
+                            <IntentContractDisplay
+                                contract={intentContract}
+                                onDismiss={() => setShowIntentContract(false)}
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Header - Liquid Glass */}
             <div

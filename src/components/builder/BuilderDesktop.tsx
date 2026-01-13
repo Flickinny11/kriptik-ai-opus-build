@@ -25,6 +25,7 @@ import { PublishButton } from '../deployment/PublishButton';
 import AutonomousAgentsPanel from '../agents/AutonomousAgentsPanel';
 import { useEditorStore } from '../../store/useEditorStore';
 import type { IntelligenceSettings } from './IntelligenceToggles';
+import { BuildPhaseInline, type BuildPhase, type PhaseInfo, type PhaseStatus } from './BuildPhaseIndicator';
 
 interface BuilderDesktopProps {
     projectId?: string;
@@ -86,6 +87,120 @@ export default function BuilderDesktop({
     const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
     const { selectedElement, setSelectedElement } = useEditorStore();
 
+    // PHASE C: Build phase tracking state
+    const [buildPhases, setBuildPhases] = useState<PhaseInfo[]>([]);
+    const [currentBuildPhase, setCurrentBuildPhase] = useState<BuildPhase | null>(null);
+    const [isBuilding, setIsBuilding] = useState(false);
+
+    // PHASE C: Listen for build phase events from ChatInterface/WebSocket
+    useEffect(() => {
+        // Handler for phase completion events
+        const handlePhaseComplete = (event: CustomEvent<{
+            phase: string;
+            status: PhaseStatus;
+            progress?: number;
+            message?: string;
+        }>) => {
+            const { phase, status, progress, message } = event.detail;
+            console.log('[BuilderDesktop] Phase complete event:', phase, status);
+
+            // Map backend phase names to BuildPhase type
+            const phaseMapping: Record<string, BuildPhase> = {
+                'intent_lock': 'intent_lock',
+                'initialization': 'initialization',
+                'parallel_build': 'parallel_build',
+                'integration_check': 'integration',
+                'functional_test': 'testing',
+                'intent_satisfaction': 'intent_satisfaction',
+                'browser_demo': 'demo',
+            };
+
+            const mappedPhase = phaseMapping[phase] || phase as BuildPhase;
+
+            setBuildPhases(prev => {
+                const existing = prev.find(p => p.phase === mappedPhase);
+                if (existing) {
+                    return prev.map(p =>
+                        p.phase === mappedPhase
+                            ? { ...p, status, progress, message }
+                            : p
+                    );
+                }
+                return [...prev, { phase: mappedPhase, status, progress, message }];
+            });
+
+            // Update current phase if this is an active phase
+            if (status === 'active') {
+                setCurrentBuildPhase(mappedPhase);
+                setIsBuilding(true);
+            } else if (status === 'complete' && mappedPhase === 'demo') {
+                // Build complete
+                setIsBuilding(false);
+            }
+        };
+
+        // Handler for build start event
+        const handleBuildStart = () => {
+            console.log('[BuilderDesktop] Build started');
+            setIsBuilding(true);
+            setBuildPhases([]);
+            setCurrentBuildPhase('intent_lock');
+        };
+
+        // Handler for intent contract locked
+        const handleIntentLocked = (event: CustomEvent<{
+            intentId: string;
+            lockedAt: string;
+        }>) => {
+            console.log('[BuilderDesktop] Intent contract locked:', event.detail.intentId);
+            setBuildPhases(prev => {
+                const existing = prev.find(p => p.phase === 'intent_lock');
+                if (existing) {
+                    return prev.map(p =>
+                        p.phase === 'intent_lock'
+                            ? { ...p, status: 'complete' as PhaseStatus }
+                            : p
+                    );
+                }
+                return [...prev, { phase: 'intent_lock' as BuildPhase, status: 'complete' as PhaseStatus }];
+            });
+        };
+
+        // Handler for build demo ready (final phase)
+        const handleBuildDemoReady = (event: CustomEvent<{
+            url: string;
+            takeControlAvailable: boolean;
+            visualScore: number;
+        }>) => {
+            console.log('[BuilderDesktop] Build demo ready:', event.detail.url);
+            setBuildPhases(prev => {
+                const existing = prev.find(p => p.phase === 'demo');
+                if (existing) {
+                    return prev.map(p =>
+                        p.phase === 'demo'
+                            ? { ...p, status: 'complete' as PhaseStatus, progress: 100 }
+                            : p
+                    );
+                }
+                return [...prev, { phase: 'demo' as BuildPhase, status: 'complete' as PhaseStatus }];
+            });
+            setCurrentBuildPhase('demo');
+            setIsBuilding(false);
+        };
+
+        window.addEventListener('build-phase-complete', handlePhaseComplete as unknown as EventListener);
+        window.addEventListener('build-start', handleBuildStart as EventListener);
+        window.addEventListener('intent-contract-locked', handleIntentLocked as unknown as EventListener);
+        window.addEventListener('build-demo-ready', handleBuildDemoReady as unknown as EventListener);
+
+        return () => {
+            window.removeEventListener('build-phase-complete', handlePhaseComplete as unknown as EventListener);
+            window.removeEventListener('build-start', handleBuildStart as EventListener);
+            window.removeEventListener('intent-contract-locked', handleIntentLocked as unknown as EventListener);
+            window.removeEventListener('build-demo-ready', handleBuildDemoReady as unknown as EventListener);
+        };
+    }, []);
+
     // Automatically switch to code view when an element is selected
     useEffect(() => {
         if (selectedElement) {
@@ -134,11 +249,24 @@ export default function BuilderDesktop({
                     <div className="h-6 w-px bg-white/10 mx-2" />
 
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <div className={`w-2 h-2 rounded-full ${isBuilding ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
                         <span className="text-sm text-zinc-400">
                             {projectId || 'New Project'}
                         </span>
                     </div>
+
+                    {/* PHASE C: Build Phase Indicator - Shows during builds */}
+                    {isBuilding && buildPhases.length > 0 && (
+                        <>
+                            <div className="h-6 w-px bg-white/10 mx-2" />
+                            <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5">
+                                <BuildPhaseInline
+                                    phases={buildPhases}
+                                    currentPhase={currentBuildPhase || undefined}
+                                />
+                            </div>
+                        </>
+                    )}
 
                     <div className="h-6 w-px bg-white/10 mx-2" />
                 </div>
