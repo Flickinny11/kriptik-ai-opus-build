@@ -213,6 +213,21 @@ router.post('/:agentId/plan/approve-all', requireAuth, async (req: Request, res:
   }
 });
 
+// POST /api/feature-agent/:agentId/plan/reject
+// Reject the current plan and regenerate it with optional feedback
+router.post('/:agentId/plan/reject', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agentId = req.params.agentId;
+    if (!ensureOwner(req, res, agentId)) return;
+    const { feedback } = req.body || {};
+    const plan = await featureAgentService.rejectPlan(agentId, typeof feedback === 'string' ? feedback : undefined);
+    res.json({ success: true, plan });
+  } catch (error) {
+    console.error('[Feature Agent] Reject plan error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to reject plan' });
+  }
+});
+
 router.post('/:agentId/credentials', requireAuth, async (req: Request, res: Response) => {
   try {
     const agentId = req.params.agentId;

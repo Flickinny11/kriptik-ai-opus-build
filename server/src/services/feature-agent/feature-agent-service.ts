@@ -1146,6 +1146,77 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         await this.startImplementation(agentId);
     }
 
+    /**
+     * Reject the current implementation plan and regenerate it
+     *
+     * @param agentId - The agent ID
+     * @param feedback - Optional feedback about why the plan was rejected
+     * @returns The new implementation plan
+     */
+    async rejectPlan(agentId: string, feedback?: string): Promise<ImplementationPlan> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        // Ensure we're in a state where the plan can be rejected
+        if (rt.status !== 'awaiting_plan_approval') {
+            throw new Error(`Cannot reject plan: agent is in '${rt.status}' state, expected 'awaiting_plan_approval'`);
+        }
+
+        // Get the existing intent lock (we don't regenerate the intent, just the plan)
+        const existingIntent = rt.intentLock;
+        if (!existingIntent) {
+            throw new Error('No intent lock found - cannot regenerate plan');
+        }
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: feedback
+                ? `Regenerating implementation plan based on feedback: ${feedback.slice(0, 200)}...`
+                : 'Regenerating implementation plan...',
+            timestamp: Date.now(),
+        });
+
+        // Reset the current plan
+        rt.config.implementationPlan = undefined;
+
+        // Build an enhanced prompt if feedback was provided
+        let enhancedTaskPrompt = rt.config.taskPrompt;
+        if (feedback) {
+            enhancedTaskPrompt = `${rt.config.taskPrompt}
+
+USER FEEDBACK ON PREVIOUS PLAN:
+${feedback}
+
+Please address this feedback in the new implementation plan.`;
+        }
+
+        // Temporarily update the task prompt for plan generation
+        const originalPrompt = rt.config.taskPrompt;
+        rt.config.taskPrompt = enhancedTaskPrompt;
+
+        try {
+            // Regenerate the implementation plan
+            const newPlan = await this.generateImplementationPlan(agentId, existingIntent);
+            rt.config.implementationPlan = newPlan;
+
+            // Persist the new plan to database
+            await this.persistImplementationPlan(agentId, newPlan);
+
+            this.emitStream(agentId, {
+                type: 'plan',
+                content: 'New implementation plan generated. Please review and approve.',
+                timestamp: Date.now(),
+                metadata: { plan: newPlan },
+            });
+
+            console.log(`[FeatureAgent] Regenerated plan for agent ${agentId} with ${newPlan.phases.length} phases`);
+
+            return newPlan;
+        } finally {
+            // Restore the original task prompt
+            rt.config.taskPrompt = originalPrompt;
+        }
+    }
+
     async storeCredentials(agentId: string, credentials: Record<string, string>): Promise<void> {
         const rt = this.getRuntimeOrThrow(agentId);
         const plan = rt.config.implementationPlan;
