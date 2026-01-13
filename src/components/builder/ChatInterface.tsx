@@ -103,10 +103,16 @@ interface RequiredCredential {
 }
 
 type BuildWorkflowPhase = 'idle' | 'generating_plan' | 'awaiting_plan_approval' | 'configuring_stack' | 'awaiting_credentials' | 'building' | 'complete';
+type BuildPhase = 'intent_lock' | 'initialization' | 'parallel_build' | 'integration' | 'testing' | 'intent_satisfaction' | 'demo';
+type BuildModeType = 'lightning' | 'standard' | 'tournament' | 'production';
 
 interface ChatInterfaceProps {
     intelligenceSettings?: IntelligenceSettings;
     projectId?: string;
+    buildMode?: BuildModeType;
+    onBuildStart?: () => void;
+    onPhaseChange?: (phase: BuildPhase) => void;
+    onBuildComplete?: () => void;
 }
 
 interface Message {
@@ -324,7 +330,14 @@ function SuggestionCard({
     );
 }
 
-export default function ChatInterface({ intelligenceSettings, projectId }: ChatInterfaceProps) {
+export default function ChatInterface({
+    intelligenceSettings,
+    projectId,
+    buildMode = 'standard',
+    onBuildStart,
+    onPhaseChange,
+    onBuildComplete
+}: ChatInterfaceProps) {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -691,6 +704,9 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 const userId = user?.id || 'anonymous';
                 const currentProjectId = projectId || `project-${Date.now()}`;
 
+                // Notify parent that build is starting
+                onBuildStart?.();
+
                 // Use streaming plan endpoint for real-time feedback
                 const response = await fetch(`${API_URL}/api/execute/plan/stream`, {
                     method: 'POST',
@@ -700,6 +716,7 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                         userId,
                         projectId: currentProjectId,
                         prompt,
+                        buildMode, // Pass selected build mode to backend
                     }),
                 });
 
@@ -1070,8 +1087,29 @@ export default function ChatInterface({ intelligenceSettings, projectId }: ChatI
                 setGlobalStatus('completed');
                 setBuildWorkflowPhase('complete');
                 setIsTyping(false);
+                onBuildComplete?.(); // Notify parent build is complete
                 ws.close();
                 activityWsRef.current = null;
+                break;
+
+            // Handle phase change events from build loop
+            case 'phase-change':
+            case 'phase_started':
+                if (wsData.data?.phase) {
+                    const phaseMap: Record<string, BuildPhase> = {
+                        'intent_lock': 'intent_lock',
+                        'initialization': 'initialization',
+                        'parallel_build': 'parallel_build',
+                        'integration': 'integration',
+                        'testing': 'testing',
+                        'intent_satisfaction': 'intent_satisfaction',
+                        'demo': 'demo',
+                    };
+                    const mappedPhase = phaseMap[wsData.data.phase as string];
+                    if (mappedPhase) {
+                        onPhaseChange?.(mappedPhase);
+                    }
+                }
                 break;
 
             case 'builder-error':

@@ -25,7 +25,7 @@
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../db.js';
-import { files } from '../../schema.js';
+import { files, developerModeAgents } from '../../schema.js';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -112,6 +112,22 @@ import {
     type MergeResult as GitMergeResult,
 } from '../developer-mode/git-branch-manager.js';
 
+// Sandbox Service for live preview environments
+import {
+    SandboxService,
+    createSandboxService,
+    type SandboxInstance,
+} from '../developer-mode/sandbox-service.js';
+
+// Time Machine for checkpoint/rollback functionality
+import {
+    TimeMachine,
+    createTimeMachine,
+    type CheckpointData,
+    type CheckpointSummary,
+    type RollbackResult,
+} from '../checkpoints/time-machine.js';
+
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
     content: string;
@@ -168,6 +184,12 @@ type FeatureAgentRuntime = {
     // Continuous Learning Engine integration
     /** Continuous Learning session ID for this feature agent */
     clSessionId: string | null;
+    /** Sandbox instance for live preview */
+    sandbox: SandboxInstance | null;
+    /** URL of the sandbox for live preview */
+    sandboxUrl: string | null;
+    /** Time Machine for checkpoint/rollback functionality */
+    timeMachine: TimeMachine | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -244,11 +266,25 @@ export class FeatureAgentService extends EventEmitter {
     private continuousLearningEngine: ContinuousLearningEngine | null = null;
     private agentNetwork: AgentNetworkService | null = null;
 
-    /** Max escalation attempts before giving up on a feature agent */
-    private static readonly MAX_ESCALATION_ROUNDS = 3;
+    // Sandbox Service for live preview environments
+    private sandboxService: SandboxService;
+
+    /** Max escalation attempts before giving up - set to very high for "never give up" philosophy */
+    private static readonly MAX_ESCALATION_ROUNDS = 100;
 
     constructor() {
         super();
+        // Initialize Sandbox Service for live preview
+        this.sandboxService = createSandboxService({
+            basePort: 3200, // Start from port 3200 to avoid conflicts
+            maxSandboxes: 10, // Allow up to 10 concurrent sandboxes
+            projectPath: '/tmp/builds',
+            framework: 'vite',
+        });
+        this.sandboxService.initialize().catch(err => {
+            console.warn('[FeatureAgentService] Sandbox service initialization failed (non-fatal):', err);
+        });
+
         // Initialize Continuous Learning Engine
         try {
             this.continuousLearningEngine = getContinuousLearningEngine();
@@ -284,6 +320,77 @@ export class FeatureAgentService extends EventEmitter {
             }
         }
         return out;
+    }
+
+    /**
+     * Get the sandbox URL for a feature agent
+     * Returns null if sandbox is not yet created
+     */
+    getSandboxUrl(agentId: string): string | null {
+        const rt = this.agents.get(agentId);
+        return rt?.sandboxUrl ?? null;
+    }
+
+    /**
+     * Get full sandbox info for a feature agent
+     */
+    getSandboxInfo(agentId: string): { url: string; port: number; status: string } | null {
+        const rt = this.agents.get(agentId);
+        if (!rt?.sandbox) return null;
+        return {
+            url: rt.sandbox.url,
+            port: rt.sandbox.port,
+            status: rt.sandbox.status,
+        };
+    }
+
+    /**
+     * Persist implementation plan to database
+     * This ensures plan modifications survive agent restarts and page refreshes
+     */
+    private async persistImplementationPlan(agentId: string, plan: ImplementationPlan): Promise<void> {
+        try {
+            const rt = this.agents.get(agentId);
+            if (!rt) {
+                console.warn(`[FeatureAgentService] Cannot persist plan - agent ${agentId} not found`);
+                return;
+            }
+
+            // Update the developerModeAgents table with the implementation plan
+            const result = await db.update(developerModeAgents)
+                .set({
+                    implementationPlanJson: plan as unknown as Record<string, unknown>,
+                    updatedAt: new Date().toISOString(),
+                })
+                .where(eq(developerModeAgents.id, agentId));
+
+            console.log(`[FeatureAgentService] Implementation plan persisted for agent ${agentId}`);
+        } catch (error) {
+            // Non-fatal - plan is still in memory
+            console.error(`[FeatureAgentService] Failed to persist implementation plan for ${agentId}:`, error);
+        }
+    }
+
+    /**
+     * Load implementation plan from database
+     * Called when restoring an agent or refreshing state
+     */
+    private async loadImplementationPlanFromDb(agentId: string): Promise<ImplementationPlan | null> {
+        try {
+            const [agent] = await db.select()
+                .from(developerModeAgents)
+                .where(eq(developerModeAgents.id, agentId))
+                .limit(1);
+
+            if (!agent?.implementationPlanJson) {
+                return null;
+            }
+
+            return agent.implementationPlanJson as unknown as ImplementationPlan;
+        } catch (error) {
+            console.error(`[FeatureAgentService] Failed to load implementation plan for ${agentId}:`, error);
+            return null;
+        }
     }
 
     /**
@@ -772,6 +879,11 @@ ${basePrompt}`;
             deepIntentId: null,
             // Continuous Learning Engine integration
             clSessionId: null,
+            // Sandbox for live preview
+            sandbox: null,
+            sandboxUrl: null,
+            // Time Machine for checkpoint/rollback
+            timeMachine: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -785,6 +897,10 @@ ${basePrompt}`;
                 const intent = await this.analyzeIntent(id, config.taskPrompt);
                 const plan = await this.generateImplementationPlan(id, intent);
                 agent.implementationPlan = plan;
+
+                // Persist plan to database for durability across refreshes
+                await this.persistImplementationPlan(id, plan);
+
                 this.setStatus(id, 'awaiting_plan_approval');
                 this.emitStream(id, {
                     type: 'plan',
@@ -915,6 +1031,9 @@ ${basePrompt}`;
         phase.approved = true;
         this.emitStream(agentId, { type: 'status', content: `Approved phase: ${phase.name}`, timestamp: Date.now() });
 
+        // Persist approval status to database
+        await this.persistImplementationPlan(agentId, plan);
+
         if (plan.phases.every((p) => p.approved)) {
             await this.approveAllPhases(agentId);
         }
@@ -977,6 +1096,9 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
             metadata: { plan },
         });
 
+        // Persist modified plan to database
+        await this.persistImplementationPlan(agentId, plan);
+
         return plan;
     }
 
@@ -986,6 +1108,10 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         if (!plan) throw new Error('No implementation plan');
 
         for (const ph of plan.phases) ph.approved = true;
+
+        // Persist all phases approved to database
+        await this.persistImplementationPlan(agentId, plan);
+
         this.emitStream(agentId, { type: 'status', content: 'Plan approved.', timestamp: Date.now(), metadata: { event: 'plan_approved' } });
 
         if ((plan.requiredCredentials || []).some((c) => c.required)) {
@@ -1031,6 +1157,77 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         }
 
         await this.startImplementation(agentId);
+    }
+
+    /**
+     * Reject the current implementation plan and regenerate it
+     *
+     * @param agentId - The agent ID
+     * @param feedback - Optional feedback about why the plan was rejected
+     * @returns The new implementation plan
+     */
+    async rejectPlan(agentId: string, feedback?: string): Promise<ImplementationPlan> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        // Ensure we're in a state where the plan can be rejected
+        if (rt.status !== 'awaiting_plan_approval') {
+            throw new Error(`Cannot reject plan: agent is in '${rt.status}' state, expected 'awaiting_plan_approval'`);
+        }
+
+        // Get the existing intent lock (we don't regenerate the intent, just the plan)
+        const existingIntent = rt.intentLock;
+        if (!existingIntent) {
+            throw new Error('No intent lock found - cannot regenerate plan');
+        }
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: feedback
+                ? `Regenerating implementation plan based on feedback: ${feedback.slice(0, 200)}...`
+                : 'Regenerating implementation plan...',
+            timestamp: Date.now(),
+        });
+
+        // Reset the current plan
+        rt.config.implementationPlan = undefined;
+
+        // Build an enhanced prompt if feedback was provided
+        let enhancedTaskPrompt = rt.config.taskPrompt;
+        if (feedback) {
+            enhancedTaskPrompt = `${rt.config.taskPrompt}
+
+USER FEEDBACK ON PREVIOUS PLAN:
+${feedback}
+
+Please address this feedback in the new implementation plan.`;
+        }
+
+        // Temporarily update the task prompt for plan generation
+        const originalPrompt = rt.config.taskPrompt;
+        rt.config.taskPrompt = enhancedTaskPrompt;
+
+        try {
+            // Regenerate the implementation plan
+            const newPlan = await this.generateImplementationPlan(agentId, existingIntent);
+            rt.config.implementationPlan = newPlan;
+
+            // Persist the new plan to database
+            await this.persistImplementationPlan(agentId, newPlan);
+
+            this.emitStream(agentId, {
+                type: 'plan',
+                content: 'New implementation plan generated. Please review and approve.',
+                timestamp: Date.now(),
+                metadata: { plan: newPlan },
+            });
+
+            console.log(`[FeatureAgent] Regenerated plan for agent ${agentId} with ${newPlan.phases.length} phases`);
+
+            return newPlan;
+        } finally {
+            // Restore the original task prompt
+            rt.config.taskPrompt = originalPrompt;
+        }
     }
 
     async storeCredentials(agentId: string, credentials: Record<string, string>): Promise<void> {
@@ -1165,8 +1362,54 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
 
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
-        const previewUrl = `http://localhost:3100`; // Will be updated by sandbox
         const worktreesBasePath = `/tmp/worktrees/${rt.config.projectId}`;
+
+        // =============================================================================
+        // INITIALIZE TIME MACHINE FOR CHECKPOINT/ROLLBACK
+        // =============================================================================
+        rt.timeMachine = createTimeMachine(
+            rt.config.projectId,
+            rt.config.userId,
+            buildId,
+            20 // Max 20 checkpoints per feature agent
+        );
+
+        // Create initial checkpoint before any implementation
+        try {
+            await this.createCheckpoint(agentId, 'pre_implementation', 'Checkpoint before implementation starts');
+            this.emitStream(agentId, {
+                type: 'status',
+                content: 'Time Machine initialized - checkpoint created',
+                timestamp: Date.now(),
+            });
+        } catch (checkpointError) {
+            console.warn(`[FeatureAgent] Initial checkpoint failed (non-fatal):`, checkpointError);
+        }
+
+        // =============================================================================
+        // CREATE SANDBOX FOR LIVE PREVIEW
+        // =============================================================================
+        try {
+            const sandbox = await this.sandboxService.createSandbox(agentId, projectPath);
+            rt.sandbox = sandbox;
+            rt.sandboxUrl = sandbox.url;
+
+            this.emitStream(agentId, {
+                type: 'status',
+                content: `Live preview sandbox created at ${sandbox.url}`,
+                timestamp: Date.now(),
+                metadata: { sandboxUrl: sandbox.url, sandboxId: sandbox.id, port: sandbox.port },
+            });
+
+            console.log(`[FeatureAgent] Sandbox created for ${agentId}: ${sandbox.url}`);
+        } catch (sandboxError) {
+            console.warn(`[FeatureAgent] Sandbox creation failed for ${agentId}:`, sandboxError);
+            this.emitStream(agentId, {
+                type: 'thinking',
+                content: 'Live preview sandbox unavailable - build will continue without live preview',
+                timestamp: Date.now(),
+            });
+        }
 
         // =============================================================================
         // INITIALIZE GIT BRANCH MANAGER FOR MERGE OPERATIONS
@@ -2001,6 +2244,241 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
      */
     async mergeFeature(agentId: string, targetBranch?: string): Promise<MergeResult> {
         return this.acceptAndMerge(agentId, targetBranch);
+    }
+
+    // =============================================================================
+    // TIME MACHINE / CHECKPOINT / ROLLBACK METHODS
+    // =============================================================================
+
+    /**
+     * Create a checkpoint for the current feature agent state
+     */
+    async createCheckpoint(agentId: string, phase: string, description?: string): Promise<CheckpointSummary | null> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            console.warn(`[FeatureAgent] No TimeMachine for agent ${agentId}`);
+            return null;
+        }
+
+        // Collect current project files
+        const projectPath = `/tmp/builds/${rt.config.projectId}`;
+        const filesMap = await this.collectProjectFiles(projectPath);
+
+        // Gather artifacts for checkpoint
+        const artifacts: CheckpointData['artifacts'] = {};
+        if (rt.intent?.contract) {
+            artifacts.intentContract = JSON.stringify(rt.intent.contract);
+        }
+        if (rt.config.implementationPlan) {
+            artifacts.buildState = JSON.stringify({
+                plan: rt.config.implementationPlan,
+                status: rt.config.status,
+                progress: rt.config.progress,
+            });
+        }
+
+        // Create the checkpoint
+        const checkpoint = await rt.timeMachine.createCheckpoint(
+            phase,
+            filesMap,
+            {
+                artifacts,
+                description: description || `Checkpoint at phase: ${phase}`,
+                isAutomatic: !description, // Manual if description provided
+                triggerReason: description ? 'manual' : 'phase_complete',
+            }
+        );
+
+        console.log(`[FeatureAgent] Checkpoint created: ${checkpoint.id} for agent ${agentId}`);
+
+        return {
+            id: checkpoint.id,
+            timestamp: checkpoint.timestamp,
+            phase: checkpoint.phase,
+            status: checkpoint.status,
+            filesHash: checkpoint.filesHash,
+            filesCount: checkpoint.files.size,
+            description: checkpoint.description,
+            isAutomatic: checkpoint.isAutomatic,
+        };
+    }
+
+    /**
+     * Get all checkpoints for a feature agent
+     */
+    async getCheckpoints(agentId: string): Promise<CheckpointSummary[]> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            console.warn(`[FeatureAgent] No TimeMachine for agent ${agentId}`);
+            return [];
+        }
+
+        return rt.timeMachine.getAllCheckpoints();
+    }
+
+    /**
+     * Rollback a feature agent to a specific checkpoint
+     */
+    async rollbackToCheckpoint(agentId: string, checkpointId: string): Promise<RollbackResult> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            return {
+                success: false,
+                checkpointId,
+                restoredFilesCount: 0,
+                message: 'No TimeMachine available for this agent',
+            };
+        }
+
+        // Check if agent is in a state that allows rollback
+        const status = rt.config.status;
+        if (status === 'implementing' || status === 'verifying') {
+            // Pause the implementation first
+            this.emitStream(agentId, {
+                type: 'status',
+                content: 'Pausing implementation for rollback...',
+                timestamp: Date.now(),
+            });
+
+            // Stop any running builds
+            if (rt.enhancedBuildLoop) {
+                await rt.enhancedBuildLoop.stop().catch(() => {});
+            }
+            if (rt.buildLoopOrchestrator) {
+                await rt.buildLoopOrchestrator.abort().catch(() => {});
+            }
+        }
+
+        // Get the checkpoint data
+        const checkpoint = await rt.timeMachine.getCheckpoint(checkpointId);
+        if (!checkpoint) {
+            return {
+                success: false,
+                checkpointId,
+                restoredFilesCount: 0,
+                message: `Checkpoint ${checkpointId} not found`,
+            };
+        }
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: `Rolling back to checkpoint from ${checkpoint.timestamp.toISOString()} (phase: ${checkpoint.phase})...`,
+            timestamp: Date.now(),
+            metadata: { checkpointId, phase: checkpoint.phase },
+        });
+
+        // Perform the rollback
+        const result = await rt.timeMachine.rollback(checkpointId);
+
+        if (result.success) {
+            // Actually restore the files
+            const projectPath = `/tmp/builds/${rt.config.projectId}`;
+            await this.restoreFilesFromCheckpoint(projectPath, checkpoint);
+
+            // Restore artifacts/state if available
+            if (checkpoint.artifacts?.buildState) {
+                try {
+                    const buildState = JSON.parse(checkpoint.artifacts.buildState);
+                    if (buildState.plan) {
+                        rt.config.implementationPlan = buildState.plan;
+                    }
+                    if (buildState.progress !== undefined) {
+                        rt.config.progress = buildState.progress;
+                    }
+                } catch (e) {
+                    console.warn(`[FeatureAgent] Failed to restore build state from checkpoint:`, e);
+                }
+            }
+
+            // Update status to paused so user can resume or continue from checkpoint
+            this.setStatus(agentId, 'paused');
+
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Rollback complete. Restored ${result.restoredFilesCount} files to checkpoint state.`,
+                timestamp: Date.now(),
+                metadata: {
+                    checkpointId,
+                    phase: checkpoint.phase,
+                    restoredFiles: result.restoredFilesCount,
+                },
+            });
+        } else {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Rollback failed: ${result.message}`,
+                timestamp: Date.now(),
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Collect all project files into a Map for checkpoint storage
+     */
+    private async collectProjectFiles(projectPath: string): Promise<Map<string, string>> {
+        const filesMap = new Map<string, string>();
+
+        try {
+            // Query files from database for this project
+            const projectFiles = await db
+                .select()
+                .from(files)
+                .where(eq(files.projectId, projectPath.split('/').pop() || ''));
+
+            for (const file of projectFiles) {
+                if (file.content) {
+                    filesMap.set(file.path, file.content);
+                }
+            }
+        } catch (error) {
+            console.warn(`[FeatureAgent] Failed to collect project files:`, error);
+        }
+
+        return filesMap;
+    }
+
+    /**
+     * Restore files from a checkpoint to the project
+     */
+    private async restoreFilesFromCheckpoint(projectPath: string, checkpoint: CheckpointData): Promise<void> {
+        const projectId = projectPath.split('/').pop() || '';
+
+        for (const [filePath, content] of checkpoint.files.entries()) {
+            try {
+                // Update or insert the file in the database
+                const existing = await db
+                    .select()
+                    .from(files)
+                    .where(and(eq(files.projectId, projectId), eq(files.path, filePath)))
+                    .limit(1);
+
+                if (existing.length > 0) {
+                    await db
+                        .update(files)
+                        .set({
+                            content,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(files.id, existing[0].id));
+                } else {
+                    await db.insert(files).values({
+                        id: uuidv4(),
+                        projectId,
+                        path: filePath,
+                        content,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    });
+                }
+            } catch (fileError) {
+                console.warn(`[FeatureAgent] Failed to restore file ${filePath}:`, fileError);
+            }
+        }
     }
 
     async *streamFeatureAgent(agentId: string): AsyncGenerator<StreamMessage> {
