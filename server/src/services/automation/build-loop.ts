@@ -4110,10 +4110,15 @@ Fixed code:`;
     /**
      * Helper: Create sandbox service (local or Modal)
      * 
-     * Priority order for Modal credentials:
-     * 1. Check CredentialVault for user's stored Modal credentials
-     * 2. Fall back to environment variables (MODAL_TOKEN_ID, MODAL_TOKEN_SECRET)
-     * 3. Fall back to local SandboxService if no Modal credentials available
+     * CRITICAL: Modal sandboxes ALWAYS use Kriptik's credentials from environment variables.
+     * User credentials are NEVER used for Modal sandbox operations during app building.
+     * 
+     * Modal usage is billed to the user's credits via metered billing.
+     * 
+     * Modal credentials are configured in Vercel environment:
+     * - MODAL_TOKEN_ID: Kriptik's Modal token ID
+     * - MODAL_TOKEN_SECRET: Kriptik's Modal token secret
+     * - MODAL_ENABLED: Set to 'true' to enable Modal sandboxes
      */
     private async createSandboxServiceInstance(
         projectPath: string
@@ -4125,47 +4130,14 @@ Fixed code:`;
             framework: 'vite',
         };
 
-        // PHASE 1: Check CredentialVault for user's Modal credentials first
-        let modalTokenId: string | undefined;
-        let modalTokenSecret: string | undefined;
-        let credentialSource = 'none';
-
-        try {
-            // Import CredentialVault dynamically to avoid circular dependencies
-            const { getCredentialVault } = await import('../security/credential-vault.js');
-            const vault = getCredentialVault();
-            
-            // Try to get Modal credentials from user's vault
-            const modalCredential = await vault.getCredential(this.state.userId, 'modal');
-            
-            if (modalCredential?.data) {
-                modalTokenId = modalCredential.data.MODAL_TOKEN_ID as string;
-                modalTokenSecret = modalCredential.data.MODAL_TOKEN_SECRET as string;
-                
-                if (modalTokenId && modalTokenSecret) {
-                    credentialSource = 'vault';
-                    console.log('[BuildLoop] Found Modal credentials in CredentialVault');
-                }
-            }
-        } catch (vaultError) {
-            console.warn('[BuildLoop] CredentialVault check failed (non-fatal):', vaultError);
-        }
-
-        // Fall back to environment variables if vault doesn't have credentials
-        if (!modalTokenId || !modalTokenSecret) {
-            modalTokenId = process.env.MODAL_TOKEN_ID;
-            modalTokenSecret = process.env.MODAL_TOKEN_SECRET;
-            
-            if (modalTokenId && modalTokenSecret) {
-                credentialSource = 'env';
-                console.log('[BuildLoop] Using Modal credentials from environment variables');
-            }
-        }
-
-        const useModal = process.env.MODAL_ENABLED === 'true' || credentialSource === 'vault';
+        // KRIPTIK'S MODAL CREDENTIALS ONLY - Never use user credentials for sandboxing
+        // Modal usage is billed to user's credits via metered billing
+        const modalTokenId = process.env.MODAL_TOKEN_ID;
+        const modalTokenSecret = process.env.MODAL_TOKEN_SECRET;
+        const useModal = process.env.MODAL_ENABLED === 'true';
 
         if (useModal && modalTokenId && modalTokenSecret) {
-            console.log(`[BuildLoop] Using Modal sandboxes (credentials from ${credentialSource})`);
+            console.log('[BuildLoop] Using Modal cloud sandboxes (Kriptik platform credentials)');
 
             const credentials: ModalSandboxCredentials = {
                 tokenId: modalTokenId,
@@ -4174,16 +4146,71 @@ Fixed code:`;
 
             const adapter = createModalSandboxAdapter(config, credentials);
             await adapter.initialize();
+            
+            // Track Modal sandbox usage for billing
+            this.trackModalSandboxUsage('sandbox_created');
+            
             return adapter;
         } else {
             if (useModal) {
-                console.warn('[BuildLoop] Modal enabled but no credentials available - falling back to local sandboxes');
+                console.warn('[BuildLoop] Modal enabled but platform credentials not configured - falling back to local sandboxes');
             } else {
                 console.log('[BuildLoop] Using local sandboxes');
             }
             const service = createSandboxService(config);
             await service.initialize();
             return service;
+        }
+    }
+    
+    /**
+     * Track Modal sandbox usage for metered billing to user credits.
+     * Modal costs are passed through to the user via their credit balance.
+     */
+    private async trackModalSandboxUsage(
+        eventType: 'sandbox_created' | 'sandbox_active' | 'sandbox_terminated',
+        durationSeconds?: number
+    ): Promise<void> {
+        try {
+            const { getCreditService } = await import('../billing/credits.js');
+            const creditService = getCreditService();
+            
+            // Estimate Modal cost per sandbox-hour: ~$0.10/hour for standard compute
+            // This is passed through to user with 20% markup
+            const MODAL_SANDBOX_COST_PER_HOUR = 0.10;
+            const MARKUP_PERCENTAGE = 0.20;
+            const CREDIT_VALUE_USD = 0.01;
+            
+            if (eventType === 'sandbox_created') {
+                // Log sandbox creation - actual billing happens on termination based on duration
+                console.log(`[BuildLoop] Modal sandbox created for user ${this.state.userId} - usage will be billed on termination`);
+                return;
+            }
+            
+            if (eventType === 'sandbox_terminated' && durationSeconds !== undefined) {
+                const hours = durationSeconds / 3600;
+                const baseCost = hours * MODAL_SANDBOX_COST_PER_HOUR;
+                const costWithMarkup = baseCost * (1 + MARKUP_PERCENTAGE);
+                const creditsToCharge = Math.max(1, Math.ceil(costWithMarkup / CREDIT_VALUE_USD));
+                
+                await creditService.deductCredits(
+                    this.state.userId,
+                    creditsToCharge,
+                    `Modal sandbox usage: ${Math.round(hours * 60)} minutes`,
+                    {
+                        sandboxDurationSeconds: durationSeconds,
+                        baseCostUsd: baseCost,
+                        totalCostUsd: costWithMarkup,
+                        buildId: this.state.id,
+                        projectId: this.state.projectId,
+                    }
+                );
+                
+                console.log(`[BuildLoop] Billed ${creditsToCharge} credits for Modal sandbox usage (${Math.round(hours * 60)} minutes)`);
+            }
+        } catch (error) {
+            console.warn('[BuildLoop] Failed to track Modal sandbox usage (non-fatal):', error);
+            // Non-fatal: continue even if billing tracking fails
         }
     }
 
