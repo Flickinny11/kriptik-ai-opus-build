@@ -52,6 +52,7 @@ import TournamentStreamResults, { type TournamentStreamData } from './Tournament
 import { ImplementationPlan } from './ImplementationPlan';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
 import { ProvisioningStatus } from '../provisioning/ProvisioningStatus';
+import { IntentContractDisplay, type IntentContract } from './IntentContractDisplay';
 import {
     useProductionStackStore,
     AUTH_PROVIDERS,
@@ -412,20 +413,8 @@ export default function ChatInterface({
     const [currentBuildPhase, setCurrentBuildPhase] = useState<BuildPhase | null>(null);
 
     // Phase E: Intent Contract display state
-    const [intentContract, setIntentContract] = useState<{
-        appSoul: string;
-        coreValueProp: string;
-        successCriteria: Array<{ id: string; description: string; verified?: boolean }>;
-        userWorkflows: Array<{ name: string; steps: string[] }>;
-        visualIdentity: {
-            soul: string;
-            emotion: string;
-            depth: string;
-            motion: string;
-        };
-        locked: boolean;
-        lockedAt?: string;
-    } | null>(null);
+    const [intentContract, setIntentContract] = useState<IntentContract | null>(null);
+    const [showIntentContract, setShowIntentContract] = useState(false);
 
     // SESSION 4: Log live preview state for debugging (will be used by BuilderLayout)
     console.debug('[ChatInterface] Live preview state:', {
@@ -1332,6 +1321,9 @@ export default function ChatInterface({
                         lockedAt: intentData.contract.lockedAt,
                     });
 
+                    // Phase E: Show the Intent Contract display
+                    setShowIntentContract(true);
+
                     // Dispatch event for other components
                     window.dispatchEvent(new CustomEvent('intent-contract-locked', {
                         detail: { contract: intentData.contract }
@@ -1419,6 +1411,39 @@ export default function ChatInterface({
                 open={showBreakdown}
                 onOpenChange={setShowBreakdown}
             />
+
+            {/* Phase E: Intent Contract Display Overlay */}
+            <AnimatePresence>
+                {showIntentContract && intentContract && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        style={{
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            backdropFilter: 'blur(8px)',
+                        }}
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setShowIntentContract(false);
+                            }
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            className="max-w-lg w-full max-h-[80vh] overflow-y-auto"
+                        >
+                            <IntentContractDisplay
+                                contract={intentContract}
+                                onDismiss={() => setShowIntentContract(false)}
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Header - Liquid Glass */}
             <div
