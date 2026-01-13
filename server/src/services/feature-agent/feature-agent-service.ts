@@ -119,6 +119,15 @@ import {
     type SandboxInstance,
 } from '../developer-mode/sandbox-service.js';
 
+// Time Machine for checkpoint/rollback functionality
+import {
+    TimeMachine,
+    createTimeMachine,
+    type CheckpointData,
+    type CheckpointSummary,
+    type RollbackResult,
+} from '../checkpoints/time-machine.js';
+
 export interface StreamMessage {
     type: 'thinking' | 'action' | 'result' | 'status' | 'plan' | 'credentials' | 'verification';
     content: string;
@@ -179,6 +188,8 @@ type FeatureAgentRuntime = {
     sandbox: SandboxInstance | null;
     /** URL of the sandbox for live preview */
     sandboxUrl: string | null;
+    /** Time Machine for checkpoint/rollback functionality */
+    timeMachine: TimeMachine | null;
 };
 
 const PLATFORM_URLS: Record<string, string> = {
@@ -871,6 +882,8 @@ ${basePrompt}`;
             // Sandbox for live preview
             sandbox: null,
             sandboxUrl: null,
+            // Time Machine for checkpoint/rollback
+            timeMachine: null,
         });
 
         this.emitStream(id, { type: 'thinking', content: 'Loading project context and intent lock starting.', timestamp: Date.now() });
@@ -1350,6 +1363,28 @@ Please address this feedback in the new implementation plan.`;
         // Determine project path for the build
         const projectPath = `/tmp/builds/${rt.config.projectId}`;
         const worktreesBasePath = `/tmp/worktrees/${rt.config.projectId}`;
+
+        // =============================================================================
+        // INITIALIZE TIME MACHINE FOR CHECKPOINT/ROLLBACK
+        // =============================================================================
+        rt.timeMachine = createTimeMachine(
+            rt.config.projectId,
+            rt.config.userId,
+            buildId,
+            20 // Max 20 checkpoints per feature agent
+        );
+
+        // Create initial checkpoint before any implementation
+        try {
+            await this.createCheckpoint(agentId, 'pre_implementation', 'Checkpoint before implementation starts');
+            this.emitStream(agentId, {
+                type: 'status',
+                content: 'Time Machine initialized - checkpoint created',
+                timestamp: Date.now(),
+            });
+        } catch (checkpointError) {
+            console.warn(`[FeatureAgent] Initial checkpoint failed (non-fatal):`, checkpointError);
+        }
 
         // =============================================================================
         // CREATE SANDBOX FOR LIVE PREVIEW
@@ -2209,6 +2244,241 @@ Please address this feedback in the new implementation plan.`;
      */
     async mergeFeature(agentId: string, targetBranch?: string): Promise<MergeResult> {
         return this.acceptAndMerge(agentId, targetBranch);
+    }
+
+    // =============================================================================
+    // TIME MACHINE / CHECKPOINT / ROLLBACK METHODS
+    // =============================================================================
+
+    /**
+     * Create a checkpoint for the current feature agent state
+     */
+    async createCheckpoint(agentId: string, phase: string, description?: string): Promise<CheckpointSummary | null> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            console.warn(`[FeatureAgent] No TimeMachine for agent ${agentId}`);
+            return null;
+        }
+
+        // Collect current project files
+        const projectPath = `/tmp/builds/${rt.config.projectId}`;
+        const filesMap = await this.collectProjectFiles(projectPath);
+
+        // Gather artifacts for checkpoint
+        const artifacts: CheckpointData['artifacts'] = {};
+        if (rt.intent?.contract) {
+            artifacts.intentContract = JSON.stringify(rt.intent.contract);
+        }
+        if (rt.config.implementationPlan) {
+            artifacts.buildState = JSON.stringify({
+                plan: rt.config.implementationPlan,
+                status: rt.config.status,
+                progress: rt.config.progress,
+            });
+        }
+
+        // Create the checkpoint
+        const checkpoint = await rt.timeMachine.createCheckpoint(
+            phase,
+            filesMap,
+            {
+                artifacts,
+                description: description || `Checkpoint at phase: ${phase}`,
+                isAutomatic: !description, // Manual if description provided
+                triggerReason: description ? 'manual' : 'phase_complete',
+            }
+        );
+
+        console.log(`[FeatureAgent] Checkpoint created: ${checkpoint.id} for agent ${agentId}`);
+
+        return {
+            id: checkpoint.id,
+            timestamp: checkpoint.timestamp,
+            phase: checkpoint.phase,
+            status: checkpoint.status,
+            filesHash: checkpoint.filesHash,
+            filesCount: checkpoint.files.size,
+            description: checkpoint.description,
+            isAutomatic: checkpoint.isAutomatic,
+        };
+    }
+
+    /**
+     * Get all checkpoints for a feature agent
+     */
+    async getCheckpoints(agentId: string): Promise<CheckpointSummary[]> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            console.warn(`[FeatureAgent] No TimeMachine for agent ${agentId}`);
+            return [];
+        }
+
+        return rt.timeMachine.getAllCheckpoints();
+    }
+
+    /**
+     * Rollback a feature agent to a specific checkpoint
+     */
+    async rollbackToCheckpoint(agentId: string, checkpointId: string): Promise<RollbackResult> {
+        const rt = this.getRuntimeOrThrow(agentId);
+
+        if (!rt.timeMachine) {
+            return {
+                success: false,
+                checkpointId,
+                restoredFilesCount: 0,
+                message: 'No TimeMachine available for this agent',
+            };
+        }
+
+        // Check if agent is in a state that allows rollback
+        const status = rt.config.status;
+        if (status === 'implementing' || status === 'verifying') {
+            // Pause the implementation first
+            this.emitStream(agentId, {
+                type: 'status',
+                content: 'Pausing implementation for rollback...',
+                timestamp: Date.now(),
+            });
+
+            // Stop any running builds
+            if (rt.enhancedBuildLoop) {
+                await rt.enhancedBuildLoop.stop().catch(() => {});
+            }
+            if (rt.buildLoopOrchestrator) {
+                await rt.buildLoopOrchestrator.abort().catch(() => {});
+            }
+        }
+
+        // Get the checkpoint data
+        const checkpoint = await rt.timeMachine.getCheckpoint(checkpointId);
+        if (!checkpoint) {
+            return {
+                success: false,
+                checkpointId,
+                restoredFilesCount: 0,
+                message: `Checkpoint ${checkpointId} not found`,
+            };
+        }
+
+        this.emitStream(agentId, {
+            type: 'thinking',
+            content: `Rolling back to checkpoint from ${checkpoint.timestamp.toISOString()} (phase: ${checkpoint.phase})...`,
+            timestamp: Date.now(),
+            metadata: { checkpointId, phase: checkpoint.phase },
+        });
+
+        // Perform the rollback
+        const result = await rt.timeMachine.rollback(checkpointId);
+
+        if (result.success) {
+            // Actually restore the files
+            const projectPath = `/tmp/builds/${rt.config.projectId}`;
+            await this.restoreFilesFromCheckpoint(projectPath, checkpoint);
+
+            // Restore artifacts/state if available
+            if (checkpoint.artifacts?.buildState) {
+                try {
+                    const buildState = JSON.parse(checkpoint.artifacts.buildState);
+                    if (buildState.plan) {
+                        rt.config.implementationPlan = buildState.plan;
+                    }
+                    if (buildState.progress !== undefined) {
+                        rt.config.progress = buildState.progress;
+                    }
+                } catch (e) {
+                    console.warn(`[FeatureAgent] Failed to restore build state from checkpoint:`, e);
+                }
+            }
+
+            // Update status to paused so user can resume or continue from checkpoint
+            this.setStatus(agentId, 'paused');
+
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Rollback complete. Restored ${result.restoredFilesCount} files to checkpoint state.`,
+                timestamp: Date.now(),
+                metadata: {
+                    checkpointId,
+                    phase: checkpoint.phase,
+                    restoredFiles: result.restoredFilesCount,
+                },
+            });
+        } else {
+            this.emitStream(agentId, {
+                type: 'result',
+                content: `Rollback failed: ${result.message}`,
+                timestamp: Date.now(),
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Collect all project files into a Map for checkpoint storage
+     */
+    private async collectProjectFiles(projectPath: string): Promise<Map<string, string>> {
+        const filesMap = new Map<string, string>();
+
+        try {
+            // Query files from database for this project
+            const projectFiles = await db
+                .select()
+                .from(files)
+                .where(eq(files.projectId, projectPath.split('/').pop() || ''));
+
+            for (const file of projectFiles) {
+                if (file.content) {
+                    filesMap.set(file.path, file.content);
+                }
+            }
+        } catch (error) {
+            console.warn(`[FeatureAgent] Failed to collect project files:`, error);
+        }
+
+        return filesMap;
+    }
+
+    /**
+     * Restore files from a checkpoint to the project
+     */
+    private async restoreFilesFromCheckpoint(projectPath: string, checkpoint: CheckpointData): Promise<void> {
+        const projectId = projectPath.split('/').pop() || '';
+
+        for (const [filePath, content] of checkpoint.files.entries()) {
+            try {
+                // Update or insert the file in the database
+                const existing = await db
+                    .select()
+                    .from(files)
+                    .where(and(eq(files.projectId, projectId), eq(files.path, filePath)))
+                    .limit(1);
+
+                if (existing.length > 0) {
+                    await db
+                        .update(files)
+                        .set({
+                            content,
+                            updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(files.id, existing[0].id));
+                } else {
+                    await db.insert(files).values({
+                        id: uuidv4(),
+                        projectId,
+                        path: filePath,
+                        content,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    });
+                }
+            } catch (fileError) {
+                console.warn(`[FeatureAgent] Failed to restore file ${filePath}:`, fileError);
+            }
+        }
     }
 
     async *streamFeatureAgent(agentId: string): AsyncGenerator<StreamMessage> {

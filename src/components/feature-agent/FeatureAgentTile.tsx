@@ -533,6 +533,21 @@ export function FeatureAgentTile({ agentId, onClose, onMinimize, initialPosition
             {tile.currentPhase ? tile.currentPhase : 'Stream connected'}
           </div>
 
+          {/* Escalation Progress Indicator */}
+          {typeof tile.escalationLevel === 'number' && tile.escalationLevel > 0 && (
+            <div className="fa-tile__escalation">
+              <span className="fa-tile__escalation-badge" data-level={tile.escalationLevel}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M6 1v6M6 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>
+                  Level {tile.escalationLevel}{tile.escalationAttempt ? ` · Attempt ${tile.escalationAttempt}` : ''}
+                </span>
+              </span>
+              <span className="fa-tile__escalation-label">Error Recovery</span>
+            </div>
+          )}
+
           {/* See Feature In Browser button when complete */}
           {tile.status === 'complete' && (
             <button

@@ -372,6 +372,70 @@ router.get('/running', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================================
+// CHECKPOINT / ROLLBACK ENDPOINTS (Time Machine Integration)
+// ============================================================================
+
+// GET /api/feature-agent/:agentId/checkpoints
+// Get all checkpoints for a feature agent
+router.get('/:agentId/checkpoints', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agentId = req.params.agentId;
+    if (!ensureOwner(req, res, agentId)) return;
+    const checkpoints = await featureAgentService.getCheckpoints(agentId);
+    res.json({ success: true, checkpoints });
+  } catch (error) {
+    console.error('[Feature Agent] Get checkpoints error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get checkpoints' });
+  }
+});
+
+// POST /api/feature-agent/:agentId/checkpoint
+// Create a new checkpoint for a feature agent
+router.post('/:agentId/checkpoint', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agentId = req.params.agentId;
+    if (!ensureOwner(req, res, agentId)) return;
+    const { phase, description } = req.body || {};
+    if (!phase || typeof phase !== 'string') {
+      return res.status(400).json({ error: 'phase is required' });
+    }
+    const checkpoint = await featureAgentService.createCheckpoint(
+      agentId,
+      phase,
+      typeof description === 'string' ? description : undefined
+    );
+    if (!checkpoint) {
+      return res.status(500).json({ error: 'Failed to create checkpoint - no Time Machine available' });
+    }
+    res.json({ success: true, checkpoint });
+  } catch (error) {
+    console.error('[Feature Agent] Create checkpoint error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create checkpoint' });
+  }
+});
+
+// POST /api/feature-agent/:agentId/rollback
+// Rollback a feature agent to a specific checkpoint
+router.post('/:agentId/rollback', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agentId = req.params.agentId;
+    if (!ensureOwner(req, res, agentId)) return;
+    const { checkpointId } = req.body || {};
+    if (!checkpointId || typeof checkpointId !== 'string') {
+      return res.status(400).json({ error: 'checkpointId is required' });
+    }
+    const result = await featureAgentService.rollbackToCheckpoint(agentId, checkpointId);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.message, result });
+    }
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('[Feature Agent] Rollback error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to rollback' });
+  }
+});
+
 export default router;
 
 
