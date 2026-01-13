@@ -1170,12 +1170,12 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         const rt = this.getRuntimeOrThrow(agentId);
 
         // Ensure we're in a state where the plan can be rejected
-        if (rt.status !== 'awaiting_plan_approval') {
-            throw new Error(`Cannot reject plan: agent is in '${rt.status}' state, expected 'awaiting_plan_approval'`);
+        if (rt.config.status !== 'awaiting_plan_approval') {
+            throw new Error(`Cannot reject plan: agent is in '${rt.config.status}' state, expected 'awaiting_plan_approval'`);
         }
 
         // Get the existing intent lock (we don't regenerate the intent, just the plan)
-        const existingIntent = rt.intentLock;
+        const existingIntent = rt.intent;
         if (!existingIntent) {
             throw new Error('No intent lock found - cannot regenerate plan');
         }
@@ -1189,7 +1189,7 @@ No placeholders. Keep it production-ready and consistent with the existing plan.
         });
 
         // Reset the current plan
-        rt.config.implementationPlan = undefined;
+        rt.config.implementationPlan = null;
 
         // Build an enhanced prompt if feedback was provided
         let enhancedTaskPrompt = rt.config.taskPrompt;
@@ -1470,6 +1470,9 @@ Please address this feedback in the new implementation plan.`;
             timestamp: Date.now(),
         });
 
+        // Get preview URL from sandbox (if available)
+        const previewUrl = rt.sandboxUrl || rt.sandbox?.url || `http://localhost:3000`;
+        
         rt.enhancedBuildLoop = createEnhancedBuildLoop({
             buildId,
             projectId: rt.config.projectId,
@@ -2271,10 +2274,15 @@ Please address this feedback in the new implementation plan.`;
             artifacts.intentContract = JSON.stringify(rt.intent.contract);
         }
         if (rt.config.implementationPlan) {
+            // Calculate progress from implementation plan phases
+            const completedPhases = rt.config.implementationPlan.phases.filter(p => p.approved).length;
+            const totalPhases = rt.config.implementationPlan.phases.length;
+            const progress = totalPhases > 0 ? Math.round((completedPhases / totalPhases) * 100) : 0;
+            
             artifacts.buildState = JSON.stringify({
                 plan: rt.config.implementationPlan,
                 status: rt.config.status,
-                progress: rt.config.progress,
+                progress,
             });
         }
 
@@ -2385,9 +2393,7 @@ Please address this feedback in the new implementation plan.`;
                     if (buildState.plan) {
                         rt.config.implementationPlan = buildState.plan;
                     }
-                    if (buildState.progress !== undefined) {
-                        rt.config.progress = buildState.progress;
-                    }
+                    // Note: progress is calculated dynamically from plan phases, no need to restore
                 } catch (e) {
                     console.warn(`[FeatureAgent] Failed to restore build state from checkpoint:`, e);
                 }

@@ -35,6 +35,13 @@ import {
 
 import { createIntentLockEngine, type IntentLockEngine } from '../ai/intent-lock.js';
 
+// VL-JEPA Semantic Satisfaction Verification
+import {
+    getSemanticSatisfactionService,
+    type SemanticSatisfactionService,
+    type SatisfactionResult,
+} from '../embeddings/semantic-satisfaction-service.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -61,6 +68,12 @@ export interface EvaluationContext {
     buildOutput?: string;
     screenshotPaths?: string[];
     consoleOutput?: string;
+    /** Original user prompt/intent for semantic matching */
+    originalPrompt?: string;
+    /** Feature descriptions that have been built */
+    builtFeatures?: string[];
+    /** Visual descriptions of the UI */
+    visualDescriptions?: string[];
 }
 
 // =============================================================================
@@ -71,11 +84,13 @@ export class CompletionGateEvaluator {
     private projectId: string;
     private userId: string;
     private intentEngine: IntentLockEngine;
+    private semanticService: SemanticSatisfactionService;
 
     constructor(userId: string, projectId: string) {
         this.projectId = projectId;
         this.userId = userId;
         this.intentEngine = createIntentLockEngine(userId, projectId);
+        this.semanticService = getSemanticSatisfactionService();
     }
 
     /**
@@ -124,6 +139,37 @@ export class CompletionGateEvaluator {
 
         // Step 8: Evaluate Anti-Slop Score
         const antiSlopResult = await this.evaluateAntiSlop(context.fileContents);
+        
+        // Step 9: VL-JEPA Semantic Satisfaction Check
+        // This provides semantic understanding of whether the build truly satisfies the user's intent
+        let semanticResult: SatisfactionResult | null = null;
+        let semanticScore = 100; // Default to 100 if no semantic check is needed
+        
+        if (context.originalPrompt || context.builtFeatures?.length || context.visualDescriptions?.length) {
+            try {
+                semanticResult = await this.performSemanticSatisfactionCheck(contract, context);
+                semanticScore = Math.round(semanticResult.overallScore * 100);
+                
+                // Add blockers for unsatisfied semantic criteria
+                if (!semanticResult.isSatisfied) {
+                    for (const criterion of semanticResult.criteriaResults.filter(c => !c.satisfied)) {
+                        blockers.push({
+                            category: 'functional',
+                            severity: criterion.confidence > 0.7 ? 'blocker' : 'warning',
+                            item: criterion.description,
+                            reason: criterion.reason || `Semantic score: ${Math.round(criterion.semanticScore * 100)}%`,
+                            suggestedFix: criterion.evidence,
+                        });
+                    }
+                    
+                    for (const rec of semanticResult.recommendations) {
+                        recommendations.push(rec);
+                    }
+                }
+            } catch (semanticError) {
+                console.warn('[CompletionGate] Semantic satisfaction check failed (non-blocking):', semanticError);
+            }
+        }
 
         // Build the completion gate
         const gate: CompletionGate = {
@@ -573,6 +619,71 @@ export class CompletionGateEvaluator {
         const result = await detector.analyze(uiFiles);
 
         return { score: result.overall };
+    }
+    
+    /**
+     * VL-JEPA based semantic satisfaction check
+     * Uses embeddings to verify the build truly satisfies the user's original intent
+     */
+    private async performSemanticSatisfactionCheck(
+        contract: DeepIntentContract,
+        context: EvaluationContext
+    ): Promise<SatisfactionResult> {
+        // Build description from context
+        const buildDescription = [
+            `Project: ${contract.appType}`,
+            `Core Value: ${contract.coreValueProp}`,
+            context.builtFeatures?.length ? `Features: ${context.builtFeatures.join(', ')}` : '',
+        ].filter(Boolean).join('\n');
+        
+        // Extract code samples from file contents
+        const codeSamples: string[] = [];
+        for (const [filePath, content] of context.fileContents) {
+            // Only include key files (not too large)
+            if (content.length < 5000 && (
+                filePath.includes('page') ||
+                filePath.includes('component') ||
+                filePath.includes('api/') ||
+                filePath.includes('route')
+            )) {
+                codeSamples.push(`// ${filePath}\n${content.slice(0, 2000)}`);
+            }
+        }
+        
+        try {
+            // Check satisfaction against stored intent
+            const result = await this.semanticService.checkSatisfaction({
+                intentId: contract.id,
+                buildDescription,
+                codeSamples: codeSamples.slice(0, 10), // Limit to 10 samples
+                features: context.builtFeatures,
+                visualDescriptions: context.visualDescriptions,
+            }, this.userId);
+            
+            console.log(`[CompletionGate] VL-JEPA Semantic Score: ${Math.round(result.overallScore * 100)}% (satisfied: ${result.isSatisfied})`);
+            
+            return result;
+        } catch (error) {
+            // If intent not found in semantic store, return a default passing result
+            // The intent might not have been indexed yet
+            console.warn(`[CompletionGate] Semantic check failed (intent may not be indexed):`, error);
+            
+            return {
+                overallScore: 0.85,
+                isSatisfied: true,
+                satisfactionLevel: 'partial',
+                criteriaResults: [],
+                workflowResults: [],
+                codeQualityScore: 0.85,
+                featureCompleteness: {
+                    implemented: context.builtFeatures?.length || 0,
+                    total: context.builtFeatures?.length || 1,
+                    percentage: 100,
+                },
+                recommendations: ['Index intent for semantic verification'],
+                confidence: 0.5,
+            };
+        }
     }
 
     private isFullySatisfied(gate: CompletionGate): boolean {

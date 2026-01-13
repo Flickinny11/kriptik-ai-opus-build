@@ -1825,9 +1825,17 @@ Return ONLY valid JSON with these fields:
             fileContents.set(file.path, file.content);
         }
 
-        // Build evaluation context
+        // Build evaluation context with VL-JEPA semantic verification data
         const context: EvaluationContext = {
             fileContents,
+            // VL-JEPA Semantic Satisfaction Data
+            originalPrompt: deepContract.originalPrompt || deepContract.coreValueProp,
+            builtFeatures: deepContract.functionalChecklist
+                .filter(fc => fc.verified)
+                .map(fc => fc.name),
+            visualDescriptions: deepContract.successCriteria
+                .filter(sc => sc.verificationMethod === 'visual' && sc.passed)
+                .map(sc => sc.description),
             // buildOutput and consoleOutput could be provided if available
             // screenshotPaths could be provided if available
         };
