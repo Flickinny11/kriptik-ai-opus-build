@@ -76,8 +76,8 @@ const BUILD_MODES: BuildModeConfig[] = [
         icon: TrophyIcon as any,
         time: '30-45 min',
         cost: '$15-50',
-        color: 'purple',
-        gradient: 'from-purple-500 to-pink-500',
+        color: 'rose',
+        gradient: 'from-rose-500 to-amber-500', // Anti-slop: amber-rose instead of purple-pink
         features: ['3 competing builds', 'AI judge panel', 'Full verification', 'E2E testing'],
     },
     {

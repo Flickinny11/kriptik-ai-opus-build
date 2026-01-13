@@ -54,6 +54,11 @@ import { GhostModePanel } from '../components/builder/GhostModePanel';
 // SoftInterruptInput was only used in Developer mode - now removed
 import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
+import { SpeedDialSelector, type BuildMode } from '../components/builder/SpeedDialSelector';
+import BuildPhaseIndicator, { type BuildPhase, type PhaseInfo } from '../components/builder/BuildPhaseIndicator';
+import { VisualPropertyPanel } from '../components/builder/visual-editor/VisualPropertyPanel';
+import { SelectionOverlay } from '../components/builder/visual-editor/controls/SelectionOverlay';
+import { useVisualEditorStore } from '../store/useVisualEditorStore';
 import { FloatingDevToolbar } from '../components/developer-bar';
 import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
@@ -384,8 +389,22 @@ export default function Builder() {
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const [showContextBridge, setShowContextBridge] = useState(false);
-    const [showIntelligencePanel] = useState(false);
+    const [showIntelligencePanel, setShowIntelligencePanel] = useState(true); // Design panel always visible
     const [showExtensionAlt, setShowExtensionAlt] = useState(false);
+    // Build mode selection (Speed Dial)
+    const [buildMode, setBuildMode] = useState<BuildMode>('standard');
+    // Build phase tracking for progress indicator
+    const [buildPhases, setBuildPhases] = useState<PhaseInfo[]>([
+        { phase: 'intent_lock', status: 'pending' },
+        { phase: 'initialization', status: 'pending' },
+        { phase: 'parallel_build', status: 'pending' },
+        { phase: 'integration', status: 'pending' },
+        { phase: 'testing', status: 'pending' },
+        { phase: 'intent_satisfaction', status: 'pending' },
+        { phase: 'demo', status: 'pending' },
+    ]);
+    const [currentBuildPhase, setCurrentBuildPhase] = useState<BuildPhase | undefined>(undefined);
+    const [isBuilding, setIsBuilding] = useState(false);
     const [intelligenceSettings, setIntelligenceSettings] = useState<IntelligenceSettings>({
         thinkingDepth: 'normal',
         powerLevel: 'balanced',
@@ -404,6 +423,8 @@ export default function Builder() {
     const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
     const { setIsOpen: setIntegrationsOpen } = useIntegrationStore();
     const { loadStack } = useProductionStackStore();
+    // Visual editor store for element selection and property editing
+    const { isPanelOpen: isVisualEditorOpen, openPanel: openVisualEditor, selectedElements } = useVisualEditorStore();
 
     // Show extension alternative on mobile after initial load
     useEffect(() => {
@@ -762,17 +783,85 @@ export default function Builder() {
                                     className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
-                                    {/* Intelligence Toggles Panel */}
-                                    {showIntelligencePanel && (
-                                        <div className="border-b border-black/5 p-3">
-                                            <IntelligenceToggles
-                                                settings={intelligenceSettings}
-                                                onSettingsChange={setIntelligenceSettings}
-                                                compact={true}
+                                    {/* Design Control Panel - Always visible like Cursor 2.2 */}
+                                    <div className="border-b border-black/5 shrink-0">
+                                        {/* Speed Dial - Build Mode Selector */}
+                                        <div className="p-3 border-b border-black/5">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-medium text-stone-600 uppercase tracking-wide">Build Mode</span>
+                                                <button
+                                                    onClick={() => setShowIntelligencePanel(!showIntelligencePanel)}
+                                                    className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                                                >
+                                                    {showIntelligencePanel ? 'Hide Controls' : 'Show Controls'}
+                                                </button>
+                                            </div>
+                                            <SpeedDialSelector
+                                                selectedMode={buildMode}
+                                                onModeChange={setBuildMode}
+                                                disabled={isBuilding}
+                                                showDetails={false}
                                             />
                                         </div>
-                                    )}
-                                    <ChatInterface intelligenceSettings={intelligenceSettings} projectId={projectId} />
+
+                                        {/* Build Phase Progress - Shows during builds */}
+                                        {(isBuilding || currentBuildPhase) && (
+                                            <div className="p-3 border-b border-black/5">
+                                                <BuildPhaseIndicator
+                                                    phases={buildPhases}
+                                                    currentPhase={currentBuildPhase}
+                                                    showDetails={false}
+                                                    compact={true}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Intelligence Controls - Collapsible */}
+                                        <AnimatePresence>
+                                            {showIntelligencePanel && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="p-3">
+                                                        <IntelligenceToggles
+                                                            settings={intelligenceSettings}
+                                                            onSettingsChange={setIntelligenceSettings}
+                                                            compact={true}
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                    <ChatInterface
+                                        intelligenceSettings={intelligenceSettings}
+                                        projectId={projectId}
+                                        buildMode={buildMode}
+                                        onBuildStart={() => {
+                                            setIsBuilding(true);
+                                            setCurrentBuildPhase('intent_lock');
+                                            setBuildPhases(prev => prev.map((p, i) =>
+                                                i === 0 ? { ...p, status: 'active' } : p
+                                            ));
+                                        }}
+                                        onPhaseChange={(phase: BuildPhase) => {
+                                            setCurrentBuildPhase(phase);
+                                            setBuildPhases(prev => prev.map(p => ({
+                                                ...p,
+                                                status: p.phase === phase ? 'active' :
+                                                       prev.findIndex(x => x.phase === p.phase) < prev.findIndex(x => x.phase === phase) ? 'complete' : 'pending'
+                                            })));
+                                        }}
+                                        onBuildComplete={() => {
+                                            setIsBuilding(false);
+                                            setCurrentBuildPhase(undefined);
+                                            setBuildPhases(prev => prev.map(p => ({ ...p, status: 'complete' })));
+                                        }}
+                                    />
                                     {activeTab === 'preview' && <ActivityFeed />}
                                 </div>
                             </Panel>
@@ -821,6 +910,30 @@ export default function Builder() {
                                             >
                                                 Code
                                             </TabButton>
+
+                                            {/* Element Selection Toggle - Like Cursor 2.2 */}
+                                            {activeTab === 'preview' && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => openVisualEditor()}
+                                                    className={`
+                                                        flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium
+                                                        transition-all duration-200 ml-2
+                                                        ${isVisualEditorOpen
+                                                            ? 'bg-amber-500/20 text-amber-700 border border-amber-300'
+                                                            : 'hover:bg-black/5 text-stone-600 border border-transparent'
+                                                        }
+                                                    `}
+                                                    title="Click elements in preview to edit their styles"
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                                                        <path d="M13 13l6 6" />
+                                                    </svg>
+                                                    <span className="hidden sm:inline">Select</span>
+                                                </motion.button>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-3">
@@ -851,6 +964,8 @@ export default function Builder() {
                                             : 'opacity-0 z-0 pointer-events-none'
                                             }`}>
                                             <SandpackPreviewWindow />
+                                            {/* Selection Overlay for visual element picking */}
+                                            <SelectionOverlay className="absolute inset-0 pointer-events-none z-20" />
                                         </div>
                                         <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'code'
                                             ? 'opacity-100 z-10'
@@ -861,6 +976,26 @@ export default function Builder() {
                                     </div>
                                 </div>
                             </Panel>
+
+                            {/* Visual Property Panel - Shows when elements are selected */}
+                            <AnimatePresence>
+                                {isVisualEditorOpen && selectedElements.length > 0 && (
+                                    <>
+                                        <PanelResizeHandle className="w-2 hover:bg-amber-500/30 transition-colors mx-1" />
+                                        <Panel defaultSize={20} minSize={15} maxSize={30}>
+                                            <motion.div
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 20 }}
+                                                className="h-full m-2 rounded-2xl overflow-hidden"
+                                                style={liquidGlassPanel}
+                                            >
+                                                <VisualPropertyPanel />
+                                            </motion.div>
+                                        </Panel>
+                                    </>
+                                )}
+                            </AnimatePresence>
                         </PanelGroup>
                     </div>
                     {/* End of Builder Mode */}
