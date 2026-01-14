@@ -274,17 +274,16 @@ export const auth = betterAuth({
         // Default cookie attributes - HARDCODED per AUTH-IMMUTABLE-SPECIFICATION.md
         // DO NOT MAKE THESE DYNAMIC - mobile Safari and embedded browsers require exact configuration
         defaultCookieAttributes: {
-            // CRITICAL: Always 'lax' - maximizes compatibility with mobile Safari and embedded browsers
-            // 'none' is blocked by iOS Safari's ITP (Intelligent Tracking Prevention)
-            sameSite: 'lax' as const,
-            // CRITICAL: Always true in production
-            secure: isProd,
+            // 'none' required for cross-site cookies (kriptik.app -> api.kriptik.app)
+            // 'lax' doesn't send cookies on cross-site fetch requests
+            sameSite: 'none' as const,
+            // MUST be true when sameSite is 'none'
+            secure: true,
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
-            // NOTE: Domain is NOT set - letting the browser default to the exact backend domain
-            // Setting domain to '.kriptik.app' was WRONG because backend is at vercel.app
-            // A server at vercel.app CANNOT set cookies for .kriptik.app - browser rejects them
+            // Domain allows cookie sharing between kriptik.app and api.kriptik.app
+            domain: isProd ? '.kriptik.app' : undefined,
         },
     },
 
