@@ -126,18 +126,15 @@ export const auth = betterAuth({
     },
 
     advanced: {
-        useSecureCookies: false,  // Avoid __Secure- prefix issues
+        useSecureCookies: true,  // MUST be true for cross-origin
+        crossSubDomainCookies: { enabled: false },  // Different domains, not subdomains
         cookiePrefix: "kriptik_auth",
         defaultCookieAttributes: {
-            // 'lax' is REQUIRED for iOS WebKit (Chrome/Safari on iPhone)
-            // iOS ITP blocks 'none' cookies. kriptik.app and api.kriptik.app
-            // are SAME-SITE so 'lax' works for all requests between them.
-            sameSite: "lax",
-            secure: true,  // Production uses HTTPS
+            sameSite: "none",  // REQUIRED for cross-origin
+            secure: true,      // REQUIRED when sameSite is "none"
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7,
-            domain: ".kriptik.app",  // Allows cookie sharing across subdomains
         },
     },
 
@@ -295,16 +292,9 @@ Auth is designed to work with the scaling architecture:
 3. Check `BETTER_AUTH_URL` is the backend URL, not frontend
 
 ### Cookies Not Set
-1. Ensure `sameSite: "lax"` is set (NOT "none" - iOS blocks it!)
-2. Ensure `secure: true` for production
-3. Ensure frontend uses `credentials: "include"`
-4. Ensure backend CORS allows credentials
-
-### iOS Chrome/Safari Cookie Issues
-1. iOS uses WebKit with ITP (Intelligent Tracking Prevention)
-2. ITP blocks `sameSite: "none"` cookies as third-party tracking
-3. Use `sameSite: "lax"` - it works because kriptik.app and api.kriptik.app are SAME-SITE
-4. Same-site = same registrable domain, so 'lax' cookies ARE sent between subdomains
+1. Ensure `sameSite: "none"` and `secure: true` are set
+2. Ensure frontend uses `credentials: "include"`
+3. Ensure backend CORS allows credentials
 
 ### "Table not found" Errors
 1. Run migrations: `npx tsx src/run-migration.ts`

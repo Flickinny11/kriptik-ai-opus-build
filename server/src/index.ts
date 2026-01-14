@@ -321,10 +321,18 @@ app.use((req, res, next) => {
 
     const origin = req.headers.origin as string;
 
+    // CORS preflights from browsers MUST have an Origin header
+    // If no origin, log it but don't set isAllowed automatically
+    if (!origin) {
+        console.log(`[CORS Preflight] Request has no Origin header - likely non-browser client`);
+    }
+
     // Check if origin is allowed via explicit match or regex
-    let isAllowed = !origin ||
+    // NOTE: origin MUST be present for credentialed CORS to work
+    let isAllowed = origin && (
         allowedOrigins.includes(origin) ||
-        allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin));
+        allowedOrigins.some(allowed => allowed instanceof RegExp && allowed.test(origin))
+    );
 
     // Allow Chrome and Firefox extensions
     if (!isAllowed && origin) {
@@ -360,8 +368,9 @@ app.use((req, res, next) => {
         }
     }
 
-    if (isAllowed) {
-        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    if (isAllowed && origin) {
+        // origin is guaranteed to exist here since isAllowed requires it
+        res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, x-user-id, X-User-Id, Cookie, Set-Cookie');

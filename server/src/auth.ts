@@ -185,7 +185,7 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
-console.log('[Auth] Cookie SameSite setting: lax (iOS WebKit compatible - same-site for kriptik.app subdomains)');
+console.log('[Auth] Cookie SameSite setting: none (cross-origin per AUTH-IMMUTABLE-SPECIFICATION)');
 console.log('[Auth] Is production:', isProd);
 
 // Log configuration on startup
@@ -261,31 +261,17 @@ export const auth = betterAuth({
         },
     },
 
-    // Advanced configuration - SIMPLIFIED for maximum compatibility
+    // Advanced configuration - per AUTH-IMMUTABLE-SPECIFICATION.md
     advanced: {
-        // NO useSecureCookies - avoids __Secure- prefix issues
-        useSecureCookies: false,
-
-        // NO crossSubDomainCookies - we set domain directly below
-
-        // Cookie name prefix
+        useSecureCookies: true,  // MUST be true for cross-origin
+        crossSubDomainCookies: { enabled: false },  // Different domains, not subdomains
         cookiePrefix: "kriptik_auth",
-
-        // Default cookie attributes - HARDCODED per AUTH-IMMUTABLE-SPECIFICATION.md
-        // DO NOT MAKE THESE DYNAMIC - mobile Safari and embedded browsers require exact configuration
         defaultCookieAttributes: {
-            // 'lax' is REQUIRED for iOS WebKit (Chrome/Safari on iPhone)
-            // iOS ITP (Intelligent Tracking Prevention) blocks 'none' cookies
-            // kriptik.app and api.kriptik.app are SAME-SITE (same registrable domain)
-            // so 'lax' cookies ARE sent on fetch requests between them
-            sameSite: 'lax' as const,
-            // Secure is required for production (HTTPS)
-            secure: isProd,
+            sameSite: "none" as const,  // REQUIRED for cross-origin
+            secure: true,      // REQUIRED when sameSite is "none"
             httpOnly: true,
             path: "/",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            // Domain allows cookie sharing between kriptik.app and api.kriptik.app
-            domain: isProd ? '.kriptik.app' : undefined,
+            maxAge: 60 * 60 * 24 * 7,
         },
     },
 
