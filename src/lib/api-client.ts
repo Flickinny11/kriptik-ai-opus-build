@@ -212,6 +212,7 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...(this.userId && { 'x-user-id': this.userId }),
             },
+            credentials: 'include',
             body: JSON.stringify({ prompt, skipPhases, intelligenceSettings }),
         });
 
@@ -341,6 +342,7 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...(this.userId && { 'x-user-id': this.userId }),
             },
+            credentials: 'include',
             body: JSON.stringify({
                 images,
                 framework: options?.framework || 'react',
@@ -833,6 +835,7 @@ class ApiClient {
         fetch(`${this.baseUrl}/api/krip-toe-nite/generate`, {
             method: 'POST',
             headers,
+            credentials: 'include',
             body: JSON.stringify(data),
             signal: controller.signal,
         }).then(async (response) => {

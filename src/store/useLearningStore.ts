@@ -107,7 +107,9 @@ const DEFAULT_PREFERENCES: LearningPreferences = {
 import { API_URL as apiUrl } from '@/lib/api-config';
 
 async function fetchLearningStatus(): Promise<LearningSystemStatus> {
-    const res = await fetch(`${apiUrl}/api/learning/status`);
+    const res = await fetch(`${apiUrl}/api/learning/status`, {
+        credentials: 'include',
+    });
     const data = await res.json();
     if (!data.success) throw new Error(data.error || 'Failed to fetch status');
     return data.data;
@@ -117,6 +119,7 @@ async function runEvolutionCycle(userId: string): Promise<void> {
     const res = await fetch(`${apiUrl}/api/learning/cycles/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ userId }),
     });
     const data = await res.json();

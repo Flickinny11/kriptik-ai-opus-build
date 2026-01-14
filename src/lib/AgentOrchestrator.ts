@@ -424,6 +424,7 @@ export class AgentOrchestrator {
         if (this.currentProjectId) {
             fetch(`${API_BASE}/api/orchestrate/${this.currentProjectId}/pause`, {
                 method: 'POST',
+                credentials: 'include',
             }).catch(console.error);
         }
     }
@@ -439,6 +440,7 @@ export class AgentOrchestrator {
         if (this.currentProjectId) {
             fetch(`${API_BASE}/api/orchestrate/${this.currentProjectId}/resume`, {
                 method: 'POST',
+                credentials: 'include',
             }).catch(console.error);
         }
     }
@@ -455,6 +457,7 @@ export class AgentOrchestrator {
         if (this.currentProjectId) {
             fetch(`${API_BASE}/api/orchestrate/${this.currentProjectId}`, {
                 method: 'DELETE',
+                credentials: 'include',
             }).catch(console.error);
         }
 

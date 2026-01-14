@@ -79,6 +79,7 @@ export class VirtualFileSystem {
                     headers: {
                         'x-user-id': this.userId,
                     },
+                    credentials: 'include',
                 }
             );
 
@@ -267,6 +268,7 @@ export class VirtualFileSystem {
                         'Content-Type': 'application/json',
                         'x-user-id': this.userId,
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         files: dirtyFiles.map(f => ({
                             path: f.path,
