@@ -50,33 +50,39 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function prepare() {
+      // Hide splash screen immediately when fonts are ready
+      await SplashScreen.hideAsync();
+      
       try {
         // Check if user has completed onboarding
         const onboardingComplete = await SecureStore.getItemAsync(ONBOARDING_COMPLETE_KEY);
         setHasCompletedOnboarding(onboardingComplete === 'true');
 
-        // Check authentication status
-        const isAuthed = await checkAuth();
+        // Check authentication status (with timeout)
+        const authPromise = checkAuth();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 5000)
+        );
+        
+        try {
+          await Promise.race([authPromise, timeoutPromise]);
+        } catch (authError) {
+          console.warn('Auth check failed or timed out:', authError);
+        }
 
-        // Setup push notifications
-        await initNotifications();
+        // Setup push notifications (non-blocking)
+        initNotifications().catch(e => console.warn('Notification init error:', e));
 
         // Setup deep link handling
         handleDeepLink();
 
         // Setup notification listeners
-        const cleanup = setupNotificationListeners();
+        setupNotificationListeners();
 
         setIsReady(true);
-
-        return cleanup;
       } catch (e) {
         console.warn('Initialization error:', e);
         setIsReady(true);
-      } finally {
-        if (fontsLoaded) {
-          await SplashScreen.hideAsync();
-        }
       }
     }
 
