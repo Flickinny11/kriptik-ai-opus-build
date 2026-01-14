@@ -1,11 +1,9 @@
 import { createAuthClient } from "better-auth/react"
+import { API_URL, FRONTEND_URL } from './api-config';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
-
-// Log configuration on startup
-console.log('[Auth Client] Initialized with API_URL:', API_URL);
-console.log('[Auth Client] Frontend URL:', FRONTEND_URL);
+// Note: API_URL and FRONTEND_URL are imported from centralized config
+// This ensures production fallback to https://api.kriptik.app (not localhost)
+// See src/lib/api-config.ts for the source of truth
 
 // Detect if we're on mobile
 export const isMobile = (): boolean => {
