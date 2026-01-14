@@ -4,7 +4,8 @@
 
 import Constants from 'expo-constants';
 
-export const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.kriptik.ai';
+// CRITICAL: Must match web app API URL (kriptik.app, NOT kriptik.ai)
+export const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.kriptik.app';
 
 export const config = {
   api: {
@@ -20,6 +21,6 @@ export const config = {
   },
   deepLinking: {
     scheme: 'kriptik',
-    domains: ['app.kriptik.ai', 'kriptik.ai'],
+    domains: ['app.kriptik.app', 'kriptik.app'],
   },
 } as const;

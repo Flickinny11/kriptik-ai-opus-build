@@ -48,3 +48,8 @@ drizzle/
 
 .vercel
 .env*.local
+
+# Apple credentials (sensitive - DO NOT COMMIT)
+kriptik-mobile/credentials/
+kriptik-mobile/credentials.json
+*.p8

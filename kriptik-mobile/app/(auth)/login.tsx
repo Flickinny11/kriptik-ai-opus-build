@@ -48,8 +48,8 @@ export default function LoginScreen() {
 
   const handleOAuthLogin = async (provider: 'github' | 'google') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Implement OAuth flow with expo-auth-session
-    const authUrl = `https://api.kriptik.ai/api/auth/sign-in/${provider}`;
+    // OAuth flow via expo-auth-session pointing to correct backend
+    const authUrl = `https://api.kriptik.app/api/auth/sign-in/${provider}?callbackUrl=kriptik://auth/callback`;
     await WebBrowser.openAuthSessionAsync(authUrl, 'kriptik://auth/callback');
   };
 

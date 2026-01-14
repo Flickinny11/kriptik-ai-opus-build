@@ -6,7 +6,8 @@
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.kriptik.ai';
+// CRITICAL: Must match web app API URL (kriptik.app, NOT kriptik.ai)
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://api.kriptik.app';
 const ACCESS_TOKEN_KEY = 'kriptik_access_token';
 const REFRESH_TOKEN_KEY = 'kriptik_refresh_token';
 
@@ -168,7 +169,7 @@ class KripTikApi {
   async getCurrentUser() {
     return this.request<{
       user: { id: string; email: string; name: string; avatar?: string; createdAt: string };
-    }>('/api/auth/session');
+    }>('/api/auth/get-session');
   }
 
   async requestPasswordReset(email: string) {

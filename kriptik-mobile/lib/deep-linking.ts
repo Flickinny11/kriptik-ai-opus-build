@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../store/auth-store';
 
 // URL scheme: kriptik://
-// Web URLs: https://app.kriptik.ai/mobile/*
+// Web URLs: https://kriptik.app/mobile/*
 
 interface DeepLinkRoute {
   pattern: RegExp;
@@ -198,8 +198,8 @@ export function createDeepLink(path: string, params?: Record<string, string>): s
 
 export function openWebBuilder(projectId?: string) {
   const url = projectId
-    ? `https://app.kriptik.ai/builder/${projectId}`
-    : 'https://app.kriptik.ai/builder';
+    ? `https://kriptik.app/builder/${projectId}`
+    : 'https://kriptik.app/builder';
   
   Linking.openURL(url);
 }
