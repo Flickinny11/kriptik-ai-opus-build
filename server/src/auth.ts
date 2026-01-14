@@ -282,9 +282,9 @@ export const auth = betterAuth({
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
-            // CRITICAL: Explicit domain for cross-subdomain (api.kriptik.app <-> kriptik.app)
-            // Always set in production to enable cookie sharing across subdomains
-            domain: isProd ? '.kriptik.app' : undefined,
+            // NOTE: Domain is NOT set - letting the browser default to the exact backend domain
+            // Setting domain to '.kriptik.app' was WRONG because backend is at vercel.app
+            // A server at vercel.app CANNOT set cookies for .kriptik.app - browser rejects them
         },
     },
 
