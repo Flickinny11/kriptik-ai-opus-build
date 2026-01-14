@@ -367,9 +367,11 @@ router.get('/auth/oauth/start/:provider', (req: Request, res: Response) => {
   });
 
   // Get OAuth credentials from environment
+  // IMPORTANT: GitHub requires separate OAuth apps for web vs mobile (different callback URLs)
+  // Mobile uses GITHUB_MOBILE_CLIENT_ID, falls back to regular GITHUB_CLIENT_ID
   const clientId = provider === 'google' 
     ? (process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID)
-    : (process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID);
+    : (process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID);
 
   if (!clientId) {
     return res.status(500).json({ success: false, error: `${provider} OAuth not configured` });
@@ -482,8 +484,9 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
       };
     } else if (provider === 'github') {
       // Exchange code for tokens
-      const clientId = process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID;
-      const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET || process.env.AUTH_GITHUB_SECRET;
+      // IMPORTANT: Use mobile-specific GitHub OAuth app (different callback URL required)
+      const clientId = process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID;
+      const clientSecret = process.env.GITHUB_MOBILE_CLIENT_SECRET || process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET || process.env.AUTH_GITHUB_SECRET;
 
       const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
