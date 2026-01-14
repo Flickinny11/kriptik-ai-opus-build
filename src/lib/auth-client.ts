@@ -95,15 +95,32 @@ export const signInWithGoogle = async () => {
             callbackURL, // Use full URL to ensure redirect to frontend
         });
 
-        console.log('[Auth] Google sign-in initiated:', result);
+        console.log('[Auth] Google sign-in result:', JSON.stringify(result, null, 2));
 
-        // Better Auth handles the redirect, so we shouldn't reach here normally
-        // If we do, it means something went wrong
+        // Check for error in result
         if (result?.error) {
-            throw new Error(result.error.message || 'Google sign-in failed');
+            console.error('[Auth] Google sign-in error in result:', result.error);
+            throw new Error(result.error.message || result.error.code || 'Google sign-in failed');
         }
+
+        // Check if result contains a URL we need to redirect to manually
+        // Some Better Auth versions/configs return the URL instead of auto-redirecting
+        const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
+        if (redirectUrl && typeof redirectUrl === 'string') {
+            console.log('[Auth] Manual redirect required to:', redirectUrl);
+            window.location.href = redirectUrl;
+            return;
+        }
+
+        // If we get here with no redirect and no error, log the full result for debugging
+        console.log('[Auth] No redirect occurred. Full result:', result);
+
     } catch (error) {
         console.error('[Auth] Google sign-in error:', error);
+        // Provide more context in the error
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+        }
         throw error;
     }
 };
@@ -126,14 +143,32 @@ export const signInWithGitHub = async () => {
             callbackURL, // Use full URL to ensure redirect to frontend
         });
 
-        console.log('[Auth] GitHub sign-in initiated:', result);
+        console.log('[Auth] GitHub sign-in result:', JSON.stringify(result, null, 2));
 
-        // Better Auth handles the redirect, so we shouldn't reach here normally
+        // Check for error in result
         if (result?.error) {
-            throw new Error(result.error.message || 'GitHub sign-in failed');
+            console.error('[Auth] GitHub sign-in error in result:', result.error);
+            throw new Error(result.error.message || result.error.code || 'GitHub sign-in failed');
         }
+
+        // Check if result contains a URL we need to redirect to manually
+        // Some Better Auth versions/configs return the URL instead of auto-redirecting
+        const redirectUrl = (result as any)?.url || (result as any)?.redirect || (result as any)?.data?.url;
+        if (redirectUrl && typeof redirectUrl === 'string') {
+            console.log('[Auth] Manual redirect required to:', redirectUrl);
+            window.location.href = redirectUrl;
+            return;
+        }
+
+        // If we get here with no redirect and no error, log the full result for debugging
+        console.log('[Auth] No redirect occurred. Full result:', result);
+
     } catch (error) {
         console.error('[Auth] GitHub sign-in error:', error);
+        // Provide more context in the error
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+        }
         throw error;
     }
 };
@@ -143,44 +178,68 @@ export const signInWithGitHub = async () => {
 // ============================================================================
 
 export const signInWithEmail = async (email: string, password: string) => {
-    console.log('[Auth] Signing in with email:', email);
+    console.log('[Auth] Signing in with email:', email, 'API_URL:', API_URL);
 
-    const response = await authClient.signIn.email({
-        email,
-        password,
-        callbackURL: '/dashboard',
-    });
+    try {
+        const response = await authClient.signIn.email({
+            email,
+            password,
+            callbackURL: '/dashboard',
+        });
 
-    if (response.error) {
-        throw new Error(response.error.message || 'Login failed');
+        console.log('[Auth] Email sign-in response:', JSON.stringify(response, null, 2));
+
+        if (response.error) {
+            console.error('[Auth] Email sign-in error:', response.error);
+            throw new Error(response.error.message || response.error.code || 'Login failed');
+        }
+
+        if (!response.data) {
+            console.error('[Auth] Email sign-in: no data returned');
+            throw new Error('Login failed - no user data returned');
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('[Auth] Email sign-in exception:', error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+        }
+        throw error;
     }
-
-    if (!response.data) {
-        throw new Error('Login failed - no user data returned');
-    }
-
-    return response.data;
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
-    console.log('[Auth] Signing up:', email, name);
+    console.log('[Auth] Signing up:', email, name, 'API_URL:', API_URL);
 
-    const response = await authClient.signUp.email({
-        email,
-        password,
-        name,
-        callbackURL: '/dashboard',
-    });
+    try {
+        const response = await authClient.signUp.email({
+            email,
+            password,
+            name,
+            callbackURL: '/dashboard',
+        });
 
-    if (response.error) {
-        throw new Error(response.error.message || 'Signup failed');
+        console.log('[Auth] Signup response:', JSON.stringify(response, null, 2));
+
+        if (response.error) {
+            console.error('[Auth] Signup error:', response.error);
+            throw new Error(response.error.message || response.error.code || 'Signup failed');
+        }
+
+        if (!response.data) {
+            console.error('[Auth] Signup: no data returned');
+            throw new Error('Signup failed - no user data returned');
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('[Auth] Signup exception:', error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error(`Network error: Cannot reach auth server at ${API_URL}. Please check your connection.`);
+        }
+        throw error;
     }
-
-    if (!response.data) {
-        throw new Error('Signup failed - no user data returned');
-    }
-
-    return response.data;
 };
 
 // ============================================================================

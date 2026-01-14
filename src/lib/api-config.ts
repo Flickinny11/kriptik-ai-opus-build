@@ -19,14 +19,15 @@
  *
  * PRODUCTION (Vercel): Uses VITE_API_URL env var (set in Vercel dashboard)
  * - If VITE_API_URL is set: Uses that value
- * - If NOT set: Falls back to https://api.kriptik.app
+ * - If NOT set: Falls back to https://kriptik-ai-opus-build-backend.vercel.app
+ *   (per AUTH-IMMUTABLE-SPECIFICATION.md - this must match OAuth callback URLs)
  *
  * DEVELOPMENT (local): Falls back to http://localhost:3001
  * - Only used when running locally (npm run dev)
  * - NEVER used in production deployments
  */
 export const API_URL = import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
+    (import.meta.env.PROD ? 'https://kriptik-ai-opus-build-backend.vercel.app' : 'http://localhost:3001');
 
 /**
  * Frontend URL
