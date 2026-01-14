@@ -31,6 +31,12 @@ if (typeof navigator !== 'undefined') {
 }
 
 // Create auth client with proper config for cross-origin requests
+// NOTE: iOS Safari/Chrome cookie handling:
+// - kriptik.app and api.kriptik.app share the same eTLD+1 (kriptik.app)
+// - Safari's ITP considers them SAME-SITE, not cross-site
+// - Backend uses sameSite: 'lax' (not 'none') for same-site scenarios
+// - Cookie domain '.kriptik.app' allows sharing between subdomains
+// - This works without a proxy because it's same-site
 export const authClient = createAuthClient({
     baseURL: API_URL,
     fetchOptions: {
