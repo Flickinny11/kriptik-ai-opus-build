@@ -185,7 +185,7 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
-console.log('[Auth] Cookie SameSite setting: lax (hardcoded per AUTH-IMMUTABLE-SPECIFICATION)');
+console.log('[Auth] Cookie SameSite setting: lax (iOS WebKit compatible - same-site for kriptik.app subdomains)');
 console.log('[Auth] Is production:', isProd);
 
 // Log configuration on startup
@@ -274,11 +274,13 @@ export const auth = betterAuth({
         // Default cookie attributes - HARDCODED per AUTH-IMMUTABLE-SPECIFICATION.md
         // DO NOT MAKE THESE DYNAMIC - mobile Safari and embedded browsers require exact configuration
         defaultCookieAttributes: {
-            // 'none' required for cross-site cookies (kriptik.app -> api.kriptik.app)
-            // 'lax' doesn't send cookies on cross-site fetch requests
-            sameSite: 'none' as const,
-            // MUST be true when sameSite is 'none'
-            secure: true,
+            // 'lax' is REQUIRED for iOS WebKit (Chrome/Safari on iPhone)
+            // iOS ITP (Intelligent Tracking Prevention) blocks 'none' cookies
+            // kriptik.app and api.kriptik.app are SAME-SITE (same registrable domain)
+            // so 'lax' cookies ARE sent on fetch requests between them
+            sameSite: 'lax' as const,
+            // Secure is required for production (HTTPS)
+            secure: isProd,
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
