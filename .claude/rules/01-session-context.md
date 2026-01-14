@@ -6,39 +6,39 @@
 
 ## Current State (as of 2026-01-14)
 
-### ✅ iPhone Chrome Cookie Fix Applied
+### ✅ iPhone Chrome Login Fix - REAL Root Cause Found
 
 **Session Date**: 2026-01-14
 **Issue**: Login doesn't work on iPhone Chrome browser (social and credential login both fail)
-**Root Cause**: `sameSite: 'none'` cookies are blocked by iOS WebKit's ITP (Intelligent Tracking Prevention)
+**Symptom**: Server logs showed OPTIONS preflights (204) but NO actual POST/GET requests
 
-**The Problem**:
-- iOS Chrome uses WebKit (Safari's engine), which has ITP
-- ITP aggressively blocks cookies with `sameSite: 'none'` as third-party tracking prevention
-- Previous commit `268f627` changed from 'lax' to 'none' which broke iOS
-
-**Why `sameSite: 'lax'` Works**:
-- `kriptik.app` and `api.kriptik.app` share the same registrable domain
-- They are considered **SAME-SITE** according to web standards
-- `sameSite: 'lax'` cookies ARE sent on same-site requests (including subdomains)
-- iOS WebKit does NOT block 'lax' cookies like it blocks 'none'
-
-**Fix Applied** (`server/src/auth.ts`):
-```typescript
-// BEFORE (broken on iOS)
-sameSite: 'none' as const,
-secure: true,
-
-// AFTER (iOS compatible)
-sameSite: 'lax' as const,
-secure: isProd,  // Dynamic based on environment
+**Root Cause 1: CORS Bug in index.ts**
+```javascript
+// BEFORE (BROKEN)
+res.setHeader('Access-Control-Allow-Origin', origin || '*');
+res.setHeader('Access-Control-Allow-Credentials', 'true');
 ```
+When `origin` is undefined, this sets `Access-Control-Allow-Origin: *` with `credentials: true`.
+**This is INVALID per CORS spec** - iOS correctly rejects this and refuses to send the actual request.
 
-**Commit**: `0ce56dd` - fix(auth): Use sameSite=lax for iOS WebKit cookie compatibility
+**Root Cause 2: auth.ts diverged from immutable spec**
+The auth config had been changed away from the working configuration in AUTH-IMMUTABLE-SPECIFICATION.md.
 
-**Also Updated**:
-- `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` - Corrected sameSite documentation
-- Added iOS troubleshooting section
+**Fixes Applied**:
+1. **CORS handler** (`server/src/index.ts`):
+   - Removed `!origin ||` from isAllowed check - origin is now REQUIRED
+   - Changed `origin || '*'` to just `origin` - never use wildcard with credentials
+
+2. **Auth config** (`server/src/auth.ts`):
+   - Restored to match AUTH-IMMUTABLE-SPECIFICATION.md exactly:
+   - `sameSite: "none"` (required for cross-origin)
+   - `secure: true` (required when sameSite is "none")
+   - `useSecureCookies: true`
+   - `crossSubDomainCookies: { enabled: false }`
+
+**Commit**: `2c24e1a` - fix(auth): Fix CORS bug and restore auth config to immutable spec
+
+**Key Learning**: The immutable spec is immutable for a reason - don't change it!
 
 ---
 
