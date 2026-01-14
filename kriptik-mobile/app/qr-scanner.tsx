@@ -61,7 +61,7 @@ export default function QRScannerScreen() {
       if (result.success) {
         // Mark onboarding complete
         await SecureStore.setItemAsync(ONBOARDING_COMPLETE_KEY, 'true');
-        
+
         // Set user data from pairing response
         if (result.userId && result.userEmail) {
           setUser({
@@ -74,7 +74,7 @@ export default function QRScannerScreen() {
 
         setPairingStatus('success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
         // Navigate to main app after success
         setTimeout(() => {
           if (result.projectId) {

@@ -6,6 +6,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+} from '@expo-google-fonts/dm-sans';
+import { Outfit_600SemiBold } from '@expo-google-fonts/outfit';
+import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import { useAuthStore } from '../store/auth-store';
 import { useNotificationStore } from '../store/notification-store';
 import { setupNotificationListeners } from '../lib/notifications';
@@ -34,11 +41,11 @@ export default function RootLayout() {
 
   const [fontsLoaded] = useFonts({
     'CalSans-SemiBold': require('../assets/fonts/CalSans-SemiBold.otf'),
-    'Outfit-SemiBold': require('../assets/fonts/Outfit-SemiBold.ttf'),
-    'DMSans-Regular': require('../assets/fonts/DMSans-Regular.ttf'),
-    'DMSans-Medium': require('../assets/fonts/DMSans-Medium.ttf'),
-    'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
-    'JetBrainsMono-Regular': require('../assets/fonts/JetBrainsMono-Regular.ttf'),
+    'Outfit-SemiBold': Outfit_600SemiBold,
+    'DMSans-Regular': DMSans_400Regular,
+    'DMSans-Medium': DMSans_500Medium,
+    'DMSans-SemiBold': DMSans_600SemiBold,
+    'JetBrainsMono-Regular': JetBrainsMono_400Regular,
   });
 
   useEffect(() => {
