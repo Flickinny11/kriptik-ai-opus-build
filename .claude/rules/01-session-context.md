@@ -6,9 +6,45 @@
 
 ## Current State (as of 2026-01-14)
 
-### ✅ Social Login / Auth Fix Applied
+### ✅ iPhone Chrome Cookie Fix Applied
 
 **Session Date**: 2026-01-14
+**Issue**: Login doesn't work on iPhone Chrome browser (social and credential login both fail)
+**Root Cause**: `sameSite: 'none'` cookies are blocked by iOS WebKit's ITP (Intelligent Tracking Prevention)
+
+**The Problem**:
+- iOS Chrome uses WebKit (Safari's engine), which has ITP
+- ITP aggressively blocks cookies with `sameSite: 'none'` as third-party tracking prevention
+- Previous commit `268f627` changed from 'lax' to 'none' which broke iOS
+
+**Why `sameSite: 'lax'` Works**:
+- `kriptik.app` and `api.kriptik.app` share the same registrable domain
+- They are considered **SAME-SITE** according to web standards
+- `sameSite: 'lax'` cookies ARE sent on same-site requests (including subdomains)
+- iOS WebKit does NOT block 'lax' cookies like it blocks 'none'
+
+**Fix Applied** (`server/src/auth.ts`):
+```typescript
+// BEFORE (broken on iOS)
+sameSite: 'none' as const,
+secure: true,
+
+// AFTER (iOS compatible)
+sameSite: 'lax' as const,
+secure: isProd,  // Dynamic based on environment
+```
+
+**Commit**: `0ce56dd` - fix(auth): Use sameSite=lax for iOS WebKit cookie compatibility
+
+**Also Updated**:
+- `.claude/rules/AUTH-IMMUTABLE-SPECIFICATION.md` - Corrected sameSite documentation
+- Added iOS troubleshooting section
+
+---
+
+### Previous: Social Login / Auth Fix Applied
+
+**Session Date**: 2026-01-14 (earlier)
 **Issue**: Social login (Google/GitHub) and email/password auth failing silently
 **Root Cause**: `src/lib/auth-client.ts` was using `localhost:3001` fallback instead of production URL
 
