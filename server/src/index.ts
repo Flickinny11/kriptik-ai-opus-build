@@ -512,9 +512,40 @@ app.use("/api/auth/callback", (req, res, next) => {
 
 // Better Auth handler - catches all /api/auth/* routes
 // Use middleware approach for Express 5 path-to-regexp compatibility
-// Add logging middleware before Better Auth
+// Add CORS and logging middleware before Better Auth
 app.use("/api/auth", (req, res, next) => {
-    console.log(`[Auth] ${req.method} ${req.path} - Body keys: ${req.body ? Object.keys(req.body).join(', ') : 'none'}`);
+    const origin = req.headers.origin as string;
+
+    // CRITICAL: Set CORS headers EXPLICITLY for auth routes
+    // This ensures iOS WebKit/Safari get proper headers even with ITP
+    if (origin) {
+        // Always allow kriptik.app origins for auth
+        if (origin.includes('kriptik') || origin.includes('localhost') || origin.includes('vercel.app')) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+            res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+            // iOS Safari needs explicit max-age for preflight caching
+            res.setHeader('Access-Control-Max-Age', '86400');
+
+            // CRITICAL: Handle OPTIONS preflight requests DIRECTLY
+            // Must respond with 204 before reaching Better Auth
+            // Without this, iOS WebKit blocks actual requests after preflight
+            if (req.method === 'OPTIONS') {
+                console.log(`[Auth] OPTIONS preflight for ${req.path} - responding with 204`);
+                res.status(204).end();
+                return;
+            }
+        }
+    }
+
+    console.log(`[Auth] ${req.method} ${req.path} from origin: ${origin || 'none'}`);
+    console.log(`[Auth] Headers: ${JSON.stringify({
+        'content-type': req.headers['content-type'],
+        'cookie': req.headers.cookie ? 'present' : 'none',
+        'user-agent': (req.headers['user-agent'] || '').substring(0, 50)
+    })}`);
 
     // Capture response for logging
     const originalSend = res.send.bind(res);
