@@ -1,3 +1,24 @@
+═══ 2026-01-14T19:20:00Z ═══
+COMPLETED: Mobile app auth fixes and EAS configuration
+BUILD STATUS: Ready for iOS build (credentials need interactive setup)
+
+CRITICAL FIXES APPLIED:
+- API URL: api.kriptik.ai → api.kriptik.app (auth was broken!)
+- Deep linking: kriptik.ai → kriptik.app
+- Auth endpoint: /api/auth/session → /api/auth/get-session
+- Removed Android (iOS-only for now)
+
+EAS PROJECT SETUP:
+- Project ID: 618d718c-fcdb-449f-bef9-1a47bcaf4f4b
+- Owner: alledged11
+- URL: https://expo.dev/accounts/alledged11/projects/kriptik-ai
+
+NEXT STEPS (USER ACTION):
+1. Run `eas credentials --platform ios` interactively
+2. Run `eas build --platform ios --profile preview`
+3. Test app on device
+4. Create proper app icon/splash
+
 ═══ 2026-01-13T23:00:00Z ═══
 COMPLETED: KRIPTIK-MOBILE-COMPANION-APP-COMPLETE-IMPLEMENTATION.md
 BUILD STATUS: All NLPs (M-1 through M-6) implemented
