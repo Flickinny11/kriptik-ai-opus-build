@@ -106,9 +106,37 @@ export default function VoiceInputScreen() {
       setIsRecording(false);
       await recordingRef.current.stopAndUnloadAsync();
 
-      // In production, send audio to speech-to-text service
-      // For demo, we'll show a placeholder
-      setTranscript('Voice transcription would appear here');
+      const uri = recordingRef.current.getURI();
+      
+      if (uri) {
+        // Send audio to backend for speech-to-text transcription
+        setTranscript('Processing audio...');
+        
+        try {
+          const formData = new FormData();
+          formData.append('audio', {
+            uri,
+            type: 'audio/m4a',
+            name: 'recording.m4a',
+          } as unknown as Blob);
+
+          const response = await fetch('https://api.kriptik.app/api/transcribe', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setTranscript(data.text || 'Could not transcribe audio');
+          } else {
+            setTranscript('Transcription service unavailable. Please type your message.');
+          }
+        } catch (transcribeError) {
+          console.error('Transcription failed:', transcribeError);
+          setTranscript('Transcription service unavailable. Please type your message.');
+        }
+      }
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -117,6 +145,7 @@ export default function VoiceInputScreen() {
       recordingRef.current = null;
     } catch (error) {
       console.error('Failed to stop recording:', error);
+      setTranscript('Recording failed. Please try again.');
     }
   };
 
@@ -126,7 +155,15 @@ export default function VoiceInputScreen() {
   };
 
   const handleSend = () => {
-    if (transcript && transcript !== 'Listening...' && transcript !== 'Voice transcription would appear here') {
+    const invalidStates = [
+      'Listening...',
+      'Processing audio...',
+      'Transcription service unavailable. Please type your message.',
+      'Recording failed. Please try again.',
+      'Could not transcribe audio',
+    ];
+    
+    if (transcript && !invalidStates.includes(transcript)) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setInputText(transcript);
       router.back();

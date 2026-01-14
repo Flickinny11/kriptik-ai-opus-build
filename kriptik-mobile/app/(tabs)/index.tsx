@@ -105,7 +105,7 @@ export default function HomeScreen() {
 
   const handleNotifications = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // TODO: Open notifications modal
+    router.push('/(tabs)/settings');
   };
 
   const getGreeting = () => {
@@ -231,7 +231,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 onPress={() => {
                   Haptics.selectionAsync();
-                  // TODO: Navigate to projects list
+                  router.push('/(tabs)/builds');
                 }}
               >
                 <Text style={styles.seeAll}>See all</Text>

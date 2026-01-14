@@ -78,7 +78,7 @@ export default function AILabScreen() {
 
   const handleNewTraining = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Open new training modal
+    router.push('/new-build');
   };
 
   const getStatusColor = (status: string) => {

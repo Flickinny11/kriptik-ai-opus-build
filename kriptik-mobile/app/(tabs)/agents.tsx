@@ -57,7 +57,7 @@ export default function AgentsScreen() {
 
   const handleNewAgent = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Open new agent modal
+    router.push('/new-build');
   };
 
   const getStatusColor = (status: Agent['status']) => {

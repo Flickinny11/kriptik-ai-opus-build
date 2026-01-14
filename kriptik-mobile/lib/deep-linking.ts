@@ -94,12 +94,24 @@ const routes: DeepLinkRoute[] = [
 
 async function handleDevicePairing(code: string) {
   try {
+    // Send pairing code to backend to link this mobile device with web session
+    const response = await fetch('https://api.kriptik.app/api/mobile/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pairingCode: code }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Pairing failed');
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // TODO: Implement pairing logic with backend
     router.push('/(tabs)/settings');
   } catch (error) {
     console.error('Pairing failed:', error);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    router.push('/(tabs)/settings');
   }
 }
 
