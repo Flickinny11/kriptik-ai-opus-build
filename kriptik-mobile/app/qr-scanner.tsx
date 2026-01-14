@@ -3,15 +3,19 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { router, Stack } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '../lib/design-system';
 import { Button } from '../components/ui';
 import { CloseIcon, QRCodeIcon, CheckIcon } from '../components/icons';
-import { api } from '../lib/api';
+import { API_BASE_URL } from '../lib/config';
+import { useAuthStore } from '../store/auth-store';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
+
+const ONBOARDING_COMPLETE_KEY = 'kriptik_onboarding_complete';
 
 export default function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -19,6 +23,7 @@ export default function QRScannerScreen() {
   const [scanning, setScanning] = useState(false);
   const [pairingStatus, setPairingStatus] = useState<'idle' | 'pairing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const { setUser, setTokens } = useAuthStore();
 
   const handleClose = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -44,23 +49,52 @@ export default function QRScannerScreen() {
       }
 
       // Call pairing API
-      const response = await api.registerPushToken(pairCode);
+      const response = await fetch(`${API_BASE_URL}/api/mobile/pair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairingCode: pairCode }),
+        credentials: 'include',
+      });
 
-      if (response.success) {
+      const result = await response.json();
+
+      if (result.success) {
+        // Mark onboarding complete
+        await SecureStore.setItemAsync(ONBOARDING_COMPLETE_KEY, 'true');
+        
+        // Set user data from pairing response
+        if (result.userId && result.userEmail) {
+          setUser({
+            id: result.userId,
+            email: result.userEmail,
+            name: result.userName || 'User',
+            createdAt: new Date().toISOString(),
+          });
+        }
+
         setPairingStatus('success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // Navigate to main app after success
         setTimeout(() => {
-          router.back();
+          if (result.projectId) {
+            router.replace(`/project/${result.projectId}`);
+          } else if (result.buildId) {
+            router.replace(`/build/${result.buildId}`);
+          } else {
+            router.replace('/(tabs)');
+          }
         }, 1500);
       } else {
         setPairingStatus('error');
-        setErrorMessage(response.error || 'Pairing failed');
+        setErrorMessage(result.error || 'Invalid or expired pairing code');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setScanning(false);
       }
     } catch (error) {
+      console.error('Pairing error:', error);
       setPairingStatus('error');
-      setErrorMessage('Failed to pair device');
+      setErrorMessage('Failed to connect. Please try again.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setScanning(false);
     }

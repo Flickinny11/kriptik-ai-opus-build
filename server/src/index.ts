@@ -1015,6 +1015,10 @@ app.use("/api/visual-editor", promptSanitizer, requireCredits(15), visualEditorR
 import agentRouter from './routes/agent.js';
 app.use("/api/agent", agentRouter);
 
+// Mobile Companion App - Device pairing, push notifications, deep linking
+import mobileRouter from './routes/mobile.js';
+app.use("/api/mobile", mobileRouter);
+
 // Health Check Routes - Comprehensive infrastructure monitoring
 app.use("/api/health", healthRouter);
 

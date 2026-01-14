@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SecureStore from 'expo-secure-store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth-store';
@@ -14,6 +15,8 @@ import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
+const ONBOARDING_COMPLETE_KEY = 'kriptik_onboarding_complete';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -24,8 +27,10 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated, isLoading } = useAuthStore();
   const { initialize: initNotifications } = useNotificationStore();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const [fontsLoaded] = useFonts({
     'CalSans-SemiBold': require('../assets/fonts/CalSans-SemiBold.otf'),
@@ -39,8 +44,12 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Check if user has completed onboarding
+        const onboardingComplete = await SecureStore.getItemAsync(ONBOARDING_COMPLETE_KEY);
+        setHasCompletedOnboarding(onboardingComplete === 'true');
+
         // Check authentication status
-        await checkAuth();
+        const isAuthed = await checkAuth();
 
         // Setup push notifications
         await initNotifications();
@@ -51,9 +60,12 @@ export default function RootLayout() {
         // Setup notification listeners
         const cleanup = setupNotificationListeners();
 
+        setIsReady(true);
+
         return cleanup;
       } catch (e) {
         console.warn('Initialization error:', e);
+        setIsReady(true);
       } finally {
         if (fontsLoaded) {
           await SplashScreen.hideAsync();
@@ -65,6 +77,24 @@ export default function RootLayout() {
       prepare();
     }
   }, [fontsLoaded, checkAuth, initNotifications]);
+
+  // Navigate based on auth state after ready
+  useEffect(() => {
+    if (!isReady || isLoading || hasCompletedOnboarding === null) return;
+
+    // First time user - show onboarding
+    if (!hasCompletedOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+
+    // Returning user - check auth
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    } else {
+      router.replace('/(auth)/login');
+    }
+  }, [isReady, isLoading, isAuthenticated, hasCompletedOnboarding]);
 
   if (!fontsLoaded) {
     return null;
