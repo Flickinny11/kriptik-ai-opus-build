@@ -84,9 +84,12 @@ function checkMissingCredentials(filePath, content) {
     // Skip if we're inside a template literal (likely a code sample for documentation)
     if (inTemplateLiteral) continue;
 
-    // Check if line contains actual fetch call (not refetch, prefetch, etc.)
+    // Check if line contains actual raw fetch call (not refetch, prefetch, this.fetch, etc.)
     // Use word boundary to avoid false positives like refetch(), prefetch()
-    const hasFetchCall = /\bfetch\s*\(/.test(line) && !line.includes('authenticatedFetch');
+    // Also skip this.fetch() calls - these use a class wrapper that already has credentials
+    const hasFetchCall = /\bfetch\s*\(/.test(line) &&
+      !line.includes('authenticatedFetch') &&
+      !line.includes('this.fetch(');
     if (hasFetchCall) {
       // Check if this fetch call has credentials in the next few lines
       const nextLines = lines.slice(i, Math.min(i + 10, lines.length)).join('\n');

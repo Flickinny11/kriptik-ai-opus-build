@@ -4,7 +4,7 @@
  * Provides typed methods for all backend API calls
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE_URL } from './api-config';
 
 // Types
 export interface Project {
@@ -212,6 +212,7 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...(this.userId && { 'x-user-id': this.userId }),
             },
+            credentials: 'include',
             body: JSON.stringify({ prompt, skipPhases, intelligenceSettings }),
         });
 
@@ -341,6 +342,7 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...(this.userId && { 'x-user-id': this.userId }),
             },
+            credentials: 'include',
             body: JSON.stringify({
                 images,
                 framework: options?.framework || 'react',
@@ -833,6 +835,7 @@ class ApiClient {
         fetch(`${this.baseUrl}/api/krip-toe-nite/generate`, {
             method: 'POST',
             headers,
+            credentials: 'include',
             body: JSON.stringify(data),
             signal: controller.signal,
         }).then(async (response) => {

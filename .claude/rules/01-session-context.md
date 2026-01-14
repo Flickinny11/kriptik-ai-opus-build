@@ -4,7 +4,38 @@
 
 ---
 
-## Current State (as of 2026-01-13)
+## Current State (as of 2026-01-14)
+
+### ✅ Social Login / Auth Fix Applied
+
+**Session Date**: 2026-01-14
+**Issue**: Social login (Google/GitHub) and email/password auth failing silently
+**Root Cause**: `src/lib/auth-client.ts` was using `localhost:3001` fallback instead of production URL
+
+**The Bug**:
+```typescript
+// OLD (broken) - falls back to localhost even in production
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+// NEW (fixed) - imports from centralized config with production fallback
+import { API_URL, FRONTEND_URL } from './api-config';
+```
+
+**Fix Applied**: auth-client.ts now imports from centralized `api-config.ts` which has proper production fallback to `https://api.kriptik.app`
+
+**Commit**: `8573cea` - fix(auth): Use centralized API config to fix production auth
+
+**Note**: There are ~10 other files with the same `localhost:3001` fallback pattern that should be fixed as a follow-up task:
+- `src/store/useLearningStore.ts`
+- `src/components/builder/GitHubImportModal.tsx`
+- `src/components/builder/SoftInterruptInput.tsx`
+- `src/hooks/useCredentials.ts`
+- `src/lib/AgentOrchestrator.ts`
+- etc.
+
+---
+
+## Previous State (as of 2026-01-13)
 
 ### ✅ Builder View NLP-to-Completion Analysis Complete
 

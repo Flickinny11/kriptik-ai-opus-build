@@ -61,7 +61,7 @@ interface UseCredentialsReturn {
     refetch: () => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE } from '@/lib/api-config';
 
 // OAuth integrations that support one-click connect
 const OAUTH_INTEGRATIONS = ['vercel', 'github', 'netlify', 'google', 'cloudflare', 'slack', 'discord', 'notion'];
@@ -88,6 +88,7 @@ export function useCredentials(): UseCredentialsReturn {
                 headers: {
                     'x-user-id': getUserId(),
                 },
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -107,7 +108,9 @@ export function useCredentials(): UseCredentialsReturn {
     // Fetch OAuth providers
     const fetchOAuthProviders = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/oauth/providers`);
+            const response = await fetch(`${API_BASE}/api/oauth/providers`, {
+                credentials: 'include',
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -183,6 +186,7 @@ export function useCredentials(): UseCredentialsReturn {
                     'Content-Type': 'application/json',
                     'x-user-id': getUserId(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     credentials: credentialData,
                     connectionName,
@@ -214,6 +218,7 @@ export function useCredentials(): UseCredentialsReturn {
                     'Content-Type': 'application/json',
                     'x-user-id': getUserId(),
                 },
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -270,6 +275,7 @@ export function useCredentials(): UseCredentialsReturn {
                     headers: {
                         'x-user-id': getUserId(),
                     },
+                    credentials: 'include',
                 });
             } else {
                 await fetch(`${API_BASE}/api/credentials/${integrationId}`, {
@@ -277,6 +283,7 @@ export function useCredentials(): UseCredentialsReturn {
                     headers: {
                         'x-user-id': getUserId(),
                     },
+                    credentials: 'include',
                 });
             }
 
@@ -298,6 +305,7 @@ export function useCredentials(): UseCredentialsReturn {
                 headers: {
                     'x-user-id': getUserId(),
                 },
+                credentials: 'include',
             });
 
             const data = await response.json();
@@ -325,6 +333,7 @@ export function useCredentials(): UseCredentialsReturn {
                 headers: {
                     'x-user-id': getUserId(),
                 },
+                credentials: 'include',
             });
 
             if (!response.ok) {

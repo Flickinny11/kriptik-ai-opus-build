@@ -41,7 +41,7 @@ export interface VFSState {
     lastSync?: Date;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE_URL } from './api-config';
 
 /**
  * Virtual File System class
@@ -79,6 +79,7 @@ export class VirtualFileSystem {
                     headers: {
                         'x-user-id': this.userId,
                     },
+                    credentials: 'include',
                 }
             );
 
@@ -267,6 +268,7 @@ export class VirtualFileSystem {
                         'Content-Type': 'application/json',
                         'x-user-id': this.userId,
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         files: dirtyFiles.map(f => ({
                             path: f.path,
