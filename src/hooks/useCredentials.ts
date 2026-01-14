@@ -61,7 +61,7 @@ interface UseCredentialsReturn {
     refetch: () => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE } from '@/lib/api-config';
 
 // OAuth integrations that support one-click connect
 const OAUTH_INTEGRATIONS = ['vercel', 'github', 'netlify', 'google', 'cloudflare', 'slack', 'discord', 'notion'];

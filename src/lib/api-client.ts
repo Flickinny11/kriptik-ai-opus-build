@@ -4,7 +4,7 @@
  * Provides typed methods for all backend API calls
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE_URL } from './api-config';
 
 // Types
 export interface Project {

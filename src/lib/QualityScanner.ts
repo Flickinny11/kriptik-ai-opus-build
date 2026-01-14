@@ -10,8 +10,7 @@
  */
 
 import { QualityReport, QualityIssue } from './quality-types';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE_URL } from './api-config';
 
 export class QualityScanner {
     private projectId: string | null = null;

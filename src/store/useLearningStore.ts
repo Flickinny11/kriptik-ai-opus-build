@@ -104,7 +104,7 @@ const DEFAULT_PREFERENCES: LearningPreferences = {
 // API CLIENT
 // =============================================================================
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as apiUrl } from '@/lib/api-config';
 
 async function fetchLearningStatus(): Promise<LearningSystemStatus> {
     const res = await fetch(`${apiUrl}/api/learning/status`);

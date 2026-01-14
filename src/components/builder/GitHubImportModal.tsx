@@ -49,7 +49,7 @@ interface GitHubImportResult {
     sourceRepo: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL as API_BASE_URL } from '@/lib/api-config';
 
 export default function GitHubImportModal({
     open,
