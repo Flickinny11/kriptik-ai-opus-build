@@ -1,6 +1,6 @@
 /**
  * AnimatedPlaceholder - Typewriter Effect for Input Placeholders
- * 
+ *
  * Cycles through example prompts with typing animation to showcase
  * KripTik AI's capabilities.
  */
@@ -109,41 +109,32 @@ export function AnimatedPlaceholder({ isInputFocused, hasValue }: AnimatedPlaceh
         padding: '8px 12px',
       }}
     >
-      <div
+      <span
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
+          color: 'rgba(100, 100, 100, 0.6)',
+          textShadow: '0 1px 0 rgba(255,255,255,0.4)',
           wordBreak: 'break-word',
-          overflow: 'hidden',
+          whiteSpace: 'pre-wrap',
         }}
       >
-        <span
-          style={{
-            color: 'rgba(120, 120, 125, 0.8)',
-            textShadow: '0 1px 0 rgba(255,255,255,0.4)',
-          }}
-        >
-          {displayedText}
-        </span>
-        
-        {/* Blinking cursor */}
-        <motion.span
-          animate={{ opacity: [1, 0, 1] }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear', times: [0, 0.5, 1] }}
-          style={{
-            display: 'inline-block',
-            width: '2px',
-            height: '16px',
-            marginLeft: '2px',
-            marginTop: '2px',
-            background: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
-            boxShadow: '0 0 8px rgba(220, 38, 38, 0.5)',
-            borderRadius: '1px',
-            flexShrink: 0,
-          }}
-        />
-      </div>
+        {displayedText}
+      </span>
+
+      {/* Blinking cursor */}
+      <motion.span
+        animate={{ opacity: [1, 0, 1] }}
+        transition={{ duration: 1, repeat: Infinity, ease: 'linear', times: [0, 0.5, 1] }}
+        style={{
+          display: 'inline-block',
+          width: '2px',
+          height: '14px',
+          marginLeft: '2px',
+          verticalAlign: 'middle',
+          background: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
+          boxShadow: '0 0 6px rgba(220, 38, 38, 0.4)',
+          borderRadius: '1px',
+        }}
+      />
     </motion.div>
   );
 }

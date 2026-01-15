@@ -158,7 +158,7 @@ function GlassButton({
 
     const getStyles = (): React.CSSProperties => {
         const sz = sizeStyles[size];
-        
+
         if (disabled) {
             return {
                 width: sz.width,
@@ -171,7 +171,7 @@ function GlassButton({
             };
         }
 
-        const baseTransform = isPressed ? 'translateY(1px) scale(0.97)' : 
+        const baseTransform = isPressed ? 'translateY(1px) scale(0.97)' :
                               isHovered ? 'translateY(-2px) scale(1.04)' : 'translateY(0) scale(1)';
 
         if (variant === 'primary') {
@@ -293,7 +293,7 @@ function GlassButton({
                     }}
                 />
             )}
-            
+
             {/* Bottom shadow edge */}
             {!disabled && (
                 <div
@@ -1130,14 +1130,14 @@ export default function ChatInterface({
                         }]
                     } : a
                 ));
-                
+
                 // PHASE 1: Dispatch HMR trigger event for live preview auto-refresh
                 if (modifiedFilePath) {
-                    window.dispatchEvent(new CustomEvent('hmr-trigger', { 
-                        detail: { 
+                    window.dispatchEvent(new CustomEvent('hmr-trigger', {
+                        detail: {
                             filePath: modifiedFilePath,
                             timestamp: Date.now()
-                        } 
+                        }
                     }));
                     console.log('[ChatInterface] Dispatched hmr-trigger for:', modifiedFilePath);
                 }
@@ -1504,14 +1504,12 @@ export default function ChatInterface({
             <div
                 className="p-4 flex justify-between items-center shrink-0"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.2) 100%)',
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 100%)',
                     borderBottom: '1px solid rgba(0,0,0,0.15)',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    borderRadius: '16px 16px 0 0',
                     boxShadow: `
-                        inset 0 1px 0 rgba(255,255,255,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.25),
                         inset 0 -1px 0 rgba(0,0,0,0.05),
-                        0 4px 16px rgba(0,0,0,0.06)
+                        0 2px 4px rgba(0,0,0,0.05)
                     `,
                     backdropFilter: 'blur(12px)',
                 }}
@@ -1534,7 +1532,7 @@ export default function ChatInterface({
                         }}
                     >
                         {/* Inner glow */}
-                        <div 
+                        <div
                             className="absolute inset-1 rounded-xl"
                             style={{
                                 background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
@@ -1543,11 +1541,11 @@ export default function ChatInterface({
                         />
                         {/* Icon - Abstract AI symbol */}
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-10">
-                            <path 
-                                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
-                                stroke="url(#iconGrad)" 
-                                strokeWidth="2" 
-                                strokeLinecap="round" 
+                            <path
+                                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                                stroke="url(#iconGrad)"
+                                strokeWidth="2"
+                                strokeLinecap="round"
                                 strokeLinejoin="round"
                             />
                             <defs>
@@ -1559,14 +1557,14 @@ export default function ChatInterface({
                         </svg>
                     </div>
                     <div>
-                        <h2 
+                        <h2
                             className="font-bold tracking-tight"
-                            style={{ 
+                            style={{
                                 fontSize: '16px',
-                                color: 'rgba(180, 180, 185, 0.9)',
+                                color: 'rgba(180, 180, 190, 0.85)',
                                 fontFamily: "'Space Grotesk', 'Cal Sans', system-ui, sans-serif",
                                 letterSpacing: '-0.03em',
-                                textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.3)',
+                                textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2)',
                             }}
                         >
                             {buildWorkflowPhase === 'idle' ? 'KripTik AI' :
@@ -1577,7 +1575,7 @@ export default function ChatInterface({
                              buildWorkflowPhase === 'building' ? 'Building' :
                              buildWorkflowPhase === 'complete' ? 'Complete' : 'KripTik AI'}
                         </h2>
-                        <p 
+                        <p
                             className="text-xs font-medium"
                             style={{
                                 marginTop: '2px',
@@ -2107,18 +2105,21 @@ export default function ChatInterface({
                         </GlassButton>
 
                         {/* Text Input with Animated Placeholder */}
-                        <div 
-                            className="flex-1 relative rounded-xl overflow-hidden"
+                        <div
+                            className="flex-1 relative"
                             style={{
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.15) 100%)',
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(250,252,255,0.4) 100%)',
+                                borderRadius: '12px',
                                 border: '1px solid rgba(0,0,0,0.08)',
                                 boxShadow: `
-                                    inset 0 2px 4px rgba(0,0,0,0.03),
-                                    0 1px 0 rgba(255,255,255,0.5)
+                                    inset 0 2px 4px rgba(0,0,0,0.04),
+                                    inset 0 1px 2px rgba(255,255,255,0.8),
+                                    0 1px 2px rgba(0,0,0,0.05)
                                 `,
+                                overflow: 'hidden',
                             }}
                         >
-                            <AnimatedPlaceholder 
+                            <AnimatedPlaceholder
                                 isInputFocused={document.activeElement === inputRef.current}
                                 hasValue={input.length > 0}
                             />
@@ -2128,9 +2129,9 @@ export default function ChatInterface({
                                 value={input}
                                 onChange={(e) => {
                                     setInput(e.target.value);
-                                    // Auto-resize
+                                    // Auto-expand textarea
                                     e.target.style.height = 'auto';
-                                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
                                 }}
                                 onKeyDown={handleKeyDown}
                                 disabled={globalStatus !== 'idle' && !streamController}
@@ -2138,16 +2139,15 @@ export default function ChatInterface({
                                 className="w-full resize-none bg-transparent border-none px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
                                 style={{
                                     minHeight: '40px',
-                                    maxHeight: '120px',
-                                    height: 'auto',
+                                    maxHeight: '200px',
                                     color: '#1a1a1a',
                                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                                     fontSize: '13px',
                                     position: 'relative',
                                     zIndex: 1,
                                     background: 'transparent',
-                                    overflow: 'hidden',
-                                    wordBreak: 'break-word',
+                                    lineHeight: '1.5',
+                                    overflowY: 'auto',
                                 }}
                             />
                         </div>

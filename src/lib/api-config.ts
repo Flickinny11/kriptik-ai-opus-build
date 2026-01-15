@@ -11,33 +11,16 @@
  * - Ensures consistent API URL across all components
  * - Makes it easy to update URLs in one place
  *
- * iOS MOBILE FIX (2026-01-15):
- * - Production now uses SAME-ORIGIN requests via Vercel rewrites
- * - /api/* routes are proxied to api.kriptik.app by vercel.json
- * - This bypasses WebKit ITP (Intelligent Tracking Prevention) cookie blocking
- * - Cookies with sameSite=lax now work because all requests are same-origin
- *
- * Last verified working: 2026-01-15
+ * Last verified working: 2025-12-29
  */
 
 /**
  * Backend API URL
  *
- * PRODUCTION: Uses empty string (same-origin via Vercel rewrite to api.kriptik.app)
+ * PRODUCTION: Uses api.kriptik.app (custom domain pointing to Vercel backend)
  * DEVELOPMENT: Uses localhost:3001
- *
- * The Vercel rewrite in vercel.json proxies /api/* to https://api.kriptik.app/api/*
- * This makes all API requests same-origin from the browser's perspective,
- * which is REQUIRED for iOS Safari/Chrome cookie handling.
  */
 export const API_URL = import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? '' : 'http://localhost:3001');
-
-/**
- * Direct backend URL (for OAuth redirects that bypass the proxy)
- * OAuth callbacks go directly to api.kriptik.app, not through the proxy
- */
-export const DIRECT_API_URL = import.meta.env.VITE_DIRECT_API_URL ||
     (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
 
 /**
@@ -47,6 +30,15 @@ export const DIRECT_API_URL = import.meta.env.VITE_DIRECT_API_URL ||
  */
 export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL ||
     (typeof window !== 'undefined' ? window.location.origin : 'https://kriptik.app');
+
+/**
+ * Direct API URL
+ *
+ * Always points to the actual backend URL, even in production.
+ * Used for OAuth redirects that need the actual backend URL (not empty string).
+ */
+export const DIRECT_API_URL = import.meta.env.VITE_API_URL ||
+    (import.meta.env.PROD ? 'https://api.kriptik.app' : 'http://localhost:3001');
 
 /**
  * Fetch options for authenticated requests
