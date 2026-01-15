@@ -18,6 +18,7 @@ import { useEditorStore } from '../../store/useEditorStore';
 import { AgentDemoOverlay, type NarrationPlaybackSegment } from './AgentDemoOverlay';
 import { AIInteractionOverlay, type AgentPhase, type AgentEvent } from './AIInteractionOverlay';
 import { apiClient } from '@/lib/api-client';
+import { SplashVideo } from './SplashVideo';
 
 // API URL for backend requests
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.kriptik.app';
@@ -263,12 +264,55 @@ export default function SandpackPreviewWindow() {
     const [takeControlAvailable, setTakeControlAvailable] = useState(false);
     const [demoVisualScore, setDemoVisualScore] = useState<number | null>(null);
 
+    // Splash video state - show until first build completes
+    const [showSplash, setShowSplash] = useState(true);
+    const [hasFirstBuildCompleted, setHasFirstBuildCompleted] = useState(false);
+
+    // Listen for build start/complete events to manage splash video
+    useEffect(() => {
+        const handleBuildStart = () => {
+            console.log('[SandpackPreview] Build started - splash will hide on first merge');
+        };
+
+        const handleBuildComplete = (event: CustomEvent<{ sandboxUrl?: string; success?: boolean }>) => {
+            console.log('[SandpackPreview] Build phase completed:', event.detail);
+            
+            // Hide splash on first successful build with sandbox URL
+            if (event.detail?.sandboxUrl || event.detail?.success) {
+                setShowSplash(false);
+                setHasFirstBuildCompleted(true);
+            }
+        };
+
+        const handleSandboxMerge = (event: CustomEvent<{ sandboxUrl: string }>) => {
+            console.log('[SandpackPreview] Sandbox merge - hiding splash:', event.detail);
+            if (event.detail?.sandboxUrl) {
+                setShowSplash(false);
+                setHasFirstBuildCompleted(true);
+                setExternalSandboxUrl(event.detail.sandboxUrl);
+            }
+        };
+
+        window.addEventListener('build-start', handleBuildStart as EventListener);
+        window.addEventListener('build-complete', handleBuildComplete as EventListener);
+        window.addEventListener('sandbox-merge', handleSandboxMerge as EventListener);
+
+        return () => {
+            window.removeEventListener('build-start', handleBuildStart as EventListener);
+            window.removeEventListener('build-complete', handleBuildComplete as EventListener);
+            window.removeEventListener('sandbox-merge', handleSandboxMerge as EventListener);
+        };
+    }, []);
+
     // Check for external sandbox URL on mount and listen for updates
     useEffect(() => {
         // Check localStorage for persisted sandbox URL
         const savedUrl = localStorage.getItem(SANDBOX_URL_KEY);
         if (savedUrl) {
             setExternalSandboxUrl(savedUrl);
+            // If we have a saved URL, hide splash
+            setShowSplash(false);
+            setHasFirstBuildCompleted(true);
         }
 
         // Listen for sandbox-ready events via custom event
@@ -277,6 +321,10 @@ export default function SandpackPreviewWindow() {
                 setExternalSandboxUrl(event.detail.sandboxUrl);
                 localStorage.setItem(SANDBOX_URL_KEY, event.detail.sandboxUrl);
                 console.log('[SandpackPreview] External sandbox ready:', event.detail.sandboxUrl);
+                
+                // Hide splash when sandbox is ready
+                setShowSplash(false);
+                setHasFirstBuildCompleted(true);
             }
         };
 
@@ -814,64 +862,72 @@ export default function SandpackPreviewWindow() {
                 >
                     {/* Inner frame for preview */}
                     <div
-                        className="w-full h-full rounded-2xl overflow-hidden"
+                        className="w-full h-full rounded-2xl overflow-hidden relative"
                         style={{
-                            background: '#ffffff',
+                            background: showSplash ? '#0a0a0f' : '#ffffff',
                             boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
                         }}
                     >
-                        {externalSandboxUrl ? (
-                            /* External Sandbox Preview - Real dev server from build orchestration */
-                            <div className="relative w-full h-full">
-                                <iframe
-                                    key={iframeKey}
-                                    src={externalSandboxUrl}
-                                    className="w-full h-full border-0"
-                                    title="Live Build Preview"
-                                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                                />
-                                {/* Live indicator */}
-                                <div
-                                    className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-full"
-                                    style={{
-                                        background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.85) 100%)',
-                                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
-                                    }}
-                                >
-                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                    <span className="text-xs font-semibold text-white">LIVE</span>
-                                </div>
-
-                                {/* PHASE 1: HMR indicator overlay with amber/copper accent */}
-                                {showHmrIndicator && (
-                                    <div
-                                        className="absolute inset-0 pointer-events-none rounded-2xl animate-pulse"
-                                        style={{
-                                            boxShadow: 'inset 0 0 25px rgba(245, 158, 11, 0.4)',
-                                            border: '2px solid rgba(245, 158, 11, 0.6)',
-                                        }}
-                                    >
+                        {/* Splash Video - Shows until first build completes */}
+                        <SplashVideo isVisible={showSplash && !hasFirstBuildCompleted} />
+                        
+                        {/* Actual Preview Content */}
+                        {!showSplash && (
+                            <>
+                                {externalSandboxUrl ? (
+                                    /* External Sandbox Preview - Real dev server from build orchestration */
+                                    <div className="relative w-full h-full">
+                                        <iframe
+                                            key={iframeKey}
+                                            src={externalSandboxUrl}
+                                            className="w-full h-full border-0"
+                                            title="Live Build Preview"
+                                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                                        />
+                                        {/* Live indicator */}
                                         <div
-                                            className="absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                            className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-full"
                                             style={{
-                                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)',
-                                                color: '#0a0a0f',
-                                                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                                                background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.85) 100%)',
+                                                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
                                             }}
                                         >
-                                            Hot Reload
+                                            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                            <span className="text-xs font-semibold text-white">LIVE</span>
                                         </div>
+
+                                        {/* PHASE 1: HMR indicator overlay with amber/copper accent */}
+                                        {showHmrIndicator && (
+                                            <div
+                                                className="absolute inset-0 pointer-events-none rounded-2xl animate-pulse"
+                                                style={{
+                                                    boxShadow: 'inset 0 0 25px rgba(245, 158, 11, 0.4)',
+                                                    border: '2px solid rgba(245, 158, 11, 0.6)',
+                                                }}
+                                            >
+                                                <div
+                                                    className="absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                                    style={{
+                                                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)',
+                                                        color: '#0a0a0f',
+                                                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                                                    }}
+                                                >
+                                                    Hot Reload
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                ) : (
+                                    /* Sandpack Preview - In-browser bundling (only shown after first build if no external URL) */
+                                    <SandpackPreviewBase
+                                        showNavigator={false}
+                                        showRefreshButton={false}
+                                        showOpenInCodeSandbox={false}
+                                        style={{ height: '100%' }}
+                                    />
                                 )}
-                            </div>
-                        ) : (
-                            /* Sandpack Preview - In-browser bundling */
-                            <SandpackPreviewBase
-                                showNavigator={false}
-                                showRefreshButton={false}
-                                showOpenInCodeSandbox={false}
-                                style={{ height: '100%' }}
-                            />
+                            </>
                         )}
                     </div>
                 </div>
