@@ -144,8 +144,8 @@ export interface ModelInfo {
   private?: boolean;
 }
 
-// Wizard step type
-type WizardStep = 'modality' | 'model' | 'dataset' | 'config' | 'review';
+// Wizard step type - includes budget step for cost controls
+type WizardStep = 'modality' | 'model' | 'dataset' | 'config' | 'budget' | 'review';
 
 interface TrainingState {
   // Wizard state
@@ -159,6 +159,10 @@ interface TrainingState {
     trainingConfig?: TrainingConfig;
     gpuRecommendation?: GPURecommendation;
     jobName?: string;
+    // Budget controls
+    budgetLimit?: number; // in cents
+    autoSaveToHub?: boolean;
+    hubRepoName?: string;
   };
 
   // Jobs list
@@ -329,6 +333,10 @@ export const useTrainingStore = create<TrainingState>()(
             baseModel: wizardData.baseModel,
             datasetConfig: wizardData.datasetConfig,
             trainingConfig: wizardData.trainingConfig,
+            // Budget and auto-save options
+            budgetLimitCents: wizardData.budgetLimit,
+            autoSaveToHub: wizardData.autoSaveToHub ?? true,
+            hubRepoName: wizardData.hubRepoName,
           }),
         });
 

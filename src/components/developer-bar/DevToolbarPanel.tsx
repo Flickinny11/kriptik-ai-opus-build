@@ -149,12 +149,20 @@ export function DevToolbarPanel({
   };
 
   // Get panel content based on feature
+  // Per implementation plan: Only 5 panels - Feature Agents, Console, Network, Open Source, Settings
   const renderContent = () => {
     switch (featureId) {
       case 'feature-agents':
         return <FeatureAgentsPanelContent />;
+      case 'console':
+        return <ConsolePanelContent />;
+      case 'network':
+        return <NetworkPanelContent />;
       case 'open-source-studio':
         return <OpenSourceStudioPanelContent />;
+      case 'settings':
+        return <SettingsPanelContent />;
+      // Legacy panels - kept for backwards compatibility but not in toolbar
       case 'health':
         return <HealthPanelContent />;
       case 'database':
@@ -271,6 +279,323 @@ export function DevToolbarPanel({
 function FeatureAgentsPanelContent() {
   const { projectId } = useParams();
   return <FeatureAgentCommandCenter projectId={projectId || undefined} />;
+}
+
+// Console Panel - Application logs and terminal output
+function ConsolePanelContent() {
+  const [logs, setLogs] = useState([
+    { type: 'info', time: '12:34:56', message: 'Application started successfully' },
+    { type: 'info', time: '12:34:57', message: 'Connected to database: turso-kriptik' },
+    { type: 'success', time: '12:34:58', message: 'HuggingFace integration initialized' },
+    { type: 'warning', time: '12:35:02', message: 'Rate limit approaching (80%)' },
+    { type: 'info', time: '12:35:15', message: 'Build agent spawned for project xyz' },
+    { type: 'error', time: '12:35:23', message: 'Failed to connect to RunPod endpoint' },
+    { type: 'info', time: '12:35:25', message: 'Retrying connection...' },
+    { type: 'success', time: '12:35:28', message: 'RunPod connection established' },
+  ]);
+  
+  const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info' | 'success'>('all');
+  const [command, setCommand] = useState('');
+
+  const filteredLogs = filter === 'all' 
+    ? logs 
+    : logs.filter(log => log.type === filter);
+
+  const getLogColor = (type: string) => {
+    switch (type) {
+      case 'error': return '#EF4444';
+      case 'warning': return '#F59E0B';
+      case 'success': return '#22C55E';
+      default: return 'rgba(255,255,255,0.7)';
+    }
+  };
+
+  const handleCommand = () => {
+    if (command.trim()) {
+      setLogs(prev => [...prev, {
+        type: 'info',
+        time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        message: `> ${command}`
+      }]);
+      setCommand('');
+    }
+  };
+
+  return (
+    <div className="panel-console">
+      {/* Filter tabs */}
+      <div className="panel-console__filters">
+        {['all', 'error', 'warning', 'info', 'success'].map((f) => (
+          <button
+            key={f}
+            className={`panel-console__filter ${filter === f ? 'panel-console__filter--active' : ''}`}
+            onClick={() => setFilter(f as typeof filter)}
+            style={{ 
+              borderColor: filter === f ? getLogColor(f === 'all' ? 'info' : f) : 'transparent',
+              color: filter === f ? getLogColor(f === 'all' ? 'info' : f) : 'rgba(255,255,255,0.5)'
+            }}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+        <button 
+          className="panel-console__clear"
+          onClick={() => setLogs([])}
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Log output */}
+      <div className="panel-console__output">
+        {filteredLogs.map((log, i) => (
+          <motion.div
+            key={i}
+            className="panel-console__log"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.02 }}
+          >
+            <span className="panel-console__time">{log.time}</span>
+            <span 
+              className="panel-console__type"
+              style={{ color: getLogColor(log.type) }}
+            >
+              [{log.type.toUpperCase()}]
+            </span>
+            <span className="panel-console__message">{log.message}</span>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Command input */}
+      <div className="panel-console__input">
+        <span className="panel-console__prompt">$</span>
+        <input
+          type="text"
+          value={command}
+          onChange={(e) => setCommand(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCommand()}
+          placeholder="Enter command..."
+        />
+      </div>
+    </div>
+  );
+}
+
+// Network Panel - API calls and traffic monitoring
+function NetworkPanelContent() {
+  const [requests] = useState([
+    { method: 'POST', url: '/api/build/start', status: 200, time: 245, size: '1.2 KB' },
+    { method: 'GET', url: '/api/projects/xyz', status: 200, time: 89, size: '4.5 KB' },
+    { method: 'POST', url: '/api/ai/generate', status: 200, time: 1523, size: '12.3 KB' },
+    { method: 'GET', url: '/api/huggingface/models', status: 200, time: 432, size: '28.7 KB' },
+    { method: 'POST', url: '/api/runpod/deploy', status: 201, time: 2341, size: '2.1 KB' },
+    { method: 'GET', url: '/api/health', status: 200, time: 15, size: '128 B' },
+    { method: 'POST', url: '/api/training/start', status: 500, time: 0, size: '0 B' },
+  ]);
+
+  const [filter, setFilter] = useState<'all' | 'success' | 'error'>('all');
+
+  const getStatusColor = (status: number) => {
+    if (status >= 500) return '#EF4444';
+    if (status >= 400) return '#F59E0B';
+    if (status >= 200 && status < 300) return '#22C55E';
+    return 'rgba(255,255,255,0.5)';
+  };
+
+  const getMethodColor = (method: string) => {
+    switch (method) {
+      case 'GET': return '#3B82F6';
+      case 'POST': return '#22C55E';
+      case 'PUT': return '#F59E0B';
+      case 'DELETE': return '#EF4444';
+      default: return 'rgba(255,255,255,0.5)';
+    }
+  };
+
+  const filteredRequests = filter === 'all'
+    ? requests
+    : filter === 'success'
+      ? requests.filter(r => r.status >= 200 && r.status < 400)
+      : requests.filter(r => r.status >= 400);
+
+  const totalRequests = requests.length;
+  const successRate = Math.round((requests.filter(r => r.status < 400).length / totalRequests) * 100);
+  const avgTime = Math.round(requests.reduce((sum, r) => sum + r.time, 0) / totalRequests);
+
+  return (
+    <div className="panel-network">
+      {/* Stats summary */}
+      <div className="panel-network__stats">
+        <div className="panel-network__stat">
+          <span className="panel-network__stat-value">{totalRequests}</span>
+          <span className="panel-network__stat-label">Requests</span>
+        </div>
+        <div className="panel-network__stat">
+          <span className="panel-network__stat-value" style={{ color: '#22C55E' }}>{successRate}%</span>
+          <span className="panel-network__stat-label">Success</span>
+        </div>
+        <div className="panel-network__stat">
+          <span className="panel-network__stat-value">{avgTime}ms</span>
+          <span className="panel-network__stat-label">Avg Time</span>
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="panel-network__filters">
+        {['all', 'success', 'error'].map((f) => (
+          <button
+            key={f}
+            className={`panel-network__filter ${filter === f ? 'panel-network__filter--active' : ''}`}
+            onClick={() => setFilter(f as typeof filter)}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Request list */}
+      <div className="panel-network__requests">
+        {filteredRequests.map((req, i) => (
+          <motion.div
+            key={i}
+            className="panel-network__request"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03 }}
+          >
+            <span 
+              className="panel-network__method"
+              style={{ color: getMethodColor(req.method) }}
+            >
+              {req.method}
+            </span>
+            <span className="panel-network__url">{req.url}</span>
+            <span 
+              className="panel-network__status"
+              style={{ color: getStatusColor(req.status) }}
+            >
+              {req.status}
+            </span>
+            <span className="panel-network__time">{req.time}ms</span>
+            <span className="panel-network__size">{req.size}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Settings Panel - App configuration
+function SettingsPanelContent() {
+  const [settings, setSettings] = useState({
+    theme: 'dark',
+    autoSave: true,
+    notifications: true,
+    debugMode: false,
+    gpuProvider: 'runpod',
+    hfConnected: true,
+    modalConnected: false,
+    runpodConnected: true,
+  });
+
+  const toggleSetting = (key: keyof typeof settings) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  return (
+    <div className="panel-settings">
+      {/* Theme section */}
+      <div className="panel-settings__section">
+        <h4 className="panel-settings__section-title">Appearance</h4>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Theme</span>
+          <select 
+            className="panel-settings__select"
+            value={settings.theme}
+            onChange={(e) => setSettings(prev => ({ ...prev, theme: e.target.value }))}
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+          </select>
+        </div>
+      </div>
+
+      {/* General settings */}
+      <div className="panel-settings__section">
+        <h4 className="panel-settings__section-title">General</h4>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Auto-save</span>
+          <button
+            className={`panel-settings__toggle ${settings.autoSave ? 'panel-settings__toggle--active' : ''}`}
+            onClick={() => toggleSetting('autoSave')}
+          >
+            <span className="panel-settings__toggle-knob" />
+          </button>
+        </div>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Notifications</span>
+          <button
+            className={`panel-settings__toggle ${settings.notifications ? 'panel-settings__toggle--active' : ''}`}
+            onClick={() => toggleSetting('notifications')}
+          >
+            <span className="panel-settings__toggle-knob" />
+          </button>
+        </div>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Debug Mode</span>
+          <button
+            className={`panel-settings__toggle ${settings.debugMode ? 'panel-settings__toggle--active' : ''}`}
+            onClick={() => toggleSetting('debugMode')}
+          >
+            <span className="panel-settings__toggle-knob" />
+          </button>
+        </div>
+      </div>
+
+      {/* Integrations */}
+      <div className="panel-settings__section">
+        <h4 className="panel-settings__section-title">Integrations</h4>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">HuggingFace</span>
+          <span className={`panel-settings__status ${settings.hfConnected ? 'panel-settings__status--connected' : ''}`}>
+            {settings.hfConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">RunPod</span>
+          <span className={`panel-settings__status ${settings.runpodConnected ? 'panel-settings__status--connected' : ''}`}>
+            {settings.runpodConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Modal</span>
+          <span className={`panel-settings__status ${settings.modalConnected ? 'panel-settings__status--connected' : ''}`}>
+            {settings.modalConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+
+      {/* GPU Provider */}
+      <div className="panel-settings__section">
+        <h4 className="panel-settings__section-title">GPU Provider</h4>
+        <div className="panel-settings__row">
+          <span className="panel-settings__label">Default Provider</span>
+          <select 
+            className="panel-settings__select"
+            value={settings.gpuProvider}
+            onChange={(e) => setSettings(prev => ({ ...prev, gpuProvider: e.target.value }))}
+          >
+            <option value="runpod">RunPod</option>
+            <option value="modal">Modal</option>
+            <option value="kriptik">KripTik (Credits)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function OpenSourceStudioPanelContent() {

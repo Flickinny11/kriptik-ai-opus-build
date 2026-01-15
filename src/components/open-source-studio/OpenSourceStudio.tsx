@@ -33,8 +33,10 @@ import { EndpointManagement, type DeployedEndpoint } from './EndpointManagement'
 import { EndpointTest } from './EndpointTest';
 import { AILab } from '../ai-lab/AILab';
 import { TrainingWizard } from '../training/TrainingWizard';
+import { ModelLibrary } from './ModelLibrary';
 
 import './OpenSourceStudio.css';
+import './ModelLibrary.css';
 
 // =============================================================================
 // TYPES
@@ -647,6 +649,7 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
     isOpen,
     setOpen,
     selectedModel,
+    selectModel,
     dock,
     setHfConnection,
   } = useOpenSourceStudioStore();
@@ -813,6 +816,26 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
               className="oss-tab-content"
             >
               <div className="oss-main-layout">
+                <div className="oss-panel oss-panel--library">
+                  <ModelLibrary 
+                    onSelectModel={(modelId, _modelName, author) => {
+                      selectModel({
+                        modelId,
+                        id: modelId,
+                        author,
+                        downloads: 0,
+                        likes: 0,
+                        lastModified: new Date().toISOString(),
+                        tags: [],
+                        sha: '',
+                        private: false,
+                        gated: false,
+                        disabled: false,
+                        pipeline_tag: 'text-generation',
+                      } as ModelWithRequirements);
+                    }}
+                  />
+                </div>
                 <div className="oss-panel oss-panel--browser">
                   <ModelBrowser />
                 </div>

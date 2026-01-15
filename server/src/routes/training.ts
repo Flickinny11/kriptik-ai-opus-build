@@ -901,4 +901,362 @@ trainingRouter.get('/jobs/:id/usage-code', authMiddleware, async (req: Request, 
   }
 });
 
+// =============================================================================
+// MODEL COMPARISON TESTING
+// =============================================================================
+
+import { v4 as uuidv4 } from 'uuid';
+import { createRunPodProvider } from '../services/cloud/runpod.js';
+import { getCredentialVault } from '../services/security/credential-vault.js';
+
+// Track temporary test endpoints for cleanup
+const testEndpointTracker = new Map<string, {
+  originalEndpointId: string;
+  fineTunedEndpointId: string;
+  userId: string;
+  createdAt: Date;
+  expiresAt: Date;
+}>();
+
+/**
+ * POST /api/training/comparison/deploy
+ * Deploy temporary test endpoints for before/after comparison
+ */
+trainingRouter.post('/comparison/deploy', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { trainingJobId, baseModelId, fineTunedModelPath, modality, testWindowMinutes = 10 } = req.body;
+
+    if (!trainingJobId || !baseModelId || !fineTunedModelPath || !modality) {
+      return res.status(400).json({
+        error: 'Missing required fields: trainingJobId, baseModelId, fineTunedModelPath, modality',
+      });
+    }
+
+    // Get RunPod credentials
+    const vault = getCredentialVault();
+    const runpodCredential = await vault.getCredential(userId, 'runpod');
+
+    if (!runpodCredential?.oauthAccessToken) {
+      return res.status(400).json({
+        error: 'RunPod credentials not configured. Please connect RunPod in Settings.',
+      });
+    }
+
+    const runpod = createRunPodProvider(runpodCredential.oauthAccessToken);
+
+    // Determine container image based on modality
+    const containerImages: Record<string, string> = {
+      text: 'runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04',
+      image: 'runpod/stable-diffusion:xl-1.0',
+      video: 'runpod/pytorch:2.1.0-py3.10-cuda12.1.0-devel-ubuntu22.04',
+      audio: 'runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04',
+    };
+
+    const containerImage = containerImages[modality] || containerImages.text;
+
+    // Deploy original model endpoint
+    const originalDeployment = await runpod.deploy({
+      provider: 'runpod',
+      resourceType: 'gpu',
+      region: 'US',
+      name: `kriptik-comparison-original-${uuidv4().slice(0, 8)}`,
+      containerImage,
+      gpu: {
+        type: 'nvidia-rtx-4090',
+        count: 1,
+      },
+      environmentVariables: {
+        MODEL_ID: baseModelId,
+        MODE: 'inference',
+        COMPARISON_TYPE: 'original',
+      },
+      timeoutSeconds: testWindowMinutes * 60,
+    });
+
+    // Deploy fine-tuned model endpoint
+    const fineTunedDeployment = await runpod.deploy({
+      provider: 'runpod',
+      resourceType: 'gpu',
+      region: 'US',
+      name: `kriptik-comparison-finetuned-${uuidv4().slice(0, 8)}`,
+      containerImage,
+      gpu: {
+        type: 'nvidia-rtx-4090',
+        count: 1,
+      },
+      environmentVariables: {
+        MODEL_ID: baseModelId,
+        ADAPTER_PATH: fineTunedModelPath,
+        MODE: 'inference',
+        COMPARISON_TYPE: 'finetuned',
+      },
+      timeoutSeconds: testWindowMinutes * 60,
+    });
+
+    // Track endpoints for cleanup
+    const expiresAt = new Date(Date.now() + testWindowMinutes * 60 * 1000);
+    testEndpointTracker.set(trainingJobId, {
+      originalEndpointId: originalDeployment.providerResourceId || originalDeployment.id,
+      fineTunedEndpointId: fineTunedDeployment.providerResourceId || fineTunedDeployment.id,
+      userId,
+      createdAt: new Date(),
+      expiresAt,
+    });
+
+    // Schedule automatic cleanup
+    setTimeout(async () => {
+      const tracker = testEndpointTracker.get(trainingJobId);
+      if (tracker) {
+        try {
+          await runpod.deleteDeployment(tracker.originalEndpointId);
+          await runpod.deleteDeployment(tracker.fineTunedEndpointId);
+        } catch (error) {
+          console.error('[Comparison] Auto-cleanup error:', error);
+        }
+        testEndpointTracker.delete(trainingJobId);
+      }
+    }, testWindowMinutes * 60 * 1000);
+
+    res.json({
+      originalEndpoint: `https://api.runpod.ai/v2/${originalDeployment.providerResourceId || originalDeployment.id}/run`,
+      fineTunedEndpoint: `https://api.runpod.ai/v2/${fineTunedDeployment.providerResourceId || fineTunedDeployment.id}/run`,
+      expiresAt: expiresAt.toISOString(),
+      testWindowMinutes,
+    });
+  } catch (error) {
+    console.error('[Training API] Comparison deploy error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to deploy test endpoints',
+    });
+  }
+});
+
+/**
+ * POST /api/training/comparison/run
+ * Run a comparison test on both endpoints
+ */
+trainingRouter.post('/comparison/run', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { trainingJobId, originalEndpoint, fineTunedEndpoint, modality, prompt, image } = req.body;
+
+    if (!trainingJobId || !originalEndpoint || !fineTunedEndpoint || !modality || !prompt) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+      });
+    }
+
+    // Get RunPod credentials for auth
+    const vault = getCredentialVault();
+    const runpodCredential = await vault.getCredential(userId, 'runpod');
+
+    if (!runpodCredential?.oauthAccessToken) {
+      return res.status(400).json({ error: 'RunPod credentials not configured' });
+    }
+
+    // Build inference request based on modality
+    const buildInferenceRequest = (endpoint: string, isFineTuned: boolean) => {
+      const input: Record<string, unknown> = { prompt };
+
+      if (image && (modality === 'image' || modality === 'video')) {
+        input.image = image;
+      }
+
+      if (isFineTuned) {
+        input.use_adapter = true;
+      }
+
+      return {
+        url: endpoint,
+        method: 'POST' as const,
+        headers: {
+          'Authorization': `Bearer ${runpodCredential.oauthAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input }),
+      };
+    };
+
+    // Run both inferences in parallel
+    const [originalRequest, fineTunedRequest] = [
+      buildInferenceRequest(originalEndpoint, false),
+      buildInferenceRequest(fineTunedEndpoint, true),
+    ];
+
+    const startTime = Date.now();
+
+    const [originalResult, fineTunedResult] = await Promise.all([
+      fetch(originalRequest.url, {
+        method: originalRequest.method,
+        headers: originalRequest.headers,
+        body: originalRequest.body,
+      }).then(async (r) => {
+        const latencyMs = Date.now() - startTime;
+        if (!r.ok) {
+          const errorText = await r.text();
+          return { output: null, latencyMs, error: errorText };
+        }
+        const data = await r.json();
+        return { output: data.output || data.result, latencyMs };
+      }).catch(err => ({ output: null, latencyMs: Date.now() - startTime, error: err.message })),
+
+      fetch(fineTunedRequest.url, {
+        method: fineTunedRequest.method,
+        headers: fineTunedRequest.headers,
+        body: fineTunedRequest.body,
+      }).then(async (r) => {
+        const latencyMs = Date.now() - startTime;
+        if (!r.ok) {
+          const errorText = await r.text();
+          return { output: null, latencyMs, error: errorText };
+        }
+        const data = await r.json();
+        return { output: data.output || data.result, latencyMs };
+      }).catch(err => ({ output: null, latencyMs: Date.now() - startTime, error: err.message })),
+    ]);
+
+    // Calculate cost (rough estimate based on GPU usage)
+    const totalLatencyMs = Math.max(originalResult.latencyMs, fineTunedResult.latencyMs);
+    const gpuHours = (totalLatencyMs / 1000 / 3600) * 2; // Both endpoints
+    const costPerHour = 0.69; // RTX 4090
+    const estimatedCost = gpuHours * costPerHour;
+
+    res.json({
+      original: originalResult,
+      finetuned: fineTunedResult,
+      cost: estimatedCost,
+      totalLatencyMs,
+    });
+  } catch (error) {
+    console.error('[Training API] Comparison run error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to run comparison',
+    });
+  }
+});
+
+/**
+ * POST /api/training/comparison/cleanup
+ * Clean up test endpoints before expiration
+ */
+trainingRouter.post('/comparison/cleanup', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { trainingJobId } = req.body;
+
+    if (!trainingJobId) {
+      return res.status(400).json({ error: 'Missing trainingJobId' });
+    }
+
+    const tracker = testEndpointTracker.get(trainingJobId);
+    if (!tracker) {
+      return res.json({ message: 'No endpoints to clean up' });
+    }
+
+    if (tracker.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get RunPod credentials
+    const vault = getCredentialVault();
+    const runpodCredential = await vault.getCredential(userId, 'runpod');
+
+    if (runpodCredential?.oauthAccessToken) {
+      const runpod = createRunPodProvider(runpodCredential.oauthAccessToken);
+
+      try {
+        await runpod.deleteDeployment(tracker.originalEndpointId);
+      } catch (e) {
+        console.warn('[Comparison] Failed to delete original endpoint:', e);
+      }
+
+      try {
+        await runpod.deleteDeployment(tracker.fineTunedEndpointId);
+      } catch (e) {
+        console.warn('[Comparison] Failed to delete fine-tuned endpoint:', e);
+      }
+    }
+
+    testEndpointTracker.delete(trainingJobId);
+
+    res.json({ message: 'Endpoints cleaned up successfully' });
+  } catch (error) {
+    console.error('[Training API] Comparison cleanup error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to clean up endpoints',
+    });
+  }
+});
+
+/**
+ * GET /api/training/search-models
+ * Search for models to fine-tune
+ */
+trainingRouter.get('/search-models', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { query, modality, limit = '10' } = req.query;
+
+    if (!query) {
+      return res.json({ models: [] });
+    }
+
+    // Map modality to HuggingFace task type
+    const modalityToTask: Record<string, string> = {
+      llm: 'text-generation',
+      image: 'text-to-image',
+      video: 'text-to-video',
+      audio: 'text-to-speech',
+      multimodal: '',
+    };
+
+    const task = modalityToTask[modality as string] || '';
+    const params = new URLSearchParams({
+      search: query as string,
+      limit: limit as string,
+      full: 'true',
+      ...(task && { pipeline_tag: task }),
+    });
+
+    const response = await fetch(`https://huggingface.co/api/models?${params}`);
+
+    if (!response.ok) {
+      throw new Error('HuggingFace API error');
+    }
+
+    const models = await response.json();
+
+    res.json({
+      models: models.map((m: any) => ({
+        id: m.id,
+        name: m.id.split('/').pop(),
+        author: m.author || m.id.split('/')[0],
+        description: m.cardData?.description,
+        downloads: m.downloads,
+        likes: m.likes,
+        tags: m.tags,
+        modelSize: m.siblings?.find((s: any) => s.rfilename?.endsWith('.bin'))?.size,
+        license: m.cardData?.license,
+        lastModified: m.lastModified,
+        private: m.private,
+      })),
+    });
+  } catch (error) {
+    console.error('[Training API] Search models error:', error);
+    res.status(500).json({ error: 'Failed to search models' });
+  }
+});
+
 export default trainingRouter;

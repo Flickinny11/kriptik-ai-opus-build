@@ -4589,3 +4589,103 @@ export const endpointUsage = sqliteTable('endpoint_usage', {
     // Timestamp
     createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
 });
+
+// =============================================================================
+// OPEN SOURCE STUDIO - MODEL FAVORITES & USAGE TRACKING
+// =============================================================================
+
+/**
+ * User Model Favorites - Saved favorite models from HuggingFace
+ */
+export const userModelFavorites = sqliteTable('user_model_favorites', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    
+    // Model identification
+    modelId: text('model_id').notNull(), // HuggingFace model ID (e.g., "meta-llama/Llama-3.3-70B")
+    modelName: text('model_name').notNull(), // Display name
+    author: text('author').notNull(), // Model author/organization
+    
+    // Model metadata (cached for quick display)
+    task: text('task'), // text-generation, text-to-image, etc.
+    library: text('library'), // transformers, diffusers, etc.
+    downloads: integer('downloads'),
+    likes: integer('likes'),
+    estimatedVram: integer('estimated_vram'), // GB
+    license: text('license'),
+    
+    // User notes
+    userNotes: text('user_notes'),
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * User Model Usage History - Track recently used models
+ */
+export const userModelUsageHistory = sqliteTable('user_model_usage_history', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    
+    // Model identification
+    modelId: text('model_id').notNull(),
+    modelName: text('model_name').notNull(),
+    author: text('author').notNull(),
+    
+    // Usage context
+    usageType: text('usage_type').notNull().$type<'deploy' | 'finetune' | 'train' | 'browse' | 'compare'>(),
+    projectId: text('project_id'),
+    trainingJobId: text('training_job_id'),
+    endpointId: text('endpoint_id'),
+    
+    // Model metadata snapshot
+    task: text('task'),
+    library: text('library'),
+    estimatedVram: integer('estimated_vram'),
+    
+    // Timestamps
+    usedAt: text('used_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * User Model Collections - Custom model collections/folders
+ */
+export const userModelCollections = sqliteTable('user_model_collections', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull(),
+    
+    // Collection info
+    name: text('name').notNull(),
+    description: text('description'),
+    icon: text('icon'), // emoji or icon name
+    color: text('color'), // hex color for UI
+    
+    // Privacy
+    isPublic: integer('is_public', { mode: 'boolean' }).default(false),
+    
+    // Timestamps
+    createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
+    updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+});
+
+/**
+ * User Model Collection Items - Models in collections
+ */
+export const userModelCollectionItems = sqliteTable('user_model_collection_items', {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    collectionId: text('collection_id').references(() => userModelCollections.id).notNull(),
+    
+    // Model identification
+    modelId: text('model_id').notNull(),
+    modelName: text('model_name').notNull(),
+    author: text('author').notNull(),
+    
+    // Position in collection
+    sortOrder: integer('sort_order').default(0),
+    
+    // Timestamps
+    addedAt: text('added_at').default(sql`(datetime('now'))`).notNull(),
+});

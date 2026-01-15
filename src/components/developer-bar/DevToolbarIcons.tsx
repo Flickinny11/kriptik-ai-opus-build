@@ -14,6 +14,9 @@ import { motion } from 'framer-motion';
 export type ToolbarIconName =
   | 'featureAgents'
   | 'openSourceStudio'
+  | 'console'
+  | 'network'
+  | 'settings'
   | 'health'
   | 'database'
   | 'memory'
@@ -113,6 +116,106 @@ const GradientDefs = () => (
 
 // Individual icon components - 3D geometric designs with black/white/red
 const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boolean }) => JSX.Element> = {
+
+  // Console - Terminal window with cursor
+  console: ({ isActive, isHovered }) => (
+    <g filter="url(#depth3D)">
+      <GradientDefs />
+      {/* Terminal window */}
+      <motion.rect
+        x="3" y="4" width="18" height="16" rx="2"
+        fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'}
+        stroke={isActive ? '#DC2626' : '#4A4A5A'}
+        strokeWidth="0.8"
+        animate={{ scale: isHovered ? 1.02 : 1 }}
+        style={{ transformOrigin: 'center' }}
+      />
+      {/* Title bar */}
+      <rect x="3" y="4" width="18" height="3" rx="2" ry="0" fill={isActive ? 'url(#redAccent)' : 'url(#darkMetal)'} />
+      {/* Window buttons */}
+      <circle cx="6" cy="5.5" r="0.8" fill={isActive ? '#1A1A2A' : '#EF4444'} />
+      <circle cx="8.5" cy="5.5" r="0.8" fill={isActive ? '#1A1A2A' : '#F59E0B'} />
+      <circle cx="11" cy="5.5" r="0.8" fill={isActive ? '#1A1A2A' : '#22C55E'} />
+      {/* Console text lines */}
+      <rect x="5" y="9" width="8" height="1" rx="0.5" fill={isActive ? '#22C55E' : '#4A4A5A'} />
+      <rect x="5" y="11.5" width="12" height="1" rx="0.5" fill={isActive ? '#FFF' : '#5A5A6A'} />
+      <rect x="5" y="14" width="6" height="1" rx="0.5" fill={isActive ? '#FFF' : '#5A5A6A'} />
+      {/* Blinking cursor */}
+      <motion.rect
+        x="12" y="14" width="1.5" height="1"
+        fill={isActive ? '#EF4444' : '#DC2626'}
+        animate={{ opacity: isHovered ? [1, 0, 1] : 0.7 }}
+        transition={{ duration: 1, repeat: Infinity }}
+      />
+      {/* Prompt symbol */}
+      <path d="M5 17L7 17.5L5 18" stroke={isActive ? '#22C55E' : '#5A5A6A'} strokeWidth="0.8" fill="none" />
+    </g>
+  ),
+
+  // Network - Connected nodes with data flow
+  network: ({ isActive, isHovered }) => (
+    <g filter="url(#depth3D)">
+      <GradientDefs />
+      {/* Central hub */}
+      <motion.circle
+        cx="12" cy="12" r="4"
+        fill={isActive ? 'url(#redAccent)' : 'url(#darkMetal)'}
+        stroke={isActive ? '#FCA5A5' : '#4A4A5A'}
+        strokeWidth="0.8"
+        animate={{ scale: isHovered ? 1.1 : 1 }}
+        style={{ transformOrigin: 'center' }}
+      />
+      {/* Outer nodes */}
+      <circle cx="5" cy="5" r="2.5" fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'} stroke={isActive ? '#DC2626' : '#3A3A4A'} strokeWidth="0.5" />
+      <circle cx="19" cy="5" r="2.5" fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'} stroke={isActive ? '#DC2626' : '#3A3A4A'} strokeWidth="0.5" />
+      <circle cx="5" cy="19" r="2.5" fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'} stroke={isActive ? '#DC2626' : '#3A3A4A'} strokeWidth="0.5" />
+      <circle cx="19" cy="19" r="2.5" fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'} stroke={isActive ? '#DC2626' : '#3A3A4A'} strokeWidth="0.5" />
+      {/* Connection lines */}
+      <path d="M7 7L10 10" stroke={isActive ? '#EF4444' : '#4A4A5A'} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M17 7L14 10" stroke={isActive ? '#EF4444' : '#4A4A5A'} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M7 17L10 14" stroke={isActive ? '#EF4444' : '#4A4A5A'} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M17 17L14 14" stroke={isActive ? '#EF4444' : '#4A4A5A'} strokeWidth="1.2" strokeLinecap="round" />
+      {/* Animated data packets */}
+      <motion.circle
+        cx="8" cy="8" r="1"
+        fill={isActive ? '#FFF' : '#5A5A6A'}
+        animate={isHovered ? { cx: [8, 10], cy: [8, 10], opacity: [1, 0] } : {}}
+        transition={{ duration: 0.6, repeat: Infinity }}
+      />
+      <motion.circle
+        cx="16" cy="16" r="1"
+        fill={isActive ? '#FFF' : '#5A5A6A'}
+        animate={isHovered ? { cx: [16, 14], cy: [16, 14], opacity: [1, 0] } : {}}
+        transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
+      />
+      {/* Center dot */}
+      <circle cx="12" cy="12" r="1.5" fill={isActive ? '#FFF' : 'url(#chrome)'} />
+    </g>
+  ),
+
+  // Settings - Gear with precision marks
+  settings: ({ isActive, isHovered }) => (
+    <g filter="url(#depth3D)">
+      <GradientDefs />
+      {/* Main gear */}
+      <motion.path
+        d="M12 2L13.5 4.5L16.5 4L17.5 7L20.5 8L20 11L22 13L20 15L20.5 18L17.5 19L16.5 22L13.5 21.5L12 24L10.5 21.5L7.5 22L6.5 19L3.5 18L4 15L2 13L4 11L3.5 8L6.5 7L7.5 4L10.5 4.5L12 2Z"
+        fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'}
+        stroke={isActive ? '#DC2626' : '#4A4A5A'}
+        strokeWidth="0.8"
+        animate={{ rotate: isHovered ? 360 : 0 }}
+        transition={{ duration: 3, repeat: isHovered ? Infinity : 0, ease: 'linear' }}
+        style={{ transformOrigin: 'center' }}
+      />
+      {/* Inner circle */}
+      <circle cx="12" cy="13" r="5" fill={isActive ? 'url(#redAccent)' : 'url(#darkMetal)'} stroke={isActive ? '#FCA5A5' : '#3A3A4A'} strokeWidth="0.5" />
+      {/* Center hole */}
+      <circle cx="12" cy="13" r="2.5" fill={isActive ? 'url(#deepBlack)' : 'url(#chrome)'} />
+      {/* Precision marks */}
+      <circle cx="12" cy="13" r="1" fill={isActive ? '#FFF' : '#EF4444'} />
+      <path d="M12 8V9M12 17V18M7 13H8M16 13H17" stroke={isActive ? '#FFF' : '#5A5A6A'} strokeWidth="1" strokeLinecap="round" />
+    </g>
+  ),
 
   // Feature Agents - Hexagonal node network
   featureAgents: ({ isActive, isHovered }) => (

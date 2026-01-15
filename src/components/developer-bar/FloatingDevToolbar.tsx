@@ -24,20 +24,16 @@ export interface ToolbarButton {
   tooltip: string;
 }
 
+/**
+ * Developer Toolbar - 5 Essential Tools
+ * Per implementation plan: Feature Agents, Console, Network, Open Source, Settings
+ */
 const TOOLBAR_BUTTONS: ToolbarButton[] = [
-  { id: 'feature-agents', name: 'Feature Agents', icon: 'featureAgents', tooltip: 'Manage parallel AI agents' },
-  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', tooltip: 'HuggingFace, AI Lab, Training & Deploy' },
-  { id: 'health', name: 'Health', icon: 'health', tooltip: 'Real-time system health' },
-  { id: 'database', name: 'Database', icon: 'database', tooltip: 'Database explorer & queries' },
-  { id: 'memory', name: 'Memory', icon: 'memory', tooltip: 'AI memory & context' },
-  { id: 'dna', name: 'DNA', icon: 'dna', tooltip: 'App DNA & architecture' },
-  { id: 'quality', name: 'Quality', icon: 'quality', tooltip: 'Code quality metrics' },
-  { id: 'voice', name: 'Voice', icon: 'voice', tooltip: 'Voice commands' },
-  { id: 'self-heal', name: 'Self Heal', icon: 'selfHeal', tooltip: 'Auto-fix & recovery' },
-  { id: 'rules', name: 'Rules', icon: 'rules', tooltip: 'Business rules engine' },
-  { id: 'clone-mode', name: 'Clone Mode', icon: 'cloneMode', tooltip: 'Duplicate & branch' },
-  { id: 'security', name: 'Security', icon: 'security', tooltip: 'Security analysis' },
-  { id: 'permissions', name: 'Permissions', icon: 'permissions', tooltip: 'Access control' },
+  { id: 'feature-agents', name: 'Feature Agents', icon: 'featureAgents', tooltip: 'Manage parallel AI agents & Ghost Mode' },
+  { id: 'console', name: 'Console', icon: 'console', tooltip: 'Application console & logs' },
+  { id: 'network', name: 'Network', icon: 'network', tooltip: 'API calls & network traffic' },
+  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', tooltip: 'HuggingFace models, AI Lab, Training & Deploy' },
+  { id: 'settings', name: 'Settings', icon: 'settings', tooltip: 'App configuration & preferences' },
 ];
 
 // Animated 3D Recycle Arrows Icon

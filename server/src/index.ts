@@ -812,6 +812,10 @@ app.use("/api/huggingface", huggingfaceAuthRouter);
 // Open Source Studio (Model Browser & Training)
 app.use("/api/open-source-studio", openSourceStudioRouter);
 
+// Model Library - Favorites, Recently Used, Collections
+import modelLibraryRouter from './routes/model-library.js';
+app.use("/api/model-library", modelLibraryRouter);
+
 // Training API (Fine-tuning on RunPod - PROMPT 4)
 import trainingRouter from './routes/training.js';
 app.use("/api/training", trainingRouter);
