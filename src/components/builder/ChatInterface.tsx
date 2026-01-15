@@ -52,6 +52,7 @@ import { ImplementationPlan } from './ImplementationPlan';
 import { CredentialsCollectionView } from '../feature-agent/CredentialsCollectionView';
 import { ProvisioningStatus } from '../provisioning/ProvisioningStatus';
 import { IntentContractDisplay, type IntentContract } from './IntentContractDisplay';
+import { AnimatedPlaceholder } from './AnimatedPlaceholder';
 import {
     useProductionStackStore,
     AUTH_PROVIDERS,
@@ -130,7 +131,7 @@ interface Message {
 // All build requests go through full 6-phase orchestration
 // Quick questions use KTN for fast responses automatically
 
-// Liquid Glass Button Component
+// Premium 3D Liquid Glass Button Component
 function GlassButton({
     children,
     onClick,
@@ -147,51 +148,113 @@ function GlassButton({
     className?: string;
 }) {
     const [isHovered, setIsHovered] = useState(false);
+    const [isPressed, setIsPressed] = useState(false);
 
-    const sizeClasses = {
-        sm: 'w-8 h-8',
-        md: 'w-10 h-10',
-        lg: 'w-12 h-12 rounded-2xl',
+    const sizeStyles = {
+        sm: { width: 36, height: 36, borderRadius: 12 },
+        md: { width: 44, height: 44, borderRadius: 14 },
+        lg: { width: 52, height: 52, borderRadius: 18 },
     };
 
-    const getStyles = () => {
+    const getStyles = (): React.CSSProperties => {
+        const sz = sizeStyles[size];
+        
         if (disabled) {
             return {
-                background: 'linear-gradient(145deg, rgba(200,200,200,0.3) 0%, rgba(180,180,180,0.2) 100%)',
-                boxShadow: 'none',
+                width: sz.width,
+                height: sz.height,
+                borderRadius: sz.borderRadius,
+                background: 'linear-gradient(145deg, rgba(180,180,180,0.2) 0%, rgba(160,160,160,0.15) 100%)',
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1)',
                 cursor: 'not-allowed',
+                opacity: 0.5,
             };
         }
 
+        const baseTransform = isPressed ? 'translateY(1px) scale(0.97)' : 
+                              isHovered ? 'translateY(-2px) scale(1.04)' : 'translateY(0) scale(1)';
+
         if (variant === 'primary') {
             return {
+                width: sz.width,
+                height: sz.height,
+                borderRadius: sz.borderRadius,
                 background: isHovered
-                    ? 'linear-gradient(145deg, rgba(255,180,150,0.85) 0%, rgba(255,160,130,0.7) 100%)'
-                    : 'linear-gradient(145deg, rgba(255,200,170,0.75) 0%, rgba(255,180,150,0.6) 100%)',
+                    ? 'linear-gradient(145deg, rgba(255,140,100,0.9) 0%, rgba(255,120,80,0.75) 50%, rgba(240,100,60,0.8) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,160,120,0.8) 0%, rgba(255,140,100,0.65) 50%, rgba(250,120,80,0.7) 100%)',
                 boxShadow: isHovered
-                    ? `0 8px 24px rgba(255, 140, 100, 0.3), inset 0 0 20px rgba(255, 180, 140, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.6)`
-                    : `0 4px 16px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.5)`,
+                    ? `
+                        0 12px 32px rgba(255, 100, 50, 0.4),
+                        0 6px 16px rgba(255, 80, 40, 0.3),
+                        0 3px 8px rgba(0,0,0,0.15),
+                        inset 0 2px 3px rgba(255,255,255,0.5),
+                        inset 0 -2px 4px rgba(200,80,40,0.2),
+                        0 0 0 1px rgba(255, 180, 140, 0.6),
+                        0 0 30px rgba(255, 120, 80, 0.25)
+                    `
+                    : `
+                        0 8px 24px rgba(255, 100, 50, 0.3),
+                        0 4px 12px rgba(255, 80, 40, 0.2),
+                        inset 0 2px 3px rgba(255,255,255,0.4),
+                        inset 0 -1px 2px rgba(200,80,40,0.15),
+                        0 0 0 1px rgba(255, 180, 140, 0.5)
+                    `,
+                transform: baseTransform,
             };
         }
 
         if (variant === 'danger') {
             return {
+                width: sz.width,
+                height: sz.height,
+                borderRadius: sz.borderRadius,
                 background: isHovered
-                    ? 'linear-gradient(145deg, rgba(239,68,68,0.3) 0%, rgba(220,38,38,0.2) 100%)'
-                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                    ? 'linear-gradient(145deg, rgba(220,38,38,0.35) 0%, rgba(185,28,28,0.25) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(250,250,252,0.3) 100%)',
                 boxShadow: isHovered
-                    ? `0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(239, 68, 68, 0.3)`
-                    : `0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+                    ? `
+                        0 8px 24px rgba(220, 38, 38, 0.3),
+                        0 4px 12px rgba(0,0,0,0.1),
+                        inset 0 2px 3px rgba(255,255,255,0.3),
+                        inset 0 -1px 2px rgba(220,38,38,0.15),
+                        0 0 0 1px rgba(220, 38, 38, 0.4),
+                        0 0 20px rgba(220, 38, 38, 0.15)
+                    `
+                    : `
+                        0 4px 16px rgba(0,0,0,0.08),
+                        inset 0 2px 3px rgba(255,255,255,0.6),
+                        inset 0 -1px 2px rgba(0,0,0,0.05),
+                        0 0 0 1px rgba(255,255,255,0.3)
+                    `,
+                transform: baseTransform,
             };
         }
 
+        // Default variant - photorealistic liquid glass
         return {
+            width: sz.width,
+            height: sz.height,
+            borderRadius: sz.borderRadius,
             background: isHovered
-                ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.5) 100%)'
-                : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
+                ? 'linear-gradient(145deg, rgba(255,255,255,0.75) 0%, rgba(250,252,255,0.55) 50%, rgba(245,248,252,0.6) 100%)'
+                : 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(250,252,255,0.4) 50%, rgba(245,248,252,0.45) 100%)',
             boxShadow: isHovered
-                ? `0 6px 20px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.95), 0 0 0 1px rgba(255,255,255,0.6)`
-                : `0 2px 10px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
+                ? `
+                    0 10px 30px rgba(0,0,0,0.12),
+                    0 5px 15px rgba(0,0,0,0.08),
+                    0 2px 6px rgba(0,0,0,0.05),
+                    inset 0 2px 4px rgba(255,255,255,0.9),
+                    inset 0 -2px 4px rgba(0,0,0,0.03),
+                    0 0 0 1px rgba(255,255,255,0.6)
+                `
+                : `
+                    0 6px 20px rgba(0,0,0,0.08),
+                    0 3px 10px rgba(0,0,0,0.05),
+                    inset 0 2px 3px rgba(255,255,255,0.8),
+                    inset 0 -1px 2px rgba(0,0,0,0.02),
+                    0 0 0 1px rgba(255,255,255,0.4)
+                `,
+            transform: baseTransform,
         };
     };
 
@@ -200,28 +263,71 @@ function GlassButton({
             onClick={onClick}
             disabled={disabled}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`${sizeClasses[size]} rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden ${className}`}
+            onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
+            onMouseDown={() => setIsPressed(true)}
+            onMouseUp={() => setIsPressed(false)}
+            className={`flex items-center justify-center relative overflow-hidden ${className}`}
             style={{
                 ...getStyles(),
-                backdropFilter: 'blur(16px)',
-                transform: isHovered && !disabled ? 'translateY(-1px) scale(1.02)' : 'translateY(0) scale(1)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: 'none',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                transition: 'all 0.25s cubic-bezier(0.23, 1, 0.32, 1)',
+                transformStyle: 'preserve-3d',
+                perspective: '500px',
             }}
         >
-            {children}
+            {/* Top edge highlight - 3D glass shine */}
+            {!disabled && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 1,
+                        left: '20%',
+                        right: '20%',
+                        height: 1,
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)',
+                        borderRadius: 10,
+                        pointerEvents: 'none',
+                    }}
+                />
+            )}
+            
+            {/* Bottom shadow edge */}
+            {!disabled && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: -1,
+                        left: '15%',
+                        right: '15%',
+                        height: 2,
+                        background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.08))',
+                        borderRadius: '0 0 10px 10px',
+                        filter: 'blur(1px)',
+                        pointerEvents: 'none',
+                    }}
+                />
+            )}
 
-            {/* Shine effect */}
+            {/* Icon container */}
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                {children}
+            </div>
+
+            {/* Animated shine sweep on hover */}
             {!disabled && (
                 <div
                     style={{
                         position: 'absolute',
                         top: 0,
                         left: isHovered ? '150%' : '-100%',
-                        width: '60%',
+                        width: '80%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                        transform: 'skewX(-15deg)',
-                        transition: 'left 0.5s ease',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)',
+                        transform: 'skewX(-20deg)',
+                        transition: 'left 0.6s cubic-bezier(0.23, 1, 0.32, 1)',
                         pointerEvents: 'none',
                     }}
                 />
@@ -1447,11 +1553,17 @@ export default function ChatInterface({
                     </div>
                     <div>
                         <h2 
-                            className="font-semibold text-sm tracking-tight"
+                            className="font-bold tracking-tight"
                             style={{ 
-                                color: '#1c1917',
-                                fontFamily: 'Cal Sans, system-ui, sans-serif',
-                                textShadow: '0 1px 0 rgba(255,255,255,0.8)',
+                                fontSize: '16px',
+                                color: '#0a0a0a',
+                                fontFamily: "'Space Grotesk', 'Cal Sans', system-ui, sans-serif",
+                                letterSpacing: '-0.03em',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.05)',
+                                background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
                             }}
                         >
                             {buildWorkflowPhase === 'idle' ? 'KripTik AI' :
@@ -1463,25 +1575,28 @@ export default function ChatInterface({
                              buildWorkflowPhase === 'complete' ? 'Complete' : 'KripTik AI'}
                         </h2>
                         <p 
-                            className="text-xs"
+                            className="text-xs font-medium"
                             style={{
-                                color: buildWorkflowPhase === 'building' ? '#b45309' :
+                                marginTop: '2px',
+                                color: buildWorkflowPhase === 'building' ? '#dc2626' :
                                        buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
                                        buildWorkflowPhase === 'complete' ? '#059669' :
-                                       globalStatus === 'running' ? '#b45309' : '#78716c',
-                                fontFamily: 'system-ui, sans-serif',
+                                       globalStatus === 'running' ? '#dc2626' : '#6b7280',
+                                fontFamily: "'Inter', system-ui, sans-serif",
+                                letterSpacing: '0.01em',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.6)',
                             }}
                         >
                             {buildWorkflowPhase === 'idle' ? (
-                                globalStatus === 'running' ? 'Agents active' :
+                                globalStatus === 'running' ? 'Agents building...' :
                                 globalStatus === 'paused' ? 'Paused' :
-                                'Describe what you want to build'
-                            ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing...' :
-                            buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review plan' :
-                            buildWorkflowPhase === 'configuring_stack' ? 'Select stack' :
+                                'Production-ready apps in minutes'
+                            ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing intent...' :
+                            buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review & approve' :
+                            buildWorkflowPhase === 'configuring_stack' ? 'Configure stack' :
                             buildWorkflowPhase === 'awaiting_credentials' ? 'API keys needed' :
-                            buildWorkflowPhase === 'building' ? '6-Phase Build Active' :
-                            buildWorkflowPhase === 'complete' ? 'Ready' : 'Ready'}
+                            buildWorkflowPhase === 'building' ? '6-Phase Orchestration' :
+                            buildWorkflowPhase === 'complete' ? 'Ready to deploy' : 'Ready'}
                         </p>
                     </div>
                 </div>
@@ -1988,11 +2103,15 @@ export default function ChatInterface({
                             <ImageIcon size={16} style={{ color: '#1a1a1a' }} />
                         </GlassButton>
 
-                        {/* Text Input */}
-                        <div className="flex-1">
+                        {/* Text Input with Animated Placeholder */}
+                        <div className="flex-1 relative">
+                            <AnimatedPlaceholder 
+                                isInputFocused={document.activeElement === inputRef.current}
+                                hasValue={input.length > 0}
+                            />
                             <textarea
                                 ref={inputRef}
-                                placeholder="Describe your vision... we'll build it production-ready"
+                                placeholder=""
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
@@ -2003,7 +2122,11 @@ export default function ChatInterface({
                                     minHeight: '40px',
                                     maxHeight: '120px',
                                     color: '#1a1a1a',
-                                    fontFamily: 'Inter, system-ui, sans-serif',
+                                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                    fontSize: '13px',
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    background: 'transparent',
                                 }}
                             />
                         </div>
