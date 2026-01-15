@@ -634,9 +634,11 @@ function DeployTabContent({
 
 interface OpenSourceStudioProps {
   onClose?: () => void;
+  /** When true, renders inline without overlay (for embedding in panels) */
+  embedded?: boolean;
 }
 
-export function OpenSourceStudio({ onClose }: OpenSourceStudioProps) {
+export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudioProps) {
   const [activeTab, setActiveTab] = useState<StudioTab>('open-source');
   const [isProcessingPrompt, setIsProcessingPrompt] = useState(false);
   const [implementationPlan, setImplementationPlan] = useState<any>(null);
@@ -762,60 +764,11 @@ export function OpenSourceStudio({ onClose }: OpenSourceStudioProps) {
   const showConnectModal = !hfConnected && !hfLoading;
   const dockModels = dock.map(d => d.model);
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="oss-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="oss-container oss-container--4tab"
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-          >
-            {/* Header */}
-            <header className="oss-header">
-              <div className="oss-header-brand">
-                <HuggingFaceIcon />
-                <div className="oss-header-text">
-                  <h1 className="oss-title">Open Source Studio</h1>
-                  <p className="oss-subtitle">Browse, train, and deploy open source AI models</p>
-                </div>
-              </div>
-
-              <div className="oss-header-actions">
-                {hfConnected && hfStatus.username && (
-                  <HuggingFaceStatus
-                    user={{
-                      username: hfStatus.username,
-                      fullName: hfStatus.fullName,
-                      avatarUrl: hfStatus.avatarUrl,
-                      canWrite: hfStatus.canWrite ?? false,
-                      isPro: hfStatus.isPro ?? false,
-                    }}
-                    onDisconnect={hfDisconnect}
-                    compact
-                  />
-                )}
-
-                <button
-                  className="oss-close-btn"
-                  onClick={handleClose}
-                  aria-label="Close Open Source Studio"
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            </header>
-
-            {/* Tab Navigation */}
-            <nav className="oss-tabs">
+  // Shared content renderer for both embedded and overlay modes
+  const renderStudioContent = () => (
+    <>
+      {/* Tab Navigation */}
+      <nav className="oss-tabs" style={embedded ? { padding: '8px 12px' } : undefined}>
               <TabButton
                 tab="open-source"
                 label="Open Source"
@@ -844,187 +797,286 @@ export function OpenSourceStudio({ onClose }: OpenSourceStudioProps) {
                 isActive={activeTab === 'deploy'}
                 onClick={() => setActiveTab('deploy')}
               />
-            </nav>
+      </nav>
 
-            {/* Tab Content */}
-            <div className="oss-content">
-              <AnimatePresence mode="wait">
-                {/* Open Source Tab */}
-                {activeTab === 'open-source' && (
+      {/* Tab Content */}
+      <div className="oss-content">
+        <AnimatePresence mode="wait">
+          {/* Open Source Tab */}
+          {activeTab === 'open-source' && (
+            <motion.div
+              key="open-source"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="oss-tab-content"
+            >
+              <div className="oss-main-layout">
+                <div className="oss-panel oss-panel--browser">
+                  <ModelBrowser />
+                </div>
+                <div className="oss-panel oss-panel--dock">
+                  <ModelDock />
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {selectedModel && (
                   <motion.div
-                    key="open-source"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className="oss-tab-content"
+                    className="oss-panel oss-panel--details"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <div className="oss-main-layout">
-                      <div className="oss-panel oss-panel--browser">
-                        <ModelBrowser />
-                      </div>
-                      <div className="oss-panel oss-panel--dock">
-                        <ModelDock />
-                      </div>
-                    </div>
-
-                    <AnimatePresence>
-                      {selectedModel && (
-                        <motion.div
-                          className="oss-panel oss-panel--details"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <ModelDetails model={selectedModel} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Integration Prompt Bar */}
-                    <IntegrationPromptBar
-                      models={dockModels}
-                      onSubmit={handlePromptSubmit}
-                      isProcessing={isProcessingPrompt}
-                    />
-                  </motion.div>
-                )}
-
-                {/* AI Lab Tab */}
-                {activeTab === 'ai-lab' && (
-                  <motion.div
-                    key="ai-lab"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className="oss-tab-content oss-tab-content--full"
-                  >
-                    <AILab />
-                  </motion.div>
-                )}
-
-                {/* Training Tab */}
-                {activeTab === 'training' && (
-                  <motion.div
-                    key="training"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className="oss-tab-content"
-                  >
-                    <TrainingTabContent
-                      models={dockModels}
-                      onStartTraining={handleStartTraining}
-                    />
-                  </motion.div>
-                )}
-
-                {/* Deploy Tab */}
-                {activeTab === 'deploy' && (
-                  <motion.div
-                    key="deploy"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className="oss-tab-content"
-                  >
-                    <DeployTabContent models={dockModels} />
+                    <ModelDetails model={selectedModel} />
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
 
-            {/* Implementation Plan Modal */}
-            <AnimatePresence>
-              {implementationPlan && (
-                <motion.div
-                  className="oss-plan-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+              {/* Integration Prompt Bar */}
+              <IntegrationPromptBar
+                models={dockModels}
+                onSubmit={handlePromptSubmit}
+                isProcessing={isProcessingPrompt}
+              />
+            </motion.div>
+          )}
+
+          {/* AI Lab Tab */}
+          {activeTab === 'ai-lab' && (
+            <motion.div
+              key="ai-lab"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="oss-tab-content oss-tab-content--full"
+            >
+              <AILab />
+            </motion.div>
+          )}
+
+          {/* Training Tab */}
+          {activeTab === 'training' && (
+            <motion.div
+              key="training"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="oss-tab-content"
+            >
+              <TrainingTabContent
+                models={dockModels}
+                onStartTraining={handleStartTraining}
+              />
+            </motion.div>
+          )}
+
+          {/* Deploy Tab */}
+          {activeTab === 'deploy' && (
+            <motion.div
+              key="deploy"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="oss-tab-content"
+            >
+              <DeployTabContent models={dockModels} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Implementation Plan Modal */}
+      <AnimatePresence>
+        {implementationPlan && (
+          <motion.div
+            className="oss-plan-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="oss-plan-modal"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+            >
+              <h3>Implementation Plan</h3>
+              <div className="oss-plan-summary">
+                <p><strong>Summary:</strong> {implementationPlan.plan?.summary || 'No summary'}</p>
+                {implementationPlan.plan?.requirements && (
+                  <div className="oss-plan-requirements">
+                    <span>GPU: {implementationPlan.plan.requirements.gpuType || 'TBD'}</span>
+                    <span>VRAM: {implementationPlan.plan.requirements.estimatedVRAM || '?'} GB</span>
+                    <span>Est. Cost: {implementationPlan.plan.requirements.estimatedMonthlyCost || 'TBD'}/mo</span>
+                  </div>
+                )}
+              </div>
+              <div className="oss-plan-content">
+                <pre>{JSON.stringify(implementationPlan.plan, null, 2)}</pre>
+              </div>
+              <div className="oss-plan-actions">
+                <button onClick={() => setImplementationPlan(null)}>Cancel</button>
+                <button
+                  className="primary"
+                  onClick={async () => {
+                    try {
+                      setIsProcessingPrompt(true);
+                      const response = await authenticatedFetch('/api/open-source-studio/integrate/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          plan: implementationPlan.plan,
+                          projectId: implementationPlan.projectId,
+                        }),
+                      });
+
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('[OpenSourceStudio] Execution result:', result);
+                        alert(`Deployed ${result.summary?.deployed || 0}/${result.summary?.total || 0} models successfully!`);
+                      } else {
+                        const error = await response.json();
+                        alert(`Execution failed: ${error.message || 'Unknown error'}`);
+                      }
+                    } catch (err) {
+                      console.error('[OpenSourceStudio] Execute error:', err);
+                      alert('Failed to execute plan');
+                    } finally {
+                      setIsProcessingPrompt(false);
+                      setImplementationPlan(null);
+                    }
+                  }}
+                  disabled={isProcessingPrompt}
                 >
-                  <motion.div
-                    className="oss-plan-modal"
-                    initial={{ scale: 0.9, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.9, y: 20 }}
-                  >
-                    <h3>Implementation Plan</h3>
-                    <div className="oss-plan-summary">
-                      <p><strong>Summary:</strong> {implementationPlan.plan?.summary || 'No summary'}</p>
-                      {implementationPlan.plan?.requirements && (
-                        <div className="oss-plan-requirements">
-                          <span>GPU: {implementationPlan.plan.requirements.gpuType || 'TBD'}</span>
-                          <span>VRAM: {implementationPlan.plan.requirements.estimatedVRAM || '?'} GB</span>
-                          <span>Est. Cost: {implementationPlan.plan.requirements.estimatedMonthlyCost || 'TBD'}/mo</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="oss-plan-content">
-                      <pre>{JSON.stringify(implementationPlan.plan, null, 2)}</pre>
-                    </div>
-                    <div className="oss-plan-actions">
-                      <button onClick={() => setImplementationPlan(null)}>Cancel</button>
-                      <button
-                        className="primary"
-                        onClick={async () => {
-                          // Execute the approved plan
-                          try {
-                            setIsProcessingPrompt(true);
-                            const response = await authenticatedFetch('/api/open-source-studio/integrate/execute', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                plan: implementationPlan.plan,
-                                projectId: implementationPlan.projectId,
-                              }),
-                            });
+                  {isProcessingPrompt ? 'Deploying...' : 'Approve & Execute'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                            if (response.ok) {
-                              const result = await response.json();
-                              console.log('[OpenSourceStudio] Execution result:', result);
-                              // Show success notification or update UI
-                              alert(`Deployed ${result.summary?.deployed || 0}/${result.summary?.total || 0} models successfully!`);
-                            } else {
-                              const error = await response.json();
-                              alert(`Execution failed: ${error.message || 'Unknown error'}`);
-                            }
-                          } catch (err) {
-                            console.error('[OpenSourceStudio] Execute error:', err);
-                            alert('Failed to execute plan');
-                          } finally {
-                            setIsProcessingPrompt(false);
-                            setImplementationPlan(null);
-                          }
-                        }}
-                        disabled={isProcessingPrompt}
-                      >
-                        {isProcessingPrompt ? 'Deploying...' : 'Approve & Execute'}
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+      {/* HuggingFace Connection Modal */}
+      <AnimatePresence>
+        {showConnectModal && (
+          <div className="oss-connect-overlay">
+            <HuggingFaceConnect
+              onConnect={async (user) => {
+                setHfConnection(true, user.username, user.avatarUrl);
+              }}
+              required={true}
+              mode="modal"
+            />
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 
-            {/* HuggingFace Connection Modal */}
-            <AnimatePresence>
-              {showConnectModal && (
-                <div className="oss-connect-overlay">
-                  <HuggingFaceConnect
-                    onConnect={async (user) => {
-                      setHfConnection(true, user.username, user.avatarUrl);
-                    }}
-                    required={true}
-                    mode="modal"
-                  />
+  // EMBEDDED MODE: Render directly without overlay (for toolbar panels)
+  if (embedded) {
+    return (
+      <div
+        className="oss-container oss-container--4tab oss-container--embedded"
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: 'none',
+          maxHeight: 'none',
+          borderRadius: 0,
+          background: 'linear-gradient(145deg, rgba(30, 30, 40, 0.98), rgba(20, 20, 30, 1))',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Compact Header for embedded mode */}
+        <header className="oss-header" style={{ padding: '10px 14px' }}>
+          <div className="oss-header-brand">
+            <HuggingFaceIcon />
+            <div className="oss-header-text">
+              <h1 className="oss-title" style={{ fontSize: '1rem' }}>Open Source Studio</h1>
+              <p className="oss-subtitle" style={{ fontSize: '0.7rem' }}>HuggingFace models, training &amp; deployment</p>
+            </div>
+          </div>
+          <div className="oss-header-actions">
+            {hfConnected && hfStatus.username && (
+              <HuggingFaceStatus
+                user={{
+                  username: hfStatus.username,
+                  fullName: hfStatus.fullName,
+                  avatarUrl: hfStatus.avatarUrl,
+                  canWrite: hfStatus.canWrite ?? false,
+                  isPro: hfStatus.isPro ?? false,
+                }}
+                onDisconnect={hfDisconnect}
+                compact
+              />
+            )}
+          </div>
+        </header>
+        {renderStudioContent()}
+      </div>
+    );
+  }
+
+  // NORMAL MODE: Render with overlay, controlled by isOpen
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="oss-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            className="oss-container oss-container--4tab"
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {/* Header */}
+            <header className="oss-header">
+              <div className="oss-header-brand">
+                <HuggingFaceIcon />
+                <div className="oss-header-text">
+                  <h1 className="oss-title">Open Source Studio</h1>
+                  <p className="oss-subtitle">Browse, train, and deploy open source AI models</p>
                 </div>
-              )}
-            </AnimatePresence>
+              </div>
+              <div className="oss-header-actions">
+                {hfConnected && hfStatus.username && (
+                  <HuggingFaceStatus
+                    user={{
+                      username: hfStatus.username,
+                      fullName: hfStatus.fullName,
+                      avatarUrl: hfStatus.avatarUrl,
+                      canWrite: hfStatus.canWrite ?? false,
+                      isPro: hfStatus.isPro ?? false,
+                    }}
+                    onDisconnect={hfDisconnect}
+                    compact
+                  />
+                )}
+                <button
+                  className="oss-close-btn"
+                  onClick={handleClose}
+                  aria-label="Close Open Source Studio"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            </header>
+            {renderStudioContent()}
           </motion.div>
         </motion.div>
       )}

@@ -9,15 +9,15 @@
  * - Smooth animations
  */
 
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DevToolbarIcon, type ToolbarIconName } from './DevToolbarIcons';
 import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { useParams } from 'react-router-dom';
 import './dev-toolbar-panel.css';
 
-// Lazy load the Open Source Studio component for better performance
-const OpenSourceStudio = lazy(() => import('../open-source-studio/OpenSourceStudio').then(m => ({ default: m.OpenSourceStudio })));
+// Direct import for Open Source Studio - embedded mode for panel
+import { OpenSourceStudio } from '../open-source-studio/OpenSourceStudio';
 
 interface DevToolbarPanelProps {
   featureId: string;
@@ -275,29 +275,14 @@ function FeatureAgentsPanelContent() {
 
 function OpenSourceStudioPanelContent() {
   return (
-    <Suspense fallback={
-      <div className="panel-placeholder" style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        gap: 12,
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 13,
-      }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="50 20" />
-        </svg>
-        Loading Open Source Studio...
-      </div>
-    }>
-      <div style={{ 
-        height: '100%', 
-        overflow: 'auto',
-        background: 'transparent',
-      }}>
-        <OpenSourceStudio />
-      </div>
-    </Suspense>
+    <div style={{ 
+      height: '100%', 
+      overflow: 'hidden',
+      background: 'transparent',
+      position: 'relative',
+    }}>
+      <OpenSourceStudio embedded />
+    </div>
   );
 }
 
