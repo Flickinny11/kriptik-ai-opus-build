@@ -154,9 +154,10 @@ const frontendUrl =
     process.env.PUBLIC_FRONTEND_URL ||
     (isProd ? 'https://kriptik-ai-opus-build.vercel.app' : 'http://localhost:5173');
 
-// REMOVED: Dynamic isKriptikSameSite calculation - it was unreliable
-// Per AUTH-IMMUTABLE-SPECIFICATION.md, use hardcoded 'lax' for all cases
-// This maximizes compatibility with mobile Safari and embedded browsers
+// iOS MOBILE FIX (2026-01-15):
+// Changed from sameSite: 'none' to sameSite: 'lax' to fix iOS Chrome/Safari login
+// The frontend now uses Vercel rewrites to proxy /api/* to the backend
+// This makes all requests same-origin, so 'lax' works correctly
 
 const socialProviders: Record<string, { clientId: string; clientSecret: string; redirectURI?: string }> = {};
 
@@ -185,7 +186,8 @@ if (googleClientId && googleClientSecret) {
 console.log('[Auth] Social providers configured:', Object.keys(socialProviders));
 console.log('[Auth] Frontend URL:', frontendUrl);
 console.log('[Auth] Backend URL:', backendUrl);
-console.log('[Auth] Cookie SameSite setting: lax (hardcoded per AUTH-IMMUTABLE-SPECIFICATION)');
+console.log('[Auth] Cookie SameSite setting: lax (iOS mobile fix 2026-01-15)');
+console.log('[Auth] Cookie domain:', isProd ? '.kriptik.app' : '(not set - dev mode)');
 console.log('[Auth] Is production:', isProd);
 
 // Log configuration on startup
@@ -262,6 +264,7 @@ export const auth = betterAuth({
     },
 
     // Advanced configuration - SIMPLIFIED for maximum compatibility
+    // iOS MOBILE FIX (2026-01-15): Changed to sameSite 'lax' for WebKit ITP compatibility
     advanced: {
         // NO useSecureCookies - avoids __Secure- prefix issues
         useSecureCookies: false,
@@ -271,18 +274,24 @@ export const auth = betterAuth({
         // Cookie name prefix
         cookiePrefix: "kriptik_auth",
 
-        // Default cookie attributes - HARDCODED per AUTH-IMMUTABLE-SPECIFICATION.md
-        // DO NOT MAKE THESE DYNAMIC - mobile Safari and embedded browsers require exact configuration
+        // Default cookie attributes - iOS MOBILE FIX
+        // WHY 'lax' WORKS NOW:
+        // 1. Frontend uses Vercel rewrite: /api/* -> api.kriptik.app/api/*
+        // 2. From browser's perspective, all requests are same-origin (kriptik.app -> kriptik.app)
+        // 3. 'lax' allows cookies on same-origin requests and top-level navigations
+        // 4. OAuth callback redirects are top-level navigations, so cookies work
+        // 5. 'none' was being blocked by WebKit ITP on iOS Chrome/Safari
         defaultCookieAttributes: {
-            // 'none' required for cross-site cookies (kriptik.app -> api.kriptik.app)
-            // 'lax' doesn't send cookies on cross-site fetch requests
-            sameSite: 'none' as const,
-            // MUST be true when sameSite is 'none'
-            secure: true,
+            // 'lax' - cookies sent on same-origin requests and top-level navigations
+            // This is compatible with iOS Safari/Chrome WebKit ITP
+            sameSite: 'lax' as const,
+            // MUST be true for production HTTPS
+            secure: isProd,
             httpOnly: true,
             path: "/",
             maxAge: 60 * 60 * 24 * 7, // 7 days
             // Domain allows cookie sharing between kriptik.app and api.kriptik.app
+            // This is critical for OAuth callbacks which go directly to api.kriptik.app
             domain: isProd ? '.kriptik.app' : undefined,
         },
     },
