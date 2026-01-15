@@ -789,3 +789,36 @@ NOTIFICATIONS SECTION:
 
 CURRENT STATE: Build compiles, deployed to Vercel
 
+
+═══ 2026-01-15T19:45:00Z ═══
+COMPLETED: Live UI Preview Splash Video System
+
+FILES CREATED:
+  - src/components/builder/SplashVideo.tsx (NEW)
+  - public/videos/ (directory created)
+
+FILES MODIFIED:
+  - src/components/builder/SandpackPreview.tsx (splash integration)
+
+SPLASH VIDEO SYSTEM:
+  - Shows video/animation until first build completes
+  - Supports MP4/WebM at public/videos/kriptik-splash.mp4
+  - Fallback: animated geometric design (hexagon + gradients)
+  - Video loops continuously
+  - Auto-hides when sandbox-ready event fires
+  - Persists state check via localStorage
+
+BUILD EVENT LISTENERS:
+  - build-start: logs build initiation
+  - build-complete: hides splash on success
+  - sandbox-merge: hides splash, sets sandbox URL
+  - sandbox-ready: hides splash, persists URL
+
+VIDEO REQUIREMENTS:
+  - Location: /public/videos/kriptik-splash.mp4
+  - Fallback: /public/videos/kriptik-splash.webm
+  - Recommended: 1920x1080, 30fps, H.264 codec
+  - Auto-plays muted, loops until first merge
+
+CURRENT STATE: Build compiles, pushed to GitHub
+
