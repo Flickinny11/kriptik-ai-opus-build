@@ -200,28 +200,37 @@ async function validateHuggingFaceToken(token: string): Promise<TokenValidationR
  * Validate a HuggingFace token and optionally store it
  */
 router.post('/validate-token', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  console.log('[HuggingFace Auth] Received validate-token request');
   try {
     const { token, store = true } = req.body;
     const userId = req.user?.id;
 
+    console.log('[HuggingFace Auth] User ID:', userId ? 'present' : 'missing');
+    console.log('[HuggingFace Auth] Token:', token ? `hf_...${token.slice(-4)} (${token.length} chars)` : 'missing');
+
     if (!token) {
+      console.log('[HuggingFace Auth] Error: Token is required');
       res.status(400).json({ error: 'Token is required' });
       return;
     }
 
     if (!userId) {
+      console.log('[HuggingFace Auth] Error: No user ID (not authenticated)');
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
 
     // Basic format validation
     if (!token.startsWith('hf_') || token.length < 30) {
+      console.log('[HuggingFace Auth] Error: Invalid token format');
       res.status(400).json({ error: 'Invalid token format. HuggingFace tokens start with "hf_"' });
       return;
     }
 
     // Validate with HuggingFace API
+    console.log('[HuggingFace Auth] Calling HuggingFace API...');
     const result = await validateHuggingFaceToken(token);
+    console.log('[HuggingFace Auth] HuggingFace API result:', { valid: result.valid, canWrite: result.canWrite, username: result.username, error: result.error });
 
     if (!result.valid) {
       res.status(400).json({ error: result.error || 'Invalid token' });

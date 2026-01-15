@@ -458,7 +458,7 @@ router.post('/integrate', authMiddleware, async (req: Request, res: Response): P
     const claudeService = createOrchestratorClaudeService();
 
     // Build context about the selected models
-    const modelContext = models.map(m => 
+    const modelContext = models.map(m =>
       `- ${m.modelId} (Task: ${m.task || 'unknown'}, VRAM: ${m.estimatedVRAM || 'unknown'}GB)`
     ).join('\n');
 

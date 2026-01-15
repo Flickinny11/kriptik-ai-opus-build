@@ -822,3 +822,26 @@ VIDEO REQUIREMENTS:
 
 CURRENT STATE: Build compiles, pushed to GitHub
 
+
+═══ 2026-01-13T23:30:00Z ═══
+COMPLETED: Open Source Studio API URL Integration Fix
+FILES MODIFIED:
+- server/src/routes/huggingface-auth.ts (removed invalid credentials: 'omit')
+- server/src/routes/open-source-studio.ts (removed invalid credentials: 'omit')
+- src/components/open-source-studio/OpenSourceStudio.tsx (API_URL prefix)
+- src/components/open-source-studio/EndpointManagement.tsx (API_URL prefix + corrected endpoint path)
+- src/components/open-source-studio/TrainingModule.tsx (API_URL prefix)
+- src/components/ai-lab/AILab.tsx (API_URL prefix)
+- src/components/credentials/CredentialManager.tsx (API_URL prefix)
+- src/hooks/useHuggingFace.ts (API_URL prefix for all 4 endpoints)
+- src/store/useTrainingStore.ts (API_URL prefix)
+
+CURRENT STATE: Build successful, pushed to GitHub
+ISSUE FIXED: HuggingFace token validation was failing because:
+1. Server was using browser-only 'credentials: omit' option in Node.js fetch
+2. Frontend was using relative URLs ('/api/...') which fail in production
+   where frontend (kriptik.app) and API (api.kriptik.app) are on different domains
+3. EndpointManagement.tsx was calling wrong endpoint path (/api/endpoints vs /api/deployment)
+
+NEXT: User should test HuggingFace token connection after Vercel deployment
+CONTEXT: All Open Source Studio API integrations are now properly configured

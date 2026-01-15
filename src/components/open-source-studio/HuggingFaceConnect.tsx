@@ -172,18 +172,30 @@ export function HuggingFaceConnect({
     setError(null);
 
     try {
+      console.log('[HuggingFaceConnect] Validating token with API:', `${API_URL}/api/huggingface/validate-token`);
+      
       const response = await authenticatedFetch(`${API_URL}/api/huggingface/validate-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, store: true }),
       });
 
-      const data = await response.json();
+      console.log('[HuggingFaceConnect] Response status:', response.status, response.statusText);
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('[HuggingFaceConnect] Response data:', data);
+      } catch (parseError) {
+        console.error('[HuggingFaceConnect] Failed to parse response:', parseError);
+        throw new Error('Server returned invalid response');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to validate token');
+        console.error('[HuggingFaceConnect] API error:', data);
+        throw new Error(data.error || data.message || `Server error: ${response.status}`);
       }
 
       if (!data.canWrite) {
