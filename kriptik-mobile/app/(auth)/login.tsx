@@ -294,70 +294,50 @@ export default function LoginScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setError('');
 
-    try {
-      // Validate API URL is configured
-      if (!APP_CONFIG.apiUrl) {
-        console.error('[OAuth] APP_CONFIG.apiUrl is not configured!');
-        setError('OAuth configuration error. Please update the app.');
-        return;
-      }
+    // Validate API URL is configured
+    if (!APP_CONFIG.apiUrl) {
+      console.error('[OAuth] APP_CONFIG.apiUrl is not configured!');
+      setError('OAuth configuration error. Please update the app.');
+      return;
+    }
 
-      const authUrl = `${APP_CONFIG.apiUrl}/api/mobile/auth/oauth/start/google`;
-      console.log('[OAuth] Starting Google auth:', authUrl);
+    const authUrl = `${APP_CONFIG.apiUrl}/api/mobile/auth/oauth/start/google`;
+    console.log('[OAuth] Starting Google auth:', authUrl);
 
-      // Validate URL format before opening
+    // Helper function to attempt opening auth session
+    const attemptAuth = async (retryCount = 0): Promise<void> => {
       try {
-        new URL(authUrl);
-      } catch (urlError) {
-        console.error('[OAuth] Invalid URL:', authUrl);
-        setError('Invalid authentication URL. Please try again.');
-        return;
-      }
-
-      // CRITICAL: Dismiss any existing browser session before opening a new one
-      // This prevents "Another web browser is already open" error
-      try {
-        await WebBrowser.dismissBrowser();
-      } catch (dismissError) {
-        // Ignore dismiss errors - browser may not be open
-        console.log('[OAuth] No browser to dismiss (this is normal)');
-      }
-
-      // Small delay to ensure browser is fully dismissed
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        'kriptik://auth/callback',
-        {
-          showInRecents: true,
-          preferEphemeralSession: true, // Use ephemeral session to avoid cookie issues
+        const result = await WebBrowser.openAuthSessionAsync(
+          authUrl,
+          'kriptik://auth/callback',
+          {
+            showInRecents: true,
+            preferEphemeralSession: true,
+          }
+        );
+        console.log('[OAuth] WebBrowser result:', result);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : '';
+        
+        // If browser is already open, dismiss it and retry automatically (once)
+        if ((errorMsg.includes('already open') || errorMsg.includes('Another web browser')) && retryCount < 1) {
+          console.log('[OAuth] Browser busy, dismissing and retrying...');
+          try {
+            await WebBrowser.dismissBrowser();
+          } catch (e) { /* ignore */ }
+          // Retry immediately
+          return attemptAuth(retryCount + 1);
         }
-      );
-
-      console.log('[OAuth] WebBrowser result:', result);
-
-      if (result.type === 'cancel') {
-        console.log('[OAuth] User cancelled');
-      } else if (result.type === 'dismiss') {
-        console.log('[OAuth] Browser dismissed');
+        throw error;
       }
+    };
+
+    try {
+      await attemptAuth();
     } catch (error) {
       console.error('[OAuth] Error:', error);
-      // Provide more specific error messages
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (errorMsg.includes('already open') || errorMsg.includes('Another web browser')) {
-        // Try to dismiss and inform user to retry
-        try {
-          await WebBrowser.dismissBrowser();
-        } catch (e) {
-          // Ignore
-        }
-        setError('Browser was busy. Please try again.');
-      } else if (errorMsg.includes('invalid')) {
-        setError('Authentication URL is invalid. Please try again.');
-      } else if (errorMsg.includes('network')) {
+      if (errorMsg.includes('network')) {
         setError('Network error. Please check your connection.');
       } else {
         setError('Failed to start authentication. Please try again.');
