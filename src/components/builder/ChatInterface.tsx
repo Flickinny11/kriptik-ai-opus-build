@@ -1504,9 +1504,16 @@ export default function ChatInterface({
             <div
                 className="p-4 flex justify-between items-center shrink-0"
                 style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.2) 100%)',
+                    borderBottom: '1px solid rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '16px 16px 0 0',
+                    boxShadow: `
+                        inset 0 1px 0 rgba(255,255,255,0.4),
+                        inset 0 -1px 0 rgba(0,0,0,0.05),
+                        0 4px 16px rgba(0,0,0,0.06)
+                    `,
+                    backdropFilter: 'blur(12px)',
                 }}
             >
                 <div className="flex items-center gap-3">
@@ -1556,14 +1563,10 @@ export default function ChatInterface({
                             className="font-bold tracking-tight"
                             style={{ 
                                 fontSize: '16px',
-                                color: '#0a0a0a',
+                                color: 'rgba(180, 180, 185, 0.9)',
                                 fontFamily: "'Space Grotesk', 'Cal Sans', system-ui, sans-serif",
                                 letterSpacing: '-0.03em',
-                                textShadow: '0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.05)',
-                                background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
+                                textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.3)',
                             }}
                         >
                             {buildWorkflowPhase === 'idle' ? 'KripTik AI' :
@@ -2104,7 +2107,17 @@ export default function ChatInterface({
                         </GlassButton>
 
                         {/* Text Input with Animated Placeholder */}
-                        <div className="flex-1 relative">
+                        <div 
+                            className="flex-1 relative rounded-xl overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.15) 100%)',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                                boxShadow: `
+                                    inset 0 2px 4px rgba(0,0,0,0.03),
+                                    0 1px 0 rgba(255,255,255,0.5)
+                                `,
+                            }}
+                        >
                             <AnimatedPlaceholder 
                                 isInputFocused={document.activeElement === inputRef.current}
                                 hasValue={input.length > 0}
@@ -2113,7 +2126,12 @@ export default function ChatInterface({
                                 ref={inputRef}
                                 placeholder=""
                                 value={input}
-                                onChange={(e) => setInput(e.target.value)}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    // Auto-resize
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                }}
                                 onKeyDown={handleKeyDown}
                                 disabled={globalStatus !== 'idle' && !streamController}
                                 rows={1}
@@ -2121,12 +2139,15 @@ export default function ChatInterface({
                                 style={{
                                     minHeight: '40px',
                                     maxHeight: '120px',
+                                    height: 'auto',
                                     color: '#1a1a1a',
                                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                                     fontSize: '13px',
                                     position: 'relative',
                                     zIndex: 1,
                                     background: 'transparent',
+                                    overflow: 'hidden',
+                                    wordBreak: 'break-word',
                                 }}
                             />
                         </div>

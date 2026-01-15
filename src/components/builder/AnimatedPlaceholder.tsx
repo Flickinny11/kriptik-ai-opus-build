@@ -101,36 +101,49 @@ export function AnimatedPlaceholder({ isInputFocused, hasValue }: AnimatedPlaceh
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 pointer-events-none flex items-start px-3 py-2"
+      className="absolute inset-0 pointer-events-none overflow-hidden"
       style={{
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         fontSize: '13px',
         lineHeight: '1.5',
+        padding: '8px 12px',
       }}
     >
-      <span
+      <div
         style={{
-          color: 'rgba(100, 100, 100, 0.7)',
-          textShadow: '0 1px 0 rgba(255,255,255,0.5)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          wordBreak: 'break-word',
+          overflow: 'hidden',
         }}
       >
-        {displayedText}
-      </span>
-      
-      {/* Blinking cursor */}
-      <motion.span
-        animate={{ opacity: [1, 0, 1] }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear', times: [0, 0.5, 1] }}
-        style={{
-          display: 'inline-block',
-          width: '2px',
-          height: '16px',
-          marginLeft: '1px',
-          background: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
-          boxShadow: '0 0 8px rgba(220, 38, 38, 0.5)',
-          borderRadius: '1px',
-        }}
-      />
+        <span
+          style={{
+            color: 'rgba(120, 120, 125, 0.8)',
+            textShadow: '0 1px 0 rgba(255,255,255,0.4)',
+          }}
+        >
+          {displayedText}
+        </span>
+        
+        {/* Blinking cursor */}
+        <motion.span
+          animate={{ opacity: [1, 0, 1] }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear', times: [0, 0.5, 1] }}
+          style={{
+            display: 'inline-block',
+            width: '2px',
+            height: '16px',
+            marginLeft: '2px',
+            marginTop: '2px',
+            background: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
+            boxShadow: '0 0 8px rgba(220, 38, 38, 0.5)',
+            borderRadius: '1px',
+            flexShrink: 0,
+          }}
+        />
+      </div>
     </motion.div>
   );
 }
