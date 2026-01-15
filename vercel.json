@@ -7,6 +7,10 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://api.kriptik.app/api/:path*"
+    },
+    {
       "source": "/((?!api|_next/static|_next/image|favicon.ico|assets).*)",
       "destination": "/index.html"
     }
