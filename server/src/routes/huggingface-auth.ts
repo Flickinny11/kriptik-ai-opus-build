@@ -124,13 +124,13 @@ function decryptToken(encryptedData: string, ivHex: string, authTagHex: string):
  */
 async function validateHuggingFaceToken(token: string): Promise<TokenValidationResult> {
   try {
-    // Server-to-server call to HuggingFace API (no browser credentials)
+    // Server-to-server call to HuggingFace API
     const response = await fetch('https://huggingface.co/api/whoami-v2', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
       },
-      credentials: 'omit', // Server-side: no browser credentials needed
     });
 
     if (!response.ok) {
