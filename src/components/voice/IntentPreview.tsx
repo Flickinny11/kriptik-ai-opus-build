@@ -83,12 +83,12 @@ export function IntentPreview({
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
-            case 'color': return '🎨';
-            case 'layout': return '📐';
-            case 'typography': return '🔤';
-            case 'style': return '✨';
-            case 'animation': return '🎬';
-            default: return '🎯';
+            case 'color': return 'C';
+            case 'layout': return 'L';
+            case 'typography': return 'T';
+            case 'style': return 'S';
+            case 'animation': return 'A';
+            default: return 'F';
         }
     };
 

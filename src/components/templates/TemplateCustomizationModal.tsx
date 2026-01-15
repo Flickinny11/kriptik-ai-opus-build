@@ -52,7 +52,7 @@ export default function TemplateCustomizationModal() {
         addProject(newProject);
 
         toast({
-            title: "Project created! 🎉",
+            title: "Project created!",
             description: `${projectName} is ready to go. Opening builder...`
         });
 

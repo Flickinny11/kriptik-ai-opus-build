@@ -297,11 +297,11 @@ export default function GitHubImportModal({
                                             </span>
                                         )}
                                         <span className="flex items-center gap-1.5 text-slate-400">
-                                            <span className="h-3.5 w-3.5">⭐</span>
+                                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                             {repoInfo.stars.toLocaleString()}
                                         </span>
                                         <span className="flex items-center gap-1.5 text-slate-400">
-                                            <span className="h-3.5 w-3.5">🔱</span>
+                                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h9M9 3v6M21 12v6M21 15H12M12 12v9M12 12l3-3M12 12l-3-3"/></svg>
                                             {repoInfo.forks.toLocaleString()}
                                         </span>
                                     </div>

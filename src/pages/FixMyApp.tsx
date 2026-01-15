@@ -226,7 +226,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'bolt',
         name: 'Bolt.new',
-        icon: '⚡',
+        icon: 'bolt',
         description: 'Stackblitz-powered AI builder',
         category: 'ai_builder',
         contextAvailable: true,
@@ -256,7 +256,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'create',
         name: 'Create.xyz',
-        icon: '🎨',
+        icon: 'palette',
         description: 'AI-powered app creation',
         category: 'ai_builder',
         contextAvailable: true,
@@ -271,7 +271,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'tempo',
         name: 'Tempo Labs',
-        icon: '🎵',
+        icon: 'music',
         description: 'AI development platform',
         category: 'ai_builder',
         contextAvailable: true,
@@ -286,7 +286,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'gptengineer',
         name: 'GPT Engineer',
-        icon: '🤖',
+        icon: 'robot',
         description: 'gptengineer.app',
         category: 'ai_builder',
         contextAvailable: true,
@@ -301,7 +301,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'databutton',
         name: 'Databutton',
-        icon: '📊',
+        icon: 'chart',
         description: 'AI data app builder',
         category: 'ai_builder',
         contextAvailable: true,
@@ -316,7 +316,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'magic_patterns',
         name: 'Magic Patterns',
-        icon: '✨',
+        icon: 'sparkle',
         description: 'Design-to-code AI',
         category: 'ai_builder',
         contextAvailable: true,
@@ -334,7 +334,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'claude',
         name: 'Claude (Artifacts)',
-        icon: '🧠',
+        icon: 'brain',
         description: 'Anthropic Claude + Artifacts',
         category: 'ai_assistant',
         contextAvailable: true,
@@ -349,7 +349,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'chatgpt',
         name: 'ChatGPT (Canvas)',
-        icon: '💚',
+        icon: 'heart',
         description: 'OpenAI ChatGPT + Canvas',
         category: 'ai_assistant',
         contextAvailable: true,
@@ -364,7 +364,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'gemini',
         name: 'Google Gemini',
-        icon: '💎',
+        icon: 'gem',
         description: 'Google\'s AI assistant',
         category: 'ai_assistant',
         contextAvailable: true,
@@ -378,7 +378,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'copilot',
         name: 'GitHub Copilot',
-        icon: '🐙',
+        icon: 'octagon',
         description: 'Copilot Chat history',
         category: 'ai_assistant',
         contextAvailable: true,
@@ -396,7 +396,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'cursor',
         name: 'Cursor IDE',
-        icon: '🖱️',
+        icon: 'cursor',
         description: 'AI-first code editor',
         category: 'ai_editor',
         contextAvailable: true,
@@ -411,7 +411,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'windsurf',
         name: 'Windsurf IDE',
-        icon: '🏄',
+        icon: 'wind',
         description: 'Codeium\'s AI editor',
         category: 'ai_editor',
         contextAvailable: true,
@@ -426,7 +426,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'antigravity',
         name: 'Google Antigravity',
-        icon: '🌌',
+        icon: 'galaxy',
         description: 'Google\'s agentic AI platform',
         category: 'ai_editor',
         contextAvailable: true,
@@ -442,7 +442,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'vscode',
         name: 'VS Code',
-        icon: '💙',
+        icon: 'code',
         description: 'VS Code + AI extensions',
         category: 'ai_editor',
         contextAvailable: true,
@@ -458,7 +458,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'cody',
         name: 'Sourcegraph Cody',
-        icon: '🔍',
+        icon: 'search',
         description: 'Sourcegraph\'s AI assistant',
         category: 'ai_editor',
         contextAvailable: true,
@@ -473,7 +473,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'continue',
         name: 'Continue.dev',
-        icon: '▶️',
+        icon: 'play',
         description: 'Open-source AI assistant',
         category: 'ai_editor',
         contextAvailable: true,
@@ -492,7 +492,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'replit',
         name: 'Replit',
-        icon: '🔄',
+        icon: 'refresh',
         description: 'Online IDE with AI',
         category: 'dev_platform',
         contextAvailable: true,
@@ -507,7 +507,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'codesandbox',
         name: 'CodeSandbox',
-        icon: '📦',
+        icon: 'box',
         description: 'Browser-based IDE',
         category: 'dev_platform',
         contextAvailable: false,
@@ -517,7 +517,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'stackblitz',
         name: 'StackBlitz',
-        icon: '⚡',
+        icon: 'zap',
         description: 'WebContainers IDE',
         category: 'dev_platform',
         contextAvailable: false,
@@ -541,7 +541,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'gitlab',
         name: 'GitLab',
-        icon: '🦊',
+        icon: 'gitlab',
         description: 'GitLab repository',
         category: 'repository',
         contextAvailable: false,
@@ -551,7 +551,7 @@ const sourceOptions: SourceConfig[] = [
     {
         id: 'bitbucket',
         name: 'Bitbucket',
-        icon: '🪣',
+        icon: 'bucket',
         description: 'Bitbucket repository',
         category: 'repository',
         contextAvailable: false,
@@ -1742,7 +1742,7 @@ export default function FixMyApp() {
                                     {/* What to include tips */}
                                     <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
                                         <p className="text-sm text-emerald-400">
-                                            💡 <strong>Include everything:</strong> Your requests, AI responses, error messages, and any code snippets.
+                                            <strong>Tip:</strong> Include everything — your requests, AI responses, error messages, and any code snippets.
                                             The more context, the better the fix!
                                         </p>
                                     </div>
@@ -1827,10 +1827,10 @@ export default function FixMyApp() {
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
-                                                uiPreference === 'keep_ui' ? "bg-emerald-500/20" : "bg-slate-800"
+                                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                                uiPreference === 'keep_ui' ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-800 text-slate-400"
                                             )}>
-                                                🎨
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
                                             </div>
                                             <div className="flex-1">
                                                 <div className="font-semibold text-white mb-1">Keep My UI</div>
@@ -1856,10 +1856,10 @@ export default function FixMyApp() {
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
-                                                uiPreference === 'improve_ui' ? "bg-amber-500/20" : "bg-slate-800"
+                                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                                uiPreference === 'improve_ui' ? "bg-amber-500/20 text-amber-400" : "bg-slate-800 text-slate-400"
                                             )}>
-                                                ✨
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                                             </div>
                                             <div className="flex-1">
                                                 <div className="font-semibold text-white mb-1">Improve If Needed</div>
@@ -1885,10 +1885,10 @@ export default function FixMyApp() {
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
-                                                uiPreference === 'rebuild_ui' ? "bg-blue-500/20" : "bg-slate-800"
+                                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                                uiPreference === 'rebuild_ui' ? "bg-blue-500/20 text-blue-400" : "bg-slate-800 text-slate-400"
                                             )}>
-                                                🚀
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
                                             </div>
                                             <div className="flex-1">
                                                 <div className="font-semibold text-white mb-1">Rebuild From Scratch</div>
@@ -2042,7 +2042,7 @@ export default function FixMyApp() {
                                                         ⏱️ ~{recommendedStrategy.estimatedTimeMinutes} min
                                                     </span>
                                                     <span className="text-slate-400">
-                                                        💰 ~${recommendedStrategy.estimatedCost.toFixed(2)}
+                                                        Cost: ~${recommendedStrategy.estimatedCost.toFixed(2)}
                                                     </span>
                                                 </div>
                                             </button>
@@ -2094,7 +2094,7 @@ export default function FixMyApp() {
                                         className="hover:translate-y-[3px] hover:shadow-[0_3px_0_rgba(0,0,0,0.3),0_8px_24px_rgba(251,146,60,0.55)] active:translate-y-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         <RocketIcon size={20} />
-                                        Start Fixing ({fixMode === 'lightning' ? '⚡ Fast' : fixMode === 'tournament' ? '🏆 Best' : '🔧 Standard'})
+                                        Start Fixing ({fixMode === 'lightning' ? 'Fast' : fixMode === 'tournament' ? 'Best' : 'Standard'})
                                     </button>
                                 </Card>
                             </div>
@@ -2131,9 +2131,9 @@ export default function FixMyApp() {
                                     {/* Fix Mode Badge */}
                                     <div className="flex items-center gap-2 mb-4">
                                         <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-400">
-                                            {fixMode === 'lightning' ? '⚡ Lightning' :
-                                             fixMode === 'standard' ? '🔧 Standard' :
-                                             fixMode === 'tournament' ? '🏆 Tournament' : '🚀 Production'} Mode
+                                            {fixMode === 'lightning' ? 'Lightning' :
+                                             fixMode === 'standard' ? 'Standard' :
+                                             fixMode === 'tournament' ? 'Tournament' : 'Production'} Mode
                                         </Badge>
                                         <span className="text-xs text-slate-500">
                                             {selectedStrategy?.approach === 'repair' ? 'Repairing' :

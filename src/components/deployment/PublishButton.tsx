@@ -147,7 +147,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
         setLogs([]);
 
         try {
-            setLogs(prev => [...prev, '🚀 Starting deployment...']);
+            setLogs(prev => [...prev, 'Starting deployment...']);
 
             interface DeployResponse {
                 deployment: {
@@ -163,8 +163,8 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
                 subdomain: subdomainAvailable ? subdomain : undefined,
             });
 
-            setLogs(prev => [...prev, `✅ Deployed to ${response.data.deployment.provider}`]);
-            setLogs(prev => [...prev, `🌐 URL: ${response.data.deployment.url}`]);
+            setLogs(prev => [...prev, `[OK] Deployed to ${response.data.deployment.provider}`]);
+            setLogs(prev => [...prev, `URL: ${response.data.deployment.url}`]);
 
             setDeployment({
                 id: response.data.deployment.id,
@@ -177,7 +177,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
 
             setShowLogs(true);
         } catch (error) {
-            setLogs(prev => [...prev, `❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+            setLogs(prev => [...prev, `[ERROR] Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`]);
         } finally {
             setIsDeploying(false);
         }
@@ -190,7 +190,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
         setLogs([]);
 
         try {
-            setLogs(prev => [...prev, '🔄 Redeploying...']);
+            setLogs(prev => [...prev, 'Redeploying...']);
 
             interface RedeployResponse {
                 deployment: {
@@ -200,8 +200,8 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
 
             const response = await apiClient.post<RedeployResponse>(`/api/hosting/redeploy/${deployment.id}`);
 
-            setLogs(prev => [...prev, '✅ Redeployment complete!']);
-            setLogs(prev => [...prev, `🌐 URL: ${response.data.deployment.url}`]);
+            setLogs(prev => [...prev, '[OK] Redeployment complete!']);
+            setLogs(prev => [...prev, `URL: ${response.data.deployment.url}`]);
 
             setDeployment({
                 ...deployment,
@@ -212,7 +212,7 @@ export function PublishButton({ projectId, projectName, className }: PublishButt
 
             setShowLogs(true);
         } catch (error) {
-            setLogs(prev => [...prev, `❌ Redeployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+            setLogs(prev => [...prev, `[ERROR] Redeployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`]);
         } finally {
             setIsDeploying(false);
         }

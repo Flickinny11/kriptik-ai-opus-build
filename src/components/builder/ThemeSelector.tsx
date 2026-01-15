@@ -34,7 +34,7 @@ const THEMES = [
             surface: '#1e293b',
             text: '#f8fafc'
         },
-        gradient: 'from-indigo-500 to-purple-500'
+        gradient: 'from-indigo-500 to-blue-500'
     },
     {
         id: 'aurora',
@@ -297,8 +297,8 @@ function ImageToCodeGenerator({
                             disabled={!prompt.trim() || isGenerating}
                             className={cn(
                                 "flex-1 rounded-xl font-semibold",
-                                "bg-gradient-to-r from-pink-500 to-purple-500",
-                                "hover:from-pink-400 hover:to-purple-400",
+                                "bg-gradient-to-r from-amber-500 to-orange-500",
+                                "hover:from-amber-400 hover:to-orange-400",
                                 "text-white"
                             )}
                         >
@@ -309,7 +309,7 @@ function ImageToCodeGenerator({
                                 </>
                             ) : (
                                 <>
-                                    <span className="mr-2">✨</span>
+                                    <svg className="mr-2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                                     Generate Design
                                 </>
                             )}
@@ -414,8 +414,14 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <span className="text-xl">🎨</span>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="13.5" cy="6.5" r=".5"/>
+                        <circle cx="17.5" cy="10.5" r=".5"/>
+                        <circle cx="8.5" cy="7.5" r=".5"/>
+                        <circle cx="6.5" cy="12.5" r=".5"/>
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                    </svg>
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-white">Choose Your Style</h2>
@@ -428,8 +434,8 @@ export function ThemeSelector({ onSelect, onCancel }: ThemeSelectorProps) {
                 onClick={() => setShowImageToCode(true)}
                 className={cn(
                     "w-full p-4 rounded-xl text-left",
-                    "bg-gradient-to-r from-pink-500/10 to-purple-500/10",
-                    "border border-pink-500/30 hover:border-pink-500/50",
+                    "bg-gradient-to-r from-amber-500/10 to-orange-500/10",
+                    "border border-amber-500/30 hover:border-amber-500/50",
                     "transition-all duration-200"
                 )}
             >

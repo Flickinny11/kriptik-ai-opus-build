@@ -158,7 +158,7 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
             }
 
             toast({
-                title: '✅ Integration connected!',
+                title: 'Integration connected',
                 description: `${setupModal.name} is now connected and ready to use.`,
             });
 
@@ -228,12 +228,12 @@ export default function IntegrationMarketplaceV2({ onIntegrationSetup }: Integra
 
             if (result.valid) {
                 toast({
-                    title: '✅ Credentials valid',
+                    title: 'Credentials valid',
                     description: 'Your credentials are working correctly.',
                 });
             } else {
                 toast({
-                    title: '❌ Credentials invalid',
+                    title: 'Credentials invalid',
                     description: result.error || 'Please check your credentials.',
                     variant: 'destructive',
                 });

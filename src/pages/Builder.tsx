@@ -35,6 +35,7 @@ import IntegrationMarketplace from '../components/integrations/IntegrationMarket
 import ShareModal from '../components/collaboration/ShareModal';
 import CollaborationHeader from '../components/collaboration/CollaborationHeader';
 import ActivityFeed from '../components/collaboration/ActivityFeed';
+import { ContinueInMobile } from '../components/mobile';
 import KeyboardShortcutsPanel from '../components/onboarding/KeyboardShortcutsPanel';
 import { KriptikLogo } from '../components/ui/KriptikLogo';
 import { MarketFitDashboard } from '../components/market';
@@ -539,6 +540,9 @@ export default function Builder() {
                     <IntegrationMarketplace />
                     <ShareModal />
                     <CommandPalette />
+                    
+                    {/* Continue in KripTik Mobile - banner for seamless web-to-mobile transition */}
+                    <ContinueInMobile projectId={projectId} variant="banner" />
 
                     {/* Mobile Layout */}
                     {isMobile && (
@@ -570,6 +574,9 @@ export default function Builder() {
                 <ShareModal />
                 <CommandPalette />
                 <KeyboardShortcutsPanel />
+                
+                {/* Continue in KripTik Mobile - banner for seamless web-to-mobile transition */}
+                <ContinueInMobile projectId={projectId} variant="banner" />
                 <TournamentPanel
                     tournamentId={activeTournamentId}
                     isVisible={showTournament}

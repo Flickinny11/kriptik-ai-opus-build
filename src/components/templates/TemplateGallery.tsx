@@ -39,7 +39,7 @@ export default function TemplateGallery() {
         <Dialog open={isGalleryOpen} onOpenChange={setGalleryOpen}>
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl">🎨 Template Gallery</DialogTitle>
+                    <DialogTitle className="text-2xl">Template Gallery</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 flex-1 overflow-hidden flex flex-col">

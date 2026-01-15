@@ -82,7 +82,7 @@ interface IntelligenceTogglesProps {
 const PRESETS = [
     { id: 'quick', name: 'Quick Draft', icon: ZapIcon as any, color: 'amber' },
     { id: 'balanced', name: 'Balanced', icon: ActivityIcon as any, color: 'blue' },
-    { id: 'quality', name: 'Quality', icon: SparklesIcon as any, color: 'purple' },
+    { id: 'quality', name: 'Quality', icon: SparklesIcon as any, color: 'amber' },
     { id: 'production', name: 'Production', icon: RocketIcon as any, color: 'emerald' },
 ];
 
@@ -259,7 +259,7 @@ export function IntelligenceToggles({
                 { value: 'deep', label: 'Deep' },
                 { value: 'maximum', label: 'Maximum' },
             ],
-            color: 'violet',
+            color: 'amber',
         },
         {
             key: 'powerLevel',
@@ -336,7 +336,7 @@ export function IntelligenceToggles({
                 className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
             >
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
                         <LightbulbIcon size={16} className="text-white" />
                     </div>
                     <div className="text-left">

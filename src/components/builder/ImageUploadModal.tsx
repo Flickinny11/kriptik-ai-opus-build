@@ -241,7 +241,7 @@ export default function ImageUploadModal({
                                     handleClose();
                                 }}
                             >
-                                <span className="mr-2">✨</span>
+                                <svg className="mr-2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                                 Use Components
                             </Button>
                         </div>
@@ -338,7 +338,7 @@ export default function ImageUploadModal({
                                             'w-full px-4 py-3 rounded-xl',
                                             'bg-slate-800/50 border border-slate-700',
                                             'text-white placeholder:text-slate-500',
-                                            'focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20',
+                                            'focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20',
                                             'transition-all duration-200'
                                         )}
                                     />
@@ -446,7 +446,7 @@ export default function ImageUploadModal({
                                     </>
                                 ) : (
                                     <>
-                                        <span className="mr-2">✨</span>
+                                        <svg className="mr-2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                                         Generate Code
                                     </>
                                 )}

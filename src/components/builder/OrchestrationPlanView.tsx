@@ -60,7 +60,7 @@ interface OrchestrationPlan {
 }
 
 const AVAILABLE_MODELS = [
-    { id: 'krip-toe-nite', name: '⚡ Krip-Toe-Nite', description: 'Intelligent routing' },
+    { id: 'krip-toe-nite', name: 'Krip-Toe-Nite', description: 'Intelligent routing' },
     { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', description: 'Best reasoning' },
     { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', description: 'Fast & capable' },
     { id: 'claude-haiku-3-5', name: 'Claude Haiku 3.5', description: 'Fastest' },
@@ -412,7 +412,7 @@ export function OrchestrationPlanView({
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-white/5 text-white/80 hover:bg-white/10 border border-white/10 transition-all disabled:opacity-50"
                             >
                                 <ZapIcon size={16} />
-                                Run All Parallel ⚡
+                                Run All Parallel
                             </button>
                             <button
                                 onClick={() => handleExecute(false)}

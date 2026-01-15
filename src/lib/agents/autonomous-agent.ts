@@ -82,70 +82,70 @@ export const AGENT_DEFINITIONS: Omit<Agent, 'id' | 'status' | 'currentTask' | 't
         name: 'Planning Agent',
         description: 'Analyzes requirements and creates implementation plans',
         capabilities: ['Feature analysis', 'Task breakdown', 'Dependency mapping', 'Timeline estimation'],
-        icon: '📋',
+        icon: 'PL',
     },
     {
         type: 'generator',
         name: 'Code Generator',
         description: 'Generates production-ready code',
         capabilities: ['React components', 'API routes', 'Database schemas', 'Styles'],
-        icon: '⚡',
+        icon: 'GN',
     },
     {
         type: 'fixer',
         name: 'Error Fixer',
         description: 'Autonomously fixes errors - ALWAYS FREE',
         capabilities: ['Error detection', 'Root cause analysis', 'Auto-fix', 'Validation'],
-        icon: '🔧',
+        icon: 'FX',
     },
     {
         type: 'tester',
         name: 'Test Generator',
         description: 'Generates comprehensive tests',
         capabilities: ['Unit tests', 'Integration tests', 'E2E tests', 'Coverage analysis'],
-        icon: '🧪',
+        icon: 'TS',
     },
     {
         type: 'reviewer',
         name: 'Code Reviewer',
         description: 'Reviews code for quality and best practices',
         capabilities: ['Code quality', 'Performance', 'Security', 'Best practices'],
-        icon: '👀',
+        icon: 'RV',
     },
     {
         type: 'deployer',
         name: 'Deployment Agent',
         description: 'Handles production deployments',
         capabilities: ['Build optimization', 'Environment setup', 'CI/CD', 'Rollback'],
-        icon: '🚀',
+        icon: 'DP',
     },
     {
         type: 'integrator',
         name: 'Integration Agent',
         description: 'Sets up and configures integrations',
         capabilities: ['API setup', 'Auth config', 'Database setup', 'SDK installation'],
-        icon: '🔗',
+        icon: 'IN',
     },
     {
         type: 'documenter',
         name: 'Documentation Agent',
         description: 'Generates documentation',
         capabilities: ['API docs', 'README', 'Type docs', 'Comments'],
-        icon: '📝',
+        icon: 'DC',
     },
     {
         type: 'optimizer',
         name: 'Performance Agent',
         description: 'Optimizes code for performance',
         capabilities: ['Bundle size', 'Load time', 'Memory', 'Database queries'],
-        icon: '⚙️',
+        icon: 'OP',
     },
     {
         type: 'security',
         name: 'Security Agent',
         description: 'Scans for security vulnerabilities',
         capabilities: ['SAST', 'Dependencies', 'Secrets', 'Best practices'],
-        icon: '🔒',
+        icon: 'SC',
     },
 ];
 
@@ -238,6 +238,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                 const sessionResponse = await fetch('/api/developer-mode/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         projectId: task.type === 'fix' ? 'current-project' : undefined,
                     }),
@@ -250,6 +251,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                     const agentResponse = await fetch(`/api/developer-mode/sessions/${session.sessionId}/agents`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({
                             task: task.description,
                             model: 'claude-sonnet-4-20250514',
@@ -305,7 +307,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
                     pollCount++;
 
                     try {
-                        const statusResponse = await fetch(`/api/developer-mode/agents/${backendResponse.agentId}`);
+                        const statusResponse = await fetch(`/api/developer-mode/agents/${backendResponse.agentId}`, { credentials: 'include' });
                         if (statusResponse.ok) {
                             const status = await statusResponse.json();
                             updateTaskProgress(agent.id, Math.min(90, 40 + pollCount * 2));

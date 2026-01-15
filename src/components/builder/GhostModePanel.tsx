@@ -195,12 +195,12 @@ const WakeConditionEditor: React.FC<{
   onRemove: () => void;
 }> = ({ condition, onChange, onRemove }) => {
   const conditionTypes: { value: WakeConditionType; label: string }[] = [
-    { value: 'completion', label: '✅ When all tasks complete' },
-    { value: 'error', label: '❌ On any error' },
-    { value: 'critical_error', label: '🔴 On critical errors only' },
-    { value: 'decision_needed', label: '🤔 When AI needs a decision' },
-    { value: 'cost_threshold', label: '💰 When credits reach threshold' },
-    { value: 'time_elapsed', label: '⏰ After time elapsed' }
+    { value: 'completion', label: 'When all tasks complete' },
+    { value: 'error', label: 'On any error' },
+    { value: 'critical_error', label: 'On critical errors only' },
+    { value: 'decision_needed', label: 'When AI needs a decision' },
+    { value: 'cost_threshold', label: 'When credits reach threshold' },
+    { value: 'time_elapsed', label: 'After time elapsed' }
   ];
 
   const channels: { value: NotificationChannel; label: string; icon: React.FC<IconProps> }[] = [

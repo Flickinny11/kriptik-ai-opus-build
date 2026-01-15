@@ -190,7 +190,7 @@ export default function AutonomousAgentsPanel() {
                             className="text-xs"
                             onClick={() => handleQuickDeploy('security', 'Security scan')}
                         >
-                            🔒 Security Scan
+                            Security Scan
                         </Button>
                     </div>
                 </div>
@@ -400,7 +400,7 @@ function LogEntry({ log, agents }: { log: any; agents: Agent[] }) {
             <span className="text-gray-600 w-16 shrink-0">
                 {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
-            <span>{agent?.icon || '🤖'}</span>
+            <span>{agent?.icon || 'AI'}</span>
             <span className={typeColors[log.type] || 'text-gray-400'}>
                 {log.message}
             </span>

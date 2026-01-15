@@ -160,7 +160,7 @@ const PLATFORM_CONFIGS: Record<DeploymentPlatform, {
   },
   play_store: {
     name: 'Play Store',
-    icon: '🤖',
+    icon: 'android',
     color: 'bg-[#34A853] text-white',
     description: 'Android applications'
   },
@@ -279,7 +279,7 @@ const IssueCard: React.FC<{
 
               {issue.suggestion && (
                 <div className="p-2 bg-slate-800/50 rounded">
-                  <p className="text-xs text-slate-400 mb-1">💡 Suggestion:</p>
+                  <p className="text-xs text-slate-400 mb-1">Suggestion:</p>
                   <p className="text-sm text-emerald-400">{issue.suggestion}</p>
                 </div>
               )}
@@ -310,7 +310,7 @@ const IssueCard: React.FC<{
                     }}
                     className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs hover:bg-emerald-500/30 transition-colors"
                   >
-                    ⚡ Auto-fix
+                    Auto-fix
                   </button>
                 )}
               </div>
@@ -631,7 +631,7 @@ export const PlatformValidatorPanel: React.FC<PlatformValidatorPanelProps> = ({
           {/* Recommendations */}
           {report.recommendations.length > 0 && (
             <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-              <h4 className="text-sm font-medium text-cyan-400 mb-2">💡 Recommendations</h4>
+              <h4 className="text-sm font-medium text-cyan-400 mb-2">Recommendations</h4>
               <ul className="space-y-1">
                 {report.recommendations.map((rec, i) => (
                   <li key={i} className="text-sm text-slate-300 flex items-start gap-2">

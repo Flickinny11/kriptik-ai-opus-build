@@ -13,13 +13,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     PaperclipIcon,
     LoadingIcon,
-    ArrowRightIcon,
     ImageIcon,
 } from '../../components/ui/icons';
 import {
     OrchestratorIcon,
     UserAvatarIcon,
-    AIAssistantIcon,
     SendMessageIcon,
     StopIcon,
     PauseIcon,
@@ -131,12 +129,7 @@ interface Message {
 // All build requests go through full 6-phase orchestration
 // Quick questions use KTN for fast responses automatically
 
-const suggestions = [
-    "Build a dashboard with analytics charts",
-    "Create a user authentication system",
-    "Design a landing page with pricing",
-    "Add a contact form with validation",
-];
+// Suggestions removed - prompt bar is always visible
 
 // Liquid Glass Button Component
 function GlassButton({
@@ -284,52 +277,7 @@ function LatticeProgressWrapper() {
     );
 }
 
-// Suggestion Card
-function SuggestionCard({
-    text,
-    onClick,
-    delay
-}: {
-    text: string;
-    onClick: () => void;
-    delay: number;
-}) {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-        <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="w-full text-left p-4 rounded-xl transition-all duration-300 group"
-            style={{
-                background: isHovered
-                    ? 'linear-gradient(145deg, rgba(255,220,200,0.5) 0%, rgba(255,200,170,0.35) 100%)'
-                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                backdropFilter: 'blur(16px)',
-                boxShadow: isHovered
-                    ? `0 8px 24px rgba(255, 140, 100, 0.12), inset 0 0 15px rgba(255, 160, 120, 0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
-                    : `0 2px 10px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
-                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{text}</span>
-                <ArrowRightIcon
-                    size={16}
-                    className="transition-all duration-300"
-                    style={{
-                        color: isHovered ? '#c25a00' : '#999',
-                        transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
-                    }}
-                />
-            </div>
-        </motion.button>
-    );
-}
+// Suggestion Card removed - no longer used
 
 export default function ChatInterface({
     intelligenceSettings,
@@ -732,7 +680,7 @@ export default function ChatInterface({
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: '⚡ Quick response via Krip-Toe-Nite...',
+                content: 'Quick response via Krip-Toe-Nite...',
                 timestamp: new Date(),
                 agentType: 'krip-toe-nite',
             };
@@ -748,7 +696,7 @@ export default function ChatInterface({
             const systemMessage: Message = {
                 id: `msg-${Date.now() + 1}`,
                 role: 'system',
-                content: '🔒 Intent Lock → Generating implementation plan for your review...',
+                content: 'Intent Lock — Generating implementation plan for your review...',
                 timestamp: new Date(),
                 agentType: 'orchestrator',
             };
@@ -805,13 +753,26 @@ export default function ChatInterface({
                                     // Only add activities with actual content (filter out keepalive/heartbeat)
                                     const content = event.content || event.details || '';
                                     if (content && event.type !== 'heartbeat') {
-                                        setPlanActivities(prev => [...prev, {
-                                            id: String(Date.now() + Math.random()),
-                                            type: event.type as any,
-                                            content,
-                                            file: event.file,
-                                            timestamp: new Date(event.timestamp || Date.now()),
-                                        }]);
+                                        // Coalesce consecutive 'thinking' events into single entry
+                                        setPlanActivities(prev => {
+                                            if (event.type === 'thinking' && prev.length > 0 && prev[prev.length - 1].type === 'thinking') {
+                                                // Append to the last thinking entry instead of creating a new one
+                                                const updated = [...prev];
+                                                updated[updated.length - 1] = {
+                                                    ...updated[updated.length - 1],
+                                                    content: updated[updated.length - 1].content + content,
+                                                };
+                                                return updated;
+                                            }
+                                            // For non-thinking or first thinking, create new entry
+                                            return [...prev, {
+                                                id: String(Date.now() + Math.random()),
+                                                type: event.type as any,
+                                                content,
+                                                file: event.file,
+                                                timestamp: new Date(event.timestamp || Date.now()),
+                                            }];
+                                        });
                                     }
 
                                     // Capture final plan data
@@ -1396,11 +1357,6 @@ export default function ChatInterface({
         console.log('[ChatInterface] Stop requested - WebSocket closed');
     };
 
-    const handleSuggestionClick = (suggestion: string) => {
-        setInput(suggestion);
-        inputRef.current?.focus();
-    };
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -1469,7 +1425,7 @@ export default function ChatInterface({
                             boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
                         }}
                     >
-                        <AIAssistantIcon size={22} />
+                        <OrchestratorIcon size={22} />
                     </div>
                     <div>
                         <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
@@ -1724,43 +1680,16 @@ export default function ChatInterface({
                     /* VIEW 5: Default idle state with messages and suggestions */
                     <ScrollArea className="h-full" ref={scrollRef}>
                         <div className="p-4 space-y-4">
-                            {/* Empty state with suggestions */}
+                            {/* Empty state - clean, no suggestions or icons */}
                             {messages.length === 0 && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-center py-8"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex items-center justify-center h-full text-center py-16"
                                 >
-                                    <div
-                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-                                        style={{
-                                            background: 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)',
-                                            boxShadow: `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
-                                        }}
-                                    >
-                                        <AIAssistantIcon size={32} />
-                                    </div>
-                                    <h3
-                                        className="text-lg font-semibold mb-2"
-                                        style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
-                                    >
-                                        What would you like to build?
-                                    </h3>
-                                    <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: '#666' }}>
-                                        Describe your app and watch our AI agents build it for you.
+                                    <p className="text-sm" style={{ color: '#999' }}>
+                                        Enter your prompt below to start building.
                                     </p>
-
-                                    {/* Suggestions */}
-                                    <div className="space-y-2">
-                                        {suggestions.map((suggestion, i) => (
-                                            <SuggestionCard
-                                                key={i}
-                                                text={suggestion}
-                                                onClick={() => handleSuggestionClick(suggestion)}
-                                                delay={i * 0.1}
-                                            />
-                                        ))}
-                                    </div>
                                 </motion.div>
                             )}
 
@@ -1784,7 +1713,7 @@ export default function ChatInterface({
                                                     boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.9)`,
                                                 }}
                                             >
-                                                <AIAssistantIcon size={18} />
+                                                <OrchestratorIcon size={18} />
                                             </div>
                                         )}
 
@@ -1939,7 +1868,10 @@ export default function ChatInterface({
                                     boxShadow: '0 2px 8px rgba(5,150,105,0.2)',
                                 }}
                             >
-                                <span style={{ fontSize: '14px' }}>🔒</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">

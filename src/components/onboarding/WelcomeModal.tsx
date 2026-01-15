@@ -22,7 +22,7 @@ export default function WelcomeModal() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-center">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                            Welcome to KripTik AI! ✨
+                            Welcome to KripTik AI
                         </span>
                     </DialogTitle>
                 </DialogHeader>
