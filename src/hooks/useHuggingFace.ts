@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { authenticatedFetch } from '@/lib/api-config';
+import { authenticatedFetch, API_URL } from '@/lib/api-config';
 
 // Connection status interface
 export interface HuggingFaceConnectionStatus {
@@ -95,7 +95,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
       setIsLoading(true);
       setError(null);
 
-      const response = await authenticatedFetch('/api/huggingface/status');
+      const response = await authenticatedFetch(`${API_URL}/api/huggingface/status`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to get status' }));
@@ -126,7 +126,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
         throw new Error('Invalid token format. HuggingFace tokens start with "hf_"');
       }
 
-      const response = await authenticatedFetch('/api/huggingface/validate-token', {
+      const response = await authenticatedFetch(`${API_URL}/api/huggingface/validate-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, store: true }),
@@ -168,7 +168,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
       setIsLoading(true);
       setError(null);
 
-      const response = await authenticatedFetch('/api/huggingface/disconnect', {
+      const response = await authenticatedFetch(`${API_URL}/api/huggingface/disconnect`, {
         method: 'POST',
       });
 
@@ -203,7 +203,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
       if (options.page !== undefined) params.set('page', String(options.page));
       if (options.limit !== undefined) params.set('limit', String(options.limit));
 
-      const response = await authenticatedFetch(`/api/open-source-studio/models?${params.toString()}`);
+      const response = await authenticatedFetch(`${API_URL}/api/open-source-studio/models?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to search models' }));
