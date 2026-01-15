@@ -13,12 +13,11 @@
  * - No emojis anywhere
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { getBrandIcon } from '@/components/ui/icons';
 import {
   LockGeometric,
-  KeyGeometric,
   PlusGeometric,
 } from '@/components/ui/icons/GeometricIcons';
 import { GlassButton } from '@/components/ui/glass/GlassButton';

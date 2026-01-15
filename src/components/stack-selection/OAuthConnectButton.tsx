@@ -12,7 +12,7 @@
  * - Popup blocked fallback
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { 
@@ -22,7 +22,7 @@ import {
   LinkGeometric,
 } from '@/components/ui/icons/GeometricIcons';
 import { getBrandIcon } from '@/components/ui/icons';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
 // TYPES

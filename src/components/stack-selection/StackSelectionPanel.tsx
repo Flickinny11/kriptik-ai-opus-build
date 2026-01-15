@@ -14,10 +14,9 @@
  * - No emojis, geometric icons only
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassPanel } from '@/components/ui/glass/GlassPanel';
-import { GlassCard } from '@/components/ui/glass/GlassCard';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import {
   CheckGeometric,
@@ -32,7 +31,7 @@ import {
 } from '@/components/ui/icons/GeometricIcons';
 import { getBrandIcon } from '@/components/ui/icons';
 import { CredentialAcquisitionModal } from '@/components/credentials/CredentialAcquisitionModal';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
 // TYPES
@@ -384,7 +383,7 @@ export function StackSelectionPanel({
     if (prompt && !initialDependencies) {
       setLoading(true);
       apiClient.post<{ detectedDependencies: DetectedDependency[] }>('/api/dependencies/analyze', { prompt })
-        .then(({ data }) => {
+        .then(({ data }: { data: { detectedDependencies: DetectedDependency[] } }) => {
           setDependencies(data.detectedDependencies);
           onDependenciesChange?.(data.detectedDependencies);
         })
@@ -404,7 +403,7 @@ export function StackSelectionPanel({
         );
         
         const statusMap = new Map<string, ConnectionStatus>();
-        data.statuses.forEach(s => statusMap.set(s.integrationId, s));
+        data.statuses.forEach((s: ConnectionStatus) => statusMap.set(s.integrationId, s));
         setConnectionStatuses(statusMap);
 
         // Check if all required are connected

@@ -13,7 +13,7 @@
  * - No emojis, geometric icons only
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassPanel } from '@/components/ui/glass/GlassPanel';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
@@ -27,7 +27,7 @@ import {
   RefreshGeometric,
 } from '@/components/ui/icons/GeometricIcons';
 import { getBrandIcon } from '@/components/ui/icons';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/lib/api-client';
 
 // ============================================================================
 // TYPES
@@ -229,7 +229,6 @@ export function CredentialAcquisitionModal({
 }: CredentialAcquisitionModalProps) {
   const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [validating, setValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [oauthStatus, setOauthStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
