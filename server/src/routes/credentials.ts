@@ -668,5 +668,88 @@ router.get('/project/:projectId/env', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * GET /api/credentials/statuses
+ * Check connection status for multiple integrations
+ * Query params:
+ * - projectId: project ID
+ * - integrations: comma-separated list of integration IDs
+ */
+router.get('/statuses', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const { projectId, integrations } = req.query;
+        
+        if (!projectId || !integrations) {
+            return res.status(400).json({ error: 'Missing projectId or integrations' });
+        }
+
+        const integrationIds = (integrations as string).split(',').map(s => s.trim());
+        const vault = getCredentialVault();
+        const userCredentials = await vault.listCredentials(userId);
+
+        const statuses = integrationIds.map(integrationId => {
+            const hasCredential = userCredentials.some(c => 
+                c.integrationId === integrationId || 
+                c.integrationId.toLowerCase() === integrationId.toLowerCase()
+            );
+            
+            return {
+                integrationId,
+                connected: hasCredential,
+                lastChecked: new Date().toISOString(),
+            };
+        });
+
+        res.json({
+            success: true,
+            projectId,
+            statuses,
+        });
+    } catch (error) {
+        console.error('Error checking credential statuses:', error);
+        res.status(500).json({ error: 'Failed to check credential statuses' });
+    }
+});
+
+/**
+ * POST /api/credentials/oauth-complete
+ * Called after OAuth flow completes to notify build to resume
+ */
+router.post('/oauth-complete', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const { integrationId, projectId, buildId } = req.body;
+        
+        if (!integrationId || !projectId) {
+            return res.status(400).json({ error: 'Missing integrationId or projectId' });
+        }
+
+        // If there's a build waiting, signal it
+        if (buildId) {
+            // Import here to avoid circular dependency
+            const { triggerCredentialIntegration } = await import('../services/credentials/credential-integration-service.js');
+            
+            await triggerCredentialIntegration(projectId, userId, [], buildId);
+        }
+
+        res.json({
+            success: true,
+            message: 'OAuth completion processed',
+        });
+    } catch (error) {
+        console.error('Error processing OAuth complete:', error);
+        res.status(500).json({ error: 'Failed to process OAuth completion' });
+    }
+});
+
 export default router;
 

@@ -29,6 +29,9 @@ export { default as credentialsRouter } from './credentials.js';
 export { default as oauthRouter } from './oauth.js';
 export { default as nangoRouter } from './nango.js';
 
+// Dependency Analysis (NLP-based stack detection)
+export { default as dependenciesRouter } from './dependencies.js';
+
 // Smart Deployment
 export { default as smartDeployRouter } from './smart-deploy.js';
 
