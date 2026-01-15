@@ -206,6 +206,34 @@ export {
     AbstractIcons,
 } from '../AbstractIcons';
 
+// Geometric Icons - Premium 3D geometric shapes and UI elements
+// Uses red accent (#dc2626) per credential workflow design spec
+export {
+    // Shapes
+    InterlockingTriangles,
+    HexagonMesh,
+    CubeFrame,
+    DiamondGrid,
+    CircuitPattern,
+    // UI Icons (geometric versions)
+    CheckGeometric,
+    XGeometric,
+    PlusGeometric,
+    RefreshGeometric,
+    LockGeometric,
+    KeyGeometric,
+    LinkGeometric,
+    SettingsGeometric,
+    BellGeometric,
+    ExternalLinkGeometric,
+    SaveGeometric,
+    CloudGeometric,
+    GPUGeometric,
+    DatabaseGeometric,
+    CreditCardGeometric,
+    GeometricIcons,
+} from './GeometricIcons';
+
 // Helper to get brand icon by service ID
 export const getBrandIcon = (serviceId: string, size = 24) => {
     const icons: Record<string, React.FC<IconProps>> = {
