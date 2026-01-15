@@ -287,10 +287,27 @@ export default function LoginScreen() {
   // Handle OAuth for Google (still uses web redirect)
   const handleGoogleOAuth = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setError('');
 
     try {
+      // Validate API URL is configured
+      if (!APP_CONFIG.apiUrl) {
+        console.error('[OAuth] APP_CONFIG.apiUrl is not configured!');
+        setError('OAuth configuration error. Please update the app.');
+        return;
+      }
+
       const authUrl = `${APP_CONFIG.apiUrl}/api/mobile/auth/oauth/start/google`;
       console.log('[OAuth] Starting Google auth:', authUrl);
+
+      // Validate URL format before opening
+      try {
+        new URL(authUrl);
+      } catch (urlError) {
+        console.error('[OAuth] Invalid URL:', authUrl);
+        setError('Invalid authentication URL. Please try again.');
+        return;
+      }
 
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
@@ -302,9 +319,23 @@ export default function LoginScreen() {
       );
 
       console.log('[OAuth] WebBrowser result:', result);
+
+      if (result.type === 'cancel') {
+        console.log('[OAuth] User cancelled');
+      } else if (result.type === 'dismiss') {
+        console.log('[OAuth] Browser dismissed');
+      }
     } catch (error) {
       console.error('[OAuth] Error:', error);
-      setError('Failed to start authentication. Please try again.');
+      // Provide more specific error messages
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMsg.includes('invalid')) {
+        setError('Authentication URL is invalid. Please try again.');
+      } else if (errorMsg.includes('network')) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('Failed to start authentication. Please try again.');
+      }
     }
   };
 
