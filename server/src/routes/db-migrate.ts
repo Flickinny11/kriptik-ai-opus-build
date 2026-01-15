@@ -11,12 +11,9 @@ const router = Router();
 router.post('/init', async (req, res) => {
     const secret = req.headers['x-migration-secret'];
 
-    // Temporary setup key for initial migration (remove after first successful migration)
-    const TEMP_SETUP_KEY = 'kriptik-db-init-2026-01-15';
-    
     // Require a secret to prevent unauthorized database modifications
-    const isValidSecret = secret === process.env.MIGRATION_SECRET || secret === TEMP_SETUP_KEY;
-    if (!isValidSecret && process.env.NODE_ENV === 'production') {
+    // Set MIGRATION_SECRET in Vercel environment variables for future migrations
+    if (secret !== process.env.MIGRATION_SECRET && process.env.NODE_ENV === 'production') {
         return res.status(401).json({ error: 'Unauthorized - missing or invalid migration secret' });
     }
 
