@@ -161,7 +161,7 @@ router.post('/init', async (req, res) => {
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
 
-            // Credentials table
+            // Credentials table (legacy)
             `CREATE TABLE IF NOT EXISTS credentials (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id),
@@ -170,6 +170,57 @@ router.post('/init', async (req, res) => {
                 label TEXT,
                 created_at TEXT DEFAULT (datetime('now')) NOT NULL,
                 updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+            )`,
+
+            // User Credentials table (new - for HuggingFace, RunPod, etc.)
+            `CREATE TABLE IF NOT EXISTS user_credentials (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id),
+                integration_id TEXT NOT NULL,
+                encrypted_data TEXT NOT NULL,
+                iv TEXT NOT NULL,
+                auth_tag TEXT NOT NULL,
+                oauth_provider TEXT,
+                oauth_access_token TEXT,
+                oauth_refresh_token TEXT,
+                oauth_token_expires_at TEXT,
+                oauth_scope TEXT,
+                connection_name TEXT,
+                is_active INTEGER DEFAULT 1 NOT NULL,
+                last_used_at TEXT,
+                last_validated_at TEXT,
+                validation_status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT (datetime('now')) NOT NULL,
+                updated_at TEXT DEFAULT (datetime('now')) NOT NULL
+            )`,
+
+            // OAuth states table (for credential flows)
+            `CREATE TABLE IF NOT EXISTS oauth_states (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id),
+                provider TEXT NOT NULL,
+                state TEXT NOT NULL UNIQUE,
+                code_verifier TEXT,
+                redirect_uri TEXT NOT NULL,
+                scopes TEXT,
+                metadata TEXT,
+                expires_at TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')) NOT NULL
+            )`,
+
+            // Credential audit logs table
+            `CREATE TABLE IF NOT EXISTS credential_audit_logs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id),
+                credential_id TEXT,
+                integration_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                status TEXT NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                request_id TEXT,
+                details TEXT,
+                created_at TEXT DEFAULT (datetime('now')) NOT NULL
             )`,
 
             // Fix sessions table
