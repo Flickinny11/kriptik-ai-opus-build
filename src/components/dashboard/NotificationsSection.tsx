@@ -3,7 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
-type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning';
+type NotificationType = 'feature_complete' | 'error' | 'decision_needed' | 'budget_warning' | 'credentials_needed' | 'build_paused' | 'build_resumed' | 'build_complete';
+
+interface RequiredCredential {
+  name: string;
+  envVar: string;
+  platform: string;
+  platformUrl?: string;
+}
 
 interface NotificationMetadata {
   projectId?: string;
@@ -18,6 +25,10 @@ interface NotificationMetadata {
   verificationScore?: number;
   errorsRemaining?: number;
   dependencies?: string[];
+  sessionId?: string;
+  requiredCredentials?: RequiredCredential[];
+  buildPaused?: boolean;
+  oauthConnectLinks?: Array<{ platform: string; connectUrl: string }>;
   [key: string]: unknown;
 }
 
@@ -796,6 +807,11 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
   const [altText, setAltText] = useState('');
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   
+  // Credential submission state
+  const [credentialInputs, setCredentialInputs] = useState<Record<string, string>>({});
+  const [credentialSaving, setCredentialSaving] = useState(false);
+  const [credentialSaveStatus, setCredentialSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
   // Prevent flickering by tracking if we've done initial load
   const hasFetchedRef = useRef(false);
 
@@ -856,6 +872,19 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
     setDetailOpen(true);
     setAltText('');
     setTimeline(null);
+    setCredentialSaveStatus(null);
+    
+    // Initialize credential inputs for credentials_needed notifications
+    if (n.type === 'credentials_needed' && n.metadata?.requiredCredentials) {
+      const initialInputs: Record<string, string> = {};
+      for (const cred of n.metadata.requiredCredentials) {
+        initialInputs[cred.envVar] = '';
+      }
+      setCredentialInputs(initialInputs);
+    } else {
+      setCredentialInputs({});
+    }
+    
     void markRead(n.id);
 
     const devAgentId = n?.metadata?.developerModeAgentId as string | undefined;
@@ -881,6 +910,58 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
       setTimeline(null);
     } finally {
       setTimelineLoading(false);
+    }
+  };
+  
+  // Save credentials submitted from notification
+  const saveCredentials = async (notificationId: string) => {
+    // Validate all required credentials are filled
+    const emptyFields = Object.entries(credentialInputs).filter(([_, v]) => !v.trim());
+    if (emptyFields.length > 0) {
+      setCredentialSaveStatus({ 
+        type: 'error', 
+        message: `Please fill in all credentials: ${emptyFields.map(([k]) => k).join(', ')}` 
+      });
+      return;
+    }
+    
+    setCredentialSaving(true);
+    setCredentialSaveStatus(null);
+    
+    try {
+      const { data } = await apiClient.post<{ 
+        success: boolean; 
+        credentialsWritten: number;
+        buildResumed: boolean;
+        error?: string;
+      }>(`/api/notifications/${encodeURIComponent(notificationId)}/submit-credentials`, {
+        credentials: credentialInputs,
+      });
+      
+      if (data.success) {
+        setCredentialSaveStatus({ 
+          type: 'success', 
+          message: `Saved ${data.credentialsWritten} credential(s). ${data.buildResumed ? 'Build is resuming!' : 'Integration configured.'}` 
+        });
+        
+        // Refresh notifications list after a short delay
+        setTimeout(() => {
+          fetchList(false);
+          setDetailOpen(false);
+        }, 2000);
+      } else {
+        setCredentialSaveStatus({ 
+          type: 'error', 
+          message: data.error || 'Failed to save credentials' 
+        });
+      }
+    } catch (err) {
+      setCredentialSaveStatus({ 
+        type: 'error', 
+        message: err instanceof Error ? err.message : 'Failed to save credentials' 
+      });
+    } finally {
+      setCredentialSaving(false);
     }
   };
 
@@ -1359,7 +1440,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
               {selected.message}
             </div>
 
-            {selected.actionUrl && (
+            {selected.actionUrl && selected.type !== 'credentials_needed' && (
               <a
                 href={selected.actionUrl}
                 target="_blank"
@@ -1370,6 +1451,191 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
                 {svgExternal(14)}
                 <span>Open</span>
               </a>
+            )}
+
+            {/* Credential Input Form for credentials_needed notifications */}
+            {selected.type === 'credentials_needed' && selected.metadata?.requiredCredentials && (
+              <div
+                style={{
+                  borderRadius: 18,
+                  border: '1px solid rgba(245,168,108,0.25)',
+                  background: 'linear-gradient(145deg, rgba(245,168,108,0.08), rgba(0,0,0,0.2))',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+                  padding: 16,
+                }}
+              >
+                <div style={{ 
+                  fontSize: 12, 
+                  fontWeight: 850, 
+                  letterSpacing: '0.08em', 
+                  textTransform: 'uppercase', 
+                  color: 'rgba(255,255,255,0.7)',
+                  marginBottom: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  Required Credentials
+                </div>
+                
+                {/* Status message */}
+                {credentialSaveStatus && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      marginBottom: 14,
+                      background: credentialSaveStatus.type === 'success' 
+                        ? 'rgba(47,201,121,0.15)' 
+                        : 'rgba(255,77,77,0.15)',
+                      border: `1px solid ${credentialSaveStatus.type === 'success' ? 'rgba(47,201,121,0.3)' : 'rgba(255,77,77,0.3)'}`,
+                      color: credentialSaveStatus.type === 'success' ? '#5de0a0' : '#ff8a8a',
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {credentialSaveStatus.message}
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {selected.metadata.requiredCredentials.map((cred) => (
+                    <div key={cred.envVar}>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: 8,
+                      }}>
+                        <label 
+                          htmlFor={`cred-${cred.envVar}`}
+                          style={{ 
+                            fontSize: 12, 
+                            fontWeight: 700, 
+                            color: 'rgba(255,255,255,0.85)',
+                          }}
+                        >
+                          {cred.name || cred.envVar}
+                          <span style={{ 
+                            fontSize: 10, 
+                            color: 'rgba(255,255,255,0.5)', 
+                            marginLeft: 8,
+                            fontWeight: 500,
+                          }}>
+                            ({cred.envVar})
+                          </span>
+                        </label>
+                        
+                        {cred.platformUrl && (
+                          <a
+                            href={cred.platformUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '5px 10px',
+                              borderRadius: 8,
+                              background: 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              color: 'rgba(255,255,255,0.85)',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {svgExternal(10)}
+                            Get from {cred.platform || 'platform'}
+                          </a>
+                        )}
+                      </div>
+                      
+                      <input
+                        id={`cred-${cred.envVar}`}
+                        type="password"
+                        value={credentialInputs[cred.envVar] || ''}
+                        onChange={(e) => setCredentialInputs(prev => ({
+                          ...prev,
+                          [cred.envVar]: e.target.value,
+                        }))}
+                        placeholder={`Enter ${cred.name || cred.envVar}...`}
+                        style={{
+                          width: '100%',
+                          padding: '12px 14px',
+                          borderRadius: 12,
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(0,0,0,0.3)',
+                          color: 'rgba(255,255,255,0.95)',
+                          fontSize: 13,
+                          outline: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = 'rgba(245,168,108,0.5)';
+                          e.target.style.boxShadow = '0 0 20px rgba(245,168,108,0.15)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = 'rgba(255,255,255,0.15)';
+                          e.target.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-end', 
+                  gap: 10, 
+                  marginTop: 18,
+                }}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => saveCredentials(selected.id)}
+                    disabled={credentialSaving}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: 12,
+                      background: 'linear-gradient(145deg, rgba(47,201,121,0.25), rgba(47,201,121,0.15))',
+                      border: '1px solid rgba(47,201,121,0.4)',
+                      boxShadow: '0 6px 20px rgba(47,201,121,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                      color: '#5de0a0',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: credentialSaving ? 'wait' : 'pointer',
+                      opacity: credentialSaving ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    {credentialSaving ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                          <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                          <polyline points="17 21 17 13 7 13 7 21"/>
+                          <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Save &amp; Resume Build
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </div>
             )}
 
             {selected.metadata?.screenshotBase64 && (
