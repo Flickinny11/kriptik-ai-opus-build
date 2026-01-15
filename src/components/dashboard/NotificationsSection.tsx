@@ -990,10 +990,10 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
     );
   }
 
-  // Expanded state - centered screen overlay with liquid glass
+  // Expanded state - floating square liquid glass popout
   return (
-    <>
-      {/* Bell button stays in place */}
+    <div className="relative">
+      {/* Collapsed bell still visible as anchor */}
       <motion.button
         onClick={() => setOpen(false)}
         initial={{ scale: 0.9, opacity: 0 }}
@@ -1022,6 +1022,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
         }}
         title="Collapse notifications"
       >
+        {/* Glass shine */}
         <div
           style={{
             position: 'absolute',
@@ -1041,18 +1042,18 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
               position: 'absolute',
               top: -6,
               right: -6,
-              minWidth: 22,
-              height: 22,
-              borderRadius: 11,
+              minWidth: 24,
+              height: 24,
+              borderRadius: 12,
               background: 'linear-gradient(145deg, #ff7b6b 0%, #ef5044 40%, #dc3626 100%)',
-              boxShadow: '0 4px 12px rgba(239,68,68,0.5)',
+              boxShadow: '0 6px 16px rgba(239,68,68,0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 800,
-              padding: '0 5px',
+              padding: '0 7px',
               border: '2px solid rgba(255,255,255,0.9)',
             }}
           >
@@ -1061,172 +1062,170 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
         )}
       </motion.button>
 
-      {/* Centered screen overlay */}
+      {/* Floating square liquid glass popout */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        onClick={() => setOpen(false)}
+        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
         style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.25)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 100,
-        }}
-      />
-
-      {/* Centered liquid glass popup */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.92 }}
-        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-        style={{
-          position: 'fixed',
-          top: '50%',
+          position: 'absolute',
+          top: 70,
           left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 380,
-          maxWidth: '92vw',
-          maxHeight: '70vh',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: 20,
-          zIndex: 101,
+          transform: 'translateX(-50%)',
+          width: 420,
+          maxWidth: '90vw',
+          padding: 0,
           overflow: 'hidden',
+          borderRadius: 24,
+          zIndex: 50,
           
-          // Semi-transparent liquid glass
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.72) 0%, rgba(250,252,255,0.65) 30%, rgba(245,248,255,0.68) 60%, rgba(240,245,252,0.62) 100%)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          // Liquid glass background with depth
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.97) 0%, rgba(252,254,255,0.92) 30%, rgba(248,252,255,0.95) 60%, rgba(245,250,254,0.9) 100%)',
+          backdropFilter: 'blur(40px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(200%)',
           
-          // Layered 3D shadows
+          // Multi-layer 3D liquid glass shadow with depth
           boxShadow: `
-            0 25px 80px rgba(0,0,0,0.2),
-            0 15px 40px rgba(0,0,0,0.12),
-            0 8px 20px rgba(0,0,0,0.08),
-            inset 0 1px 2px rgba(255,255,255,0.9),
-            inset 0 -1px 3px rgba(0,0,0,0.03),
-            0 0 0 1px rgba(255,255,255,0.5),
-            0 0 40px rgba(150,180,210,0.12)
+            0 30px 100px rgba(0,0,0,0.18),
+            0 20px 60px rgba(0,0,0,0.12),
+            0 10px 30px rgba(0,0,0,0.08),
+            0 4px 12px rgba(0,0,0,0.05),
+            inset 0 2px 4px rgba(255,255,255,1),
+            inset 0 -2px 6px rgba(0,0,0,0.02),
+            0 0 0 1px rgba(255,255,255,0.85),
+            0 0 60px rgba(180,200,220,0.15)
           `,
         }}
       >
-        {/* Glass reflection highlight */}
+        {/* Top edge highlight - glass reflection */}
         <div
           style={{
             position: 'absolute',
             top: 0,
-            left: '8%',
-            right: '8%',
+            left: '5%',
+            right: '5%',
             height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+          }}
+        />
+        
+        {/* Glass shine overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '50%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)',
             pointerEvents: 'none',
+            borderRadius: '24px 24px 0 0',
           }}
         />
 
-        {/* Header - compact */}
+        {/* Header */}
         <div
           style={{
-            padding: '12px 16px',
+            padding: '18px 22px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 10,
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.15) 100%)',
-            flexShrink: 0,
+            gap: 14,
+            borderBottom: '1px solid rgba(0,0,0,0.05)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 100%)',
+            position: 'relative',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            {/* Compact 3D Bell */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+            {/* 3D Glass Bell Icon Container */}
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(248,250,255,0.7) 100%)',
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,252,255,0.8) 100%)',
                 boxShadow: `
-                  0 4px 12px rgba(0,0,0,0.06),
-                  inset 0 1px 2px rgba(255,255,255,0.9),
-                  0 0 0 1px rgba(255,255,255,0.5)
+                  0 8px 24px rgba(0,0,0,0.08),
+                  0 4px 12px rgba(0,0,0,0.04),
+                  inset 0 2px 4px rgba(255,255,255,1),
+                  inset 0 -1px 3px rgba(0,0,0,0.02),
+                  0 0 0 1px rgba(255,255,255,0.7)
                 `,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                transform: 'perspective(200px) rotateX(3deg)',
               }}
             >
-              <Bell3D size={20} hasNotification={unreadCount > 0} />
+              <Bell3D size={26} hasNotification={unreadCount > 0} />
             </div>
             
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 650, color: '#1a1a1a', fontSize: 13 }}>Notifications</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 750, color: '#1a1917', fontSize: 16, letterSpacing: '-0.02em' }}>Notifications</div>
                 {unreadCount > 0 && (
-                  <span
+                  <div
                     style={{
-                      padding: '2px 8px',
-                      borderRadius: 10,
-                      background: 'rgba(239,68,68,0.12)',
-                      color: '#dc2626',
-                      fontSize: 10,
+                      padding: '5px 14px',
+                      borderRadius: 999,
+                      background: 'linear-gradient(145deg, rgba(255,90,60,0.18) 0%, rgba(239,68,68,0.1) 100%)',
+                      boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 2px 6px rgba(239,68,68,0.12)',
+                      color: '#c53030',
+                      fontSize: 12,
                       fontWeight: 700,
                     }}
                   >
-                    {unreadCount}
-                  </span>
+                    {unreadCount} new
+                  </div>
                 )}
               </div>
-              <div style={{ fontSize: 10, color: '#888', marginTop: 1 }}>
-                Agent events &amp; alerts
+              <div style={{ fontSize: 12, color: '#6b6560', marginTop: 4 }}>
+                Feature Agent events &amp; system alerts
               </div>
             </div>
           </div>
 
-          {/* Close button */}
+          {/* Close button - 3D Glass */}
           <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setOpen(false)}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: 'rgba(0,0,0,0.05)',
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,252,255,0.7) 100%)',
+              boxShadow: `
+                0 4px 12px rgba(0,0,0,0.06),
+                inset 0 1px 2px rgba(255,255,255,0.9),
+                0 0 0 1px rgba(255,255,255,0.5)
+              `,
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#666',
+              color: '#57534e',
             }}
+            title="Close"
           >
-            {svgClose(14)}
+            {svgClose(16)}
           </motion.button>
         </div>
 
-        {/* Scrollable notification list */}
-        <div 
-          style={{ 
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: '10px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
+        {/* Notification list */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
           {loading && (
-            <div style={{ padding: 20, color: '#666', fontSize: 11, textAlign: 'center' }}>Loading...</div>
+            <div style={{ padding: 16, color: '#505050', fontSize: 13, textAlign: 'center' }}>Loading notifications...</div>
           )}
 
           {!loading && items.length === 0 && (
-            <div style={{ padding: 24, color: '#888', fontSize: 11, textAlign: 'center' }}>
-              <Bell3D size={28} hasNotification={false} />
-              <div style={{ marginTop: 8 }}>No notifications</div>
+            <div style={{ padding: 20, color: '#606060', fontSize: 13, textAlign: 'center' }}>
+              <div style={{ marginBottom: 8 }}>
+                <Bell3D size={32} hasNotification={false} />
+              </div>
+              No notifications yet
             </div>
           )}
 
@@ -1524,7 +1523,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
           onClose={() => setScreenshotModalOpen(false)}
         />
       )}
-    </>
+    </div>
   );
 }
 
