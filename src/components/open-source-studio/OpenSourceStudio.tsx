@@ -962,16 +962,16 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
         )}
       </AnimatePresence>
 
-      {/* HuggingFace Connection Modal */}
+      {/* HuggingFace Connection - inline mode for embedded, modal for standalone */}
       <AnimatePresence>
         {showConnectModal && (
-          <div className="oss-connect-overlay">
+          <div className={`oss-connect-overlay ${embedded ? 'oss-connect-overlay--embedded' : ''}`}>
             <HuggingFaceConnect
               onConnect={async (user) => {
                 setHfConnection(true, user.username, user.avatarUrl);
               }}
               required={true}
-              mode="modal"
+              mode={embedded ? 'inline' : 'modal'}
             />
           </div>
         )}
