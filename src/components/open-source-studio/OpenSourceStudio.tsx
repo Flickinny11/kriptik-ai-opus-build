@@ -119,6 +119,9 @@ const PlusIcon = () => (
 // TRAINING PROGRESS WRAPPER (fetches job data and renders TrainingProgress)
 // =============================================================================
 
+// Type import for TrainingMetrics
+import type { TrainingMetrics, TrainingStatus } from './TrainingProgress';
+
 function TrainingProgressWrapper({
   jobId,
   onComplete
@@ -126,8 +129,8 @@ function TrainingProgressWrapper({
   jobId: string;
   onComplete: () => void;
 }) {
-  const [status, setStatus] = useState<'queued' | 'provisioning' | 'training' | 'saving' | 'completed' | 'failed' | 'stopped'>('queued');
-  const [metrics, setMetrics] = useState<{ loss: number; epoch: number; step: number; learningRate: number; throughput: number; estimatedTimeRemaining: number; } | null>(null);
+  const [status, setStatus] = useState<TrainingStatus>('queued');
+  const [metrics, setMetrics] = useState<TrainingMetrics | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [hubUrl, setHubUrl] = useState<string | undefined>();
 
@@ -142,7 +145,7 @@ function TrainingProgressWrapper({
       try {
         const data = JSON.parse(event.data);
         if (data.status) setStatus(data.status);
-        if (data.metrics) setMetrics(data.metrics);
+        if (data.metrics) setMetrics(data.metrics as TrainingMetrics);
         if (data.log) setLogs(prev => [...prev.slice(-100), data.log]);
         if (data.hubUrl) setHubUrl(data.hubUrl);
         if (data.status === 'completed' || data.status === 'failed') {

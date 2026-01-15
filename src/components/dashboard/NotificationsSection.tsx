@@ -144,19 +144,6 @@ function Bell3D({ size = 24, hasNotification = false }: { size?: number; hasNoti
   );
 }
 
-// Legacy svgBell for backwards compatibility
-function _svgBell(size = 16) {
-  return <Bell3D size={size} hasNotification={false} />;
-}
-
-function _svgChevron(size = 14, open = false) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function svgExternal(size = 14) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
