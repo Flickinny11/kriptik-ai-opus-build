@@ -1,9 +1,9 @@
 /**
  * HuggingFace Authentication Routes
- * 
+ *
  * Handles HuggingFace token validation, storage, and management.
  * Required for Open Source Studio training/fine-tuning features.
- * 
+ *
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 3)
  */
 
@@ -92,11 +92,11 @@ function encryptToken(token: string): { encrypted: string; iv: string } {
   const iv = crypto.randomBytes(16);
   const key = getEncryptionKey();
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  
+
   let encrypted = cipher.update(token, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
-  
+
   return {
     encrypted: encrypted + ':' + authTag,
     iv: iv.toString('hex'),
@@ -110,12 +110,12 @@ function decryptToken(encryptedData: string, ivHex: string, authTagHex: string):
   const iv = Buffer.from(ivHex, 'hex');
   const key = getEncryptionKey();
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  
+
   decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
-  
+
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -144,18 +144,18 @@ async function validateHuggingFaceToken(token: string): Promise<TokenValidationR
 
     // Check for write access
     let canWrite = false;
-    
+
     // Check fine-grained permissions
     if (data.auth?.accessToken?.fineGrained) {
       const globalPerms = data.auth.accessToken.fineGrained.global || [];
       // Check for write permissions
-      canWrite = globalPerms.some(p => 
-        p === 'write-repos' || 
-        p === 'manage-repos' || 
+      canWrite = globalPerms.some(p =>
+        p === 'write-repos' ||
+        p === 'manage-repos' ||
         p === 'write' ||
         p.includes('write')
       );
-      
+
       // Also check if role indicates write access
       if (!canWrite && data.auth.accessToken.role) {
         canWrite = data.auth.accessToken.role === 'write' || data.auth.accessToken.role === 'admin';
@@ -323,7 +323,10 @@ router.post('/validate-token', authMiddleware, async (req: Request, res: Respons
     });
   } catch (error) {
     console.error('[HuggingFace Auth] Validation error:', error);
-    res.status(500).json({ error: 'Failed to validate token' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('[HuggingFace Auth] Error details:', { message: errorMessage, stack: errorStack });
+    res.status(500).json({ error: 'Failed to validate token', details: errorMessage });
   }
 });
 
@@ -332,36 +335,58 @@ router.post('/validate-token', authMiddleware, async (req: Request, res: Respons
  * Get current HuggingFace connection status for the user
  */
 router.get('/status', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  console.log('[HuggingFace Auth] Status check started');
   try {
     const userId = req.user?.id;
+    console.log('[HuggingFace Auth] User ID:', userId);
 
     if (!userId) {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
 
-    const credentials = await db.select()
-      .from(userCredentials)
-      .where(and(
-        eq(userCredentials.userId, userId),
-        eq(userCredentials.integrationId, 'huggingface'),
-        eq(userCredentials.isActive, true)
-      ))
-      .limit(1);
+    console.log('[HuggingFace Auth] Querying database for credentials...');
+    let credentials;
+    try {
+      credentials = await db.select()
+        .from(userCredentials)
+        .where(and(
+          eq(userCredentials.userId, userId),
+          eq(userCredentials.integrationId, 'huggingface'),
+          eq(userCredentials.isActive, true)
+        ))
+        .limit(1);
+      console.log('[HuggingFace Auth] Found credentials:', credentials.length);
+    } catch (dbError) {
+      console.error('[HuggingFace Auth] Database query error:', dbError);
+      // Return disconnected on DB error rather than crashing
+      res.json({ connected: false });
+      return;
+    }
 
     if (credentials.length === 0) {
+      console.log('[HuggingFace Auth] No credentials found, returning disconnected');
       res.json({ connected: false });
       return;
     }
 
     const cred = credentials[0];
+    console.log('[HuggingFace Auth] Credential found:', {
+      id: cred.id,
+      hasEncryptedData: !!cred.encryptedData,
+      hasIv: !!cred.iv,
+      hasAuthTag: !!cred.authTag,
+    });
 
     // Re-validate token is still good
     if (cred.encryptedData && cred.iv && cred.authTag) {
       try {
+        console.log('[HuggingFace Auth] Attempting to decrypt token...');
         const token = decryptToken(cred.encryptedData, cred.iv, cred.authTag);
+        console.log('[HuggingFace Auth] Token decrypted, validating with HuggingFace...');
         const validation = await validateHuggingFaceToken(token);
-        
+        console.log('[HuggingFace Auth] Validation result:', { valid: validation.valid, username: validation.username });
+
         res.json({
           connected: validation.valid,
           username: validation.username || cred.connectionName,
@@ -372,13 +397,15 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
           connectedAt: cred.lastValidatedAt || cred.createdAt,
         });
         return;
-      } catch {
+      } catch (decryptError) {
+        console.error('[HuggingFace Auth] Token decryption/validation failed:', decryptError);
         // Token decryption failed, return disconnected
         res.json({ connected: false, error: 'Stored token is invalid' });
         return;
       }
     }
 
+    console.log('[HuggingFace Auth] No encrypted data, returning basic status');
     res.json({
       connected: true,
       username: cred.connectionName,
@@ -386,7 +413,7 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
     });
   } catch (error) {
     console.error('[HuggingFace Auth] Status check error:', error);
-    res.status(500).json({ error: 'Failed to get status' });
+    res.status(500).json({ error: 'Failed to get status', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -434,7 +461,7 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
 
     // First, try the credential vault (preferred method with oauthAccessToken)
     const credential = await vault.getCredential(userId, 'huggingface');
-    
+
     if (credential && credential.oauthAccessToken) {
       res.json({
         token: credential.oauthAccessToken,
@@ -461,7 +488,7 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
     }
 
     const cred = credentials[0];
-    
+
     if (!cred.encryptedData || !cred.iv || !cred.authTag) {
       res.status(500).json({ error: 'Invalid credential data' });
       return;

@@ -1,10 +1,10 @@
 /**
  * HuggingFace Token Connection Modal
- * 
+ *
  * Mandatory connection flow for Open Source Studio.
  * Users must connect their HuggingFace account with write access
  * before training or fine-tuning models.
- * 
+ *
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 3)
  */
 
@@ -173,7 +173,7 @@ export function HuggingFaceConnect({
 
     try {
       console.log('[HuggingFaceConnect] Validating token with API:', `${API_URL}/api/huggingface/validate-token`);
-      
+
       const response = await authenticatedFetch(`${API_URL}/api/huggingface/validate-token`, {
         method: 'POST',
         headers: {
@@ -183,7 +183,7 @@ export function HuggingFaceConnect({
       });
 
       console.log('[HuggingFaceConnect] Response status:', response.status, response.statusText);
-      
+
       let data;
       try {
         data = await response.json();
