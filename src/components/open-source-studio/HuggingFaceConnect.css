@@ -1,16 +1,32 @@
 /**
- * HuggingFace Connect Styles
- * 
- * Premium glassmorphic design matching KripTik AI aesthetics:
- * - Deep 3D card depth with layered shadows
- * - Warm amber accents (#F5A86C)
- * - DM Sans typography
- * - Smooth micro-animations
- * - NO purple, NO pink, NO emojis
+ * HuggingFace Connect - Liquid Glass Design
+ *
+ * Premium styling matching HuggingFace branding:
+ * - Gold/amber accent (#FFD21E, #F5A86C)
+ * - Translucent liquid glass surfaces
+ * - 3D depth with layered shadows
+ * - NO emojis, geometric icons only
  */
 
 /* =============================================================================
-   OVERLAY & MODAL
+   CSS VARIABLES
+   ============================================================================= */
+
+.hf-connect-container {
+  --hf-gold: #FFD21E;
+  --hf-amber: #F5A86C;
+  --hf-orange: #FF9D00;
+  --glass-bg: rgba(40, 40, 50, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --error-color: #ef4444;
+  --success-color: #10b981;
+}
+
+/* =============================================================================
+   OVERLAY (Modal mode only)
    ============================================================================= */
 
 .hf-connect-overlay {
@@ -19,10 +35,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
   z-index: 9999;
   padding: 24px;
+  
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .hf-connect-modal {
@@ -30,32 +48,41 @@
   max-width: 480px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 /* =============================================================================
-   CONTAINER
+   CONTAINER - Liquid Glass Card
    ============================================================================= */
 
 .hf-connect-container {
+  font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+  padding: 32px;
+  border-radius: 20px;
+  
+  /* Liquid glass */
   background: linear-gradient(
     165deg,
-    rgba(30, 30, 36, 0.95) 0%,
-    rgba(20, 20, 24, 0.98) 100%
+    rgba(45, 45, 55, 0.9) 0%,
+    rgba(35, 35, 45, 0.95) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 32px;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 12px 24px -8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.05);
-  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .hf-connect-container.inline {
   max-width: 100%;
   margin: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 24px;
 }
 
 /* =============================================================================
@@ -66,7 +93,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .hf-connect-brand {
@@ -77,6 +104,7 @@
 
 .hf-connect-brand svg {
   flex-shrink: 0;
+  filter: drop-shadow(0 4px 12px rgba(255, 210, 30, 0.3));
 }
 
 .hf-connect-brand-text {
@@ -87,68 +115,79 @@
 
 .hf-connect-title {
   font-size: 1.5rem;
-  font-weight: 600;
-  color: #fff;
+  font-weight: 700;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  
+  /* HuggingFace gold */
+  background: linear-gradient(135deg, var(--hf-gold) 0%, var(--hf-amber) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hf-connect-subtitle {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .hf-connect-close {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
+  
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .hf-connect-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
 }
 
 /* =============================================================================
-   WHY CONNECT
+   WHY CONNECT SECTION
    ============================================================================= */
 
 .hf-connect-why {
-  background: rgba(245, 168, 108, 0.08);
-  border: 1px solid rgba(245, 168, 108, 0.15);
-  border-radius: 12px;
-  padding: 16px;
+  padding: 16px 18px;
   margin-bottom: 24px;
+  border-radius: 14px;
+  
+  /* Amber-tinted glass */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 210, 30, 0.08) 0%,
+    rgba(245, 168, 108, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 210, 30, 0.15);
 }
 
 .hf-connect-why-title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #F5A86C;
+  color: var(--hf-gold);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
 
 .hf-connect-why-text {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .hf-connect-why-text strong {
-  color: #fff;
-  font-weight: 500;
+  color: var(--hf-amber);
 }
 
 /* =============================================================================
@@ -156,7 +195,7 @@
    ============================================================================= */
 
 .hf-connect-input-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .hf-connect-label {
@@ -165,125 +204,122 @@
   gap: 8px;
   font-size: 0.85rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
 .hf-connect-label svg {
-  color: #F5A86C;
+  color: var(--hf-amber);
 }
 
 .hf-connect-input-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .hf-connect-input {
   width: 100%;
-  padding: 14px 44px 14px 16px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.9rem;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  
+  /* Glass input */
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  color: #fff;
-  transition: all 0.2s ease;
-  outline: none;
+  color: var(--text-primary);
 }
 
 .hf-connect-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-muted);
 }
 
 .hf-connect-input:focus {
-  border-color: #F5A86C;
-  box-shadow: 0 0 0 3px rgba(245, 168, 108, 0.15);
+  outline: none;
+  border-color: rgba(255, 210, 30, 0.5);
+  box-shadow: 0 0 20px rgba(255, 210, 30, 0.15);
 }
 
 .hf-connect-input.error {
-  border-color: #e74c3c;
-  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15);
+  border-color: var(--error-color);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
 }
 
 .hf-connect-clear {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 6px;
-  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: all 0.15s ease;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
 }
 
 .hf-connect-clear:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
 }
 
-/* =============================================================================
-   ERROR MESSAGE
-   ============================================================================= */
-
+/* Error Message */
 .hf-connect-error {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
-  margin-top: 10px;
-  padding: 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border: 1px solid rgba(231, 76, 60, 0.2);
-  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  border-radius: 10px;
   font-size: 0.85rem;
-  color: #e74c3c;
+  
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 .hf-connect-error svg {
   flex-shrink: 0;
-  margin-top: 1px;
+  color: var(--error-color);
 }
 
-/* =============================================================================
-   GUIDE TOGGLE & GUIDE
-   ============================================================================= */
-
+/* Token Guide Toggle */
 .hf-connect-guide-toggle {
-  display: inline-flex;
-  align-items: center;
-  background: none;
-  border: none;
-  padding: 0;
+  display: inline-block;
   margin-top: 12px;
   font-size: 0.85rem;
-  color: #F5A86C;
+  font-weight: 500;
+  color: var(--hf-amber);
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: color 0.15s ease;
+  padding: 0;
+  transition: color 0.2s ease;
 }
 
 .hf-connect-guide-toggle:hover {
-  color: #FFB88C;
-  text-decoration: underline;
+  color: var(--hf-gold);
 }
 
+/* Token Guide */
 .hf-connect-guide {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  margin-top: 16px;
   padding: 16px;
-  margin-top: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
 .hf-connect-steps {
-  list-style: none;
   margin: 0;
   padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -294,7 +330,7 @@
   align-items: flex-start;
   gap: 12px;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
 }
 
 .hf-connect-step-num {
@@ -303,27 +339,33 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: rgba(245, 168, 108, 0.2);
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #F5A86C;
   flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  
+  background: linear-gradient(135deg, var(--hf-gold) 0%, var(--hf-amber) 100%);
+  color: #1a1a1a;
 }
 
 .hf-connect-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #F5A86C;
-  text-decoration: none;
   margin-left: 4px;
-  transition: color 0.15s ease;
+  color: var(--hf-amber);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
 }
 
 .hf-connect-link:hover {
-  color: #FFB88C;
-  text-decoration: underline;
+  color: var(--hf-gold);
+}
+
+.hf-connect-link svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* =============================================================================
@@ -332,36 +374,35 @@
 
 .hf-connect-requirements {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 24px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .hf-connect-requirement {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 .hf-connect-requirement svg {
-  width: 14px;
-  height: 14px;
-  color: rgba(46, 204, 113, 0.7);
+  width: 16px;
+  height: 16px;
+  color: var(--success-color);
 }
 
 .hf-connect-requirement code {
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.75rem;
-  background: rgba(245, 168, 108, 0.15);
   padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
   border-radius: 4px;
-  color: #F5A86C;
+  background: rgba(255, 210, 30, 0.1);
+  color: var(--hf-gold);
 }
 
 /* =============================================================================
@@ -372,7 +413,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 20px;
 }
 
 .hf-connect-btn {
@@ -381,62 +421,59 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 24px;
-  border-radius: 12px;
+  font-family: inherit;
   font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  font-weight: 600;
   border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .hf-connect-btn.primary {
-  background: linear-gradient(135deg, #F5A86C 0%, #E89B5D 100%);
+  /* HuggingFace gold gradient */
+  background: linear-gradient(135deg, var(--hf-gold) 0%, var(--hf-amber) 100%);
   color: #1a1a1a;
   box-shadow:
-    0 4px 12px rgba(245, 168, 108, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 4px 16px rgba(255, 210, 30, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .hf-connect-btn.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #FFB88C 0%, #F5A86C 100%);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow:
-    0 6px 16px rgba(245, 168, 108, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 8px 24px rgba(255, 210, 30, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .hf-connect-btn.primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .hf-connect-btn.secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .hf-connect-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
-/* =============================================================================
-   SPINNER
-   ============================================================================= */
-
-.hf-connect-spinner {
-  animation: hf-spin 1s linear infinite;
+/* Loading Spinner */
+.hf-connect-btn .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-@keyframes hf-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* =============================================================================
@@ -445,49 +482,16 @@
 
 .hf-connect-security {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  background: rgba(46, 204, 113, 0.06);
-  border: 1px solid rgba(46, 204, 113, 0.1);
-  border-radius: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .hf-connect-security-icon {
-  color: rgba(46, 204, 113, 0.7);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-/* =============================================================================
-   RESPONSIVE
-   ============================================================================= */
-
-@media (max-width: 480px) {
-  .hf-connect-container {
-    padding: 24px 20px;
-    border-radius: 16px;
-  }
-
-  .hf-connect-brand {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .hf-connect-title {
-    font-size: 1.25rem;
-  }
-
-  .hf-connect-requirements {
-    flex-direction: column;
-  }
-
-  .hf-connect-requirement {
-    width: 100%;
-    justify-content: flex-start;
-  }
+  display: flex;
+  color: var(--success-color);
 }

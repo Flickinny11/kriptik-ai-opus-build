@@ -38,12 +38,12 @@ const ResearchPromptInput: React.FC<{
     onSubmit,
     isSubmitting,
 }) => {
-    const problemTypes: Array<{ value: AILabSession['problemType']; label: string; icon: string }> = [
-        { value: 'general', label: 'General Research', icon: '🔬' },
-        { value: 'code_review', label: 'Code Review', icon: '💻' },
-        { value: 'architecture', label: 'Architecture Analysis', icon: '🏗️' },
-        { value: 'optimization', label: 'Optimization', icon: '⚡' },
-        { value: 'research', label: 'Deep Research', icon: '📚' },
+    const problemTypes: Array<{ value: AILabSession['problemType']; label: string; icon: JSX.Element }> = [
+        { value: 'general', label: 'General Research', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+        { value: 'code_review', label: 'Code Review', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+        { value: 'architecture', label: 'Architecture', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/></svg> },
+        { value: 'optimization', label: 'Optimization', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+        { value: 'research', label: 'Deep Research', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="currentColor" strokeWidth="1.5"/></svg> },
     ];
 
     return (
@@ -117,7 +117,7 @@ const ResearchPromptInput: React.FC<{
                     </>
                 ) : (
                     <>
-                        <span className="btn-icon">🚀</span>
+                        <span className="btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
                         Start Multi-Agent Research
                     </>
                 )}
@@ -507,7 +507,7 @@ export const AILab: React.FC = () => {
         >
             <div className="ai-lab-header">
                 <div className="header-title">
-                    <span className="lab-icon">🧪</span>
+                    <span className="lab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 3h6v2H9V3z" stroke="currentColor" strokeWidth="1.5"/><path d="M9 5v3.5L5 18c-.4.8.2 2 1.2 2h11.6c1 0 1.6-1.2 1.2-2L15 8.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/><circle cx="14" cy="16" r="1" fill="currentColor"/></svg></span>
                     <h2>AI Lab</h2>
                     <span className="subtitle">Multi-Agent Research Orchestration</span>
                 </div>

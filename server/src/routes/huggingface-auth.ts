@@ -349,7 +349,7 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
     console.log('[HuggingFace Auth] Getting credential from vault...');
     try {
       const credential = await vault.getCredential(userId, 'huggingface');
-      
+
       if (!credential) {
         console.log('[HuggingFace Auth] No credential found in vault');
         res.json({ connected: false });
@@ -364,7 +364,7 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
 
       // Get the token from oauthAccessToken (stored via vault.storeCredential)
       const token = credential.oauthAccessToken;
-      
+
       if (!token) {
         console.log('[HuggingFace Auth] No OAuth token in credential');
         // Return basic info from stored data

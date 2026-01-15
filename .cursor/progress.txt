@@ -871,3 +871,25 @@ RESOLUTION:
 CURRENT STATE: Database has all required tables. HuggingFace should now work.
 NEXT: User to test HuggingFace token validation
 CONTEXT: This was a database schema/migration mismatch issue, not a code logic issue.
+
+═══ 2026-01-15T22:20:00Z ═══
+COMPLETED: Fixed HuggingFace token decryption and nested window UI
+FILES MODIFIED:
+- server/src/routes/huggingface-auth.ts (use vault.getCredential instead of manual decrypt)
+- src/components/open-source-studio/OpenSourceStudio.css (fix nested window UI)
+
+ROOT CAUSE #2 IDENTIFIED:
+The credential vault uses **base64 encoding** for IV and authTag, but
+huggingface-auth.ts was trying to decrypt with **hex encoding**, causing
+"Invalid initialization vector" errors.
+
+SOLUTION:
+Changed /status endpoint to use vault.getCredential() which properly
+decrypts the token using base64 encoding.
+
+UI FIX:
+Removed the nested window effect for HuggingFaceConnect when embedded.
+The connect UI now fills the entire panel cleanly without a card-within-card appearance.
+
+CURRENT STATE: HuggingFace integration should now work correctly
+NEXT: User to test HuggingFace token validation after Vercel deployment
