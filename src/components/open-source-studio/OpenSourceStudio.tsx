@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOpenSourceStudioStore, type ModelWithRequirements } from '@/store/useOpenSourceStudioStore';
 import { useAILabStore } from '@/store/useAILabStore';
 import { useHuggingFace } from '@/hooks/useHuggingFace';
-import { authenticatedFetch } from '@/lib/api-config';
+import { authenticatedFetch, API_URL } from '@/lib/api-config';
 
 // Existing comprehensive components
 import { HuggingFaceConnect } from './HuggingFaceConnect';
@@ -500,7 +500,7 @@ function DeployTabContent({
     setIsDeploying(true);
 
     try {
-      const response = await authenticatedFetch('/api/open-source-studio/deploy', {
+      const response = await authenticatedFetch(`${API_URL}/api/open-source-studio/deploy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -698,7 +698,7 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
       const dockModels = dock.map(d => d.model);
 
       // Send to backend for intent lock and plan generation
-      const response = await authenticatedFetch('/api/open-source-studio/integrate', {
+      const response = await authenticatedFetch(`${API_URL}/api/open-source-studio/integrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -731,7 +731,7 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
   // Handle training start
   const handleStartTraining = async (modelId: string, params: TrainingParams) => {
     try {
-      const response = await authenticatedFetch('/api/training/jobs', {
+      const response = await authenticatedFetch(`${API_URL}/api/training/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -927,7 +927,7 @@ export function OpenSourceStudio({ onClose, embedded = false }: OpenSourceStudio
                   onClick={async () => {
                     try {
                       setIsProcessingPrompt(true);
-                      const response = await authenticatedFetch('/api/open-source-studio/integrate/execute', {
+                      const response = await authenticatedFetch(`${API_URL}/api/open-source-studio/integrate/execute`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

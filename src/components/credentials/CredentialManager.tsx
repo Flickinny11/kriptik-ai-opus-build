@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authenticatedFetch } from '../../lib/api-config';
+import { authenticatedFetch, API_URL } from '../../lib/api-config';
 import './CredentialManager.css';
 
 // ============================================================================
@@ -111,7 +111,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
 
     const fetchCredentials = async () => {
         try {
-            const response = await authenticatedFetch('/api/credentials');
+            const response = await authenticatedFetch(`${API_URL}/api/credentials`);
             const data = await response.json();
             if (data.credentials) {
                 setCredentials(data.credentials);
@@ -126,7 +126,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
 
     const fetchCostSummary = async () => {
         try {
-            const response = await authenticatedFetch('/api/gpu-costs/summary?period=month');
+            const response = await authenticatedFetch(`${API_URL}/api/gpu-costs/summary?period=month`);
             const data = await response.json();
             if (data.success) {
                 setCostSummary(data.summary);
@@ -138,7 +138,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
 
     const checkBudgetAlerts = async () => {
         try {
-            const response = await authenticatedFetch('/api/gpu-costs/budget/alerts');
+            const response = await authenticatedFetch(`${API_URL}/api/gpu-costs/budget/alerts`);
             const data = await response.json();
             if (data.hasAlert) {
                 setBudgetAlert(data.alert);
@@ -155,7 +155,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
         try {
             // Different validation endpoints for different integrations
             if (integrationId === 'huggingface') {
-                const response = await authenticatedFetch('/api/huggingface/validate-token', {
+                const response = await authenticatedFetch(`${API_URL}/api/huggingface/validate-token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token, store: true }), // Ensure token is stored
@@ -203,7 +203,7 @@ export const CredentialManager: React.FC<CredentialManagerProps> = ({
     const handleDeleteCredential = async (integrationId: string) => {
         try {
             if (integrationId === 'huggingface') {
-                await authenticatedFetch('/api/huggingface/disconnect', {
+                await authenticatedFetch(`${API_URL}/api/huggingface/disconnect`, {
                     method: 'POST',
                 });
             } else {

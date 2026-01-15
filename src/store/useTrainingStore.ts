@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { authenticatedFetch } from '@/lib/api-config';
+import { authenticatedFetch, API_URL } from '@/lib/api-config';
 
 // Re-export types for convenience
 export type ModelModality = 'llm' | 'image' | 'video' | 'audio' | 'multimodal';
@@ -279,7 +279,7 @@ export const useTrainingStore = create<TrainingState>()(
       set({ isLoading: true });
 
       try {
-        const response = await authenticatedFetch('/api/training/recommend-gpu', {
+        const response = await authenticatedFetch(`${API_URL}/api/training/recommend-gpu`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -319,7 +319,7 @@ export const useTrainingStore = create<TrainingState>()(
       set({ isLoading: true, error: null });
 
       try {
-        const response = await authenticatedFetch('/api/training/jobs/multimodal', {
+        const response = await authenticatedFetch(`${API_URL}/api/training/jobs/multimodal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -450,7 +450,7 @@ export const useTrainingStore = create<TrainingState>()(
       set({ isLoading: true });
 
       try {
-        const response = await authenticatedFetch('/api/training/jobs');
+        const response = await authenticatedFetch(`${API_URL}/api/training/jobs`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch jobs');

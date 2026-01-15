@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAILabStore, type AILabSession, type OrchestrationState } from '../../store/useAILabStore';
-import { authenticatedFetch } from '../../lib/api-config';
+import { authenticatedFetch, API_URL } from '../../lib/api-config';
 import './AILab.css';
 
 // ============================================================================
@@ -371,7 +371,7 @@ export const AILab: React.FC = () => {
 
     const loadHistory = useCallback(async () => {
         try {
-            const response = await authenticatedFetch('/api/ai-lab/sessions');
+            const response = await authenticatedFetch(`${API_URL}/api/ai-lab/sessions`);
             if (response.ok) {
                 const data = await response.json();
                 setSessionHistory(data.sessions || []);
@@ -388,7 +388,7 @@ export const AILab: React.FC = () => {
         setError(null);
 
         try {
-            const response = await authenticatedFetch('/api/ai-lab/sessions', {
+            const response = await authenticatedFetch(`${API_URL}/api/ai-lab/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

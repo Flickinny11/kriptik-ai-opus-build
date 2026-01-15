@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authenticatedFetch } from '@/lib/api-config';
+import { authenticatedFetch, API_URL } from '@/lib/api-config';
 import './EndpointManagement.css';
 
 // =============================================================================
@@ -140,7 +140,7 @@ export function EndpointManagement({ onDeploy, onSelectEndpoint }: EndpointManag
   const fetchEndpoints = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await authenticatedFetch('/api/endpoints');
+      const response = await authenticatedFetch(`${API_URL}/api/deployment`);
       const data = await response.json();
       
       if (data.success) {
@@ -176,7 +176,7 @@ export function EndpointManagement({ onDeploy, onSelectEndpoint }: EndpointManag
     setTogglingId(endpoint.id);
     
     try {
-      const response = await authenticatedFetch(`/api/endpoints/${endpoint.id}/${action}`, {
+      const response = await authenticatedFetch(`${API_URL}/api/deployment/${endpoint.id}/${action}`, {
         method: 'POST',
       });
       const data = await response.json();
@@ -200,7 +200,7 @@ export function EndpointManagement({ onDeploy, onSelectEndpoint }: EndpointManag
     setDeletingId(id);
     
     try {
-      const response = await authenticatedFetch(`/api/endpoints/${id}`, {
+      const response = await authenticatedFetch(`${API_URL}/api/deployment/${id}`, {
         method: 'DELETE',
       });
       const data = await response.json();

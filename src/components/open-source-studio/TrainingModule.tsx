@@ -11,7 +11,7 @@ import { TrainingConfig, type TrainingParams } from './TrainingConfig';
 import { DatasetSelector, type HuggingFaceDataset } from './DatasetSelector';
 import { TrainingProgress, type TrainingMetrics, type TrainingStatus } from './TrainingProgress';
 import { useOpenSourceStudioStore, type ModelWithRequirements } from '@/store/useOpenSourceStudioStore';
-import { authenticatedFetch } from '@/lib/api-config';
+import { authenticatedFetch, API_URL } from '@/lib/api-config';
 import './TrainingModule.css';
 
 // =============================================================================
@@ -93,7 +93,7 @@ export function TrainingModule({ model, onClose, onComplete }: TrainingModulePro
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await authenticatedFetch(`/api/training/jobs/${activeJob.id}`);
+        const response = await authenticatedFetch(`${API_URL}/api/training/jobs/${activeJob.id}`);
         if (response.ok) {
           const data = await response.json();
           setActiveJob(prev => ({
@@ -135,7 +135,7 @@ export function TrainingModule({ model, onClose, onComplete }: TrainingModulePro
     setTrainingParams(params);
 
     try {
-      const response = await authenticatedFetch('/api/training/jobs', {
+      const response = await authenticatedFetch(`${API_URL}/api/training/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -186,7 +186,7 @@ export function TrainingModule({ model, onClose, onComplete }: TrainingModulePro
     if (!activeJob) return;
 
     try {
-      await authenticatedFetch(`/api/training/jobs/${activeJob.id}/stop`, {
+      await authenticatedFetch(`${API_URL}/api/training/jobs/${activeJob.id}/stop`, {
         method: 'POST',
       });
       setActiveJob(prev => prev ? { ...prev, status: 'stopped' } : null);

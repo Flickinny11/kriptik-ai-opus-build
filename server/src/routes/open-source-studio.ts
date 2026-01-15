@@ -223,7 +223,6 @@ router.get('/datasets/search', authMiddleware, async (req: Request, res: Respons
       headers: {
         'Accept': 'application/json',
       },
-      credentials: 'omit',
     });
 
     if (!response.ok) {
@@ -271,7 +270,6 @@ router.get('/datasets/:author/:name', authMiddleware, async (req: Request, res: 
       headers: {
         'Accept': 'application/json',
       },
-      credentials: 'omit',
     });
 
     if (!response.ok) {

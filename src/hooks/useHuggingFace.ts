@@ -1,6 +1,6 @@
 /**
  * HuggingFace Connection Hook
- * 
+ *
  * Manages HuggingFace token validation, connection status, and operations.
  * Part of KripTik AI's Open Source Studio integration (GPU & AI Lab PROMPT 3).
  */
@@ -67,13 +67,13 @@ export interface UseHuggingFaceReturn {
   status: HuggingFaceConnectionStatus;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   connect: (token: string) => Promise<TokenValidationResult>;
   disconnect: () => Promise<void>;
   refreshStatus: () => Promise<void>;
   searchModels: (query: string, options?: ModelSearchOptions) => Promise<HuggingFaceModel[]>;
-  
+
   // Computed
   isConnected: boolean;
   canUploadModels: boolean;
@@ -96,7 +96,7 @@ export function useHuggingFace(): UseHuggingFaceReturn {
       setError(null);
 
       const response = await authenticatedFetch(`${API_URL}/api/huggingface/status`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to get status' }));
         throw new Error(errorData.error || 'Failed to get status');
