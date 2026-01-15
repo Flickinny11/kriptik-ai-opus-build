@@ -14,6 +14,14 @@
 import { Router, type Request, type Response } from 'express';
 import { getNotificationReplyService, type ReplyAction } from '../services/notifications/notification-reply-service.js';
 import crypto from 'crypto';
+import {
+    getWebhookEndpoint,
+    verifySignature,
+    storeWebhookEvent,
+    processWebhookEvent,
+    getOrCreateWebhookEndpoint,
+    getRecentEvents,
+} from '../services/webhooks/webhook-generator.js';
 
 const router = Router();
 const replyService = getNotificationReplyService();
@@ -396,6 +404,163 @@ router.post('/slack/interactive', async (req: Request, res: Response) => {
  */
 router.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', service: 'notification-webhooks' });
+});
+
+// ============================================================================
+// INTEGRATION WEBHOOK ENDPOINTS
+// Dynamic webhook URLs for each project/integration
+// ============================================================================
+
+/**
+ * Create/Get webhook endpoint for a project
+ * POST /api/webhooks/endpoints
+ */
+router.post('/endpoints', async (req: Request, res: Response) => {
+    try {
+        const { projectId, integrationId, events } = req.body;
+
+        if (!projectId || !integrationId) {
+            return res.status(400).json({ error: 'Missing projectId or integrationId' });
+        }
+
+        const endpoint = await getOrCreateWebhookEndpoint(projectId, integrationId, events);
+        
+        res.json({
+            success: true,
+            endpoint: {
+                id: endpoint.id,
+                url: endpoint.url,
+                secret: endpoint.secret,
+                integrationId: endpoint.integrationId,
+                events: endpoint.events,
+                enabled: endpoint.enabled,
+            },
+        });
+    } catch (error) {
+        console.error('[Webhooks] Create endpoint error:', error);
+        res.status(500).json({ error: 'Failed to create webhook endpoint' });
+    }
+});
+
+/**
+ * Get webhook events for a project
+ * GET /api/webhooks/events/:projectId
+ */
+router.get('/events/:projectId', async (req: Request, res: Response) => {
+    try {
+        const { projectId } = req.params;
+        const limit = parseInt(req.query.limit as string) || 50;
+
+        const events = await getRecentEvents(projectId, limit);
+        
+        res.json({
+            success: true,
+            events: events.map(e => ({
+                id: e.id,
+                integrationId: e.integrationId,
+                eventType: e.eventType,
+                receivedAt: e.receivedAt,
+                status: e.status,
+                attempts: e.attempts,
+            })),
+        });
+    } catch (error) {
+        console.error('[Webhooks] Get events error:', error);
+        res.status(500).json({ error: 'Failed to get webhook events' });
+    }
+});
+
+/**
+ * Dynamic integration webhook receiver
+ * POST /api/webhooks/:projectId/:integrationId/:secret
+ *
+ * This is the endpoint that integrations like Stripe call when events occur.
+ * The secret is part of the URL for additional security.
+ */
+router.post('/:projectId/:integrationId/:secret', async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    
+    try {
+        const { projectId, integrationId, secret } = req.params;
+
+        // Verify endpoint exists
+        const endpoint = await getWebhookEndpoint(projectId, integrationId);
+        
+        if (!endpoint) {
+            console.warn(`[Webhooks] Unknown endpoint: ${projectId}/${integrationId}`);
+            return res.status(404).json({ error: 'Webhook endpoint not found' });
+        }
+
+        // Verify secret in URL
+        if (endpoint.secret !== secret) {
+            console.warn(`[Webhooks] Invalid secret for ${projectId}/${integrationId}`);
+            return res.status(401).json({ error: 'Invalid webhook secret' });
+        }
+
+        // Verify endpoint is enabled
+        if (!endpoint.enabled) {
+            console.warn(`[Webhooks] Disabled endpoint: ${projectId}/${integrationId}`);
+            return res.status(403).json({ error: 'Webhook endpoint disabled' });
+        }
+
+        // Get signature from integration-specific header
+        const signatureHeaders: Record<string, string> = {
+            stripe: 'stripe-signature',
+            github: 'x-hub-signature-256',
+            supabase: 'x-supabase-signature',
+            clerk: 'svix-signature',
+            default: 'x-webhook-signature',
+        };
+        const signatureHeader = signatureHeaders[integrationId] || signatureHeaders.default;
+        const signature = req.headers[signatureHeader] as string;
+
+        // Verify signature if provided
+        if (signature) {
+            const rawBody = JSON.stringify(req.body);
+            const verification = verifySignature(integrationId, rawBody, signature, endpoint.secret);
+            
+            if (!verification.valid) {
+                console.warn(`[Webhooks] Signature verification failed for ${integrationId}: ${verification.error}`);
+                return res.status(401).json({ error: 'Invalid webhook signature' });
+            }
+        }
+
+        // Parse event type from payload (integration-specific)
+        let eventType = 'unknown';
+        if (integrationId === 'stripe' && req.body.type) {
+            eventType = req.body.type;
+        } else if (integrationId === 'github' && req.headers['x-github-event']) {
+            eventType = req.headers['x-github-event'] as string;
+        } else if (req.body.event || req.body.eventType || req.body.type) {
+            eventType = req.body.event || req.body.eventType || req.body.type;
+        }
+
+        // Store event
+        const event = await storeWebhookEvent(
+            endpoint.id,
+            projectId,
+            integrationId,
+            eventType,
+            req.body
+        );
+
+        // Process event asynchronously
+        processWebhookEvent(event.id).catch(err => {
+            console.error(`[Webhooks] Async processing failed for ${event.id}:`, err);
+        });
+
+        const duration = Date.now() - startTime;
+        console.log(`[Webhooks] Received ${integrationId}:${eventType} for ${projectId} (${duration}ms)`);
+
+        // Return success quickly
+        res.status(200).json({
+            received: true,
+            eventId: event.id,
+        });
+    } catch (error) {
+        console.error('[Webhooks] Integration webhook error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 export default router;
