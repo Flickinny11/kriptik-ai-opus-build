@@ -612,3 +612,40 @@ DEPLOYMENT STATUS:
 
 NEXT: UI/UX polish or feature work
 
+
+═══ 2026-01-14T02:30:00Z ═══
+COMPLETED: Credential submission flow from notifications
+FILES MODIFIED:
+  - server/src/routes/notifications.ts (added submit-credentials endpoint)
+  - server/src/services/credentials/credential-integration-service.ts (NEW)
+  - src/components/dashboard/NotificationsSection.tsx (credential input form)
+CURRENT STATE: Build successful, deployed to production (99c6865)
+NEXT: Test credential flow end-to-end in production
+
+IMPLEMENTATION DETAILS:
+
+Backend (notifications.ts):
+- POST /:id/submit-credentials - receives credentials from notification modal
+- Validates and stores credentials via credential-env-bridge
+- Triggers credential-integration-service for programmatic setup
+- Signals paused builds to resume via execute route
+- Sends success notification when complete
+
+Credential Integration Service (NEW):
+- Automatic integration setup after credentials saved
+- Stripe: Creates webhooks via Stripe API, generates handler code
+- Generic: Uses Claude AI to generate integration code
+- Programmatic API calls (no manual setup required)
+- Stores webhook secrets automatically in .env
+
+Frontend (NotificationsSection.tsx):
+- Credential form shows when notification type = 'credentials_needed'
+- Labeled input fields for each required credential
+- "Get from {platform}" link to credential source
+- "Save & Resume Build" button with loading state
+- Success/error feedback, auto-refresh on save
+
+CONTEXT: Users can now provide credentials directly from dashboard
+notifications without navigating to builder view. Credentials are
+automatically integrated (webhooks created, code generated, secrets
+stored) and paused builds resume automatically.

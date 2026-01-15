@@ -9,12 +9,15 @@
  * - Smooth animations
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { DevToolbarIcon, type ToolbarIconName } from './DevToolbarIcons';
 import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { useParams } from 'react-router-dom';
 import './dev-toolbar-panel.css';
+
+// Lazy load the Open Source Studio component for better performance
+const OpenSourceStudio = lazy(() => import('../open-source-studio/OpenSourceStudio').then(m => ({ default: m.OpenSourceStudio })));
 
 interface DevToolbarPanelProps {
   featureId: string;
@@ -29,9 +32,9 @@ interface DevToolbarPanelProps {
 
 // Panel size constraints
 const MIN_WIDTH = 320;
-const MAX_WIDTH = 800;
+const MAX_WIDTH = 1000; // Increased for Open Source Studio
 const MIN_HEIGHT = 300;
-const MAX_HEIGHT = 700;
+const MAX_HEIGHT = 800; // Increased for Open Source Studio
 
 // Resize edge types
 type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | null;
@@ -49,8 +52,9 @@ export function DevToolbarPanel({
   // Default sizes based on panel type
   const getDefaultSize = () => {
     switch (featureId) {
+      case 'open-source-studio':
+        return { width: 780, height: 680 }; // Large panel for Open Source Studio
       case 'feature-agents':
-      case 'ai-lab':
         return { width: 560, height: 600 };
       case 'health':
       case 'quality':
@@ -149,6 +153,8 @@ export function DevToolbarPanel({
     switch (featureId) {
       case 'feature-agents':
         return <FeatureAgentsPanelContent />;
+      case 'open-source-studio':
+        return <OpenSourceStudioPanelContent />;
       case 'health':
         return <HealthPanelContent />;
       case 'database':
@@ -157,8 +163,6 @@ export function DevToolbarPanel({
         return <MemoryPanelContent />;
       case 'dna':
         return <DNAPanelContent />;
-      case 'ai-lab':
-        return <AILabPanelContent />;
       case 'quality':
         return <QualityPanelContent />;
       case 'voice':
@@ -267,6 +271,34 @@ export function DevToolbarPanel({
 function FeatureAgentsPanelContent() {
   const { projectId } = useParams();
   return <FeatureAgentCommandCenter projectId={projectId || undefined} />;
+}
+
+function OpenSourceStudioPanelContent() {
+  return (
+    <Suspense fallback={
+      <div className="panel-placeholder" style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        gap: 12,
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 13,
+      }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="50 20" />
+        </svg>
+        Loading Open Source Studio...
+      </div>
+    }>
+      <div style={{ 
+        height: '100%', 
+        overflow: 'auto',
+        background: 'transparent',
+      }}>
+        <OpenSourceStudio />
+      </div>
+    </Suspense>
+  );
 }
 
 function HealthPanelContent() {
@@ -529,48 +561,7 @@ function DNAPanelContent() {
   );
 }
 
-function AILabPanelContent() {
-  const [experiments] = useState([
-    { name: 'Prompt Optimization', status: 'running', progress: 67 },
-    { name: 'Model Fine-tuning', status: 'queued', progress: 0 },
-    { name: 'A/B Test: UI Gen', status: 'complete', progress: 100 },
-  ]);
-
-  return (
-    <div className="panel-ai-lab">
-      <div className="panel-ai-lab__experiments">
-        {experiments.map((exp, i) => (
-          <motion.div
-            key={exp.name}
-            className={`panel-ai-lab__experiment panel-ai-lab__experiment--${exp.status}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-          >
-            <div className="panel-ai-lab__experiment-header">
-              <span className="panel-ai-lab__experiment-name">{exp.name}</span>
-              <span className={`panel-ai-lab__experiment-status panel-ai-lab__experiment-status--${exp.status}`}>
-                {exp.status}
-              </span>
-            </div>
-            {exp.status !== 'queued' && (
-              <div className="panel-ai-lab__experiment-progress">
-                <motion.div
-                  className="panel-ai-lab__experiment-progress-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${exp.progress}%` }}
-                  transition={{ duration: 1 }}
-                />
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-
-      <button className="panel-ai-lab__btn">New Experiment</button>
-    </div>
-  );
-}
+// AILabPanelContent removed - AI Lab is now a tab within OpenSourceStudio
 
 function QualityPanelContent() {
   const [scores] = useState({

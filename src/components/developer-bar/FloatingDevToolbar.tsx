@@ -27,12 +27,11 @@ export interface ToolbarButton {
 
 const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { id: 'feature-agents', name: 'Feature Agents', icon: 'featureAgents', tooltip: 'Manage parallel AI agents' },
-  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', tooltip: 'HuggingFace models, training & deployment' },
+  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', tooltip: 'HuggingFace, AI Lab, Training & Deploy' },
   { id: 'health', name: 'Health', icon: 'health', tooltip: 'Real-time system health' },
   { id: 'database', name: 'Database', icon: 'database', tooltip: 'Database explorer & queries' },
   { id: 'memory', name: 'Memory', icon: 'memory', tooltip: 'AI memory & context' },
   { id: 'dna', name: 'DNA', icon: 'dna', tooltip: 'App DNA & architecture' },
-  { id: 'ai-lab', name: 'AI Lab', icon: 'aiLab', tooltip: 'AI experimentation lab' },
   { id: 'quality', name: 'Quality', icon: 'quality', tooltip: 'Code quality metrics' },
   { id: 'voice', name: 'Voice', icon: 'voice', tooltip: 'Voice commands' },
   { id: 'self-heal', name: 'Self Heal', icon: 'selfHeal', tooltip: 'Auto-fix & recovery' },
