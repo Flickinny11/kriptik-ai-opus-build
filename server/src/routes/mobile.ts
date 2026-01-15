@@ -330,6 +330,17 @@ const oauthStates = new Map<string, {
   expiresAt: Date;
 }>();
 
+// In-memory store for GitHub Device Flow (in production, use Redis)
+const githubDeviceCodes = new Map<string, {
+  deviceCode: string;
+  userCode: string;
+  verificationUri: string;
+  expiresIn: number;
+  interval: number;
+  createdAt: Date;
+  expiresAt: Date;
+}>();
+
 // Clean up expired OAuth states every minute
 setInterval(() => {
   const now = new Date();
@@ -338,20 +349,332 @@ setInterval(() => {
       oauthStates.delete(state);
     }
   }
+  // Clean up expired device codes
+  for (const [id, data] of githubDeviceCodes.entries()) {
+    if (data.expiresAt < now) {
+      githubDeviceCodes.delete(id);
+    }
+  }
 }, 60000);
 
+// =============================================================================
+// GITHUB DEVICE FLOW (Recommended for mobile apps)
+// =============================================================================
+
 /**
- * Start OAuth flow for mobile
+ * Start GitHub Device Flow
+ * POST /api/mobile/auth/github/device
+ * 
+ * Returns a user_code that the user enters at github.com/login/device
+ * This is the proper OAuth flow for mobile/CLI apps
+ */
+router.post('/auth/github/device', async (req: Request, res: Response) => {
+  try {
+    const clientId = process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID;
+    
+    if (!clientId) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'GitHub OAuth not configured' 
+      });
+    }
+
+    // Request device and user codes from GitHub
+    const response = await fetch('https://github.com/login/device/code', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        scope: 'user:email',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('[GitHub Device Flow] Error:', data);
+      return res.status(400).json({
+        success: false,
+        error: data.error_description || data.error,
+      });
+    }
+
+    // Store the device code for polling
+    const flowId = crypto.randomBytes(16).toString('hex');
+    const now = new Date();
+    
+    githubDeviceCodes.set(flowId, {
+      deviceCode: data.device_code,
+      userCode: data.user_code,
+      verificationUri: data.verification_uri,
+      expiresIn: data.expires_in,
+      interval: data.interval || 5,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + data.expires_in * 1000),
+    });
+
+    console.log(`[GitHub Device Flow] Started for flow: ${flowId}, user_code: ${data.user_code}`);
+
+    res.json({
+      success: true,
+      flowId,
+      userCode: data.user_code,
+      verificationUri: data.verification_uri,
+      verificationUriComplete: `${data.verification_uri}?code=${data.user_code}`,
+      expiresIn: data.expires_in,
+      interval: data.interval || 5,
+      instructions: `Go to ${data.verification_uri} and enter code: ${data.user_code}`,
+    });
+  } catch (error) {
+    console.error('[GitHub Device Flow] Error starting flow:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start GitHub authentication',
+    });
+  }
+});
+
+/**
+ * Poll GitHub Device Flow status
+ * POST /api/mobile/auth/github/device/poll
+ * 
+ * The mobile app calls this repeatedly until the user authorizes
+ */
+router.post('/auth/github/device/poll', async (req: Request, res: Response) => {
+  try {
+    const { flowId } = req.body;
+
+    if (!flowId) {
+      return res.status(400).json({
+        success: false,
+        error: 'flowId is required',
+      });
+    }
+
+    const flowData = githubDeviceCodes.get(flowId);
+    if (!flowData) {
+      return res.status(404).json({
+        success: false,
+        error: 'expired',
+        message: 'Flow not found or expired. Please start a new authentication.',
+      });
+    }
+
+    // Check if expired
+    if (flowData.expiresAt < new Date()) {
+      githubDeviceCodes.delete(flowId);
+      return res.status(410).json({
+        success: false,
+        error: 'expired',
+        message: 'Authentication flow expired. Please start again.',
+      });
+    }
+
+    const clientId = process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID;
+
+    // Poll GitHub for access token
+    const response = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        device_code: flowData.deviceCode,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+      }),
+    });
+
+    const data = await response.json();
+
+    // Handle different response states
+    if (data.error === 'authorization_pending') {
+      // User hasn't authorized yet - keep polling
+      return res.json({
+        success: false,
+        status: 'pending',
+        message: 'Waiting for user to authorize...',
+        interval: flowData.interval,
+      });
+    }
+
+    if (data.error === 'slow_down') {
+      // Polling too fast
+      return res.json({
+        success: false,
+        status: 'slow_down',
+        message: 'Please slow down polling',
+        interval: (flowData.interval || 5) + 5,
+      });
+    }
+
+    if (data.error === 'expired_token') {
+      githubDeviceCodes.delete(flowId);
+      return res.status(410).json({
+        success: false,
+        error: 'expired',
+        message: 'The device code has expired. Please start again.',
+      });
+    }
+
+    if (data.error === 'access_denied') {
+      githubDeviceCodes.delete(flowId);
+      return res.status(403).json({
+        success: false,
+        error: 'denied',
+        message: 'User denied the authorization request.',
+      });
+    }
+
+    if (data.error) {
+      console.error('[GitHub Device Flow] Poll error:', data);
+      return res.status(400).json({
+        success: false,
+        error: data.error,
+        message: data.error_description || 'Authentication failed',
+      });
+    }
+
+    // Success! We have an access token
+    if (data.access_token) {
+      // Clean up the device code
+      githubDeviceCodes.delete(flowId);
+
+      // Get user info from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+          'User-Agent': 'KripTik-Mobile',
+        },
+      });
+      const githubUser = await userResponse.json();
+
+      // Get email if not public
+      let email = githubUser.email;
+      if (!email) {
+        const emailsResponse = await fetch('https://api.github.com/user/emails', {
+          headers: {
+            Authorization: `Bearer ${data.access_token}`,
+            'User-Agent': 'KripTik-Mobile',
+          },
+        });
+        const emails = await emailsResponse.json();
+        const primaryEmail = emails.find((e: any) => e.primary) || emails[0];
+        email = primaryEmail?.email;
+      }
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: 'no_email',
+          message: 'Could not retrieve email from GitHub account',
+        });
+      }
+
+      // Find or create user
+      let [existingUser] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+
+      if (!existingUser) {
+        const userId = crypto.randomUUID();
+        const now = new Date();
+
+        await db.insert(users).values({
+          id: userId,
+          email: email.toLowerCase(),
+          name: githubUser.name || githubUser.login,
+          image: githubUser.avatar_url,
+          emailVerified: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        existingUser = {
+          id: userId,
+          email: email.toLowerCase(),
+          name: githubUser.name || githubUser.login,
+          image: githubUser.avatar_url,
+          emailVerified: true,
+          createdAt: now,
+          updatedAt: now,
+          password: null,
+        };
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        { userId: existingUser.id, email: existingUser.email, type: 'mobile' },
+        MOBILE_JWT_SECRET,
+        { expiresIn: MOBILE_TOKEN_EXPIRY }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: existingUser.id, type: 'refresh' },
+        MOBILE_JWT_SECRET,
+        { expiresIn: '90d' }
+      );
+
+      console.log(`[GitHub Device Flow] Auth successful for: ${existingUser.email}`);
+
+      return res.json({
+        success: true,
+        status: 'complete',
+        user: {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          avatar: existingUser.image,
+          createdAt: existingUser.createdAt,
+        },
+        accessToken,
+        refreshToken,
+      });
+    }
+
+    // Unexpected response
+    console.error('[GitHub Device Flow] Unexpected response:', data);
+    res.status(500).json({
+      success: false,
+      error: 'unexpected_response',
+      message: 'Unexpected response from GitHub',
+    });
+  } catch (error) {
+    console.error('[GitHub Device Flow] Poll error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'poll_failed',
+      message: 'Failed to check authorization status',
+    });
+  }
+});
+
+// =============================================================================
+// GOOGLE OAUTH (Web redirect flow - required for Google on mobile)
+// =============================================================================
+
+/**
+ * Start OAuth flow for mobile (Google only - GitHub uses Device Flow above)
  * GET /api/mobile/auth/oauth/start/:provider
  * 
- * This redirects the user to the OAuth provider (Google/GitHub)
+ * This redirects the user to Google OAuth
  * After auth, they'll be redirected back to /api/mobile/auth/oauth/callback
  */
 router.get('/auth/oauth/start/:provider', (req: Request, res: Response) => {
   const { provider } = req.params;
   
-  if (provider !== 'google' && provider !== 'github') {
-    return res.status(400).json({ success: false, error: 'Invalid provider' });
+  if (provider !== 'google') {
+    // For GitHub, redirect to device flow instructions
+    if (provider === 'github') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Use POST /api/mobile/auth/github/device for GitHub authentication',
+        message: 'GitHub uses Device Flow for mobile apps. Start the flow via POST request.',
+      });
+    }
+    return res.status(400).json({ success: false, error: 'Invalid provider. Use "google".' });
   }
 
   // Generate unique state for CSRF protection
@@ -360,60 +683,45 @@ router.get('/auth/oauth/start/:provider', (req: Request, res: Response) => {
   // Store state with 10 minute expiry
   const now = new Date();
   oauthStates.set(state, {
-    provider,
+    provider: 'google',
     redirectUri: 'kriptik://auth/callback',
     createdAt: now,
     expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
   });
 
-  // Get OAuth credentials from environment
-  // IMPORTANT: GitHub requires separate OAuth apps for web vs mobile (different callback URLs)
-  // Mobile uses GITHUB_MOBILE_CLIENT_ID, falls back to regular GITHUB_CLIENT_ID
-  const clientId = provider === 'google' 
-    ? (process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID)
-    : (process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID);
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID;
 
   if (!clientId) {
-    return res.status(500).json({ success: false, error: `${provider} OAuth not configured` });
+    return res.status(500).json({ success: false, error: 'Google OAuth not configured' });
   }
 
   // Build OAuth URL
   const backendUrl = process.env.BETTER_AUTH_URL || 'https://api.kriptik.app';
   const callbackUrl = `${backendUrl}/api/mobile/auth/oauth/callback`;
   
-  let authUrl: string;
-  
-  if (provider === 'google') {
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: callbackUrl,
-      response_type: 'code',
-      scope: 'openid email profile',
-      state,
-      access_type: 'offline',
-      prompt: 'consent',
-    });
-    authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  } else {
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: callbackUrl,
-      scope: 'user:email',
-      state,
-    });
-    authUrl = `https://github.com/login/oauth/authorize?${params}`;
-  }
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: callbackUrl,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 
-  console.log(`[Mobile OAuth] Starting ${provider} auth, redirecting to: ${authUrl}`);
+  console.log(`[Mobile OAuth] Starting Google auth, redirecting to: ${authUrl}`);
   res.redirect(authUrl);
 });
 
 /**
- * OAuth callback handler for mobile
+ * OAuth callback handler for mobile (Google only)
  * GET /api/mobile/auth/oauth/callback
  * 
- * After OAuth completes, this exchanges the code for tokens
+ * After Google OAuth completes, this exchanges the code for tokens
  * and redirects to the mobile app with JWT tokens
+ * 
+ * Note: GitHub uses Device Flow, not this callback
  */
 router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
   try {
@@ -441,109 +749,48 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
       return res.redirect('kriptik://auth/callback?error=state_expired');
     }
 
-    const { provider } = stateData;
+    // This callback only handles Google now (GitHub uses Device Flow)
+    if (stateData.provider !== 'google') {
+      return res.redirect('kriptik://auth/callback?error=invalid_provider');
+    }
+
     const backendUrl = process.env.BETTER_AUTH_URL || 'https://api.kriptik.app';
     const callbackUrl = `${backendUrl}/api/mobile/auth/oauth/callback`;
 
-    let userInfo: { id: string; email: string; name: string; avatar?: string } | null = null;
+    // Exchange code for tokens
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET;
 
-    if (provider === 'google') {
-      // Exchange code for tokens
-      const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID || process.env.AUTH_GOOGLE_ID;
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET;
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: code as string,
+        client_id: clientId!,
+        client_secret: clientSecret!,
+        redirect_uri: callbackUrl,
+        grant_type: 'authorization_code',
+      }),
+    });
 
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code: code as string,
-          client_id: clientId!,
-          client_secret: clientSecret!,
-          redirect_uri: callbackUrl,
-          grant_type: 'authorization_code',
-        }),
-      });
-
-      const tokens = await tokenResponse.json();
-      if (tokens.error) {
-        console.error('[Mobile OAuth] Google token error:', tokens);
-        return res.redirect(`kriptik://auth/callback?error=token_exchange_failed`);
-      }
-
-      // Get user info
-      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${tokens.access_token}` },
-      });
-      const googleUser = await userResponse.json();
-
-      userInfo = {
-        id: `google_${googleUser.id}`,
-        email: googleUser.email,
-        name: googleUser.name || googleUser.email.split('@')[0],
-        avatar: googleUser.picture,
-      };
-    } else if (provider === 'github') {
-      // Exchange code for tokens
-      // IMPORTANT: Use mobile-specific GitHub OAuth app (different callback URL required)
-      const clientId = process.env.GITHUB_MOBILE_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID || process.env.AUTH_GITHUB_ID;
-      const clientSecret = process.env.GITHUB_MOBILE_CLIENT_SECRET || process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET || process.env.AUTH_GITHUB_SECRET;
-
-      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code as string,
-          client_id: clientId,
-          client_secret: clientSecret,
-        }),
-      });
-
-      const tokens = await tokenResponse.json();
-      if (tokens.error) {
-        console.error('[Mobile OAuth] GitHub token error:', tokens);
-        return res.redirect(`kriptik://auth/callback?error=token_exchange_failed`);
-      }
-
-      // Get user info
-      const userResponse = await fetch('https://api.github.com/user', {
-        headers: { 
-          Authorization: `Bearer ${tokens.access_token}`,
-          'User-Agent': 'KripTik-Mobile',
-        },
-      });
-      const githubUser = await userResponse.json();
-
-      // Get email if not public
-      let email = githubUser.email;
-      if (!email) {
-        const emailsResponse = await fetch('https://api.github.com/user/emails', {
-          headers: { 
-            Authorization: `Bearer ${tokens.access_token}`,
-            'User-Agent': 'KripTik-Mobile',
-          },
-        });
-        const emails = await emailsResponse.json();
-        const primaryEmail = emails.find((e: any) => e.primary) || emails[0];
-        email = primaryEmail?.email;
-      }
-
-      userInfo = {
-        id: `github_${githubUser.id}`,
-        email: email,
-        name: githubUser.name || githubUser.login,
-        avatar: githubUser.avatar_url,
-      };
+    const tokens = await tokenResponse.json();
+    if (tokens.error) {
+      console.error('[Mobile OAuth] Google token error:', tokens);
+      return res.redirect(`kriptik://auth/callback?error=token_exchange_failed&details=${encodeURIComponent(tokens.error_description || tokens.error)}`);
     }
 
-    if (!userInfo || !userInfo.email) {
-      return res.redirect('kriptik://auth/callback?error=no_user_info');
+    // Get user info
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    const googleUser = await userResponse.json();
+
+    if (!googleUser.email) {
+      return res.redirect('kriptik://auth/callback?error=no_email');
     }
 
     // Find or create user in database
-    let [existingUser] = await db.select().from(users).where(eq(users.email, userInfo.email.toLowerCase())).limit(1);
+    let [existingUser] = await db.select().from(users).where(eq(users.email, googleUser.email.toLowerCase())).limit(1);
 
     if (!existingUser) {
       // Create new user
@@ -552,9 +799,9 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
 
       await db.insert(users).values({
         id: userId,
-        email: userInfo.email.toLowerCase(),
-        name: userInfo.name,
-        image: userInfo.avatar,
+        email: googleUser.email.toLowerCase(),
+        name: googleUser.name || googleUser.email.split('@')[0],
+        image: googleUser.picture,
         emailVerified: true,
         createdAt: now,
         updatedAt: now,
@@ -562,9 +809,9 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
 
       existingUser = {
         id: userId,
-        email: userInfo.email.toLowerCase(),
-        name: userInfo.name,
-        image: userInfo.avatar,
+        email: googleUser.email.toLowerCase(),
+        name: googleUser.name || googleUser.email.split('@')[0],
+        image: googleUser.picture,
         emailVerified: true,
         createdAt: now,
         updatedAt: now,
@@ -585,7 +832,7 @@ router.get('/auth/oauth/callback', async (req: Request, res: Response) => {
       { expiresIn: '90d' }
     );
 
-    console.log(`[Mobile OAuth] ${provider} auth successful for: ${existingUser.email}`);
+    console.log(`[Mobile OAuth] Google auth successful for: ${existingUser.email}`);
 
     // Redirect to mobile app with tokens
     const mobileRedirect = `kriptik://auth/callback?` + new URLSearchParams({

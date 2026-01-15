@@ -1,8 +1,9 @@
 # Deployment Trigger File
 # This file exists solely to force Vercel to detect changes in the server/ directory
 # Created: 2025-12-08T15:40:00Z
-# Updated: 2026-01-14T23:38:00Z
+# Updated: 2026-01-15T08:15:00Z
 #
+# Added GitHub Device Flow for mobile OAuth (proper mobile auth pattern)
 # CRITICAL UPDATE: Mobile authentication endpoints added
 # - /api/mobile/auth/login - JWT-based email/password login
 # - /api/mobile/auth/signup - User registration with JWT tokens
