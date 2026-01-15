@@ -266,39 +266,34 @@ function PremiumNotificationCard({
       )}
       style={{
         borderRadius: 18,
-        // TRANSLUCENT liquid glass - see through
+        // TRUE TRANSLUCENT liquid glass
         background: hasScreenshot
-          ? 'linear-gradient(145deg, rgba(30,30,35,0.85) 0%, rgba(20,20,25,0.9) 100%)'
+          ? 'linear-gradient(145deg, rgba(20,20,25,0.7) 0%, rgba(15,15,20,0.8) 100%)'
           : notification.read
-            ? 'linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(252,254,255,0.35) 50%, rgba(248,250,252,0.4) 100%)'
-            : 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(252,254,255,0.55) 50%, rgba(248,250,252,0.6) 100%)',
-        backdropFilter: 'blur(20px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(150%)',
+            ? 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
         border: notification.read
-          ? '1px solid rgba(255,255,255,0.3)'
-          : '1px solid rgba(255,255,255,0.6)',
+          ? '1px solid rgba(255,255,255,0.08)'
+          : '1px solid rgba(255,255,255,0.15)',
         // Layered 3D shadows for depth
         boxShadow: hasScreenshot
           ? `
-            0 16px 48px rgba(0,0,0,0.25),
-            0 8px 24px rgba(0,0,0,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 16px 48px rgba(0,0,0,0.3),
+            0 8px 24px rgba(0,0,0,0.2),
+            inset 0 1px 0 rgba(255,255,255,0.1),
             0 0 30px ${c.glow}
           `
           : notification.read
             ? `
-              0 4px 16px rgba(0,0,0,0.06),
-              0 2px 6px rgba(0,0,0,0.04),
-              inset 0 1px 2px rgba(255,255,255,0.6),
-              0 0 0 1px rgba(255,255,255,0.2)
+              0 4px 16px rgba(0,0,0,0.15),
+              inset 0 1px 1px rgba(255,255,255,0.1)
             `
             : `
-              0 10px 30px rgba(0,0,0,0.1),
-              0 5px 15px rgba(0,0,0,0.06),
-              0 2px 6px rgba(0,0,0,0.04),
-              inset 0 2px 4px rgba(255,255,255,0.8),
-              inset 0 -1px 2px rgba(0,0,0,0.02),
-              0 0 0 1px rgba(255,255,255,0.5),
+              0 10px 30px rgba(0,0,0,0.2),
+              0 5px 15px rgba(0,0,0,0.12),
+              inset 0 1px 1px rgba(255,255,255,0.15),
               0 0 25px ${typeGlowColor}
             `,
         transform: 'perspective(500px) rotateX(-0.5deg)',
@@ -383,9 +378,9 @@ function PremiumNotificationCard({
               right: 12,
               padding: '3px 10px',
               borderRadius: 6,
-              background: hasScreenshot ? 'rgba(200,255,100,0.18)' : 'rgba(245,168,108,0.12)',
-              border: hasScreenshot ? '1px solid rgba(200,255,100,0.28)' : '1px solid rgba(245,168,108,0.22)',
-              color: hasScreenshot ? '#c8ff64' : '#1a1a1a',
+              background: hasScreenshot ? 'rgba(200,255,100,0.18)' : 'rgba(245,168,108,0.25)',
+              border: hasScreenshot ? '1px solid rgba(200,255,100,0.28)' : '1px solid rgba(245,168,108,0.35)',
+              color: hasScreenshot ? '#c8ff64' : '#ffb080',
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: '0.05em',
@@ -403,9 +398,10 @@ function PremiumNotificationCard({
               fontWeight: 850,
               fontSize: 14,
               letterSpacing: '-0.02em',
-              color: hasScreenshot ? 'rgba(255,255,255,0.95)' : '#1a1a1a',
+              color: 'rgba(255,255,255,0.95)',
               marginBottom: 6,
               marginTop: hasScreenshot ? -8 : 0,
+              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
             }}
           >
             {notification.title}
@@ -414,7 +410,7 @@ function PremiumNotificationCard({
             style={{
               fontSize: 12,
               lineHeight: 1.45,
-              color: hasScreenshot ? 'rgba(255,255,255,0.65)' : '#404040',
+              color: 'rgba(255,255,255,0.7)',
               marginBottom: 12,
               display: '-webkit-box',
               WebkitLineClamp: 2,
@@ -442,9 +438,9 @@ function PremiumNotificationCard({
                   gap: 6,
                   padding: '4px 10px',
                   borderRadius: 8,
-                  background: hasScreenshot ? 'rgba(47,201,121,0.12)' : 'rgba(47,201,121,0.08)',
-                  border: '1px solid rgba(47,201,121,0.22)',
-                  color: '#2FC979',
+                  background: 'rgba(47,201,121,0.2)',
+                  border: '1px solid rgba(47,201,121,0.3)',
+                  color: '#5de0a0',
                   fontSize: 11,
                   fontWeight: 700,
                 }}
@@ -457,7 +453,7 @@ function PremiumNotificationCard({
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: hasScreenshot ? 'rgba(255,255,255,0.5)' : '#666',
+                    color: 'rgba(255,255,255,0.6)',
                   }}
                 >
                   Score: {Math.round(notification.metadata.verificationScore)}%
@@ -478,7 +474,7 @@ function PremiumNotificationCard({
             <div
               style={{
                 fontSize: 11,
-                color: hasScreenshot ? 'rgba(255,255,255,0.4)' : '#888',
+                color: 'rgba(255,255,255,0.5)',
               }}
             >
               {formatRelative(notification.createdAt)}
@@ -498,29 +494,25 @@ function PremiumNotificationCard({
                   gap: 8,
                   padding: '9px 16px',
                   borderRadius: 12,
-                  // Liquid glass 3D gradient
+                  // Liquid glass 3D gradient - translucent
                   background: hasScreenshot 
-                    ? 'linear-gradient(145deg, rgba(200,255,100,0.2) 0%, rgba(180,240,80,0.12) 50%, rgba(160,220,60,0.15) 100%)'
-                    : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(252,254,255,0.7) 50%, rgba(248,250,252,0.75) 100%)',
+                    ? 'linear-gradient(145deg, rgba(200,255,100,0.2) 0%, rgba(180,240,80,0.12) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.1) 100%)',
                   border: hasScreenshot 
                     ? '1px solid rgba(200,255,100,0.35)' 
-                    : '1px solid rgba(255,255,255,0.8)',
+                    : '1px solid rgba(255,255,255,0.2)',
                   // Layered 3D shadows
                   boxShadow: hasScreenshot
                     ? `
-                      0 6px 20px rgba(0,0,0,0.15),
-                      0 3px 8px rgba(0,0,0,0.1),
-                      inset 0 1px 2px rgba(255,255,255,0.2),
+                      0 6px 20px rgba(0,0,0,0.2),
+                      inset 0 1px 1px rgba(255,255,255,0.2),
                       0 0 20px rgba(200,255,100,0.15)
                     `
                     : `
-                      0 6px 20px rgba(0,0,0,0.08),
-                      0 3px 8px rgba(0,0,0,0.05),
-                      inset 0 2px 4px rgba(255,255,255,1),
-                      inset 0 -1px 2px rgba(0,0,0,0.02),
-                      0 0 0 1px rgba(255,255,255,0.5)
+                      0 6px 20px rgba(0,0,0,0.2),
+                      inset 0 1px 1px rgba(255,255,255,0.15)
                     `,
-                  color: hasScreenshot ? '#c8ff64' : '#1a1a1a',
+                  color: hasScreenshot ? '#c8ff64' : 'rgba(255,255,255,0.95)',
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -550,10 +542,10 @@ function PremiumNotificationCard({
           right: notification.read ? 12 : 80,
           padding: 6,
           borderRadius: 8,
-          background: hasScreenshot ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.1)',
           backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          color: hasScreenshot ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          color: 'rgba(255,255,255,0.6)',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
         }}
@@ -567,7 +559,7 @@ function PremiumNotificationCard({
           position: 'absolute',
           inset: '0 0 auto 0',
           height: 1,
-          background: `linear-gradient(90deg, transparent, ${hasScreenshot ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.5)'}, transparent)`,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
         }}
       />
     </motion.div>
@@ -1182,22 +1174,22 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
           borderRadius: 24,
           zIndex: 70,
           
-          // TRANSLUCENT liquid glass - see through effect
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(252,254,255,0.55) 30%, rgba(248,252,255,0.6) 60%, rgba(245,250,254,0.5) 100%)',
-          backdropFilter: 'blur(40px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          // TRUE LIQUID GLASS - very low opacity, blur does the work
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(240,245,250,0.08) 50%, rgba(230,240,248,0.1) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           
           // Multi-layer 3D liquid glass shadow with depth
           boxShadow: `
-            0 30px 100px rgba(0,0,0,0.22),
-            0 20px 60px rgba(0,0,0,0.15),
-            0 10px 30px rgba(0,0,0,0.1),
-            0 4px 12px rgba(0,0,0,0.06),
-            inset 0 2px 4px rgba(255,255,255,0.9),
-            inset 0 -2px 6px rgba(0,0,0,0.03),
-            0 0 0 1px rgba(255,255,255,0.6),
-            0 0 80px rgba(180,200,220,0.2)
+            0 30px 100px rgba(0,0,0,0.25),
+            0 20px 60px rgba(0,0,0,0.18),
+            0 10px 30px rgba(0,0,0,0.12),
+            inset 0 1px 1px rgba(255,255,255,0.4),
+            inset 0 -1px 1px rgba(0,0,0,0.1),
+            0 0 0 1px rgba(255,255,255,0.2),
+            0 0 60px rgba(100,150,200,0.1)
           `,
+          border: '1px solid rgba(255,255,255,0.15)',
         }}
       >
         {/* Top edge highlight - glass reflection */}
@@ -1205,22 +1197,23 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
           style={{
             position: 'absolute',
             top: 0,
-            left: '5%',
-            right: '5%',
+            left: '10%',
+            right: '10%',
             height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+            pointerEvents: 'none',
           }}
         />
         
-        {/* Glass shine overlay */}
+        {/* Glass shine overlay - very subtle */}
         <div
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            height: '50%',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)',
+            height: '40%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%)',
             pointerEvents: 'none',
             borderRadius: '24px 24px 0 0',
           }}
@@ -1234,8 +1227,8 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 14,
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.15) 100%)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
             position: 'relative',
           }}
         >
@@ -1246,13 +1239,11 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
                 width: 48,
                 height: 48,
                 borderRadius: 16,
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,252,255,0.8) 100%)',
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
                 boxShadow: `
-                  0 8px 24px rgba(0,0,0,0.08),
-                  0 4px 12px rgba(0,0,0,0.04),
-                  inset 0 2px 4px rgba(255,255,255,1),
-                  inset 0 -1px 3px rgba(0,0,0,0.02),
-                  0 0 0 1px rgba(255,255,255,0.7)
+                  0 8px 24px rgba(0,0,0,0.15),
+                  inset 0 1px 1px rgba(255,255,255,0.3),
+                  0 0 0 1px rgba(255,255,255,0.1)
                 `,
                 display: 'flex',
                 alignItems: 'center',
@@ -1265,15 +1256,15 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
             
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ fontWeight: 750, color: '#1a1917', fontSize: 16, letterSpacing: '-0.02em' }}>Notifications</div>
+                <div style={{ fontWeight: 750, color: 'rgba(255,255,255,0.95)', fontSize: 16, letterSpacing: '-0.02em', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>Notifications</div>
                 {unreadCount > 0 && (
                   <div
                     style={{
                       padding: '5px 14px',
                       borderRadius: 999,
-                      background: 'linear-gradient(145deg, rgba(255,90,60,0.18) 0%, rgba(239,68,68,0.1) 100%)',
-                      boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 2px 6px rgba(239,68,68,0.12)',
-                      color: '#c53030',
+                      background: 'linear-gradient(145deg, rgba(255,90,60,0.3) 0%, rgba(239,68,68,0.2) 100%)',
+                      boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+                      color: '#ff8a80',
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -1282,7 +1273,7 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: '#6b6560', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                 Feature Agent events &amp; system alerts
               </div>
             </div>
@@ -1297,18 +1288,18 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
               width: 36,
               height: 36,
               borderRadius: 12,
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,252,255,0.7) 100%)',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)',
               boxShadow: `
-                0 4px 12px rgba(0,0,0,0.06),
-                inset 0 1px 2px rgba(255,255,255,0.9),
-                0 0 0 1px rgba(255,255,255,0.5)
+                0 4px 12px rgba(0,0,0,0.2),
+                inset 0 1px 1px rgba(255,255,255,0.2),
+                0 0 0 1px rgba(255,255,255,0.1)
               `,
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#57534e',
+              color: 'rgba(255,255,255,0.8)',
             }}
             title="Close"
           >
@@ -1319,11 +1310,11 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
         {/* Notification list */}
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
           {initialLoading && (
-            <div style={{ padding: 16, color: '#505050', fontSize: 13, textAlign: 'center' }}>Loading notifications...</div>
+            <div style={{ padding: 16, color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center' }}>Loading notifications...</div>
           )}
 
           {!initialLoading && items.length === 0 && (
-            <div style={{ padding: 20, color: '#606060', fontSize: 13, textAlign: 'center' }}>
+            <div style={{ padding: 20, color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center' }}>
               <div style={{ marginBottom: 8 }}>
                 <Bell3D size={32} hasNotification={false} />
               </div>
