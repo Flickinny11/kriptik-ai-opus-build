@@ -23,7 +23,7 @@ import { HuggingFaceStatus } from './HuggingFaceStatus';
 import { ModelBrowser } from './ModelBrowser';
 import { ModelDock } from './ModelDock';
 import { ModelDetails } from './ModelDetails';
-import { TrainingModule } from './TrainingModule';
+// TrainingModule imported but managed via TrainingWizard now
 import { TrainingConfig, type TrainingParams } from './TrainingConfig';
 import { DatasetSelector, type HuggingFaceDataset } from './DatasetSelector';
 import { TrainingProgress } from './TrainingProgress';
@@ -114,6 +114,84 @@ const PlusIcon = () => (
     <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
+
+// =============================================================================
+// TRAINING PROGRESS WRAPPER (fetches job data and renders TrainingProgress)
+// =============================================================================
+
+function TrainingProgressWrapper({
+  jobId,
+  onComplete
+}: {
+  jobId: string;
+  onComplete: () => void;
+}) {
+  const [status, setStatus] = useState<'queued' | 'provisioning' | 'training' | 'saving' | 'completed' | 'failed' | 'stopped'>('queued');
+  const [metrics, setMetrics] = useState<{ loss: number; epoch: number; step: number; learningRate: number; throughput: number; estimatedTimeRemaining: number; } | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [hubUrl, setHubUrl] = useState<string | undefined>();
+
+  useEffect(() => {
+    // Set up SSE connection to stream training progress with credentials
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    const eventSource = new EventSource(`${baseUrl}/api/training/jobs/${jobId}/stream`, {
+      withCredentials: true
+    });
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.status) setStatus(data.status);
+        if (data.metrics) setMetrics(data.metrics);
+        if (data.log) setLogs(prev => [...prev.slice(-100), data.log]);
+        if (data.hubUrl) setHubUrl(data.hubUrl);
+        if (data.status === 'completed' || data.status === 'failed') {
+          eventSource.close();
+          if (data.status === 'completed') {
+            setTimeout(onComplete, 2000);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse training event:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
+  }, [jobId, onComplete]);
+
+  const handleStop = async () => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      await fetch(`${baseUrl}/api/training/jobs/${jobId}/stop`, { 
+        method: 'POST',
+        credentials: 'include'
+      });
+      setStatus('stopped');
+    } catch (e) {
+      console.error('Failed to stop job:', e);
+    }
+  };
+
+  const handleViewOnHub = () => {
+    if (hubUrl) window.open(hubUrl, '_blank');
+  };
+
+  return (
+    <TrainingProgress
+      jobId={jobId}
+      status={status}
+      metrics={metrics}
+      logs={logs}
+      onStop={handleStop}
+      onViewOnHub={hubUrl ? handleViewOnHub : undefined}
+      hubUrl={hubUrl}
+    />
+  );
+}
 
 // =============================================================================
 // SUB COMPONENTS
@@ -372,8 +450,7 @@ function TrainingTabContent({
           </div>
           <div className="oss-training-config-sidebar">
             <TrainingCostEstimator
-              modelId={selectedModel.modelId}
-              estimatedVRAM={selectedModel.estimatedVRAM || 8}
+              vramRequired={selectedModel.estimatedVRAM || 8}
               trainingType="qlora"
               epochs={3}
             />
@@ -390,7 +467,7 @@ function TrainingTabContent({
         <button className="oss-back-btn" onClick={() => setSubView('overview')}>
           <BackIcon /> Back to Overview
         </button>
-        <TrainingProgress
+        <TrainingProgressWrapper
           jobId={activeJobId}
           onComplete={() => {
             setSubView('overview');
@@ -533,8 +610,13 @@ function DeployTabContent({
           <BackIcon /> Back to Endpoints
         </button>
         <EndpointTest
-          endpoint={selectedEndpoint}
-          onClose={() => setSubView('endpoints')}
+          endpointId={selectedEndpoint.id}
+          endpointUrl={selectedEndpoint.endpointUrl}
+          modelId={selectedEndpoint.modelId}
+          testWindowMinutes={10}
+          testWindowStartedAt={new Date().toISOString()}
+          onConfirm={() => setSubView('endpoints')}
+          onCancel={() => setSubView('endpoints')}
         />
       </div>
     );

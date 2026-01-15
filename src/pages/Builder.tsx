@@ -1517,7 +1517,7 @@ function _WorkflowsPanel() {
 }
 
 // Simple provider icons
-function VercelIcon() {
+function _VercelIcon() {
     return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L2 22h20L12 2z" />

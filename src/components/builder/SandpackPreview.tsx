@@ -78,7 +78,7 @@ const Maximize2Icon: React.FC<IconProps> = ({ size = 24, className }) => (
     </svg>
 );
 
-const PlayCircleIcon: React.FC<IconProps> = ({ size = 24, className }) => (
+const _PlayCircleIcon: React.FC<IconProps> = ({ size = 24, className }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <circle cx="12" cy="12" r="10"/>
         <polygon points="10 8 16 12 10 16" fill="currentColor"/>
