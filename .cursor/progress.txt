@@ -649,3 +649,65 @@ CONTEXT: Users can now provide credentials directly from dashboard
 notifications without navigating to builder view. Credentials are
 automatically integrated (webhooks created, code generated, secrets
 stored) and paused builds resume automatically.
+
+═══ 2026-01-15T16:30:00Z ═══
+COMPLETED: Full Credential & Integration Workflow Implementation Plan
+FILES MODIFIED/CREATED:
+  - server/src/services/ai/dependency-analyzer.ts (NEW)
+  - server/src/services/compute/runpod-availability.ts (NEW)
+  - server/src/services/webhooks/webhook-generator.ts (NEW)
+  - server/src/services/automation/build-loop.ts (ENHANCED)
+  - server/src/routes/dependencies.ts (NEW)
+  - server/src/routes/credentials.ts (ENHANCED)
+  - server/src/routes/webhooks.ts (ENHANCED)
+  - server/src/routes/index.ts (UPDATED)
+  - server/src/index.ts (UPDATED)
+  - src/components/ui/icons/GeometricIcons.tsx (NEW)
+  - src/components/ui/icons/index.tsx (UPDATED)
+  - src/components/credentials/CredentialAcquisitionModal.tsx (NEW)
+  - src/components/stack-selection/StackSelectionPanel.tsx (NEW)
+  - src/components/stack-selection/OAuthConnectButton.tsx (NEW)
+  - src/components/stack-selection/index.ts (NEW)
+  - src/components/notifications/CredentialRequestNotification.tsx (NEW)
+
+CURRENT STATE: Build compiles, deployed to Vercel successfully
+
+IMPLEMENTATION SUMMARY:
+
+Phase 1 - Foundation:
+- GeometricIcons: 20+ premium 3D geometric icons with red accent (#dc2626)
+- DependencyAnalyzer: NLP-based integration detection with 40+ integrations
+- Categories: payments, auth, database, ai, storage, email, compute, deployment
+
+Phase 2 - Core Credential Flow:
+- BuildLoopOrchestrator: 'waiting_credentials' status, detection at Phase 2
+- CredentialAcquisitionModal: OAuth + manual entry, 12+ integration configs
+- Event types: credentials_required, credentials_received, build_resuming
+
+Phase 3 - Stack Selection UI:
+- StackSelectionPanel: Dynamic tiles from DependencyAnalyzer
+- OAuthConnectButton: Nango OAuth with popup flow
+- CredentialRequestNotification: Dashboard notification card
+- RunPod GPU Availability: Real-time pricing, 9 GPU types
+
+Phase 4 - Agent Integration:
+- Webhook Generator: Unique URLs, signature verification, event processing
+- Integration Routes: POST /api/webhooks/:projectId/:integrationId/:secret
+- Already existing: credential-integration-service.ts
+
+Phase 5 - API Routes & Integration:
+- POST /api/dependencies/analyze: NLP analysis
+- GET /api/credentials/statuses: Connection status check
+- POST /api/credentials/oauth-complete: OAuth completion handler
+
+NEXT: Test credential flow end-to-end in production
+CONTEXT: All per implementation-plan-credential-integration-workflow.md
+
+═══ 2026-01-15T16:30:00Z COMMIT LOG ═══
+7917e02: Phase 1 - Foundation components
+19929fe: Phase 2 - Backend credential detection
+20c8165: Phase 2 - CredentialAcquisitionModal
+e4acaf4: Phase 3 - Stack Selection & GPU availability
+9e6781b: Phase 4 - Webhook system
+61f2f5f: Phase 5 - API routes & final integration
+
