@@ -345,72 +345,60 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
       return;
     }
 
-    console.log('[HuggingFace Auth] Querying database for credentials...');
-    let credentials;
+    // Use the credential vault to properly retrieve and decrypt the token
+    console.log('[HuggingFace Auth] Getting credential from vault...');
     try {
-      credentials = await db.select()
-        .from(userCredentials)
-        .where(and(
-          eq(userCredentials.userId, userId),
-          eq(userCredentials.integrationId, 'huggingface'),
-          eq(userCredentials.isActive, true)
-        ))
-        .limit(1);
-      console.log('[HuggingFace Auth] Found credentials:', credentials.length);
-    } catch (dbError) {
-      console.error('[HuggingFace Auth] Database query error:', dbError);
-      // Return disconnected on DB error rather than crashing
-      res.json({ connected: false });
-      return;
-    }
-
-    if (credentials.length === 0) {
-      console.log('[HuggingFace Auth] No credentials found, returning disconnected');
-      res.json({ connected: false });
-      return;
-    }
-
-    const cred = credentials[0];
-    console.log('[HuggingFace Auth] Credential found:', {
-      id: cred.id,
-      hasEncryptedData: !!cred.encryptedData,
-      hasIv: !!cred.iv,
-      hasAuthTag: !!cred.authTag,
-    });
-
-    // Re-validate token is still good
-    if (cred.encryptedData && cred.iv && cred.authTag) {
-      try {
-        console.log('[HuggingFace Auth] Attempting to decrypt token...');
-        const token = decryptToken(cred.encryptedData, cred.iv, cred.authTag);
-        console.log('[HuggingFace Auth] Token decrypted, validating with HuggingFace...');
-        const validation = await validateHuggingFaceToken(token);
-        console.log('[HuggingFace Auth] Validation result:', { valid: validation.valid, username: validation.username });
-
-        res.json({
-          connected: validation.valid,
-          username: validation.username || cred.connectionName,
-          fullName: validation.fullName,
-          avatarUrl: validation.avatarUrl,
-          canWrite: validation.canWrite,
-          isPro: validation.isPro,
-          connectedAt: cred.lastValidatedAt || cred.createdAt,
-        });
-        return;
-      } catch (decryptError) {
-        console.error('[HuggingFace Auth] Token decryption/validation failed:', decryptError);
-        // Token decryption failed, return disconnected
-        res.json({ connected: false, error: 'Stored token is invalid' });
+      const credential = await vault.getCredential(userId, 'huggingface');
+      
+      if (!credential) {
+        console.log('[HuggingFace Auth] No credential found in vault');
+        res.json({ connected: false });
         return;
       }
-    }
 
-    console.log('[HuggingFace Auth] No encrypted data, returning basic status');
-    res.json({
-      connected: true,
-      username: cred.connectionName,
-      connectedAt: cred.lastValidatedAt || cred.createdAt,
-    });
+      console.log('[HuggingFace Auth] Credential found:', {
+        id: credential.id,
+        hasOAuthToken: !!credential.oauthAccessToken,
+        connectionName: credential.connectionName,
+      });
+
+      // Get the token from oauthAccessToken (stored via vault.storeCredential)
+      const token = credential.oauthAccessToken;
+      
+      if (!token) {
+        console.log('[HuggingFace Auth] No OAuth token in credential');
+        // Return basic info from stored data
+        const data = credential.data as { username?: string; fullName?: string; avatarUrl?: string; canWrite?: boolean; isPro?: boolean };
+        res.json({
+          connected: true,
+          username: data.username || credential.connectionName,
+          fullName: data.fullName,
+          avatarUrl: data.avatarUrl,
+          canWrite: data.canWrite,
+          isPro: data.isPro,
+          connectedAt: credential.lastValidatedAt || credential.createdAt,
+        });
+        return;
+      }
+
+      // Re-validate token is still good
+      console.log('[HuggingFace Auth] Validating token with HuggingFace...');
+      const validation = await validateHuggingFaceToken(token);
+      console.log('[HuggingFace Auth] Validation result:', { valid: validation.valid, username: validation.username });
+
+      res.json({
+        connected: validation.valid,
+        username: validation.username || credential.connectionName,
+        fullName: validation.fullName,
+        avatarUrl: validation.avatarUrl,
+        canWrite: validation.canWrite,
+        isPro: validation.isPro,
+        connectedAt: credential.lastValidatedAt || credential.createdAt,
+      });
+    } catch (vaultError) {
+      console.error('[HuggingFace Auth] Vault error:', vaultError);
+      res.json({ connected: false, error: 'Failed to retrieve credentials' });
+    }
   } catch (error) {
     console.error('[HuggingFace Auth] Status check error:', error);
     res.status(500).json({ error: 'Failed to get status', details: error instanceof Error ? error.message : 'Unknown error' });

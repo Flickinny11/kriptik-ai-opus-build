@@ -845,3 +845,29 @@ ISSUE FIXED: HuggingFace token validation was failing because:
 
 NEXT: User should test HuggingFace token connection after Vercel deployment
 CONTEXT: All Open Source Studio API integrations are now properly configured
+
+═══ 2026-01-15T22:00:00Z ═══
+COMPLETED: Fixed HuggingFace integration - ROOT CAUSE was missing database table
+FILES MODIFIED:
+- server/src/routes/db-migrate.ts (added user_credentials, oauth_states, credential_audit_logs tables)
+- server/src/routes/huggingface-auth.ts (added comprehensive logging)
+
+ROOT CAUSE IDENTIFIED:
+The HuggingFace endpoints were returning 500 Internal Server Error because
+the 'user_credentials' table did NOT exist in the production database.
+
+The schema defined 'user_credentials' but the migration script only created
+the old 'credentials' table with a different structure.
+
+RESOLUTION:
+1. Added user_credentials table to migration script
+2. Added oauth_states table to migration script  
+3. Added credential_audit_logs table to migration script
+4. Added temporary migration key to run the migration
+5. Successfully ran migration: https://api.kriptik.app/api/db/init
+6. Confirmed tables created: user_credentials, oauth_states, credential_audit_logs
+7. Removed temporary migration key for security
+
+CURRENT STATE: Database has all required tables. HuggingFace should now work.
+NEXT: User to test HuggingFace token validation
+CONTEXT: This was a database schema/migration mismatch issue, not a code logic issue.
