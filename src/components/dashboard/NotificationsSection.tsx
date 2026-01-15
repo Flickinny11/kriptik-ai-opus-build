@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -266,29 +266,40 @@ function PremiumNotificationCard({
       )}
       style={{
         borderRadius: 18,
+        // TRANSLUCENT liquid glass - see through
         background: hasScreenshot
-          ? 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)'
+          ? 'linear-gradient(145deg, rgba(30,30,35,0.85) 0%, rgba(20,20,25,0.9) 100%)'
           : notification.read
-            ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(250,250,252,0.4) 100%)'
-            : 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,250,252,0.75) 100%)',
+            ? 'linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(252,254,255,0.35) 50%, rgba(248,250,252,0.4) 100%)'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(252,254,255,0.55) 50%, rgba(248,250,252,0.6) 100%)',
+        backdropFilter: 'blur(20px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(150%)',
         border: notification.read
-          ? '1px solid rgba(0,0,0,0.04)'
-          : '1px solid rgba(255,255,255,0.8)',
+          ? '1px solid rgba(255,255,255,0.3)'
+          : '1px solid rgba(255,255,255,0.6)',
+        // Layered 3D shadows for depth
         boxShadow: hasScreenshot
-          ? `0 16px 48px rgba(0,0,0,0.25), 0 0 30px ${c.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`
+          ? `
+            0 16px 48px rgba(0,0,0,0.25),
+            0 8px 24px rgba(0,0,0,0.15),
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 0 30px ${c.glow}
+          `
           : notification.read
             ? `
-              0 4px 12px rgba(0,0,0,0.04),
-              inset 0 1px 2px rgba(255,255,255,0.7),
-              0 0 0 1px rgba(0,0,0,0.02)
+              0 4px 16px rgba(0,0,0,0.06),
+              0 2px 6px rgba(0,0,0,0.04),
+              inset 0 1px 2px rgba(255,255,255,0.6),
+              0 0 0 1px rgba(255,255,255,0.2)
             `
             : `
-              0 8px 24px rgba(0,0,0,0.08),
-              0 4px 12px rgba(0,0,0,0.05),
-              inset 0 2px 4px rgba(255,255,255,1),
+              0 10px 30px rgba(0,0,0,0.1),
+              0 5px 15px rgba(0,0,0,0.06),
+              0 2px 6px rgba(0,0,0,0.04),
+              inset 0 2px 4px rgba(255,255,255,0.8),
               inset 0 -1px 2px rgba(0,0,0,0.02),
-              0 0 0 1px rgba(255,255,255,0.7),
-              0 0 20px ${typeGlowColor}
+              0 0 0 1px rgba(255,255,255,0.5),
+              0 0 25px ${typeGlowColor}
             `,
         transform: 'perspective(500px) rotateX(-0.5deg)',
       }}
@@ -475,7 +486,7 @@ function PremiumNotificationCard({
 
             {notification.actionUrl && (
               <motion.button
-                whileHover={{ scale: 1.05, x: 3 }}
+                whileHover={{ scale: 1.05, x: 3, y: -1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -485,15 +496,36 @@ function PremiumNotificationCard({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '8px 14px',
-                  borderRadius: 10,
-                  background: hasScreenshot ? 'rgba(200,255,100,0.12)' : 'rgba(245,168,108,0.08)',
-                  border: hasScreenshot ? '1px solid rgba(200,255,100,0.28)' : '1px solid rgba(245,168,108,0.22)',
+                  padding: '9px 16px',
+                  borderRadius: 12,
+                  // Liquid glass 3D gradient
+                  background: hasScreenshot 
+                    ? 'linear-gradient(145deg, rgba(200,255,100,0.2) 0%, rgba(180,240,80,0.12) 50%, rgba(160,220,60,0.15) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(252,254,255,0.7) 50%, rgba(248,250,252,0.75) 100%)',
+                  border: hasScreenshot 
+                    ? '1px solid rgba(200,255,100,0.35)' 
+                    : '1px solid rgba(255,255,255,0.8)',
+                  // Layered 3D shadows
+                  boxShadow: hasScreenshot
+                    ? `
+                      0 6px 20px rgba(0,0,0,0.15),
+                      0 3px 8px rgba(0,0,0,0.1),
+                      inset 0 1px 2px rgba(255,255,255,0.2),
+                      0 0 20px rgba(200,255,100,0.15)
+                    `
+                    : `
+                      0 6px 20px rgba(0,0,0,0.08),
+                      0 3px 8px rgba(0,0,0,0.05),
+                      inset 0 2px 4px rgba(255,255,255,1),
+                      inset 0 -1px 2px rgba(0,0,0,0.02),
+                      0 0 0 1px rgba(255,255,255,0.5)
+                    `,
                   color: hasScreenshot ? '#c8ff64' : '#1a1a1a',
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
+                  transform: 'perspective(200px) rotateX(-2deg)',
                 }}
               >
                 <span>Open Project</span>
@@ -560,43 +592,78 @@ function Modal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 200 }}
         >
           <div
             className="absolute inset-0"
             onClick={onClose}
             style={{
-              background: 'rgba(0,0,0,0.55)',
-              backdropFilter: 'blur(10px)',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
             }}
           />
           <motion.div
-            initial={{ y: 10, opacity: 0, scale: 0.98 }}
+            initial={{ y: 10, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 10, opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+            exit={{ y: 10, opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="relative w-full max-w-2xl"
             style={{
-              borderRadius: 22,
-              border: '1px solid rgba(245,168,108,0.18)',
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.55))',
-              boxShadow: '0 28px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+              borderRadius: 24,
+              // Translucent liquid glass for detail modal
+              background: 'linear-gradient(145deg, rgba(30,30,35,0.88) 0%, rgba(20,20,28,0.92) 50%, rgba(15,15,22,0.9) 100%)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: `
+                0 40px 100px rgba(0,0,0,0.5),
+                0 20px 50px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.1),
+                inset 0 -1px 0 rgba(0,0,0,0.2),
+                0 0 0 1px rgba(255,255,255,0.05),
+                0 0 60px rgba(245,168,108,0.08)
+              `,
               overflow: 'hidden',
             }}
           >
-            <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Glass shine */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: '10%',
+                right: '10%',
+                height: 1,
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div style={{ fontWeight: 850, letterSpacing: '-0.02em', color: 'rgba(255,255,255,0.92)' }}>{title}</div>
-                <button
+                <div style={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'rgba(255,255,255,0.95)', fontSize: 16 }}>{title}</div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={onClose}
-                  className="glass-button"
-                  style={{ color: '#1a1a1a', padding: '6px 10px', fontSize: 12 }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
                 >
                   Close
-                </button>
+                </motion.button>
               </div>
             </div>
-            <div style={{ padding: 16, maxHeight: '72vh', overflow: 'auto' }}>{children}</div>
+            <div style={{ padding: 20, maxHeight: '72vh', overflow: 'auto' }}>{children}</div>
           </motion.div>
         </motion.div>
       )}
@@ -620,7 +687,8 @@ function ScreenshotModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 300 }}
         >
           <div
             className="absolute inset-0"
@@ -727,7 +795,7 @@ function ScreenshotModal({
 
 export default function NotificationsSection({ userId }: NotificationsSectionProps) {
   const [open, setOpen] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [items, setItems] = useState<DashboardNotification[]>([]);
   const [selected, setSelected] = useState<DashboardNotification | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -735,31 +803,47 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
   const [timeline, setTimeline] = useState<Array<{ ts: string; type: string; message: string }> | null>(null);
   const [altText, setAltText] = useState('');
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
+  
+  // Prevent flickering by tracking if we've done initial load
+  const hasFetchedRef = useRef(false);
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
-  const fetchList = async () => {
+  // Memoized fetch to prevent re-render flicker
+  const fetchList = useCallback(async (showLoading = false) => {
     // Ensure API client sends x-user-id for server user-context middleware.
-    // This prevents intermittent 401s on first dashboard load in production.
     apiClient.setUserId(userId);
 
-    setLoading(true);
+    if (showLoading && !hasFetchedRef.current) {
+      setInitialLoading(true);
+    }
+    
     try {
       const { data } = await apiClient.get<{ success: boolean; notifications: DashboardNotification[] }>('/api/notifications');
-      setItems(Array.isArray(data.notifications) ? data.notifications : []);
+      const newItems = Array.isArray(data.notifications) ? data.notifications : [];
+      
+      // Only update if data actually changed to prevent re-renders
+      setItems(prev => {
+        const prevIds = prev.map(n => n.id + n.read).join(',');
+        const newIds = newItems.map(n => n.id + n.read).join(',');
+        if (prevIds === newIds) return prev;
+        return newItems;
+      });
+      
+      hasFetchedRef.current = true;
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
     apiClient.setUserId(userId);
-    fetchList();
-    const t = setInterval(fetchList, 15000);
+    fetchList(true);
+    // Poll every 30s instead of 15s to reduce flicker
+    const t = setInterval(() => fetchList(false), 30000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, fetchList]);
 
   const markRead = async (id: string) => {
     try {
@@ -1062,39 +1146,57 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
         )}
       </motion.button>
 
-      {/* Floating square liquid glass popout */}
+      {/* Dark backdrop overlay */}
       <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        onClick={() => setOpen(false)}
         style={{
-          position: 'absolute',
-          top: 70,
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: 60,
+        }}
+      />
+
+      {/* Floating centered liquid glass popout */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.92 }}
+        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+        style={{
+          position: 'fixed',
+          top: '50%',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: 'translate(-50%, -50%)',
           width: 420,
-          maxWidth: '90vw',
+          maxWidth: '92vw',
+          maxHeight: '80vh',
           padding: 0,
           overflow: 'hidden',
           borderRadius: 24,
-          zIndex: 50,
+          zIndex: 70,
           
-          // Liquid glass background with depth
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.97) 0%, rgba(252,254,255,0.92) 30%, rgba(248,252,255,0.95) 60%, rgba(245,250,254,0.9) 100%)',
-          backdropFilter: 'blur(40px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+          // TRANSLUCENT liquid glass - see through effect
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.65) 0%, rgba(252,254,255,0.55) 30%, rgba(248,252,255,0.6) 60%, rgba(245,250,254,0.5) 100%)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
           
           // Multi-layer 3D liquid glass shadow with depth
           boxShadow: `
-            0 30px 100px rgba(0,0,0,0.18),
-            0 20px 60px rgba(0,0,0,0.12),
-            0 10px 30px rgba(0,0,0,0.08),
-            0 4px 12px rgba(0,0,0,0.05),
-            inset 0 2px 4px rgba(255,255,255,1),
-            inset 0 -2px 6px rgba(0,0,0,0.02),
-            0 0 0 1px rgba(255,255,255,0.85),
-            0 0 60px rgba(180,200,220,0.15)
+            0 30px 100px rgba(0,0,0,0.22),
+            0 20px 60px rgba(0,0,0,0.15),
+            0 10px 30px rgba(0,0,0,0.1),
+            0 4px 12px rgba(0,0,0,0.06),
+            inset 0 2px 4px rgba(255,255,255,0.9),
+            inset 0 -2px 6px rgba(0,0,0,0.03),
+            0 0 0 1px rgba(255,255,255,0.6),
+            0 0 80px rgba(180,200,220,0.2)
           `,
         }}
       >
@@ -1124,16 +1226,16 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
           }}
         />
 
-        {/* Header */}
+        {/* Header - translucent */}
         <div
           style={{
-            padding: '18px 22px',
+            padding: '16px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 14,
-            borderBottom: '1px solid rgba(0,0,0,0.05)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 100%)',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.15) 100%)',
             position: 'relative',
           }}
         >
@@ -1216,11 +1318,11 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
 
         {/* Notification list */}
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
-          {loading && (
+          {initialLoading && (
             <div style={{ padding: 16, color: '#505050', fontSize: 13, textAlign: 'center' }}>Loading notifications...</div>
           )}
 
-          {!loading && items.length === 0 && (
+          {!initialLoading && items.length === 0 && (
             <div style={{ padding: 20, color: '#606060', fontSize: 13, textAlign: 'center' }}>
               <div style={{ marginBottom: 8 }}>
                 <Bell3D size={32} hasNotification={false} />
@@ -1229,15 +1331,17 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
             </div>
           )}
 
-          {!loading && items.map((n) => (
-            <PremiumNotificationCard
-              key={n.id}
-              notification={n}
-              onDismiss={dismiss}
-              onClick={() => openDetail(n)}
-              onNavigate={handleNavigate}
-            />
-          ))}
+          <AnimatePresence mode="popLayout">
+            {!initialLoading && items.map((n) => (
+              <PremiumNotificationCard
+                key={n.id}
+                notification={n}
+                onDismiss={dismiss}
+                onClick={() => openDetail(n)}
+                onNavigate={handleNavigate}
+              />
+            ))}
+          </AnimatePresence>
         </div>
         
         {/* Bottom edge shadow for depth */}
