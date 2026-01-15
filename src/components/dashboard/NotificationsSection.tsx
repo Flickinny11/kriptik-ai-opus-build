@@ -797,7 +797,7 @@ function ScreenshotModal({
 }
 
 export default function NotificationsSection({ userId }: NotificationsSectionProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [items, setItems] = useState<DashboardNotification[]>([]);
   const [selected, setSelected] = useState<DashboardNotification | null>(null);
