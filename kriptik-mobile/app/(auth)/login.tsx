@@ -80,7 +80,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, setUser, setTokens, isLoading } = useAuthStore();
-  
+
   // GitHub Device Flow state
   const [githubFlow, setGithubFlow] = useState<GitHubDeviceFlowState | null>(null);
   const [githubPolling, setGithubPolling] = useState(false);
@@ -104,12 +104,17 @@ export default function LoginScreen() {
       -1,
       true
     );
-    
-    // Cleanup polling on unmount
+
+    // Cleanup on unmount
     return () => {
+      // Clear any polling intervals
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      // Dismiss any open browser sessions
+      WebBrowser.dismissBrowser().catch(() => {
+        // Ignore errors - browser may not be open
+      });
     };
   }, []);
 
@@ -148,7 +153,7 @@ export default function LoginScreen() {
 
     try {
       console.log('[GitHub] Starting Device Flow...');
-      
+
       const response = await fetch(`${APP_CONFIG.apiUrl}/api/mobile/auth/github/device`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,14 +219,14 @@ export default function LoginScreen() {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          
+
           setGithubFlow(null);
           setGithubPolling(false);
-          
+
           // Set auth state
           await setTokens(data.accessToken, data.refreshToken);
           setUser(data.user);
-          
+
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace('/(tabs)');
           return;
@@ -309,12 +314,24 @@ export default function LoginScreen() {
         return;
       }
 
+      // CRITICAL: Dismiss any existing browser session before opening a new one
+      // This prevents "Another web browser is already open" error
+      try {
+        await WebBrowser.dismissBrowser();
+      } catch (dismissError) {
+        // Ignore dismiss errors - browser may not be open
+        console.log('[OAuth] No browser to dismiss (this is normal)');
+      }
+
+      // Small delay to ensure browser is fully dismissed
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
         'kriptik://auth/callback',
         {
           showInRecents: true,
-          preferEphemeralSession: false,
+          preferEphemeralSession: true, // Use ephemeral session to avoid cookie issues
         }
       );
 
@@ -329,7 +346,16 @@ export default function LoginScreen() {
       console.error('[OAuth] Error:', error);
       // Provide more specific error messages
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMsg.includes('invalid')) {
+      
+      if (errorMsg.includes('already open') || errorMsg.includes('Another web browser')) {
+        // Try to dismiss and inform user to retry
+        try {
+          await WebBrowser.dismissBrowser();
+        } catch (e) {
+          // Ignore
+        }
+        setError('Browser was busy. Please try again.');
+      } else if (errorMsg.includes('invalid')) {
         setError('Authentication URL is invalid. Please try again.');
       } else if (errorMsg.includes('network')) {
         setError('Network error. Please check your connection.');
@@ -572,7 +598,7 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-      
+
       {/* GitHub Device Flow Modal */}
       <Modal
         visible={githubFlow?.isActive || false}
@@ -589,14 +615,14 @@ export default function LoginScreen() {
                   <Path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </Svg>
               </View>
-              
+
               <Text style={styles.modalTitle}>Sign in to GitHub</Text>
               <Text style={styles.modalSubtitle}>
                 Enter this code at github.com/login/device
               </Text>
-              
+
               {/* User Code Display */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.userCodeContainer}
                 onPress={copyUserCode}
                 activeOpacity={0.8}
@@ -604,7 +630,7 @@ export default function LoginScreen() {
                 <Text style={styles.userCode}>{githubFlow?.userCode || '----'}</Text>
                 <Text style={styles.tapToCopy}>Tap to copy</Text>
               </TouchableOpacity>
-              
+
               {/* Open GitHub Button */}
               <TouchableOpacity
                 style={styles.openGitHubButton}
@@ -618,7 +644,7 @@ export default function LoginScreen() {
                   <Text style={styles.openGitHubText}>Open GitHub</Text>
                 </LinearGradient>
               </TouchableOpacity>
-              
+
               {/* Status */}
               <View style={styles.pollStatus}>
                 {githubPolling && (
@@ -628,7 +654,7 @@ export default function LoginScreen() {
                   </>
                 )}
               </View>
-              
+
               {/* Cancel Button */}
               <TouchableOpacity
                 style={styles.cancelButton}
