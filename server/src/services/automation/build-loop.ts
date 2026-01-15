@@ -308,6 +308,17 @@ import {
     type DecryptedCredential,
 } from '../security/credential-vault.js';
 
+// Credential workflow - notification and dependency analysis
+import {
+    NotificationService,
+    type NotificationPayload,
+} from '../notifications/notification-service.js';
+import {
+    analyzeDependencies,
+    getIntegrationConfig,
+    type DetectedDependency,
+} from '../ai/dependency-analyzer.js';
+
 import {
     GhostModeController,
     getGhostModeController,
@@ -574,7 +585,7 @@ export interface BuildLoopState {
     featureSummary: FeatureListSummary | null;
 
     // Build status
-    status: 'pending' | 'running' | 'awaiting_approval' | 'complete' | 'failed';
+    status: 'pending' | 'running' | 'awaiting_approval' | 'waiting_credentials' | 'complete' | 'failed';
     startedAt: Date;
     completedAt: Date | null;
 
@@ -641,7 +652,9 @@ export interface BuildLoopEvent {
         | 'multi-sandbox-started' | 'multi-sandbox-tasks-partitioned' | 'multi-sandbox-created'
         | 'multi-sandbox-tasks-assigned' | 'multi-sandbox-task-completed'
         | 'multi-sandbox-merge-pending' | 'multi-sandbox-merge-completed'
-        | 'multi-sandbox-completed' | 'multi-sandbox-failed';
+        | 'multi-sandbox-completed' | 'multi-sandbox-failed'
+        // Credential workflow events (Implementation Plan Phase 2)
+        | 'credentials_required' | 'credentials_received' | 'credentials_available' | 'build_resuming';
     timestamp: Date;
     buildId: string;
     data: Record<string, unknown>;
@@ -929,6 +942,11 @@ export class BuildLoopOrchestrator extends EventEmitter {
     private ghostModeController: GhostModeController | null = null;
     private softInterruptManager: SoftInterruptManager | null = null;
     private credentialVault: CredentialVault | null = null;
+    private notificationService: NotificationService | null = null;
+
+    // Credential workflow state
+    private pendingCredentialRequests: Map<string, DetectedDependency> = new Map();
+    private credentialWaitPromiseResolve: (() => void) | null = null;
 
     // Ghost Mode state
     private ghostSessionId: string | null = null;
@@ -1201,6 +1219,13 @@ export class BuildLoopOrchestrator extends EventEmitter {
             this.credentialVault = getCredentialVault();
         } catch (error) {
             console.warn('[BuildLoop] Credential vault not available:', error);
+        }
+
+        // Notification Service - for credential requests and user notifications
+        try {
+            this.notificationService = new NotificationService();
+        } catch (error) {
+            console.warn('[BuildLoop] Notification service not available:', error);
         }
 
         // Build Freeze Service - for pause/resume with full context preservation
@@ -2183,6 +2208,25 @@ export class BuildLoopOrchestrator extends EventEmitter {
      */
     private async executePhase2_ParallelBuild(stage: BuildStage): Promise<void> {
         this.startPhase('parallel_build');
+        
+        // =========================================================================
+        // CREDENTIAL CHECK: Detect required integrations and pause if missing
+        // Implementation Plan Phase 2: Credential-aware build phase
+        // =========================================================================
+        if (stage === 'backend' || stage === 'production') {
+            // Check for required credentials at backend/production stages
+            const requiredDeps = await this.detectRequiredCredentials();
+            const missingDeps = await this.checkMissingCredentials(requiredDeps);
+            
+            if (missingDeps.length > 0) {
+                console.log(`[BuildLoop] Build paused - waiting for ${missingDeps.length} credentials`);
+                
+                // Request credentials and wait for user to provide them
+                await this.requestCredentials(missingDeps);
+                
+                console.log('[BuildLoop] Credentials received - resuming build');
+            }
+        }
         
         // =========================================================================
         // PHASE 7: Warm speculative cache with likely first features
@@ -8079,6 +8123,211 @@ Would the user be satisfied with this result?`;
     clearCredentials(): void {
         this.loadedCredentials.clear();
         console.log('[BuildLoop] Credentials cleared from memory');
+    }
+
+    // =========================================================================
+    // CREDENTIAL REQUEST WORKFLOW (Implementation Plan Phase 2)
+    // Detect required credentials, pause build, notify user, resume on save
+    // =========================================================================
+
+    /**
+     * Detect required credentials from the intent contract using DependencyAnalyzer
+     * Called at the start of Phase 2 to identify missing integrations
+     */
+    async detectRequiredCredentials(): Promise<DetectedDependency[]> {
+        if (!this.state.intentContract?.originalPrompt) {
+            return [];
+        }
+
+        try {
+            const analysis = await analyzeDependencies(this.state.intentContract.originalPrompt);
+            
+            // Filter to only required/recommended dependencies
+            const required = analysis.detectedDependencies.filter(
+                dep => dep.priority === 'required' || dep.priority === 'recommended'
+            );
+
+            console.log(`[BuildLoop] Detected ${required.length} required integrations:`, 
+                required.map(d => d.id).join(', '));
+
+            return required;
+        } catch (error) {
+            console.error('[BuildLoop] Failed to detect required credentials:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Check which required credentials are missing from the vault
+     */
+    async checkMissingCredentials(requiredDeps: DetectedDependency[]): Promise<DetectedDependency[]> {
+        if (!this.credentialVault || requiredDeps.length === 0) {
+            return [];
+        }
+
+        const missing: DetectedDependency[] = [];
+
+        for (const dep of requiredDeps) {
+            // Check if we have credentials for this integration
+            const hasCredentials = this.loadedCredentials.has(dep.id);
+            
+            if (!hasCredentials) {
+                // Double-check the vault
+                try {
+                    const creds = await this.credentialVault.listCredentials(this.state.userId);
+                    const hasCred = creds.some(c => c.integrationId === dep.id);
+                    
+                    if (!hasCred) {
+                        missing.push(dep);
+                    }
+                } catch {
+                    missing.push(dep);
+                }
+            }
+        }
+
+        if (missing.length > 0) {
+            console.log(`[BuildLoop] Missing ${missing.length} credentials:`, 
+                missing.map(d => d.id).join(', '));
+        }
+
+        return missing;
+    }
+
+    /**
+     * Request credentials from user - sends notification and pauses build
+     * Returns a promise that resolves when credentials are provided
+     */
+    async requestCredentials(missingDeps: DetectedDependency[]): Promise<void> {
+        if (missingDeps.length === 0 || !this.notificationService) {
+            return;
+        }
+
+        // Store pending requests
+        for (const dep of missingDeps) {
+            this.pendingCredentialRequests.set(dep.id, dep);
+        }
+
+        // Update status to waiting_credentials
+        this.state.status = 'waiting_credentials';
+
+        // Emit event for real-time UI update
+        this.emitEvent('credentials_required', {
+            integrations: missingDeps.map(dep => ({
+                id: dep.id,
+                name: dep.name,
+                category: dep.category,
+                reason: dep.reason,
+                supportsOAuth: dep.supportsOAuth,
+                requiredCredentials: dep.requiredCredentials,
+                platformUrl: dep.platformUrl,
+            })),
+            buildId: this.state.id,
+            projectId: this.state.projectId,
+        });
+
+        // Send notification for each missing credential (grouped)
+        const integrationNames = missingDeps.map(d => d.name).join(', ');
+        const dashboardUrl = `${process.env.FRONTEND_URL || 'https://kriptik.app'}/builder/${this.state.projectId}?credentials=1`;
+        const payload: NotificationPayload = {
+            type: 'credentials_needed',
+            title: `Credentials Required: ${integrationNames}`,
+            message: `Your build requires credentials to continue. Please add credentials for: ${integrationNames}`,
+            featureAgentId: null,
+            featureAgentName: 'Build Orchestrator',
+            actionUrl: dashboardUrl,
+            enableReply: false,
+            projectId: this.state.projectId,
+            sessionId: this.state.id,
+            sessionType: 'build_loop',
+            metadata: {
+                buildId: this.state.id,
+                projectId: this.state.projectId,
+                sessionId: this.state.id, // Used for resuming build
+                requiredCredentials: missingDeps.map(dep => ({
+                    name: dep.name,
+                    envVar: dep.requiredCredentials[0] || dep.id.toUpperCase() + '_API_KEY',
+                    platform: dep.name,
+                    platformUrl: dep.platformUrl,
+                })),
+                buildPaused: true,
+            },
+            suggestedActions: [
+                { action: 'approve', label: 'Add Credentials' },
+            ],
+        };
+
+        try {
+            // Send to dashboard (in-app notification)
+            await this.notificationService.sendNotification(
+                this.state.userId,
+                ['push'], // Dashboard notification
+                payload
+            );
+
+            console.log(`[BuildLoop] Sent credential request notification for: ${integrationNames}`);
+        } catch (error) {
+            console.error('[BuildLoop] Failed to send credential notification:', error);
+        }
+
+        // Create promise that will be resolved when credentials arrive
+        return new Promise<void>((resolve) => {
+            this.credentialWaitPromiseResolve = resolve;
+            
+            // Set up listener for credentials_available event
+            const credentialHandler = async (data: { 
+                integrationId: string; 
+                projectId: string; 
+                buildId: string;
+            }) => {
+                // Check if this is for our build
+                if (data.buildId === this.state.id || data.projectId === this.state.projectId) {
+                    // Remove from pending
+                    this.pendingCredentialRequests.delete(data.integrationId);
+                    
+                    // Reload credentials
+                    await this.loadProjectCredentials([data.integrationId]);
+                    
+                    // If all pending requests fulfilled, resume
+                    if (this.pendingCredentialRequests.size === 0) {
+                        this.state.status = 'running';
+                        this.emitEvent('credentials_received', {
+                            integrationId: data.integrationId,
+                            allCredentialsReceived: true,
+                        });
+                        this.emitEvent('build_resuming', { fromPhase: 'parallel_build' });
+                        
+                        this.off('credentials_available', credentialHandler);
+                        if (this.credentialWaitPromiseResolve) {
+                            this.credentialWaitPromiseResolve();
+                            this.credentialWaitPromiseResolve = null;
+                        }
+                    } else {
+                        this.emitEvent('credentials_received', {
+                            integrationId: data.integrationId,
+                            allCredentialsReceived: false,
+                            remainingCount: this.pendingCredentialRequests.size,
+                        });
+                    }
+                }
+            };
+            
+            this.on('credentials_available', credentialHandler);
+        });
+    }
+
+    /**
+     * Signal that credentials are now available (called from API route)
+     * This triggers the build to resume
+     */
+    signalCredentialsAvailable(integrationId: string): void {
+        this.emitEvent('credentials_available', {
+            integrationId,
+            projectId: this.state.projectId,
+            buildId: this.state.id,
+            userId: this.state.userId,
+            timestamp: new Date(),
+        });
     }
 
     // =========================================================================

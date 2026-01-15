@@ -15,7 +15,7 @@
  * - Confidence scoring for detected dependencies
  */
 
-import { createClaudeService, CLAUDE_MODELS } from './claude-service.js';
+import { createOrchestratorClaudeService, CLAUDE_MODELS } from './claude-service.js';
 
 // ============================================================================
 // TYPES
@@ -359,7 +359,7 @@ const INTEGRATION_CATALOG: Record<string, {
 // ============================================================================
 
 export async function analyzeDependencies(prompt: string): Promise<DependencyAnalysis> {
-  const claudeService = createClaudeService({ model: CLAUDE_MODELS.HAIKU_35 });
+  const claudeService = createOrchestratorClaudeService();
   
   // First pass: Quick keyword matching for high-confidence matches
   const keywordMatches = detectByKeywords(prompt);
@@ -437,7 +437,7 @@ function detectByKeywords(prompt: string): DetectedDependency[] {
 }
 
 async function analyzeWithAI(
-  claudeService: ReturnType<typeof createClaudeService>,
+  claudeService: ReturnType<typeof createOrchestratorClaudeService>,
   prompt: string,
   existingMatches: DetectedDependency[]
 ): Promise<{
@@ -486,10 +486,8 @@ Respond in JSON format ONLY:
 
   try {
     const response = await claudeService.generate(
-      `Analyze this app description:\n\n"${prompt}"`,
+      `${systemPrompt}\n\nAnalyze this app description:\n\n"${prompt}"`,
       {
-        systemPrompt,
-        model: CLAUDE_MODELS.HAIKU_35,
         maxTokens: 2000,
       }
     );
