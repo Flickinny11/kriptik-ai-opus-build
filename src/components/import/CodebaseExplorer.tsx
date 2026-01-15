@@ -22,22 +22,22 @@ interface CodebaseExplorerProps {
     className?: string;
 }
 
-// File type icons/colors - using simple text labels
+// File type icons/colors
 const FILE_ICONS: Record<string, { icon: string; color: string }> = {
-    '.tsx': { icon: 'TS', color: '#61dafb' },
-    '.ts': { icon: 'TS', color: '#3178c6' },
-    '.jsx': { icon: 'JS', color: '#61dafb' },
-    '.js': { icon: 'JS', color: '#f7df1e' },
-    '.vue': { icon: 'V', color: '#42b883' },
-    '.svelte': { icon: 'S', color: '#ff3e00' },
-    '.css': { icon: 'C', color: '#264de4' },
-    '.scss': { icon: 'S', color: '#c6538c' },
-    '.json': { icon: '{}', color: '#6b7280' },
-    '.md': { icon: 'MD', color: '#6b7280' },
-    '.html': { icon: 'H', color: '#e34c26' },
-    '.py': { icon: 'PY', color: '#3572A5' },
-    '.go': { icon: 'GO', color: '#00ADD8' },
-    '.rs': { icon: 'RS', color: '#dea584' },
+    '.tsx': { icon: '⚛️', color: '#61dafb' },
+    '.ts': { icon: '📘', color: '#3178c6' },
+    '.jsx': { icon: '⚛️', color: '#61dafb' },
+    '.js': { icon: '📒', color: '#f7df1e' },
+    '.vue': { icon: '💚', color: '#42b883' },
+    '.svelte': { icon: '🔥', color: '#ff3e00' },
+    '.css': { icon: '🎨', color: '#264de4' },
+    '.scss': { icon: '🎨', color: '#c6538c' },
+    '.json': { icon: '📋', color: '#6b7280' },
+    '.md': { icon: '📝', color: '#6b7280' },
+    '.html': { icon: '🌐', color: '#e34c26' },
+    '.py': { icon: '🐍', color: '#3572A5' },
+    '.go': { icon: '🔹', color: '#00ADD8' },
+    '.rs': { icon: '🦀', color: '#dea584' },
 };
 
 function TreeItem({

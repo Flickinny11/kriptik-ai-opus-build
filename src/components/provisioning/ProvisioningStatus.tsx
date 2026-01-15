@@ -8,7 +8,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './provisioning-status.css';
-import { API_URL } from '@/lib/api-config';
+
+import { API_URL } from '../../lib/api-config';
 
 // ============================================================================
 // TYPES

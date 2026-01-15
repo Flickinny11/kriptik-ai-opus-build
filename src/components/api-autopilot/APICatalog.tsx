@@ -54,21 +54,21 @@ export function APICatalog({
 
     const getCategoryIcon = (category: string) => {
         const icons: Record<string, string> = {
-            payments: 'PAY',
-            communication: 'COM',
-            email: 'ML',
-            ai: 'AI',
-            database: 'DB',
-            backend: 'BE',
-            maps: 'MAP',
-            search: 'SRC',
-            media: 'MED',
-            developer: 'DEV',
-            productivity: 'PRD',
-            deployment: 'DPL',
-            fintech: 'FIN',
+            payments: '💳',
+            communication: '💬',
+            email: '📧',
+            ai: '🤖',
+            database: '🗄️',
+            backend: '⚙️',
+            maps: '🗺️',
+            search: '🔍',
+            media: '📸',
+            developer: '👨‍💻',
+            productivity: '📊',
+            deployment: '🚀',
+            fintech: '🏦',
         };
-        return icons[category] || 'API';
+        return icons[category] || '🔌';
     };
 
     return (

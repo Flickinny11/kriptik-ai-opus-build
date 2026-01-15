@@ -21,7 +21,8 @@ import {
   ChevronDownIcon,
 } from '../ui/icons';
 import { cn } from '@/lib/utils';
-import { API_URL } from '@/lib/api-config';
+
+import { API_URL } from '../../lib/api-config';
 
 // =============================================================================
 // TYPES
@@ -100,7 +101,7 @@ const InterruptTypeBadge: React.FC<{ type: InterruptType; priority: InterruptPri
     HALT: 'bg-red-500/20 text-red-400 border-red-500/30',
     CONTEXT_ADD: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     COURSE_CORRECT: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    BACKTRACK: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    BACKTRACK: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     QUEUE: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
     CLARIFICATION: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     URGENT_FIX: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -246,14 +247,14 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
 
   const getAgentResponseForType = (type: InterruptType): string => {
     const responses: Record<InterruptType, string> = {
-      HALT: 'Agent paused. Ready to resume on your command.',
-      CONTEXT_ADD: 'Context noted. Incorporating into current work.',
-      COURSE_CORRECT: 'Course corrected. Adjusting approach without restarting.',
-      BACKTRACK: 'Backtrack requested. Preparing to revert to previous state.',
-      QUEUE: 'Noted for later. Will address after current task completes.',
-      CLARIFICATION: 'Processing your question. Agent paused pending response.',
-      URGENT_FIX: 'Urgent fix acknowledged. Prioritizing immediately.',
-      APPRECIATION: 'Thanks! Continuing with current approach.',
+      HALT: '⏸️ Agent paused. Ready to resume on your command.',
+      CONTEXT_ADD: '📝 Context noted. Incorporating into current work.',
+      COURSE_CORRECT: '🔄 Course corrected. Adjusting approach without restarting.',
+      BACKTRACK: '⏪ Backtrack requested. Preparing to revert to previous state.',
+      QUEUE: '📋 Noted for later. Will address after current task completes.',
+      CLARIFICATION: '🤔 Processing your question. Agent paused pending response.',
+      URGENT_FIX: '⚡ Urgent fix acknowledged. Prioritizing immediately.',
+      APPRECIATION: '😊 Thanks! Continuing with current approach.',
       IGNORE: 'Message noted but not relevant to current task.'
     };
     return responses[type];
@@ -317,13 +318,13 @@ export const SoftInterruptInput: React.FC<SoftInterruptInputProps> = ({
             onClick={() => setMessage('Stop!')}
             className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30 transition-colors"
           >
-            Halt
+            ⏸️ Halt
           </button>
           <button
             onClick={() => setMessage('Go back to the previous version')}
-            className="px-2 py-1 text-xs bg-amber-500/20 text-amber-400 rounded border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+            className="px-2 py-1 text-xs bg-purple-500/20 text-purple-400 rounded border border-purple-500/30 hover:bg-purple-500/30 transition-colors"
           >
-            Undo
+            ⏪ Undo
           </button>
           <button
             onClick={() => setMessage('Looking good! Keep going.')}

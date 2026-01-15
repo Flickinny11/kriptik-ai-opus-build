@@ -10,7 +10,10 @@
  */
 
 import { QualityReport, QualityIssue } from './quality-types';
-import { API_URL as API_BASE_URL } from './api-config';
+
+import { API_URL } from './api-config';
+
+const API_BASE_URL = API_URL;
 
 export class QualityScanner {
     private projectId: string | null = null;

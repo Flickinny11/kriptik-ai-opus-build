@@ -100,19 +100,19 @@ export function FixMyAppCard3D({
     const getPhaseInfo = () => {
         switch (fixingStatus) {
             case 'analyzing':
-                return { label: 'ANALYZING', color: '#3b82f6', icon: 'search' };
+                return { label: 'ANALYZING', color: '#3b82f6', icon: '🔍' };
             case 'creating_intent':
-                return { label: 'CREATING SACRED CONTRACT', color: '#f59e0b', icon: 'scroll' };
+                return { label: 'CREATING SACRED CONTRACT', color: '#8b5cf6', icon: '📜' };
             case 'building':
-                return { label: 'BUILDING FIX', color: '#d97706', icon: 'wrench' };
+                return { label: 'BUILDING FIX', color: '#f59e0b', icon: '🔧' };
             case 'verifying':
-                return { label: 'VERIFYING', color: '#10b981', icon: 'check' };
+                return { label: 'VERIFYING', color: '#10b981', icon: '✓' };
             case 'completed':
-                return { label: 'COMPLETED', color: '#22c55e', icon: 'check-circle' };
+                return { label: 'COMPLETED', color: '#22c55e', icon: '✅' };
             case 'failed':
-                return { label: 'FAILED', color: '#ef4444', icon: 'x-circle' };
+                return { label: 'FAILED', color: '#ef4444', icon: '❌' };
             default:
-                return { label: 'PROCESSING', color: '#6b7280', icon: 'clock' };
+                return { label: 'PROCESSING', color: '#6b7280', icon: '⏳' };
         }
     };
 

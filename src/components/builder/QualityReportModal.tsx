@@ -80,7 +80,7 @@ export default function QualityReportModal({ open, onOpenChange }: QualityReport
                                 <div className="text-right">
                                     <div className="text-sm font-medium">Status</div>
                                     <Badge variant={report.status === 'ready' ? 'default' : 'destructive'}>
-                                        {report.status === 'ready' ? 'READY FOR PRODUCTION' : 'NEEDS REVIEW'}
+                                        {report.status === 'ready' ? 'READY FOR PRODUCTION ✨' : 'NEEDS REVIEW'}
                                     </Badge>
                                 </div>
                             </div>

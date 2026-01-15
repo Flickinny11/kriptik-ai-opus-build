@@ -61,15 +61,15 @@ export function SuggestionCard({
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'reposition': return '↔️';
-            case 'resize': return 'R';
-            case 'restyle': return 'S';
-            case 'add-feedback': return 'F';
-            case 'simplify': return 'X';
-            case 'add-tooltip': return 'T';
-            case 'improve-contrast': return 'C';
-            case 'increase-click-area': return '+';
-            case 'add-loading-state': return 'L';
-            default: return '*';
+            case 'resize': return '📐';
+            case 'restyle': return '🎨';
+            case 'add-feedback': return '💬';
+            case 'simplify': return '✨';
+            case 'add-tooltip': return '💡';
+            case 'improve-contrast': return '🔆';
+            case 'increase-click-area': return '👆';
+            case 'add-loading-state': return '⏳';
+            default: return '🔧';
         }
     };
 

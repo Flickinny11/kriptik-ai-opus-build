@@ -23,7 +23,9 @@ import { useAgentStore } from '../store/useAgentStore';
 import { useCostStore } from '../store/useCostStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { apiClient } from './api-client';
-import { API_URL as API_BASE } from './api-config';
+import { API_URL } from './api-config';
+
+const API_BASE = API_URL;
 
 // Helper to get user ID for authenticated requests
 function getUserId(): string | null {

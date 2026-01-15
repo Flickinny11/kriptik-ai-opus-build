@@ -42,22 +42,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from '@/components/ui/use-toast';
 import '@/styles/design-system.css';
 
-// Category icons mapping - using text labels instead of emojis
+// Category icons mapping
 const CATEGORY_ICONS: Record<string, string> = {
-    'popular': 'star',
-    'all': 'grid',
-    'ai-models': 'brain',
-    'authentication': 'lock',
-    'database': 'database',
-    'deployment': 'rocket',
-    'cloud': 'cloud',
-    'storage': 'folder',
-    'payments': 'credit-card',
-    'email': 'mail',
-    'analytics': 'bar-chart',
-    'monitoring': 'search',
-    'messaging': 'message',
-    'cms': 'file-text',
+    'popular': '⭐',
+    'all': '📦',
+    'ai-models': '🧠',
+    'authentication': '🔐',
+    'database': '🗄️',
+    'deployment': '🚀',
+    'cloud': '☁️',
+    'storage': '📁',
+    'payments': '💳',
+    'email': '📧',
+    'analytics': '📊',
+    'monitoring': '🔍',
+    'messaging': '💬',
+    'cms': '📝',
 };
 
 export default function IntegrationMarketplace() {
@@ -214,7 +214,7 @@ export default function IntegrationMarketplace() {
                                             key={cat.id}
                                             active={selectedCategory === cat.id}
                                             onClick={() => setSelectedCategory(cat.id as IntegrationCategory)}
-                                            icon={CATEGORY_ICONS[cat.id] || 'grid'}
+                                            icon={CATEGORY_ICONS[cat.id] || '📦'}
                                             label={cat.name}
                                             count={INTEGRATION_CATALOG.filter(i => i.category === cat.id).length}
                                         />

@@ -39,7 +39,6 @@ import {
 import { GenerateButton3D } from '../components/ui/GenerateButton3D';
 import { ProjectCard3D } from '../components/ui/ProjectCard3D';
 import { FixMyAppFlipCard } from '../components/ui/FixMyAppFlipCard';
-import { ContinueInMobile } from '../components/mobile';
 import '../components/ui/premium-buttons/Premium3DButtons.css';
 import '../components/ui/FixMyAppFlipCard.css';
 import '../components/ui/ProjectCard3D.css';
@@ -1039,9 +1038,6 @@ export default function Dashboard() {
                         navigate('/fix-my-app');
                     }} />
                 )}
-                
-                {/* Continue in KripTik Mobile - floating banner for web-to-mobile sync */}
-                <ContinueInMobile variant="banner" />
             </main>
         </div>
     );

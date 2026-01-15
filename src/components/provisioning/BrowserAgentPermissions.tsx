@@ -8,7 +8,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './browser-agent-permissions.css';
-import { API_URL } from '@/lib/api-config';
+
+import { API_URL } from '../../lib/api-config';
 
 // ============================================================================
 // TYPES

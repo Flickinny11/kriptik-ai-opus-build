@@ -70,7 +70,7 @@ const STRATEGY_CONFIG = {
   },
   hybrid: {
     label: 'Hybrid Strategy',
-    icon: 'zap',
+    icon: '⚡',
     color: 'from-amber-500 to-orange-500',
     bgGlow: 'rgba(245, 158, 11, 0.15)',
   },

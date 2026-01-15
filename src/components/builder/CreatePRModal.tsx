@@ -127,12 +127,12 @@ ${filesChanged.length > 0
 
         if (verificationResults) {
             desc += `### Verification Results
-${verificationResults.passed ? 'All checks passed' : 'Some checks failed'}
+${verificationResults.passed ? '✅ All checks passed' : '⚠️ Some checks failed'}
 - Score: ${verificationResults.score}/100
 
 | Check | Status |
 |-------|--------|
-${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? 'PASS' : 'FAIL'} |`).join('\n')}
+${verificationResults.checks.map(c => `| ${c.name} | ${c.passed ? '✅' : '❌'} |`).join('\n')}
 
 `;
         }

@@ -104,7 +104,9 @@ const DEFAULT_PREFERENCES: LearningPreferences = {
 // API CLIENT
 // =============================================================================
 
-import { API_URL as apiUrl } from '@/lib/api-config';
+import { API_URL } from '../lib/api-config';
+
+const apiUrl = API_URL;
 
 async function fetchLearningStatus(): Promise<LearningSystemStatus> {
     const res = await fetch(`${apiUrl}/api/learning/status`, {

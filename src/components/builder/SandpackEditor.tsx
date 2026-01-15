@@ -60,7 +60,7 @@ export default function SandpackEditor() {
                 return {
                     suggestions: [
                         {
-                            label: 'AI: Generate component',
+                            label: '✨ AI: Generate component',
                             kind: monaco.languages.CompletionItemKind.Snippet,
                             insertText: 'export default function ${1:Component}() {\n\treturn (\n\t\t<div>\n\t\t\t$0\n\t\t</div>\n\t);\n}',
                             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -68,7 +68,7 @@ export default function SandpackEditor() {
                             range,
                         },
                         {
-                            label: 'AI: Add useState',
+                            label: '✨ AI: Add useState',
                             kind: monaco.languages.CompletionItemKind.Snippet,
                             insertText: 'const [${1:state}, set${1/(.*)/${1:/capitalize}/}] = useState(${2:initialValue});',
                             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -76,7 +76,7 @@ export default function SandpackEditor() {
                             range,
                         },
                         {
-                            label: 'AI: Add useEffect',
+                            label: '✨ AI: Add useEffect',
                             kind: monaco.languages.CompletionItemKind.Snippet,
                             insertText: 'useEffect(() => {\n\t$0\n}, [${1:dependencies}]);',
                             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -84,7 +84,7 @@ export default function SandpackEditor() {
                             range,
                         },
                         {
-                            label: 'AI: Add error handling',
+                            label: '✨ AI: Add error handling',
                             kind: monaco.languages.CompletionItemKind.Snippet,
                             insertText: 'try {\n\t$0\n} catch (error) {\n\tconsole.error("Error:", error);\n\tthrow error;\n}',
                             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -247,7 +247,7 @@ export default function SandpackEditor() {
                     Add error handling
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleAIAction('a11y')}>
-                    <AccessibilityIcon size={16} className="mr-2 text-amber-500" />
+                    <AccessibilityIcon size={16} className="mr-2 text-purple-500" />
                     Make accessible
                 </ContextMenuItem>
                 <ContextMenuSeparator />

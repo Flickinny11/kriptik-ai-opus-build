@@ -15,7 +15,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './FloatingSoftInterrupt.css';
-import { API_URL } from '@/lib/api-config';
+
+import { API_URL } from '../../lib/api-config';
 
 // =============================================================================
 // TYPES

@@ -2193,13 +2193,13 @@ Then output the JSON plan.`,
                 },
             },
             {
-                // Use Sonnet 4 for planning - fast and high quality
-                // Plan generation should be quick (<30s) not 10+ minutes
-                model: CLAUDE_MODELS.SONNET_4,
-                maxTokens: 8000, // Sufficient for comprehensive plans
-                useExtendedThinking: false, // Disable extended thinking for speed
-                thinkingBudgetTokens: 0, // No thinking budget - use model's natural reasoning
-                effort: 'medium', // Balance quality and speed
+                // CRITICAL: Use Opus 4.5 for planning - this is the foundation
+                // Best model for the job philosophy - planning must be highest quality
+                model: CLAUDE_MODELS.OPUS_4_5,
+                maxTokens: 64000, // Full capacity for comprehensive plans
+                useExtendedThinking: true,
+                thinkingBudgetTokens: 16000, // High thinking budget for deep planning
+                effort: 'high', // Maximum effort for best quality plans
             }
         );
 
@@ -2350,8 +2350,8 @@ router.post('/plan', async (req: Request, res: Response) => {
             projectId,
             undefined,
             {
-                fetchAPIDocs: false, // Skip API docs fetching for speed
-                thinkingBudget: 2000, // Minimal thinking for fast intent creation
+                fetchAPIDocs: true,
+                thinkingBudget: 64000,
             }
         );
 

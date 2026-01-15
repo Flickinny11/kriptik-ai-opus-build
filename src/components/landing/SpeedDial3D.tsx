@@ -8,7 +8,7 @@
 import { useState, useRef } from 'react';
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 
-// Build modes data - icons stored as descriptors, rendered via SVG
+// Build modes data
 const BUILD_MODES = [
   {
     id: 'lightning',
@@ -18,7 +18,7 @@ const BUILD_MODES = [
     color: '#c8ff64',
     features: ['Rapid scaffolding', 'Basic structure', 'Quick iteration', 'Instant preview'],
     agents: 2,
-    icon: 'zap',
+    icon: '⚡',
   },
   {
     id: 'standard',
@@ -28,27 +28,27 @@ const BUILD_MODES = [
     color: '#3b82f6',
     features: ['Full functionality', 'Error checking', 'Basic testing', 'Deployment ready'],
     agents: 4,
-    icon: 'target',
+    icon: '🎯',
   },
   {
     id: 'tournament',
     name: 'Tournament',
     time: '~30 minutes',
     description: 'Best-of-breed. Competing implementations battle. AI judges select winner.',
-    color: '#f59e0b',
+    color: '#a855f7',
     features: ['3 competing builds', 'AI judge selection', 'Best patterns', 'Optimal solution'],
     agents: 6,
-    icon: 'trophy',
+    icon: '🏆',
   },
   {
     id: 'production',
     name: 'Production',
     time: '~60 minutes',
     description: 'Enterprise-ready. Full verification swarm. Security scanning. Zero compromises.',
-    color: '#10b981',
+    color: '#f59e0b',
     features: ['Full swarm verification', 'Security audit', 'Performance optimization', 'Zero tolerance'],
     agents: 6,
-    icon: 'rocket',
+    icon: '🚀',
   },
 ];
 

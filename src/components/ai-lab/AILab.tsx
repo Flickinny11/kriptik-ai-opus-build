@@ -39,11 +39,11 @@ const ResearchPromptInput: React.FC<{
     isSubmitting,
 }) => {
     const problemTypes: Array<{ value: AILabSession['problemType']; label: string; icon: string }> = [
-        { value: 'general', label: 'General Research', icon: 'research' },
-        { value: 'code_review', label: 'Code Review', icon: 'code' },
-        { value: 'architecture', label: 'Architecture Analysis', icon: 'arch' },
-        { value: 'optimization', label: 'Optimization', icon: 'optimize' },
-        { value: 'research', label: 'Deep Research', icon: 'deep' },
+        { value: 'general', label: 'General Research', icon: '🔬' },
+        { value: 'code_review', label: 'Code Review', icon: '💻' },
+        { value: 'architecture', label: 'Architecture Analysis', icon: '🏗️' },
+        { value: 'optimization', label: 'Optimization', icon: '⚡' },
+        { value: 'research', label: 'Deep Research', icon: '📚' },
     ];
 
     return (
@@ -117,6 +117,7 @@ const ResearchPromptInput: React.FC<{
                     </>
                 ) : (
                     <>
+                        <span className="btn-icon">🚀</span>
                         Start Multi-Agent Research
                     </>
                 )}

@@ -1,14 +1,10 @@
 /**
- * AI Lab Standalone Page
+ * AI Lab Standalone Page (PROMPT 9)
  *
- * Full-page access to the comprehensive AI Lab:
- * - Open Source Studio (HuggingFace models)
- * - Training & Fine-tuning
- * - Endpoints management
- * - Multi-agent research orchestration
+ * Full-page access to the AI Lab multi-agent research orchestration system.
  */
 
-import { AILabHub } from '../components/ai-lab/AILabHub';
+import { AILab } from '../components/ai-lab/AILab';
 import { HoverSidebar } from '../components/navigation/HoverSidebar';
 import './AILabPage.css';
 
@@ -17,7 +13,7 @@ export default function AILabPage() {
         <div className="ai-lab-page">
             <HoverSidebar />
             <main className="ai-lab-main">
-                <AILabHub />
+                <AILab />
             </main>
         </div>
     );
