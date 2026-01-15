@@ -15,7 +15,7 @@ import { FeatureAgentCommandCenter } from './panels/FeatureAgentCommandCenter';
 import { BrowserAgentPermissions } from '../provisioning/BrowserAgentPermissions';
 import { OpenSourceStudio } from '../open-source-studio/OpenSourceStudio';
 import { useOpenSourceStudioStore } from '@/store/useOpenSourceStudioStore';
-import { AILab } from '../ai-lab/AILab';
+import { AILabHub } from '../ai-lab/AILabHub';
 import { useAILabStore } from '@/store/useAILabStore';
 import { useParams } from 'react-router-dom';
 import './developer-bar-panel.css';
@@ -60,7 +60,7 @@ const OpenSourceStudioWrapper = ({ isActive: _isActive, onClose }: { isActive: b
   return <OpenSourceStudio onClose={handleClose} />;
 };
 
-// Panel wrapper for AI Lab (opens as full-screen modal)
+// Panel wrapper for AI Lab Hub (comprehensive AI/ML interface)
 const AILabWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onClose: () => void }) => {
   const { setOpen } = useAILabStore();
 
@@ -75,12 +75,7 @@ const AILabWrapper = ({ isActive: _isActive, onClose }: { isActive: boolean; onC
     onClose();
   };
 
-  return (
-    <div className="ai-lab-panel-wrapper">
-      <button className="ai-lab-close-btn" onClick={handleClose}>×</button>
-      <AILab />
-    </div>
-  );
+  return <AILabHub onClose={handleClose} />;
 };
 
 const FEATURE_PANELS: Record<string, {
