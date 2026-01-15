@@ -9,6 +9,10 @@ import { Router, type Request, type Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { HuggingFaceService, type ModelTask } from '../services/ml/huggingface.js';
 import { getOpenSourceStudioDeployer } from '../services/open-source-studio/index.js';
+import { createOrchestratorClaudeService, CLAUDE_MODELS } from '../services/ai/claude-service.js';
+import { db } from '../db.js';
+import { projects, buildIntents } from '../schema.js';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -393,6 +397,260 @@ router.get('/deploy/check/:author/:name', authMiddleware, async (req: Request, r
     console.error('[Open Source Studio] Deployability check error:', error);
     res.status(500).json({
       error: 'Failed to check deployability',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// =============================================================================
+// NLP INTEGRATION - CONNECTS TO BUILD LOOP ORCHESTRATOR
+// =============================================================================
+
+interface IntegrationModel {
+  modelId: string;
+  task?: string;
+  estimatedVRAM?: number;
+}
+
+interface IntegrationRequest {
+  prompt: string;
+  models: IntegrationModel[];
+  projectId?: string;
+}
+
+/**
+ * POST /api/open-source-studio/integrate
+ * Generate an implementation plan from NLP prompt + selected models
+ * This connects to the BuildLoopOrchestrator's intent lock system
+ */
+router.post('/integrate', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const { prompt, models, projectId }: IntegrationRequest = req.body;
+
+    if (!prompt || !models || models.length === 0) {
+      res.status(400).json({ error: 'prompt and models array are required' });
+      return;
+    }
+
+    console.log(`[Open Source Studio] Integration request from ${userId}:`, {
+      prompt: prompt.substring(0, 100),
+      modelCount: models.length,
+    });
+
+    // Get or create project
+    let targetProjectId = projectId;
+    if (!targetProjectId) {
+      // Create a new project for this integration
+      const [newProject] = await db.insert(projects).values({
+        name: `OSS Integration - ${new Date().toLocaleDateString()}`,
+        description: prompt.substring(0, 200),
+        ownerId: userId,
+        framework: 'react',
+      }).returning();
+      targetProjectId = newProject.id;
+    }
+
+    // Use Claude to generate an implementation plan
+    const claudeService = createOrchestratorClaudeService();
+
+    // Build context about the selected models
+    const modelContext = models.map(m => 
+      `- ${m.modelId} (Task: ${m.task || 'unknown'}, VRAM: ${m.estimatedVRAM || 'unknown'}GB)`
+    ).join('\n');
+
+    // Generate implementation plan using Claude
+    const planResponse = await claudeService.generate(
+      `You are an AI architect. A user wants to create an integration using these HuggingFace models:
+
+${modelContext}
+
+User's request: "${prompt}"
+
+Generate a detailed implementation plan in JSON format with the following structure:
+{
+  "summary": "Brief description of what will be built",
+  "integrations": [
+    {
+      "modelId": "the HuggingFace model ID",
+      "purpose": "what this model will do in the workflow",
+      "deploymentType": "endpoint" | "local" | "api",
+      "estimatedCost": "cost per hour or per request"
+    }
+  ],
+  "workflow": [
+    {
+      "step": 1,
+      "action": "what happens",
+      "input": "input data type",
+      "output": "output data type",
+      "modelUsed": "which model handles this"
+    }
+  ],
+  "requirements": {
+    "gpuType": "recommended GPU type",
+    "estimatedVRAM": "total VRAM needed in GB",
+    "estimatedMonthlyCost": "estimated monthly cost in USD"
+  },
+  "codeStructure": {
+    "frontend": ["list of components needed"],
+    "backend": ["list of endpoints needed"],
+    "infrastructure": ["deployment configs needed"]
+  }
+}
+
+Return ONLY valid JSON, no markdown or explanations.`,
+      {
+        model: CLAUDE_MODELS.SONNET_4,
+        maxTokens: 4000,
+        temperature: 0.3,
+        useExtendedThinking: false,
+      }
+    );
+
+    // Parse the plan
+    let plan;
+    try {
+      const jsonMatch = planResponse.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        plan = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseError) {
+      console.error('[Open Source Studio] Failed to parse plan:', parseError);
+      // Return a structured fallback
+      plan = {
+        summary: `Integration of ${models.length} models for: ${prompt.substring(0, 100)}`,
+        integrations: models.map(m => ({
+          modelId: m.modelId,
+          purpose: 'Model integration',
+          deploymentType: 'endpoint',
+          estimatedCost: '$0.50/hour',
+        })),
+        workflow: [
+          { step: 1, action: 'Initialize models', input: 'user input', output: 'processed data', modelUsed: models[0]?.modelId }
+        ],
+        requirements: {
+          gpuType: 'A10G',
+          estimatedVRAM: models.reduce((sum, m) => sum + (m.estimatedVRAM || 8), 0),
+          estimatedMonthlyCost: `$${models.length * 50}`,
+        },
+        codeStructure: {
+          frontend: ['ModelPipeline.tsx', 'ResultViewer.tsx'],
+          backend: ['inference.ts', 'workflow.ts'],
+          infrastructure: ['runpod-deployment.yaml'],
+        },
+      };
+    }
+
+    // Return the plan directly - user must approve before execution
+    // The plan is not stored until approved to avoid cluttering the database
+    res.json({
+      success: true,
+      projectId: targetProjectId,
+      plan,
+      models: models.map(m => m.modelId),
+      message: 'Implementation plan generated. Approve to execute.',
+    });
+
+  } catch (error) {
+    console.error('[Open Source Studio] Integration error:', error);
+    res.status(500).json({
+      error: 'Failed to generate integration plan',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/open-source-studio/integrate/execute
+ * Execute an approved integration plan
+ * Receives the plan directly from frontend (after user approval)
+ */
+router.post('/integrate/execute', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const { plan, projectId } = req.body;
+
+    if (!plan || !plan.integrations) {
+      res.status(400).json({ error: 'plan with integrations array is required' });
+      return;
+    }
+
+    console.log(`[Open Source Studio] Executing integration for user ${userId}:`, {
+      integrationCount: plan.integrations.length,
+      projectId,
+    });
+
+    // Deploy each model
+    const deployer = getOpenSourceStudioDeployer();
+    const deployedEndpoints: Array<{ modelId: string; endpointUrl: string; status: string; error?: string }> = [];
+
+    for (const integration of plan.integrations) {
+      if (integration.deploymentType === 'endpoint') {
+        try {
+          const result = await deployer.deployModel({
+            userId,
+            modelId: integration.modelId,
+            modelName: integration.modelId.split('/').pop(),
+            modelDescription: integration.purpose,
+          });
+          deployedEndpoints.push({
+            modelId: integration.modelId,
+            endpointUrl: result.endpointUrl,
+            status: 'deployed',
+          });
+        } catch (deployError) {
+          console.error(`[Open Source Studio] Failed to deploy ${integration.modelId}:`, deployError);
+          deployedEndpoints.push({
+            modelId: integration.modelId,
+            endpointUrl: '',
+            status: 'failed',
+            error: deployError instanceof Error ? deployError.message : 'Unknown error',
+          });
+        }
+      } else {
+        // Mark non-endpoint integrations as skipped
+        deployedEndpoints.push({
+          modelId: integration.modelId,
+          endpointUrl: '',
+          status: 'skipped',
+          error: `Deployment type "${integration.deploymentType}" not yet supported`,
+        });
+      }
+    }
+
+    const successCount = deployedEndpoints.filter(e => e.status === 'deployed').length;
+    const totalCount = plan.integrations.length;
+
+    res.json({
+      success: successCount > 0,
+      projectId,
+      deployedEndpoints,
+      summary: {
+        total: totalCount,
+        deployed: successCount,
+        failed: deployedEndpoints.filter(e => e.status === 'failed').length,
+        skipped: deployedEndpoints.filter(e => e.status === 'skipped').length,
+      },
+      message: `Deployed ${successCount}/${totalCount} models`,
+    });
+
+  } catch (error) {
+    console.error('[Open Source Studio] Execution error:', error);
+    res.status(500).json({
+      error: 'Failed to execute integration',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

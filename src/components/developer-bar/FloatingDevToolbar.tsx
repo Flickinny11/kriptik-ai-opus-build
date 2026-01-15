@@ -27,6 +27,7 @@ export interface ToolbarButton {
 
 const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { id: 'feature-agents', name: 'Feature Agents', icon: 'featureAgents', tooltip: 'Manage parallel AI agents' },
+  { id: 'open-source-studio', name: 'Open Source', icon: 'openSourceStudio', tooltip: 'HuggingFace models, training & deployment' },
   { id: 'health', name: 'Health', icon: 'health', tooltip: 'Real-time system health' },
   { id: 'database', name: 'Database', icon: 'database', tooltip: 'Database explorer & queries' },
   { id: 'memory', name: 'Memory', icon: 'memory', tooltip: 'AI memory & context' },
@@ -38,7 +39,6 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { id: 'rules', name: 'Rules', icon: 'rules', tooltip: 'Business rules engine' },
   { id: 'clone-mode', name: 'Clone Mode', icon: 'cloneMode', tooltip: 'Duplicate & branch' },
   { id: 'security', name: 'Security', icon: 'security', tooltip: 'Security analysis' },
-  { id: 'multiplayer', name: 'Multiplayer', icon: 'multiplayer', tooltip: 'Real-time collaboration' },
   { id: 'permissions', name: 'Permissions', icon: 'permissions', tooltip: 'Access control' },
 ];
 

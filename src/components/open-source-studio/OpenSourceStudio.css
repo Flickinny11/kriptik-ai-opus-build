@@ -1,6 +1,6 @@
 /**
  * Open Source Studio - Main Container Styles
- * 
+ *
  * Premium glassmorphic design with depth and motion.
  * Part of KripTik AI's GPU & AI Lab Implementation (PROMPT 2).
  */
@@ -220,12 +220,12 @@
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
   }
-  
+
   .oss-panel--browser {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
-  
+
   .oss-panel--dock {
     max-height: 250px;
   }
@@ -235,18 +235,18 @@
   .oss-overlay {
     padding: 10px;
   }
-  
+
   .oss-container {
     border-radius: 16px;
     height: calc(100vh - 20px);
   }
-  
+
   .oss-header {
     padding: 16px;
     flex-wrap: wrap;
     gap: 12px;
   }
-  
+
   .oss-title {
     font-size: 1.25rem;
   }
@@ -268,4 +268,881 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   4-TAB LAYOUT - LIGHT LIQUID GLASS THEME
+   ============================================================================= */
+
+.oss-container--4tab {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(250, 250, 252, 0.95) 50%,
+    rgba(248, 250, 252, 0.97) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.15),
+    0 20px 50px rgba(0, 0, 0, 0.1),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.02);
+  max-height: 95vh;
+}
+
+.oss-container--4tab .oss-header {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.oss-container--4tab .oss-title {
+  color: #1c1917;
+  text-shadow: none;
+}
+
+.oss-container--4tab .oss-subtitle {
+  color: #78716c;
+}
+
+.oss-container--4tab .oss-close-btn {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  color: #57534e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.oss-container--4tab .oss-close-btn:hover {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.8) 100%);
+  color: #1c1917;
+}
+
+/* Tab Navigation */
+.oss-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.oss-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.oss-tab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+/* Tab Content */
+.oss-tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.oss-tab-content--full {
+  padding: 0;
+}
+
+.oss-main-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Light theme panels */
+.oss-container--4tab .oss-panel {
+  background: transparent;
+}
+
+.oss-container--4tab .oss-panel--browser {
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Integration Prompt Bar */
+.oss-prompt-bar {
+  padding: 16px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.04) 100%);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.oss-prompt-context {
+  margin-bottom: 12px;
+}
+
+.oss-prompt-models {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oss-prompt-label {
+  font-size: 12px;
+  color: #78716c;
+  font-weight: 500;
+}
+
+.oss-prompt-model-tag {
+  padding: 4px 10px;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.oss-prompt-more {
+  font-size: 12px;
+  color: #a8a29e;
+}
+
+.oss-prompt-hint {
+  font-size: 13px;
+  color: #a8a29e;
+  font-style: italic;
+}
+
+.oss-prompt-input-container {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.oss-prompt-input {
+  flex: 1;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 250, 252, 0.7) 100%);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  color: #1c1917;
+  font-family: inherit;
+}
+
+.oss-prompt-input::placeholder {
+  color: #a8a29e;
+}
+
+.oss-prompt-input:focus {
+  outline: none;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    0 0 0 2px rgba(251, 191, 36, 0.3);
+}
+
+.oss-prompt-submit {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.oss-prompt-submit:disabled {
+  cursor: not-allowed;
+  color: #a8a29e;
+}
+
+.oss-prompt-submit:not(:disabled):hover {
+  transform: scale(1.05);
+}
+
+.oss-prompt-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top-color: white;
+  border-radius: 50%;
+}
+
+/* Deploy Panel */
+.oss-deploy-panel {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.oss-deploy-header {
+  margin-bottom: 24px;
+}
+
+.oss-deploy-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 6px;
+}
+
+.oss-deploy-header p {
+  font-size: 14px;
+  color: #78716c;
+  margin: 0;
+}
+
+.oss-deploy-models {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.oss-deploy-models h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #44403c;
+  margin: 0 0 12px;
+}
+
+.oss-deploy-empty {
+  padding: 24px;
+  text-align: center;
+  color: #a8a29e;
+}
+
+.oss-deploy-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oss-deploy-model-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.oss-deploy-model-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1c1917;
+}
+
+.oss-deploy-model-vram {
+  font-size: 12px;
+  color: #78716c;
+}
+
+.oss-deploy-vram-total {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+  font-weight: 600;
+  color: #44403c;
+}
+
+.oss-deploy-gpu-section {
+  margin-bottom: 24px;
+}
+
+.oss-deploy-gpu-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #44403c;
+  margin: 0 0 12px;
+}
+
+.oss-deploy-loading {
+  padding: 24px;
+  text-align: center;
+  color: #a8a29e;
+}
+
+.oss-deploy-gpu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.oss-deploy-gpu-card {
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  position: relative;
+}
+
+.oss-deploy-gpu-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.oss-deploy-gpu-card.selected {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(254, 252, 232, 0.85) 100%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 0 2px #f59e0b, 0 0 20px rgba(251, 191, 36, 0.15);
+}
+
+.oss-deploy-gpu-card.insufficient {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.oss-gpu-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1917;
+  margin-bottom: 6px;
+}
+
+.oss-gpu-specs {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #78716c;
+}
+
+.oss-gpu-recommended {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  background: linear-gradient(145deg, #10b981 0%, #059669 100%);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+}
+
+.oss-gpu-warning {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.oss-deploy-count {
+  margin-top: 16px;
+}
+
+.oss-deploy-count label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #44403c;
+  margin-bottom: 8px;
+}
+
+.oss-deploy-count-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.oss-deploy-count-btns button {
+  width: 48px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 252, 0.4) 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  color: #57534e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oss-deploy-count-btns button:hover {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+}
+
+.oss-deploy-count-btns button.active {
+  background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.oss-deploy-cost {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border-radius: 12px;
+}
+
+.oss-deploy-cost-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #44403c;
+}
+
+.oss-deploy-cost-value {
+  font-weight: 700;
+  color: #92400e;
+  font-size: 16px;
+}
+
+.oss-deploy-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.oss-deploy-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.oss-deploy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Training Panel */
+.oss-training-panel {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.oss-training-header {
+  margin-bottom: 24px;
+}
+
+.oss-training-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 6px;
+}
+
+.oss-training-header p {
+  font-size: 14px;
+  color: #78716c;
+  margin: 0;
+}
+
+.oss-training-empty {
+  padding: 48px;
+  text-align: center;
+}
+
+.oss-training-empty-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  color: #a8a29e;
+}
+
+.oss-training-empty p {
+  font-size: 14px;
+  color: #78716c;
+}
+
+.oss-training-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.oss-training-model-card {
+  padding: 20px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.7) 100%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.oss-training-model-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+.oss-training-model-info {
+  margin-bottom: 12px;
+}
+
+.oss-training-model-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1917;
+  margin-bottom: 2px;
+}
+
+.oss-training-model-author {
+  font-size: 12px;
+  color: #78716c;
+}
+
+.oss-training-model-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #a8a29e;
+  margin-bottom: 16px;
+}
+
+.oss-training-model-action {
+  padding: 10px 16px;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: center;
+}
+
+/* Implementation Plan Modal */
+.oss-plan-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.oss-plan-modal {
+  width: 90%;
+  max-width: 600px;
+  max-height: 80%;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 252, 0.95) 100%);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  overflow: auto;
+}
+
+.oss-plan-modal h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 16px;
+}
+
+.oss-plan-modal pre {
+  padding: 16px;
+  background: #f5f5f4;
+  border-radius: 12px;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 300px;
+}
+
+.oss-plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.oss-plan-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oss-plan-actions button:first-child {
+  background: rgba(0, 0, 0, 0.06);
+  color: #57534e;
+}
+
+.oss-plan-actions button.primary {
+  background: linear-gradient(145deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* =============================================================================
+   COMPREHENSIVE TRAINING & DEPLOY SUB-VIEWS
+   ============================================================================= */
+
+/* Back Button */
+.oss-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 250, 252, 0.5) 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 500;
+  color: #57534e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oss-back-btn:hover {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.7) 100%);
+  color: #1c1917;
+}
+
+/* Training Overview */
+.oss-training-overview,
+.oss-deploy-overview {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.oss-training-header,
+.oss-deploy-header {
+  margin-bottom: 32px;
+}
+
+.oss-training-header h3,
+.oss-deploy-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 8px;
+}
+
+.oss-training-header p,
+.oss-deploy-header p {
+  font-size: 15px;
+  color: #78716c;
+  margin: 0;
+}
+
+/* Action Cards */
+.oss-training-actions,
+.oss-deploy-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.oss-training-action-card,
+.oss-deploy-action-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 252, 0.85) 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.oss-training-action-card:hover,
+.oss-deploy-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+.oss-action-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+.oss-action-content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1917;
+  margin: 0 0 4px;
+}
+
+.oss-action-content p {
+  font-size: 14px;
+  color: #78716c;
+  margin: 0;
+}
+
+/* Model Grid in Training/Deploy */
+.oss-training-dock-models,
+.oss-deploy-dock-models {
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.oss-training-dock-models h4,
+.oss-deploy-dock-models h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #44403c;
+  margin: 0 0 16px;
+}
+
+.oss-training-model-grid,
+.oss-deploy-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.oss-training-model-card,
+.oss-deploy-model-card {
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 250, 252, 0.7) 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.oss-training-model-card:hover,
+.oss-deploy-model-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+.oss-training-model-name,
+.oss-deploy-model-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.oss-training-model-task,
+.oss-deploy-model-vram {
+  font-size: 12px;
+  color: #78716c;
+}
+
+/* Training Subview */
+.oss-training-subview,
+.oss-deploy-subview {
+  padding: 24px;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Training Config Layout */
+.oss-training-config-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  height: calc(100% - 48px);
+}
+
+.oss-training-config-main {
+  overflow: auto;
+}
+
+.oss-training-config-sidebar {
+  height: fit-content;
+  position: sticky;
+  top: 0;
+}
+
+/* Plan Modal Content */
+.oss-plan-content {
+  max-height: 400px;
+  overflow: auto;
+}
+
+.oss-plan-content pre {
+  padding: 16px;
+  background: linear-gradient(145deg, rgba(248, 250, 252, 0.9) 0%, rgba(245, 247, 250, 0.8) 100%);
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #44403c;
+  overflow-x: auto;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .oss-training-config-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .oss-training-config-sidebar {
+    position: relative;
+  }
 }

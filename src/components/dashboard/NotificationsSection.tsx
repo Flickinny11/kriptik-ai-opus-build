@@ -58,25 +58,95 @@ function typeColor(type: NotificationType) {
   return { dot: '#F59E0B', glow: 'rgba(245,158,11,0.22)' };
 }
 
-function svgBell(size = 16) {
+// 3D Bell Icon - Custom designed with black/white/red accents
+function Bell3D({ size = 24, hasNotification = false }: { size?: number; hasNotification?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <defs>
+        {/* 3D gradient for bell body */}
+        <linearGradient id="bellBody3D" x1="8" y1="4" x2="24" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="30%" stopColor="#e5e5e5" />
+          <stop offset="70%" stopColor="#a3a3a3" />
+          <stop offset="100%" stopColor="#525252" />
+        </linearGradient>
+        {/* Highlight gradient */}
+        <linearGradient id="bellHighlight" x1="10" y1="6" x2="22" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+        {/* Red notification dot gradient */}
+        <radialGradient id="notifDot" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#ff6b6b" />
+          <stop offset="50%" stopColor="#ef4444" />
+          <stop offset="100%" stopColor="#b91c1c" />
+        </radialGradient>
+        {/* Glow filter */}
+        <filter id="bellGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Red glow filter */}
+        <filter id="redGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feFlood floodColor="#ef4444" floodOpacity="0.6" />
+          <feComposite in2="blur" operator="in" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Bell shadow for 3D depth */}
+      <ellipse cx="16" cy="27" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)" />
+      
+      {/* Bell body - main shape */}
       <path
-        d="M8 14a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M16 4C16 4 12 4 10 8C8 12 8 18 8 20C8 22 6 24 6 24H26C26 24 24 22 24 20C24 18 24 12 22 8C20 4 16 4 16 4Z"
+        fill="url(#bellBody3D)"
+        stroke="#404040"
+        strokeWidth="0.5"
+        filter="url(#bellGlow)"
       />
+      
+      {/* Bell highlight - 3D shine */}
       <path
-        d="M12.5 6.5a4.5 4.5 0 0 0-9 0c0 4-1.5 4-1.5 4h12s-1.5 0-1.5-4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
+        d="M16 5C16 5 13 5 11 8.5C9 12 9.5 17 9.5 19C9.5 19.5 9 20 9 20"
+        stroke="url(#bellHighlight)"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="none"
       />
+      
+      {/* Bell clapper/bottom */}
+      <ellipse cx="16" cy="26.5" rx="3" ry="1.5" fill="url(#bellBody3D)" stroke="#404040" strokeWidth="0.3" />
+      
+      {/* Inner shadow line */}
+      <path
+        d="M10 22C10 22 12 21 16 21C20 21 22 22 22 22"
+        stroke="rgba(0,0,0,0.3)"
+        strokeWidth="0.8"
+        fill="none"
+      />
+      
+      {/* Notification dot with red glow */}
+      {hasNotification && (
+        <g filter="url(#redGlow)">
+          <circle cx="23" cy="8" r="5" fill="url(#notifDot)" />
+          <circle cx="21.5" cy="6.5" r="1.5" fill="rgba(255,255,255,0.6)" />
+        </g>
+      )}
     </svg>
   );
+}
+
+// Legacy svgBell for backwards compatibility
+function svgBell(size = 16) {
+  return <Bell3D size={size} hasNotification={false} />;
 }
 
 function svgChevron(size = 14, open = false) {
@@ -186,6 +256,13 @@ function PremiumNotificationCard({
   const screenshot = notification.metadata?.screenshotBase64 || notification.metadata?.screenshotUrl;
   const projectName = notification.metadata?.projectName || 'Project';
   const hasScreenshot = !!screenshot;
+  
+  // Liquid glass light theme colors based on notification type
+  const typeGlowColor = notification.type === 'feature_complete' 
+    ? 'rgba(16,185,129,0.12)' 
+    : notification.type === 'error' 
+      ? 'rgba(239,68,68,0.12)' 
+      : 'rgba(251,191,36,0.12)';
 
   return (
     <motion.div
@@ -193,7 +270,7 @@ function PremiumNotificationCard({
       initial={{ opacity: 0, y: 16, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -16, scale: 0.97 }}
-      whileHover={{ scale: 1.015 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
       onClick={onClick}
       className={cn(
@@ -201,20 +278,32 @@ function PremiumNotificationCard({
         'transition-all duration-300'
       )}
       style={{
-        borderRadius: 20,
+        borderRadius: 18,
         background: hasScreenshot
-          ? 'linear-gradient(145deg, rgba(15,20,28,0.95) 0%, rgba(8,12,18,0.98) 100%)'
+          ? 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)'
           : notification.read
-            ? 'linear-gradient(145deg, rgba(255,255,255,0.10), rgba(0,0,0,0.03))'
-            : 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(245,168,108,0.06))',
+            ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(250,250,252,0.4) 100%)'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,250,252,0.75) 100%)',
         border: notification.read
-          ? '1px solid rgba(255,255,255,0.08)'
-          : `1px solid rgba(${notification.type === 'feature_complete' ? '47,201,121' : notification.type === 'error' ? '255,77,77' : '245,168,108'},0.28)`,
+          ? '1px solid rgba(0,0,0,0.04)'
+          : '1px solid rgba(255,255,255,0.8)',
         boxShadow: hasScreenshot
-          ? `0 24px 60px rgba(0,0,0,0.35), 0 0 40px ${c.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`
+          ? `0 16px 48px rgba(0,0,0,0.25), 0 0 30px ${c.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`
           : notification.read
-            ? '0 12px 32px rgba(0,0,0,0.08)'
-            : `0 20px 50px ${c.glow}, 0 8px 24px rgba(0,0,0,0.12)`,
+            ? `
+              0 4px 12px rgba(0,0,0,0.04),
+              inset 0 1px 2px rgba(255,255,255,0.7),
+              0 0 0 1px rgba(0,0,0,0.02)
+            `
+            : `
+              0 8px 24px rgba(0,0,0,0.08),
+              0 4px 12px rgba(0,0,0,0.05),
+              inset 0 2px 4px rgba(255,255,255,1),
+              inset 0 -1px 2px rgba(0,0,0,0.02),
+              0 0 0 1px rgba(255,255,255,0.7),
+              0 0 20px ${typeGlowColor}
+            `,
+        transform: 'perspective(500px) rotateX(-0.5deg)',
       }}
     >
       {/* Screenshot Preview */}
@@ -754,112 +843,428 @@ export default function NotificationsSection({ userId }: NotificationsSectionPro
     }
   };
 
+  // Collapsed state - just show 3D bell button with warm red pulse glow
+  if (!open) {
+    return (
+      <div className="relative">
+        {/* Warm red ambient glow when notifications present - outermost layer */}
+        {unreadCount > 0 && (
+          <motion.div
+            animate={{
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.08, 1],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            style={{
+              position: 'absolute',
+              inset: -20,
+              borderRadius: 38,
+              background: 'radial-gradient(circle, rgba(255,100,80,0.35) 0%, rgba(239,68,68,0.15) 40%, transparent 70%)',
+              pointerEvents: 'none',
+              filter: 'blur(12px)',
+            }}
+          />
+        )}
+        
+        <motion.button
+          onClick={() => setOpen(true)}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.08, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative"
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 20,
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(252,252,254,0.9) 30%, rgba(248,250,252,0.95) 100%)',
+            boxShadow: unreadCount > 0 
+              ? `
+                0 16px 50px rgba(0,0,0,0.12),
+                0 8px 25px rgba(0,0,0,0.08),
+                0 4px 12px rgba(0,0,0,0.05),
+                inset 0 2px 4px rgba(255,255,255,1),
+                inset 0 -2px 4px rgba(0,0,0,0.02),
+                0 0 0 1px rgba(255,255,255,0.9),
+                0 0 40px rgba(255,90,60,0.4),
+                0 0 80px rgba(239,68,68,0.2)
+              `
+              : `
+                0 12px 40px rgba(0,0,0,0.1),
+                0 6px 20px rgba(0,0,0,0.06),
+                0 3px 8px rgba(0,0,0,0.04),
+                inset 0 2px 4px rgba(255,255,255,1),
+                inset 0 -2px 4px rgba(0,0,0,0.02),
+                0 0 0 1px rgba(255,255,255,0.8)
+              `,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'perspective(600px) rotateX(-3deg)',
+            transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+          }}
+          title={`${unreadCount} notifications`}
+        >
+          {/* Pulsing warm red glow ring when notifications present */}
+          {unreadCount > 0 && (
+            <>
+              {/* Outer pulse ring */}
+              <motion.div
+                animate={{
+                  scale: [1, 1.4, 1],
+                  opacity: [0.6, 0, 0.6],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeOut',
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: -6,
+                  borderRadius: 26,
+                  border: '2px solid rgba(255,90,60,0.5)',
+                  pointerEvents: 'none',
+                }}
+              />
+              {/* Inner glow ring */}
+              <motion.div
+                animate={{
+                  opacity: [0.4, 0.7, 0.4],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: 20,
+                  boxShadow: 'inset 0 0 20px rgba(255,90,60,0.2)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </>
+          )}
+          
+          {/* Inner highlight - glass shine effect */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 3,
+              left: 6,
+              right: 6,
+              height: '40%',
+              borderRadius: '16px 16px 50% 50%',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%)',
+              pointerEvents: 'none',
+            }}
+          />
+          
+          {/* 3D Bell Icon */}
+          <Bell3D size={30} hasNotification={unreadCount > 0} />
+          
+          {/* Notification count badge with warm glow */}
+          {unreadCount > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                minWidth: 24,
+                height: 24,
+                borderRadius: 12,
+                background: 'linear-gradient(145deg, #ff7b6b 0%, #ef5044 40%, #dc3626 100%)',
+                boxShadow: '0 6px 16px rgba(239,68,68,0.5), 0 0 20px rgba(255,90,60,0.4), inset 0 1px 2px rgba(255,255,255,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: 12,
+                fontWeight: 800,
+                padding: '0 7px',
+                border: '2px solid rgba(255,255,255,0.9)',
+              }}
+            >
+              {unreadCount}
+            </motion.div>
+          )}
+        </motion.button>
+      </div>
+    );
+  }
+
+  // Expanded state - floating square liquid glass popout
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: 0,
-        overflow: 'hidden',
-        borderRadius: 22,
-        border: '1px solid rgba(245,168,108,0.14)',
-        boxShadow: '0 18px 55px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.07)',
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.06))',
-      }}
-    >
-      <div
+    <div className="relative">
+      {/* Collapsed bell still visible as anchor */}
+      <motion.button
+        onClick={() => setOpen(false)}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="relative z-10"
         style={{
-          padding: '14px 16px',
+          width: 60,
+          height: 60,
+          borderRadius: 20,
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(252,252,254,0.9) 30%, rgba(248,250,252,0.95) 100%)',
+          boxShadow: `
+            0 12px 40px rgba(0,0,0,0.1),
+            0 6px 20px rgba(0,0,0,0.06),
+            inset 0 2px 4px rgba(255,255,255,1),
+            inset 0 -2px 4px rgba(0,0,0,0.02),
+            0 0 0 1px rgba(255,255,255,0.8)
+          `,
+          border: 'none',
+          cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          borderBottom: open ? '1px solid rgba(0,0,0,0.08)' : 'none',
+          justifyContent: 'center',
+          transform: 'perspective(600px) rotateX(-3deg)',
         }}
+        title="Collapse notifications"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        {/* Glass shine */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: 6,
+            right: 6,
+            height: '40%',
+            borderRadius: '16px 16px 50% 50%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+        <Bell3D size={30} hasNotification={unreadCount > 0} />
+        {unreadCount > 0 && (
           <div
-            className="glass-button"
             style={{
-              width: 34,
-              height: 34,
-              padding: 0,
-              display: 'grid',
-              placeItems: 'center',
-              color: '#1a1a1a',
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              minWidth: 24,
+              height: 24,
+              borderRadius: 12,
+              background: 'linear-gradient(145deg, #ff7b6b 0%, #ef5044 40%, #dc3626 100%)',
+              boxShadow: '0 6px 16px rgba(239,68,68,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 800,
+              padding: '0 7px',
+              border: '2px solid rgba(255,255,255,0.9)',
             }}
           >
-            {svgBell(16)}
+            {unreadCount}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 850, color: '#1a1a1a' }}>Notifications</div>
-              {unreadCount > 0 && (
-                <div
-                  style={{
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    border: '1px solid rgba(245,168,108,0.22)',
-                    background: 'rgba(245,168,108,0.12)',
-                    color: '#1a1a1a',
-                    fontSize: 12,
-                    fontWeight: 800,
-                  }}
-                >
-                  {unreadCount} new
-                </div>
-              )}
+        )}
+      </motion.button>
+
+      {/* Floating square liquid glass popout */}
+      <motion.div
+        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+        style={{
+          position: 'absolute',
+          top: 70,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 420,
+          maxWidth: '90vw',
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: 24,
+          zIndex: 50,
+          
+          // Liquid glass background with depth
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.97) 0%, rgba(252,254,255,0.92) 30%, rgba(248,252,255,0.95) 60%, rgba(245,250,254,0.9) 100%)',
+          backdropFilter: 'blur(40px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+          
+          // Multi-layer 3D liquid glass shadow with depth
+          boxShadow: `
+            0 30px 100px rgba(0,0,0,0.18),
+            0 20px 60px rgba(0,0,0,0.12),
+            0 10px 30px rgba(0,0,0,0.08),
+            0 4px 12px rgba(0,0,0,0.05),
+            inset 0 2px 4px rgba(255,255,255,1),
+            inset 0 -2px 6px rgba(0,0,0,0.02),
+            0 0 0 1px rgba(255,255,255,0.85),
+            0 0 60px rgba(180,200,220,0.15)
+          `,
+        }}
+      >
+        {/* Top edge highlight - glass reflection */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '5%',
+            right: '5%',
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+          }}
+        />
+        
+        {/* Glass shine overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '50%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)',
+            pointerEvents: 'none',
+            borderRadius: '24px 24px 0 0',
+          }}
+        />
+
+        {/* Header */}
+        <div
+          style={{
+            padding: '18px 22px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            borderBottom: '1px solid rgba(0,0,0,0.05)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 100%)',
+            position: 'relative',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+            {/* 3D Glass Bell Icon Container */}
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,252,255,0.8) 100%)',
+                boxShadow: `
+                  0 8px 24px rgba(0,0,0,0.08),
+                  0 4px 12px rgba(0,0,0,0.04),
+                  inset 0 2px 4px rgba(255,255,255,1),
+                  inset 0 -1px 3px rgba(0,0,0,0.02),
+                  0 0 0 1px rgba(255,255,255,0.7)
+                `,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: 'perspective(200px) rotateX(3deg)',
+              }}
+            >
+              <Bell3D size={26} hasNotification={unreadCount > 0} />
             </div>
-            <div style={{ fontSize: 12, color: '#404040', marginTop: 2 }}>
-              Feature Agent events, approvals, and system alerts
+            
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 750, color: '#1a1917', fontSize: 16, letterSpacing: '-0.02em' }}>Notifications</div>
+                {unreadCount > 0 && (
+                  <div
+                    style={{
+                      padding: '5px 14px',
+                      borderRadius: 999,
+                      background: 'linear-gradient(145deg, rgba(255,90,60,0.18) 0%, rgba(239,68,68,0.1) 100%)',
+                      boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 2px 6px rgba(239,68,68,0.12)',
+                      color: '#c53030',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {unreadCount} new
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b6560', marginTop: 4 }}>
+                Feature Agent events &amp; system alerts
+              </div>
             </div>
           </div>
+
+          {/* Close button - 3D Glass */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setOpen(false)}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,252,255,0.7) 100%)',
+              boxShadow: `
+                0 4px 12px rgba(0,0,0,0.06),
+                inset 0 1px 2px rgba(255,255,255,0.9),
+                0 0 0 1px rgba(255,255,255,0.5)
+              `,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#57534e',
+            }}
+            title="Close"
+          >
+            {svgClose(16)}
+          </motion.button>
         </div>
 
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className={cn('glass-button', 'transition-transform')}
-          style={{ color: '#1a1a1a' }}
-          title={open ? 'Collapse' : 'Expand'}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 12 }}>{open ? 'Collapse' : 'Expand'}</span>
-            {svgChevron(14, open)}
-          </span>
-        </button>
-      </div>
+        {/* Notification list */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
+          {loading && (
+            <div style={{ padding: 16, color: '#505050', fontSize: 13, textAlign: 'center' }}>Loading notifications...</div>
+          )}
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-          >
-            <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {loading && (
-                <div style={{ padding: 14, color: '#404040', fontSize: 13 }}>Loading notifications...</div>
-              )}
-
-              {!loading && items.length === 0 && (
-                <div style={{ padding: 14, color: '#404040', fontSize: 13 }}>
-                  No notifications yet.
-                </div>
-              )}
-
-              {!loading && items.map((n) => (
-                <PremiumNotificationCard
-                  key={n.id}
-                  notification={n}
-                  onDismiss={dismiss}
-                  onClick={() => openDetail(n)}
-                  onNavigate={handleNavigate}
-                />
-              ))}
+          {!loading && items.length === 0 && (
+            <div style={{ padding: 20, color: '#606060', fontSize: 13, textAlign: 'center' }}>
+              <div style={{ marginBottom: 8 }}>
+                <Bell3D size={32} hasNotification={false} />
+              </div>
+              No notifications yet
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+
+          {!loading && items.map((n) => (
+            <PremiumNotificationCard
+              key={n.id}
+              notification={n}
+              onDismiss={dismiss}
+              onClick={() => openDetail(n)}
+              onNavigate={handleNavigate}
+            />
+          ))}
+        </div>
+        
+        {/* Bottom edge shadow for depth */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.03), transparent)',
+          }}
+        />
+      </motion.div>
 
       <Modal
         open={detailOpen && !!selected}

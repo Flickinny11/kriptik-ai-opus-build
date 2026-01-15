@@ -66,43 +66,49 @@ import {
     S3Icon,
 } from '../ui/icons';
 
-const accentColor = '#c8ff64';
+const accentColor = '#f59e0b';
 
-// Liquid glass styling tokens
+// Liquid glass 3D styling tokens - Light theme
 const glassStyles = {
     modal: {
-        background: 'linear-gradient(145deg, rgba(20,20,25,0.98) 0%, rgba(12,12,16,0.99) 100%)',
+        background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(250,250,252,0.95) 50%, rgba(248,250,252,0.97) 100%)',
         backdropFilter: 'blur(40px) saturate(180%)',
         boxShadow: `
-            0 30px 80px rgba(0,0,0,0.5),
-            0 15px 40px rgba(0,0,0,0.4),
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 0 0 1px rgba(255,255,255,0.05)
+            0 40px 100px rgba(0,0,0,0.2),
+            0 20px 50px rgba(0,0,0,0.12),
+            0 10px 25px rgba(0,0,0,0.08),
+            inset 0 2px 4px rgba(255,255,255,1),
+            inset 0 -2px 4px rgba(0,0,0,0.02),
+            0 0 0 1px rgba(255,255,255,0.9)
         `,
     },
     card: {
-        background: 'linear-gradient(145deg, rgba(30,30,35,0.95) 0%, rgba(20,20,25,0.98) 100%)',
+        background: 'linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(250,250,252,0.6) 100%)',
         boxShadow: `
-            0 8px 32px rgba(0,0,0,0.3),
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 0 0 1px rgba(255,255,255,0.05)
+            0 4px 16px rgba(0,0,0,0.06),
+            0 2px 8px rgba(0,0,0,0.04),
+            inset 0 1px 2px rgba(255,255,255,0.9),
+            0 0 0 1px rgba(0,0,0,0.04)
         `,
     },
     cardHover: {
         boxShadow: `
-            inset 0 0 40px rgba(200,255,100,0.08),
-            0 25px 60px rgba(0,0,0,0.45),
-            0 15px 35px rgba(200,255,100,0.1),
-            0 0 0 1px rgba(200,255,100,0.2)
+            0 8px 32px rgba(0,0,0,0.1),
+            0 4px 16px rgba(0,0,0,0.06),
+            inset 0 2px 4px rgba(255,255,255,1),
+            0 0 0 1px rgba(251,191,36,0.3),
+            0 0 20px rgba(251,191,36,0.1)
         `,
     },
     cardSelected: {
-        background: 'linear-gradient(145deg, rgba(40,45,35,0.98) 0%, rgba(25,30,20,0.99) 100%)',
+        background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(254,252,232,0.85) 50%, rgba(255,251,235,0.9) 100%)',
         boxShadow: `
-            inset 0 0 60px rgba(200,255,100,0.12),
-            0 25px 60px rgba(0,0,0,0.45),
-            0 15px 35px rgba(200,255,100,0.15),
-            0 0 0 2px ${accentColor}
+            0 12px 40px rgba(0,0,0,0.12),
+            0 6px 20px rgba(0,0,0,0.08),
+            inset 0 2px 4px rgba(255,255,255,1),
+            inset 0 -1px 2px rgba(0,0,0,0.02),
+            0 0 0 2px ${accentColor},
+            0 0 30px rgba(251,191,36,0.2)
         `,
     },
 };
@@ -208,9 +214,9 @@ function ScaleCard({ name, description, detail, isSelected, onClick }: ScaleCard
                     <CheckIcon size={14} className="text-black" />
                 </motion.div>
             )}
-            <h4 className="font-semibold text-white mb-1">{name}</h4>
-            <p className="text-sm text-white/60">{description}</p>
-            {detail && <p className="text-xs text-white/40 mt-1">{detail}</p>}
+            <h4 className="font-semibold text-stone-900 mb-1">{name}</h4>
+            <p className="text-sm text-stone-600">{description}</p>
+            {detail && <p className="text-xs text-stone-500 mt-1">{detail}</p>}
         </motion.button>
     );
 }
@@ -225,7 +231,7 @@ function ScaleStep() {
         <div className="space-y-8">
             {/* User scale */}
             <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Expected User Scale</h3>
+                <h3 className="text-lg font-semibold text-stone-900 mb-4">Expected User Scale</h3>
                 <div className="grid grid-cols-2 gap-3">
                     {(Object.entries(USER_SCALE_OPTIONS) as [UserScale, typeof USER_SCALE_OPTIONS.mvp][]).map(([scale, option]) => (
                         <ScaleCard
@@ -243,7 +249,7 @@ function ScaleStep() {
 
             {/* Storage scale */}
             <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Storage Requirements</h3>
+                <h3 className="text-lg font-semibold text-stone-900 mb-4">Storage Requirements</h3>
                 <div className="grid grid-cols-3 gap-3">
                     {(Object.entries(STORAGE_SCALE_OPTIONS) as [StorageScale, typeof STORAGE_SCALE_OPTIONS.minimal][]).map(([scale, option]) => (
                         <ScaleCard
@@ -491,13 +497,13 @@ function ReviewStep() {
 
             {/* Stack summary */}
             <div className="rounded-2xl p-5" style={glassStyles.card}>
-                <h3 className="text-lg font-semibold text-white mb-4">Your Production Stack</h3>
+                <h3 className="text-lg font-semibold text-stone-900 mb-4">Your Production Stack</h3>
                 <div className="space-y-3">
                     {summary.map((item) => (
                         <div key={item.category} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                            <span className="text-white/60">{item.category}</span>
+                            <span className="text-stone-600">{item.category}</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-white font-medium">{item.provider}</span>
+                                <span className="text-stone-900 font-medium">{item.provider}</span>
                                 {item.status === 'connected' ? (
                                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs">
                                         <CheckCircle2Icon size={12} />
@@ -508,7 +514,7 @@ function ReviewStep() {
                                         Manual Setup
                                     </span>
                                 ) : (
-                                    <span className="text-white/30 text-sm">Skipped</span>
+                                    <span className="text-stone-400 text-sm">Skipped</span>
                                 )}
                             </div>
                         </div>
@@ -521,27 +527,27 @@ function ReviewStep() {
                 <div className="rounded-2xl p-5" style={glassStyles.card}>
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h3 className="text-lg font-semibold text-white">Manual Configuration Required</h3>
-                            <p className="text-sm text-white/50 mt-1">
+                            <h3 className="text-lg font-semibold text-stone-900">Manual Configuration Required</h3>
+                            <p className="text-sm text-stone-500 mt-1">
                                 {allEnvVars.length - unconnectedEnvVars.length} of {allEnvVars.length} variables auto-configured
                             </p>
                         </div>
                         <button
                             onClick={copyEnvTemplate}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition-colors"
                         >
                             <CopyIcon size={14} />
                             Copy .env template
                         </button>
                     </div>
-                    <div className="bg-black/30 rounded-lg p-4 font-mono text-sm">
+                    <div className="bg-stone-100 rounded-lg p-4 font-mono text-sm">
                         {unconnectedEnvVars.map((v) => (
-                            <div key={v} className="text-white/60 py-0.5">
+                            <div key={v} className="text-stone-600 py-0.5">
                                 <span className="text-amber-400">{v}</span>=
                             </div>
                         ))}
                     </div>
-                    <p className="text-xs text-white/40 mt-3">
+                    <p className="text-xs text-stone-900/40 mt-3">
                         These providers require manual API key setup. KripTik will guide you through configuration during the build.
                     </p>
                 </div>
@@ -557,8 +563,8 @@ function ReviewStep() {
                     }}
                 >
                     <CheckCircle2Icon size={40} className="text-green-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold text-white mb-1">All Credentials Configured</h3>
-                    <p className="text-white/50 text-sm">
+                    <h3 className="text-lg font-semibold text-stone-900 mb-1">All Credentials Configured</h3>
+                    <p className="text-stone-500 text-sm">
                         All {allEnvVars.length} environment variables have been auto-configured via OAuth.
                     </p>
                 </div>
@@ -568,26 +574,26 @@ function ReviewStep() {
             {(deps.npm.length > 0 || deps.devDeps.length > 0) && (
                 <div className="rounded-2xl p-5" style={glassStyles.card}>
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Dependencies to Install</h3>
+                        <h3 className="text-lg font-semibold text-stone-900">Dependencies to Install</h3>
                         <button
                             onClick={copyInstallCommand}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition-colors"
                         >
                             <CopyIcon size={14} />
                             Copy command
                         </button>
                     </div>
-                    <div className="bg-black/30 rounded-lg p-4 font-mono text-sm">
-                        <span className="text-white/40">$ </span>
+                    <div className="bg-stone-100 rounded-lg p-4 font-mono text-sm">
+                        <span className="text-stone-900/40">$ </span>
                         <span className="text-green-400">npm install</span>{' '}
-                        <span className="text-white/80">{deps.npm.join(' ')}</span>
+                        <span className="text-stone-900/80">{deps.npm.join(' ')}</span>
                         {deps.devDeps.length > 0 && (
                             <>
-                                <span className="text-white/80"> -D {deps.devDeps.join(' ')}</span>
+                                <span className="text-stone-900/80"> -D {deps.devDeps.join(' ')}</span>
                             </>
                         )}
                     </div>
-                    <p className="text-xs text-white/40 mt-3">
+                    <p className="text-xs text-stone-900/40 mt-3">
                         KripTik will automatically install these packages when you start building.
                     </p>
                 </div>
@@ -680,13 +686,13 @@ export function ProductionStackWizard() {
                                     <ServerIcon size={20} style={{ color: accentColor }} />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white">Production Stack</h2>
-                                    <p className="text-sm text-white/50">Configure your app's infrastructure</p>
+                                    <h2 className="text-lg font-semibold text-stone-900">Production Stack</h2>
+                                    <p className="text-sm text-stone-500">Configure your app's infrastructure</p>
                                 </div>
                             </div>
                             <button
                                 onClick={closeWizard}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-stone-900/40 hover:text-stone-900 hover:bg-stone-100 transition-colors"
                             >
                                 <CloseIcon size={20} />
                             </button>
@@ -717,7 +723,7 @@ export function ProductionStackWizard() {
                                             >
                                                 {isCompleted ? <CheckIcon size={18} /> : config.icon}
                                             </div>
-                                            <span className={`text-xs mt-2 whitespace-nowrap ${isActive ? 'text-white' : 'text-white/40'}`}>
+                                            <span className={`text-xs mt-2 whitespace-nowrap ${isActive ? 'text-stone-900' : 'text-stone-900/40'}`}>
                                                 {config.title}
                                             </span>
                                         </div>
@@ -751,8 +757,8 @@ export function ProductionStackWizard() {
                         {/* Step content */}
                         <div className="p-6 max-h-[calc(90vh-280px)] overflow-y-auto">
                             <div className="mb-6">
-                                <h3 className="text-xl font-semibold text-white mb-1">{stepConfig.title}</h3>
-                                <p className="text-white/50">{stepConfig.description}</p>
+                                <h3 className="text-xl font-semibold text-stone-900 mb-1">{stepConfig.title}</h3>
+                                <p className="text-stone-500">{stepConfig.description}</p>
                             </div>
 
                             <AnimatePresence mode="wait">
@@ -772,7 +778,7 @@ export function ProductionStackWizard() {
                         <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
                             <button
                                 onClick={isFirstStep ? closeWizard : prevStep}
-                                className="flex items-center gap-2 px-4 py-2 text-white/60 hover:text-white transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
                             >
                                 <ArrowLeftIcon size={16} />
                                 {isFirstStep ? 'Cancel' : 'Back'}

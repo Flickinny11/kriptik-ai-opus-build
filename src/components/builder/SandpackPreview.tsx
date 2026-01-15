@@ -93,7 +93,7 @@ const VIEWPORT_SIZES: Record<ViewportSize, { width: number; label: string }> = {
     desktop: { width: 1280, label: '100%' },
 };
 
-// Liquid Glass Device Button
+// Liquid Glass 3D Device Button
 function DeviceButton({
     icon: Icon,
     isActive,
@@ -113,38 +113,65 @@ function DeviceButton({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             title={title}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 relative overflow-hidden"
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 relative overflow-hidden active:scale-95"
             style={{
                 background: isActive
-                    ? 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)'
+                    ? 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,250,252,0.85) 50%, rgba(248,250,252,0.9) 100%)'
                     : isHovered
-                        ? 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)'
-                        : 'transparent',
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(250,250,252,0.5) 100%)'
+                        : 'linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.25) 100%)',
                 boxShadow: isActive
-                    ? `inset 0 0 12px rgba(255, 160, 120, 0.2), 0 2px 8px rgba(255, 140, 100, 0.15), 0 0 0 1px rgba(255, 200, 170, 0.4)`
+                    ? `
+                        0 6px 20px rgba(0,0,0,0.1),
+                        0 3px 10px rgba(0,0,0,0.06),
+                        0 1px 3px rgba(0,0,0,0.03),
+                        inset 0 2px 4px rgba(255,255,255,1),
+                        inset 0 -1px 2px rgba(0,0,0,0.02),
+                        0 0 0 1px rgba(255,255,255,0.8),
+                        0 0 12px rgba(251,191,36,0.15)
+                    `
                     : isHovered
-                        ? `0 4px 12px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.4)`
-                        : 'none',
-                transform: isHovered && !isActive ? 'scale(1.05)' : 'scale(1)',
+                        ? `
+                            0 4px 12px rgba(0,0,0,0.08),
+                            0 2px 6px rgba(0,0,0,0.04),
+                            inset 0 1px 2px rgba(255,255,255,0.9),
+                            0 0 0 1px rgba(255,255,255,0.5)
+                        `
+                        : `
+                            0 2px 6px rgba(0,0,0,0.04),
+                            inset 0 1px 2px rgba(255,255,255,0.7),
+                            0 0 0 1px rgba(255,255,255,0.3)
+                        `,
+                transform: `perspective(400px) ${isActive ? 'translateZ(2px) rotateX(-2deg)' : isHovered ? 'translateZ(1px) rotateX(-1deg)' : 'translateZ(0)'}`,
             }}
         >
+            {/* Inner glow for active state */}
+            {isActive && (
+                <div
+                    className="absolute inset-1 rounded-lg"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
+                        filter: 'blur(1px)',
+                    }}
+                />
+            )}
             <Icon
                 size={16}
-                className={isActive ? 'text-[#92400e]' : isHovered ? 'text-[#1a1a1a]' : 'text-[#666]'}
+                className={`relative z-10 ${isActive ? 'text-[#92400e]' : isHovered ? 'text-[#1a1a1a]' : 'text-[#666]'}`}
             />
 
-            {/* Shine effect */}
+            {/* Shine sweep effect */}
             {(isActive || isHovered) && (
                 <div
                     style={{
                         position: 'absolute',
                         top: 0,
                         left: isHovered ? '150%' : '-100%',
-                        width: '60%',
+                        width: '50%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
-                        transform: 'skewX(-15deg)',
-                        transition: 'left 0.4s ease',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                        transform: 'skewX(-20deg)',
+                        transition: 'left 0.5s ease',
                         pointerEvents: 'none',
                     }}
                 />
@@ -647,26 +674,68 @@ export default function SandpackPreviewWindow() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Show Me Demo Button */}
+                    {/* Show Me Demo Button - Liquid Glass 3D */}
                     <button
                         onClick={handleShowMeDemo}
                         disabled={isLoadingDemo || isDemoActive}
                         title="Start AI Voice Demo"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-300"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 active:scale-95"
                         style={{
                             background: isDemoActive
-                                ? 'linear-gradient(145deg, rgba(16,185,129,0.2) 0%, rgba(16,185,129,0.1) 100%)'
-                                : 'linear-gradient(145deg, rgba(255,180,150,0.5) 0%, rgba(255,160,130,0.4) 100%)',
-                            boxShadow: `0 2px 8px ${isDemoActive ? 'rgba(16,185,129,0.2)' : 'rgba(255,140,100,0.2)'}`,
-                            border: `1px solid ${isDemoActive ? 'rgba(16,185,129,0.3)' : 'rgba(255,200,170,0.5)'}`,
-                            color: isDemoActive ? '#059669' : '#c25a00',
+                                ? 'linear-gradient(145deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.08) 50%, rgba(16,185,129,0.12) 100%)'
+                                : 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(250,250,252,0.75) 50%, rgba(248,250,252,0.85) 100%)',
+                            boxShadow: isDemoActive
+                                ? `
+                                    0 6px 20px rgba(16,185,129,0.2),
+                                    0 3px 10px rgba(16,185,129,0.15),
+                                    inset 0 1px 3px rgba(255,255,255,0.5),
+                                    inset 0 -1px 2px rgba(0,0,0,0.02),
+                                    0 0 0 1px rgba(16,185,129,0.3),
+                                    0 0 15px rgba(16,185,129,0.2)
+                                `
+                                : `
+                                    0 8px 24px rgba(0,0,0,0.1),
+                                    0 4px 12px rgba(0,0,0,0.06),
+                                    0 2px 4px rgba(0,0,0,0.03),
+                                    inset 0 2px 4px rgba(255,255,255,1),
+                                    inset 0 -1px 2px rgba(0,0,0,0.02),
+                                    0 0 0 1px rgba(255,255,255,0.7),
+                                    0 0 16px rgba(251,191,36,0.12)
+                                `,
+                            color: isDemoActive ? '#059669' : '#92400e',
                             fontSize: 13,
-                            fontWeight: 500,
+                            fontWeight: 600,
                             cursor: isLoadingDemo ? 'wait' : 'pointer',
                             opacity: isLoadingDemo ? 0.7 : 1,
+                            transform: `perspective(500px) translateZ(${isDemoActive ? '1px' : '2px'}) rotateX(-1deg)`,
                         }}
                     >
-                        <PlayCircleIcon size={16} />
+                        {/* 3D Icon */}
+                        <div
+                            className="relative flex items-center justify-center"
+                            style={{ width: 20, height: 20 }}
+                        >
+                            <div
+                                className="absolute inset-0 rounded-md"
+                                style={{
+                                    background: isDemoActive
+                                        ? 'linear-gradient(145deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.15) 100%)'
+                                        : 'linear-gradient(145deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.12) 100%)',
+                                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.05)',
+                                    transform: 'perspective(200px) rotateX(2deg)',
+                                }}
+                            />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="relative z-10">
+                                <defs>
+                                    <linearGradient id="playGrad" x1="8" y1="5" x2="19" y2="19">
+                                        <stop offset="0%" stopColor={isDemoActive ? '#10b981' : '#f59e0b'} />
+                                        <stop offset="100%" stopColor={isDemoActive ? '#059669' : '#d97706'} />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="12" cy="12" r="9" stroke="url(#playGrad)" strokeWidth="1.5" />
+                                <polygon points="10,8 17,12 10,16" fill="url(#playGrad)" />
+                            </svg>
+                        </div>
                         <span>{isLoadingDemo ? 'Loading...' : isDemoActive ? 'Demo Active' : 'Show Me'}</span>
                     </button>
 

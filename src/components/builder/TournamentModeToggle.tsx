@@ -89,10 +89,62 @@ export function TournamentModeToggle({
                             : '0 2px 8px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.3)',
                 }}
             >
-                <TrophyIcon
-                    size={compact ? 14 : 16}
-                    className={`transition-colors ${enabled ? 'text-amber-600' : 'text-stone-500'}`}
-                />
+                {/* 3D Glass Icon Container */}
+                <div
+                    className="relative flex items-center justify-center"
+                    style={{
+                        width: compact ? 18 : 22,
+                        height: compact ? 18 : 22,
+                    }}
+                >
+                    {/* Glass surface */}
+                    <div
+                        className="absolute inset-0 rounded-md"
+                        style={{
+                            background: enabled
+                                ? 'linear-gradient(145deg, rgba(251,191,36,0.25) 0%, rgba(245,158,11,0.15) 100%)'
+                                : 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(248,250,252,0.4) 100%)',
+                            boxShadow: enabled
+                                ? 'inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -1px 1px rgba(0,0,0,0.05), 0 1px 3px rgba(251,191,36,0.2)'
+                                : 'inset 0 1px 2px rgba(255,255,255,0.8), inset 0 -1px 1px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04)',
+                            transform: 'perspective(200px) rotateX(2deg)',
+                        }}
+                    />
+                    {/* Icon with gradient stroke */}
+                    <svg
+                        width={compact ? 12 : 14}
+                        height={compact ? 12 : 14}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="relative z-10"
+                    >
+                        <defs>
+                            <linearGradient id={enabled ? 'trophyGradOn' : 'trophyGradOff'} x1="4" y1="3" x2="20" y2="21">
+                                <stop offset="0%" stopColor={enabled ? '#f59e0b' : '#78716c'} />
+                                <stop offset="100%" stopColor={enabled ? '#d97706' : '#57534e'} />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"
+                            stroke={`url(#${enabled ? 'trophyGradOn' : 'trophyGradOff'})`}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        />
+                        <path
+                            d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"
+                            stroke={`url(#${enabled ? 'trophyGradOn' : 'trophyGradOff'})`}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        />
+                        <path
+                            d="M4 4h16v5a8 8 0 0 1-16 0V4zM9 21h6M12 17v4"
+                            stroke={`url(#${enabled ? 'trophyGradOn' : 'trophyGradOff'})`}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                </div>
 
                 {!compact && (
                     <span

@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 
 export type ToolbarIconName =
   | 'featureAgents'
+  | 'openSourceStudio'
   | 'health'
   | 'database'
   | 'memory'
@@ -24,7 +25,6 @@ export type ToolbarIconName =
   | 'rules'
   | 'cloneMode'
   | 'security'
-  | 'multiplayer'
   | 'permissions';
 
 interface IconProps {
@@ -149,6 +149,57 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
       {/* Satellite nodes */}
       <circle cx="12" cy="19" r="1.5" fill={isActive ? '#EF4444' : '#3A3A4A'} />
       <path d="M12 17V17.5" stroke={isActive ? '#FCA5A5' : '#5A5A6A'} strokeWidth="0.8" />
+    </g>
+  ),
+
+  // Open Source Studio - HuggingFace-inspired face with model layers
+  openSourceStudio: ({ isActive, isHovered }) => (
+    <g filter="url(#depth3D)">
+      <GradientDefs />
+      {/* Outer circle - model hub */}
+      <motion.circle
+        cx="12" cy="12" r="9"
+        fill={isActive ? 'url(#chrome)' : 'url(#deepBlack)'}
+        stroke={isActive ? '#EF4444' : '#4A4A5A'}
+        strokeWidth="0.8"
+        animate={{ scale: isHovered ? 1.02 : 1 }}
+        style={{ transformOrigin: 'center' }}
+      />
+      {/* Inner ring - processing */}
+      <circle
+        cx="12" cy="12" r="6"
+        fill="none"
+        stroke={isActive ? '#FCA5A5' : '#3A3A4A'}
+        strokeWidth="1"
+        strokeDasharray="3 2"
+      />
+      {/* Left eye */}
+      <ellipse cx="9" cy="10" rx="1.5" ry="2" fill={isActive ? '#1A1A2A' : 'url(#darkMetal)'} />
+      <circle cx="9" cy="9.5" r="0.6" fill={isActive ? '#FFF' : '#EF4444'} />
+      {/* Right eye */}
+      <ellipse cx="15" cy="10" rx="1.5" ry="2" fill={isActive ? '#1A1A2A' : 'url(#darkMetal)'} />
+      <circle cx="15" cy="9.5" r="0.6" fill={isActive ? '#FFF' : '#EF4444'} />
+      {/* Smile */}
+      <path
+        d="M8 14C8 14 10 17 12 17C14 17 16 14 16 14"
+        fill={isActive ? '#1A1A2A' : 'url(#darkMetal)'}
+        stroke={isActive ? '#DC2626' : '#4A4A5A'}
+        strokeWidth="0.8"
+        strokeLinecap="round"
+      />
+      {/* Model layers indicator */}
+      <motion.g
+        animate={{ rotate: isHovered ? 360 : 0 }}
+        transition={{ duration: 4, repeat: isHovered ? Infinity : 0, ease: 'linear' }}
+        style={{ transformOrigin: 'center' }}
+      >
+        <circle cx="12" cy="3" r="1.5" fill={isActive ? '#EF4444' : '#5A5A6A'} />
+        <circle cx="19" cy="8" r="1.2" fill={isActive ? '#DC2626' : '#4A4A5A'} />
+        <circle cx="19" cy="16" r="1.2" fill={isActive ? '#DC2626' : '#4A4A5A'} />
+        <circle cx="12" cy="21" r="1.5" fill={isActive ? '#EF4444' : '#5A5A6A'} />
+        <circle cx="5" cy="16" r="1.2" fill={isActive ? '#DC2626' : '#4A4A5A'} />
+        <circle cx="5" cy="8" r="1.2" fill={isActive ? '#DC2626' : '#4A4A5A'} />
+      </motion.g>
     </g>
   ),
 
@@ -545,31 +596,6 @@ const icons: Record<ToolbarIconName, (props: { isActive: boolean; isHovered: boo
       />
       {/* Keyhole */}
       <circle cx="12" cy="13.5" r="0.8" fill={isActive ? '#1A1A2A' : '#EF4444'} />
-    </g>
-  ),
-
-  // Multiplayer - Connected users
-  multiplayer: ({ isActive, isHovered }) => (
-    <g filter="url(#depth3D)">
-      <GradientDefs />
-      {/* User 1 */}
-      <circle cx="7" cy="8" r="3" fill={isActive ? 'url(#chrome)' : 'url(#darkMetal)'} stroke={isActive ? '#DC2626' : '#4A4A5A'} strokeWidth="0.5" />
-      <path d="M3 17C3 13.5 4.5 12 7 12C9.5 12 11 13.5 11 17" fill={isActive ? 'url(#lightMetal)' : 'url(#deepBlack)'} stroke={isActive ? '#EF4444' : '#4A4A5A'} strokeWidth="0.5" />
-      {/* User 2 */}
-      <circle cx="17" cy="8" r="3" fill={isActive ? 'url(#redAccent)' : 'url(#darkMetal)'} stroke={isActive ? '#FCA5A5' : '#4A4A5A'} strokeWidth="0.5" />
-      <path d="M13 17C13 13.5 14.5 12 17 12C19.5 12 21 13.5 21 17" fill={isActive ? 'url(#redGlow)' : 'url(#deepBlack)'} stroke={isActive ? '#FCA5A5' : '#4A4A5A'} strokeWidth="0.5" />
-      {/* Connection lines */}
-      <motion.path
-        d="M10 9H14M10 14H14"
-        fill="none"
-        stroke={isActive ? '#EF4444' : '#5A5A6A'}
-        strokeWidth="1.5"
-        strokeDasharray="3 2"
-        animate={{ strokeDashoffset: isHovered ? [0, -10] : 0 }}
-        transition={{ duration: 1, repeat: Infinity }}
-      />
-      {/* Connection node */}
-      <circle cx="12" cy="11.5" r="1.5" fill={isActive ? '#FFF' : '#4A4A5A'} />
     </g>
   ),
 

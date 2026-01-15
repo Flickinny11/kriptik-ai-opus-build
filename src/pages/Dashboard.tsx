@@ -840,17 +840,17 @@ export default function Dashboard() {
                             View all templates →
                         </button>
                     </div>
-                </div>
 
-                {/* My Stuff Section */}
-                <div className="mt-16">
-                    {/* Notifications (above My Stuff/Projects) */}
+                    {/* Notifications - positioned under quick start buttons */}
                     {isAuthenticated && user?.id && (
-                        <div className="mb-8">
+                        <div className="mt-10 flex justify-center">
                             <NotificationsSection userId={user.id} />
                         </div>
                     )}
+                </div>
 
+                {/* My Stuff Section */}
+                <div className="mt-12">
                     {/* Section Header with Actions */}
                     <div className="flex items-center justify-between mb-8">
                         <div>

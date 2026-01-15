@@ -51,10 +51,9 @@ import { useParams, useSearchParams } from 'react-router-dom';
 // Mode toggle removed - Builder is now the only view
 // BuilderAgentsToggle, DeveloperModeView, and AgentModeSidebar imports removed
 import { GhostModePanel } from '../components/builder/GhostModePanel';
-// SoftInterruptInput was only used in Developer mode - now removed
-import IntelligenceToggles, { type IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import TournamentPanel from '../components/builder/TournamentPanel';
-import { SpeedDialSelector, type BuildMode } from '../components/builder/SpeedDialSelector';
+import type { BuildMode } from '../components/builder/SpeedDialSelector';
+import type { IntelligenceSettings } from '../components/builder/IntelligenceToggles';
 import BuildPhaseIndicator, { type BuildPhase, type PhaseInfo } from '../components/builder/BuildPhaseIndicator';
 import { VisualPropertyPanel } from '../components/builder/visual-editor/VisualPropertyPanel';
 import { SelectionOverlay } from '../components/builder/visual-editor/controls/SelectionOverlay';
@@ -64,7 +63,7 @@ import { Spline3DDropdown } from '../components/spline';
 import { FloatingVerificationSwarm } from '../components/builder/FloatingVerificationSwarm';
 import { FloatingSoftInterrupt } from '../components/builder/FloatingSoftInterrupt';
 import { LiveVideoStreamPanel } from '../components/builder/LiveVideoStreamPanel';
-import AutonomousAgentsPanel from '../components/agents/AutonomousAgentsPanel';
+// AutonomousAgentsPanel now accessed via Developer Bar
 import { FeatureAgentManager } from '../components/feature-agent/FeatureAgentManager';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import ExtensionAlternative from '../components/builder/ExtensionAlternative';
@@ -217,13 +216,6 @@ body {
     },
 };
 
-// Quick action items for the sidebar
-const quickActions = [
-    { icon: StatusIcons.ActivityIcon, label: 'AI Agents', description: 'View orchestrator status', panel: 'agents' },
-    { icon: StatusIcons.CloudIcon, label: 'Cloud Deploy', description: 'Deploy to cloud', panel: 'cloud' },
-    { icon: StatusIcons.DatabaseIcon, label: 'Database', description: 'Manage schemas', panel: 'database' },
-    { icon: StatusIcons.WorkflowIcon, label: 'Workflows', description: 'ComfyUI & ML', panel: 'workflows' },
-];
 
 // Liquid Glass Icon Button Component
 function GlassIconButton({
@@ -382,17 +374,15 @@ export default function Builder() {
     const [projectName, _setProjectName] = useState('Untitled Project');
     const [showQualityReport, setShowQualityReport] = useState(false);
     const [showAgentPanel, setShowAgentPanel] = useState(false);
-    const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
     const [showGhostMode, setShowGhostMode] = useState(false);
     const [showMarketFit, setShowMarketFit] = useState(false);
     const [showVoiceArchitect, setShowVoiceArchitect] = useState(false);
     const [showAPIAutopilot, setShowAPIAutopilot] = useState(false);
     const [showAdaptiveUI, setShowAdaptiveUI] = useState(false);
     const [showContextBridge, setShowContextBridge] = useState(false);
-    const [showIntelligencePanel, setShowIntelligencePanel] = useState(true); // Design panel always visible
     const [showExtensionAlt, setShowExtensionAlt] = useState(false);
-    // Build mode selection (Speed Dial)
-    const [buildMode, setBuildMode] = useState<BuildMode>('standard');
+    // Build mode - standard mode by default
+    const [buildMode] = useState<BuildMode>('standard');
     // Build phase tracking for progress indicator
     const [buildPhases, setBuildPhases] = useState<PhaseInfo[]>([
         { phase: 'intent_lock', status: 'pending' },
@@ -405,7 +395,7 @@ export default function Builder() {
     ]);
     const [currentBuildPhase, setCurrentBuildPhase] = useState<BuildPhase | undefined>(undefined);
     const [isBuilding, setIsBuilding] = useState(false);
-    const [intelligenceSettings, setIntelligenceSettings] = useState<IntelligenceSettings>({
+    const [intelligenceSettings] = useState<IntelligenceSettings>({
         thinkingDepth: 'normal',
         powerLevel: 'balanced',
         speedPriority: 'balanced',
@@ -493,14 +483,6 @@ export default function Builder() {
         const report = await qualityScanner.scan();
         setReport(report);
         setIsScanning(false);
-    };
-
-    const handleQuickAction = (panel: string) => {
-        if (activeQuickAction === panel) {
-            setActiveQuickAction(null);
-        } else {
-            setActiveQuickAction(panel);
-        }
     };
 
     // Handler for tournament winner selection
@@ -740,41 +722,7 @@ export default function Builder() {
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-hidden flex min-h-0">
-                    {/* Quick Actions Sidebar */}
-                    <div
-                        className="w-16 flex flex-col items-center py-4 gap-3 shrink-0"
-                        style={{
-                            ...liquidGlassPanel,
-                            borderRight: '1px solid rgba(255,255,255,0.3)',
-                            borderRadius: 0,
-                        }}
-                    >
-                        {quickActions.map((action) => (
-                            <div key={action.panel} className="relative group">
-                                <GlassIconButton
-                                    icon={action.icon}
-                                    onClick={() => handleQuickAction(action.panel)}
-                                    isActive={activeQuickAction === action.panel}
-                                    title={action.label}
-                                />
-
-                                {/* Tooltip */}
-                                <div className="absolute left-full ml-3 px-3 py-2 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50"
-                                    style={{
-                                        ...liquidGlassPanel,
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.5)',
-                                    }}
-                                >
-                                    <div className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{action.label}</div>
-                                    <div className="text-xs" style={{ color: '#666' }}>{action.description}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* ====================================================== */}
                     {/* BUILDER MODE - Main Autonomous Building Interface */}
-                    {/* ====================================================== */}
                     <div className="flex-1 min-w-0">
                         <PanelGroup direction="horizontal">
                             {/* Left Panel: Chat */}
@@ -783,60 +731,17 @@ export default function Builder() {
                                     className="h-full flex flex-col m-2 rounded-2xl overflow-hidden"
                                     style={liquidGlassPanel}
                                 >
-                                    {/* Design Control Panel - Always visible like Cursor 2.2 */}
-                                    <div className="border-b border-black/5 shrink-0">
-                                        {/* Speed Dial - Build Mode Selector */}
-                                        <div className="p-3 border-b border-black/5">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xs font-medium text-stone-600 uppercase tracking-wide">Build Mode</span>
-                                                <button
-                                                    onClick={() => setShowIntelligencePanel(!showIntelligencePanel)}
-                                                    className="text-xs text-amber-600 hover:text-amber-700 font-medium"
-                                                >
-                                                    {showIntelligencePanel ? 'Hide Controls' : 'Show Controls'}
-                                                </button>
-                                            </div>
-                                            <SpeedDialSelector
-                                                selectedMode={buildMode}
-                                                onModeChange={setBuildMode}
-                                                disabled={isBuilding}
+                                    {/* Build Phase Progress - Shows during builds */}
+                                    {(isBuilding || currentBuildPhase) && (
+                                        <div className="p-3 border-b border-black/5 shrink-0">
+                                            <BuildPhaseIndicator
+                                                phases={buildPhases}
+                                                currentPhase={currentBuildPhase}
                                                 showDetails={false}
+                                                compact={true}
                                             />
                                         </div>
-
-                                        {/* Build Phase Progress - Shows during builds */}
-                                        {(isBuilding || currentBuildPhase) && (
-                                            <div className="p-3 border-b border-black/5">
-                                                <BuildPhaseIndicator
-                                                    phases={buildPhases}
-                                                    currentPhase={currentBuildPhase}
-                                                    showDetails={false}
-                                                    compact={true}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* Intelligence Controls - Collapsible */}
-                                        <AnimatePresence>
-                                            {showIntelligencePanel && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    className="overflow-hidden"
-                                                >
-                                                    <div className="p-3">
-                                                        <IntelligenceToggles
-                                                            settings={intelligenceSettings}
-                                                            onSettingsChange={setIntelligenceSettings}
-                                                            compact={true}
-                                                        />
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                                    )}
                                     <ChatInterface
                                         intelligenceSettings={intelligenceSettings}
                                         projectId={projectId}
@@ -1000,49 +905,6 @@ export default function Builder() {
                     </div>
                     {/* End of Builder Mode */}
 
-                    {/* Quick Action Panel */}
-                    <AnimatePresence>
-                        {activeQuickAction && (
-                            <motion.div
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 340, opacity: 1 }}
-                                exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                                className="shrink-0 overflow-hidden m-2"
-                            >
-                                <div
-                                    className="w-[324px] h-full flex flex-col rounded-2xl overflow-hidden"
-                                    style={liquidGlassPanel}
-                                >
-                                    <div
-                                        className="flex items-center justify-between p-4"
-                                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-                                    >
-                                        <h3 className="font-semibold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
-                                            {activeQuickAction === 'agents' && <><StatusIcons.ActivityIcon size={16} /> AI Agents</>}
-                                            {activeQuickAction === 'cloud' && <><StatusIcons.CloudIcon size={16} /> Cloud Deploy</>}
-                                            {activeQuickAction === 'database' && <><StatusIcons.DatabaseIcon size={16} /> Database</>}
-                                            {activeQuickAction === 'workflows' && <><StatusIcons.WorkflowIcon size={16} /> Workflows</>}
-                                        </h3>
-                                        <GlassIconButton
-                                            icon={StatusIcons.XIcon}
-                                            onClick={() => setActiveQuickAction(null)}
-                                            size="sm"
-                                        />
-                                    </div>
-                                    <div className="flex-1 overflow-auto p-4">
-                                        {activeQuickAction === 'agents' && <AgentStatusPanel />}
-                                        {activeQuickAction === 'cloud' && <CloudDeployPanel />}
-                                        {activeQuickAction === 'database' && <DatabasePanel />}
-                                        {activeQuickAction === 'workflows' && <WorkflowsPanel />}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Autonomous Agents - Now accessed via Developer Bar toolbar */}
-
                     {/* Ghost Mode Panel */}
                     <AnimatePresence>
                         {showGhostMode && (
@@ -1086,7 +948,7 @@ export default function Builder() {
     );
 }
 
-// Tab Button Component
+// Tab Button Component - Liquid Glass 3D
 function TabButton({
     active,
     onClick,
@@ -1105,28 +967,58 @@ function TabButton({
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
             style={{
                 background: active
-                    ? 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)'
+                    ? 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,250,252,0.85) 50%, rgba(245,247,250,0.9) 100%)'
                     : isHovered
-                        ? 'rgba(0,0,0,0.04)'
+                        ? 'linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(250,250,252,0.5) 100%)'
                         : 'transparent',
                 boxShadow: active
-                    ? `inset 0 0 15px rgba(255, 160, 120, 0.15), 0 2px 8px rgba(0,0,0,0.05), 0 0 0 1px rgba(255, 200, 170, 0.3)`
-                    : 'none',
-                color: active ? '#c25a00' : '#666',
+                    ? `
+                        0 8px 24px rgba(0,0,0,0.12),
+                        0 4px 12px rgba(0,0,0,0.08),
+                        0 2px 4px rgba(0,0,0,0.04),
+                        inset 0 2px 4px rgba(255,255,255,1),
+                        inset 0 -1px 2px rgba(0,0,0,0.03),
+                        0 0 0 1px rgba(255,255,255,0.7),
+                        0 0 20px rgba(251,191,36,0.15)
+                    `
+                    : isHovered
+                        ? `
+                            0 4px 16px rgba(0,0,0,0.08),
+                            0 2px 6px rgba(0,0,0,0.04),
+                            inset 0 1px 2px rgba(255,255,255,0.9),
+                            0 0 0 1px rgba(255,255,255,0.5)
+                        `
+                        : 'none',
+                color: active ? '#92400e' : '#666',
+                transform: `perspective(500px) ${active ? 'translateZ(2px) rotateX(-1deg)' : isHovered ? 'translateZ(1px)' : 'translateZ(0)'}`,
             }}
         >
-            <Icon size={14} />
+            {/* 3D Icon Container */}
+            <div
+                className="relative flex items-center justify-center"
+                style={{
+                    width: 18,
+                    height: 18,
+                }}
+            >
+                {active && (
+                    <div
+                        className="absolute inset-0 rounded-md"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.1) 100%)',
+                            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 1px 3px rgba(251,191,36,0.2)',
+                            transform: 'perspective(200px) rotateX(2deg)',
+                        }}
+                    />
+                )}
+                <Icon size={14} className="relative z-10" />
+            </div>
             {children}
         </button>
     );
-}
-
-// Agent Status Panel Component
-function AgentStatusPanel() {
-    return <AutonomousAgentsPanel />;
 }
 
 // Liquid Glass Card Component
@@ -1154,185 +1046,9 @@ function GlassCard({ children, className = '', onClick }: { children: React.Reac
     );
 }
 
-// Cloud Deploy Panel Component - Wired to backend services
-function CloudDeployPanel() {
-    const { setIsOpen: setDeploymentOpen } = useDeploymentStore();
-    const { projectId } = useParams<{ projectId: string }>();
-    const [isDeploying, setIsDeploying] = useState<string | null>(null);
-    const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error' | null; message: string; provider?: string }>({ type: null, message: '' });
-    const [costEstimate, setCostEstimate] = useState<{ provider: string; hourly: number; monthly: number } | null>(null);
+// Quick action panels removed - access these features via FloatingDevToolbar
 
-    const providers = [
-        { id: 'vercel', name: 'Vercel', icon: <VercelIcon />, available: true, description: 'Edge-first deployment', type: 'serverless' },
-        { id: 'netlify', name: 'Netlify', icon: <NetlifyIcon />, available: true, description: 'JAMstack hosting', type: 'serverless' },
-        { id: 'runpod', name: 'RunPod GPU', icon: <StatusIcons.LayersIcon size={20} />, available: true, description: 'GPU inference', type: 'gpu' },
-        { id: 'aws', name: 'AWS', icon: <StatusIcons.CloudIcon size={20} />, available: true, description: 'Lambda, ECS, EC2', type: 'serverless' },
-        { id: 'gcp', name: 'Google Cloud', icon: <StatusIcons.ServerIcon size={20} />, available: true, description: 'Cloud Run, GCE', type: 'serverless' },
-    ];
-
-    // Estimate cost for a provider
-    const handleEstimateCost = async (providerId: string, _providerType: string) => {
-        try {
-            const response = await authenticatedFetch(`${API_URL}/deploy/providers`);
-            if (response.ok) {
-                const data = await response.json();
-                const provider = data.providers?.find((p: any) => p.id === providerId);
-                if (provider) {
-                    setCostEstimate({
-                        provider: providerId,
-                        hourly: provider.minCostPerHour || 0,
-                        monthly: (provider.minCostPerHour || 0) * 24 * 30,
-                    });
-                }
-            }
-        } catch (err) {
-            console.error('Failed to estimate cost:', err);
-        }
-    };
-
-    // Trigger deployment
-    const handleDeploy = async (providerId: string) => {
-        setIsDeploying(providerId);
-        setDeployStatus({ type: null, message: '' });
-
-        try {
-            // For static hosting providers, use the deployment modal
-            if (providerId === 'vercel' || providerId === 'netlify') {
-                setDeploymentOpen(true);
-                setIsDeploying(null);
-                return;
-            }
-
-            // For GPU/cloud providers, call smart deploy API
-            const response = await authenticatedFetch(`${API_URL}/deploy/execute`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    provider: providerId,
-                    projectId: projectId || '',
-                    config: {
-                        resourceType: providerId === 'runpod' ? 'gpu' : 'serverless',
-                        name: `kriptik-deployment-${Date.now()}`,
-                    },
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setDeployStatus({
-                    type: 'success',
-                    message: `Deployment initiated! ID: ${data.deployment.id}`,
-                    provider: providerId,
-                });
-            } else if (data.missingCredential) {
-                setDeployStatus({
-                    type: 'error',
-                    message: `Please connect your ${providerId} account in Integrations`,
-                    provider: providerId,
-                });
-            } else {
-                setDeployStatus({
-                    type: 'error',
-                    message: data.error || 'Deployment failed',
-                    provider: providerId,
-                });
-            }
-        } catch (err) {
-            setDeployStatus({
-                type: 'error',
-                message: 'Failed to initiate deployment',
-                provider: providerId,
-            });
-        } finally {
-            setIsDeploying(null);
-        }
-    };
-
-    return (
-        <div className="space-y-4">
-            <p className="text-sm" style={{ color: '#666' }}>
-                Deploy your app to production with real-time pricing confirmation.
-            </p>
-
-            {/* Status message */}
-            {deployStatus.type && (
-                <div
-                    className="flex items-center gap-2 p-3 rounded-xl text-sm"
-                    style={{
-                        background: deployStatus.type === 'success'
-                            ? 'rgba(16, 185, 129, 0.1)'
-                            : 'rgba(239, 68, 68, 0.1)',
-                        color: deployStatus.type === 'success' ? '#10b981' : '#ef4444',
-                    }}
-                >
-                    {deployStatus.type === 'success' ? (
-                        <StatusIcons.CheckCircleIcon size={16} />
-                    ) : (
-                        <StatusIcons.AlertCircleIcon size={16} />
-                    )}
-                    {deployStatus.message}
-                </div>
-            )}
-
-            {/* Cost estimate */}
-            {costEstimate && (
-                <div
-                    className="p-3 rounded-xl text-sm"
-                    style={{ background: 'rgba(255,200,170,0.2)' }}
-                >
-                    <p className="font-medium" style={{ color: '#c25a00' }}>
-                        {costEstimate.provider.toUpperCase()} Estimated Cost
-                    </p>
-                    <p style={{ color: '#666' }}>
-                        ${costEstimate.hourly.toFixed(2)}/hr • ${costEstimate.monthly.toFixed(0)}/mo
-                    </p>
-                </div>
-            )}
-
-            {providers.map((provider) => (
-                <GlassCard
-                    key={provider.id}
-                    onClick={() => handleEstimateCost(provider.id, provider.type)}
-                >
-                    <div className="flex items-center gap-3">
-                        <span style={{ color: '#1a1a1a' }}>{provider.icon}</span>
-                        <div className="flex-1">
-                            <span className="font-medium" style={{ color: '#1a1a1a' }}>{provider.name}</span>
-                            <p className="text-xs" style={{ color: '#666' }}>
-                                {provider.description}
-                            </p>
-                        </div>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleDeploy(provider.id); }}
-                            disabled={isDeploying === provider.id}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all"
-                            style={{
-                                background: isDeploying === provider.id ? 'rgba(0,0,0,0.05)' : '#c25a00',
-                                color: isDeploying === provider.id ? '#666' : 'white',
-                            }}
-                        >
-                            {isDeploying === provider.id ? (
-                                <>
-                                    <StatusIcons.LoadingIcon size={12} className="animate-spin" />
-                                    Deploying...
-                                </>
-                            ) : (
-                                <>
-                                    <StatusIcons.CloudIcon size={12} />
-                                    Deploy
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </GlassCard>
-            ))}
-        </div>
-    );
-}
-
-// Database Panel Component - Wired to backend services
-function DatabasePanel() {
+function _DatabasePanel() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [dbStatus, setDbStatus] = useState<{ tables: string[]; userCount: number } | null>(null);
     const [schemaStatus, setSchemaStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
@@ -1544,7 +1260,7 @@ function DatabasePanel() {
 }
 
 // Workflows Panel Component - Wired to backend services
-function WorkflowsPanel() {
+function _WorkflowsPanel() {
     const [isImporting, setIsImporting] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [showHFSearch, setShowHFSearch] = useState(false);
@@ -1809,7 +1525,7 @@ function VercelIcon() {
     );
 }
 
-function NetlifyIcon() {
+function _NetlifyIcon() {
     return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5l6.5 3.25L12 11 5.5 7.75 12 4.5z" />

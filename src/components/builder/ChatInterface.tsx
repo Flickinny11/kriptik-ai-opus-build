@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     PaperclipIcon,
     LoadingIcon,
-    ArrowRightIcon,
     ImageIcon,
 } from '../../components/ui/icons';
 import {
@@ -130,13 +129,6 @@ interface Message {
 // Removed model selector - unified orchestration flow
 // All build requests go through full 6-phase orchestration
 // Quick questions use KTN for fast responses automatically
-
-const suggestions = [
-    "Build a dashboard with analytics charts",
-    "Create a user authentication system",
-    "Design a landing page with pricing",
-    "Add a contact form with validation",
-];
 
 // Liquid Glass Button Component
 function GlassButton({
@@ -281,53 +273,6 @@ function LatticeProgressWrapper() {
         >
             <LatticeProgress compact={false} showDetails={true} />
         </div>
-    );
-}
-
-// Suggestion Card
-function SuggestionCard({
-    text,
-    onClick,
-    delay
-}: {
-    text: string;
-    onClick: () => void;
-    delay: number;
-}) {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-        <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            onClick={onClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="w-full text-left p-4 rounded-xl transition-all duration-300 group"
-            style={{
-                background: isHovered
-                    ? 'linear-gradient(145deg, rgba(255,220,200,0.5) 0%, rgba(255,200,170,0.35) 100%)'
-                    : 'linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.3) 100%)',
-                backdropFilter: 'blur(16px)',
-                boxShadow: isHovered
-                    ? `0 8px 24px rgba(255, 140, 100, 0.12), inset 0 0 15px rgba(255, 160, 120, 0.1), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`
-                    : `0 2px 10px rgba(0,0,0,0.04), inset 0 1px 2px rgba(255,255,255,0.8), 0 0 0 1px rgba(255,255,255,0.4)`,
-                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>{text}</span>
-                <ArrowRightIcon
-                    size={16}
-                    className="transition-all duration-300"
-                    style={{
-                        color: isHovered ? '#c25a00' : '#999',
-                        transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
-                    }}
-                />
-            </div>
-        </motion.button>
     );
 }
 
@@ -1396,11 +1341,6 @@ export default function ChatInterface({
         console.log('[ChatInterface] Stop requested - WebSocket closed');
     };
 
-    const handleSuggestionClick = (suggestion: string) => {
-        setInput(suggestion);
-        inputRef.current?.focus();
-    };
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -1454,49 +1394,94 @@ export default function ChatInterface({
                 )}
             </AnimatePresence>
 
-            {/* Header - Liquid Glass */}
+            {/* Header - Liquid Glass 3D */}
             <div
                 className="p-4 flex justify-between items-center shrink-0"
                 style={{
-                    borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 100%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
                 }}
             >
                 <div className="flex items-center gap-3">
+                    {/* 3D Liquid Glass Icon */}
                     <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center relative"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(255,200,170,0.6) 0%, rgba(255,180,150,0.45) 100%)',
-                            boxShadow: `0 4px 12px rgba(255, 140, 100, 0.2), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.7) 50%, rgba(241,245,249,0.8) 100%)',
+                            boxShadow: `
+                                0 8px 32px rgba(0,0,0,0.12),
+                                0 4px 16px rgba(0,0,0,0.08),
+                                0 2px 4px rgba(0,0,0,0.04),
+                                inset 0 2px 4px rgba(255,255,255,1),
+                                inset 0 -1px 2px rgba(0,0,0,0.03),
+                                0 0 0 1px rgba(255,255,255,0.6)
+                            `,
+                            transform: 'perspective(500px) rotateX(2deg)',
                         }}
                     >
-                        <AIAssistantIcon size={22} />
+                        {/* Inner glow */}
+                        <div 
+                            className="absolute inset-1 rounded-xl"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
+                                filter: 'blur(2px)',
+                            }}
+                        />
+                        {/* Icon - Abstract AI symbol */}
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-10">
+                            <path 
+                                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                                stroke="url(#iconGrad)" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                            />
+                            <defs>
+                                <linearGradient id="iconGrad" x1="2" y1="2" x2="22" y2="22">
+                                    <stop offset="0%" stopColor="#f59e0b" />
+                                    <stop offset="100%" stopColor="#d97706" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
                     </div>
                     <div>
-                        <h2 className="font-semibold text-sm" style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}>
-                            {buildWorkflowPhase === 'idle' ? 'Build Orchestrator' :
-                             buildWorkflowPhase === 'generating_plan' ? 'Generating Plan...' :
+                        <h2 
+                            className="font-semibold text-sm tracking-tight"
+                            style={{ 
+                                color: '#1c1917',
+                                fontFamily: 'Cal Sans, system-ui, sans-serif',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.8)',
+                            }}
+                        >
+                            {buildWorkflowPhase === 'idle' ? 'KripTik AI' :
+                             buildWorkflowPhase === 'generating_plan' ? 'Planning...' :
                              buildWorkflowPhase === 'awaiting_plan_approval' ? 'Intent Lock' :
-                             buildWorkflowPhase === 'configuring_stack' ? 'Stack Configuration' :
-                             buildWorkflowPhase === 'awaiting_credentials' ? 'Credentials Required' :
-                             buildWorkflowPhase === 'building' ? 'Building...' :
-                             buildWorkflowPhase === 'complete' ? 'Build Complete' : 'Build Orchestrator'}
+                             buildWorkflowPhase === 'configuring_stack' ? 'Stack Config' :
+                             buildWorkflowPhase === 'awaiting_credentials' ? 'Credentials' :
+                             buildWorkflowPhase === 'building' ? 'Building' :
+                             buildWorkflowPhase === 'complete' ? 'Complete' : 'KripTik AI'}
                         </h2>
-                        <p className="text-xs" style={{
-                            color: buildWorkflowPhase === 'building' ? '#c25a00' :
-                                   buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
-                                   buildWorkflowPhase === 'complete' ? '#059669' :
-                                   globalStatus === 'running' ? '#c25a00' : '#666'
-                        }}>
+                        <p 
+                            className="text-xs"
+                            style={{
+                                color: buildWorkflowPhase === 'building' ? '#b45309' :
+                                       buildWorkflowPhase === 'awaiting_plan_approval' ? '#059669' :
+                                       buildWorkflowPhase === 'complete' ? '#059669' :
+                                       globalStatus === 'running' ? '#b45309' : '#78716c',
+                                fontFamily: 'system-ui, sans-serif',
+                            }}
+                        >
                             {buildWorkflowPhase === 'idle' ? (
-                                globalStatus === 'running' ? 'Agents working...' :
+                                globalStatus === 'running' ? 'Agents active' :
                                 globalStatus === 'paused' ? 'Paused' :
-                                'Enter your vision, we handle the rest'
-                            ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing requirements...' :
-                            buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review and approve plan' :
-                            buildWorkflowPhase === 'configuring_stack' ? 'Select production stack' :
-                            buildWorkflowPhase === 'awaiting_credentials' ? 'Provide API keys' :
-                            buildWorkflowPhase === 'building' ? '6-Phase Orchestration Active' :
-                            buildWorkflowPhase === 'complete' ? 'Ready for demo' : 'Ready'}
+                                'Describe what you want to build'
+                            ) : buildWorkflowPhase === 'generating_plan' ? 'Analyzing...' :
+                            buildWorkflowPhase === 'awaiting_plan_approval' ? 'Review plan' :
+                            buildWorkflowPhase === 'configuring_stack' ? 'Select stack' :
+                            buildWorkflowPhase === 'awaiting_credentials' ? 'API keys needed' :
+                            buildWorkflowPhase === 'building' ? '6-Phase Build Active' :
+                            buildWorkflowPhase === 'complete' ? 'Ready' : 'Ready'}
                         </p>
                     </div>
                 </div>
@@ -1721,49 +1706,9 @@ export default function ChatInterface({
                         </div>
                     </div>
                 ) : (
-                    /* VIEW 5: Default idle state with messages and suggestions */
+                    /* VIEW 5: Default idle state with messages */
                     <ScrollArea className="h-full" ref={scrollRef}>
                         <div className="p-4 space-y-4">
-                            {/* Empty state with suggestions */}
-                            {messages.length === 0 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-center py-8"
-                                >
-                                    <div
-                                        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-                                        style={{
-                                            background: 'linear-gradient(145deg, rgba(255,200,170,0.5) 0%, rgba(255,180,150,0.35) 100%)',
-                                            boxShadow: `0 8px 24px rgba(255, 140, 100, 0.15), inset 0 1px 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(255, 200, 170, 0.4)`,
-                                        }}
-                                    >
-                                        <AIAssistantIcon size={32} />
-                                    </div>
-                                    <h3
-                                        className="text-lg font-semibold mb-2"
-                                        style={{ color: '#1a1a1a', fontFamily: 'Syne, sans-serif' }}
-                                    >
-                                        What would you like to build?
-                                    </h3>
-                                    <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: '#666' }}>
-                                        Describe your app and watch our AI agents build it for you.
-                                    </p>
-
-                                    {/* Suggestions */}
-                                    <div className="space-y-2">
-                                        {suggestions.map((suggestion, i) => (
-                                            <SuggestionCard
-                                                key={i}
-                                                text={suggestion}
-                                                onClick={() => handleSuggestionClick(suggestion)}
-                                                delay={i * 0.1}
-                                            />
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            )}
-
                             {/* Messages */}
                             <AnimatePresence mode="popLayout">
                                 {messages.map((msg) => (
