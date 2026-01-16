@@ -150,6 +150,53 @@ export {
 } from './test-billing.js';
 
 // =============================================================================
+// FLAGSHIP TRAINING SERVICES (Phase 1)
+// =============================================================================
+
+// Training Intent Lock Engine
+export {
+  TrainingIntentLockEngine,
+  createTrainingIntentLockEngine,
+  type TrainingCapability,
+  type TrainingMethod as FlagshipTrainingMethod,
+  type QualityTier,
+  type DataSourceStrategy,
+  type BaseModelRecommendation,
+  type TrainingMethodRecommendation,
+  type DataRequirement as FlagshipDataRequirement,
+  type TechnicalRequirement,
+  type GPURequirement as FlagshipGPURequirement,
+  type CostEstimate,
+  type TrainingSuccessCriterion,
+  type EvaluationStrategy,
+  type ImplementationStep,
+  type TrainingContract,
+  type TrainingIntentLockOptions,
+} from './training-intent-lock.js';
+
+// Training Method Recommender
+export {
+  TrainingMethodRecommender,
+  createTrainingMethodRecommender,
+  type TrainingStage,
+  type TrainingPipeline,
+  type MethodConfig,
+} from './training-method-recommender.js';
+
+// Training Data Strategist
+export {
+  TrainingDataStrategist,
+  createTrainingDataStrategist,
+  type DataSource,
+  type DataValidationResult,
+  type DataPipelineConfig,
+  type DataProcessingStep,
+  type PreferencePair,
+  type PreferencePairConfig,
+  type DataStatistics,
+} from './training-data-strategist.js';
+
+// =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================
 
