@@ -446,11 +446,11 @@ export function ModelCard({ model, index, isDocked = false, onRemove }: ModelCar
         {isDocked && onRemove && (
           <button
             className="model-card-remove"
-            onClick={(e) => { 
+            onClick={(e) => {
               e.preventDefault();
-              e.stopPropagation(); 
+              e.stopPropagation();
               console.log('[ModelCard] Remove clicked for:', model.modelId);
-              onRemove(); 
+              onRemove();
             }}
             onPointerDown={(e) => e.stopPropagation()}
             title="Remove from dock"

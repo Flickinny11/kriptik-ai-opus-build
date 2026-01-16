@@ -32,19 +32,42 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
+  transform-style: preserve-3d;
+  perspective: 800px;
 
-  /* 3D Glass Background */
-  background: linear-gradient(
-    165deg,
-    rgba(35, 35, 50, 0.95) 0%,
-    rgba(25, 25, 40, 0.98) 50%,
-    rgba(20, 20, 35, 1) 100%
-  );
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  /* Multi-layer photorealistic liquid glass */
+  background:
+    /* Top reflection highlight */
+    linear-gradient(
+      178deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.04) 10%,
+      transparent 30%
+    ),
+    /* Main glass body */
+    linear-gradient(
+      165deg,
+      rgba(40, 40, 55, 0.92) 0%,
+      rgba(30, 30, 45, 0.95) 40%,
+      rgba(22, 22, 38, 0.98) 100%
+    );
+  backdrop-filter: blur(50px) saturate(160%);
+  -webkit-backdrop-filter: blur(50px) saturate(160%);
 
-  border: 1px solid var(--dock-glass-border);
+  /* Glass border with refraction effect */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  /* 3D layered shadows */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 8px 40px rgba(0, 0, 0, 0.15);
+
+  /* Smooth GPU-accelerated transitions */
+  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform, box-shadow;
 }
 
 .model-dock--drag-over {

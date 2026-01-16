@@ -341,8 +341,8 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
 
       {/* NLP Prompt Input */}
       {dock.length > 0 && (
-        <div className="model-dock__nlp-section" style={{ padding: '3px 5px', flexShrink: 0 }}>
-          <div className="model-dock__nlp-header" style={{ fontSize: '0.55rem', marginBottom: '2px', gap: '3px' }}>
+        <div className="model-dock__nlp-section" style={{ padding: '4px 6px', flexShrink: 0 }}>
+          <div className="model-dock__nlp-header" style={{ fontSize: '0.55rem', marginBottom: '3px', gap: '3px' }}>
             <SparklesIcon />
             <span>Describe your workflow (optional)</span>
           </div>
@@ -352,13 +352,22 @@ export function ModelDock({ onStartTraining, onDeploy }: ModelDockProps) {
             onChange={(e) => setNlpPrompt(e.target.value)}
             placeholder={
               selectedMode === 'deploy'
-                ? 'e.g., "Create an image generation API with upscaling..."'
+                ? 'e.g., "Create an image generation API..."'
                 : selectedMode === 'finetune'
-                ? 'e.g., "Fine-tune for anime-style images with my dataset..."'
-                : 'e.g., "Train a custom model for lip-sync video generation..."'
+                ? 'e.g., "Fine-tune for anime-style images..."'
+                : 'e.g., "Train a custom model..."'
             }
-            rows={1}
-            style={{ fontSize: '0.6rem', padding: '3px 5px', minHeight: '24px' }}
+            rows={2}
+            style={{ 
+              fontSize: '0.6rem', 
+              padding: '6px 8px', 
+              minHeight: '40px',
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              color: 'rgba(255,255,255,0.9)',
+              resize: 'none',
+            }}
           />
         </div>
       )}

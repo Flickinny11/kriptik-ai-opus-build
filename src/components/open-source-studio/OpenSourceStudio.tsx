@@ -183,7 +183,7 @@ function IntegrationPromptBar({
   };
 
   return (
-    <div 
+    <div
       className="oss-prompt-bar"
       style={{
         padding: '6px 10px',
@@ -196,7 +196,7 @@ function IntegrationPromptBar({
         overflow: 'hidden',
       }}
     >
-      <div 
+      <div
         className="oss-prompt-context"
         style={{
           display: 'flex',
