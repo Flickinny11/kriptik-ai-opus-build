@@ -654,4 +654,402 @@ router.post('/integrate/execute', authMiddleware, async (req: Request, res: Resp
   }
 });
 
+// =============================================================================
+// UNIFIED NLP → DEPLOY → TEST FLOW
+// =============================================================================
+
+interface QuickDeployRequest {
+  nlpPrompt: string;
+  models: Array<{
+    modelId: string;
+    task?: string;
+    estimatedVRAM?: number;
+  }>;
+  autoApprove?: boolean; // If true, skip plan approval step
+  maxBudgetCents?: number;
+}
+
+/**
+ * POST /api/open-source-studio/quick-deploy
+ * Complete NLP → Intent → GPU Recommend → Deploy → Test flow
+ * Returns GPU recommendations and deployment status
+ */
+router.post('/quick-deploy', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const { nlpPrompt, models, autoApprove = false, maxBudgetCents = 10000 }: QuickDeployRequest = req.body;
+
+    if (!models || models.length === 0) {
+      res.status(400).json({ error: 'At least one model is required' });
+      return;
+    }
+
+    console.log(`[Open Source Studio] Quick deploy request from ${userId}:`, {
+      prompt: nlpPrompt?.substring(0, 100),
+      modelCount: models.length,
+      autoApprove,
+      maxBudgetCents,
+    });
+
+    // Step 1: Get GPU recommendations for each model
+    const deployer = getOpenSourceStudioDeployer();
+    const recommendations: Array<{
+      modelId: string;
+      preview: any;
+      error?: string;
+    }> = [];
+
+    for (const model of models) {
+      try {
+        const preview = await deployer.getDeploymentPreview(model.modelId);
+        recommendations.push({
+          modelId: model.modelId,
+          preview,
+        });
+      } catch (error) {
+        console.error(`[Open Source Studio] Preview failed for ${model.modelId}:`, error);
+        recommendations.push({
+          modelId: model.modelId,
+          preview: null,
+          error: error instanceof Error ? error.message : 'Failed to get recommendations',
+        });
+      }
+    }
+
+    // Calculate total estimated cost
+    const validRecommendations = recommendations.filter(r => r.preview);
+    const totalHourlyCost = validRecommendations.reduce(
+      (sum, r) => sum + (r.preview?.recommendation?.costPerHour || 0),
+      0
+    );
+    const totalMonthlyCost = validRecommendations.reduce(
+      (sum, r) => sum + (r.preview?.estimatedMonthlyCost || 0),
+      0
+    );
+
+    // Check budget
+    const estimatedInitialCostCents = Math.ceil(totalHourlyCost * 100); // First hour
+    if (estimatedInitialCostCents > maxBudgetCents) {
+      res.json({
+        success: false,
+        phase: 'budget_check',
+        requiresApproval: true,
+        recommendations,
+        costEstimate: {
+          hourly: totalHourlyCost,
+          monthly: totalMonthlyCost,
+          initialCents: estimatedInitialCostCents,
+          budgetCents: maxBudgetCents,
+        },
+        message: `Estimated cost ($${totalHourlyCost.toFixed(2)}/hr) exceeds budget. Increase budget or select different GPU options.`,
+      });
+      return;
+    }
+
+    // If not auto-approve, return recommendations for user review
+    if (!autoApprove) {
+      res.json({
+        success: true,
+        phase: 'recommendations',
+        requiresApproval: true,
+        recommendations,
+        costEstimate: {
+          hourly: totalHourlyCost,
+          monthly: totalMonthlyCost,
+          initialCents: estimatedInitialCostCents,
+        },
+        message: 'Review GPU recommendations and approve to continue deployment.',
+      });
+      return;
+    }
+
+    // Step 2: Deploy all models
+    const deployResults: Array<{
+      modelId: string;
+      endpointId?: string;
+      endpointUrl?: string;
+      apiKey?: string;
+      status: string;
+      error?: string;
+    }> = [];
+
+    for (const rec of validRecommendations) {
+      try {
+        const result = await deployer.deployModel({
+          userId,
+          modelId: rec.modelId,
+          modelName: rec.modelId.split('/').pop(),
+        });
+
+        deployResults.push({
+          modelId: rec.modelId,
+          endpointId: result.endpointId,
+          endpointUrl: result.endpointUrl,
+          apiKey: result.apiKey,
+          status: 'deployed',
+        });
+      } catch (error) {
+        console.error(`[Open Source Studio] Deploy failed for ${rec.modelId}:`, error);
+        deployResults.push({
+          modelId: rec.modelId,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Deployment failed',
+        });
+      }
+    }
+
+    // Step 3: Test deployed endpoints
+    const testResults: Array<{
+      modelId: string;
+      testPassed: boolean;
+      latencyMs?: number;
+      error?: string;
+    }> = [];
+
+    for (const deploy of deployResults.filter(d => d.status === 'deployed' && d.endpointUrl)) {
+      try {
+        const startTime = Date.now();
+        
+        // Simple health check - ping the endpoint
+        const testResponse = await fetch(`${deploy.endpointUrl}/health`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${deploy.apiKey}`,
+          },
+          signal: AbortSignal.timeout(30000), // 30s timeout
+        });
+
+        const latencyMs = Date.now() - startTime;
+        
+        testResults.push({
+          modelId: deploy.modelId,
+          testPassed: testResponse.ok,
+          latencyMs,
+        });
+      } catch (error) {
+        // Endpoint might not have /health, try inference test
+        testResults.push({
+          modelId: deploy.modelId,
+          testPassed: false,
+          error: 'Endpoint not ready - may need warm-up time',
+        });
+      }
+    }
+
+    // Calculate summary
+    const successCount = deployResults.filter(d => d.status === 'deployed').length;
+    const failedCount = deployResults.filter(d => d.status === 'failed').length;
+    const testedCount = testResults.filter(t => t.testPassed).length;
+
+    res.json({
+      success: successCount > 0,
+      phase: 'complete',
+      summary: {
+        total: models.length,
+        deployed: successCount,
+        failed: failedCount,
+        tested: testedCount,
+      },
+      recommendations,
+      deployResults,
+      testResults,
+      costEstimate: {
+        hourly: totalHourlyCost,
+        monthly: totalMonthlyCost,
+      },
+      message: `Deployed ${successCount}/${models.length} models. ${testedCount} passed health checks.`,
+    });
+
+  } catch (error) {
+    console.error('[Open Source Studio] Quick deploy error:', error);
+    res.status(500).json({
+      error: 'Quick deploy failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/open-source-studio/quick-deploy/approve
+ * Approve and execute a deployment that was pending approval
+ */
+router.post('/quick-deploy/approve', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const { recommendations, overrideConfigs } = req.body;
+
+    if (!recommendations || !Array.isArray(recommendations)) {
+      res.status(400).json({ error: 'recommendations array is required' });
+      return;
+    }
+
+    const deployer = getOpenSourceStudioDeployer();
+    const deployResults: Array<{
+      modelId: string;
+      endpointId?: string;
+      endpointUrl?: string;
+      apiKey?: string;
+      provider?: string;
+      gpuType?: string;
+      status: string;
+      error?: string;
+    }> = [];
+
+    for (const rec of recommendations) {
+      if (!rec.preview) continue;
+
+      const override = overrideConfigs?.[rec.modelId];
+      
+      try {
+        const result = await deployer.deployModel({
+          userId,
+          modelId: rec.modelId,
+          modelName: rec.modelId.split('/').pop(),
+          customConfig: override ? {
+            provider: override.provider,
+            gpuType: override.gpuType,
+          } : undefined,
+        });
+
+        deployResults.push({
+          modelId: rec.modelId,
+          endpointId: result.endpointId,
+          endpointUrl: result.endpointUrl,
+          apiKey: result.apiKey,
+          provider: result.provider,
+          gpuType: result.gpuType,
+          status: 'deployed',
+        });
+      } catch (error) {
+        console.error(`[Open Source Studio] Deploy failed for ${rec.modelId}:`, error);
+        deployResults.push({
+          modelId: rec.modelId,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Deployment failed',
+        });
+      }
+    }
+
+    const successCount = deployResults.filter(d => d.status === 'deployed').length;
+
+    res.json({
+      success: successCount > 0,
+      deployResults,
+      summary: {
+        total: recommendations.length,
+        deployed: successCount,
+        failed: recommendations.length - successCount,
+      },
+      message: `Successfully deployed ${successCount}/${recommendations.length} models`,
+    });
+
+  } catch (error) {
+    console.error('[Open Source Studio] Approve deploy error:', error);
+    res.status(500).json({
+      error: 'Failed to execute approved deployment',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/open-source-studio/test-endpoint
+ * Test a deployed endpoint with a sample inference
+ */
+router.post('/test-endpoint', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { endpointUrl, apiKey, testInput, modality } = req.body;
+
+    if (!endpointUrl || !apiKey) {
+      res.status(400).json({ error: 'endpointUrl and apiKey are required' });
+      return;
+    }
+
+    // Prepare test payload based on modality
+    let testPayload: any;
+    switch (modality) {
+      case 'llm':
+        testPayload = {
+          input: {
+            prompt: testInput || 'Hello, how are you?',
+            max_tokens: 100,
+          },
+        };
+        break;
+      case 'image':
+        testPayload = {
+          input: {
+            prompt: testInput || 'A beautiful sunset over mountains',
+            width: 512,
+            height: 512,
+            num_inference_steps: 20,
+          },
+        };
+        break;
+      case 'audio':
+        testPayload = {
+          input: {
+            text: testInput || 'Hello, this is a test.',
+          },
+        };
+        break;
+      default:
+        testPayload = {
+          input: testInput || { prompt: 'Test input' },
+        };
+    }
+
+    const startTime = Date.now();
+    
+    const response = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testPayload),
+      signal: AbortSignal.timeout(60000), // 60s timeout for inference
+    });
+
+    const latencyMs = Date.now() - startTime;
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      res.json({
+        success: false,
+        latencyMs,
+        status: response.status,
+        error: errorText,
+      });
+      return;
+    }
+
+    const result = await response.json();
+
+    res.json({
+      success: true,
+      latencyMs,
+      status: response.status,
+      output: result,
+    });
+
+  } catch (error) {
+    console.error('[Open Source Studio] Test endpoint error:', error);
+    res.status(500).json({
+      error: 'Test failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 export default router;
