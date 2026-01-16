@@ -13,10 +13,10 @@ import { userCredentials } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
-import { CredentialVault } from '../services/security/credential-vault.js';
+import { getCredentialVault } from '../services/security/credential-vault.js';
 
-// Initialize credential vault for proper token storage
-const vault = new CredentialVault();
+// Use singleton credential vault for consistent encryption/decryption
+const getVault = () => getCredentialVault();
 
 const router = Router();
 
@@ -261,8 +261,8 @@ router.post('/validate-token', authMiddleware, async (req: Request, res: Respons
         };
 
         // Use the credential vault to properly store with oauthAccessToken
-        // This allows services to retrieve via vault.getCredential(userId, 'huggingface').oauthAccessToken
-        await vault.storeCredential(userId, 'huggingface', credentialData, {
+        // This allows services to retrieve via getVault().getCredential(userId, 'huggingface').oauthAccessToken
+        await getVault().storeCredential(userId, 'huggingface', credentialData, {
           connectionName: result.username || 'HuggingFace',
           oauthProvider: 'huggingface',
           oauthAccessToken: token, // Store the actual token here for retrieval
@@ -270,45 +270,15 @@ router.post('/validate-token', authMiddleware, async (req: Request, res: Respons
 
         console.log(`[HuggingFace Auth] Token stored successfully for user ${userId}`);
       } catch (storeError) {
-        console.error('[HuggingFace Auth] Failed to store token via credential vault:', storeError);
-        // Fallback: direct DB insert with legacy method for backwards compatibility
-        const { encrypted, iv } = encryptToken(token);
-        const authTag = encrypted.split(':')[1] || '';
-
-        const existing = await db.select()
-          .from(userCredentials)
-          .where(and(
-            eq(userCredentials.userId, userId),
-            eq(userCredentials.integrationId, 'huggingface')
-          ))
-          .limit(1);
-
-        if (existing.length > 0) {
-          await db.update(userCredentials)
-            .set({
-              encryptedData: encrypted.split(':')[0],
-              iv,
-              authTag,
-              connectionName: result.username || 'HuggingFace',
-              lastValidatedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(userCredentials.id, existing[0].id));
-        } else {
-          await db.insert(userCredentials).values({
-            id: crypto.randomUUID(),
-            userId,
-            integrationId: 'huggingface',
-            encryptedData: encrypted.split(':')[0],
-            iv,
-            authTag,
-            connectionName: result.username || 'HuggingFace',
-            isActive: true,
-            lastValidatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        }
+        // Log the error but don't fail the request - token was validated successfully
+        // Storage failure shouldn't block the user from using the validated token
+        console.error('[HuggingFace Auth] Failed to store token:', storeError);
+        console.error('[HuggingFace Auth] Storage error details:', {
+          message: storeError instanceof Error ? storeError.message : 'Unknown',
+          stack: storeError instanceof Error ? storeError.stack : undefined,
+        });
+        // Continue - we'll return success since the token is valid
+        // User can re-try storage or use the token for this session
       }
     }
 
@@ -348,7 +318,7 @@ router.get('/status', authMiddleware, async (req: Request, res: Response): Promi
     // Use the credential vault to properly retrieve and decrypt the token
     console.log('[HuggingFace Auth] Getting credential from vault...');
     try {
-      const credential = await vault.getCredential(userId, 'huggingface');
+      const credential = await getVault().getCredential(userId, 'huggingface');
 
       if (!credential) {
         console.log('[HuggingFace Auth] No credential found in vault');
@@ -448,7 +418,7 @@ router.get('/token', authMiddleware, async (req: Request, res: Response): Promis
     }
 
     // First, try the credential vault (preferred method with oauthAccessToken)
-    const credential = await vault.getCredential(userId, 'huggingface');
+    const credential = await getVault().getCredential(userId, 'huggingface');
 
     if (credential && credential.oauthAccessToken) {
       res.json({
