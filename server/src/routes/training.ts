@@ -2028,4 +2028,234 @@ trainingRouter.get('/jobs/:jobId/checkpoints', authMiddleware, async (req: Reque
   }
 });
 
+// =============================================================================
+// MODEL TESTING (Phase 5)
+// =============================================================================
+
+import { getUniversalModelTesterService } from '../services/training/index.js';
+
+/**
+ * POST /api/training/test/deploy
+ * Deploy models for testing
+ */
+trainingRouter.post('/test/deploy', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { pretrainedModel, finetunedModel, modality, expiryMinutes } = req.body;
+
+    if (!pretrainedModel || !finetunedModel || !modality) {
+      return res.status(400).json({ error: 'Missing required fields: pretrainedModel, finetunedModel, modality' });
+    }
+
+    const tester = getUniversalModelTesterService();
+    await tester.initialize(userId);
+
+    const session = await tester.createTestSession({
+      pretrainedModel,
+      finetunedModel,
+      modality,
+      expiryMinutes: expiryMinutes || 10,
+    });
+
+    res.json({
+      session,
+      originalEndpoint: session.pretrainedEndpoint?.url,
+      fineTunedEndpoint: session.finetunedEndpoint?.url,
+    });
+  } catch (error) {
+    console.error('[Training API] Test deploy error:', error);
+    res.status(500).json({ error: 'Failed to deploy test endpoints' });
+  }
+});
+
+/**
+ * POST /api/training/test/run
+ * Run a single test on a model
+ */
+trainingRouter.post('/test/run', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { modelId, modality, textPrompt, imageInput, audioInput, maxTokens, temperature, steps, guidance } = req.body;
+
+    if (!modelId || !modality) {
+      return res.status(400).json({ error: 'Missing required fields: modelId, modality' });
+    }
+
+    const tester = getUniversalModelTesterService();
+    await tester.initialize(userId);
+
+    const result = await tester.runTest({
+      modelId,
+      modality,
+      textPrompt,
+      imageInput,
+      audioInput,
+      maxTokens,
+      temperature,
+      steps,
+      guidance,
+    });
+
+    res.json({ result });
+  } catch (error) {
+    console.error('[Training API] Test run error:', error);
+    res.status(500).json({ error: 'Failed to run test' });
+  }
+});
+
+/**
+ * POST /api/training/test/compare
+ * Run comparison between pretrained and finetuned models
+ */
+trainingRouter.post('/test/compare', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { pretrainedModelId, finetunedModelId, modality, textPrompt, imageInput, maxTokens, temperature } = req.body;
+
+    if (!pretrainedModelId || !finetunedModelId || !modality) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const tester = getUniversalModelTesterService();
+    await tester.initialize(userId);
+
+    const result = await tester.runComparison(
+      pretrainedModelId,
+      finetunedModelId,
+      {
+        modelId: pretrainedModelId,
+        modality,
+        textPrompt,
+        imageInput,
+        maxTokens,
+        temperature,
+      }
+    );
+
+    res.json({
+      result,
+      original: result.pretrained,
+      finetuned: result.finetuned,
+      cost: result.pretrained.cost + result.finetuned.cost,
+    });
+  } catch (error) {
+    console.error('[Training API] Test compare error:', error);
+    res.status(500).json({ error: 'Failed to run comparison' });
+  }
+});
+
+/**
+ * GET /api/training/test/sessions/:sessionId
+ * Get test session status
+ */
+trainingRouter.get('/test/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { sessionId } = req.params;
+
+    const tester = getUniversalModelTesterService();
+    const session = tester.getTestSession(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json({ session });
+  } catch (error) {
+    console.error('[Training API] Get session error:', error);
+    res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+/**
+ * PUT /api/training/test/sessions/:sessionId/extend
+ * Extend test session
+ */
+trainingRouter.put('/test/sessions/:sessionId/extend', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { sessionId } = req.params;
+    const { minutes } = req.body;
+
+    if (!minutes || minutes < 1 || minutes > 60) {
+      return res.status(400).json({ error: 'Invalid minutes (1-60)' });
+    }
+
+    const tester = getUniversalModelTesterService();
+    const session = tester.getTestSession(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const extended = await tester.extendTestSession(sessionId, minutes);
+
+    res.json({ session: extended });
+  } catch (error) {
+    console.error('[Training API] Extend session error:', error);
+    res.status(500).json({ error: 'Failed to extend session' });
+  }
+});
+
+/**
+ * DELETE /api/training/test/sessions/:sessionId
+ * End and cleanup test session
+ */
+trainingRouter.delete('/test/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { sessionId } = req.params;
+
+    const tester = getUniversalModelTesterService();
+    const session = tester.getTestSession(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await tester.endTestSession(sessionId);
+
+    res.json({ success: true, message: 'Session terminated' });
+  } catch (error) {
+    console.error('[Training API] Delete session error:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
 export default trainingRouter;

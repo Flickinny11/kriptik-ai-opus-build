@@ -304,6 +304,21 @@ export {
   type BudgetManagerConfig,
 } from './budget-manager.js';
 
+// Universal Model Tester Service (Phase 5)
+export {
+  UniversalModelTesterService,
+  getUniversalModelTesterService,
+  createUniversalModelTesterService,
+  type ExtendedModality,
+  type TestRequest,
+  type TestResult,
+  type ComparisonResult as TesterComparisonResult,
+  type ComparisonMetrics as TesterComparisonMetrics,
+  type InferenceEndpoint,
+  type TestSession,
+  type DeployConfig,
+} from './universal-model-tester.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================

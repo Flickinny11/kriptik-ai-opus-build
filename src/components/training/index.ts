@@ -23,5 +23,23 @@ export { TrainingProgressEnhanced } from './TrainingProgressEnhanced';
 export { BudgetFreezeOverlay } from './BudgetFreezeOverlay';
 export { TrainingResumePage } from './TrainingResumePage';
 
+// Phase 5: Model Testing & Comparison
+export { UniversalModelTester } from './UniversalModelTester';
+export { ComparisonView } from './ComparisonView';
+export { QuickTestPanel } from './QuickTestPanel';
+
+// Input Components
+export { TextPromptInput } from './inputs/TextPromptInput';
+export { ImageInput } from './inputs/ImageInput';
+export { AudioInput } from './inputs/AudioInput';
+export { VideoInput } from './inputs/VideoInput';
+export { CodeInput } from './inputs/CodeInput';
+
+// Output Components
+export { TextOutput } from './outputs/TextOutput';
+export { ImageOutput } from './outputs/ImageOutput';
+export { AudioOutput } from './outputs/AudioOutput';
+export { VideoOutput } from './outputs/VideoOutput';
+
 // Re-export types
 export * from './types';
