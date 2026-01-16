@@ -41,5 +41,9 @@ export { ImageOutput } from './outputs/ImageOutput';
 export { AudioOutput } from './outputs/AudioOutput';
 export { VideoOutput } from './outputs/VideoOutput';
 
+// Phase 6: Notification Components
+export { TrainingNotificationBell } from './TrainingNotificationBell';
+export { NotificationPreferencesPanel } from './NotificationPreferencesPanel';
+
 // Re-export types
 export * from './types';

@@ -319,6 +319,17 @@ export {
   type DeployConfig,
 } from './universal-model-tester.js';
 
+// Training Notification Service (Phase 6)
+export {
+  TrainingNotificationService,
+  getTrainingNotificationService,
+  createTrainingNotificationService,
+  type TrainingResult as NotificationTrainingResult,
+  type StageResult as NotificationStageResult,
+  type TrainingNotificationPreferences,
+  type TrainingNotificationPayload,
+} from './training-notifications.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================

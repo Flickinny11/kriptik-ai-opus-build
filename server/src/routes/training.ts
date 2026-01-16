@@ -2258,4 +2258,155 @@ trainingRouter.delete('/test/sessions/:sessionId', authMiddleware, async (req: R
   }
 });
 
+// =============================================================================
+// TRAINING NOTIFICATIONS (Phase 6)
+// =============================================================================
+
+import { getTrainingNotificationService } from '../services/training/index.js';
+
+/**
+ * GET /api/training/notifications/stream
+ * SSE stream for training notifications
+ */
+trainingRouter.get('/notifications/stream', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const notificationService = getTrainingNotificationService();
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'connected', userId })}\n\n`);
+
+    // Listen for notifications
+    const handleNotification = (data: { payload: unknown; channels: string[] }) => {
+      const payload = data.payload as { userId: string };
+      if (payload.userId === userId) {
+        res.write(`data: ${JSON.stringify({ type: 'notification', payload: data.payload })}\n\n`);
+      }
+    };
+
+    notificationService.on('notificationSent', handleNotification);
+
+    // Heartbeat every 30 seconds
+    const heartbeat = setInterval(() => {
+      res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() })}\n\n`);
+    }, 30000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+      notificationService.off('notificationSent', handleNotification);
+      clearInterval(heartbeat);
+    });
+  } catch (error) {
+    console.error('[Training API] Notification stream error:', error);
+    res.status(500).json({ error: 'Failed to start notification stream' });
+  }
+});
+
+/**
+ * GET /api/training/notifications/preferences
+ * Get training notification preferences
+ */
+trainingRouter.get('/notifications/preferences', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const notificationService = getTrainingNotificationService();
+    const prefs = await notificationService.getPreferences(userId);
+
+    res.json({ preferences: prefs });
+  } catch (error) {
+    console.error('[Training API] Get notification preferences error:', error);
+    res.status(500).json({ error: 'Failed to get notification preferences' });
+  }
+});
+
+/**
+ * PUT /api/training/notifications/preferences
+ * Update training notification preferences
+ */
+trainingRouter.put('/notifications/preferences', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const {
+      emailEnabled,
+      smsEnabled,
+      inAppEnabled,
+      alertOnBudgetPercent,
+      alertOnStageComplete,
+      alertOnError,
+      alertOnComplete,
+      quietHoursEnabled,
+      quietHoursStart,
+      quietHoursEnd,
+      timezone,
+    } = req.body;
+
+    const notificationService = getTrainingNotificationService();
+
+    await notificationService.updatePreferences(userId, {
+      emailEnabled,
+      smsEnabled,
+      inAppEnabled,
+      alertOnBudgetPercent,
+      alertOnStageComplete,
+      alertOnError,
+      alertOnComplete,
+      quietHoursEnabled,
+      quietHoursStart,
+      quietHoursEnd,
+      timezone,
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Training API] Update notification preferences error:', error);
+    res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+});
+
+/**
+ * POST /api/training/notifications/test
+ * Send a test notification
+ */
+trainingRouter.post('/notifications/test', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { channel } = req.body;
+
+    const notificationService = getTrainingNotificationService();
+
+    // Create a test job ID
+    const testJobId = `test-${Date.now()}`;
+
+    // Send test notification based on channel
+    await notificationService.sendBudgetAlert(testJobId, 85);
+
+    res.json({ success: true, message: 'Test notification sent' });
+  } catch (error) {
+    console.error('[Training API] Test notification error:', error);
+    res.status(500).json({ error: 'Failed to send test notification' });
+  }
+});
+
 export default trainingRouter;
