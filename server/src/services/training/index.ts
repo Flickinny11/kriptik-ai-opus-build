@@ -216,6 +216,65 @@ export {
   type PlanChange,
 } from './training-plan-generator.js';
 
+// Training Environment Orchestrator (Phase 3)
+export {
+  TrainingEnvironmentOrchestrator,
+  getTrainingEnvironmentOrchestrator,
+  createTrainingEnvironmentOrchestrator,
+  type SetupStageStatus,
+  type EnvironmentStatus,
+  type SetupLog,
+  type SetupStage,
+  type GPUPod,
+  type StorageMount,
+  type NetworkConfig,
+  type TrainingFrameworkConfig,
+  type DataPipelineSetup,
+  type MonitoringSetup,
+  type EnvironmentSetup,
+  type DistributedEnvironment,
+  type SetupProgressEvent,
+} from './training-environment-orchestrator.js';
+
+// Training Executors (Phase 3)
+export {
+  // Executors
+  DoRAExecutor,
+  createDoRAExecutor,
+  DPOExecutor,
+  createDPOExecutor,
+  RLHFExecutor,
+  createRLHFExecutor,
+  DeepSpeedExecutor,
+  createDeepSpeedExecutor,
+  MoEDiffusionExecutor,
+  createMoEDiffusionExecutor,
+  MultiStageExecutor,
+  createMultiStageExecutor,
+  // Factory
+  getExecutor,
+  createExecutor,
+  isMethodSupported,
+  getSupportedMethods,
+  getExecutorMetadata,
+  // Types
+  type ExecutorMethod,
+  type TrainingExecutor as FlagshipTrainingExecutor,
+  type TrainingProgress as ExecutorTrainingProgress,
+  type TrainingResult as ExecutorTrainingResult,
+  type TrainingCheckpoint as ExecutorTrainingCheckpoint,
+  type TrainingMetrics as ExecutorTrainingMetrics,
+  type BaseExecutorConfig,
+  type DoRAConfig,
+  type DPOConfig,
+  type RLHFConfig,
+  type DeepSpeedConfig,
+  type MoEDiffusionConfig,
+  type MultiStageConfig,
+  type StageConfig,
+  type StageResult,
+} from './executors/index.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================
