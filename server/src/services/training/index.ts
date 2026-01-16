@@ -275,6 +275,35 @@ export {
   type StageResult,
 } from './executors/index.js';
 
+// Training Monitor Service (Phase 4)
+export {
+  TrainingMonitorService,
+  getTrainingMonitorService,
+  createTrainingMonitorService,
+  type TrainingMetrics as MonitorTrainingMetrics,
+  type CheckpointInfo as MonitorCheckpointInfo,
+  type CurrentDataSample,
+  type PipelineProgress,
+  type StageResult as MonitorStageResult,
+  type QualityCheckpoint,
+  type LogEntry,
+  type MonitoringConfig,
+} from './training-monitor.js';
+
+// Budget Manager Service (Phase 4)
+export {
+  BudgetManagerService,
+  getBudgetManagerService,
+  createBudgetManagerService,
+  type BudgetStatus,
+  type NotificationChannel as BudgetNotificationChannel,
+  type BudgetState,
+  type NotificationRecord,
+  type FreezeState,
+  type ResumeResult,
+  type BudgetManagerConfig,
+} from './budget-manager.js';
+
 // =============================================================================
 // DEFAULT CONFIGURATIONS
 // =============================================================================

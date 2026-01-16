@@ -1673,4 +1673,359 @@ trainingRouter.get('/plans', authMiddleware, async (req: Request, res: Response)
   }
 });
 
+// =============================================================================
+// BUDGET MANAGEMENT (Phase 4)
+// =============================================================================
+
+import {
+  getTrainingMonitorService,
+  getBudgetManagerService,
+} from '../services/training/index.js';
+
+/**
+ * GET /api/training/jobs/:jobId/budget
+ * Get budget state for a training job
+ */
+trainingRouter.get('/jobs/:jobId/budget', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const budgetManager = getBudgetManagerService();
+    const budgetState = budgetManager.getBudgetState(jobId);
+
+    if (!budgetState) {
+      return res.status(404).json({ error: 'Budget tracking not initialized for this job' });
+    }
+
+    res.json({
+      budget: budgetState,
+    });
+  } catch (error) {
+    console.error('[Training API] Get budget error:', error);
+    res.status(500).json({ error: 'Failed to get budget state' });
+  }
+});
+
+/**
+ * PUT /api/training/jobs/:jobId/budget
+ * Update budget for a training job
+ */
+trainingRouter.put('/jobs/:jobId/budget', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+    const { maxBudget } = req.body;
+
+    if (typeof maxBudget !== 'number' || maxBudget <= 0) {
+      return res.status(400).json({ error: 'Invalid maxBudget value' });
+    }
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const budgetManager = getBudgetManagerService();
+    const updatedState = await budgetManager.updateBudget(jobId, maxBudget);
+
+    if (!updatedState) {
+      return res.status(404).json({ error: 'Budget tracking not initialized for this job' });
+    }
+
+    res.json({
+      success: true,
+      budget: updatedState,
+    });
+  } catch (error) {
+    console.error('[Training API] Update budget error:', error);
+    res.status(500).json({ error: 'Failed to update budget' });
+  }
+});
+
+/**
+ * POST /api/training/jobs/:jobId/freeze
+ * Manually freeze training job
+ */
+trainingRouter.post('/jobs/:jobId/freeze', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.status !== 'running') {
+      return res.status(400).json({ error: 'Can only freeze running jobs' });
+    }
+
+    const budgetManager = getBudgetManagerService();
+    const freezeState = await budgetManager.freezeTraining(jobId);
+
+    res.json({
+      success: true,
+      freezeState,
+    });
+  } catch (error) {
+    console.error('[Training API] Freeze training error:', error);
+    res.status(500).json({ error: 'Failed to freeze training' });
+  }
+});
+
+/**
+ * POST /api/training/jobs/:jobId/resume
+ * Resume training from freeze
+ */
+trainingRouter.post('/jobs/:jobId/resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+    const { token, newBudget } = req.body;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const budgetManager = getBudgetManagerService();
+
+    // Validate token if provided
+    if (token && !budgetManager.validateResumeToken(jobId, token)) {
+      return res.status(401).json({ error: 'Invalid or expired resume token' });
+    }
+
+    const result = await budgetManager.resumeTraining(
+      jobId,
+      token || 'owner', // Owner doesn't need token
+      newBudget
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('[Training API] Resume training error:', error);
+    res.status(500).json({ error: 'Failed to resume training' });
+  }
+});
+
+/**
+ * GET /api/training/resume/:jobId
+ * Resume page endpoint (for email/SMS links)
+ */
+trainingRouter.get('/resume/:jobId', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Resume token required' });
+    }
+
+    const budgetManager = getBudgetManagerService();
+
+    // Validate token
+    if (!budgetManager.validateResumeToken(jobId, token as string)) {
+      return res.status(401).json({ error: 'Invalid or expired resume token' });
+    }
+
+    const freezeState = budgetManager.getFreezeState(jobId);
+    const budgetState = budgetManager.getBudgetState(jobId);
+
+    if (!freezeState || !budgetState) {
+      return res.status(404).json({ error: 'Freeze state not found' });
+    }
+
+    res.json({
+      jobId,
+      freezeState,
+      budgetState,
+      canResume: true,
+    });
+  } catch (error) {
+    console.error('[Training API] Resume page error:', error);
+    res.status(500).json({ error: 'Failed to get resume state' });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:jobId/metrics/stream
+ * Stream real-time training metrics via SSE
+ */
+trainingRouter.get('/jobs/:jobId/metrics/stream', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const monitor = getTrainingMonitorService();
+
+    // Stream metrics
+    try {
+      for await (const metrics of monitor.streamMetrics(jobId)) {
+        res.write(`data: ${JSON.stringify(metrics)}\n\n`);
+      }
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : 'Stream error' })}\n\n`);
+    }
+
+    res.end();
+  } catch (error) {
+    console.error('[Training API] Metrics stream error:', error);
+    res.status(500).json({ error: 'Failed to stream metrics' });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:jobId/logs/stream
+ * Stream training logs via SSE
+ */
+trainingRouter.get('/jobs/:jobId/logs/stream', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+    const { filter } = req.query;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const monitor = getTrainingMonitorService();
+
+    // Stream logs
+    try {
+      for await (const log of monitor.streamLogs(jobId, filter as any)) {
+        res.write(`data: ${JSON.stringify(log)}\n\n`);
+      }
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : 'Stream error' })}\n\n`);
+    }
+
+    res.end();
+  } catch (error) {
+    console.error('[Training API] Logs stream error:', error);
+    res.status(500).json({ error: 'Failed to stream logs' });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:jobId/pipeline
+ * Get pipeline progress for multi-stage training
+ */
+trainingRouter.get('/jobs/:jobId/pipeline', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const monitor = getTrainingMonitorService();
+    const pipelineProgress = await monitor.getPipelineProgress(jobId);
+
+    if (!pipelineProgress) {
+      return res.status(404).json({ error: 'Pipeline progress not available' });
+    }
+
+    res.json({
+      pipeline: pipelineProgress,
+    });
+  } catch (error) {
+    console.error('[Training API] Pipeline progress error:', error);
+    res.status(500).json({ error: 'Failed to get pipeline progress' });
+  }
+});
+
+/**
+ * GET /api/training/jobs/:jobId/checkpoints
+ * Get checkpoint history for a training job
+ */
+trainingRouter.get('/jobs/:jobId/checkpoints', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId } = req.params;
+
+    // Verify job belongs to user
+    const [job] = await db.select().from(trainingJobs).where(eq(trainingJobs.id, jobId)).limit(1);
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const monitor = getTrainingMonitorService();
+    const checkpoints = monitor.getCheckpointHistory(jobId);
+    const qualityCheckpoints = monitor.getQualityCheckpoints(jobId);
+
+    res.json({
+      checkpoints,
+      qualityCheckpoints,
+    });
+  } catch (error) {
+    console.error('[Training API] Checkpoints error:', error);
+    res.status(500).json({ error: 'Failed to get checkpoints' });
+  }
+});
+
 export default trainingRouter;

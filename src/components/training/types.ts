@@ -129,3 +129,97 @@ export interface ComparisonResult {
   qualityDelta?: number;
   userPreference?: 'base' | 'finetuned' | 'equal';
 }
+
+// Phase 4: Budget Management Types
+export type BudgetStatus = 
+  | 'within_budget' 
+  | 'approaching_alert' 
+  | 'alert_sent' 
+  | 'approaching_freeze' 
+  | 'frozen' 
+  | 'resumed' 
+  | 'completed';
+
+export interface BudgetState {
+  jobId: string;
+  userId: string;
+  maxBudget: number;
+  alertThreshold: number;
+  freezeThreshold: number;
+  currentSpend: number;
+  estimatedTotalSpend: number;
+  spendRate: number;
+  status: BudgetStatus;
+  notificationChannels: ('email' | 'sms' | 'in_app')[];
+  updatedAt: string;
+}
+
+export interface FreezeState {
+  jobId: string;
+  checkpoint: CheckpointInfo;
+  frozenAt: string;
+  currentSpend: number;
+  percentUsed: number;
+  canResume: boolean;
+  resumeUrl: string;
+  expiresAt: string;
+}
+
+export interface CheckpointInfo {
+  id: string;
+  step: number;
+  epoch: number;
+  loss: number;
+  path: string;
+  sizeBytes: number;
+  createdAt: string;
+  metrics?: Record<string, number>;
+}
+
+export interface QualityCheckpoint {
+  id: string;
+  jobId: string;
+  step: number;
+  epoch: number;
+  timestamp: string;
+  metrics: {
+    loss: number;
+    evalLoss?: number;
+    customMetrics: Record<string, number>;
+  };
+  sample: {
+    input: unknown;
+    output: unknown;
+    expected?: unknown;
+  };
+}
+
+export interface PipelineProgress {
+  currentStage: number;
+  totalStages: number;
+  stageName: string;
+  stageMethod: string;
+  stageProgress: number;
+  completedStages: StageResult[];
+  remainingStages: string[];
+}
+
+export interface StageResult {
+  stageId: string;
+  stageName: string;
+  method: string;
+  startedAt: string;
+  completedAt: string;
+  duration: number;
+  finalLoss: number;
+  checkpointPath: string;
+}
+
+export interface CurrentDataSample {
+  index: number;
+  content: unknown;
+  contentType: 'text' | 'image' | 'audio' | 'video';
+  preview: string;
+  source: string;
+  timestamp: string;
+}
